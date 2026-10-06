@@ -38,6 +38,11 @@ services:
     # Horizon يدير عمال الطوابير ولوحة مراقبتها على /horizon (للمشرف العام فقط)
     command: php artisan horizon
 
+  scheduler:
+    <<: *php
+    # المهام المجدولة في routes/console.php، ومنها مسح سجل العمليات بعد مدة الاحتفاظ
+    command: php artisan schedule:work
+
   vite:
     image: node:22-bookworm-slim
     working_dir: /app
