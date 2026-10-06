@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -21,10 +22,20 @@ use Illuminate\Database\Eloquent\Builder;
 
 class UsersTable
 {
+    /**
+     * رقم الجوال المنسوخ بمسافات (+966 51 234 9876) يُبحث به كاملاً، وإلا صار كل جزء
+     * منه كلمة مستقلة، ورمز الدولة وحده لا يطابق شيئاً. وبقية البحث بالكلمات كالمعتاد.
+     */
+    public static function isPhoneSearch(?string $search): bool
+    {
+        return preg_match('/^[\s+\-()]*\d[\d\s+\-()]*$/', Digits::latin((string) $search)) === 1;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->splitSearchTerms(fn (HasTable $livewire): bool => ! self::isPhoneSearch($livewire->getTableSearch()))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('users.fields.name'))

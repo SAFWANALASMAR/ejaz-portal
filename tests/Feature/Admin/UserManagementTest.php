@@ -46,12 +46,29 @@ it('finds a user by any spelling of the phone number', function () {
 
     $this->actingAs($this->admin);
 
-    foreach (['0512349876', '051 234 9876', '٠٥١٢٣٤٩٨٧٦', '+966512349876', '512349876'] as $search) {
+    $spellings = [
+        '0512349876', '051 234 9876', '٠٥١٢٣٤٩٨٧٦', '+966512349876', '512349876',
+        '+966 51 234 9876', '00966 512349876', '966 512349876', '+966-51-234-9876', '+٩٦٦ ٥١ ٢٣٤ ٩٨٧٦',
+    ];
+
+    foreach ($spellings as $search) {
         Livewire::test(ListUsers::class)
             ->searchTable($search)
             ->assertCanSeeTableRecords([$member])
             ->assertCountTableRecords(1);
     }
+});
+
+it('still searches names word by word', function () {
+    $member = User::factory()->create(['name' => 'محمد بن سعد العتيبي']);
+    User::factory()->create(['name' => 'محمد الحربي']);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListUsers::class)
+        ->searchTable('محمد العتيبي')
+        ->assertCanSeeTableRecords([$member])
+        ->assertCountTableRecords(1);
 });
 
 it('creates a staff account that sets its own password by email', function () {
