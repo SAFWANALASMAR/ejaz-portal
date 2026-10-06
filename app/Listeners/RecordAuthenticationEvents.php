@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Models\User;
+use App\Support\LoginIdentifier;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -105,8 +106,6 @@ class RecordAuthenticationEvents
     {
         $identifier = $credentials['login'] ?? $credentials['email'] ?? null;
 
-        return is_string($identifier) && $identifier !== ''
-            ? hash('sha256', mb_strtolower(trim($identifier)))
-            : null;
+        return is_string($identifier) ? LoginIdentifier::hash($identifier) : null;
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -75,6 +76,41 @@ it('throttles repeated attempts', function () {
 
     $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertStatus(429);
     $this->assertGuest();
+});
+
+it('locks the account across different spellings of the same number', function () {
+    $spellings = [
+        '0512345678', '512345678', '+966512345678', '٠٥١٢٣٤٥٦٧٨', '966512345678',
+        '051 234 5678', '00966512345678', '051-234-5678', '05 1234 5678', '+966 51 234 5678',
+    ];
+
+    // كل محاولة من عنوان مختلف، فلا يمنعها إلا قفل الحساب نفسه
+    foreach ($spellings as $i => $spelling) {
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.($i + 1)])
+            ->post('/login', ['login' => $spelling, 'password' => 'wrong-password'])
+            ->assertSessionHasErrors('login');
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.99'])
+        ->post('/login', ['login' => '0512345678', 'password' => 'password'])
+        ->assertStatus(429)
+        ->assertSee(Str::before(__('auth.throttle'), ':seconds'), false);
+
+    $this->assertGuest();
+    expect(Activity::where('event', 'login_lockout')->exists())->toBeTrue();
+});
+
+it('fingerprints every spelling of an identifier the same way', function () {
+    $this->post('/login', ['login' => '0512345678', 'password' => 'wrong-password']);
+    $this->post('/login', ['login' => '+966 51 234 5678', 'password' => 'wrong-password']);
+    $this->post('/login', ['login' => 'Member@Example.test', 'password' => 'wrong-password']);
+    $this->post('/login', ['login' => 'member@example.test', 'password' => 'wrong-password']);
+
+    $hashes = Activity::where('event', 'login_failed')->get()
+        ->map(fn (Activity $log) => $log->properties['identifier_hash'])
+        ->unique();
+
+    expect($hashes)->toHaveCount(2);
 });
 
 it('logs out and records it', function () {
