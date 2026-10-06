@@ -10,6 +10,11 @@ x-php: &php
   image: ejaz-php:dev
   volumes:
     - .:/var/www/html
+    # المكتبات والقوالب المترجمة على قرص لينكس داخل Docker لا على قرص ويندوز المشترك،
+    # فالقراءة منه أسرع بكثير (انظر docs/decisions.md)
+    - vendor:/var/www/html/vendor
+  environment:
+    VIEW_COMPILED_PATH: /tmp/ejaz-views
   depends_on:
     pgsql:
       condition: service_healthy
@@ -80,3 +85,4 @@ services:
 volumes:
   pgdata:
   node_modules:
+  vendor:

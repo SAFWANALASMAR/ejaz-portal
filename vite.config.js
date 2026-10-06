@@ -12,6 +12,8 @@ export default defineConfig({
                 // خط مؤقت إلى أن تُعتمد هوية الجمعية — انظر docs/design-system.md
                 bunny('IBM Plex Sans Arabic', {
                     weights: [400, 500, 600, 700],
+                    // الافتراضي latin فقط، فتسقط الحروف العربية إلى خط النظام
+                    subsets: ['arabic', 'latin'],
                 }),
             ],
         }),

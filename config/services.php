@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // مزود الرسائل النصية: log في التطوير، والمزود الفعلي بعد تعاقد الجمعية
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        'sender' => env('SMS_SENDER'),
+    ],
+
 ];
