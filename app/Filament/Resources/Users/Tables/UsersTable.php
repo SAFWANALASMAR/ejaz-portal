@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Tables;
 use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\Digits;
 use App\Support\SaudiPhone;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -35,7 +36,13 @@ class UsersTable
                 TextColumn::make('phone')
                     ->label(__('users.fields.phone'))
                     ->formatStateUsing(fn (?string $state) => SaudiPhone::display($state))
-                    ->searchable()
+                    // الرقم مخزن +9665XXXXXXXX: يُبحث بأرقامه بعد حذف الصفر الأول ورمز الدولة
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        $digits = (string) preg_replace('/\D/', '', Digits::latin($search));
+                        $digits = (string) preg_replace('/^(00966|966|0)/', '', $digits);
+
+                        return $digits === '' ? $query : $query->where('phone', 'like', '%'.$digits.'%');
+                    })
                     ->extraAttributes(['dir' => 'ltr']),
                 TextColumn::make('roles.name')
                     ->label(__('users.fields.roles'))

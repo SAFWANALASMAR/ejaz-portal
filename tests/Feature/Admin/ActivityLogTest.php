@@ -9,6 +9,10 @@ it('shows the activity log to the super admin only', function () {
     $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(ActivityResource::getUrl('index'))->assertOk();
     $this->actingAs(userWithRole(RoleName::ContentEditor))->get(ActivityResource::getUrl('index'))->assertForbidden();
     $this->actingAs(userWithRole(RoleName::BoardMember))->get(ActivityResource::getUrl('index'))->assertForbidden();
+
+    $log = Activity::create(['description' => 'test', 'log_name' => 'default']);
+    $this->actingAs(userWithRole(RoleName::ContentEditor))->get(ActivityResource::getUrl('view', ['record' => $log]))->assertForbidden();
+    $this->actingAs(userWithRole(RoleName::BoardMember))->get(ActivityResource::getUrl('view', ['record' => $log]))->assertForbidden();
 });
 
 it('records who changed what with the values before and after', function () {

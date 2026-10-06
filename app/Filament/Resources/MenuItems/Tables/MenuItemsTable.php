@@ -2,28 +2,25 @@
 
 namespace App\Filament\Resources\MenuItems\Tables;
 
-use App\Models\MenuItem;
+use App\Actions\Content\RecordMenuReorder;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Cache;
 
 class MenuItemsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('parent'))
+            ->modifyQueryUsing(fn ($query) => $query->with('parent')->withCount('children'))
             ->defaultSort('sort')
             ->reorderable('sort')
-            // الترتيب يُحفظ باستعلام واحد لا يمر بأحداث النموذج، فيُمسح التخزين ويُسجَّل هنا
-            ->afterReordering(function (array $order): void {
-                Cache::forget(MenuItem::CACHE_KEY);
-                activity('content')->event('menu_reordered')->withProperties(['order' => array_values($order)])->log('menu_reordered');
-            })
+            // الترتيب يُحفظ باستعلام واحد لا يمر بأحداث النموذج، فيُسجَّل ويُمسح التخزين بإجراء خاص
+            ->beforeReordering(fn () => app(RecordMenuReorder::class)->capture())
+            ->afterReordering(fn (array $order) => app(RecordMenuReorder::class)->record($order))
             ->columns([
                 TextColumn::make('label')
                     ->label(__('menu.fields.label'))
@@ -34,6 +31,9 @@ class MenuItemsTable
                 TextColumn::make('url')
                     ->label(__('menu.fields.url'))
                     ->extraAttributes(['dir' => 'ltr']),
+                TextColumn::make('children_count')
+                    ->label(__('menu.fields.children_count'))
+                    ->numeric(),
                 IconColumn::make('is_visible')
                     ->label(__('menu.fields.is_visible'))
                     ->boolean(),

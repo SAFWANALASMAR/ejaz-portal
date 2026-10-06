@@ -4,9 +4,9 @@ use App\Enums\RoleName;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Models\User;
 
-it('sends guests to the unified login page', function () {
-    $this->get('/admin')->assertRedirect(route('login'));
-});
+it('sends guests to the unified login page from every admin screen', function (string $path) {
+    $this->get($path)->assertRedirect(route('login'));
+})->with(['/admin', '/admin/menu-items', '/admin/menu-items/create', '/admin/users', '/admin/activities', '/admin/site-settings']);
 
 it('forbids accounts without an administrative role', function () {
     $this->actingAs(userWithRole(RoleName::Member))->get('/admin')->assertForbidden();

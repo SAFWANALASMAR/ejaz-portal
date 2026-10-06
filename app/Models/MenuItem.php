@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -25,7 +26,8 @@ class MenuItem extends Model
 
     protected static function booted(): void
     {
-        $flush = fn () => Cache::forget(self::CACHE_KEY);
+        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القائمة القديمة وخزّنها دائماً
+        $flush = fn () => DB::afterCommit(fn () => Cache::forget(self::CACHE_KEY));
 
         static::saved($flush);
         static::deleted($flush);

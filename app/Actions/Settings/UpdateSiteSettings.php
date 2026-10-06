@@ -22,7 +22,7 @@ class UpdateSiteSettings
      */
     public function handle(User $actor, array $groups): void
     {
-        if (! $actor->can('settings.update')) {
+        if (! $actor->can('update', Setting::class)) {
             throw new AuthorizationException;
         }
 

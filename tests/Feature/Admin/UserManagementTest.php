@@ -31,6 +31,29 @@ it('keeps the users screen for those allowed to see personal data', function () 
     $this->actingAs(userWithRole(RoleName::Secretary))->get(UserResource::getUrl('index'))->assertForbidden();
 });
 
+it('forbids the user pages by record to those without user permissions', function () {
+    $member = User::factory()->create();
+
+    foreach ([RoleName::ContentEditor, RoleName::BoardMember] as $role) {
+        $this->actingAs(userWithRole($role))->get(UserResource::getUrl('edit', ['record' => $member]))->assertForbidden();
+        $this->actingAs(userWithRole($role))->get(UserResource::getUrl('create'))->assertForbidden();
+    }
+});
+
+it('finds a user by any spelling of the phone number', function () {
+    $member = User::factory()->create(['name' => 'صاحب الرقم', 'phone' => '+966512349876']);
+    User::factory()->create(['name' => 'شخص آخر', 'phone' => '+966598765432']);
+
+    $this->actingAs($this->admin);
+
+    foreach (['0512349876', '051 234 9876', '٠٥١٢٣٤٩٨٧٦', '+966512349876', '512349876'] as $search) {
+        Livewire::test(ListUsers::class)
+            ->searchTable($search)
+            ->assertCanSeeTableRecords([$member])
+            ->assertCountTableRecords(1);
+    }
+});
+
 it('creates a staff account that sets its own password by email', function () {
     Notification::fake();
     $this->actingAs($this->admin);

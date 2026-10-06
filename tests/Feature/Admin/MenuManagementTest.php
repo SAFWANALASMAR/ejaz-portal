@@ -6,6 +6,7 @@ use App\Filament\Resources\MenuItems\Pages\CreateMenuItem;
 use App\Filament\Resources\MenuItems\Pages\EditMenuItem;
 use App\Filament\Resources\MenuItems\Pages\ListMenuItems;
 use App\Models\MenuItem;
+use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -77,5 +78,36 @@ it('refreshes the site menu after reordering', function () {
     Livewire::test(ListMenuItems::class)->call('reorderTable', [$second->getKey(), $first->getKey()]);
 
     $this->get('/')->assertSeeInOrder(['الثاني', 'الأول']);
-    expect(Activity::where('event', 'menu_reordered')->exists())->toBeTrue();
+
+    $log = Activity::where('event', 'menu_reordered')->firstOrFail();
+    expect($log->properties['old'])->toBe([$first->id, $second->id])
+        ->and($log->properties['new'])->toBe([$second->id, $first->id]);
+});
+
+it('does not let board members reorder the menu, even by calling the table directly', function () {
+    $first = MenuItem::factory()->create(['sort' => 1]);
+    $second = MenuItem::factory()->create(['sort' => 2]);
+
+    $this->actingAs(userWithRole(RoleName::BoardMember));
+
+    Livewire::test(ListMenuItems::class)->call('reorderTable', [$second->getKey(), $first->getKey()]);
+
+    expect($first->fresh()->sort)->toBe(1)->and($second->fresh()->sort)->toBe(2);
+});
+
+it('refuses to delete an item that has sub-items', function () {
+    $parent = MenuItem::factory()->create();
+    $child = MenuItem::factory()->create(['parent_id' => $parent->id]);
+
+    expect($this->editor->can('delete', $parent))->toBeFalse()
+        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $parent))->toBeFalse()
+        ->and($this->editor->can('delete', $child))->toBeTrue();
+
+    $this->actingAs($this->editor);
+
+    Livewire::test(ListMenuItems::class)
+        ->assertActionHidden(TestAction::make('delete')->table($parent))
+        ->callAction(TestAction::make('delete')->table($child));
+
+    expect(MenuItem::find($child->id))->toBeNull()->and(MenuItem::find($parent->id))->not->toBeNull();
 });

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -18,7 +19,8 @@ class Setting extends Model
 
     protected static function booted(): void
     {
-        $flush = fn (Setting $setting) => Cache::forget(self::cacheKey($setting->key));
+        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القيمة القديمة وخزّنها دائماً
+        $flush = fn (Setting $setting) => DB::afterCommit(fn () => Cache::forget(self::cacheKey($setting->key)));
 
         static::saved($flush);
         static::deleted($flush);

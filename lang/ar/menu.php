@@ -14,6 +14,7 @@ return [
         'opens_in_new_tab' => 'يفتح في نافذة جديدة',
         'is_visible' => 'ظاهر',
         'sort' => 'الترتيب',
+        'children_count' => 'العناصر الفرعية',
     ],
 
     'errors' => [

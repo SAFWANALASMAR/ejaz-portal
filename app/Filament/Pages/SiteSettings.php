@@ -48,7 +48,7 @@ class SiteSettings extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('settings.update') ?? false;
+        return auth()->user()?->can('update', Setting::class) ?? false;
     }
 
     public static function getNavigationLabel(): string
@@ -134,7 +134,8 @@ class SiteSettings extends Page
                         Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
                             Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(4)->defaultItems(0)->schema([
                                 TextInput::make('label')->label(__('settings.home.stat_label'))->required()->maxLength(60),
-                                TextInput::make('value')->label(__('settings.home.stat_value'))->required()->integer()->minValue(0)->maxValue(100000000),
+                                TextInput::make('value')->label(__('settings.home.stat_value'))->required()->integer()->minValue(0)->maxValue(100000000)
+                                    ->dehydrateStateUsing(fn ($state) => (int) $state),
                                 TextInput::make('suffix')->label(__('settings.home.stat_suffix'))->maxLength(3),
                                 Select::make('icon')->label(__('settings.home.stat_icon'))
                                     ->options(collect(self::STAT_ICONS)->mapWithKeys(fn (string $icon) => [$icon => __('settings.icons.'.$icon)]))

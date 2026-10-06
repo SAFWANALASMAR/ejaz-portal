@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Content\RecordMenuReorder;
 use App\Contracts\SmsGateway;
 use App\Enums\RoleName;
 use App\Models\User;
@@ -26,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->scoped(RecordMenuReorder::class);
+
         // التكاملات الخارجية خلف واجهات، ويُختار التطبيق من الإعدادات (docs/architecture.md)
         $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
             'log' => new LogSmsGateway,

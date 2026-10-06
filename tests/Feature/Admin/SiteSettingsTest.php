@@ -55,3 +55,14 @@ it('stores approved statistics as numbers', function () {
 
     expect(Setting::group('home'))->toBe([]);
 });
+
+it('stores approved statistics as whole numbers', function () {
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(SiteSettings::class)
+        ->fillForm(['home.stats' => [['label' => 'برنامج', 'value' => '1500', 'icon' => 'book-open']]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(Setting::group('home')['stats'][0]['value'])->toBe(1500);
+});
