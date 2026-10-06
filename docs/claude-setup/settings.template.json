@@ -1,0 +1,78 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(docker compose up -d*)",
+      "Bash(docker compose restart*)",
+      "Bash(docker compose exec app php artisan test*)",
+      "Bash(docker compose exec app php artisan make:*)",
+      "Bash(docker compose exec app php artisan migrate)",
+      "Bash(docker compose exec app php artisan migrate:status*)",
+      "Bash(docker compose exec app php artisan route:list*)",
+      "Bash(docker compose exec app php artisan optimize:clear*)",
+      "Bash(docker compose exec app composer check*)",
+      "Bash(docker compose exec app composer audit*)",
+      "Bash(docker compose exec app ./vendor/bin/pint*)",
+      "Bash(docker compose exec app ./vendor/bin/phpstan*)",
+      "Bash(docker compose exec vite npm run build*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git switch*)",
+      "Bash(git checkout -b*)",
+      "Bash(git branch*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git reset*)",
+      "Bash(docker compose exec app composer require*)",
+      "Bash(docker compose exec app composer update*)",
+      "Bash(docker compose exec app composer remove*)",
+      "Bash(docker compose exec vite npm install*)",
+      "Bash(docker compose run*)",
+      "Bash(docker compose build*)",
+      "Bash(docker compose down*)",
+      "Bash(docker compose exec app php artisan migrate:*)",
+      "Bash(docker compose exec app php artisan db:*)",
+      "Bash(docker compose exec app php artisan tinker*)",
+      "Bash(curl*)",
+      "Bash(wget*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*.local)",
+      "Read(./.env.production)",
+      "Edit(./.env.production)",
+      "Read(./storage/*.key)",
+      "Read(./auth.json)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin --delete*)",
+      "Bash(docker compose down -v*)",
+      "Bash(docker volume rm*)",
+      "Bash(docker system prune*)",
+      "Bash(rm -rf*)",
+      "Bash(sudo*)",
+      "Bash(chmod 777*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docker compose exec -T app ./vendor/bin/pint --dirty -q",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

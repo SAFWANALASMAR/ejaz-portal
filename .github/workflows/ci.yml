@@ -1,0 +1,89 @@
+# الفحص الآلي: يعمل على كل دفع وكل طلب دمج.
+# لا يُدمج شيء في main إلا إذا نجح هذا الفحص كاملاً.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: الجودة والاختبارات
+    runs-on: ubuntu-latest
+
+    services:
+      pgsql:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ejaz_testing
+          POSTGRES_USER: ejaz
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ejaz -d ejaz_testing"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USERNAME: ejaz
+      DB_PASSWORD: secret
+      REDIS_HOST: 127.0.0.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, pcntl, exif
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: تثبيت المكتبات
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm ci
+          npm run build
+
+      - name: تجهيز البيئة
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: تدقيق المكتبات أمنياً
+        run: |
+          composer audit
+          npm audit --omit=dev --audit-level=high
+
+      - name: تنسيق الشيفرة (Pint)
+        run: vendor/bin/pint --test
+
+      - name: التحليل الثابت (Larastan)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: الاختبارات
+        run: php artisan test
