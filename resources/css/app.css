@@ -1,7 +1,11 @@
-@import 'tailwindcss';
+/*
+| مصادر الأصناف محددة صراحةً بدل فحص المشروع كله، لأن الفحص عبر قرص ويندوز المشترك بطيء جداً.
+*/
+@import 'tailwindcss' source(none);
 
+@source '../views';
+@source '../js';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
 
 /*
 | هوية مؤقتة حتى اعتماد دليل هوية الجمعية — docs/design-system.md

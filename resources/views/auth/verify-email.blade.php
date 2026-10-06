@@ -7,4 +7,8 @@
         @csrf
         <x-button class="w-full">{{ __('account.verify_email.resend') }}</x-button>
     </form>
+
+    <x-or-divider class="my-5" />
+
+    <x-button variant="outline" :href="route('account.dashboard')" class="w-full">{{ __('site.my_account') }}</x-button>
 </x-layouts.auth>

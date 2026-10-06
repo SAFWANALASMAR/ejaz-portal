@@ -1,4 +1,6 @@
 <x-layouts.account :title="__('account.profile.title')">
+    @include('account.partials.profile-tabs')
+
     @if (session('status') === 'profile-information-updated')
         <x-alert type="success">{{ __('account.profile.saved') }}</x-alert>
     @elseif (session('status') === 'password-updated')

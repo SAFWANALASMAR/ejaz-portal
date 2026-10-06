@@ -59,30 +59,6 @@ class MenuItem extends Model
         return $this->hasMany(MenuItem::class, 'parent_id')->orderBy('sort');
     }
 
-    public function href(): string
-    {
-        $url = (string) $this->url;
-
-        if ($url === '' || str_starts_with($url, '#')) {
-            return '#';
-        }
-
-        return str_starts_with($url, '/') ? url($url) : $url;
-    }
-
-    public function isCurrent(): bool
-    {
-        $url = (string) $this->url;
-
-        if (! str_starts_with($url, '/')) {
-            return false;
-        }
-
-        $path = trim($url, '/');
-
-        return $path === '' ? request()->is('/') : request()->is($path, $path.'/*');
-    }
-
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontLogEmptyChanges();

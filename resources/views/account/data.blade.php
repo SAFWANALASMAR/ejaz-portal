@@ -1,4 +1,6 @@
-<x-layouts.account :title="__('account.data.title')">
+<x-layouts.account :title="__('account.profile.title')">
+    @include('account.partials.profile-tabs')
+
     <x-card>
         <p class="leading-7 text-ink">{{ __('account.data.intro') }}</p>
     </x-card>

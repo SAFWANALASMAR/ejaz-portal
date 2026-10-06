@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" role="img" aria-label="رسم توضيحي مؤقت: عمارة ونخيل">
+  <!-- صورة مؤقتة محايدة حتى تصل صور الجمعية — docs/design/ui-reference.md (التصحيحات ٤) -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9dfe6"/>
+      <stop offset="0.55" stop-color="#e9f0ee"/>
+      <stop offset="1" stop-color="#f6efe2"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f4ee"/>
+      <stop offset="1" stop-color="#e2dbcd"/>
+    </linearGradient>
+    <linearGradient id="wallShade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9d1c1"/>
+      <stop offset="1" stop-color="#cbc2b0"/>
+    </linearGradient>
+    <linearGradient id="arch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9ab92"/>
+      <stop offset="1" stop-color="#9c8d73"/>
+    </linearGradient>
+    <symbol id="palm" viewBox="-130 -270 260 280" overflow="visible">
+      <path d="M0 0 C 8 -70, -6 -150, 10 -215" stroke="#8b7656" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <g fill="none" stroke-linecap="round">
+        <path d="M10 -215 Q -55 -250 -120 -205" stroke="#2c6248" stroke-width="10"/>
+        <path d="M10 -215 Q -45 -205 -100 -150" stroke="#357455" stroke-width="10"/>
+        <path d="M10 -215 Q 70 -255 125 -210" stroke="#2c6248" stroke-width="10"/>
+        <path d="M10 -215 Q 62 -198 108 -150" stroke="#357455" stroke-width="10"/>
+        <path d="M10 -215 Q -8 -262 -40 -268" stroke="#3f8460" stroke-width="9"/>
+        <path d="M10 -215 Q 34 -262 64 -264" stroke="#3f8460" stroke-width="9"/>
+        <path d="M10 -215 Q -20 -180 -48 -128" stroke="#2c6248" stroke-width="8"/>
+        <path d="M10 -215 Q 40 -180 62 -126" stroke="#2c6248" stroke-width="8"/>
+      </g>
+    </symbol>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#sky)"/>
+  <path d="M0 420 L140 372 L250 402 L380 356 L500 396 L620 366 L740 402 L880 360 L1020 398 L1200 366 L1200 600 L0 600Z" fill="#d6dfdc" opacity="0.75"/>
+
+  <!-- كتلة المبنى الرئيسية بأقواس -->
+  <rect x="300" y="236" width="900" height="290" fill="url(#wall)"/>
+  <rect x="300" y="214" width="900" height="26" fill="#ece7dd"/>
+  <rect x="300" y="240" width="900" height="6" fill="#d8d0bf" opacity="0.7"/>
+  <g fill="url(#arch)">
+    <path d="M360 526 V392 A46 46 0 0 1 452 392 V526 Z"/>
+    <path d="M490 526 V392 A46 46 0 0 1 582 392 V526 Z"/>
+    <path d="M620 526 V392 A46 46 0 0 1 712 392 V526 Z"/>
+    <path d="M750 526 V392 A46 46 0 0 1 842 392 V526 Z"/>
+    <path d="M880 526 V392 A46 46 0 0 1 972 392 V526 Z"/>
+    <path d="M1010 526 V392 A46 46 0 0 1 1102 392 V526 Z"/>
+  </g>
+  <g fill="#efe9de" opacity="0.9">
+    <rect x="372" y="290" width="68" height="54" rx="4"/>
+    <rect x="502" y="290" width="68" height="54" rx="4"/>
+    <rect x="632" y="290" width="68" height="54" rx="4"/>
+    <rect x="762" y="290" width="68" height="54" rx="4"/>
+    <rect x="892" y="290" width="68" height="54" rx="4"/>
+    <rect x="1022" y="290" width="68" height="54" rx="4"/>
+  </g>
+
+  <!-- برج جانبي -->
+  <rect x="150" y="150" width="180" height="376" fill="url(#wallShade)"/>
+  <rect x="140" y="132" width="200" height="22" fill="#e6dfd2"/>
+  <path d="M196 526 V420 A44 44 0 0 1 284 420 V526 Z" fill="url(#arch)"/>
+  <g fill="#e9e2d5" opacity="0.85">
+    <rect x="184" y="196" width="112" height="14" rx="3"/>
+    <rect x="184" y="236" width="112" height="14" rx="3"/>
+    <rect x="184" y="276" width="112" height="14" rx="3"/>
+    <rect x="184" y="316" width="112" height="14" rx="3"/>
+  </g>
+
+  <!-- أرض -->
+  <rect y="520" width="1200" height="80" fill="#e6dccb"/>
+  <rect y="520" width="1200" height="6" fill="#d6cab4"/>
+
+  <!-- نخيل -->
+  <use href="#palm" x="40" y="250" width="260" height="280"/>
+  <use href="#palm" x="1010" y="270" width="230" height="260"/>
+  <use href="#palm" x="560" y="330" width="170" height="200" opacity="0.92"/>
+  <g fill="#3a7656" opacity="0.85">
+    <ellipse cx="120" cy="522" rx="90" ry="16"/>
+    <ellipse cx="1110" cy="524" rx="80" ry="14"/>
+    <ellipse cx="640" cy="524" rx="70" ry="12"/>
+  </g>
+</svg>

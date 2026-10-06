@@ -1,9 +1,4 @@
-<x-layouts.account :title="__('account.dashboard.title')">
-    <x-card>
-        <p class="text-xl font-semibold text-ink">{{ __('account.dashboard.welcome', ['name' => $user->name]) }}</p>
-        <p class="mt-1 text-muted">{{ __('account.dashboard.intro') }}</p>
-    </x-card>
-
+<x-layouts.account :title="__('account.dashboard.title')" welcome>
     @unless ($user->hasVerifiedEmail())
         <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
             <span>{{ __('account.dashboard.verify_email') }}</span>
@@ -21,14 +16,22 @@
         </x-alert>
     @endunless
 
-    <div>
-        <h2 class="mb-3 text-lg font-semibold text-ink">{{ __('account.dashboard.shortcuts') }}</h2>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            @foreach (collect(config('account.navigation'))->reject(fn ($link) => $link['route'] === 'account.dashboard')->filter(fn ($link) => Route::has($link['route']) && (! isset($link['can']) || $user->can($link['can']))) as $link)
-                <a href="{{ route($link['route']) }}" class="group rounded-2xl border border-line bg-white p-5 transition hover:border-primary hover:shadow-sm">
-                    <span class="text-lg font-semibold text-primary group-hover:underline">{{ __($link['label']) }}</span>
-                </a>
-            @endforeach
-        </div>
+    <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        @foreach (\App\Support\AccountNavigation::for($user)->filter(fn (array $link) => isset($link['description'])) as $link)
+            <a href="{{ route($link['route']) }}"
+                class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+                <span class="flex items-start gap-4">
+                    <span class="text-gold">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>
+                    <span>
+                        <span class="block text-lg font-bold text-ink">{{ __($link['label']) }}</span>
+                        <span class="mt-1 block text-sm leading-6 text-muted">{{ __($link['description']) }}</span>
+                    </span>
+                </span>
+                <span class="mt-5 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark">
+                    {{ svg('heroicon-o-arrow-left', 'size-4') }}
+                </span>
+            </a>
+        @endforeach
     </div>
 </x-layouts.account>

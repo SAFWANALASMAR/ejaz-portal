@@ -1,35 +1,47 @@
 {{--
-    رأس الصفحة: الشعار، والقائمة الرئيسية (تُدار من لوحة الإدارة)، والبحث، والحساب.
-    $siteMenu يأتي من App\View\Composers\SiteMenuComposer.
+    رأس الصفحة (docs/design/ui-reference.md — الرأس): الشعار يميناً، ثم القائمة الرئيسية
+    (تُدار من لوحة الإدارة)، ثم البحث، ثم زر الدخول الكبسولي في أقصى اليسار.
+    العنصر النشط ذهبي بخط تحته. وعلى الجوال: الشعار يميناً وزر القائمة يساراً.
+    $siteMenu يأتي من App\View\Composers\SiteChromeComposer.
 --}}
 @php($menu = $siteMenu ?? collect())
 
-<header class="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
-    <div class="container-page flex h-18 items-center justify-between gap-4">
-        @include('partials.brand')
+<header data-site-header class="sticky top-0 z-40 border-b border-line/60 bg-white/95 backdrop-blur transition-shadow data-scrolled:shadow-md">
+    <div class="container-page flex h-20 items-center justify-between gap-6">
+        <x-brand />
 
-        <nav class="hidden lg:block" aria-label="{{ __('site.main_navigation') }}">
+        <nav class="hidden flex-1 justify-center xl:flex" aria-label="{{ __('site.main_navigation') }}">
             <ul class="flex items-center gap-1">
                 @foreach ($menu as $item)
+                    @php($current = $item->isCurrent() || $item->hasCurrentChild())
                     <li class="relative">
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
-                                class="flex items-center gap-1 rounded-lg px-3 py-2 font-medium text-ink hover:bg-sand hover:text-primary aria-expanded:bg-sand">
+                                @class([
+                                    'relative flex items-center gap-1 px-3 py-2 text-[15px] font-medium transition hover:text-gold-dark',
+                                    'text-gold-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-gold' => $current,
+                                    'text-ink/80' => ! $current,
+                                ])>
                                 {{ $item->label }}
-                                <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                                {{ svg('heroicon-o-chevron-down', 'size-3.5') }}
                             </button>
-                            <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full mt-2 min-w-56 rounded-xl border border-line bg-white p-2 shadow-lg">
+                            <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-3 min-w-56 rounded-2xl border border-line/70 bg-white p-2 shadow-lg">
                                 @foreach ($item->children as $child)
                                     <li>
-                                        <a href="{{ $child->href() }}" @if ($child->opens_in_new_tab) target="_blank" rel="noopener" @endif
-                                            class="block rounded-lg px-3 py-2 text-ink hover:bg-sand hover:text-primary">{{ $child->label }}</a>
+                                        <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif
+                                            @if ($child->isCurrent()) aria-current="page" @endif
+                                            class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sand hover:text-primary aria-[current=page]:text-gold-dark">{{ $child->label }}</a>
                                     </li>
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" @if ($item->opens_in_new_tab) target="_blank" rel="noopener" @endif
-                                @if ($item->isCurrent()) aria-current="page" @endif
-                                class="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-sand hover:text-primary aria-[current=page]:text-primary aria-[current=page]:underline aria-[current=page]:decoration-gold aria-[current=page]:underline-offset-8">
+                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif
+                                @if ($current) aria-current="page" @endif
+                                @class([
+                                    'relative block px-3 py-2 text-[15px] font-medium transition hover:text-gold-dark',
+                                    'text-gold-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-gold' => $current,
+                                    'text-ink/80' => ! $current,
+                                ])>
                                 {{ $item->label }}
                             </a>
                         @endif
@@ -40,44 +52,48 @@
 
         <div class="flex items-center gap-2">
             @if (Route::has('search'))
-                <a href="{{ route('search') }}" class="rounded-lg p-2 text-ink hover:bg-sand hover:text-primary" aria-label="{{ __('site.search') }}">
-                    <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
+                <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-sand hover:text-primary" aria-label="{{ __('site.search') }}">
+                    {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </a>
             @endif
 
-            @auth
-                <x-button :href="route('account.dashboard')" size="sm" class="hidden sm:inline-flex">{{ __('site.my_account') }}</x-button>
-            @else
-                <x-button :href="route('login')" size="sm" class="hidden sm:inline-flex">{{ __('site.login') }}</x-button>
-            @endauth
+            {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
+            <div class="hidden sm:block">
+                @auth
+                    <x-button :href="route('account.dashboard')" size="sm" class="px-5">{{ __('site.my_account') }}</x-button>
+                @else
+                    <x-button :href="route('login')" size="sm" class="px-5">{{ __('site.login') }}</x-button>
+                @endauth
+            </div>
 
             <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
-                class="rounded-lg p-2 text-ink hover:bg-sand lg:hidden">
+                class="rounded-full p-2.5 text-ink hover:bg-sand xl:hidden">
                 <span class="sr-only">{{ __('site.open_menu') }}</span>
-                <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                {{ svg('heroicon-o-bars-3', 'size-6') }}
             </button>
         </div>
     </div>
 
-    {{-- قائمة الجوال --}}
-    <div id="mobile-menu" hidden class="border-t border-line bg-white lg:hidden">
+    {{-- قائمة الجوال واللوحي --}}
+    <div id="mobile-menu" hidden class="border-t border-line bg-white xl:hidden">
         <nav class="container-page max-h-[75vh] overflow-y-auto py-3" aria-label="{{ __('site.main_navigation') }}">
             <ul class="space-y-1">
                 @foreach ($menu as $item)
                     <li>
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="mobile-menu-{{ $item->id }}"
-                                class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-sand">
+                                class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-ink hover:bg-sand">
                                 {{ $item->label }}
-                                <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                                {{ svg('heroicon-o-chevron-down', 'size-4') }}
                             </button>
-                            <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s border-line ps-3">
+                            <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-gold/40 ps-3">
                                 @foreach ($item->children as $child)
-                                    <li><a href="{{ $child->href() }}" class="block rounded-lg px-3 py-2 text-ink hover:bg-sand">{{ $child->label }}</a></li>
+                                    <li><a href="{{ $child->href() }}" class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sand">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" class="block rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-sand">{{ $item->label }}</a>
+                            <a href="{{ $item->href() }}" @if ($item->isCurrent()) aria-current="page" @endif
+                                class="block rounded-xl px-4 py-3 font-medium text-ink hover:bg-sand aria-[current=page]:text-gold-dark">{{ $item->label }}</a>
                         @endif
                     </li>
                 @endforeach

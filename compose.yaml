@@ -26,6 +26,10 @@ services:
   app:
     <<: *php
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      VIEW_COMPILED_PATH: /tmp/ejaz-views
+      # أكثر من طلب في الوقت نفسه (لوحة الإدارة واختبارات المتصفح)
+      PHP_CLI_SERVER_WORKERS: 4
     ports:
       - "${APP_PORT:-8000}:8000"
 
@@ -46,6 +50,21 @@ services:
     ports:
       - "${VITE_PORT:-5173}:5173"
     restart: unless-stopped
+
+  # اختبارات المتصفح ولقطات الشاشات (tests/browser/README.md). لا تعمل تلقائياً:
+  # docker compose run --rm browser
+  browser:
+    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    profiles: [tools]
+    working_dir: /work
+    volumes:
+      - .:/work
+      - node_modules:/work/node_modules
+    ipc: host
+    depends_on:
+      - app
+      - vite
+    command: npx playwright test --config=tests/browser/playwright.config.mjs
 
   pgsql:
     image: postgres:17-alpine

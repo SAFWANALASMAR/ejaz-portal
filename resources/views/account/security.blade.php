@@ -10,7 +10,9 @@
     $showCodes = in_array($status, ['two-factor-authentication-confirmed', 'recovery-codes-generated'], true) || request()->boolean('codes');
 @endphp
 
-<x-layouts.account :title="__('account.security.title')">
+<x-layouts.account :title="__('account.profile.title')">
+    @include('account.partials.profile-tabs')
+
     @if ($statusMessage && $statusMessage !== 'account.security.status.'.$status)
         <x-alert type="success">{{ $statusMessage }}</x-alert>
     @endif
