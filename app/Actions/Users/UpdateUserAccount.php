@@ -7,7 +7,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * تعديل حساب من لوحة الإدارة. لا يوقف أحد حسابه هو، وتغيير البريد يُسقط توثيقه،
+ * تعديل حساب من لوحة الإدارة. لا يوقف أحد حسابه هو، وتغيير البريد أو الجوال يُسقط توثيقه،
  * والأدوار لا تتغير إلا عبر ChangeUserRoles (للمشرف العام).
  */
 class UpdateUserAccount
@@ -35,13 +35,16 @@ class UpdateUserAccount
 
         DB::transaction(function () use ($actor, $user, $data, $roles, $isActive): void {
             $email = mb_strtolower($data['email']);
+            $phone = $data['phone'] ?? null;
 
+            // البريد أو الجوال الجديد لا يرث توثيق القديم، وتوثيق الجوال أساس التقديم في المسابقات
             $user->forceFill([
                 'name' => $data['name'],
                 'email' => $email,
-                'phone' => $data['phone'] ?? null,
+                'phone' => $phone,
                 'is_active' => $isActive,
                 'email_verified_at' => $email === $user->email ? $user->email_verified_at : null,
+                'phone_verified_at' => $phone === $user->phone ? $user->phone_verified_at : null,
             ])->save();
 
             if ($roles !== null && $actor->can('assignRoles', $user)) {

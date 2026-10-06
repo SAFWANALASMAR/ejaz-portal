@@ -2,6 +2,7 @@
 
 use App\Actions\Users\AnonymizeUser;
 use App\Actions\Users\ChangeUserRoles;
+use App\Actions\Users\CreateStaffUser;
 use App\Actions\Users\UpdateUserAccount;
 use App\Enums\RoleName;
 use App\Filament\Resources\Users\Pages\CreateUser;
@@ -72,6 +73,54 @@ it('lets only the super admin change roles, and logs the change', function () {
     $editor = userWithRole(RoleName::ContentEditor);
     expect(fn () => app(ChangeUserRoles::class)->handle($editor, $member, [RoleName::SuperAdmin->value]))
         ->toThrow(AuthorizationException::class);
+});
+
+it('refuses to create a staff account without permission, wherever it is called from', function () {
+    $editor = userWithRole(RoleName::ContentEditor);
+
+    expect(fn () => app(CreateStaffUser::class)->handle($editor, ['name' => 'موظف', 'email' => 'x@example.test'], []))
+        ->toThrow(AuthorizationException::class);
+
+    expect(User::where('email', 'x@example.test')->exists())->toBeFalse();
+});
+
+it('drops the verification of a phone or email changed by an administrator', function () {
+    Notification::fake();
+    $member = User::factory()->create([
+        'email' => 'member@example.test',
+        'phone' => '+966512345678',
+        'phone_verified_at' => now(),
+    ]);
+
+    app(UpdateUserAccount::class)->handle($this->admin, $member, [
+        'name' => $member->name,
+        'email' => 'member@example.test',
+        'phone' => '+966598765432',
+    ]);
+
+    expect($member->fresh()->phone_verified_at)->toBeNull()
+        ->and($member->fresh()->email_verified_at)->not->toBeNull();
+
+    app(UpdateUserAccount::class)->handle($this->admin, $member->fresh(), [
+        'name' => $member->name,
+        'email' => 'new@example.test',
+        'phone' => '+966598765432',
+    ]);
+
+    expect($member->fresh()->email_verified_at)->toBeNull();
+});
+
+it('keeps the verification when the phone and email do not change', function () {
+    $member = User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => now()]);
+
+    app(UpdateUserAccount::class)->handle($this->admin, $member, [
+        'name' => 'اسم جديد',
+        'email' => $member->email,
+        'phone' => '+966512345678',
+    ]);
+
+    expect($member->fresh()->hasVerifiedPhone())->toBeTrue()
+        ->and($member->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
 it('does not let anyone deactivate their own account', function () {

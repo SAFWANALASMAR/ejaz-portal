@@ -3,6 +3,7 @@
 namespace App\Actions\Users;
 
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -21,6 +22,11 @@ class CreateStaffUser
      */
     public function handle(User $actor, array $data, array $roles): User
     {
+        // الصلاحية تُفحص في الإجراء نفسه، فقد يُستدعى من غير شاشة الإدارة (الاستيراد مثلاً)
+        if (! $actor->can('create', User::class)) {
+            throw new AuthorizationException;
+        }
+
         $user = DB::transaction(function () use ($actor, $data, $roles): User {
             $user = new User;
             $user->forceFill([
