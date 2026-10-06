@@ -2,7 +2,22 @@
 
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Spatie\Activitylog\Models\Activity;
+
+/**
+ * يتحقق أن الرد رسالة القفل، مع مدة الانتظار المتوقعة تقريباً.
+ */
+function assertThrottled(TestResponse $response, int $seconds): void
+{
+    $response->assertSessionHasErrors('login');
+
+    $message = (string) session('errors')->first('login');
+    preg_match('/(\d+)/', $message, $match);
+
+    expect($message)->toStartWith(Str::before(__('auth.throttle'), ':seconds'))
+        ->and((int) ($match[1] ?? 0))->toBeGreaterThan($seconds - 5)->toBeLessThanOrEqual($seconds);
+}
 
 beforeEach(function () {
     $this->user = User::factory()->create([
@@ -74,8 +89,31 @@ it('throttles repeated attempts', function () {
         $this->post('/login', ['login' => 'member@example.test', 'password' => 'wrong-password']);
     }
 
-    $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertStatus(429);
+    assertThrottled($this->post('/login', ['login' => 'member@example.test', 'password' => 'password']), 60);
     $this->assertGuest();
+});
+
+it('does not count successful logins toward the lockout', function () {
+    foreach (range(1, 12) as $ignored) {
+        $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertRedirect('/account');
+        $this->post('/logout');
+    }
+
+    $this->assertGuest();
+});
+
+it('clears the failed attempts after a successful login', function () {
+    foreach (range(1, 4) as $ignored) {
+        $this->post('/login', ['login' => 'member@example.test', 'password' => 'wrong-password']);
+    }
+
+    $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertRedirect('/account');
+    $this->post('/logout');
+
+    foreach (range(1, 4) as $ignored) {
+        $this->post('/login', ['login' => 'member@example.test', 'password' => 'wrong-password'])
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+    }
 });
 
 it('locks the account across different spellings of the same number', function () {
@@ -91,10 +129,8 @@ it('locks the account across different spellings of the same number', function (
             ->assertSessionHasErrors('login');
     }
 
-    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.99'])
-        ->post('/login', ['login' => '0512345678', 'password' => 'password'])
-        ->assertStatus(429)
-        ->assertSee(Str::before(__('auth.throttle'), ':seconds'), false);
+    assertThrottled($this->withServerVariables(['REMOTE_ADDR' => '198.51.100.99'])
+        ->post('/login', ['login' => '0512345678', 'password' => 'password']), 900);
 
     $this->assertGuest();
     expect(Activity::where('event', 'login_lockout')->exists())->toBeTrue();

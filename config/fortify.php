@@ -116,7 +116,8 @@ return [
     */
 
     'limiters' => [
-        'login' => 'login',
+        // null: يعمل قفل Fortify المدمج (المحاولات الخاطئة فقط) عبر App\Auth\LoginRateLimiter
+        'login' => null,
         'two-factor' => 'two-factor',
     ],
 

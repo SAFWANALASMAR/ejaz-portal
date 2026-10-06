@@ -7,26 +7,23 @@ use App\Actions\Fortify\DisableTwoFactorAuthentication;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Auth\LoginRateLimiter;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\LoginIdentifier;
-use Illuminate\Auth\Events\Lockout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\MessageBag;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\ViewErrorBag;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
-use Symfony\Component\HttpFoundation\Response;
+use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
 /**
  * الدخول الموحد للموقع ولوحة الإدارة عبر Fortify — انظر docs/decisions.md.
@@ -40,6 +37,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
         $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
         $this->app->bind(BaseDisableTwoFactorAuthentication::class, DisableTwoFactorAuthentication::class);
+        $this->app->bind(FortifyLoginRateLimiter::class, LoginRateLimiter::class);
     }
 
     public function boot(): void
@@ -98,41 +96,11 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * خمس محاولات في الدقيقة لكل حساب وعنوان، وقفل مؤقت للحساب بعد عشر محاولات
-     * في ربع ساعة من أي عنوان. والتحقق الثنائي خمس محاولات في الدقيقة.
-     * المفتاح هو المعرّف الموحَّد، فلا يتجاوز القفلَ تغييرُ صيغة الرقم.
+     * قفل الدخول في App\Auth\LoginRateLimiter: المحاولات الخاطئة فقط، بالمعرّف الموحَّد.
+     * والتحقق الثنائي خمس محاولات في الدقيقة.
      */
     private function registerRateLimiters(): void
     {
-        RateLimiter::for('login', function (Request $request): array {
-            $login = LoginIdentifier::normalize($request->input(Fortify::username()));
-            $locked = fn (Request $request, array $headers): Response => $this->lockedOut($request, $headers);
-
-            return [
-                Limit::perMinute(5)->by('login:'.$login.'|'.$request->ip())->response($locked),
-                Limit::perMinutes(15, 10)->by('login-account:'.$login)->response($locked),
-            ];
-        });
-
         RateLimiter::for('two-factor', fn (Request $request): Limit => Limit::perMinute(5)->by('two-factor:'.$request->session()->get('login.id')));
-    }
-
-    /**
-     * عند القفل: يُسجَّل الحدث في السجل الأمني، ويُعاد نموذج الدخول برسالة الانتظار.
-     *
-     * @param  array<string, string|int>  $headers
-     */
-    private function lockedOut(Request $request, array $headers): Response
-    {
-        event(new Lockout($request));
-
-        $seconds = (int) ($headers['Retry-After'] ?? 60);
-
-        // مكونات النموذج تقرأ الأخطاء المشتركة بين القوالب، فتُشارَك هنا
-        View::share('errors', (new ViewErrorBag)->put('default', new MessageBag([
-            Fortify::username() => __('auth.throttle', ['seconds' => $seconds]),
-        ])));
-
-        return response()->view('auth.login', [], 429, $headers);
     }
 }
