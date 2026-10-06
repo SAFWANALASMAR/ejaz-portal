@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Filament\Resources\Users\Pages;
+
+use App\Actions\Users\UpdateUserAccount;
+use App\Filament\Resources\Users\UserResource;
+use App\Models\User;
+use App\Support\SaudiPhone;
+use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
+
+class EditUser extends EditRecord
+{
+    protected static string $resource = UserResource::class;
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        /** @var User $user */
+        $user = $this->getRecord();
+
+        return [...$data, 'roles' => $user->getRoleNames()->all()];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        /** @var User $actor */
+        $actor = auth()->user();
+        /** @var User $record */
+        app(UpdateUserAccount::class)->handle($actor, $record, [
+            'name' => (string) $data['name'],
+            'email' => (string) $data['email'],
+            'phone' => filled($data['phone'] ?? null) ? SaudiPhone::normalize((string) $data['phone']) : null,
+            'is_active' => (bool) ($data['is_active'] ?? $record->is_active),
+        ], array_key_exists('roles', $data) ? array_values((array) $data['roles']) : null);
+
+        return $record->refresh();
+    }
+}

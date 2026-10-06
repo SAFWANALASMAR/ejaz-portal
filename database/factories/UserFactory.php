@@ -41,6 +41,7 @@ class UserFactory extends Factory
             'is_active' => true,
             'last_login_at' => null,
             'deletion_requested_at' => null,
+            'anonymized_at' => null,
             'remember_token' => Str::random(10),
         ];
     }

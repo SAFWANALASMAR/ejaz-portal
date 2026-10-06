@@ -2,18 +2,18 @@
 
 namespace Tests;
 
-use Database\Seeders\RolesSeeder;
+use Database\Seeders\AccessSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Http;
 
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * الأدوار موجودة في كل اختبار يستخدم قاعدة البيانات.
+     * الأدوار والصلاحيات موجودة في كل اختبار يستخدم قاعدة البيانات.
      */
     protected bool $seed = true;
 
-    protected string $seeder = RolesSeeder::class;
+    protected string $seeder = AccessSeeder::class;
 
     /**
      * رد خدمة كلمات المرور المسربة. الفارغ يعني أن الكلمة غير مسربة.

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\SmsGateway;
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Policies\ActivityPolicy;
 use App\Services\Sms\LogSmsGateway;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Support\Facades\FilamentTimezone;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
 
         // المشرف العام يملك كل الصلاحيات
         Gate::before(fn (User $user): ?bool => $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
+
+        // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
+        Gate::policy(Activity::class, ActivityPolicy::class);
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
     }

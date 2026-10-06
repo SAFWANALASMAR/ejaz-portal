@@ -46,6 +46,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'privacy_accepted_at' => 'datetime',
             'last_login_at' => 'datetime',
             'deletion_requested_at' => 'datetime',
+            'anonymized_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
@@ -87,7 +88,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         // لا تُسجَّل كلمة المرور ولا رموز التحقق الثنائي
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'phone', 'email_verified_at', 'phone_verified_at', 'is_active', 'deletion_requested_at'])
+            ->logOnly(['name', 'email', 'phone', 'email_verified_at', 'phone_verified_at', 'is_active', 'deletion_requested_at', 'anonymized_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Actions\Settings\UpdateSiteSettings;
+use App\Models\Setting;
+use App\Models\User;
+use App\Rules\SafeUrl;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
+use UnitEnum;
+
+/**
+ * إعدادات الموقع: التواصل، والتواصل الاجتماعي، ومقاطع الرئيسية.
+ * الصلاحية: settings.update (المشرف العام ومحرر المحتوى).
+ *
+ * @property-read Schema $form
+ */
+class SiteSettings extends Page
+{
+    public const SOCIAL = ['x', 'instagram', 'youtube', 'linkedin', 'snapchat', 'tiktok', 'facebook', 'whatsapp'];
+
+    public const STAT_ICONS = ['users', 'academic-cap', 'book-open', 'calendar', 'trophy', 'hand-raised', 'building-library', 'light-bulb'];
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+
+    protected static ?int $navigationSort = 90;
+
+    /** @var array<string, mixed> */
+    public ?array $data = [];
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('settings.update') ?? false;
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('settings.title');
+    }
+
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return __('admin.groups.settings');
+    }
+
+    public function getTitle(): string|Htmlable
+    {
+        return __('settings.title');
+    }
+
+    public function mount(): void
+    {
+        $this->form->fill([
+            'contact' => Setting::group('contact'),
+            'home' => [
+                'show_shortcuts' => true,
+                'show_latest' => true,
+                'show_initiatives' => true,
+                'show_stats' => true,
+                'show_partners' => true,
+                ...Setting::group('home'),
+            ],
+        ]);
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('data')
+            ->components([
+                Tabs::make()->tabs([
+                    Tab::make(__('settings.tabs.contact'))->schema([
+                        TextInput::make('contact.email')->label(__('settings.contact.email'))->email()->maxLength(255),
+                        TextInput::make('contact.phone')->label(__('settings.contact.phone'))->tel()->maxLength(20),
+                        Textarea::make('contact.address')->label(__('settings.contact.address'))->rows(2)->maxLength(300),
+                        TextInput::make('contact.map_url')->label(__('settings.contact.map_url'))
+                            ->helperText(__('settings.contact.map_url_hint'))
+                            ->maxLength(1000)
+                            ->rule(new SafeUrl(allowInternal: false)),
+                    ]),
+                    Tab::make(__('settings.tabs.social'))->schema([
+                        Section::make()->description(__('settings.social.hint'))->columns(2)->schema(
+                            array_map(fn (string $network) => TextInput::make('contact.social.'.$network)
+                                ->label(__('settings.social.'.$network))
+                                ->maxLength(500)
+                                ->extraInputAttributes(['dir' => 'ltr'])
+                                ->rule(new SafeUrl(allowInternal: false)), self::SOCIAL),
+                        ),
+                    ]),
+                    Tab::make(__('settings.tabs.home'))->schema([
+                        Section::make(__('settings.home.hero'))->columns(2)->schema([
+                            TextInput::make('home.hero_title')->label(__('settings.home.hero_title'))->maxLength(120)->columnSpanFull(),
+                            Textarea::make('home.hero_text')->label(__('settings.home.hero_text'))->rows(3)->maxLength(400)->columnSpanFull(),
+                            TextInput::make('home.hero_button_label')->label(__('settings.home.hero_button_label'))->maxLength(40),
+                            TextInput::make('home.hero_button_url')->label(__('settings.home.hero_button_url'))->maxLength(500)
+                                ->extraInputAttributes(['dir' => 'ltr'])
+                                ->rule(new SafeUrl),
+                            // لا SVG من المستخدمين (docs/security.md)
+                            FileUpload::make('home.hero_image')->label(__('settings.home.hero_image'))
+                                ->helperText(__('settings.home.hero_image_hint'))
+                                ->image()
+                                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                                ->maxSize(4096)
+                                ->disk('public')
+                                ->directory('settings')
+                                ->visibility('public')
+                                ->columnSpanFull(),
+                        ]),
+                        Section::make(__('settings.home.sections'))->columns(3)->schema([
+                            Toggle::make('home.show_shortcuts')->label(__('settings.home.show_shortcuts')),
+                            Toggle::make('home.show_latest')->label(__('settings.home.show_latest')),
+                            Toggle::make('home.show_initiatives')->label(__('settings.home.show_initiatives')),
+                            Toggle::make('home.show_stats')->label(__('settings.home.show_stats')),
+                            Toggle::make('home.show_partners')->label(__('settings.home.show_partners')),
+                        ]),
+                        Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
+                            Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(4)->defaultItems(0)->schema([
+                                TextInput::make('label')->label(__('settings.home.stat_label'))->required()->maxLength(60),
+                                TextInput::make('value')->label(__('settings.home.stat_value'))->required()->integer()->minValue(0)->maxValue(100000000),
+                                TextInput::make('suffix')->label(__('settings.home.stat_suffix'))->maxLength(3),
+                                Select::make('icon')->label(__('settings.home.stat_icon'))
+                                    ->options(collect(self::STAT_ICONS)->mapWithKeys(fn (string $icon) => [$icon => __('settings.icons.'.$icon)]))
+                                    ->required(),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]);
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            Form::make([EmbeddedSchema::make('form')])
+                ->id('form')
+                ->livewireSubmitHandler('save')
+                ->footer([
+                    Actions::make([
+                        Action::make('save')->label(__('site.save'))->submit('save')->keyBindings(['mod+s']),
+                    ]),
+                ]),
+        ]);
+    }
+
+    public function save(UpdateSiteSettings $action): void
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        /** @var array{contact: array<string, mixed>, home: array<string, mixed>} $state */
+        $state = $this->form->getState();
+
+        $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);
+        $state['home']['stats'] = array_values($state['home']['stats'] ?? []);
+
+        $action->handle($user, $state);
+
+        Notification::make()->success()->title(__('settings.saved'))->send();
+    }
+}

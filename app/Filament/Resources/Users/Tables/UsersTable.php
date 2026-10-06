@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Filament\Resources\Users\Tables;
+
+use App\Actions\Users\AnonymizeUser;
+use App\Enums\RoleName;
+use App\Models\User;
+use App\Support\SaudiPhone;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
+class UsersTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->defaultSort('created_at', 'desc')
+            ->columns([
+                TextColumn::make('name')
+                    ->label(__('users.fields.name'))
+                    ->searchable(),
+                TextColumn::make('email')
+                    ->label(__('users.fields.email'))
+                    ->searchable()
+                    ->extraAttributes(['dir' => 'ltr']),
+                TextColumn::make('phone')
+                    ->label(__('users.fields.phone'))
+                    ->formatStateUsing(fn (?string $state) => SaudiPhone::display($state))
+                    ->searchable()
+                    ->extraAttributes(['dir' => 'ltr']),
+                TextColumn::make('roles.name')
+                    ->label(__('users.fields.roles'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => RoleName::tryFrom($state)?->getLabel() ?? $state),
+                IconColumn::make('is_active')
+                    ->label(__('users.fields.is_active'))
+                    ->boolean(),
+                TextColumn::make('last_login_at')
+                    ->label(__('users.fields.last_login_at'))
+                    ->since()
+                    ->sortable(),
+                TextColumn::make('deletion_requested_at')
+                    ->label(__('users.fields.deletion_requested_at'))
+                    ->dateTime('Y-m-d')
+                    ->badge()
+                    ->color('danger')
+                    ->toggleable(),
+                TextColumn::make('created_at')
+                    ->label(__('users.fields.created_at'))
+                    ->dateTime('Y-m-d')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('roles')
+                    ->label(__('users.fields.roles'))
+                    ->relationship('roles', 'name')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => RoleName::tryFrom($record->name)?->getLabel() ?? $record->name),
+                TernaryFilter::make('is_active')
+                    ->label(__('users.fields.is_active')),
+                Filter::make('deletion_requested')
+                    ->label(__('users.filters.deletion_requested'))
+                    ->query(fn (Builder $query) => $query->whereNotNull('deletion_requested_at')->whereNull('anonymized_at')),
+            ])
+            ->recordActions([
+                EditAction::make(),
+                Action::make('anonymize')
+                    ->label(__('users.anonymize.action'))
+                    ->icon(Heroicon::OutlinedTrash)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('users.anonymize.heading'))
+                    ->modalDescription(__('users.anonymize.description'))
+                    ->visible(fn (User $record) => auth()->user()?->can('anonymize', $record) && AnonymizeUser::eligible(auth()->user(), $record))
+                    ->action(function (User $record, AnonymizeUser $anonymize): void {
+                        /** @var User $actor */
+                        $actor = auth()->user();
+                        $anonymize->handle($actor, $record);
+
+                        Notification::make()->success()->title(__('users.anonymize.done'))->send();
+                    }),
+            ]);
+    }
+}

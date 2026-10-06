@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Rules\SafeUrl;
 use Illuminate\Support\Collection;
 
 /**
@@ -31,14 +32,14 @@ final readonly class MenuLink
             label: $row['label'],
             url: (string) $row['url'],
             opensInNewTab: $row['opens_in_new_tab'],
-            // @phpstan-ignore argument.type
             children: collect($row['children'] ?? [])->map(fn (array $child): self => self::fromArray($child)),
         );
     }
 
     public function href(): string
     {
-        if ($this->url === '' || str_starts_with($this->url, '#')) {
+        // دفاع إضافي: لا يُعرض رابط غير آمن حتى لو وصل إلى القاعدة دون تحقق
+        if (! SafeUrl::isSafe($this->url)) {
             return '#';
         }
 
