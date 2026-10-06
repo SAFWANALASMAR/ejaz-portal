@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'Asia/Riyadh'),
+    'timezone' => 'UTC',
+
+    // التخزين بتوقيت UTC، والعرض للمستخدم بتوقيت الرياض
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Riyadh'),
 
     /*
     |--------------------------------------------------------------------------

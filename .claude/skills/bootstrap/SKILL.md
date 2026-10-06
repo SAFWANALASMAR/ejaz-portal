@@ -8,42 +8,42 @@ disable-model-invocation: true
 
 نفّذ الخطوات بالترتيب. بعد كل خطوة تحقق أنها نجحت قبل الانتقال. إذا فشلت خطوة، اشرح السبب لصفوان بالعربية واقترح الحل، ولا تتجاوزها.
 
+استخدم دائماً `docker compose exec -T`. لا طرفية تفاعلية لديك، فالأوامر التي تسأل أسئلة شغّلها بخيار `--no-interaction` أو اطلب من صفوان تشغيلها بنفسه.
+
 ## ٠. التحقق من البيئة
 
 - `docker compose ps` — يجب أن تكون app وpgsql وredis تعمل. إن لم تكن، اطلب من صفوان تشغيل `bash scripts/setup.sh` أولاً.
-- `git status` — المستودع موجود، ولا تعديلات غير محفوظة. إن وُجدت تعديلات فاسأل قبل المتابعة.
+- `git status` — **متوقع** ظهور `composer.lock` و`package-lock.json` غير محفوظين (أنشأهما setup.sh)، وهما يُحفظان في هذه المهمة. أي تعديل آخر غير محفوظ: اسأل قبل المتابعة.
 - أنشئ فرعاً: `git switch -c chore/bootstrap`.
 
 ## ١. المكتبات
 
-ثبّت **أحدث إصدار مستقر متوافق** دون تثبيت أرقام يدوياً، ثم سجّل الإصدارات التي ثُبّتت في `docs/decisions.md`.
+ثبّت **أحدث إصدار مستقر متوافق** دون تثبيت أرقام يدوياً، ثم سجّل الإصدارات المثبتة في `docs/decisions.md`.
 
 ```bash
-docker compose exec app composer require filament/filament laravel/horizon spatie/laravel-permission spatie/laravel-activitylog
-docker compose exec app composer require --dev pestphp/pest pestphp/pest-plugin-laravel larastan/larastan laravel/boost
+docker compose exec -T app composer require --no-interaction filament/filament laravel/horizon spatie/laravel-permission spatie/laravel-activitylog
+docker compose exec -T app composer require --dev --no-interaction -W pestphp/pest pestphp/pest-plugin-laravel larastan/larastan laravel/boost
 ```
 
-إن ظهر تعارض، فلا تستخدم `--ignore-platform-reqs`. اعرض المشكلة واقترح حلاً.
+- الخيار `-W` يسمح بمواءمة إصدار PHPUnit مع Pest.
+- إن ظهر تعارض، فلا تستخدم `--ignore-platform-reqs`. اعرض المشكلة واقترح حلاً.
 
-## ٢. Laravel Boost
+## ٢. Pest
 
 ```bash
-docker compose exec app php artisan boost:install
+docker compose exec -T app ./vendor/bin/pest --init
 ```
 
-اختر Claude Code عند السؤال. بعدها تأكد أن محتوى `CLAUDE.md` الأصلي (دستور المشروع) **ما زال موجوداً كاملاً**، وأن إرشادات Boost أُضيفت إليه ولم تستبدله. راجع ذلك بـ `git diff CLAUDE.md`، وإن حُذف شيء فأعده.
+- تأكد أن `tests/Pest.php` يربط اختبارات Feature بـ `Tests\TestCase` ويستخدم `RefreshDatabase`.
+- حوّل الاختبارين المثالين إلى صيغة Pest، أو استبدلهما باختبار: الصفحة الرئيسية ترد 200.
+- `docker compose exec -T app php artisan test` يجب أن ينجح (على قاعدة `ejaz_testing`).
 
-## ٣. Pest
+## ٣. Larastan
 
-- حوّل الاختبارين المثالين إلى صيغة Pest، أو احذفهما واكتب اختباراً بديلاً: الصفحة الرئيسية ترد 200.
-- `docker compose exec app php artisan test` يجب أن ينجح.
+- أنشئ `phpstan.neon` بالمستوى 6، ومسارات `app/` و`config/` و`database/` و`routes/`، مع إضافة larastan.
+- `docker compose exec -T app ./vendor/bin/phpstan analyse` يجب أن ينجح دون أخطاء ودون خط أساس.
 
-## ٤. Larastan
-
-- أنشئ `phpstan.neon` بالمستوى 6، ومسارات `app/` و`config/` و`database/` و`routes/`.
-- `docker compose exec app ./vendor/bin/phpstan analyse` يجب أن ينجح دون أخطاء.
-
-## ٥. أمر الفحص الكامل
+## ٤. أمر الفحص الكامل
 
 أضف في `composer.json` ضمن scripts:
 
@@ -55,69 +55,79 @@ docker compose exec app php artisan boost:install
 ]
 ```
 
-## ٦. العربية
+## ٥. العربية والتوقيت
 
-- `docker compose exec app php artisan lang:publish`
-- أنشئ `lang/ar/` بالترجمات الأساسية (التحقق، والمصادقة، وكلمات المرور، والترقيم). ترجمها ترجمة سليمة، وتحقق منها نصاً نصاً.
-- `config/app.php`: اللغة `ar` (عبر `.env` الموجود)، والتوقيت `Asia/Riyadh` (موجود).
-- تخطيط Blade أساسي في `resources/views/layouts/app.blade.php` بـ `lang="ar" dir="rtl"`.
+- `docker compose exec -T app php artisan lang:publish`
+- أنشئ `lang/ar/`: `validation.php` و`auth.php` و`passwords.php` و`pagination.php`، و`ar.json` للنصوص العامة. ترجمها ترجمة سليمة، وراجعها نصاً نصاً.
+- التخزين UTC والعرض بتوقيت الرياض: استخدم `config('app.display_timezone')`.
+- تخطيط Blade أساسي في `resources/views/layouts/app.blade.php` بـ `lang="ar" dir="rtl"`، والخط واللون من `docs/design-system.md`. والرئيسية المؤقتة تستخدمه بدل صفحة لارافيل الافتراضية.
 
-## ٧. لوحة الإدارة
+## ٦. لوحة الإدارة
 
 ```bash
-docker compose exec app php artisan filament:install --panels
+docker compose exec -T app php artisan filament:install --panels --no-interaction
 ```
 
 - معرّف اللوحة `admin`، والمسار `/admin`.
-- اللون الأساسي من `docs/design-system.md`، والخط نفسه، والاتجاه من اليمين.
+- اللون الأساسي والخط من `docs/design-system.md`، واللغة العربية والاتجاه من اليمين.
+- `FilamentTimezone::set(config('app.display_timezone'))` في مزود الخدمة.
 - اسم اللوحة: «جمعية إعجاز — لوحة الإدارة».
 - `User` ينفذ `FilamentUser`، و`canAccessPanel()` يسمح فقط لمن لديه دور إداري (انظر `docs/roles-permissions.md`).
 
-## ٨. الصلاحيات وسجل العمليات
+## ٧. الصلاحيات وسجل العمليات
 
-- انشر ملفات الإعداد والترحيلات للمكتبتين، وشغّل `migrate`.
-- `User` يستخدم `HasRoles`.
-- Seeder باسم `RolesSeeder` ينشئ الأدوار الثمانية في `docs/roles-permissions.md` بلا صلاحيات تفصيلية بعد. تُضاف الصلاحيات مع كل وحدة.
-- أمر Artisan: `php artisan ejaz:create-admin`. يسأل عن الاسم والبريد وكلمة المرور تفاعلياً، ويمنحه `super_admin`. **لا** حساب مشرف ثابت في Seeder، ولا كلمة مرور في الشيفرة.
+- انشر ملفات الإعداد والترحيلات للمكتبتين، وشغّل `docker compose exec -T app php artisan migrate`.
+- `User` يستخدم `HasRoles`، ويسجل تعديلاته في سجل العمليات (بلا كلمة المرور والرموز).
+- Seeder باسم `RolesSeeder` ينشئ الأدوار الثمانية في `docs/roles-permissions.md`، بلا صلاحيات تفصيلية بعد. تُضاف الصلاحيات مع كل وحدة.
+- أمر Artisan: `ejaz:create-admin`.
+  - يسأل عن الاسم والبريد وكلمة المرور تفاعلياً، ويطبّق قواعد كلمة المرور في `docs/security.md`، ويمنحه `super_admin`.
+  - **لا** حساب مشرف ثابت في Seeder، ولا كلمة مرور في الشيفرة.
 - اختبارات:
-  - مستخدم بلا دور إداري يُمنع من `/admin` (403).
+  - مستخدم بلا دور إداري يُمنع من `/admin`.
   - المشرف يدخل.
-  - الأمر ينشئ المشرف.
+  - الأمر ينشئ المشرف ويرفض كلمة مرور ضعيفة.
 
-## ٩. Horizon
+## ٨. Horizon
 
-- `php artisan horizon:install`.
-- اللوحة `/horizon` للمشرف العام فقط (تعديل `gate` في `HorizonServiceProvider`).
-- في `compose.yaml` غيّر أمر خدمة queue إلى `php artisan horizon`، وأعد تشغيلها.
+- `docker compose exec -T app php artisan horizon:install`
+- **انتبه:** Horizon يسمح للجميع في البيئة المحلية افتراضياً. تجاوز `authorization()` في `HorizonServiceProvider` بحيث يطبّق البوابة في كل البيئات: المشرف العام فقط.
+- اختبار: مستخدم عادي يُمنع من `/horizon`.
+- في `compose.yaml` غيّر أمر خدمة queue إلى `php artisan horizon`، ثم اطلب من صفوان الموافقة على `docker compose up -d queue`.
 
-## ١٠. الحماية الأساسية
+## ٩. الحماية الأساسية
 
-- Middleware لرؤوس الحماية (انظر `docs/security.md`)، مطبق على مجموعة web.
-- `Model::preventLazyLoading(! app()->isProduction())` و`Model::shouldBeStrict()` في `AppServiceProvider`.
-- `Password::defaults()` بالقواعد في `security.md`.
+- Middleware لرؤوس الحماية (انظر `docs/security.md`)، مطبق على مجموعة web، ومتوافق مع Vite في التطوير.
+- في `AppServiceProvider`:
+  - `Model::shouldBeStrict(! app()->isProduction())`
+  - `Password::defaults(...)` بالقواعد في `security.md`
+  - فرض HTTPS في الإنتاج.
 - اختبار يتحقق من وجود رؤوس الحماية في الاستجابة.
 
-## ١١. الواجهة
+## ١٠. الواجهة
 
-- `docker compose exec vite npm install` ثم `npm run build`، ويجب أن ينجح.
-- **احفظ `package-lock.json` في قيت** — الفحص الآلي يحتاجه (`npm ci`).
+- `docker compose exec -T vite npm run build` يجب أن ينجح.
+- إن فشل تحميل الخط من Bunny، فاحفظ ملفات الخط داخل المشروع في `resources/fonts` وحمّلها عبر `@font-face`، وسجّل القرار.
 
-## ١٢. الفحص النهائي
+## ١١. الفحص النهائي
 
 ```bash
-docker compose exec app composer check
+docker compose exec -T app composer check
+docker compose exec -T app composer audit
 ```
 
-يجب أن ينجح كاملاً. ثم:
+يجب أن ينجحا كاملين. ثم:
 
-- اطلب من صفوان إنشاء حسابه بـ `docker compose exec app php artisan ejaz:create-admin`، وفتح `http://localhost:8000/admin` للتأكد بنفسه.
+- اطلب من صفوان تشغيل هذين الأمرين **بنفسه في طرفيته**، لأنهما يسألان أسئلة:
+  - `docker compose exec app php artisan boost:install` — يختار Claude Code. بعده راجع `git diff CLAUDE.md`: يجب أن يبقى دستور المشروع كاملاً، وتُضاف إرشادات Boost فقط. وإن حُذف شيء فأعده.
+  - `docker compose exec app php artisan ejaz:create-admin` — ثم يفتح `http://localhost:8000/admin` ويتأكد بنفسه.
 - حدّث `docs/roadmap.md`: بنود المرحلة 0 ✅.
-- احفظ: `git add -A && git commit -m "chore: bootstrap project foundation"`.
-- اسأل صفوان قبل الرفع: `git push -u origin chore/bootstrap`. ثم يدمجه بعد نجاح الفحص الآلي على GitHub.
+- احفظ كل شيء ومعه `composer.lock` و`package-lock.json`:
+  `git add -A && git commit -m "chore: bootstrap project foundation"`
+- اسأل صفوان قبل الرفع: `git push -u origin chore/bootstrap`. ثم يفتح طلب دمج على GitHub، ويدمجه بعد نجاح الفحص الآلي (الذي يعمل كاملاً لأول مرة الآن).
 
 ## الملخص لصفوان
 
 بالعربية وبلا جداول:
 - ما ثُبّت، وإصداراته.
 - ما يجربه بنفسه.
-- الخطوة التالية: المرحلة 1، بأمر `/new-feature` على أول بند.
+- الخطوة التالية: المرحلة 1، بأمر `/new-feature` على أول بند في `docs/roadmap.md`.

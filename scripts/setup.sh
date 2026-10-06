@@ -37,14 +37,15 @@ say "٤/٧ تشغيل قاعدة البيانات والذاكرة المؤقت�
 docker compose up -d --wait pgsql redis mailpit
 
 say "٥/٧ تثبيت مكتبات PHP"
-docker compose run --rm --no-deps app composer install --no-interaction
+docker compose run --rm -T --no-deps app composer install --no-interaction
 
 if ! grep -q '^APP_KEY=base64' .env; then
-  docker compose run --rm --no-deps app php artisan key:generate --ansi
+  docker compose run --rm -T --no-deps app php artisan key:generate --ansi
 fi
 
-say "٦/٧ إنشاء جداول قاعدة البيانات"
-docker compose run --rm app php artisan migrate --force
+say "٦/٧ إنشاء جداول قاعدة البيانات وتجهيز الواجهة"
+docker compose run --rm -T app php artisan migrate --force
+docker compose run --rm -T --no-deps vite sh -c "npm install && npm run build"
 
 say "٧/٧ تشغيل كل الخدمات"
 docker compose up -d

@@ -29,7 +29,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 
 ## التحقق
 
-شغّل `docker compose exec app php artisan test --filter=<...>`.
+شغّل `docker compose exec -T app php artisan test --filter=<...>`.
 
 - **قبل التنفيذ:** يجب أن تفشل الاختبارات للسبب الصحيح.
 - **بعد التنفيذ:** يجب أن تنجح.

@@ -7,11 +7,11 @@ description: الفحص الكامل قبل أي حفظ أو دمج — تنسي
 
 شغّل بالترتيب، وتوقف عند أول فشل لإصلاحه:
 
-1. `docker compose exec app ./vendor/bin/pint` — تنسيق تلقائي.
-2. `docker compose exec app composer check` — تنسيق، وتحليل ثابت، واختبارات.
-3. `docker compose exec app composer audit` — ثغرات معروفة في مكتبات PHP.
-4. `docker compose exec vite npm audit --omit=dev` — ثغرات في مكتبات الواجهة.
-5. `docker compose exec vite npm run build` — بناء الواجهة.
+1. `docker compose exec -T app ./vendor/bin/pint` — تنسيق تلقائي.
+2. `docker compose exec -T app composer check` — تنسيق، وتحليل ثابت، واختبارات.
+3. `docker compose exec -T app composer audit` — ثغرات معروفة في مكتبات PHP.
+4. `docker compose exec -T vite npm audit --omit=dev` — ثغرات في مكتبات الواجهة.
+5. `docker compose exec -T vite npm run build` — بناء الواجهة.
 
 ## عند الفشل
 

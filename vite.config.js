@@ -24,6 +24,8 @@ export default defineConfig({
         strictPort: true,
         hmr: { host: 'localhost' },
         watch: {
+            // على ويندوز لا تصل إشعارات تغيّر الملفات إلى الحاوية؛ اضبط VITE_POLLING=true في .env
+            usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
             ignored: ['**/storage/framework/views/**'],
         },
     },

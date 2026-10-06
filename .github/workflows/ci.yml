@@ -46,44 +46,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # قبل تنفيذ /bootstrap لا توجد ملفات القفل ولا أدوات الجودة؛ يتخطى الفحص بقية الخطوات
+      - name: التحقق من اكتمال التأسيس
+        id: boot
+        run: |
+          if [ -f composer.lock ] && [ -f package-lock.json ] && [ -f phpstan.neon ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::المشروع لم يُؤسس بعد بأمر /bootstrap — تُتخطى الفحوص"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: shivammathur/setup-php@v2
+        if: steps.boot.outputs.ready == 'true'
         with:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, pcntl, exif
           coverage: none
 
       - uses: actions/setup-node@v4
+        if: steps.boot.outputs.ready == 'true'
         with:
           node-version: '22'
-          cache: npm
 
       - name: Cache Composer
+        if: steps.boot.outputs.ready == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.composer/cache
           key: composer-${{ hashFiles('composer.lock') }}
 
       - name: تثبيت المكتبات
+        if: steps.boot.outputs.ready == 'true'
         run: |
           composer install --no-interaction --prefer-dist --no-progress
           npm ci
           npm run build
 
       - name: تجهيز البيئة
+        if: steps.boot.outputs.ready == 'true'
         run: |
           cp .env.example .env
           php artisan key:generate
 
       - name: تدقيق المكتبات أمنياً
+        if: steps.boot.outputs.ready == 'true'
         run: |
           composer audit
           npm audit --omit=dev --audit-level=high
 
       - name: تنسيق الشيفرة (Pint)
+        if: steps.boot.outputs.ready == 'true'
         run: vendor/bin/pint --test
 
       - name: التحليل الثابت (Larastan)
+        if: steps.boot.outputs.ready == 'true'
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
       - name: الاختبارات
+        if: steps.boot.outputs.ready == 'true'
         run: php artisan test

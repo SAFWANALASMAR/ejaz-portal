@@ -40,15 +40,15 @@
 
 ## الأوامر
 
-كل شيء يعمل داخل الحاويات. لا تفترض وجود PHP على جهاز صفوان.
+كل شيء يعمل داخل الحاويات. لا تفترض وجود PHP على جهاز صفوان. استخدم دائماً `-T` مع `exec` (لا طرفية تفاعلية لديك)، والأوامر التي تسأل أسئلة شغّلها بخيار `--no-interaction` أو اطلب من صفوان تشغيلها في طرفيته.
 
 ```bash
 docker compose up -d                                  # تشغيل البيئة
-docker compose exec app php artisan <command>         # أوامر لارافيل
-docker compose exec app composer <command>            # المكتبات
-docker compose exec app php artisan test              # الاختبارات
-docker compose exec app composer check                # الفحص الكامل: تنسيق + تحليل + اختبارات
-docker compose exec vite npm run build                # بناء الواجهة
+docker compose exec -T app php artisan <command>         # أوامر لارافيل
+docker compose exec -T app composer <command>            # المكتبات
+docker compose exec -T app php artisan test              # الاختبارات
+docker compose exec -T app composer check                # الفحص الكامل: تنسيق + تحليل + اختبارات
+docker compose exec -T vite npm run build                # بناء الواجهة
 docker compose logs -f app                            # سجل الأخطاء
 ```
 

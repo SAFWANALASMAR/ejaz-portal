@@ -34,7 +34,7 @@ tools: Read, Grep, Glob, Bash
 - **الأسرار:**
   - مفاتيح أو كلمات مرور في الشيفرة أو في ملفات تُحفظ بقيت.
 - **المكتبات:**
-  - `docker compose exec app composer audit`
+  - `docker compose exec -T app composer audit`
 
 ## التقرير
 
