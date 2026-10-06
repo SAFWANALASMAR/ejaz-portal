@@ -63,8 +63,8 @@ class AppServiceProvider extends ServiceProvider
         FilamentTimezone::set(config('app.display_timezone'));
 
         // المشرف العام يملك كل ما لم تمنعه سياسة صراحة. Gate::after لا يغيّر نتيجة صريحة
-        // (false من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس
-        Gate::after(fn (User $user, string $ability, ?bool $result): ?bool => $result ?? ($user->hasRole(RoleName::SuperAdmin->value) ? true : null));
+        // (false أو Response::deny من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس
+        Gate::after(fn (User $user, string $ability, mixed $result): ?bool => $result === null && $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
 
         // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
         Gate::policy(Activity::class, ActivityPolicy::class);

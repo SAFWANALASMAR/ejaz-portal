@@ -15,14 +15,25 @@ class MenuItemPolicy extends ModulePolicy
 
     /**
      * العنصر الذي تحته عناصر فرعية لا يُحذف، حتى لا تُحذف فروعه بصمت.
-     * تُنقل الفروع أو تُحذف أولاً. والمنع صريح فيسري على المشرف العام أيضاً.
+     * تُنقل الفروع أو تُحذف أولاً. والمنع صريح فيسري على المشرف العام أيضاً،
+     * وقاعدة البيانات ترفضه كذلك (restrictOnDelete).
      */
     public function delete(User $user, Model $record): bool
     {
-        if ($record instanceof MenuItem && $record->children()->exists()) {
+        if ($record instanceof MenuItem && self::hasChildren($record)) {
             return false;
         }
 
         return parent::delete($user, $record);
+    }
+
+    /**
+     * جدول القائمة يحمّل عدد الفروع مسبقاً (withCount)، فلا استعلام لكل صف.
+     */
+    private static function hasChildren(MenuItem $item): bool
+    {
+        return $item->hasAttribute('children_count')
+            ? (int) $item->getAttribute('children_count') > 0
+            : $item->children()->exists();
     }
 }

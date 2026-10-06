@@ -7,6 +7,8 @@ use App\Filament\Resources\MenuItems\Pages\EditMenuItem;
 use App\Filament\Resources\MenuItems\Pages\ListMenuItems;
 use App\Models\MenuItem;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -93,6 +95,14 @@ it('does not let board members reorder the menu, even by calling the table direc
     Livewire::test(ListMenuItems::class)->call('reorderTable', [$second->getKey(), $first->getKey()]);
 
     expect($first->fresh()->sort)->toBe(1)->and($second->fresh()->sort)->toBe(2);
+});
+
+it('refuses in the database too to delete an item that has sub-items', function () {
+    $parent = MenuItem::factory()->create();
+    MenuItem::factory()->create(['parent_id' => $parent->id]);
+
+    expect(fn () => DB::transaction(fn () => $parent->delete()))->toThrow(QueryException::class)
+        ->and(MenuItem::query()->count())->toBe(2);
 });
 
 it('refuses to delete an item that has sub-items', function () {

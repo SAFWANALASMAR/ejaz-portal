@@ -4,6 +4,8 @@ use App\Enums\RoleName;
 use App\Models\MenuItem;
 use App\Models\User;
 use Database\Seeders\PermissionsSeeder;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
@@ -73,6 +75,38 @@ it('rejects an unknown role or a pattern that matches nothing', function (array 
     'unknown role' => [['content_editr' => ['news.*']]],
     'typo in pattern' => [['content_editor' => ['newz.*']]],
 ]);
+
+it('applies nothing when any part of the configuration is wrong', function () {
+    config(['permissions.roles' => [
+        'content_editor' => ['news.*'],
+        'board_member' => ['newz.*'],
+    ]]);
+
+    expect(fn () => $this->seed(PermissionsSeeder::class))->toThrow(InvalidArgumentException::class)
+        ->and(Role::findByName(RoleName::ContentEditor->value)->hasPermissionTo('menu.update'))->toBeTrue();
+});
+
+it('grants each role what its work needs, by name', function () {
+    $editor = Role::findByName(RoleName::ContentEditor->value);
+    $board = Role::findByName(RoleName::BoardMember->value);
+    $secretary = Role::findByName(RoleName::Secretary->value);
+
+    expect($editor->hasPermissionTo('menu.update'))->toBeTrue()
+        ->and($editor->hasPermissionTo('settings.update'))->toBeTrue()
+        ->and($editor->hasPermissionTo('redirects.delete'))->toBeTrue()
+        ->and($editor->hasPermissionTo('requests.view'))->toBeFalse()
+        ->and($board->hasPermissionTo('news.view'))->toBeTrue()
+        ->and($board->hasPermissionTo('news.update'))->toBeFalse()
+        ->and($board->hasPermissionTo('settings.update'))->toBeFalse()
+        ->and($secretary->hasPermissionTo('requests.assign'))->toBeTrue()
+        ->and($secretary->hasPermissionTo('menu.update'))->toBeFalse();
+});
+
+it('keeps a denial with a message from a policy, for the super admin too', function () {
+    Gate::define('deny-with-message', fn () => Response::deny('ممنوع'));
+
+    expect(Gate::forUser(userWithRole(RoleName::SuperAdmin))->inspect('deny-with-message')->denied())->toBeTrue();
+});
 
 it('applies the module policy to each action', function () {
     $item = MenuItem::factory()->create();

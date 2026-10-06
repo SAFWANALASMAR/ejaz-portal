@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * المستخدمون: بيانات شخصية، فلا يصلها إلا من له users.*.
  * والمنع الصريح هنا (false) يسري على المشرف العام أيضاً (Gate::after):
- * - لا يُعدَّل حساب أُخفيت بياناته.
+ * - لا يُعدَّل حساب أُخفيت بياناته، ولا تُمنح له أدوار.
  * - لا يحذف أحد حسابه.
  * - وغير المشرف العام لا يعدّل حساباً له دور إداري.
  * ومنح الأدوار للمشرف العام وحده، قاعدةً في الشيفرة لا في ملف الصلاحيات.
@@ -40,7 +40,7 @@ class UserPolicy extends ModulePolicy
 
     public function assignRoles(User $user, ?User $record = null): bool
     {
-        return $user->hasRole(RoleName::SuperAdmin->value);
+        return $user->hasRole(RoleName::SuperAdmin->value) && $record?->anonymized_at === null;
     }
 
     /**
