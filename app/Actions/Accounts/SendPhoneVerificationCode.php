@@ -19,9 +19,10 @@ use Illuminate\Validation\ValidationException;
  *
  * الحدود (config/security.php — وdocs/performance.md):
  * - لكل مستخدم: رمز كل دقيقة، وخمسة رموز في الساعة.
- * - لكل شبكة: عدد الرموز المعلّقة (أُرسلت ولم يُتحقق منها). الرمز الجديد يحل محل
- *   السابق في العدّ، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة.
- *   IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48 بحد أوسع.
+ * - لكل شبكة حدان: الرموز المعلّقة (أُرسلت ولم يُتحقق منها)، والرمز الجديد يحل محل
+ *   السابق فيه، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة. وكل رسالة
+ *   مرسلة، بلا استبدال ولا تحرير، فلا تضاعف إعادةُ الإرسال حدَّ الشبكة.
+ *   IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48.
  * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام عند 70% و90% قبل التوقف.
  */
 class SendPhoneVerificationCode
@@ -52,14 +53,19 @@ class SendPhoneVerificationCode
 
         $previous = Cache::get(self::cacheKey($user));
         $previousBuckets = is_array($previous) ? (array) ($previous['buckets'] ?? []) : [];
-        $buckets = self::buckets(request()->ip());
+        $networks = self::networks(request()->ip());
 
-        foreach ($buckets as $key => $max) {
-            // الرمز السابق لهذا المستخدم من الشبكة نفسها يُستبدل ولا يُضاف
-            $pending = RateLimiter::attempts($key) - (in_array($key, $previousBuckets, true) ? 1 : 0);
+        if ($networks === []) {
+            $this->warnWithoutNetworkLimit();
+        }
 
-            if ($pending >= $max) {
-                Log::warning('Too many pending SMS codes from one network.', ['network' => $key]);
+        foreach ($networks as $network => $limit) {
+            // الرمز السابق لهذا المستخدم من الشبكة نفسها يُستبدل في عدّ المعلّق ولا يُضاف
+            $pendingKey = 'sms-pending:'.$network;
+            $pending = RateLimiter::attempts($pendingKey) - (in_array($pendingKey, $previousBuckets, true) ? 1 : 0);
+
+            if ($pending >= $limit['pending'] || RateLimiter::tooManyAttempts('sms-sent:'.$network, $limit['sent'])) {
+                Log::warning('Too many SMS codes from one network.', ['network' => $network]);
 
                 throw ValidationException::withMessages(['code' => __('account.phone.network_busy')]);
             }
@@ -79,8 +85,9 @@ class SendPhoneVerificationCode
 
         self::releaseBuckets($previousBuckets);
 
-        foreach (array_keys($buckets) as $key) {
-            RateLimiter::increment($key, self::PENDING_WINDOW);
+        foreach (array_keys($networks) as $network) {
+            RateLimiter::increment('sms-pending:'.$network, self::PENDING_WINDOW);
+            RateLimiter::hit('sms-sent:'.$network, 3600);
         }
 
         $this->warnBeforeCap($sent, $cap);
@@ -92,7 +99,7 @@ class SendPhoneVerificationCode
         Cache::put(self::cacheKey($user), [
             'hash' => self::hash($code, $phone),
             'phone' => $phone,
-            'buckets' => array_keys($buckets),
+            'buckets' => array_map(fn (string $network) => 'sms-pending:'.$network, array_keys($networks)),
             'attempts' => 0,
             'expires_at' => $expiresAt->getTimestamp(),
         ], $expiresAt);
@@ -104,12 +111,12 @@ class SendPhoneVerificationCode
     }
 
     /**
-     * سلال العدّ لعنوان الزائر وحدّ كل منها. العنوان الخاص أو المجهول بلا سلة
+     * شبكات عنوان الزائر وحدّا كل منها. العنوان الخاص أو المجهول بلا شبكة
      * (يعني غالباً أن الوكلاء الموثوقين غير مضبوطين)، ويبقى السقف العام حامياً.
      *
-     * @return array<string, int>
+     * @return array<string, array{pending: int, sent: int}>
      */
-    public static function buckets(?string $ip): array
+    public static function networks(?string $ip): array
     {
         $ip = NetworkPrefix::normalize($ip);
 
@@ -119,12 +126,23 @@ class SendPhoneVerificationCode
 
         if (NetworkPrefix::isIpv6($ip)) {
             return [
-                'sms-pending:'.NetworkPrefix::prefix($ip, 64) => (int) config('security.sms_pending_per_ipv6_subscriber'),
-                'sms-pending:'.NetworkPrefix::prefix($ip, 48) => (int) config('security.sms_pending_per_ipv6_site'),
+                NetworkPrefix::prefix($ip, 64) => self::limits('ipv6_subscriber'),
+                NetworkPrefix::prefix($ip, 48) => self::limits('ipv6_site'),
             ];
         }
 
-        return ['sms-pending:'.NetworkPrefix::prefix($ip, 24) => (int) config('security.sms_unverified_per_network')];
+        return [NetworkPrefix::prefix($ip, 24) => self::limits('ipv4_network')];
+    }
+
+    /**
+     * @return array{pending: int, sent: int}
+     */
+    private static function limits(string $scope): array
+    {
+        return [
+            'pending' => (int) config("security.sms_pending_per_{$scope}"),
+            'sent' => (int) config("security.sms_sent_per_{$scope}"),
+        ];
     }
 
     /**
@@ -138,6 +156,19 @@ class SendPhoneVerificationCode
             if (is_string($key) && RateLimiter::attempts($key) > 0) {
                 RateLimiter::decrement($key, self::PENDING_WINDOW);
             }
+        }
+    }
+
+    /**
+     * العنوان الخاص أو المجهول يعني غالباً أن TRUSTED_PROXIES غير مضبوط، فيتوقف حد
+     * الشبكة عن الجميع بصمت. تحذير واحد في الساعة يكشف ذلك في السجل.
+     */
+    private function warnWithoutNetworkLimit(): void
+    {
+        if (Cache::add('sms-network-unknown-alert', true, 3600)) {
+            Log::warning('SMS network limits are off: the client address is private or unknown. Check TRUSTED_PROXIES.', [
+                'ip' => request()->ip(),
+            ]);
         }
     }
 

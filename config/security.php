@@ -22,12 +22,19 @@ return [
     // تنبيه المشرف العام عند هذه النسب من السقف، قبل التوقف عنده
     'sms_alert_thresholds' => [70, 90],
 
-    // أقصى عدد رموز معلّقة (أُرسلت ولم يُتحقق منها) من شبكة واحدة في الساعة.
-    // التحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة كالمدارس والجوال.
-    // IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48 بحد أوسع
-    'sms_unverified_per_network' => (int) env('SMS_UNVERIFIED_PER_NETWORK', 200),
+    // حدان لكل شبكة في الساعة، حتى لا يستنزف مصدر واحد السقف العام:
+    // - المعلّق (pending): رموز أُرسلت ولم يُتحقق منها. الرمز الجديد للمستخدم نفسه يحل محل
+    //   السابق، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة كالمدارس والجوال.
+    // - المرسل (sent): كل رسالة تُعدّ ولا تُحرَّر، فلا تضاعف إعادةُ الإرسال حدَّ الشبكة
+    //   (للمستخدم خمس رسائل في الساعة).
+    // IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48.
+    // قاعدة الضبط: حد «المرسل» لكل شبكة لا يتجاوز عُشر sms_per_hour (اختبار يحرسها)
+    'sms_pending_per_ipv4_network' => (int) env('SMS_PENDING_PER_IPV4_NETWORK', 200),
+    'sms_sent_per_ipv4_network' => (int) env('SMS_SENT_PER_IPV4_NETWORK', 500),
     'sms_pending_per_ipv6_subscriber' => (int) env('SMS_PENDING_PER_IPV6_SUBSCRIBER', 20),
-    'sms_pending_per_ipv6_site' => (int) env('SMS_PENDING_PER_IPV6_SITE', 1000),
+    'sms_sent_per_ipv6_subscriber' => (int) env('SMS_SENT_PER_IPV6_SUBSCRIBER', 25),
+    'sms_pending_per_ipv6_site' => (int) env('SMS_PENDING_PER_IPV6_SITE', 200),
+    'sms_sent_per_ipv6_site' => (int) env('SMS_SENT_PER_IPV6_SITE', 500),
 
     // أقصى انتظار بالثواني لقفل التحقق من رمز الجوال عند الطلبات المتزامنة
     'otp_lock_wait_seconds' => 3,
