@@ -44,8 +44,11 @@ class Setting extends Model
      */
     public static function group(string $key): array
     {
-        return Cache::rememberForever(
+        // ساعة احتياطية: التعديل يمسح الذاكرة فوراً، والمدة تصحح قيمة قديمة قد تُكتب
+        // في سباق بين قراءة وتعديل متزامنين
+        return Cache::remember(
             self::cacheKey($key),
+            now()->addHour(),
             fn (): array => static::query()->where('key', $key)->value('value') ?? [],
         );
     }

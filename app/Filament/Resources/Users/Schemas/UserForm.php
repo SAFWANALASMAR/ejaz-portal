@@ -56,7 +56,15 @@ class UserForm
                             ->options(collect(RoleName::cases())->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()]))
                             ->columns(2)
                             ->columnSpanFull()
-                            ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false),
+                            ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false)
+                            // ChangeUserRoles يمنع ذلك أيضاً؛ وهنا رسالة واضحة بدل خطأ 403
+                            ->rule(fn (?User $record) => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                                $super = RoleName::SuperAdmin->value;
+
+                                if ($record?->is(auth()->user()) && $record->hasRole($super) && ! in_array($super, (array) $value, true)) {
+                                    $fail(__('users.cannot_demote_self'));
+                                }
+                            }),
                     ]),
             ]);
     }

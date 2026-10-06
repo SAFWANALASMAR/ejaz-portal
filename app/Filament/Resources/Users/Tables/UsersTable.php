@@ -10,10 +10,10 @@ use App\Support\SaudiPhone;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -35,7 +35,7 @@ class UsersTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            ->splitSearchTerms(fn (HasTable $livewire): bool => ! self::isPhoneSearch($livewire->getTableSearch()))
+            ->splitSearchTerms(fn (ListRecords $livewire): bool => ! self::isPhoneSearch($livewire->getTableSearch()))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('users.fields.name'))

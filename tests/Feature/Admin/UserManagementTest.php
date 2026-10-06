@@ -264,6 +264,25 @@ it('locks an anonymized account against edits and reactivation', function () {
     expect($gone->fresh()->is_active)->toBeFalse();
 });
 
+it('gives no roles to an anonymized account', function () {
+    $gone = User::factory()->create(['deletion_requested_at' => now(), 'anonymized_at' => now(), 'is_active' => false]);
+
+    expect($this->admin->can('assignRoles', $gone))->toBeFalse()
+        ->and(fn () => app(ChangeUserRoles::class)->handle($this->admin, $gone, [RoleName::ContentEditor->value]))
+        ->toThrow(AuthorizationException::class);
+});
+
+it('explains in the form why the super admin cannot remove their own role', function () {
+    $this->actingAs($this->admin);
+
+    $component = Livewire::test(EditUser::class, ['record' => $this->admin->getRouteKey()])
+        ->fillForm(['roles' => [RoleName::ContentEditor->value]])
+        ->call('save');
+
+    expect($component->errors()->first('data.roles'))->toBe(__('users.cannot_demote_self'))
+        ->and($this->admin->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeTrue();
+});
+
 it('does not let anyone deactivate their own account', function () {
     expect(fn () => app(UpdateUserAccount::class)->handle($this->admin, $this->admin, [
         'name' => $this->admin->name,

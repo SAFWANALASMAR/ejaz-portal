@@ -27,7 +27,8 @@ class SiteChromeComposer
     private function menu(): Collection
     {
         /** @var list<array{id: int, label: string, url: ?string, opens_in_new_tab: bool, children: list<array<string, mixed>>}> $rows */
-        $rows = Cache::rememberForever(MenuItem::CACHE_KEY, fn (): array => MenuItem::query()
+        // ساعة احتياطية كما في Setting::group: التعديل يمسح الذاكرة فوراً
+        $rows = Cache::remember(MenuItem::CACHE_KEY, now()->addHour(), fn (): array => MenuItem::query()
             ->whereNull('parent_id')
             ->where('is_visible', true)
             ->with(['children' => fn ($query) => $query->where('is_visible', true)])
