@@ -17,10 +17,11 @@ use Illuminate\Validation\ValidationException;
  * يرسل رمز تحقق من ستة أرقام إلى جوال المستخدم.
  * الرمز يُخزَّن مُجزَّأً (hash) في الذاكرة المؤقتة لعشر دقائق، ولا يُخزَّن نصاً.
  *
- * الحدود (config/security.php):
+ * الحدود (config/security.php — وdocs/performance.md):
  * - لكل مستخدم: رمز كل دقيقة، وخمسة رموز في الساعة.
- * - لكل شبكة (/24): عدد الرموز المرسلة التي لم يُتحقق منها بعد، فلا يستنزف مصدر واحد
- *   السقف العام. والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة.
+ * - لكل شبكة: عدد الرموز المعلّقة (أُرسلت ولم يُتحقق منها). الرمز الجديد يحل محل
+ *   السابق في العدّ، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة.
+ *   IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48 بحد أوسع.
  * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام عند 70% و90% قبل التوقف.
  */
 class SendPhoneVerificationCode
@@ -28,6 +29,8 @@ class SendPhoneVerificationCode
     public const TTL_MINUTES = 10;
 
     public const MAX_ATTEMPTS = 5;
+
+    private const PENDING_WINDOW = 3600;
 
     public function handle(User $user): void
     {
@@ -47,12 +50,19 @@ class SendPhoneVerificationCode
             }
         }
 
-        $network = NetworkPrefix::of(request()->ip());
+        $previous = Cache::get(self::cacheKey($user));
+        $previousBuckets = is_array($previous) ? (array) ($previous['buckets'] ?? []) : [];
+        $buckets = self::buckets(request()->ip());
 
-        if ((int) Cache::get(self::networkKey($network), 0) >= (int) config('security.sms_unverified_per_network')) {
-            Log::warning('Too many unverified SMS codes from one network.', ['network' => $network]);
+        foreach ($buckets as $key => $max) {
+            // الرمز السابق لهذا المستخدم من الشبكة نفسها يُستبدل ولا يُضاف
+            $pending = RateLimiter::attempts($key) - (in_array($key, $previousBuckets, true) ? 1 : 0);
 
-            throw ValidationException::withMessages(['code' => __('account.phone.network_busy')]);
+            if ($pending >= $max) {
+                Log::warning('Too many pending SMS codes from one network.', ['network' => $key]);
+
+                throw ValidationException::withMessages(['code' => __('account.phone.network_busy')]);
+            }
         }
 
         $cap = (int) config('security.sms_per_hour');
@@ -67,8 +77,11 @@ class SendPhoneVerificationCode
         RateLimiter::hit('otp-hour:'.$user->id, 3600);
         $sent = RateLimiter::hit('sms:global', 3600);
 
-        Cache::add(self::networkKey($network), 0, 3600);
-        Cache::increment(self::networkKey($network));
+        self::releaseBuckets($previousBuckets);
+
+        foreach (array_keys($buckets) as $key) {
+            RateLimiter::increment($key, self::PENDING_WINDOW);
+        }
 
         $this->warnBeforeCap($sent, $cap);
 
@@ -79,7 +92,7 @@ class SendPhoneVerificationCode
         Cache::put(self::cacheKey($user), [
             'hash' => self::hash($code, $phone),
             'phone' => $phone,
-            'network' => $network,
+            'buckets' => array_keys($buckets),
             'attempts' => 0,
             'expires_at' => $expiresAt->getTimestamp(),
         ], $expiresAt);
@@ -88,6 +101,44 @@ class SendPhoneVerificationCode
             'code' => $code,
             'minutes' => self::TTL_MINUTES,
         ]));
+    }
+
+    /**
+     * سلال العدّ لعنوان الزائر وحدّ كل منها. العنوان الخاص أو المجهول بلا سلة
+     * (يعني غالباً أن الوكلاء الموثوقين غير مضبوطين)، ويبقى السقف العام حامياً.
+     *
+     * @return array<string, int>
+     */
+    public static function buckets(?string $ip): array
+    {
+        $ip = NetworkPrefix::normalize($ip);
+
+        if ($ip === null || ! NetworkPrefix::isPublic($ip)) {
+            return [];
+        }
+
+        if (NetworkPrefix::isIpv6($ip)) {
+            return [
+                'sms-pending:'.NetworkPrefix::prefix($ip, 64) => (int) config('security.sms_pending_per_ipv6_subscriber'),
+                'sms-pending:'.NetworkPrefix::prefix($ip, 48) => (int) config('security.sms_pending_per_ipv6_site'),
+            ];
+        }
+
+        return ['sms-pending:'.NetworkPrefix::prefix($ip, 24) => (int) config('security.sms_unverified_per_network')];
+    }
+
+    /**
+     * تحرير أماكن رمز معلّق (عند التحقق منه أو استبداله).
+     *
+     * @param  array<int, mixed>  $buckets
+     */
+    public static function releaseBuckets(array $buckets): void
+    {
+        foreach ($buckets as $key) {
+            if (is_string($key) && RateLimiter::attempts($key) > 0) {
+                RateLimiter::decrement($key, self::PENDING_WINDOW);
+            }
+        }
     }
 
     /**
@@ -116,11 +167,6 @@ class SendPhoneVerificationCode
     public static function cacheKey(User $user): string
     {
         return 'phone-otp:'.$user->id;
-    }
-
-    public static function networkKey(string $network): string
-    {
-        return 'sms-unverified:'.$network;
     }
 
     public static function hash(string $code, string $phone): string

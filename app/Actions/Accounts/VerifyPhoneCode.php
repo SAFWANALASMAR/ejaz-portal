@@ -50,11 +50,7 @@ class VerifyPhoneCode
         Cache::forget($key);
 
         // الرمز المكتمل يحرر مكانه في حد الشبكة
-        $networkKey = SendPhoneVerificationCode::networkKey((string) ($entry['network'] ?? 'unknown'));
-
-        if ((int) Cache::get($networkKey, 0) > 0) {
-            Cache::decrement($networkKey);
-        }
+        SendPhoneVerificationCode::releaseBuckets((array) ($entry['buckets'] ?? []));
 
         $user->forceFill(['phone_verified_at' => now()])->save();
     }

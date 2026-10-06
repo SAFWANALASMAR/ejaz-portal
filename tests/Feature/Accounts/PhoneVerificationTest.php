@@ -18,7 +18,7 @@ beforeEach(function () {
 /**
  * عنوان الزائر للاستدعاء المباشر للإجراء خارج طلب HTTP.
  */
-function fromAddress(string $ip): void
+function verificationRequestFrom(string $ip): void
 {
     request()->server->set('REMOTE_ADDR', $ip);
 }
@@ -129,22 +129,22 @@ it('limits unverified codes from one network without blocking other networks', f
     config(['security.sms_unverified_per_network' => 2]);
 
     foreach (['+966511111111', '+966522222222'] as $phone) {
-        fromAddress('203.0.113.5');
+        verificationRequestFrom('203.0.113.5');
         sendCode(User::factory()->create(['phone' => $phone]));
     }
 
     // عنوان آخر في الشبكة نفسها (/24)
-    fromAddress('203.0.113.77');
+    verificationRequestFrom('203.0.113.77');
     expect(fn () => sendCode($this->user))->toThrow(ValidationException::class);
 
-    fromAddress('198.51.100.5');
+    verificationRequestFrom('198.51.100.5');
     sendCode($this->user);
     expect($this->sms->lastCodeFor('+966512345678'))->not->toBeNull();
 });
 
 it('frees the network slot once a code is verified', function () {
     config(['security.sms_unverified_per_network' => 1]);
-    fromAddress('203.0.113.5');
+    verificationRequestFrom('203.0.113.5');
 
     $code = sendCode($this->user);
     $this->actingAs($this->user)->post('/account/verify-phone', ['code' => $code])->assertSessionHasNoErrors();
@@ -152,6 +152,71 @@ it('frees the network slot once a code is verified', function () {
     $other = User::factory()->create(['phone' => '+966533333333']);
     sendCode($other);
     expect($this->sms->lastCodeFor('+966533333333'))->not->toBeNull();
+});
+
+it('counts a resent code once', function () {
+    config(['security.sms_unverified_per_network' => 1]);
+    verificationRequestFrom('203.0.113.5');
+
+    sendCode($this->user);
+    $this->travel(61)->seconds();
+    sendCode($this->user);
+
+    verificationRequestFrom('203.0.113.9');
+    expect(fn () => sendCode(User::factory()->create(['phone' => '+966511111111'])))->toThrow(ValidationException::class);
+});
+
+it('frees the slot after a resend and a successful verification', function () {
+    config(['security.sms_unverified_per_network' => 1]);
+    verificationRequestFrom('203.0.113.5');
+
+    sendCode($this->user);
+    $this->travel(61)->seconds();
+    $code = sendCode($this->user);
+    $this->actingAs($this->user)->post('/account/verify-phone', ['code' => $code])->assertSessionHasNoErrors();
+
+    verificationRequestFrom('203.0.113.9');
+    sendCode(User::factory()->create(['phone' => '+966511111111']));
+    expect($this->sms->lastCodeFor('+966511111111'))->not->toBeNull();
+});
+
+it('limits pending codes per IPv6 subscriber and per site', function () {
+    config(['security.sms_pending_per_ipv6_subscriber' => 1, 'security.sms_pending_per_ipv6_site' => 2]);
+    $phones = ['+966511111111', '+966522222222', '+966533333333', '+966544444444'];
+    $users = array_map(fn (string $phone) => User::factory()->create(['phone' => $phone]), $phones);
+
+    verificationRequestFrom('2001:db8:abcd:1::5');
+    sendCode($users[0]);
+
+    // العنوان نفسه في الشبكة /64: حد المشترك
+    verificationRequestFrom('2001:db8:abcd:1::9');
+    expect(fn () => sendCode($users[1]))->toThrow(ValidationException::class);
+
+    // مشترك آخر في الموقع /48 نفسه: يُقبل حتى حد الموقع
+    verificationRequestFrom('2001:db8:abcd:2::5');
+    sendCode($users[2]);
+
+    verificationRequestFrom('2001:db8:abcd:3::5');
+    expect(fn () => sendCode($users[3]))->toThrow(ValidationException::class);
+});
+
+it('counts an IPv4 address written in IPv6 form in its IPv4 network', function () {
+    config(['security.sms_unverified_per_network' => 1]);
+
+    verificationRequestFrom('::ffff:203.0.113.5');
+    sendCode($this->user);
+
+    verificationRequestFrom('203.0.113.9');
+    expect(fn () => sendCode(User::factory()->create(['phone' => '+966511111111'])))->toThrow(ValidationException::class);
+});
+
+it('does not apply the network limit to private addresses', function () {
+    config(['security.sms_unverified_per_network' => 0]);
+    verificationRequestFrom('10.0.0.5');
+
+    sendCode($this->user);
+
+    expect($this->sms->lastCodeFor('+966512345678'))->not->toBeNull();
 });
 
 it('keeps the verification page for signed-in users only', function () {

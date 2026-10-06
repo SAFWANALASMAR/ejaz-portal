@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Rules\SaudiMobile;
+use App\Support\NetworkPrefix;
 use App\Support\SaudiPhone;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
@@ -28,7 +29,8 @@ class CreateNewUser implements CreatesNewUsers
     {
         // حد مرتفع لكل عنوان (config/security.php)، لأن الشبكات المشتركة تجمع آلاف
         // المستخدمين خلف عنوان واحد. والحماية الأساسية هي توثيق الجوال.
-        $throttleKey = 'register:'.request()->ip();
+        // IPv4 لكل عنوان، وIPv6 لكل مشترك (/64) حتى لا يُتجاوز الحد بتدوير العناوين
+        $throttleKey = 'register:'.NetworkPrefix::subscriber(request()->ip());
 
         if (RateLimiter::tooManyAttempts($throttleKey, (int) config('security.registration_per_ip_per_hour'))) {
             throw ValidationException::withMessages(['email' => __('account.register.too_many')]);
