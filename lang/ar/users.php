@@ -33,5 +33,14 @@ return [
 
     'anonymized_name' => 'حساب محذوف',
     'cannot_deactivate_self' => 'لا يمكنك إيقاف حسابك.',
+    'cannot_demote_self' => 'لا يمكنك سحب دور المشرف العام من نفسك.',
+
+    'super_admin_mail' => [
+        'granted_subject' => 'تنبيه أمني: مُنح دور المشرف العام',
+        'revoked_subject' => 'تنبيه أمني: سُحب دور المشرف العام',
+        'granted_line' => 'مُنح الحساب :user دور المشرف العام، بيد :by.',
+        'revoked_line' => 'سُحب من الحساب :user دور المشرف العام، بيد :by.',
+        'check' => 'إن لم يكن هذا متوقعاً فراجع سجل العمليات فوراً.',
+    ],
 
 ];

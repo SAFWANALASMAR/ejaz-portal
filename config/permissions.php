@@ -31,7 +31,8 @@ return [
         'requests' => ['view', 'update', 'assign', 'export', 'delete'],
 
         // الإدارة
-        'users' => [...$crud, 'assign-roles'],
+        // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
+        'users' => $crud,
         'activity' => ['view'],
     ],
 

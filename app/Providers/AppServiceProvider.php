@@ -59,8 +59,9 @@ class AppServiceProvider extends ServiceProvider
         // التخزين بتوقيت UTC والعرض بتوقيت الرياض
         FilamentTimezone::set(config('app.display_timezone'));
 
-        // المشرف العام يملك كل الصلاحيات
-        Gate::before(fn (User $user): ?bool => $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
+        // المشرف العام يملك كل ما لم تمنعه سياسة صراحة. Gate::after لا يغيّر نتيجة صريحة
+        // (false من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس
+        Gate::after(fn (User $user, string $ability, ?bool $result): ?bool => $result ?? ($user->hasRole(RoleName::SuperAdmin->value) ? true : null));
 
         // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
         Gate::policy(Activity::class, ActivityPolicy::class);

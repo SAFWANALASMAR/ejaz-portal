@@ -22,13 +22,14 @@ class UpdateUserAccount
      */
     public function handle(User $actor, User $user, array $data, ?array $roles = null): void
     {
-        if (! $actor->can('update', $user)) {
+        // الحساب الذي أُخفيت بياناته لا يُعدَّل ولا يُعاد تفعيله (منع صريح في السياسة أيضاً)
+        if ($user->anonymized_at !== null || ! $actor->can('update', $user)) {
             throw new AuthorizationException;
         }
 
         $isActive = $data['is_active'] ?? $user->is_active;
 
-        // حماية النفس تُفحص صراحة، لأن Gate::before يمنح المشرف العام كل الصلاحيات
+        // حماية النفس تُفحص صراحة في الإجراء أيضاً (دفاع إضافي فوق السياسة)
         if ($actor->is($user) && ! $isActive) {
             throw new AuthorizationException(__('users.cannot_deactivate_self'));
         }

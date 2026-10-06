@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * المستخدمون: بيانات شخصية، فلا يصلها إلا من له users.*.
- * وحساب المشرف العام لا يعدّله غير مشرف عام، ولا يوقف أحد حسابه أو يحذفه.
- * والمشرف العام نفسه يملك كل شيء عبر Gate::before، وتبقى حماية النفس في الإجراءات.
+ * والمنع الصريح هنا (false) يسري على المشرف العام أيضاً (Gate::after):
+ * - لا يُعدَّل حساب أُخفيت بياناته.
+ * - لا يحذف أحد حسابه.
+ * - وغير المشرف العام لا يعدّل حساباً له دور إداري.
+ * ومنح الأدوار للمشرف العام وحده، قاعدةً في الشيفرة لا في ملف الصلاحيات.
  */
 class UserPolicy extends ModulePolicy
 {
@@ -21,17 +24,23 @@ class UserPolicy extends ModulePolicy
 
     public function update(User $user, Model $record): bool
     {
-        return $this->allows($user, 'update') && ! $this->protectsSuperAdmin($user, $record);
+        if ($record instanceof User && $record->anonymized_at !== null) {
+            return false;
+        }
+
+        return $this->allows($user, 'update') && ! $this->protectsAdministrator($user, $record);
     }
 
     public function delete(User $user, Model $record): bool
     {
-        return $this->allows($user, 'delete') && $user->isNot($record) && ! $this->protectsSuperAdmin($user, $record);
+        return $user->isNot($record)
+            && $this->allows($user, 'delete')
+            && ! $this->protectsAdministrator($user, $record);
     }
 
-    public function assignRoles(User $user, User $record): bool
+    public function assignRoles(User $user, ?User $record = null): bool
     {
-        return $this->allows($user, 'assign-roles');
+        return $user->hasRole(RoleName::SuperAdmin->value);
     }
 
     /**
@@ -42,10 +51,13 @@ class UserPolicy extends ModulePolicy
         return $this->allows($user, 'delete') && AnonymizeUser::eligible($user, $record);
     }
 
-    private function protectsSuperAdmin(User $user, Model $record): bool
+    /**
+     * حساب له دور إداري لا يعدّله إلا المشرف العام.
+     */
+    private function protectsAdministrator(User $user, Model $record): bool
     {
         return $record instanceof User
-            && $record->hasRole(RoleName::SuperAdmin->value)
+            && $record->hasAnyRole(RoleName::values(RoleName::panelRoles()))
             && ! $user->hasRole(RoleName::SuperAdmin->value);
     }
 }

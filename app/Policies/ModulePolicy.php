@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * سياسة موحدة لوحدات المحتوى: كل عملية تقابلها صلاحية <الوحدة>.<العملية>
  * (config/permissions.php). كل نموذج له سياسة ترث هذه وتحدد وحدتها،
- * وتتجاوز ما يختلف فيها. والمشرف العام يملك كل شيء عبر Gate::before.
+ * وتتجاوز ما يختلف فيها. والمشرف العام يملك كل ما لم تمنعه سياسة صراحة (Gate::after).
  */
 abstract class ModulePolicy
 {
@@ -65,7 +65,8 @@ abstract class ModulePolicy
     }
 
     /**
-     * الحذف النهائي للمشرف العام وحده (عبر Gate::before).
+     * الحذف النهائي ممنوع على الجميع، ومنهم المشرف العام. السجلات المحذوفة حذفاً ناعماً
+     * تُستعاد أو تُتلف وفق سياسة الاحتفاظ.
      */
     public function forceDelete(User $user, Model $record): bool
     {

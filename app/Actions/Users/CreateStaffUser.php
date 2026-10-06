@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,12 @@ class CreateStaffUser
                 'email_verified_at' => now(),
             ])->save();
 
-            $this->changeRoles->handle($actor, $user, $roles);
+            // الأدوار يمنحها المشرف العام وحده؛ وبدونها يبدأ الحساب مستفيداً
+            if ($roles !== []) {
+                $this->changeRoles->handle($actor, $user, $roles);
+            } else {
+                $user->assignRole(RoleName::Member->value);
+            }
 
             return $user;
         });

@@ -12,7 +12,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     /**
      * الأصل في Horizon أنه مفتوح للجميع في البيئة المحلية.
      * هنا يُطبَّق الشرط في كل البيئات: المشرف العام بتحقق ثنائي مفعّل.
-     * لا يمر عبر Gate لأن Gate::before يمنح المشرف كل شيء قبل فحص التحقق الثنائي.
+     * الشرط مكتوب هنا صراحة لا عبر Gate، حتى لا يكفي الدور وحده دون التحقق الثنائي.
      */
     protected function authorization(): void
     {

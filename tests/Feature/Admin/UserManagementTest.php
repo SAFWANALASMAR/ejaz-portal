@@ -11,7 +11,9 @@ use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
+use App\Notifications\SuperAdminRoleChanged;
 use App\Support\LoginIdentifier;
+use Database\Seeders\PermissionsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +126,81 @@ it('keeps the verification when the phone and email do not change', function () 
 
     expect($member->fresh()->hasVerifiedPhone())->toBeTrue()
         ->and($member->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+it('keeps role assignment for the super admin even if the permission file is changed', function () {
+    config(['permissions.roles.secretary' => ['requests.*', 'users.*']]);
+    $this->seed(PermissionsSeeder::class);
+
+    $secretary = userWithRole(RoleName::Secretary);
+    $member = User::factory()->create();
+    $member->assignRole(RoleName::Member->value);
+
+    expect(fn () => app(ChangeUserRoles::class)->handle($secretary, $secretary, [RoleName::SuperAdmin->value]))
+        ->toThrow(AuthorizationException::class)
+        ->and(fn () => app(ChangeUserRoles::class)->handle($secretary, $member, [RoleName::ContentEditor->value]))
+        ->toThrow(AuthorizationException::class);
+
+    expect($secretary->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeFalse();
+});
+
+it('lets only the super admin edit accounts that hold an administrative role', function () {
+    config(['permissions.roles.secretary' => ['requests.*', 'users.*']]);
+    $this->seed(PermissionsSeeder::class);
+
+    $secretary = userWithRole(RoleName::Secretary);
+    $editor = userWithRole(RoleName::ContentEditor);
+    $member = User::factory()->create();
+    $member->assignRole(RoleName::Member->value);
+
+    expect($secretary->can('update', $editor))->toBeFalse()
+        ->and($secretary->can('update', $member))->toBeTrue()
+        ->and($this->admin->can('update', $editor))->toBeTrue();
+});
+
+it('creates a member account without roles for someone who may create but not assign roles', function () {
+    Notification::fake();
+    config(['permissions.roles.secretary' => ['requests.*', 'users.*']]);
+    $this->seed(PermissionsSeeder::class);
+
+    $created = app(CreateStaffUser::class)->handle(userWithRole(RoleName::Secretary), ['name' => 'عضو جديد', 'email' => 'new@example.test'], []);
+
+    expect($created->getRoleNames()->all())->toBe([RoleName::Member->value]);
+});
+
+it('does not let the super admin remove their own role', function () {
+    expect(fn () => app(ChangeUserRoles::class)->handle($this->admin, $this->admin, [RoleName::Member->value]))
+        ->toThrow(AuthorizationException::class);
+
+    expect($this->admin->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeTrue();
+});
+
+it('emails every super admin when the super admin role is granted or revoked', function () {
+    Notification::fake();
+    $other = userWithRole(RoleName::SuperAdmin);
+    $member = User::factory()->create();
+
+    app(ChangeUserRoles::class)->handle($this->admin, $member, [RoleName::SuperAdmin->value]);
+    app(ChangeUserRoles::class)->handle($this->admin, $member, [RoleName::Member->value]);
+
+    Notification::assertSentTo($other, SuperAdminRoleChanged::class, fn ($mail) => $mail->granted);
+    Notification::assertSentTo($other, SuperAdminRoleChanged::class, fn ($mail) => ! $mail->granted);
+    // بعد السحب لم يعد مشرفاً عاماً، فلا يصله تنبيه السحب
+    Notification::assertNotSentTo($member->fresh(), SuperAdminRoleChanged::class, fn ($mail) => ! $mail->granted);
+});
+
+it('locks an anonymized account against edits and reactivation', function () {
+    $gone = User::factory()->create(['deletion_requested_at' => now(), 'anonymized_at' => now(), 'is_active' => false]);
+
+    expect($this->admin->can('update', $gone))->toBeFalse()
+        ->and(fn () => app(UpdateUserAccount::class)->handle($this->admin, $gone, [
+            'name' => 'محاولة',
+            'email' => 'revive@example.test',
+            'is_active' => true,
+        ]))->toThrow(AuthorizationException::class);
+
+    $this->actingAs($this->admin)->get(UserResource::getUrl('edit', ['record' => $gone]))->assertForbidden();
+    expect($gone->fresh()->is_active)->toBeFalse();
 });
 
 it('does not let anyone deactivate their own account', function () {

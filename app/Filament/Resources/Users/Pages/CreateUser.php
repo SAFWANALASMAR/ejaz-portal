@@ -28,6 +28,6 @@ class CreateUser extends CreateRecord
             'name' => (string) $data['name'],
             'email' => (string) $data['email'],
             'phone' => filled($data['phone'] ?? null) ? SaudiPhone::normalize((string) $data['phone']) : null,
-        ], $actor->can('users.assign-roles') ? array_values((array) ($data['roles'] ?? [])) : []);
+        ], $actor->can('assignRoles', User::class) ? array_values((array) ($data['roles'] ?? [])) : []);
     }
 }

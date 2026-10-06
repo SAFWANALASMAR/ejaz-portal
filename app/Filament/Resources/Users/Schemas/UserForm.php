@@ -56,7 +56,7 @@ class UserForm
                             ->options(collect(RoleName::cases())->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()]))
                             ->columns(2)
                             ->columnSpanFull()
-                            ->visible(fn () => auth()->user()?->can('users.assign-roles') ?? false),
+                            ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false),
                     ]),
             ]);
     }

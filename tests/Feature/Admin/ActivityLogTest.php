@@ -3,7 +3,6 @@
 use App\Enums\RoleName;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Models\MenuItem;
-use App\Policies\ActivityPolicy;
 use Spatie\Activitylog\Models\Activity;
 
 it('shows the activity log to the super admin only', function () {
@@ -35,7 +34,10 @@ it('offers no way to change or delete the log', function () {
     $admin = userWithRole(RoleName::SuperAdmin);
     $log = Activity::create(['description' => 'test', 'log_name' => 'default']);
 
+    // عبر البوابة نفسها لا السياسة مباشرة، حتى يُختبر منح المشرف العام فعلاً
     expect(ActivityResource::getPages())->not->toHaveKeys(['create', 'edit'])
-        ->and((new ActivityPolicy)->update($admin, $log))->toBeFalse()
-        ->and((new ActivityPolicy)->delete($admin, $log))->toBeFalse();
+        ->and($admin->can('update', $log))->toBeFalse()
+        ->and($admin->can('delete', $log))->toBeFalse()
+        ->and($admin->can('deleteAny', Activity::class))->toBeFalse()
+        ->and($admin->can('view', $log))->toBeTrue();
 });
