@@ -312,6 +312,30 @@ it('leaves no trace of the person in the activity log, reset links or notificati
         ->and(Activity::where('event', 'personal_data_changed')->exists())->toBeTrue();
 });
 
+it('scrubs every log entry of the person, however many there are', function () {
+    $requester = User::factory()->create(['email' => 'many.logs@example.test', 'deletion_requested_at' => now()]);
+    $hash = LoginIdentifier::hash('many.logs@example.test');
+    $rows = fn (int $count, array $row): array => array_fill(0, $count, $row + [
+        'log_name' => 'security', 'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    // أكثر من صفحة واحدة (1000) من المحاولات بالبصمة، ومن الدخول بالحساب
+    DB::table('activity_log')->insert($rows(1200, [
+        'event' => 'login_lockout', 'description' => 'login_lockout',
+        'properties' => json_encode(['ip' => '203.0.113.5', 'identifier_hash' => $hash]),
+    ]));
+    DB::table('activity_log')->insert($rows(300, [
+        'event' => 'login', 'description' => 'login',
+        'subject_type' => $requester->getMorphClass(), 'subject_id' => $requester->id,
+        'properties' => json_encode(['ip' => '203.0.113.5']),
+    ]));
+
+    app(AnonymizeUser::class)->handle($this->admin, $requester);
+
+    expect(Activity::where('properties->identifier_hash', $hash)->count())->toBe(0)
+        ->and(Activity::where('properties->ip', '203.0.113.5')->count())->toBe(0);
+});
+
 it('records which personal fields changed without their values', function () {
     $member = User::factory()->create(['name' => 'الاسم الأول', 'email' => 'first@example.test']);
 

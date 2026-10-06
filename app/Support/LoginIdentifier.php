@@ -30,12 +30,14 @@ final class LoginIdentifier
     }
 
     /**
-     * بصمة المعرّف للسجل الأمني، حتى لا يُخزَّن المعرّف نصاً.
+     * بصمة المعرّف للسجل الأمني، حتى لا يُخزَّن المعرّف نصاً. بمفتاح التطبيق، لأن أرقام
+     * الجوال قليلة الاحتمالات فتُعكس بصمتها بلا مفتاح في ثوانٍ. وتدوير المفتاح يقطع الربط
+     * بالبصمات القديمة، ومحاولات الدخول على حساب موجود مربوطة به في السجل مباشرة.
      */
     public static function hash(?string $identifier): ?string
     {
         $normalized = self::normalize($identifier);
 
-        return $normalized === '' ? null : hash('sha256', $normalized);
+        return $normalized === '' ? null : hash_hmac('sha256', $normalized, (string) config('app.key'));
     }
 }

@@ -89,7 +89,8 @@ class AnonymizeUser
                 ->whereMorphedTo('subject', $user)
                 ->orWhereMorphedTo('causer', $user)
                 ->when($hashes !== [], fn ($query) => $query->orWhereIn('properties->identifier_hash', $hashes)))
-            ->each(function (Activity $log) use ($user): void {
+            // بالمعرّف لا بالإزاحة: المسح يُخرج السجل من نتيجة الاستعلام، فتنزلق الصفحات بالإزاحة
+            ->eachById(function (Activity $log) use ($user): void {
                 $aboutUser = $log->subject_type === $user->getMorphClass() && (int) $log->subject_id === $user->id;
 
                 $log->forceFill([

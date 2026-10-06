@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Support\LoginIdentifier;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Activitylog\Models\Activity;
@@ -147,6 +148,17 @@ it('fingerprints every spelling of an identifier the same way', function () {
         ->unique();
 
     expect($hashes)->toHaveCount(2);
+});
+
+it('keys the identifier fingerprint with the application key', function () {
+    $hash = LoginIdentifier::hash('0512345678');
+
+    expect($hash)->toBe(LoginIdentifier::hash('+966512345678'))
+        ->not->toBe(hash('sha256', '+966512345678'));
+
+    config(['app.key' => 'base64:'.base64_encode(random_bytes(32))]);
+
+    expect(LoginIdentifier::hash('0512345678'))->not->toBe($hash);
 });
 
 it('logs out and records it', function () {
