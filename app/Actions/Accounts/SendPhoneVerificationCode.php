@@ -5,6 +5,7 @@ namespace App\Actions\Accounts;
 use App\Jobs\SendSms;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -37,8 +38,16 @@ class SendPhoneVerificationCode
             }
         }
 
+        // سقف للبوابة كلها، حماية من إغراق الرسائل وتكلفته
+        if (RateLimiter::tooManyAttempts('sms:global', (int) config('security.sms_per_hour'))) {
+            Log::critical('SMS hourly cap reached; verification codes are paused.');
+
+            throw ValidationException::withMessages(['code' => __('account.phone.unavailable')]);
+        }
+
         RateLimiter::hit('otp-minute:'.$user->id, 60);
         RateLimiter::hit('otp-hour:'.$user->id, 3600);
+        RateLimiter::hit('sms:global', 3600);
 
         $code = (string) random_int(100000, 999999);
 

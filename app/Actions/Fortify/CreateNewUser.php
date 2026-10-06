@@ -19,9 +19,6 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules;
 
-    /** حد التسجيل من عنوان واحد في الساعة، للحد من الحسابات الآلية وإغراق الرسائل */
-    public const MAX_PER_HOUR = 5;
-
     /**
      * @param  array<string, mixed>  $input
      *
@@ -29,9 +26,11 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
+        // حد مرتفع لكل عنوان (config/security.php)، لأن الشبكات المشتركة تجمع آلاف
+        // المستخدمين خلف عنوان واحد. والحماية الأساسية هي توثيق الجوال.
         $throttleKey = 'register:'.request()->ip();
 
-        if (RateLimiter::tooManyAttempts($throttleKey, self::MAX_PER_HOUR)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, (int) config('security.registration_per_ip_per_hour'))) {
             throw ValidationException::withMessages(['email' => __('account.register.too_many')]);
         }
 

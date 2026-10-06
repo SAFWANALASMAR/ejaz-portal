@@ -3,7 +3,9 @@
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use Tests\Fakes\FakeSmsGateway;
 
 beforeEach(function () {
@@ -71,17 +73,54 @@ it('rejects an email or phone that is already registered', function () {
         ->assertSessionHasErrors('phone');
 });
 
-it('limits registrations from one address', function () {
-    foreach (range(1, 5) as $i) {
-        $this->post('/register', registrationData([
-            'email' => "user{$i}@example.test",
-            'phone' => '05'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
-        ]));
-        auth()->logout();
+function registerNumber(int $i, array $server = []): TestResponse
+{
+    $response = test()->withServerVariables($server)->post('/register', registrationData([
+        'email' => "user{$i}@example.test",
+        'phone' => '05'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
+    ]));
+    auth()->logout();
+
+    return $response;
+}
+
+it('lets a shared network register many accounts', function () {
+    // شبكات الجوال والمدارس تجمع مستخدمين كثيرين خلف عنوان واحد
+    foreach (range(1, 6) as $i) {
+        registerNumber($i)->assertSessionHasNoErrors();
     }
 
-    $this->post('/register', registrationData(['email' => 'sixth@example.test', 'phone' => '0599999999']))
-        ->assertSessionHasErrors('email');
+    expect(User::count())->toBe(6);
+});
 
-    expect(User::where('email', 'sixth@example.test')->exists())->toBeFalse();
+it('still caps registrations per address at the configured limit', function () {
+    config(['security.registration_per_ip_per_hour' => 2]);
+
+    registerNumber(1)->assertSessionHasNoErrors();
+    registerNumber(2)->assertSessionHasNoErrors();
+    registerNumber(3)->assertSessionHasErrors('email');
+
+    expect(User::count())->toBe(2);
+});
+
+it('counts each visitor behind a trusted load balancer separately', function () {
+    config(['security.registration_per_ip_per_hour' => 1]);
+    TrustProxies::at('*');
+
+    $balancer = ['REMOTE_ADDR' => '10.0.0.1'];
+
+    registerNumber(1, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.10'])->assertSessionHasNoErrors();
+    registerNumber(2, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.20'])->assertSessionHasNoErrors();
+    registerNumber(3, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.10'])->assertSessionHasErrors('email');
+
+    TrustProxies::flushState();
+});
+
+it('pauses verification codes when the hourly SMS cap is reached', function () {
+    config(['security.sms_per_hour' => 1]);
+
+    registerNumber(1)->assertSessionHasNoErrors();
+    registerNumber(2)->assertSessionHasNoErrors();
+
+    expect($this->sms->sent)->toHaveCount(1);
 });
