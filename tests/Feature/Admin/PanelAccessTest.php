@@ -28,11 +28,14 @@ it('requires two-factor before sensitive roles reach the panel', function () {
     $this->actingAs($editor)->get('/admin')->assertRedirect(route('account.security'));
 });
 
-it('forbids deactivated administrators', function () {
+it('blocks deactivated administrators and ends their session', function () {
     $admin = userWithRole(RoleName::SuperAdmin);
     $admin->forceFill(['is_active' => false])->save();
 
+    // اللوحة ترفض فوراً، وأول طلب للموقع ينهي الجلسة
     $this->actingAs($admin)->get('/admin')->assertForbidden();
+    $this->get('/account')->assertRedirect(route('login'));
+    $this->assertGuest();
 });
 
 it('logs administrators out after the idle limit', function () {

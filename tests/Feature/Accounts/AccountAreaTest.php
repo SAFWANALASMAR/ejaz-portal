@@ -19,6 +19,18 @@ it('keeps the account area for signed-in users', function (string $path) {
     $this->get($path)->assertRedirect(route('login'));
 })->with(['/account', '/account/profile', '/account/security', '/account/data']);
 
+it('signs out a user deactivated during an open session', function () {
+    $this->actingAs($this->user)->get('/account')->assertOk();
+
+    $this->user->forceFill(['is_active' => false])->save();
+
+    $this->get('/account')
+        ->assertRedirect(route('login'))
+        ->assertSessionHas('error', __('auth.deactivated'));
+
+    $this->assertGuest();
+});
+
 it('shows the dashboard with verification reminders', function () {
     $this->user->forceFill(['email_verified_at' => null, 'phone_verified_at' => null])->save();
 
