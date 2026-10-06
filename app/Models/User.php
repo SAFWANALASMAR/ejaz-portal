@@ -84,11 +84,32 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         $this->notify(new ResetPasswordNotification($token));
     }
 
+    /**
+     * البيانات الشخصية لا تُسجَّل قيمها في سجل العمليات، بل أسماء ما تغيّر منها فقط
+     * (حق الحذف في نظام حماية البيانات الشخصية — docs/decisions.md).
+     */
+    public const PERSONAL_FIELDS = ['name', 'email', 'phone'];
+
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            $changed = array_values(array_intersect(self::PERSONAL_FIELDS, array_keys($user->getChanges())));
+
+            if ($changed !== []) {
+                activity('users')
+                    ->performedOn($user)
+                    ->event('personal_data_changed')
+                    ->withProperties(['fields' => $changed])
+                    ->log('personal_data_changed');
+            }
+        });
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
-        // لا تُسجَّل كلمة المرور ولا رموز التحقق الثنائي
+        // لا كلمة المرور، ولا رموز التحقق الثنائي، ولا قيم البيانات الشخصية
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'phone', 'email_verified_at', 'phone_verified_at', 'is_active', 'deletion_requested_at', 'anonymized_at'])
+            ->logOnly(['email_verified_at', 'phone_verified_at', 'is_active', 'deletion_requested_at', 'anonymized_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

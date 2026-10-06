@@ -11,9 +11,12 @@ use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
+use App\Support\LoginIdentifier;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -170,6 +173,55 @@ it('anonymizes an account whose owner asked for deletion, and only then', functi
         ->and($requester->anonymized_at)->not->toBeNull()
         ->and($requester->getRoleNames())->toBeEmpty()
         ->and(Activity::where('event', 'anonymized')->exists())->toBeTrue();
+});
+
+it('leaves no trace of the person in the activity log, reset links or notifications', function () {
+    $requester = User::factory()->withTwoFactor()->create([
+        'name' => 'اسم سري للاختبار',
+        'email' => 'secret.person@example.test',
+        'phone' => '+966598765432',
+    ]);
+
+    // آثار سابقة: تعديل بيانات، ودخول فاشل ببصمة المعرّف، ودخول ناجح بعنوان IP، ورابط استعادة
+    $requester->update(['name' => 'اسم سري معدّل']);
+    $this->post('/login', ['login' => '0598765432', 'password' => 'wrong-password']);
+    $this->post('/login', ['login' => 'secret.person@example.test', 'password' => 'password']);
+    $this->post('/logout');
+    Password::broker()->createToken($requester);
+    $requester->forceFill(['deletion_requested_at' => now()])->save();
+
+    app(AnonymizeUser::class)->handle($this->admin, $requester);
+
+    $requester->refresh();
+    expect($requester->two_factor_secret)->toBeNull()
+        ->and($requester->two_factor_confirmed_at)->toBeNull();
+
+    $logs = Activity::all()->map(fn (Activity $log) => json_encode([
+        $log->description, $log->attribute_changes, $log->properties,
+    ], JSON_UNESCAPED_UNICODE))->implode("\n");
+
+    expect($logs)
+        ->not->toContain('secret.person@example.test')
+        ->not->toContain('598765432')
+        ->not->toContain('اسم سري')
+        ->not->toContain(LoginIdentifier::hash('0598765432'))
+        ->not->toContain('"ip"');
+
+    expect(DB::table('password_reset_tokens')->where('email', 'secret.person@example.test')->exists())->toBeFalse()
+        ->and(Activity::where('event', 'anonymized')->exists())->toBeTrue()
+        ->and(Activity::where('event', 'personal_data_changed')->exists())->toBeTrue();
+});
+
+it('records which personal fields changed without their values', function () {
+    $member = User::factory()->create(['name' => 'الاسم الأول', 'email' => 'first@example.test']);
+
+    $member->update(['name' => 'الاسم الثاني', 'email' => 'second@example.test']);
+
+    $log = Activity::where('event', 'personal_data_changed')->firstOrFail();
+    expect($log->properties['fields'])->toBe(['name', 'email']);
+
+    $all = Activity::all()->map(fn (Activity $log) => json_encode([$log->attribute_changes, $log->properties], JSON_UNESCAPED_UNICODE))->implode("\n");
+    expect($all)->not->toContain('first@example.test')->not->toContain('الاسم الثاني');
 });
 
 it('refuses to anonymize without a request, twice, or one\'s own account', function () {
