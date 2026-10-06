@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Filament\FontProviders\LocalFontProvider;
+use Filament\Forms\Components\FileUpload;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -33,6 +34,13 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  */
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        // كل حقل رفع لا يقبل إلا ملفاً رُفع فعلاً أو كان محفوظاً من قبل، فلا يُستبدل
+        // مساره بمسار ملف آخر (مهم خاصة للأقراص الخاصة لاحقاً)
+        FileUpload::configureUsing(fn (FileUpload $upload) => $upload->preventFilePathTampering());
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel

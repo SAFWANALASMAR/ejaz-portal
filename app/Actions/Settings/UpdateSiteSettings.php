@@ -4,8 +4,10 @@ namespace App\Actions\Settings;
 
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\ImageSanitizer;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * حفظ إعدادات الموقع (التواصل، والتواصل الاجتماعي، والرئيسية).
@@ -26,6 +28,8 @@ class UpdateSiteSettings
             throw new AuthorizationException;
         }
 
+        $previousImage = Setting::group('home')['hero_image'] ?? null;
+
         DB::transaction(function () use ($groups): void {
             foreach (self::GROUPS as $key) {
                 if (array_key_exists($key, $groups)) {
@@ -33,5 +37,18 @@ class UpdateSiteSettings
                 }
             }
         });
+
+        $image = $groups['home']['hero_image'] ?? null;
+
+        if (array_key_exists('home', $groups) && $image !== $previousImage) {
+            // الصورة الجديدة بلا بيانات وصفية (EXIF)، والقديمة لا تبقى منشورة على رابطها
+            if (is_string($image) && $image !== '') {
+                ImageSanitizer::strip('public', $image);
+            }
+
+            if (is_string($previousImage) && $previousImage !== '') {
+                Storage::disk('public')->delete($previousImage);
+            }
+        }
     }
 }

@@ -119,6 +119,9 @@ class SiteSettings extends Page
                                 ->image()
                                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                 ->maxSize(4096)
+                                ->rules(['dimensions:max_width=4000,max_height=4000'])
+                                // الصفحة بلا سجل، فيُسمح صراحة بمسار الصورة المحفوظة حالياً فقط
+                                ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => $file === (Setting::group('home')['hero_image'] ?? null))
                                 ->disk('public')
                                 ->directory('settings')
                                 ->visibility('public')
