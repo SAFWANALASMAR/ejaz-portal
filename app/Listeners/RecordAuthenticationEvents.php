@@ -17,6 +17,10 @@ use Illuminate\Validation\ValidationException;
 /**
  * سجل أمني لأحداث الدخول في سجل العمليات باسم 'security'.
  * لا تُسجَّل كلمات المرور ولا المعرّف المكتوب نصاً، بل بصمته فقط.
+ *
+ * المحاولة الفاشلة على حساب موجود تُربط به حساباً معنياً لا منفّذاً (قد يحاول غير
+ * صاحبه)، فيجدها إخفاء البيانات ولو تغيّرت البصمة. ولا يُكتب عنوان ولا متصفح على
+ * حساب أُخفيت بياناته، فلا يعود إليه أثر يدل على صاحبه.
  */
 class RecordAuthenticationEvents
 {
@@ -33,16 +37,21 @@ class RecordAuthenticationEvents
 
     public function handleFailed(Failed $event): void
     {
-        $this->log('login_failed', $event->user instanceof User ? $event->user : null, [
-            'identifier_hash' => $this->identifierHash($event->credentials),
-        ]);
+        $identifier = $this->identifier($event->credentials);
+        $account = $event->user instanceof User ? $event->user : User::findByLoginIdentifier($identifier);
+
+        $this->log('login_failed', $account, [
+            'identifier_hash' => LoginIdentifier::hash($identifier),
+        ], byAccountOwner: false);
     }
 
     public function handleLockout(Lockout $event): void
     {
-        $this->log('login_lockout', null, [
-            'identifier_hash' => $this->identifierHash($event->request->only('login', 'email')),
-        ]);
+        $identifier = $this->identifier($event->request->only('login', 'email'));
+
+        $this->log('login_lockout', User::findByLoginIdentifier($identifier), [
+            'identifier_hash' => LoginIdentifier::hash($identifier),
+        ], byAccountOwner: false);
     }
 
     public function handleLogout(Logout $event): void
@@ -78,22 +87,28 @@ class RecordAuthenticationEvents
     }
 
     /**
+     * @param  User|null  $user  الحساب المعني بالحدث
      * @param  array<string, mixed>  $properties
+     * @param  bool  $byAccountOwner  الحدث من صاحب الحساب نفسه، لا محاولة دخول عليه
      */
-    private function log(string $event, ?User $user, array $properties = []): void
+    private function log(string $event, ?User $user, array $properties = [], bool $byAccountOwner = true): void
     {
         $request = request();
 
+        $origin = $user?->anonymized_at === null
+            ? ['ip' => $request->ip(), 'agent' => Str::limit((string) $request->userAgent(), 200, '')]
+            : [];
+
         $logger = activity('security')
             ->event($event)
-            ->withProperties([
-                'ip' => $request->ip(),
-                'agent' => Str::limit((string) $request->userAgent(), 200, ''),
-                ...$properties,
-            ]);
+            ->withProperties([...$origin, ...$properties]);
 
         if ($user !== null) {
-            $logger->causedBy($user)->performedOn($user);
+            $logger->performedOn($user);
+
+            if ($byAccountOwner) {
+                $logger->causedBy($user);
+            }
         }
 
         $logger->log($event);
@@ -102,10 +117,10 @@ class RecordAuthenticationEvents
     /**
      * @param  array<string, mixed>  $credentials
      */
-    private function identifierHash(array $credentials): ?string
+    private function identifier(array $credentials): ?string
     {
         $identifier = $credentials['login'] ?? $credentials['email'] ?? null;
 
-        return is_string($identifier) ? LoginIdentifier::hash($identifier) : null;
+        return is_string($identifier) ? $identifier : null;
     }
 }

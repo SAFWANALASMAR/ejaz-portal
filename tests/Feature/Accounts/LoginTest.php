@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Support\LoginIdentifier;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Activitylog\Models\Activity;
@@ -148,6 +149,27 @@ it('fingerprints every spelling of an identifier the same way', function () {
         ->unique();
 
     expect($hashes)->toHaveCount(2);
+});
+
+it('links failed attempts on an existing account to it, without naming it the actor', function () {
+    $this->post('/login', ['login' => '0512345678', 'password' => 'wrong-password']);
+    $this->post('/login', ['login' => 'nobody@example.test', 'password' => 'wrong-password']);
+
+    $onAccount = Activity::where('event', 'login_failed')->whereNotNull('subject_id')->sole();
+
+    expect($onAccount->subject?->is($this->user))->toBeTrue()
+        ->and($onAccount->causer_id)->toBeNull()
+        ->and(Activity::where('event', 'login_failed')->whereNull('subject_id')->count())->toBe(1);
+});
+
+it('records no address or browser on an anonymized account', function () {
+    $this->user->forceFill(['anonymized_at' => now(), 'is_active' => false])->save();
+
+    event(new Logout('web', $this->user));
+
+    $log = Activity::where('event', 'logout')->sole();
+    expect($log->properties->has('ip'))->toBeFalse()
+        ->and($log->properties->has('agent'))->toBeFalse();
 });
 
 it('keys the identifier fingerprint with the application key', function () {

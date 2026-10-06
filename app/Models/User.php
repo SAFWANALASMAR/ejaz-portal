@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\LoginIdentifier;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -69,6 +70,21 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function hasVerifiedPhone(): bool
     {
         return $this->phone !== null && $this->phone_verified_at !== null;
+    }
+
+    /**
+     * الحساب صاحب معرّف الدخول: البريد، أو الجوال بأي صيغة.
+     */
+    public static function findByLoginIdentifier(?string $identifier): ?self
+    {
+        $login = LoginIdentifier::normalize($identifier);
+
+        return match (true) {
+            $login === '' => null,
+            LoginIdentifier::isEmail($login) => self::query()->where('email', $login)->first(),
+            str_starts_with($login, '+966') => self::query()->where('phone', $login)->first(),
+            default => null,
+        };
     }
 
     public function sendEmailVerificationNotification(): void

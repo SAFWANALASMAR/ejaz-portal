@@ -11,7 +11,6 @@ use App\Auth\LoginRateLimiter;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
-use App\Support\LoginIdentifier;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -60,15 +59,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function authenticate(Request $request): ?User
     {
-        $login = LoginIdentifier::normalize($request->input(Fortify::username()));
         $password = (string) $request->input('password');
 
-        $user = match (true) {
-            $login === '' => null,
-            LoginIdentifier::isEmail($login) => User::query()->where('email', $login)->first(),
-            str_starts_with($login, '+966') => User::query()->where('phone', $login)->first(),
-            default => null,
-        };
+        $user = User::findByLoginIdentifier($request->input(Fortify::username()));
 
         if ($user === null) {
             // زمن استجابة متقارب سواء وُجد الحساب أم لا
