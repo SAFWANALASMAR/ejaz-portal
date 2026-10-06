@@ -2,6 +2,7 @@
 
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Tests\Fakes\FakeSmsGateway;
 
 beforeEach(function () {
@@ -62,6 +63,23 @@ it('limits how often a new code can be requested', function () {
     $this->actingAs($this->user)->post('/account/verify-phone/send')->assertSessionHasErrors('code');
 
     expect($this->sms->sent)->toHaveCount(1);
+});
+
+it('verifies one request at a time for the same user', function () {
+    config(['security.otp_lock_wait_seconds' => 0]);
+    $code = sendCode($this->user);
+
+    // طلب آخر يحمل القفل الآن
+    $lock = Cache::lock('phone-otp-verify:'.$this->user->id, 10);
+    $lock->get();
+
+    $this->actingAs($this->user)->post('/account/verify-phone', ['code' => $code])
+        ->assertSessionHasErrors(['code' => __('account.phone.busy')]);
+
+    $lock->release();
+
+    $this->actingAs($this->user)->post('/account/verify-phone', ['code' => $code])->assertSessionHasNoErrors();
+    expect($this->user->fresh()->hasVerifiedPhone())->toBeTrue();
 });
 
 it('keeps the verification page for signed-in users only', function () {

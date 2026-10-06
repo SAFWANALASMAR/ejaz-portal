@@ -3,6 +3,7 @@
 namespace App\Actions\Accounts;
 
 use App\Models\User;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
@@ -10,10 +11,22 @@ use Illuminate\Validation\ValidationException;
 /**
  * يتحقق من رمز الجوال. خمس محاولات خاطئة تُبطل الرمز، والرمز مرتبط بالرقم
  * الذي أُرسل إليه فلا يصلح بعد تغيير الرقم.
+ *
+ * التحقق داخل قفل لكل مستخدم، فلا تتجاوز طلبات متزامنة حد المحاولات.
  */
 class VerifyPhoneCode
 {
     public function handle(User $user, string $code): void
+    {
+        try {
+            Cache::lock('phone-otp-verify:'.$user->id, 10)
+                ->block((int) config('security.otp_lock_wait_seconds'), fn () => $this->verify($user, $code));
+        } catch (LockTimeoutException) {
+            throw ValidationException::withMessages(['code' => __('account.phone.busy')]);
+        }
+    }
+
+    private function verify(User $user, string $code): void
     {
         $key = SendPhoneVerificationCode::cacheKey($user);
         $entry = Cache::get($key);
