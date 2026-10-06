@@ -31,7 +31,8 @@ services:
 
   queue:
     <<: *php
-    command: php artisan queue:work --tries=3 --sleep=1
+    # Horizon يدير عمال الطوابير ولوحة مراقبتها على /horizon (للمشرف العام فقط)
+    command: php artisan horizon
 
   vite:
     image: node:22-bookworm-slim
