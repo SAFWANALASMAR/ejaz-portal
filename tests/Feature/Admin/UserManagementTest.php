@@ -208,8 +208,29 @@ it('emails every super admin when the super admin role is granted or revoked', f
 
     Notification::assertSentTo($other, SuperAdminRoleChanged::class, fn ($mail) => $mail->granted);
     Notification::assertSentTo($other, SuperAdminRoleChanged::class, fn ($mail) => ! $mail->granted);
-    // بعد السحب لم يعد مشرفاً عاماً، فلا يصله تنبيه السحب
-    Notification::assertNotSentTo($member->fresh(), SuperAdminRoleChanged::class, fn ($mail) => ! $mail->granted);
+    // من سُحب دوره يصله تنبيه السحب أيضاً، فلا يخفى عليه
+    Notification::assertSentTo($member->fresh(), SuperAdminRoleChanged::class, fn ($mail) => ! $mail->granted);
+});
+
+it('tells a super admin when another removes their role, and names both in the mail', function () {
+    Notification::fake();
+    $victim = userWithRole(RoleName::SuperAdmin, ['email' => 'victim@example.test']);
+
+    app(ChangeUserRoles::class)->handle($this->admin, $victim, [RoleName::Member->value]);
+
+    Notification::assertSentTo($victim, SuperAdminRoleChanged::class, function (SuperAdminRoleChanged $alert) use ($victim) {
+        $mail = $alert->toMail($victim);
+
+        expect($mail->subject)->toBe(__('users.super_admin_mail.revoked_subject'))
+            ->and((string) $mail->render())->toContain('victim@example.test')->toContain($this->admin->email);
+
+        return true;
+    });
+    Notification::assertSentTo($this->admin, SuperAdminRoleChanged::class);
+});
+
+it('queues work only after the surrounding transaction commits', function () {
+    expect(config('queue.connections.redis.after_commit'))->toBeTrue();
 });
 
 it('locks an anonymized account against edits and reactivation', function () {
