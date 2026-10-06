@@ -39,6 +39,7 @@ return [
         'hero_button_url' => 'رابط الزر',
         'hero_image' => 'الصورة',
         'hero_image_hint' => 'صورة عرضية (JPG أو PNG أو WebP) حتى 4 ميجابايت. إن تُركت فارغة ظهرت صورة مؤقتة.',
+        'hero_image_unreadable' => 'تعذّرت قراءة الصورة. ارفع صورة سليمة بصيغة JPG أو PNG أو WebP.',
         'sections' => 'المقاطع الظاهرة',
         'show_shortcuts' => 'اختصارات الأقسام',
         'show_latest' => 'أحدث البرامج والأخبار',

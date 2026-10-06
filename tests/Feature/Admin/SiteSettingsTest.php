@@ -1,8 +1,10 @@
 <?php
 
+use App\Actions\Settings\UpdateSiteSettings;
 use App\Enums\RoleName;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Setting;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -78,6 +80,50 @@ it('does not accept a file path that was not actually uploaded', function () {
         ->call('save');
 
     expect(Setting::group('home')['hero_image'] ?? null)->not->toBe('some-other-dir/not-uploaded.jpg');
+});
+
+it('rejects an image that passes the checks but cannot be read, and keeps the current one', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('settings/current.jpg', UploadedFile::fake()->image('current.jpg', 800, 400)->getContent());
+    Setting::put('home', ['hero_image' => 'settings/current.jpg']);
+
+    // ترويسة PNG سليمة بأبعاد 800×400، يليها محتوى لا يُقرأ صورةً
+    $header = "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.pack('NN', 800, 400)."\x08\x02\x00\x00\x00";
+    $broken = UploadedFile::fake()->createWithContent('broken.png', $header.pack('N', crc32(substr($header, 12))).random_bytes(2048));
+
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    $component = Livewire::test(SiteSettings::class)
+        ->set('data.home.hero_image', null)
+        ->fillForm(['home.hero_image' => [$broken]])
+        ->call('save');
+
+    expect($component->errors()->first('data.home.hero_image'))->toBe(__('settings.home.hero_image_unreadable'))
+        ->and(Setting::group('home')['hero_image'])->toBe('settings/current.jpg')
+        ->and(Storage::disk('public')->allFiles('settings'))->toBe(['settings/current.jpg']);
+});
+
+it('publishes the uploaded hero image without its metadata', function () {
+    Storage::fake('public');
+    $jpeg = UploadedFile::fake()->image('hero.jpg', 1200, 600)->getContent();
+    $payload = "Exif\0\0GPS-LATITUDE-21.4225";
+    $withExif = substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($payload) + 2).$payload.substr($jpeg, 2);
+
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(SiteSettings::class)
+        ->fillForm(['home.hero_image' => [UploadedFile::fake()->createWithContent('hero.jpg', $withExif)]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(Storage::disk('public')->get(Setting::group('home')['hero_image']))->not->toContain('GPS-LATITUDE');
+});
+
+it('refuses to save settings for someone without the permission, wherever it is called from', function () {
+    expect(fn () => app(UpdateSiteSettings::class)->handle(userWithRole(RoleName::BoardMember), ['contact' => ['email' => 'x@example.test']]))
+        ->toThrow(AuthorizationException::class);
+
+    expect(Setting::group('contact'))->toBe([]);
 });
 
 it('replaces the hero image and removes the previous file', function () {

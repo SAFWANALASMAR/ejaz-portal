@@ -25,6 +25,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 /**
@@ -175,7 +176,14 @@ class SiteSettings extends Page
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);
         $state['home']['stats'] = array_values($state['home']['stats'] ?? []);
 
-        $action->handle($user, $state);
+        try {
+            $action->handle($user, $state);
+        } catch (ValidationException $exception) {
+            // أخطاء الإجراء بمسارات الإعدادات، والحقول في النموذج تحت data
+            throw ValidationException::withMessages(
+                collect($exception->errors())->mapWithKeys(fn (array $messages, string $key) => ['data.'.$key => $messages])->all(),
+            );
+        }
 
         Notification::make()->success()->title(__('settings.saved'))->send();
     }
