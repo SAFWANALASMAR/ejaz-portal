@@ -165,7 +165,7 @@ return [
     // قواعد خاصة بالبوابة
     'saudi_mobile' => 'يجب أن يكون :attribute رقم جوال سعودياً صحيحاً يبدأ بـ 05.',
     'safe_url' => 'يجب أن يكون :attribute مساراً داخلياً يبدأ بـ / أو رابطاً كاملاً يبدأ بـ https://',
-    'real_pdf' => 'يجب أن يكون :attribute ملف PDF حقيقياً.',
+    'safe_external_url' => 'يجب أن يكون :attribute رابطاً كاملاً آمناً يبدأ بـ https://',
 
     'custom' => [],
 

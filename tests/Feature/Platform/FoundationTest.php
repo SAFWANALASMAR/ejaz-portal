@@ -49,3 +49,22 @@ it('shows contact details from the site settings', function () {
 
     $this->get('/')->assertSee('contact@example.test')->assertSee('مكة المكرمة');
 });
+
+it('never renders an unsafe social link even if one reaches the database', function () {
+    Setting::put('contact', ['social' => [
+        'x' => 'javascript:alert(1)',
+        'instagram' => 'https://ejaz.sa@evil.example',
+        'youtube' => 'https://www.youtube.com/@example',
+    ]]);
+
+    $this->get('/')
+        ->assertDontSee('javascript:alert(1)', false)
+        ->assertDontSee('evil.example', false)
+        ->assertSee('https://www.youtube.com/@example', false);
+});
+
+it('never renders an unsafe menu link even if one reaches the database', function () {
+    MenuItem::create(['label' => 'رابط ضار', 'url' => 'javascript:alert(1)']);
+
+    $this->get('/')->assertSee('رابط ضار')->assertDontSee('javascript:alert(1)', false);
+});

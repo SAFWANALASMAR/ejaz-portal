@@ -6,7 +6,8 @@
 @php
     $menu = $siteMenu ?? collect();
     $contact = $siteContact ?? [];
-    $social = array_filter($contact['social'] ?? []);
+    // فحص عند العرض أيضاً، فلا يُعرض رابط غير آمن ولو وصل إلى القاعدة دون تحقق
+    $social = array_filter($contact['social'] ?? [], fn ($url) => is_string($url) && \App\Rules\SafeUrl::isSafe($url, allowInternal: false));
     $hasContact = filled($contact['email'] ?? null) || filled($contact['phone'] ?? null) || filled($contact['address'] ?? null) || $social !== [];
 @endphp
 

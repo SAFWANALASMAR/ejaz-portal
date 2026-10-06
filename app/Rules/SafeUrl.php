@@ -6,9 +6,15 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * رابط آمن للعرض: مسار داخلي يبدأ بـ / ، أو رابط كامل يبدأ بـ https:// (أو http://).
- * يمنع javascript: وdata: والروابط التي تبدأ بـ // أو /\ (تعاملها بعض المتصفحات رابطاً
- * خارجياً)، ويمنع الشرطة العكسية والمسافات وأحرف التحكم، مرمّزةً أو صريحة.
+ * رابط آمن للعرض: مسار داخلي يبدأ بـ / ، أو رابط كامل يبدأ بـ https://
+ *
+ * يُرفض:
+ * - javascript: وdata: وhttp: وما شابهها.
+ * - الروابط التي تبدأ بـ // أو /\ (تعاملها بعض المتصفحات رابطاً خارجياً).
+ * - بيانات المستخدم قبل النطاق (https://ejaz.sa@evil.example يذهب إلى evil.example).
+ * - الشرطة العكسية، وأحرف التحكم والتنسيق (ومنها محارف اتجاه النص المخفية)،
+ *   والمسافات بكل أنواعها، صريحةً أو مرمّزة.
+ * - النص الذي ليس UTF-8 صالحاً بعد فك الترميز.
  */
 class SafeUrl implements ValidationRule
 {
@@ -20,11 +26,14 @@ class SafeUrl implements ValidationRule
             return false;
         }
 
-        // يُفحص الرابط كما هو، وبعد فك الترميز (مثل %5C و%2F)
         $decoded = rawurldecode($url);
 
         foreach ([$url, $decoded] as $candidate) {
-            if (preg_match('/[\x00-\x20\x7F\\\\]/u', $candidate) === 1) {
+            if (! mb_check_encoding($candidate, 'UTF-8')) {
+                return false;
+            }
+
+            if (preg_match('/[\p{C}\p{Z}\\\\]/u', $candidate) === 1) {
                 return false;
             }
         }
@@ -33,13 +42,19 @@ class SafeUrl implements ValidationRule
             return ! str_starts_with($decoded, '//');
         }
 
-        return preg_match('#^https?://[^/?\#]+#i', $url) === 1;
+        $parts = parse_url($url);
+
+        return is_array($parts)
+            && strtolower($parts['scheme'] ?? '') === 'https'
+            && ($parts['host'] ?? '') !== ''
+            && ! isset($parts['user'])
+            && ! isset($parts['pass']);
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || ! self::isSafe($value, $this->allowInternal)) {
-            $fail('validation.safe_url')->translate();
+            $fail($this->allowInternal ? 'validation.safe_url' : 'validation.safe_external_url')->translate();
         }
     }
 }
