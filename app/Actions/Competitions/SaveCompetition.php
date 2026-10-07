@@ -42,22 +42,14 @@ class SaveCompetition
     {
         $allowed = $competition->exists ? $actor->can('update', $competition) : $actor->can('create', Competition::class);
 
-        if (! $allowed) {
+        // المسابقة المحذوفة من اللوحة لا تُعدَّل حتى تُستعاد، ويُعاد الفحص على الصف المقفول
+        if (! $allowed || ($competition->exists && $competition->trashed())) {
             throw new AuthorizationException;
         }
 
-        // بعد أول مشاركة لا يصل بنك الأسئلة من اللوحة (حقله معطل)، ولا يُقبل من غيرها
-        if (array_key_exists('questions', $data) && $competition->questionsLocked()) {
-            throw ValidationException::withMessages(['questions' => __('competitions.validation.questions_locked')]);
-        }
-
-        if ($competition->scheduleLocked() && $this->changesSchedule($competition, $data)) {
-            throw ValidationException::withMessages(['closes_at' => __('competitions.validation.schedule_locked')]);
-        }
-
-        if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
-            throw ValidationException::withMessages(['criteria' => __('competitions.validation.criteria_locked')]);
-        }
+        // فحص أول قبل التحقق من المدخلات، ويُعاد بعد قفل صف المسابقة في المعاملة
+        $requested = $data;
+        $this->checkLocks($competition, $requested);
 
         $data = $this->validate($competition, $data);
 
@@ -73,10 +65,17 @@ class SaveCompetition
 
         $data['categories'] = array_values(array_unique(array_filter(array_map('trim', $data['categories'] ?? []), fn (string $category): bool => $category !== '')));
 
-        DB::transaction(function () use ($competition, $data, $criteria, $questions, $reviewers): void {
-            // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول
+        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers): void {
+            // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
+            // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
-                Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
+                $locked = Competition::query()->withTrashed()->whereKey($competition->id)->lockForUpdate()->firstOrFail();
+
+                if ($locked->trashed()) {
+                    throw new AuthorizationException;
+                }
+
+                $this->checkLocks($locked, $requested);
             }
 
             $competition->fill($data)->save();
@@ -94,6 +93,29 @@ class SaveCompetition
         });
 
         return $competition->refresh();
+    }
+
+    /**
+     * بعد أول مشاركة لا يصل بنك الأسئلة من اللوحة (حقله معطل)، ولا يُقبل من غيرها. والمواعيد بعد
+     * السحب أو الاعتماد، والمعايير بعد أول إسناد، كذلك.
+     *
+     * @param  array<string, mixed>  $data
+     *
+     * @throws ValidationException
+     */
+    private function checkLocks(Competition $competition, array $data): void
+    {
+        if (array_key_exists('questions', $data) && $competition->questionsLocked()) {
+            throw ValidationException::withMessages(['questions' => __('competitions.validation.questions_locked')]);
+        }
+
+        if ($competition->scheduleLocked() && $this->changesSchedule($competition, $data)) {
+            throw ValidationException::withMessages(['closes_at' => __('competitions.validation.schedule_locked')]);
+        }
+
+        if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
+            throw ValidationException::withMessages(['criteria' => __('competitions.validation.criteria_locked')]);
+        }
     }
 
     /**

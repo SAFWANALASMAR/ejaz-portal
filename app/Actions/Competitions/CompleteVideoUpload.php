@@ -2,12 +2,14 @@
 
 namespace App\Actions\Competitions;
 
+use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Jobs\ProcessSubmissionVideo;
 use App\Models\SubmissionVideo;
 use App\Models\User;
-use App\Support\ChunkedVideoUpload;
+use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -16,6 +18,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class CompleteVideoUpload
 {
+    public function __construct(private VideoUploads $uploads) {}
+
     /**
      * @throws AuthorizationException
      * @throws ValidationException
@@ -30,13 +34,18 @@ class CompleteVideoUpload
             throw new AuthorizationException;
         }
 
-        if (ChunkedVideoUpload::missing($video) !== []) {
+        if ($this->uploads->missing($video) !== []) {
             throw ValidationException::withMessages(['video' => __('competitions.video.incomplete')]);
         }
 
-        // انتقال شرطي: طلبا إنهاء متزامنان لا يرسلان المعالجة مرتين
-        $moved = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)
-            ->update(['status' => VideoStatus::Processing, 'updated_at' => now()]);
+        // انتقال شرطي: طلبا إنهاء متزامنان لا يرسلان المعالجة مرتين. والمشاركة مقفولة ومسودة، فلا يتداخل
+        // مع إرسال متزامن
+        $moved = DB::transaction(function () use ($video): int {
+            SubmissionLock::draft($video->submission_id);
+
+            return SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)
+                ->update(['status' => VideoStatus::Processing, 'updated_at' => now()]);
+        });
 
         if ($moved === 0) {
             throw new AuthorizationException;

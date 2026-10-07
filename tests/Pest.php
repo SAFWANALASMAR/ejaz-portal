@@ -72,3 +72,16 @@ function mp3Contents(): string
 {
     return "ID3\x04\x00\x00\x00\x00\x00\x00".str_repeat("\xFF\xFB\x90\x64".str_repeat("\x00", 413), 4);
 }
+
+/**
+ * مقطع MP4 صغير بمدته: صندوق ftyp، ثم moov فيه mvhd (الإصدار 0)، ثم بيانات بالحجم المطلوب.
+ */
+function mp4Contents(int $seconds = 30, int $padding = 0): string
+{
+    $box = fn (string $type, string $body): string => pack('N', 8 + strlen($body)).$type.$body;
+    $mvhd = "\x00\x00\x00\x00".pack('N', 0).pack('N', 0).pack('N', 1000).pack('N', $seconds * 1000).str_repeat("\x00", 80);
+
+    return $box('ftyp', 'isom'.pack('N', 512).'isomiso2mp41')
+        .$box('moov', $box('mvhd', $mvhd))
+        .$box('mdat', str_repeat("\x00", $padding));
+}

@@ -19,6 +19,22 @@ async function request(url, options = {}) {
     return response.status === 204 ? null : response.json();
 }
 
+// الجزء إلى مسار التطبيق برمز الحماية، أو مباشرة إلى التخزين السحابي برابطه الموقّع وحده، فلا
+// يُرسل رمز الحماية ولا الكعكات إلى نطاق آخر
+async function putChunk(url, chunk) {
+    if (new URL(url, location.href).origin === location.origin) {
+        return request(url, { method: 'PUT', body: chunk, headers: { 'Content-Type': 'application/octet-stream' } });
+    }
+
+    const response = await fetch(url, { method: 'PUT', body: chunk, credentials: 'omit' });
+
+    if (!response.ok) {
+        throw new Error(String(response.status));
+    }
+
+    return null;
+}
+
 // الحفظ التلقائي بعد توقف قصير عن الكتابة
 function autosave(form) {
     const status = form.querySelector('[data-autosave-status]');
@@ -109,7 +125,7 @@ function videoUpload(box) {
 
         for (const index of indexes) {
             const chunk = file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize));
-            await request(urls[index], { method: 'PUT', body: chunk, headers: { 'Content-Type': 'application/octet-stream' } });
+            await putChunk(urls[index], chunk);
             done++;
             progress.value = Math.round((done / total) * 100);
             status.textContent = messages.progress.replace(':percent', progress.value);

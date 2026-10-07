@@ -1,9 +1,12 @@
 <?php
 
 use App\Actions\Accounts\ExportUserData;
+use App\Actions\Competitions\CompleteVideoUpload;
 use App\Actions\Competitions\SaveCompetition;
 use App\Actions\Competitions\SaveSubmissionDraft;
 use App\Actions\Competitions\StartSubmission;
+use App\Actions\Competitions\StartVideoUpload;
+use App\Actions\Competitions\StoreVideoChunk;
 use App\Enums\RoleName;
 use App\Enums\SubmissionStatus;
 use App\Enums\VideoStatus;
@@ -15,6 +18,7 @@ use App\Models\User;
 use App\Notifications\SubmissionReceived;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -27,19 +31,6 @@ beforeEach(function () {
     $this->applicant = User::factory()->create(['phone' => '+966500000001', 'phone_verified_at' => now()]);
     [$this->text, $this->choice, $this->video] = $this->competition->questions->all();
 });
-
-/**
- * مقطع MP4 صغير بمدته: صندوق ftyp، ثم moov فيه mvhd (الإصدار 0)، ثم بيانات بالحجم المطلوب.
- */
-function mp4Contents(int $seconds = 30, int $padding = 0): string
-{
-    $box = fn (string $type, string $body): string => pack('N', 8 + strlen($body)).$type.$body;
-    $mvhd = "\x00\x00\x00\x00".pack('N', 0).pack('N', 0).pack('N', 1000).pack('N', $seconds * 1000).str_repeat("\x00", 80);
-
-    return $box('ftyp', 'isom'.pack('N', 512).'isomiso2mp41')
-        .$box('moov', $box('mvhd', $mvhd))
-        .$box('mdat', str_repeat("\x00", $padding));
-}
 
 /**
  * @param  array<string, mixed>  $overrides
@@ -78,8 +69,10 @@ it('shows no unpublished competition, and never shows the correct option', funct
 
     $this->get('/competitions/'.$draft->slug)->assertNotFound();
     $this->actingAs($this->applicant)->get('/competitions/'.$draft->slug.'/entry')->assertNotFound();
+    $this->post('/competitions/'.$draft->slug.'/entry/start')->assertNotFound();
 
-    $page = $this->actingAs($this->applicant)->get('/competitions/demo/entry')->assertOk()->assertSee('سؤال اختيار تجريبي');
+    $this->post('/competitions/demo/entry/start');
+    $page = $this->get('/competitions/demo/entry')->assertOk()->assertSee('سؤال اختيار تجريبي');
 
     // الخيار الصحيح لا يظهر بعلامة في الصفحة ولا في أي سمة
     expect($page->getContent())->not->toContain('correct_option')->not->toContain('is_correct');
@@ -87,22 +80,51 @@ it('shows no unpublished competition, and never shows the correct option', funct
 
 it('asks a guest to log in and an unverified phone to verify before applying', function () {
     $this->get('/competitions/demo/entry')->assertRedirect('/login');
+    $this->post('/competitions/demo/entry/start')->assertRedirect('/login');
 
     $unverified = User::factory()->create(['phone' => '+966500000002', 'phone_verified_at' => null]);
 
-    $this->actingAs($unverified)->get('/competitions/demo/entry')->assertRedirect(route('account.phone.verify'));
+    $this->actingAs($unverified)->post('/competitions/demo/entry/start')->assertRedirect(route('account.phone.verify'));
+    expect(session('url.intended'))->toBe(route('competitions.show', 'demo'));
 
     expect(CompetitionSubmission::count())->toBe(0)
         ->and(fn () => app(StartSubmission::class)->handle($unverified, $this->competition))->toThrow(AuthorizationException::class);
 });
 
 it('starts one draft per applicant, even when called again or concurrently', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry')->assertOk();
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry')->assertOk();
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start')->assertRedirect('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start')->assertRedirect('/competitions/demo/entry');
 
     $first = CompetitionSubmission::sole();
 
     expect(app(StartSubmission::class)->handle($this->applicant, $this->competition)->id)->toBe($first->id);
+});
+
+it('creates no draft by opening the form, and limits starting by rate', function () {
+    // GET لا ينشئ شيئاً: بلا مسودة يعود إلى صفحة المسابقة وزر «شارك الآن» فيها نموذج POST
+    $this->actingAs($this->applicant)->get('/competitions/demo/entry')->assertRedirect('/competitions/demo');
+    $this->get('/competitions/demo')->assertOk()->assertSee('action="'.route('competitions.entry.start', 'demo').'"', false);
+
+    expect(CompetitionSubmission::count())->toBe(0);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->post('/competitions/demo/entry/start')->assertRedirect('/competitions/demo/entry');
+    }
+
+    $this->post('/competitions/demo/entry/start')->assertTooManyRequests();
+    expect(CompetitionSubmission::count())->toBe(1);
+});
+
+it('counts each entry route on its own, so autosaves do not use up the submit limit', function () {
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
+
+    // الحد بلا بادئة مفتاحه المستخدم وحده، فتشترك فيه كل المسارات: 15 حفظاً تلقائياً تستهلك حد الإرسال (10)
+    foreach (range(1, 15) as $attempt) {
+        $this->postJson('/competitions/demo/entry/autosave', entryForm())->assertOk();
+    }
+
+    $this->post('/competitions/demo/entry/submit', entryForm())->assertRedirect('/competitions/demo/entry')->assertSessionHasNoErrors();
+    expect(CompetitionSubmission::sole()->status)->toBe(SubmissionStatus::Submitted);
 });
 
 it('refuses a duplicate submission at the database level', function () {
@@ -139,7 +161,7 @@ it('returns the existing draft when a concurrent request created it first', func
 });
 
 it('saves the draft by hand and in the background, and keeps the answers', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->post('/competitions/demo/entry', entryForm())->assertRedirect('/competitions/demo/entry')->assertSessionHas('status');
 
@@ -154,7 +176,7 @@ it('saves the draft by hand and in the background, and keeps the answers', funct
 });
 
 it('refuses answers that do not belong to the question', function (array $overrides, string $field) {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->postJson('/competitions/demo/entry/autosave', entryForm($overrides))->assertUnprocessable()->assertJsonValidationErrors($field);
 })->with([
@@ -165,7 +187,7 @@ it('refuses answers that do not belong to the question', function (array $overri
 ]);
 
 it('submits with a unique reference and a queued confirmation, then locks the entry', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->post('/competitions/demo/entry/submit', entryForm())->assertRedirect('/competitions/demo/entry');
 
@@ -188,7 +210,7 @@ it('submits with a unique reference and a queued confirmation, then locks the en
 });
 
 it('refuses to submit without the required answers, category and region', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->post('/competitions/demo/entry/submit', ['answers' => []])
         ->assertSessionHasErrors(['category', 'region', 'answers.'.$this->text->id, 'answers.'.$this->choice->id]);
@@ -198,13 +220,13 @@ it('refuses to submit without the required answers, category and region', functi
 
 it('requires a ready video for a required video question', function () {
     $this->video->update(['is_required' => true]);
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->post('/competitions/demo/entry/submit', entryForm())->assertSessionHasErrors('answers.'.$this->video->id);
 });
 
 it('refuses an autosave that reaches a submission submitted meanwhile', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
     $stale = CompetitionSubmission::sole();
 
     // الإرسال يسبق والنسخة في الذاكرة ما زالت مسودة
@@ -221,14 +243,15 @@ it('includes competition entries in the personal data export', function () {
 });
 
 it('keeps every applicant inside their own entry', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
     $mine = CompetitionSubmission::sole();
     $mine->update(['answers' => [(string) $this->text->id => 'جواب-خاص-بالمتقدم']]);
 
     $other = User::factory()->create(['phone' => '+966500000003', 'phone_verified_at' => now()]);
 
-    // الآخر يفتح النموذج فينشئ مسودته هو، ولا يرى إجابات غيره
-    $this->actingAs($other)->get('/competitions/demo/entry')->assertOk()->assertDontSee('جواب-خاص-بالمتقدم');
+    // الآخر يبدأ مسودته هو، ولا يرى إجابات غيره
+    $this->actingAs($other)->post('/competitions/demo/entry/start');
+    $this->get('/competitions/demo/entry')->assertOk()->assertDontSee('جواب-خاص-بالمتقدم');
     $this->actingAs($other)->post('/competitions/demo/entry', entryForm(['answers' => [$this->text->id => 'محاولة']]));
 
     expect($mine->fresh()->answer($this->text))->toBe('جواب-خاص-بالمتقدم')
@@ -239,7 +262,7 @@ it('keeps every applicant inside their own entry', function () {
 });
 
 it('closes entries automatically after the closing time', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     $this->travelTo($this->competition->closes_at->addMinute());
 
@@ -248,12 +271,13 @@ it('closes entries automatically after the closing time', function () {
 
     $late = User::factory()->create(['phone' => '+966500000004', 'phone_verified_at' => now()]);
     $this->actingAs($late)->get('/competitions/demo/entry')->assertRedirect('/competitions/demo');
+    $this->post('/competitions/demo/entry/start')->assertRedirect('/competitions/demo')->assertSessionHas('error', __('competitions.entry.closed'));
 
     expect(CompetitionSubmission::count())->toBe(1);
 });
 
 it('does not lock the question bank for an empty draft opened by visiting the form', function () {
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
 
     expect($this->competition->questionsLocked())->toBeFalse();
 
@@ -275,10 +299,37 @@ it('locks the question bank after the first submission, from the panel or any ca
     expect($this->competition->fresh()->title)->toBe('عنوان جديد')->and($this->competition->questions()->count())->toBe(3);
 });
 
+it('checks the bank lock again after locking the competition, so an entry sent meanwhile is respected', function () {
+    $manager = userWithRole(RoleName::ProgramManager);
+    $injected = false;
+
+    // سباق: أول مشاركة مرسلة تصل بعد الفحص الأول وقبل قفل صف المسابقة. والفحص بعد القفل يراها
+    DB::beforeExecuting(function (string $query) use (&$injected): void {
+        if (! $injected && str_contains($query, 'from "competitions"') && str_contains($query, 'for update')) {
+            $injected = true;
+            CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id]);
+        }
+    });
+
+    expect(fn () => app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'x', 'slug' => 'demo', 'opens_at' => now(), 'closes_at' => now()->addDay(), 'questions' => []]))
+        ->toThrow(ValidationException::class, __('competitions.validation.questions_locked'));
+
+    expect($injected)->toBeTrue()->and($this->competition->questions()->count())->toBe(3);
+});
+
+it('refuses saving a competition removed from the panel, before and after the lock', function () {
+    $manager = userWithRole(RoleName::ProgramManager);
+    $this->competition->delete();
+
+    expect(fn () => app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'عنوان', 'slug' => 'demo', 'opens_at' => now(), 'closes_at' => now()->addDay()]))
+        ->toThrow(AuthorizationException::class)
+        ->and(Competition::withTrashed()->find($this->competition->id)->title)->not->toBe('عنوان');
+});
+
 describe('video upload', function () {
     beforeEach(function () {
         config(['competitions.video.chunk_mb' => 1]);
-        $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+        $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
     });
 
     function startUpload(string $contents, string $type = 'video/mp4', ?float $duration = 30): TestResponse
@@ -431,5 +482,43 @@ describe('video upload', function () {
 
         $this->postJson('/competitions/demo/entry/videos/'.$other->questions[2]->id, ['size' => 10, 'type' => 'video/mp4'])->assertNotFound();
         $this->postJson('/competitions/demo/entry/videos/'.$this->text->id, ['size' => 10, 'type' => 'video/mp4'])->assertForbidden();
+    });
+
+    it('refuses to submit while a video is still uploading, even an optional one', function () {
+        // يكمّل قفل المشاركة في الرفع: مقطع قيد الرفع يمنع الإرسال، فلا يُكتب جزء لمشاركة مرسلة
+        $start = startUpload(mp4Contents(padding: 1024 * 1024 + 10))->json();
+        putChunk($start['urls'][0], str_repeat('x', 1024 * 1024))->assertNoContent();
+
+        $this->post('/competitions/demo/entry/submit', entryForm())->assertSessionHasErrors(['answers.'.$this->video->id => __('competitions.entry.video_pending')]);
+
+        expect(CompetitionSubmission::sole()->isDraft())->toBeTrue()
+            ->and(SubmissionVideo::sole()->status)->toBe(VideoStatus::Uploading);
+    });
+
+    it('does not replace, receive or complete a video once the entry was submitted meanwhile', function () {
+        // سباق: الطلب قرأ المشاركة مسودة، ثم أُرسلت قبل أن يكتب. فيُعاد الفحص على الصف المقفول
+        $contents = mp4Contents(padding: 1024 * 1024 + 10);
+        $start = startUpload($contents)->json();
+        putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertNoContent();
+        putChunk($start['urls'][1], substr($contents, 1024 * 1024))->assertNoContent();
+        $submission = CompetitionSubmission::sole();
+        $stale = CompetitionSubmission::findOrFail($submission->id);
+        $staleVideo = SubmissionVideo::with('submission')->sole();
+        $chunks = Storage::disk('local')->allFiles('competition-chunks');
+
+        CompetitionSubmission::query()->whereKey($submission->id)->update(['status' => SubmissionStatus::Submitted, 'submitted_at' => now()]);
+
+        expect(fn () => app(StartVideoUpload::class)->handle($this->applicant, $stale, $this->video, strlen($contents), 'video/mp4', 30))
+            ->toThrow(AuthorizationException::class);
+
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, substr($contents, 0, 1024 * 1024));
+        rewind($stream);
+
+        expect(fn () => app(StoreVideoChunk::class)->handle($this->applicant, $staleVideo, 0, $stream, 1024 * 1024))->toThrow(AuthorizationException::class)
+            ->and(fn () => app(CompleteVideoUpload::class)->handle($this->applicant, $staleVideo))->toThrow(AuthorizationException::class)
+            ->and(SubmissionVideo::sole()->uuid)->toBe($start['video'])
+            ->and(SubmissionVideo::sole()->status)->toBe(VideoStatus::Uploading)
+            ->and(Storage::disk('local')->allFiles('competition-chunks'))->toBe($chunks);
     });
 });

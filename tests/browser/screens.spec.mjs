@@ -26,10 +26,21 @@ const accountScreens = [
     { name: 'dashboard', path: '/account', heading: 'main p.text-2xl' },
     { name: 'profile', path: '/account/profile', heading: 'h1' },
     { name: 'my-competitions', path: '/account/competitions', heading: 'h1' },
-    { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true },
+    // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، لا بفتح النموذج
+    { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true, startFrom: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}` },
 ];
 
 async function checkScreen(page, testInfo, screen) {
+    if (screen.startFrom) {
+        await page.goto(screen.startFrom);
+        const start = page.locator('form[action$="/entry/start"] button');
+
+        if (await start.count()) {
+            await start.first().click();
+            await page.waitForLoadState();
+        }
+    }
+
     const response = await page.goto(screen.path);
     test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
 

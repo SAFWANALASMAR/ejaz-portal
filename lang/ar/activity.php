@@ -52,6 +52,7 @@ return [
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
         'survey_results_exported' => 'تصدير نتائج استبيان',
+        'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)

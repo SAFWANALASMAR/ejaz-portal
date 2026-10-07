@@ -59,9 +59,15 @@
                     <x-button :href="route('competitions.entry', $competition->slug)" variant="outline" class="w-full">{{ __('competitions.show.view_entry') }}</x-button>
                 @elseif ($status === CompetitionStatus::Open)
                     @auth
-                        <x-button :href="route('competitions.entry', $competition->slug)" class="w-full" arrow>
-                            {{ $submission ? __('competitions.show.continue') : __('competitions.show.apply') }}
-                        </x-button>
+                        @if ($submission)
+                            <x-button :href="route('competitions.entry', $competition->slug)" class="w-full" arrow>{{ __('competitions.show.continue') }}</x-button>
+                        @else
+                            {{-- المسودة تُنشأ بـ POST، فلا ينشئها فتح رابط --}}
+                            <form method="POST" action="{{ route('competitions.entry.start', $competition->slug) }}">
+                                @csrf
+                                <x-button class="w-full" arrow>{{ __('competitions.show.apply') }}</x-button>
+                            </form>
+                        @endif
                     @else
                         <x-button :href="route('login')" class="w-full" arrow>{{ __('competitions.show.login_to_apply') }}</x-button>
                     @endauth

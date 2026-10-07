@@ -56,7 +56,7 @@ it('grades multiple choice answers in the background after submission', function
     Queue::fake();
     $applicant = User::factory()->create(['phone' => '+966500000010', 'phone_verified_at' => now()]);
 
-    $this->actingAs($applicant)->get('/competitions/'.$this->competition->slug.'/entry');
+    $this->actingAs($applicant)->post('/competitions/'.$this->competition->slug.'/entry/start');
     $this->post('/competitions/'.$this->competition->slug.'/entry/submit', [
         'category' => 'الفئة الأولى', 'region' => 'riyadh',
         'answers' => [$this->text->id => 'نص', $this->choice->id => 'b'],
@@ -206,6 +206,28 @@ it('streams a video only to whoever may see the review', function () {
     $this->actingAs($this->manager)->get($url)->assertOk();
     $this->actingAs($this->reviewerB)->get($url)->assertNotFound();
     $this->actingAs($entry->user)->get($url)->assertNotFound();
+});
+
+it('refuses the review video to a reviewer or manager without two-factor, since the route is outside the panel', function () {
+    $entry = submittedEntry();
+    Storage::disk('local')->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $url = route('competitions.reviews.video', [SubmissionReview::sole(), $video]);
+
+    foreach ([$this->reviewerA, $this->manager] as $user) {
+        $user->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+
+        $this->actingAs($user)->get($url)->assertForbidden();
+    }
 });
 
 it('approves results only after closing and complete reviews, then locks the scores', function () {

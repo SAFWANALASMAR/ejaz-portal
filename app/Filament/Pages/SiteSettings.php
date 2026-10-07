@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Rules\SafeUrl;
 use App\Support\PortalStats;
+use App\Support\Retention;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -33,8 +34,8 @@ use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 /**
- * إعدادات الموقع: التواصل، والتواصل الاجتماعي، ومقاطع الرئيسية.
- * الصلاحية: settings.update (المشرف العام ومحرر المحتوى).
+ * إعدادات الموقع: التواصل، والتواصل الاجتماعي، ومقاطع الرئيسية، ومدة الاحتفاظ.
+ * الصلاحية: settings.update (المشرف العام ومحرر المحتوى)، ومدة الاحتفاظ retention.update (المشرف العام).
  *
  * @property-read Schema $form
  */
@@ -81,6 +82,7 @@ class SiteSettings extends Page
                 'show_partners' => true,
                 ...Setting::group('home'),
             ],
+            'retention' => Setting::group('retention'),
         ]);
     }
 
@@ -156,6 +158,18 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
+                    // تحذف بيانات شخصية آلياً، فللمشرف العام وحده (retention.update)، ولا تُرسل من غيره
+                    Tab::make(__('settings.tabs.retention'))
+                        ->visible(fn (): bool => auth()->user()?->can('retention.update') ?? false)
+                        ->schema([
+                            Section::make()->description(__('settings.retention.hint'))->schema([
+                                TextInput::make('retention.days')->label(__('settings.retention.days'))
+                                    ->helperText(__('settings.retention.days_hint'))
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(Retention::MAX_DAYS),
+                            ]),
+                        ]),
                 ]),
             ]);
     }
@@ -179,7 +193,7 @@ class SiteSettings extends Page
         /** @var User $user */
         $user = auth()->user();
 
-        /** @var array{contact: array<string, mixed>, home: array<string, mixed>} $state */
+        /** @var array{contact: array<string, mixed>, home: array<string, mixed>, retention?: array<string, mixed>} $state */
         $state = $this->form->getState();
 
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);

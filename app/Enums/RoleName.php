@@ -54,6 +54,7 @@ enum RoleName: string implements HasLabel
             self::Secretary,
             self::ContentEditor,
             self::ProgramManager,
+            self::Reviewer,
         ];
     }
 

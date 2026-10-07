@@ -42,6 +42,7 @@ enum ActivityEvent: string implements HasLabel
     case DrawVoided = 'draw_voided';
     case SubmissionsDistributed = 'submissions_distributed';
     case SubmissionsExported = 'submissions_exported';
+    case PersonalDataPurged = 'personal_data_purged';
 
     // قياس الرضا
     case SurveyResultsExported = 'survey_results_exported';

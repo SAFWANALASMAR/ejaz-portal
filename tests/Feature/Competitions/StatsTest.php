@@ -54,7 +54,8 @@ it('exports this competition entries in the queue, downloadable only by the requ
 
     $export = Export::sole();
 
-    expect($export->total_rows)->toBe(6)->and($export->user_id)->toBe($manager->id);
+    // المرسلة وحدها افتراضياً، لا بريد ولا جوال من بدأ مسودة ولم يرسلها
+    expect($export->total_rows)->toBe(4)->and($export->user_id)->toBe($manager->id);
 
     $other = userWithRole(RoleName::ProgramManager);
     expect($manager->can('view', $export))->toBeTrue()
@@ -62,6 +63,27 @@ it('exports this competition entries in the queue, downloadable only by the requ
 
     $manager->removeRole(RoleName::ProgramManager->value);
     expect($manager->fresh()->can('view', $export))->toBeFalse();
+});
+
+it('adds drafts to the export only on request, and leaves email and phone off by default', function () {
+    $this->actingAs(userWithRole(RoleName::ProgramManager));
+
+    $defaults = collect(SubmissionExporter::getColumns())->filter->isEnabledByDefault()->map->getName()->values()->all();
+    expect($defaults)->not->toContain('user.email')->not->toContain('user.phone')->toContain('reference');
+
+    Livewire::test(SubmissionsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->callAction(TestAction::make('export')->table(), [
+            'include_drafts' => true,
+            'columnMap' => collect(SubmissionExporter::getColumns())->mapWithKeys(fn ($column) => [$column->getName() => ['isEnabled' => true, 'label' => $column->getLabel()]])->all(),
+        ])
+        ->assertNotified();
+
+    expect(Export::sole()->total_rows)->toBe(6);
+
+    // السجل يذكر ما صُدّر: المسودات، والأعمدة المفعّلة ومنها البريد والجوال
+    $logged = Activity::where('event', 'submissions_exported')->sole()->properties;
+    expect($logged['include_drafts'])->toBeTrue()
+        ->and($logged['columns'])->toContain('user.email')->toContain('user.phone')->toContain('reference');
 });
 
 it('hides the export from whoever may see the entries but not export them', function () {

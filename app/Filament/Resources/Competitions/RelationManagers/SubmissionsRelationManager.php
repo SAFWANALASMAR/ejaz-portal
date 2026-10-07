@@ -16,6 +16,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\ExportColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -67,15 +68,27 @@ class SubmissionsRelationManager extends RelationManager
                 SelectFilter::make('region')->label(__('competitions.entry.region'))->options(SaudiRegion::class),
             ])
             ->headerActions([
-                // التصدير الكامل في الطابور، بمشاركات هذه المسابقة وحدها
+                // التصدير الكامل في الطابور، بمشاركات هذه المسابقة وحدها، والمرسلة وحدها ما لم تُطلب المسودات
                 ExportAction::make()
                     ->label(__('competitions.export.action'))
                     ->exporter(SubmissionExporter::class)
                     ->visible(fn (): bool => $this->allows('submissions.export'))
-                    ->modifyQueryUsing(fn (Builder $query) => $query->where('competition_id', $this->competition()->id)->with('user'))
-                    // تصدير البيانات الشخصية عملية إدارية تُسجَّل
-                    ->before(fn () => activity('competitions')->performedOn($this->competition())->causedBy($this->user())
-                        ->event(ActivityEvent::SubmissionsExported->value)->log(ActivityEvent::SubmissionsExported->value)),
+                    ->modifyQueryUsing(fn (Builder $query, array $options) => $query->where('competition_id', $this->competition()->id)
+                        ->when(! ($options['include_drafts'] ?? false), fn (Builder $query) => $query->where('status', SubmissionStatus::Submitted))
+                        ->with('user'))
+                    // تصدير البيانات الشخصية عملية إدارية تُسجَّل، ومعها ما صُدّر: المسودات والأعمدة المفعّلة
+                    ->before(fn (array $data) => activity('competitions')->performedOn($this->competition())->causedBy($this->user())
+                        ->event(ActivityEvent::SubmissionsExported->value)
+                        ->withProperties([
+                            'include_drafts' => (bool) ($data['include_drafts'] ?? false),
+                            // بقراءة Filament نفسها: أسماء الأعمدة بالنقاط مسارات متداخلة في columnMap
+                            'columns' => collect(SubmissionExporter::getColumns())
+                                ->filter(fn (ExportColumn $column): bool => (bool) data_get($data['columnMap'] ?? [], $column->getName().'.isEnabled', false))
+                                ->map(fn (ExportColumn $column): string => $column->getName())
+                                ->values()
+                                ->all(),
+                        ])
+                        ->log(ActivityEvent::SubmissionsExported->value)),
                 Action::make('distribute')
                     ->label(__('competitions.reviews.distribute'))
                     ->icon('heroicon-o-arrows-right-left')

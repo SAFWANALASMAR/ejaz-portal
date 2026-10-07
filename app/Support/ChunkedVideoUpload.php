@@ -2,27 +2,32 @@
 
 namespace App\Support;
 
+use App\Contracts\VideoUploads;
+use App\Enums\VideoStatus;
 use App\Models\SubmissionVideo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * الرفع المجزأ القابل للاستئناف لمقاطع المشاركات على القرص الخاص: روابط مؤقتة موقّعة لكل جزء،
  * والأجزاء المستلمة من الملفات نفسها (فلا سباق بين أجزاء متوازية)، ثم جمعها في ملف واحد.
  *
- * يمر الرفع هنا عبر خادم التطبيق. والرفع المباشر إلى تخزين متوافق مع S3 بروابط موقّعة قرار
- * معلّق بموافقة صفوان لأنه يحتاج مكتبة AWS (docs/decisions.md)، ويحل محل هذا الصنف حينها.
+ * يمر الرفع هنا عبر خادم التطبيق (COMPETITION_VIDEO_UPLOAD=app)، وهو للتطوير وللاستضافة بلا
+ * تخزين سحابي. والرفع المباشر إلى التخزين السحابي في S3VideoUploads.
  */
-final class ChunkedVideoUpload
+final class ChunkedVideoUpload implements VideoUploads
 {
+    public function begin(SubmissionVideo $video): void {}
+
     /**
      * روابط رفع الأجزاء المطلوبة، مفتاحها رقم الجزء.
      *
      * @param  list<int>  $indexes
      * @return array<int, string>
      */
-    public static function urls(SubmissionVideo $video, array $indexes): array
+    public function urls(SubmissionVideo $video, array $indexes): array
     {
         $expires = now()->addMinutes((int) config('competitions.video.url_minutes'));
 
@@ -38,7 +43,7 @@ final class ChunkedVideoUpload
     /**
      * @return list<int>
      */
-    public static function received(SubmissionVideo $video): array
+    public function received(SubmissionVideo $video): array
     {
         $indexes = array_map(fn (string $path): int => (int) basename($path), Storage::disk(SubmissionVideo::disk())->files($video->chunkDirectory()));
         sort($indexes);
@@ -49,9 +54,9 @@ final class ChunkedVideoUpload
     /**
      * @return list<int>
      */
-    public static function missing(SubmissionVideo $video): array
+    public function missing(SubmissionVideo $video): array
     {
-        return array_values(array_diff(range(0, $video->chunk_count - 1), self::received($video)));
+        return array_values(array_diff(range(0, $video->chunk_count - 1), $this->received($video)));
     }
 
     /**
@@ -60,7 +65,7 @@ final class ChunkedVideoUpload
      *
      * @param  resource  $stream
      */
-    public static function store(SubmissionVideo $video, int $index, $stream, int $expected): bool
+    public function store(SubmissionVideo $video, int $index, $stream, int $expected): bool
     {
         $buffer = tmpfile();
 
@@ -87,7 +92,7 @@ final class ChunkedVideoUpload
      *
      * @return resource
      */
-    public static function assemble(SubmissionVideo $video)
+    public function open(SubmissionVideo $video)
     {
         $disk = Storage::disk(SubmissionVideo::disk());
         $target = tmpfile();
@@ -112,25 +117,37 @@ final class ChunkedVideoUpload
         return $target;
     }
 
-    public static function discardChunks(SubmissionVideo $video): void
+    public function keep(SubmissionVideo $video, $file): string
     {
-        self::discardDirectory($video->uuid);
+        rewind($file);
+        $path = SubmissionVideo::DIRECTORY.'/'.Str::random(40).'.mp4';
+        Storage::disk(SubmissionVideo::disk())->writeStream($path, $file);
+
+        return $path;
     }
 
-    public static function discardDirectory(string $uuid): void
+    public function discard(SubmissionVideo $video): void
     {
-        Storage::disk(SubmissionVideo::disk())->deleteDirectory(SubmissionVideo::CHUNK_DIRECTORY.'/'.$uuid);
+        Storage::disk(SubmissionVideo::disk())->deleteDirectory($video->chunkDirectory());
     }
 
     /**
-     * الأجزاء والملف الجامع إن وُجد.
+     * مجلدات أجزاء بلا مقطع يُرفع أو يُعالج (حلّ محله غيره).
      */
-    public static function discard(SubmissionVideo $video): void
+    public function pruneOrphans(): int
     {
-        self::discardChunks($video);
+        $orphans = 0;
+        $disk = Storage::disk(SubmissionVideo::disk());
 
-        if (filled($video->path)) {
-            Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
+        foreach ($disk->directories(SubmissionVideo::CHUNK_DIRECTORY) as $directory) {
+            $uuid = basename($directory);
+
+            if (! Str::isUuid($uuid) || ! SubmissionVideo::query()->where('uuid', $uuid)->whereIn('status', [VideoStatus::Uploading, VideoStatus::Processing])->exists()) {
+                $disk->deleteDirectory($directory);
+                $orphans++;
+            }
         }
+
+        return $orphans;
     }
 }

@@ -2,19 +2,19 @@
 
 namespace App\Jobs;
 
+use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
+use App\Exceptions\VideoRejected;
 use App\Models\SubmissionVideo;
-use App\Support\ChunkedVideoUpload;
-use App\Support\Mp4Duration;
+use App\Support\VideoProbe;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * معالجة المقطع بعد استلامه في الخلفية: جمع الأجزاء، ثم مطابقة الحجم المعلن، والنوع الحقيقي من
- * المحتوى (MP4)، والمدة من ترويسته مقابل حد السؤال. فالسليم يُحفظ باسم عشوائي في القرص الخاص
+ * معالجة المقطع بعد استلامه في الخلفية: جمع الأجزاء أو تنزيله من التخزين (VideoUploads)، ثم مطابقة الحجم المعلن، والنوع الحقيقي من
+ * المحتوى (MP4)، والمدة الحقيقية (VideoProbe) مقابل حد السؤال. فالسليم يُحفظ باسم عشوائي في القرص الخاص
  * ويصير جاهزاً، والمخالف يُرفض بسببه ويُحذف. والحفظ شرطي على المقطع نفسه (المعرّف والحالة)، فإن
  * استُبدل أثناء المعالجة لم يُكتب فوق الجديد. وإن فشلت المعالجة نهائياً رُفض المقطع ليُعاد رفعه.
  */
@@ -29,7 +29,7 @@ class ProcessSubmissionVideo implements ShouldQueue
 
     public function __construct(public int $videoId) {}
 
-    public function handle(): void
+    public function handle(VideoUploads $uploads): void
     {
         $video = SubmissionVideo::with('question')->find($this->videoId);
 
@@ -39,18 +39,25 @@ class ProcessSubmissionVideo implements ShouldQueue
 
         $uuid = $video->uuid;
         $path = null;
-        $file = ChunkedVideoUpload::assemble($video);
 
         try {
-            $reason = $this->problem($video, $file);
+            $file = $uploads->open($video);
+        } catch (VideoRejected $rejected) {
+            // المستلم لا يطابق حجمه المعلن: يُرفض دون تنزيله أو فحصه
+            $file = null;
+            $reason = $rejected->reason;
+        }
 
-            if ($reason === null) {
-                rewind($file);
-                $path = SubmissionVideo::DIRECTORY.'/'.Str::random(40).'.mp4';
-                Storage::disk(SubmissionVideo::disk())->writeStream($path, $file);
+        if ($file !== null) {
+            try {
+                $reason = $this->problem($video, $file);
+
+                if ($reason === null) {
+                    $path = $uploads->keep($video, $file);
+                }
+            } finally {
+                fclose($file);
             }
-        } finally {
-            fclose($file);
         }
 
         $updated = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $uuid)->where('status', VideoStatus::Processing)->update([
@@ -65,7 +72,7 @@ class ProcessSubmissionVideo implements ShouldQueue
             Storage::disk(SubmissionVideo::disk())->delete($path);
         }
 
-        ChunkedVideoUpload::discardDirectory($uuid);
+        $uploads->discard($video);
     }
 
     /**
@@ -84,7 +91,7 @@ class ProcessSubmissionVideo implements ShouldQueue
             ->update(['status' => VideoStatus::Rejected, 'rejection_reason' => 'processing_failed', 'updated_at' => now()]);
 
         if ($updated > 0) {
-            ChunkedVideoUpload::discardDirectory($video->uuid);
+            app(VideoUploads::class)->discard($video);
         }
     }
 
@@ -105,7 +112,7 @@ class ProcessSubmissionVideo implements ShouldQueue
             return 'not_mp4';
         }
 
-        $seconds = Mp4Duration::seconds($file);
+        $seconds = VideoProbe::seconds($file);
 
         if ($seconds === null) {
             return 'unreadable';
