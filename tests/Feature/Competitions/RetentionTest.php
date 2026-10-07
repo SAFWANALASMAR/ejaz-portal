@@ -14,6 +14,7 @@ use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -220,4 +221,31 @@ it('keeps an entry as it was when its files cannot be deleted, retries tomorrow,
         ->and(Storage::disk('local')->exists('competition-videos/'.$failing->uuid.'.mp4'))->toBeTrue()
         ->and($other->videos()->count())->toBe(0)
         ->and($other->fresh()->answers)->toBeNull();
+});
+
+it('keeps an entry as it was when the disk reports a failed delete without throwing', function () {
+    Setting::put('retention', ['days' => 30]);
+    $failing = entryWithVideo($this->competition, $this->deleted);
+    $path = 'competition-videos/'.$failing->uuid.'.mp4';
+
+    // الأقراص مضبوطة بلا رمي استثناء (throw: false)، فتعذر الحذف يظهر قيمةً لا استثناءً
+    $fake = Storage::disk('local');
+    Storage::set('local', new class($fake, $path) extends FilesystemAdapter
+    {
+        public function __construct(FilesystemAdapter $fake, private string $failing)
+        {
+            parent::__construct($fake->getDriver(), $fake->getAdapter(), $fake->getConfig());
+        }
+
+        public function delete($paths)
+        {
+            return in_array($this->failing, (array) $paths, true) ? false : parent::delete($paths);
+        }
+    });
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
+
+    expect($failing->videos()->count())->toBe(1)
+        ->and($failing->fresh()->answers)->not->toBeNull()
+        ->and(Storage::disk('local')->exists($path))->toBeTrue();
 });
