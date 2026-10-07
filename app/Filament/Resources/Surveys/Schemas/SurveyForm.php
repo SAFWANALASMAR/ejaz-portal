@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Surveys\Schemas;
 
+use App\Actions\Surveys\SaveSurvey;
 use App\Enums\SurveyAudience;
 use App\Enums\SurveyQuestionType;
 use App\Models\Competition;
@@ -41,7 +42,11 @@ class SurveyForm
                     Textarea::make('description')->label(__('surveys.fields.description'))->rows(3)->maxLength(2000)->columnSpanFull(),
                     DateTimePicker::make('opens_at')->label(__('surveys.fields.opens_at'))->seconds(false),
                     DateTimePicker::make('closes_at')->label(__('surveys.fields.closes_at'))->seconds(false)->after('opens_at'),
-                    Toggle::make('allow_guests')->label(__('surveys.fields.allow_guests'))->helperText(__('surveys.fields.allow_guests_hint'))->columnSpanFull(),
+                    Toggle::make('allow_guests')->label(__('surveys.fields.allow_guests'))->helperText(__('surveys.fields.allow_guests_hint'))->live()->columnSpanFull(),
+                    TextInput::make('guest_limit')->label(__('surveys.fields.guest_limit'))->helperText(__('surveys.fields.guest_limit_hint'))
+                        ->integer()->minValue(1)->maxValue(SaveSurvey::MAX_GUEST_LIMIT)
+                        ->visible(fn (Get $get): bool => (bool) $get('allow_guests'))
+                        ->required(fn (Get $get): bool => (bool) $get('allow_guests')),
                     Toggle::make('is_published')->label(__('content.is_published')),
                     TextEntry::make('link')
                         ->label(__('surveys.fields.link'))

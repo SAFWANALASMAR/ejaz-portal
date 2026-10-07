@@ -137,7 +137,7 @@ it('asks guests to log in unless the survey allows them, and stops a guest repea
     $this->get('/surveys/'.$this->survey->token)->assertRedirect('/login');
     answer([$this->scale->id => 3, $this->choice->id => 1])->assertSessionHas('error');
 
-    $this->survey->update(['allow_guests' => true]);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
 
     $response = answer([$this->scale->id => 3, $this->choice->id => 1])->assertSessionHas('status');
     $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_'));
@@ -190,7 +190,7 @@ it('refuses a null byte in a text answer instead of failing on the server', func
 });
 
 it('caps guest answers per survey and network for the day, counting before saving', function () {
-    $this->survey->update(['allow_guests' => true]);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
     $key = SurveyController::guestKey($this->survey, '127.0.0.1');
 
     // المفتاح ببصمة العنوان لا بنصه
@@ -209,7 +209,7 @@ it('caps guest answers per survey and network for the day, counting before savin
 });
 
 it('stops a guest who answered from answering again after signing in', function () {
-    $this->survey->update(['allow_guests' => true]);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
     $response = answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('status');
     $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_'));
 
@@ -305,7 +305,7 @@ it('shows a survey not yet opened as unavailable, and a deleted one as not found
 });
 
 it('lets only assembly members answer a members survey, and refuses guests even when guests are allowed', function () {
-    $this->survey->update(['audience' => SurveyAudience::Members, 'allow_guests' => true]);
+    $this->survey->update(['audience' => SurveyAudience::Members, 'allow_guests' => true, 'guest_limit' => 100]);
     $member = userWithRole(RoleName::AssemblyMember);
     $outsider = User::factory()->create();
 
@@ -336,7 +336,7 @@ it('lets only those who submitted an entry answer a competition survey', functio
         answer([$this->scale->id => 4, $this->choice->id => 1], $user)->assertSessionHas('error', __('surveys.public.not_audience'));
     }
 
-    $this->survey->update(['allow_guests' => true]);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
     answer([$this->scale->id => 4, $this->choice->id => 1])->assertSessionHas('error');
     expect(SurveyResponse::count())->toBe(0);
 
@@ -393,7 +393,7 @@ it('tells the respondent how the answer is used, at the point of collection', fu
         ->assertOk()->assertSee(__('surveys.public.privacy'));
 
     auth()->logout();
-    $this->survey->update(['allow_guests' => true]);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
     $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.privacy_guest'));
 });
 
@@ -405,4 +405,31 @@ it('counts viewing and answering on their own, so opening the page does not use 
     }
 
     answer([$this->scale->id => 4, $this->choice->id => 1], $user)->assertSessionHas('status');
+});
+
+it('requires a cap on guest answers when guests are allowed, and stops guests once it is reached', function () {
+    expect(fn () => app(SaveSurvey::class)->handle($this->manager, new Survey, surveyForm(['allow_guests' => true])))
+        ->toThrow(ValidationException::class);
+
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 2]);
+
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('status');
+    $this->withCookies([])->flushSession();
+    answer([$this->scale->id => 4, $this->choice->id => 1])->assertSessionHas('status');
+    $this->withCookies([])->flushSession();
+    answer([$this->scale->id => 5, $this->choice->id => 2])->assertSessionHas('error', __('surveys.public.guests_full'));
+
+    // أصحاب الحسابات لا يدخلون في السقف
+    answer([$this->scale->id => 5, $this->choice->id => 2], User::factory()->create())->assertSessionHas('status');
+
+    expect(SurveyResponse::count())->toBe(3)->and($this->survey->fresh()->guest_responses)->toBe(2);
+});
+
+it('limits a text answer to 1000 characters in a survey open to guests', function () {
+    $user = User::factory()->create();
+    answer([$this->scale->id => 3, $this->choice->id => 0, $this->text->id => str_repeat('ن', 1500)], $user)->assertSessionHasNoErrors();
+
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
+    answer([$this->scale->id => 3, $this->choice->id => 0, $this->text->id => str_repeat('ن', 1001)], User::factory()->create())
+        ->assertSessionHasErrors('answers.'.$this->text->id);
 });

@@ -3,6 +3,7 @@
     مقياس من 1 إلى 5، واختيار، ونص. وبعد الإجابة أو عند الإغلاق رسالة بدل النموذج.
 --}}
 @php
+    use App\Actions\Surveys\SubmitSurveyResponse;
     use App\Enums\SurveyQuestionType;
 @endphp
 
@@ -54,7 +55,7 @@
                         @endforeach
                     @else
                         <label for="answer-{{ $question->id }}" class="sr-only">{{ $question->prompt }}</label>
-                        <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="4" maxlength="2000"
+                        <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="4" maxlength="{{ SubmitSurveyResponse::maxText($survey) }}"
                             class="block w-full rounded-xl border border-line bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id) }}</textarea>
                     @endif
 

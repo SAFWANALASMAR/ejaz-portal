@@ -21,10 +21,12 @@ use Spatie\Activitylog\Support\LogOptions;
  * يُحفظ عبر SaveSurvey، وتُجمع إجاباته في SurveyResults.
  *
  * @property SurveyAudience $audience
+ * @property int|null $guest_limit سقف إجابات غير المسجلين، وفارغاً لا يجيب غير مسجل
+ * @property int $guest_responses
  * @property Carbon|null $opens_at
  * @property Carbon|null $closes_at
  */
-#[Fillable(['title', 'description', 'audience', 'allow_guests', 'opens_at', 'closes_at', 'is_published'])]
+#[Fillable(['title', 'description', 'audience', 'allow_guests', 'guest_limit', 'opens_at', 'closes_at', 'is_published'])]
 class Survey extends Model
 {
     /** @use HasFactory<SurveyFactory> */
@@ -38,6 +40,8 @@ class Survey extends Model
         return [
             'audience' => SurveyAudience::class,
             'allow_guests' => 'boolean',
+            'guest_limit' => 'integer',
+            'guest_responses' => 'integer',
             'opens_at' => 'datetime',
             'closes_at' => 'datetime',
             'is_published' => 'boolean',

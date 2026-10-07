@@ -28,6 +28,16 @@ class SubmitSurveyResponse
     public const MAX_TEXT = 2000;
 
     /**
+     * حد النص الواحد في الاستبيان المفتوح لغير المسجلين (مراجعة #5).
+     */
+    public const MAX_GUEST_SURVEY_TEXT = 1000;
+
+    public static function maxText(Survey $survey): int
+    {
+        return $survey->allow_guests ? self::MAX_GUEST_SURVEY_TEXT : self::MAX_TEXT;
+    }
+
+    /**
      * @param  array<int|string, mixed>  $answers  {معرّف السؤال: قيمة}
      *
      * @throws AuthorizationException
@@ -59,7 +69,7 @@ class SubmitSurveyResponse
                 SurveyQuestionType::Scale => [$required, 'integer', 'between:1,5'],
                 SurveyQuestionType::Choice => [$required, 'integer', Rule::in(array_keys($question->optionList()))],
                 // البايت الصفري لا يقبله PostgreSQL في النص، فيُرفض هنا لا بخطأ خادم يكتب الإجابة في السجل
-                SurveyQuestionType::Text => [$required, 'string', 'max:'.self::MAX_TEXT, 'not_regex:/\x00/'],
+                SurveyQuestionType::Text => [$required, 'string', 'max:'.self::maxText($survey), 'not_regex:/\x00/'],
             };
         }
 
@@ -82,7 +92,22 @@ class SubmitSurveyResponse
         $response->submitted_at = now();
 
         try {
-            DB::transaction(fn () => $response->save());
+            DB::transaction(function () use ($response, $survey, $user): void {
+                // سقف إجابات غير المسجلين على صف الاستبيان المقفول، فلا يتجاوزه ضيفان متزامنان. وبلا سقف
+                // مضبوط لا يجيب غير مسجل (SaveSurvey يلزمه متى سُمح لهم)
+                if ($user === null) {
+                    $locked = Survey::query()->whereKey($survey->id)->lockForUpdate()->firstOrFail();
+
+                    if ($locked->guest_limit === null || $locked->guest_responses >= $locked->guest_limit) {
+                        throw new AuthorizationException(__('surveys.public.guests_full'));
+                    }
+
+                    // بلا سجل عمليات لكل إجابة: عدّاد لا تعديل إداري
+                    Survey::query()->whereKey($survey->id)->increment('guest_responses');
+                }
+
+                $response->save();
+            });
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages(['answers' => __('surveys.public.already')]);
         }
