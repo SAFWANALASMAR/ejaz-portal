@@ -193,4 +193,17 @@ return [
         'deletion_sent' => 'أُرسل طلب حذف الحساب.',
     ],
 
+    // ملخص رئيسية اللوحة: ما يحتاج تصرفك، ومواعيدك القادمة، وآخر طلباتك
+    'summary' => [
+        'attention' => 'ما يحتاج تصرفك',
+        'needs_completion' => 'طلبت الجمعية استكمال طلبك «:opening» (:reference).',
+        'open_draft' => 'طلبك «:opening» محفوظ مسودة ولم يُرسل بعد.',
+        'complete' => 'استكمل الطلب',
+        'upcoming' => 'مواعيدي القادمة',
+        'upcoming_empty' => 'لا مواعيد قادمة.',
+        'latest_requests' => 'آخر طلباتي',
+        'requests_empty' => 'لا طلبات بعد.',
+        'view_all' => 'عرض الكل',
+    ],
+
 ];

@@ -1,3 +1,8 @@
+@php
+    // رقم على بطاقتي الطلبات والبرامج: المفتوح منها والقادم
+    $counts = ['account.requests.index' => $summary['open_requests'], 'account.programs.index' => $summary['upcoming_count']];
+@endphp
+
 <x-layouts.account :title="__('account.dashboard.title')" welcome>
     @unless ($user->hasVerifiedEmail())
         <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
@@ -16,6 +21,8 @@
         </x-alert>
     @endunless
 
+    @include('account.partials.attention', ['summary' => $summary])
+
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         @foreach (\App\Support\AccountNavigation::for($user)->filter(fn (array $link) => isset($link['description'])) as $link)
@@ -24,7 +31,12 @@
                 <span class="flex items-start gap-4">
                     <span class="text-gold">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>
                     <span>
-                        <span class="block text-lg font-bold text-ink">{{ __($link['label']) }}</span>
+                        <span class="flex items-center gap-2 text-lg font-bold text-ink">
+                            {{ __($link['label']) }}
+                            @if (($counts[$link['route']] ?? 0) > 0)
+                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-gold px-2 text-sm font-semibold text-white">{{ number_format($counts[$link['route']]) }}</span>
+                            @endif
+                        </span>
                         <span class="mt-1 block text-sm leading-6 text-muted">{{ __($link['description']) }}</span>
                     </span>
                 </span>
@@ -34,4 +46,6 @@
             </a>
         @endforeach
     </div>
+
+    @include('account.partials.summary', ['summary' => $summary])
 </x-layouts.account>
