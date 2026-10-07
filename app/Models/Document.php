@@ -23,8 +23,6 @@ class Document extends Model
     /** @use HasFactory<DocumentFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, SoftDeletes;
 
-    public const DISK = 'local';
-
     public const DIRECTORY = 'documents';
 
     /**
@@ -48,6 +46,14 @@ class Document extends Model
     public function scopePublished(Builder $query): void
     {
         $query->where('is_published', true)->orderByDesc('issued_at')->orderBy('title');
+    }
+
+    /**
+     * قرص ملفات الوثائق: الخاص من الإعدادات (filesystems.private_disk).
+     */
+    public static function disk(): string
+    {
+        return (string) config('filesystems.private_disk', 'local');
     }
 
     /**

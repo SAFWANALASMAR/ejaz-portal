@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Documents\Pages;
 
 use App\Filament\Resources\Documents\DocumentResource;
+use App\Filament\Resources\Documents\DownloadDocumentAction;
 use App\Models\Document;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
@@ -18,6 +19,7 @@ class EditDocument extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            DownloadDocumentAction::make(),
             DeleteAction::make(),
             RestoreAction::make(),
         ];

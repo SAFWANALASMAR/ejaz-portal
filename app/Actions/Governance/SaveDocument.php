@@ -35,14 +35,14 @@ class SaveDocument
         $document->fill($data);
 
         if ($document->file !== $previous) {
-            $this->checkFile((string) $document->file);
-            $document->file_size = Storage::disk(Document::DISK)->size((string) $document->file);
+            $this->checkFile($document);
+            $document->file_size = Storage::disk(Document::disk())->size((string) $document->file);
         }
 
         DB::transaction(fn () => $document->save());
 
         if ($previous !== null && $previous !== $document->file && self::inDirectory($previous)) {
-            Storage::disk(Document::DISK)->delete($previous);
+            Storage::disk(Document::disk())->delete($previous);
         }
 
         return $document;
@@ -53,9 +53,18 @@ class SaveDocument
      *
      * @throws ValidationException
      */
-    private function checkFile(string $path): void
+    private function checkFile(Document $document): void
     {
-        $disk = Storage::disk(Document::DISK);
+        $path = (string) $document->file;
+
+        // ملف وثيقة أخرى (ولو محذوفة ناعماً) لا يُعاد استعماله، فلا يحذفه استبدالُه فيها
+        $inUse = Document::withTrashed()->where('file', $path)->when($document->exists, fn ($query) => $query->whereKeyNot($document->getKey()))->exists();
+
+        if ($inUse) {
+            throw ValidationException::withMessages(['file' => __('validation.file_in_use')]);
+        }
+
+        $disk = Storage::disk(Document::disk());
         $problem = self::inDirectory($path) && $disk->exists($path) ? RealPdf::problem((string) $disk->get($path)) : 'validation.real_pdf';
 
         if ($problem === null) {

@@ -32,14 +32,14 @@ class DocumentForm
                     ->label(__('governance.fields.file'))
                     ->helperText(__('governance.fields.file_hint'))
                     ->required()
-                    ->disk(Document::DISK)
+                    ->disk(Document::disk())
                     ->directory(Document::DIRECTORY)
                     ->visibility('private')
                     ->acceptedFileTypes(['application/pdf'])
                     ->maxSize(20480)
                     ->rules([new RealPdf])
+                    // لا رابط مؤقت موقّع: الملف يُنزَّل من إجراء «تنزيل الملف» بعد فحص الصلاحية
                     ->previewable(false)
-                    ->downloadable()
                     ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),

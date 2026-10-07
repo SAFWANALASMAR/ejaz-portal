@@ -65,14 +65,14 @@ class GovernanceController extends Controller
     {
         $document = self::publishedDocument($slug);
 
-        return Storage::disk(Document::DISK)->response($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf'], 'inline');
+        return Storage::disk(Document::disk())->response($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf'], 'inline');
     }
 
     public function download(string $slug): StreamedResponse
     {
         $document = self::publishedDocument($slug);
 
-        return Storage::disk(Document::DISK)->download($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf']);
+        return Storage::disk(Document::disk())->download($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf']);
     }
 
     /**
@@ -122,7 +122,7 @@ class GovernanceController extends Controller
     {
         $document = Document::query()->where('is_published', true)->where('slug', $slug)->firstOrFail();
 
-        abort_unless(Storage::disk(Document::DISK)->exists($document->file), 404);
+        abort_unless(Storage::disk(Document::disk())->exists($document->file), 404);
 
         return $document;
     }

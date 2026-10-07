@@ -24,7 +24,8 @@ Route::get('/pages/{slug}', [PageController::class, 'show'])
     ->name('pages.show');
 Route::get('/governance', [GovernanceController::class, 'index'])->name('governance.index');
 Route::get('/governance/{slug}', [GovernanceController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.show');
-Route::middleware('throttle:120,1')->group(function () {
+// الملف يُبث من الخادم، فحد معقول لكل عنوان. وفي الإنتاج يُسلَّم للخادم أو لرابط تخزين موقّع (roadmap.md)
+Route::middleware('throttle:60,1')->group(function () {
     Route::get('/governance/{slug}/file', [GovernanceController::class, 'file'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.file');
     Route::get('/governance/{slug}/download', [GovernanceController::class, 'download'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.download');
 });

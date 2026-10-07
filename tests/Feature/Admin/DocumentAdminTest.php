@@ -7,6 +7,7 @@ use App\Filament\Resources\Documents\DocumentResource;
 use App\Filament\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
 use App\Models\Document;
+use App\Rules\RealPdf;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
@@ -131,4 +132,37 @@ it('refuses to save a document for someone without the permission, wherever it i
         ->toThrow(AuthorizationException::class);
 
     expect(Document::count())->toBe(0);
+});
+
+it('finds active content hidden in a compressed stream, without refusing harmless compressed streams', function () {
+    $stream = fn (string $content): string => "4 0 obj\n<< /Filter /FlateDecode >>\nstream\n".gzcompress($content)."\nendstream\nendobj";
+
+    expect(RealPdf::problem(pdfContents($stream('<< /S /JavaScript /JS (app.alert(1)) >>'))))->toBe('validation.pdf_active_content')
+        ->and(RealPdf::problem(pdfContents($stream('<< /XFA [] >>'))))->toBe('validation.pdf_active_content')
+        ->and(RealPdf::problem(pdfContents($stream('BT /F1 12 Tf (نص الصفحة) Tj ET'))))->toBeNull()
+        ->and(RealPdf::problem(pdfContents()))->toBeNull();
+});
+
+it('lets those who may view a document download its file from the panel, and nobody else', function () {
+    Storage::disk('local')->put('documents/draft.pdf', pdfContents());
+    $document = Document::factory()->unpublished()->create(['file' => 'documents/draft.pdf', 'slug' => 'draft']);
+
+    foreach ([$this->editor, userWithRole(RoleName::BoardMember)] as $user) {
+        $this->actingAs($user);
+
+        Livewire::test(ListDocuments::class)
+            ->callAction(TestAction::make('downloadFile')->table($document))
+            ->assertFileDownloaded('draft.pdf');
+    }
+
+    $this->actingAs(userWithRole(RoleName::Secretary))->get(DocumentResource::getUrl('index'))->assertForbidden();
+});
+
+it('refuses the file of another document, even a deleted one', function () {
+    Storage::disk('local')->put('documents/shared.pdf', pdfContents());
+    Document::factory()->create(['file' => 'documents/shared.pdf'])->delete();
+
+    expect(fn () => app(SaveDocument::class)->handle($this->editor, new Document, documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => 'documents/shared.pdf'])))
+        ->toThrow(ValidationException::class, __('validation.file_in_use'))
+        ->and(Storage::disk('local')->exists('documents/shared.pdf'))->toBeTrue();
 });

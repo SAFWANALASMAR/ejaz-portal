@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Documents\Tables;
 
 use App\Enums\DocumentCategory;
+use App\Filament\Resources\Documents\DownloadDocumentAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
@@ -31,6 +32,7 @@ class DocumentsTable
             ])
             // حذف ناعم فردي واستعادة، ولا حذف نهائي (DocumentPolicy)
             ->recordActions([
+                DownloadDocumentAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),
