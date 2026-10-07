@@ -25,6 +25,9 @@ class ReviewVideoController extends Controller
 
         abort_unless($user->can('view', $review) && $video->submission_id === $review->submission_id && $video->status === VideoStatus::Ready, 404);
 
+        // المسار خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا كما في ExportPolicy (قرار صفوان)
+        abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
+
         $disk = Storage::disk(SubmissionVideo::disk());
         $headers = ['Content-Type' => 'video/mp4', 'Cache-Control' => 'private, no-store'];
 

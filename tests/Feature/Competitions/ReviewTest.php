@@ -208,6 +208,28 @@ it('streams a video only to whoever may see the review', function () {
     $this->actingAs($entry->user)->get($url)->assertNotFound();
 });
 
+it('refuses the review video to a reviewer or manager without two-factor, since the route is outside the panel', function () {
+    $entry = submittedEntry();
+    Storage::disk('local')->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $url = route('competitions.reviews.video', [SubmissionReview::sole(), $video]);
+
+    foreach ([$this->reviewerA, $this->manager] as $user) {
+        $user->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+
+        $this->actingAs($user)->get($url)->assertForbidden();
+    }
+});
+
 it('approves results only after closing and complete reviews, then locks the scores', function () {
     $entry = submittedEntry();
     app(DistributeSubmissions::class)->handle($this->manager, $this->competition, 2);
