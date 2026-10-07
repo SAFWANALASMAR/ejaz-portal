@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -101,7 +102,22 @@ it('rejects an image that passes the checks but cannot be read, and keeps the cu
     expect($component->errors()->first('data.home.hero_image'))->toBe(__('settings.home.hero_image_unreadable'))
         ->and(Setting::group('home')['hero_image'])->toBe('settings/current.jpg')
         ->and(Storage::disk('public')->allFiles('settings'))->toBe(['settings/current.jpg']);
+
+    // الحقل عاد إلى الصورة المحفوظة، فيُحفظ النموذج دون إعادة الرفع
+    $component->fillForm(['home.hero_title' => 'عنوان بعد الرفض'])->call('save')->assertHasNoFormErrors();
+
+    expect(Setting::group('home'))->toMatchArray(['hero_title' => 'عنوان بعد الرفض', 'hero_image' => 'settings/current.jpg']);
 });
+
+it('refuses an image path outside the settings folder when the action is called directly', function (string $path) {
+    Storage::fake('public');
+    Storage::disk('public')->put('other/keep.jpg', UploadedFile::fake()->image('keep.jpg', 800, 400)->getContent());
+
+    expect(fn () => app(UpdateSiteSettings::class)->handle(userWithRole(RoleName::ContentEditor), ['home' => ['hero_image' => $path]]))
+        ->toThrow(ValidationException::class)
+        ->and(Storage::disk('public')->exists('other/keep.jpg'))->toBeTrue()
+        ->and(Setting::group('home'))->toBe([]);
+})->with(['other/keep.jpg', 'settings/../other/keep.jpg']);
 
 it('publishes the uploaded hero image without its metadata', function () {
     Storage::fake('public');

@@ -25,6 +25,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
@@ -124,7 +125,7 @@ class SiteSettings extends Page
                                 // الصفحة بلا سجل، فيُسمح صراحة بمسار الصورة المحفوظة حالياً فقط
                                 ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => $file === (Setting::group('home')['hero_image'] ?? null))
                                 ->disk('public')
-                                ->directory('settings')
+                                ->directory(UpdateSiteSettings::IMAGE_DIRECTORY)
                                 ->visibility('public')
                                 ->columnSpanFull(),
                         ]),
@@ -179,6 +180,12 @@ class SiteSettings extends Page
         try {
             $action->handle($user, $state);
         } catch (ValidationException $exception) {
+            // الصورة المرفوضة حُذفت، فيعود الحقل إلى الصورة المحفوظة ليُحفظ النموذج بعدها
+            if (array_key_exists('home.hero_image', $exception->errors())) {
+                $stored = Setting::group('home')['hero_image'] ?? null;
+                $this->data['home']['hero_image'] = is_string($stored) ? [(string) Str::uuid() => $stored] : [];
+            }
+
             // أخطاء الإجراء بمسارات الإعدادات، والحقول في النموذج تحت data
             throw ValidationException::withMessages(
                 collect($exception->errors())->mapWithKeys(fn (array $messages, string $key) => ['data.'.$key => $messages])->all(),

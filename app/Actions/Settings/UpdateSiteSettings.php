@@ -9,7 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
+use Throwable;
 
 /**
  * حفظ إعدادات الموقع (التواصل، والتواصل الاجتماعي، والرئيسية).
@@ -18,6 +18,11 @@ use RuntimeException;
 class UpdateSiteSettings
 {
     public const GROUPS = ['contact', 'home'];
+
+    /**
+     * مجلد صور الإعدادات على القرص العام.
+     */
+    public const IMAGE_DIRECTORY = 'settings';
 
     /**
      * @param  array<string, array<string, mixed>>  $groups
@@ -35,16 +40,8 @@ class UpdateSiteSettings
         $image = $groups['home']['hero_image'] ?? null;
         $imageChanged = array_key_exists('home', $groups) && $image !== $previousImage;
 
-        // الصورة الجديدة تُنظَّف قبل نشرها: بلا بيانات وصفية (EXIF)، وما لا يُقرأ صورةً
-        // يُحذف ويُرفض، ولو اجتاز فحص النوع والأبعاد
         if ($imageChanged && is_string($image) && $image !== '') {
-            try {
-                ImageSanitizer::strip('public', $image);
-            } catch (RuntimeException) {
-                Storage::disk('public')->delete($image);
-
-                throw ValidationException::withMessages(['home.hero_image' => __('settings.home.hero_image_unreadable')]);
-            }
+            self::sanitizeImage($image);
         }
 
         DB::transaction(function () use ($groups): void {
@@ -58,6 +55,32 @@ class UpdateSiteSettings
         // القديمة لا تبقى منشورة على رابطها
         if ($imageChanged && is_string($previousImage) && $previousImage !== '') {
             Storage::disk('public')->delete($previousImage);
+        }
+    }
+
+    /**
+     * الصورة الجديدة تُنظَّف قبل نشرها: بلا بيانات وصفية (EXIF). وما لا يُقرأ صورةً يُحذف
+     * ويُرفض ولو اجتاز فحص النوع والأبعاد. والمسار من مجلد الإعدادات وحده، فلا يمس الإجراء
+     * ملفاً غيره ولو استُدعي من غير صفحة الإعدادات.
+     *
+     * @throws ValidationException
+     */
+    private static function sanitizeImage(string $path): void
+    {
+        $reject = fn (): ValidationException => ValidationException::withMessages([
+            'home.hero_image' => __('settings.home.hero_image_unreadable'),
+        ]);
+
+        if (! str_starts_with($path, self::IMAGE_DIRECTORY.'/') || str_contains($path, '..')) {
+            throw $reject();
+        }
+
+        try {
+            ImageSanitizer::strip('public', $path);
+        } catch (Throwable) {
+            Storage::disk('public')->delete($path);
+
+            throw $reject();
         }
     }
 }
