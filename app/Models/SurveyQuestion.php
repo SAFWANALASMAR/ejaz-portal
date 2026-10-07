@@ -6,6 +6,8 @@ use App\Enums\SurveyQuestionType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * سؤال في استبيان. خيارات سؤال الاختيار قائمة نصوص، والإجابة رقم الخيار فيها.
@@ -16,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['type', 'prompt', 'options', 'is_required', 'sort_order'])]
 class SurveyQuestion extends Model
 {
+    use LogsActivity;
+
     /**
      * @return array<string, string>
      */
@@ -35,6 +39,11 @@ class SurveyQuestion extends Model
     public function survey(): BelongsTo
     {
         return $this->belongsTo(Survey::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->useLogName('surveys')->logOnly(['survey_id', 'type', 'prompt', 'options', 'is_required', 'sort_order'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 
     /**

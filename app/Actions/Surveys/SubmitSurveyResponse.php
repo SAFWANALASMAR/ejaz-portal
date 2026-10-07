@@ -6,6 +6,7 @@ use App\Enums\SurveyQuestionType;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
+use App\Support\SurveyResults;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +77,8 @@ class SubmitSurveyResponse
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages(['answers' => __('surveys.public.already')]);
         }
+
+        SurveyResults::forget($survey);
 
         return $response;
     }

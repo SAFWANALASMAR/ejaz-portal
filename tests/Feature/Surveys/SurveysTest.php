@@ -6,6 +6,7 @@ use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
 use App\Enums\SurveyQuestionType;
 use App\Filament\Resources\Surveys\Pages\CreateSurvey;
+use App\Filament\Resources\Surveys\Pages\EditSurvey;
 use App\Filament\Resources\Surveys\Pages\SurveyResultsPage;
 use App\Filament\Resources\Surveys\SurveyResource;
 use App\Models\Competition;
@@ -212,4 +213,36 @@ it('logs the export of survey results', function () {
     Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->callAction('export');
 
     expect(Activity::where('event', 'survey_results_exported')->exists())->toBeTrue();
+});
+
+it('keeps question ids when the edit page is saved twice, and edits details of an answered survey', function () {
+    $this->actingAs($this->manager);
+    $ids = $this->survey->questions()->pluck('id')->all();
+
+    $page = Livewire::test(EditSurvey::class, ['record' => $this->survey->getRouteKey()]);
+    $page->fillForm(['title' => 'عنوان معدّل'])->call('save')->assertHasNoFormErrors();
+    $page->call('save')->assertHasNoFormErrors();
+
+    expect($this->survey->questions()->pluck('id')->all())->toBe($ids)->and($this->survey->fresh()->title)->toBe('عنوان معدّل');
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], User::factory()->create());
+    $this->actingAs($this->manager);
+
+    Livewire::test(EditSurvey::class, ['record' => $this->survey->getRouteKey()])
+        ->fillForm(['title' => 'عنوان بعد الإجابات'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($this->survey->fresh()->title)->toBe('عنوان بعد الإجابات')->and($this->survey->questions()->count())->toBe(3);
+});
+
+it('shows a survey not yet opened as unavailable, and a deleted one as not found', function () {
+    $user = User::factory()->create();
+
+    $this->survey->update(['opens_at' => now()->addDay()]);
+    $this->actingAs($user)->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.unavailable'));
+
+    $this->survey->update(['opens_at' => null]);
+    $this->survey->delete();
+    $this->actingAs($user)->get('/surveys/'.$this->survey->token)->assertNotFound();
 });

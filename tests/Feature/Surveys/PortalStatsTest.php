@@ -6,6 +6,7 @@ use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\ContentCache;
 use App\Support\PortalStats;
 use Livewire\Livewire;
 
@@ -55,4 +56,23 @@ it('feeds a home statistic from live portal data, and keeps manual ones as enter
     $this->artisan('ejaz:refresh-stats');
 
     $this->get('/')->assertOk()->assertSee('مشاركة في المسابقات')->assertDontSee('مصدر غير مسموح');
+});
+
+it('clears the public pages cache only when a number the home page uses has changed', function () {
+    ContentCache::remember('probe', fn (): string => 'cached');
+    $this->artisan('ejaz:refresh-stats');
+
+    // لا خانة آلية في الرئيسية: لا مسح ولو تغيّرت الأرقام
+    User::factory()->create();
+    $this->artisan('ejaz:refresh-stats');
+    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('cached');
+
+    Setting::put('home', ['show_stats' => true, 'stats' => [['label' => 'حساب مسجل', 'source' => 'users', 'icon' => 'users']]]);
+    ContentCache::remember('probe', fn (): string => 'cached');
+    $this->artisan('ejaz:refresh-stats');
+    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('cached');
+
+    User::factory()->create();
+    $this->artisan('ejaz:refresh-stats');
+    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('fresh');
 });

@@ -51,6 +51,11 @@ return [
 
     'attributes' => [
         'title' => 'العنوان',
+        'description' => 'الوصف',
+        'competition_id' => 'المسابقة المرتبطة',
+        'opens_at' => 'موعد الفتح',
+        'allow_guests' => 'السماح لغير المسجلين',
+        'questions.*.options' => 'الخيارات',
         'audience' => 'الفئة المستهدفة',
         'closes_at' => 'موعد الإغلاق',
         'questions.*.type' => 'نوع السؤال',

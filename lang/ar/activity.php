@@ -71,6 +71,7 @@ return [
         'CompetitionDraw' => 'سحب إلكتروني',
         'CompetitionDrawVoid' => 'إلغاء سحب',
         'Survey' => 'استبيان',
+        'SurveyQuestion' => 'سؤال استبيان',
     ],
 
 ];

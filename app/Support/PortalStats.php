@@ -32,7 +32,7 @@ final class PortalStats
         return [
             'users' => User::query()->whereNull('anonymized_at')->count(),
             'verified_users' => User::query()->whereNull('anonymized_at')->whereNotNull('phone_verified_at')->count(),
-            'new_users' => User::query()->where('created_at', '>=', now()->subDays(30))->count(),
+            'new_users' => User::query()->whereNull('anonymized_at')->where('created_at', '>=', now()->subDays(30))->count(),
             'competitions' => Competition::query()->published()->count(),
             'submissions' => CompetitionSubmission::query()->where('status', SubmissionStatus::Submitted)->count(),
             'drafts' => CompetitionSubmission::query()->where('status', SubmissionStatus::Draft)->count(),

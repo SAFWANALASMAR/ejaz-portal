@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\SurveyQuestionType;
 use App\Models\Survey;
 use App\Models\SurveyQuestion;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * النتائج المجمعة لاستبيان: لكل سؤال مقياس متوسطه وتوزيع درجاته الخمس، ولكل سؤال اختيار عدد كل خيار،
@@ -19,6 +20,40 @@ final class SurveyResults
      * @return array{responses: int, questions: list<array{question: SurveyQuestion, answered: int, average?: float|null, counts?: array<int|string, int>, texts?: list<string>}>}
      */
     public static function for(Survey $survey): array
+    {
+        // تُخزَّن خمس دقائق، فلا تُحسب عند كل عرض أو تصدير، وتُمسح بكل إجابة جديدة (SubmitSurveyResponse).
+        // والذاكرة تحفظ مصفوفات لا كائنات (decisions.md)، فيُخزَّن معرّف السؤال ويُعاد ربطه بعد القراءة
+        $stored = Cache::remember(self::key($survey), 300, function () use ($survey): array {
+            $results = self::compute($survey);
+            $results['questions'] = array_map(fn (array $row): array => ['question' => $row['question']->id, ...array_diff_key($row, ['question' => true])], $results['questions']);
+
+            return $results;
+        });
+
+        $questions = $survey->questions->keyBy('id');
+
+        $stored['questions'] = array_values(array_filter(array_map(
+            fn (array $row): ?array => $questions->has($row['question']) ? ['question' => $questions[$row['question']], ...array_diff_key($row, ['question' => true])] : null,
+            $stored['questions'],
+        )));
+
+        return $stored;
+    }
+
+    public static function forget(Survey $survey): void
+    {
+        Cache::forget(self::key($survey));
+    }
+
+    private static function key(Survey $survey): string
+    {
+        return 'surveys.results.'.$survey->id;
+    }
+
+    /**
+     * @return array{responses: int, questions: list<array{question: SurveyQuestion, answered: int, average?: float|null, counts?: array<int|string, int>, texts?: list<string>}>}
+     */
+    private static function compute(Survey $survey): array
     {
         $results = [];
 

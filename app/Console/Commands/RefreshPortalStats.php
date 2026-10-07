@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\PortalStats;
 use Illuminate\Console\Command;
 
 /**
- * يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي معروض في الرئيسية مُسحت ذاكرة المحتوى،
- * فيظهر الرقم الجديد.
+ * يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي تستعمله خانة في الرئيسية مُسحت ذاكرة
+ * المحتوى، فيظهر الرقم الجديد. وما لا تستعمله الرئيسية لا يمسح شيئاً.
  */
 class RefreshPortalStats extends Command
 {
@@ -20,9 +21,13 @@ class RefreshPortalStats extends Command
     {
         ['previous' => $previous, 'current' => $current] = PortalStats::refresh();
 
-        $public = array_flip(PortalStats::PUBLIC);
+        // المسح لما تستعمله الرئيسية فعلاً وحده، فلا تفقد الصفحات العامة تخزينها دورياً وقت الذروة
+        $used = array_flip(array_intersect(PortalStats::PUBLIC, collect((array) (Setting::group('home')['stats'] ?? []))
+            ->pluck('source')
+            ->filter(fn ($source): bool => is_string($source))
+            ->all()));
 
-        if ($previous === null || array_intersect_key($previous, $public) !== array_intersect_key($current, $public)) {
+        if ($used !== [] && ($previous === null || array_intersect_key($previous, $used) !== array_intersect_key($current, $used))) {
             ContentCache::flush();
         }
 

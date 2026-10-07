@@ -35,7 +35,7 @@ class SurveyResource extends Resource
 
     protected static string $langKey = 'surveys';
 
-    protected static string $navigationGroupKey = 'programs';
+    protected static string $navigationGroupKey = 'surveys';
 
     protected static ?string $model = Survey::class;
 
