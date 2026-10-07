@@ -113,7 +113,7 @@ beforeEach(function () {
     $this->competition = Competition::factory()->withQuestions()->create(['slug' => 'demo']);
     $this->video = $this->competition->questions[2];
     $this->applicant = User::factory()->create(['phone' => '+966500000001', 'phone_verified_at' => now()]);
-    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
     $this->contents = mp4Contents(seconds: 30, padding: 5 * 1024 * 1024 + 500);
 });
 

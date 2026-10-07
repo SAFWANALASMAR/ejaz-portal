@@ -18,7 +18,9 @@ Route::get('/competitions/{slug}', [CompetitionController::class, 'show'])->wher
 
 // التقديم: حساب مسجل، والمشاركة مشاركته وحدها (EntryController والإجراءات)
 Route::middleware('auth')->where(['slug' => $slug])->group(function () {
-    Route::get('/competitions/{slug}/entry', [EntryController::class, 'show'])->name('competitions.entry');
+    // المسودة تُنشأ بـ POST وحده وبحد معدل، فلا ينشئ تكرار فتح الرابط مسودات
+    Route::post('/competitions/{slug}/entry/start', [EntryController::class, 'start'])->middleware('throttle:10,1,competition-entry-start')->name('competitions.entry.start');
+    Route::get('/competitions/{slug}/entry', [EntryController::class, 'show'])->middleware('throttle:60,1,competition-entry')->name('competitions.entry');
     Route::post('/competitions/{slug}/entry', [EntryController::class, 'save'])->middleware('throttle:30,1')->name('competitions.entry.save');
     Route::post('/competitions/{slug}/entry/autosave', [EntryController::class, 'autosave'])->middleware('throttle:60,1')->name('competitions.entry.autosave');
     Route::post('/competitions/{slug}/entry/submit', [EntryController::class, 'submit'])->middleware('throttle:10,1')->name('competitions.entry.submit');

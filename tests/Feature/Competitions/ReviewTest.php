@@ -56,7 +56,7 @@ it('grades multiple choice answers in the background after submission', function
     Queue::fake();
     $applicant = User::factory()->create(['phone' => '+966500000010', 'phone_verified_at' => now()]);
 
-    $this->actingAs($applicant)->get('/competitions/'.$this->competition->slug.'/entry');
+    $this->actingAs($applicant)->post('/competitions/'.$this->competition->slug.'/entry/start');
     $this->post('/competitions/'.$this->competition->slug.'/entry/submit', [
         'category' => 'الفئة الأولى', 'region' => 'riyadh',
         'answers' => [$this->text->id => 'نص', $this->choice->id => 'b'],
