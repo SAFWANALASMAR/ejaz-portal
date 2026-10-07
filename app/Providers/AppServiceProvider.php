@@ -3,12 +3,17 @@
 namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
+use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
+use App\Contracts\StoreCatalog;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
+use App\Services\Payments\FakePaymentGateway;
+use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\LogSmsGateway;
+use App\Services\Store\SettingsStoreCatalog;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
@@ -35,6 +40,23 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
             'log' => new LogSmsGateway,
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
+        });
+
+        // بوابة الدفع: وهمية في التطوير والاختبارات، وميسر بمفاتيح من .env (docs/plans/store-payments.md)
+        $this->app->bind(MoyasarPaymentGateway::class, fn () => new MoyasarPaymentGateway(
+            (string) config('payments.moyasar.secret_key'),
+            (string) config('payments.webhook_secret'),
+        ));
+        $this->app->singleton(PaymentGateway::class, fn () => match (config('payments.driver')) {
+            'fake' => new FakePaymentGateway,
+            'moyasar' => $this->app->make(MoyasarPaymentGateway::class),
+            default => throw new InvalidArgumentException('Unsupported payment driver: '.config('payments.driver')),
+        });
+
+        // منتجات المتجر: من الإعدادات حتى تتوفر واجهة سلة البرمجية
+        $this->app->singleton(StoreCatalog::class, fn () => match (config('store.driver')) {
+            'settings' => new SettingsStoreCatalog,
+            default => throw new InvalidArgumentException('Unsupported store driver: '.config('store.driver')),
         });
     }
 

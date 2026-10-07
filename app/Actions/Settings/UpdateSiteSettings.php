@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  */
 class UpdateSiteSettings
 {
-    public const GROUPS = ['contact', 'home'];
+    public const GROUPS = ['contact', 'home', 'store', 'donations'];
 
     /**
      * مجلد صور الإعدادات على القرص العام.

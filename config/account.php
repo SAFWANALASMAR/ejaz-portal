@@ -35,6 +35,13 @@ return [
             'icon' => 'trophy',
             'active' => ['account.competitions', 'competitions.entry'],
         ],
+        [
+            'route' => 'account.payments',
+            'label' => 'payments.account.nav',
+            'description' => 'payments.account.nav_description',
+            'icon' => 'banknotes',
+            'active' => ['account.payments'],
+        ],
     ],
 
 ];

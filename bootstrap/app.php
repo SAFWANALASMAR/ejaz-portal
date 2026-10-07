@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // لارافيل لا يفعّله في البيئة المحلية والاختبارات
         $middleware->trustHosts();
 
+        // إشعارات بوابة الدفع تأتي من خادمها بلا جلسة، ويُفحص توقيعها في الإجراء (docs/security.md)
+        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+
         $middleware->web(append: [
             SecurityHeaders::class,
             EnsureAccountIsActive::class,

@@ -62,6 +62,9 @@ class AnonymizeUser
             // إجابات الاستبيانات تبقى في الإحصاء بلا رابط بالشخص
             DB::table('survey_responses')->where('user_id', $user->id)->update(['user_id' => null]);
 
+            // السجل المالي يبقى بمبلغه وإيصاله (لا يُحذف)، وتُمسح منه هوية المتبرع. ومشغّل القاعدة يسمح بذلك
+            DB::table('payments')->where('user_id', $user->id)->update(['donor_name' => null, 'donor_email' => null]);
+
             activity('users')
                 ->causedBy($actor)
                 ->performedOn($user)

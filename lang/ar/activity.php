@@ -25,6 +25,7 @@ return [
         'content' => 'المحتوى',
         'competitions' => 'المسابقات',
         'surveys' => 'قياس الرضا',
+        'payments' => 'المدفوعات',
     ],
 
     'events' => [
@@ -52,6 +53,7 @@ return [
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
         'survey_results_exported' => 'تصدير نتائج استبيان',
+        'payment_refunded' => 'استرداد مبلغ عملية دفع',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -68,6 +70,7 @@ return [
         'CompetitionCriterion' => 'معيار تقييم',
         'CompetitionSubmission' => 'مشاركة في مسابقة',
         'SubmissionReview' => 'تحكيم مشاركة',
+        'Payment' => 'عملية دفع',
         'CompetitionDraw' => 'سحب إلكتروني',
         'CompetitionDrawVoid' => 'إلغاء سحب',
         'Survey' => 'استبيان',

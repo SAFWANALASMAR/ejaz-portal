@@ -81,6 +81,12 @@ class SiteSettings extends Page
                 'show_partners' => true,
                 ...Setting::group('home'),
             ],
+            'store' => Setting::group('store'),
+            'donations' => [
+                ...Setting::group('donations'),
+                // المبالغ تُحفظ قائمة أرقام، والمكرر يعرضها صفوفاً
+                'amounts' => array_map(fn (int $amount): array => ['amount' => $amount], array_map('intval', (array) (Setting::group('donations')['amounts'] ?? []))),
+            ],
         ]);
     }
 
@@ -156,6 +162,36 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
+                    // المتجر والتبرعات (docs/plans/store-payments.md): الروابط خارجية آمنة فقط
+                    Tab::make(__('settings.tabs.store'))->schema([
+                        Toggle::make('store.enabled')->label(__('settings.store.enabled')),
+                        TextInput::make('store.url')->label(__('settings.store.url'))
+                            ->helperText(__('settings.store.url_hint'))
+                            ->maxLength(500)
+                            ->extraInputAttributes(['dir' => 'ltr'])
+                            ->rule(new SafeUrl(allowInternal: false)),
+                        Textarea::make('store.intro')->label(__('settings.store.intro'))->rows(3)->maxLength(400),
+                        Section::make(__('settings.store.products'))->description(__('settings.store.products_hint'))->schema([
+                            Repeater::make('store.products')->hiddenLabel()->maxItems(24)->columns(2)->defaultItems(0)->schema([
+                                TextInput::make('name')->label(__('settings.store.product_name'))->required()->maxLength(100),
+                                TextInput::make('url')->label(__('settings.store.product_url'))->required()->maxLength(500)
+                                    ->extraInputAttributes(['dir' => 'ltr'])
+                                    ->rule(new SafeUrl(allowInternal: false)),
+                                Textarea::make('description')->label(__('settings.store.product_description'))->rows(2)->maxLength(300)->columnSpanFull(),
+                            ]),
+                        ]),
+                    ]),
+                    Tab::make(__('settings.tabs.donations'))->schema([
+                        Toggle::make('donations.enabled')->label(__('settings.donations.enabled')),
+                        Textarea::make('donations.intro')->label(__('settings.donations.intro'))->rows(3)->maxLength(400),
+                        Section::make(__('settings.donations.amounts'))->description(__('settings.donations.amounts_hint'))->schema([
+                            Repeater::make('donations.amounts')->hiddenLabel()->maxItems(6)->defaultItems(0)->schema([
+                                TextInput::make('amount')->label(__('settings.donations.amount'))->integer()->required()
+                                    ->minValue((int) (config('payments.donation.min_halalas') / 100))
+                                    ->maxValue((int) (config('payments.donation.max_halalas') / 100)),
+                            ]),
+                        ]),
+                    ]),
                 ]),
             ]);
     }
@@ -179,11 +215,13 @@ class SiteSettings extends Page
         /** @var User $user */
         $user = auth()->user();
 
-        /** @var array{contact: array<string, mixed>, home: array<string, mixed>} $state */
+        /** @var array{contact: array<string, mixed>, home: array<string, mixed>, store: array<string, mixed>, donations: array<string, mixed>} $state */
         $state = $this->form->getState();
 
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);
         $state['home']['stats'] = array_values($state['home']['stats'] ?? []);
+        $state['store']['products'] = array_values($state['store']['products'] ?? []);
+        $state['donations']['amounts'] = array_values(array_map(fn (array $row): int => (int) $row['amount'], $state['donations']['amounts'] ?? []));
 
         try {
             $action->handle($user, $state);

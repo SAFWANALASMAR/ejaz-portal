@@ -45,6 +45,9 @@ return [
         // قياس الرضا والإحصائيات
         'surveys' => $crud,
         'stats' => ['view'],
+
+        // المدفوعات (المرحلة 5): سجل مالي للقراءة، والاسترداد للمشرف العام (بلا ربط)
+        'payments' => ['view', 'refund'],
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -54,6 +57,7 @@ return [
             'library.view', 'news.view', 'media.view', 'partners.view',
             'competitions.view',
             'surveys.view', 'stats.view',
+            'payments.view',
         ],
         'secretary' => [
             'requests.*',
