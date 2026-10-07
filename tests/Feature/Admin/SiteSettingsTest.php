@@ -99,7 +99,7 @@ it('rejects an image that passes the checks but cannot be read, and keeps the cu
         ->fillForm(['home.hero_image' => [$broken]])
         ->call('save');
 
-    expect($component->errors()->first('data.home.hero_image'))->toBe(__('settings.home.hero_image_unreadable'))
+    expect($component->errors()->first('data.home.hero_image'))->toBe(__('validation.unreadable_image'))
         ->and(Setting::group('home')['hero_image'])->toBe('settings/current.jpg')
         ->and(Storage::disk('public')->allFiles('settings'))->toBe(['settings/current.jpg']);
 

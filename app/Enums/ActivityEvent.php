@@ -33,6 +33,7 @@ enum ActivityEvent: string implements HasLabel
 
     // المحتوى
     case MenuReordered = 'menu_reordered';
+    case ContentReordered = 'content_reordered';
 
     public function getLabel(): string
     {

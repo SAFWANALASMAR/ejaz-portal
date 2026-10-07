@@ -1,7 +1,7 @@
 {{--
     مقاطع الرئيسية بالترتيب (docs/design/ui-reference.md — الرئيسية): البطل، ثم الإحصائيات، ثم الاختصارات.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
-    والمقاطع الأخرى (المبادرات، وأحدث الأخبار والبرامج، والشركاء) تُضاف مع بنودها.
+    ثم المبادرات (البند ٣). والمقاطع الأخرى (أحدث الأخبار والبرامج، والشركاء) تُضاف مع بنودها.
 --}}
 @include('home.partials.hero', ['hero' => $hero])
 
@@ -11,4 +11,8 @@
 
 @if ($shortcuts !== [])
     @include('home.partials.shortcuts', ['shortcuts' => $shortcuts])
+@endif
+
+@if ($initiatives->isNotEmpty())
+    @include('home.partials.initiatives', ['initiatives' => $initiatives])
 @endif

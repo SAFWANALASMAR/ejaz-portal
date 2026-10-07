@@ -23,9 +23,14 @@ final class ContentCache
     private const VERSION_KEY = 'content.version';
 
     /**
-     * @param  Closure(): string  $render
+     * المخزَّن نص أو مصفوفة نصوص، لا كائنات (cache.serializable_classes).
+     *
+     * @template TValue
+     *
+     * @param  Closure(): TValue  $render
+     * @return TValue
      */
-    public static function remember(string $key, Closure $render): string
+    public static function remember(string $key, Closure $render): mixed
     {
         return Cache::remember('content.'.self::version().'.'.$key, now()->addHour(), $render);
     }

@@ -4,12 +4,10 @@ namespace App\Actions\Settings;
 
 use App\Models\Setting;
 use App\Models\User;
-use App\Support\ImageSanitizer;
+use App\Support\PublicImages;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * حفظ إعدادات الموقع (التواصل، والتواصل الاجتماعي، والرئيسية).
@@ -36,13 +34,10 @@ class UpdateSiteSettings
             throw new AuthorizationException;
         }
 
-        $previousImage = Setting::group('home')['hero_image'] ?? null;
-        $image = $groups['home']['hero_image'] ?? null;
-        $imageChanged = array_key_exists('home', $groups) && $image !== $previousImage;
+        $before = self::imagePaths(Setting::group('home')['hero_image'] ?? null);
+        $after = array_key_exists('home', $groups) ? self::imagePaths($groups['home']['hero_image'] ?? null) : $before;
 
-        if ($imageChanged && is_string($image) && $image !== '') {
-            self::sanitizeImage($image);
-        }
+        PublicImages::prepare($before, $after, self::IMAGE_DIRECTORY, 'home.hero_image');
 
         DB::transaction(function () use ($groups): void {
             foreach (self::GROUPS as $key) {
@@ -52,40 +47,14 @@ class UpdateSiteSettings
             }
         });
 
-        // القديمة لا تبقى منشورة على رابطها
-        if ($imageChanged && is_string($previousImage) && self::inImageDirectory($previousImage)) {
-            Storage::disk('public')->delete($previousImage);
-        }
-    }
-
-    private static function inImageDirectory(string $path): bool
-    {
-        return str_starts_with($path, self::IMAGE_DIRECTORY.'/') && ! str_contains($path, '..');
+        PublicImages::discard($before, $after, self::IMAGE_DIRECTORY);
     }
 
     /**
-     * الصورة الجديدة تُنظَّف قبل نشرها: بلا بيانات وصفية (EXIF). وما لا يُقرأ صورةً يُحذف
-     * ويُرفض ولو اجتاز فحص النوع والأبعاد. والمسار من مجلد الإعدادات وحده، فلا يمس الإجراء
-     * ملفاً غيره ولو استُدعي من غير صفحة الإعدادات.
-     *
-     * @throws ValidationException
+     * @return list<string>
      */
-    private static function sanitizeImage(string $path): void
+    private static function imagePaths(mixed $image): array
     {
-        $reject = fn (): ValidationException => ValidationException::withMessages([
-            'home.hero_image' => __('settings.home.hero_image_unreadable'),
-        ]);
-
-        if (! self::inImageDirectory($path)) {
-            throw $reject();
-        }
-
-        try {
-            ImageSanitizer::strip('public', $path);
-        } catch (Throwable) {
-            Storage::disk('public')->delete($path);
-
-            throw $reject();
-        }
+        return is_string($image) && $image !== '' ? [$image] : [];
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Actions\Content;
 
-use App\Enums\StatIcon;
+use App\Enums\SiteIcon;
+use App\Models\Initiative;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -31,6 +33,7 @@ class BuildHomePage
      *     hero: array{title: string, text: string, image: string, button: array{label: string, url: string}|null},
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
      *     shortcuts: list<array{key: string, icon: string, url: string}>,
+     *     initiatives: Collection<int, Initiative>,
      * }
      */
     public function handle(): array
@@ -41,6 +44,7 @@ class BuildHomePage
             'hero' => self::hero($home),
             'stats' => self::shows($home, 'stats') ? self::stats($home) : [],
             'shortcuts' => self::shows($home, 'shortcuts') ? self::shortcuts() : [],
+            'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->get() : new Collection,
         ];
     }
 
@@ -93,7 +97,7 @@ class BuildHomePage
                 'value' => (int) $stat['value'],
                 'suffix' => is_string($stat['suffix'] ?? null) ? $stat['suffix'] : '',
                 // الأيقونة من القائمة المسموحة فقط، فاسمها يبني مسار ملف
-                'icon' => is_string($stat['icon'] ?? null) ? StatIcon::tryFrom($stat['icon'])?->value : null,
+                'icon' => is_string($stat['icon'] ?? null) ? SiteIcon::tryFrom($stat['icon'])?->value : null,
             ];
         }
 

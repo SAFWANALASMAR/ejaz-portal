@@ -1,0 +1,30 @@
+{{-- «عن الجمعية»: رأس القسم، ثم مقاطع الصفحة، ثم مجلس الإدارة (يُخزَّن نصاً — AboutController) --}}
+<x-page-hero :title="$page->title" :summary="$page->summary" />
+
+<x-content-blocks :blocks="$page->blocks" />
+
+<section class="bg-sand py-12 sm:py-16" aria-labelledby="board">
+    <div class="container-page">
+        <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
+
+        @if ($members->isNotEmpty())
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($members as $member)
+                    <li class="rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs">
+                        @if ($member->photo)
+                            <img src="{{ Storage::disk('public')->url($member->photo) }}" alt="" loading="lazy" class="mx-auto size-28 rounded-full object-cover">
+                        @else
+                            <span class="mx-auto flex size-28 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
+                                {{ svg('heroicon-o-user', 'size-12') }}
+                            </span>
+                        @endif
+                        <p class="mt-4 font-bold text-ink">{{ $member->name }}</p>
+                        <p class="mt-1 text-sm text-muted">{{ $member->position }}</p>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <x-missing :what="__('content.about.board_missing')" class="mt-6" />
+        @endif
+    </div>
+</section>

@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\Settings\UpdateSiteSettings;
-use App\Enums\StatIcon;
+use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\SafeUrl;
@@ -142,7 +142,7 @@ class SiteSettings extends Page
                                     ->dehydrateStateUsing(fn ($state) => (int) $state),
                                 TextInput::make('suffix')->label(__('settings.home.stat_suffix'))->maxLength(3),
                                 Select::make('icon')->label(__('settings.home.stat_icon'))
-                                    ->options(StatIcon::class)
+                                    ->options(SiteIcon::class)
                                     ->required(),
                             ]),
                         ]),

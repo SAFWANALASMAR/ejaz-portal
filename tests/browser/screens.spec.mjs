@@ -6,6 +6,10 @@ import { AUTH_STATE } from './global-setup.mjs';
 
 const guestScreens = [
     { name: 'home', path: '/', heading: 'h1' },
+    // صفحات المحتوى تُصوَّر بعد نشرها من اللوحة، وقبله ترد 404 فتُتخطى
+    { name: 'about', path: '/about', heading: 'h1', whenPublished: true },
+    { name: 'initiatives', path: '/initiatives', heading: 'h1' },
+    { name: 'initiative', path: '/initiatives/qiyam', heading: 'h1', whenPublished: true },
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
@@ -18,6 +22,8 @@ const accountScreens = [
 
 async function checkScreen(page, testInfo, screen) {
     const response = await page.goto(screen.path);
+    test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
+
     expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

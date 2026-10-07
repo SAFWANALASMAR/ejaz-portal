@@ -5,6 +5,7 @@ namespace Tests;
 use Database\Seeders\AccessSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -23,6 +24,10 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // قائمة المضيفين الموثوقين خاصية ثابتة في Symfony، يضبطها trustHosts حين يجعل اختبارٌ البيئة
+        // إنتاجاً، فتبقى للاختبارات بعده. تُصفَّر هنا
+        SymfonyRequest::setTrustedHosts([]);
 
         // لا اتصال بالشبكة في الاختبارات
         Http::preventStrayRequests();
