@@ -5,9 +5,9 @@ namespace App\Actions\Competitions;
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Jobs\ProcessSubmissionVideo;
-use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
+use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -41,7 +41,7 @@ class CompleteVideoUpload
         // انتقال شرطي: طلبا إنهاء متزامنان لا يرسلان المعالجة مرتين. والمشاركة مقفولة ومسودة، فلا يتداخل
         // مع إرسال متزامن
         $moved = DB::transaction(function () use ($video): int {
-            CompetitionSubmission::lockDraft($video->submission_id);
+            SubmissionLock::draft($video->submission_id);
 
             return SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)
                 ->update(['status' => VideoStatus::Processing, 'updated_at' => now()]);

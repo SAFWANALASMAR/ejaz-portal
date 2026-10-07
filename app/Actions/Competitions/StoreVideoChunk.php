@@ -4,10 +4,10 @@ namespace App\Actions\Competitions;
 
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
-use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\ChunkedVideoUpload;
+use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +46,7 @@ class StoreVideoChunk
         // الفحص على الصفين المقفولين: المشاركة مسودة، والمقطع نفسه قيد الرفع. والكتابة بعد المعاملة،
         // فلا يُمسك القفل طوال قراءة الجزء من الشبكة. ومقطع قيد الرفع يمنع الإرسال (SubmitSubmission)
         DB::transaction(function () use ($video): void {
-            CompetitionSubmission::lockDraft($video->submission_id);
+            SubmissionLock::draft($video->submission_id);
 
             if (! SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)->exists()) {
                 throw new AuthorizationException;

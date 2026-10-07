@@ -9,6 +9,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
+use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -62,7 +63,7 @@ class StartVideoUpload
 
         $video = DB::transaction(function () use ($submission, $question, $size, &$previous): SubmissionVideo {
             // إرسال متزامن يتسلسل مع الاستبدال: فإن سبق، لا يُحذف مقطع مشاركة مرسلة ولا يُستبدل
-            CompetitionSubmission::lockDraft($submission->id);
+            SubmissionLock::draft($submission->id);
 
             $video = SubmissionVideo::query()->where('submission_id', $submission->id)->where('question_id', $question->id)->lockForUpdate()->first();
 
