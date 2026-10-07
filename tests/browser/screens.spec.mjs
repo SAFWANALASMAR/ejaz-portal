@@ -24,6 +24,7 @@ const guestScreens = [
     { name: 'albums', path: '/media/albums', heading: 'h1' },
     { name: 'album', path: '/media/albums/demo-album', heading: 'h1', whenPublished: true },
     { name: 'partners', path: '/media/partners', heading: 'h1' },
+    { name: 'contact', path: '/contact', heading: 'h1' },
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
