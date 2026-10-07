@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payments;
 
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Services\Payments\FakePaymentGateway;
@@ -9,7 +10,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 /**
- * صفحة الدفع التجريبية للبوابة الوهمية: في البيئة المحلية وبالمشغّل fake فقط، وإلا 404.
+ * صفحة الدفع التجريبية للبوابة الوهمية: مساراتها لا تُسجَّل إلا في البيئتين المحلية والاختبارية
+ * (routes/payments.php)، وهنا حارس ثانٍ: المشغّل fake، والبيئة، وعملية معلّقة بمرجع؛ وإلا 404.
  * زر «ادفع» يعلّم العملية مدفوعة عند البوابة الوهمية ثم يعيد إلى صفحة الرجوع، التي تستعلم منها.
  */
 class FakeCheckoutController extends Controller
@@ -39,7 +41,13 @@ class FakeCheckoutController extends Controller
 
     private function gateway(Payment $payment): FakePaymentGateway
     {
-        abort_unless(config('payments.driver') === 'fake' && ! app()->isProduction() && $payment->gateway_reference !== null, 404);
+        abort_unless(
+            config('payments.driver') === 'fake'
+                && app()->environment('local', 'testing')
+                && $payment->gateway_reference !== null
+                && $payment->status === PaymentStatus::Pending,
+            404,
+        );
 
         return app(FakePaymentGateway::class);
     }

@@ -12,18 +12,25 @@ use App\Models\User;
 use App\Support\Digits;
 use App\Support\Payments\Checkout;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
  * بدء تبرع: التبرعات مفعّلة من اللوحة، والمبلغ بالريال (بأي أرقام) يُحوَّل إلى هللات ويُفحص بين الحد
- * الأدنى والسقف التقني (config/payments.php)، والبريد للإيصال (من الحساب إن وُجد). يُنشأ السجل معلّقاً
- * بالمبلغ من الخادم، ثم تُنشأ العملية عند البوابة بهذا المبلغ، ويعود رابط صفحة الدفع.
+ * الأدنى والسقف التقني (config/payments.php)، والبريد للإيصال (من الحساب إن وُجد). وسقف عام للبوابة
+ * في الساعة كسقف الرسائل النصية، فلا تُغرق بفواتير معلّقة. يُنشأ السجل معلّقاً بالمبلغ من الخادم، ثم
+ * تُنشأ الفاتورة عند البوابة بهذا المبلغ، ويعود رابط صفحة الدفع. وفشل البوابة يُقيَّد حدثاً ويُخبَر
+ * به المتبرع، ويعلّم الأمر المجدول السجل «فاشلة» بعد ساعة.
  */
 class StartDonation
 {
+    private const HOURLY_KEY = 'donations:hour';
+
     public function __construct(private readonly PaymentGateway $gateway) {}
 
     /**
@@ -57,6 +64,12 @@ class StartDonation
             ['amount' => __('payments.fields.amount'), 'email' => __('payments.fields.email'), 'name' => __('payments.fields.name')],
         )->validate();
 
+        if (RateLimiter::tooManyAttempts(self::HOURLY_KEY, (int) config('payments.donation.per_hour'))) {
+            throw ValidationException::withMessages(['amount' => __('payments.donate.busy')]);
+        }
+
+        RateLimiter::hit(self::HOURLY_KEY, 3600);
+
         $payment = DB::transaction(function () use ($user, $validated): Payment {
             $payment = new Payment;
             $payment->user_id = $user?->id;
@@ -77,12 +90,20 @@ class StartDonation
             return $payment;
         });
 
-        $result = $this->gateway->start($payment, route('payments.return', $payment));
+        try {
+            $result = $this->gateway->start($payment, route('payments.return', $payment));
+            $url = $result->checkoutUrl ?? throw new RuntimeException('The gateway returned no checkout URL.');
+        } catch (ConnectionException|RequestException|RuntimeException $exception) {
+            report($exception);
+            $payment->events()->create(['type' => PaymentEventType::GatewayError, 'payload' => ['message' => $exception::class]]);
+
+            throw ValidationException::withMessages(['amount' => __('payments.donate.gateway_error')]);
+        }
 
         $payment->gateway_reference = $result->reference;
         $payment->save();
 
-        return new Checkout($payment, $result->checkoutUrl ?? throw new RuntimeException('The gateway returned no checkout URL.'));
+        return new Checkout($payment, $url);
     }
 
     /**

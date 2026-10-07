@@ -47,7 +47,7 @@ class PaymentResource extends Resource
                 TextColumn::make('amount')->label(__('payments.fields.amount'))
                     ->formatStateUsing(fn (Payment $record): string => $record->formattedAmount().' '.__('payments.currencies.'.$record->currency)),
                 TextColumn::make('status')->label(__('payments.fields.status'))->badge(),
-                TextColumn::make('donor_name')->label(__('payments.fields.donor'))->placeholder('—')->searchable(),
+                TextColumn::make('donor_name')->label(__('payments.fields.donor'))->placeholder('—')->searchable()->visible(self::canViewDonor()),
             ])
             ->filters([
                 SelectFilter::make('status')->label(__('payments.fields.status'))->options(PaymentStatus::class),
@@ -69,9 +69,10 @@ class PaymentResource extends Resource
                 TextEntry::make('receipt_number')->label(__('payments.fields.receipt_number'))->placeholder('—'),
                 TextEntry::make('created_at')->label(__('payments.fields.created_at'))->dateTime('Y-m-d H:i'),
                 TextEntry::make('paid_at')->label(__('payments.fields.paid_at'))->dateTime('Y-m-d H:i')->placeholder('—'),
-                TextEntry::make('donor_name')->label(__('payments.fields.donor'))->placeholder('—'),
-                TextEntry::make('donor_email')->label(__('payments.fields.email'))->placeholder('—'),
-                TextEntry::make('user.name')->label(__('payments.fields.user'))->placeholder('—'),
+                // هوية المتبرع بصلاحية أدق من الاطلاع على السجل المالي (payments.view_donor)
+                TextEntry::make('donor_name')->label(__('payments.fields.donor'))->placeholder('—')->visible(self::canViewDonor()),
+                TextEntry::make('donor_email')->label(__('payments.fields.email'))->placeholder('—')->visible(self::canViewDonor()),
+                TextEntry::make('user.name')->label(__('payments.fields.user'))->placeholder('—')->visible(self::canViewDonor()),
                 TextEntry::make('gateway')->label(__('payments.fields.gateway')),
                 TextEntry::make('gateway_reference')->label(__('payments.fields.gateway_reference'))->placeholder('—')->copyable(),
                 TextEntry::make('gateway_message')->label(__('payments.fields.gateway_message'))->placeholder('—'),
@@ -88,6 +89,11 @@ class PaymentResource extends Resource
                 ]),
             ]),
         ]);
+    }
+
+    public static function canViewDonor(): bool
+    {
+        return auth()->user()?->can('payments.view_donor') ?? false;
     }
 
     public static function getPages(): array

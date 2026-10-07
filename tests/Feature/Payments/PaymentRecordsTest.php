@@ -15,8 +15,10 @@ use App\Models\User;
 use App\Services\Payments\FakePaymentGateway;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Mockery\MockInterface;
 use Spatie\Activitylog\Models\Activity;
 
 it('shows a member their own payments only', function () {
@@ -109,9 +111,38 @@ it('keeps the amount and the ledger immutable, in the model and in the database'
         ->and(fn () => DB::transaction(fn () => PaymentEvent::query()->whereKey($event->id)->update(['type' => 'failed'])))->toThrow(QueryException::class)
         ->and(fn () => DB::transaction(fn () => PaymentEvent::query()->whereKey($event->id)->delete()))->toThrow(QueryException::class)
         ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->delete()))->toThrow(QueryException::class)
-        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['amount' => 1])))->toThrow(QueryException::class);
+        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['amount' => 1])))->toThrow(QueryException::class)
+        // المكتملة لا تعود معلّقة، وإيصالها لا يتغير
+        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['status' => 'pending'])))->toThrow(QueryException::class)
+        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['receipt_number' => 'R-0000-FORGED00'])))->toThrow(QueryException::class);
 
     expect($payment->fresh()->amount)->toBe($amount);
+});
+
+it('shows the donor identity only to those allowed, not to the board', function () {
+    $payment = Payment::factory()->paid()->create(['donor_name' => 'اسم المتبرع', 'donor_email' => 'donor-private@example.test']);
+
+    $this->actingAs(userWithRole(RoleName::BoardMember))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk()
+        ->assertSee($payment->receipt_number)
+        ->assertDontSee('donor-private@example.test')
+        ->assertDontSee('اسم المتبرع');
+    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk()
+        ->assertSee('donor-private@example.test');
+});
+
+it('keeps the payment paid without a refund reason when the gateway refuses the refund, and records the failure', function () {
+    $payment = Payment::factory()->paid()->create();
+    $admin = userWithRole(RoleName::SuperAdmin);
+    $this->mock(PaymentGateway::class, fn (MockInterface $mock) => $mock->shouldReceive('refund')->once()->andThrow(new ConnectionException('gateway down')));
+
+    expect(fn () => app(RefundPayment::class)->handle($admin, $payment, 'طلب المتبرع الاسترداد خلال المدة'))->toThrow(ValidationException::class);
+
+    $payment->refresh();
+
+    expect($payment->status)->toBe(PaymentStatus::Paid)
+        ->and($payment->refund_reason)->toBeNull()
+        ->and($payment->refunded_by)->toBeNull()
+        ->and($payment->events()->where('type', PaymentEventType::RefundFailed)->count())->toBe(1);
 });
 
 it('includes a member’s payments in their data export', function () {

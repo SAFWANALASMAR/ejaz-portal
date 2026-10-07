@@ -3,15 +3,15 @@
 namespace App\Actions\Payments;
 
 use App\Contracts\PaymentGateway;
+use App\Enums\ActivityEvent;
 use App\Models\Payment;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 /**
- * إشعار البوابة: يُرفض ما لم يصح توقيعه (بلا أثر في السجل)، ويُطابق بالعملية بمرجعها، ثم يُعتمد
- * بمعرّف الإشعار فلا يُعالج مرتين.
+ * إشعار البوابة: يُرفض ما لم يصح توقيعه (بلا أثر في السجل المالي، ويُقيَّد الرفض في السجل الأمني)،
+ * ويُطابق بالعملية بمرجعها، ثم يُعتمد بمعرّف الإشعار فلا يُعالج مرتين.
  *
  * @throws AuthorizationException توقيع غير صحيح
  * @throws ModelNotFoundException مرجع لا يقابله سجل
@@ -28,7 +28,10 @@ class HandlePaymentWebhook
         $event = $this->gateway->webhook($request);
 
         if ($event === null) {
-            Log::warning('Rejected a payment webhook with a bad signature', ['ip' => $request->ip()]);
+            activity('security')
+                ->event(ActivityEvent::PaymentWebhookRejected->value)
+                ->withProperties(['ip' => $request->ip()])
+                ->log(ActivityEvent::PaymentWebhookRejected->value);
 
             throw new AuthorizationException;
         }

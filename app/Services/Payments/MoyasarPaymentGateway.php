@@ -33,6 +33,8 @@ class MoyasarPaymentGateway implements PaymentGateway
             'description' => $payment->purpose->getLabel().' — '.$payment->uuid,
             'success_url' => $returnUrl,
             'back_url' => $returnUrl,
+            // تنتهي الفاتورة بعد مدة، فلا تبقى قابلة للدفع إلى الأبد (ejaz:sync-pending-payments)
+            'expired_at' => now()->addHours((int) config('payments.invoice_hours'))->toIso8601String(),
             'metadata' => ['payment' => $payment->uuid],
         ]);
 

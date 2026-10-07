@@ -5,17 +5,19 @@ namespace App\Notifications;
 use App\Models\Payment;
 use App\Support\Dates;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * الإيصال الإلكتروني: رقم الإيصال، والمبلغ، والغرض، والتاريخ. يُرسل في الخلفية مرة واحدة عند اعتماد
- * الدفع، إلى بريد المتبرع.
+ * الدفع، إلى بريد المتبرع. العملية تُسلسَل بمعرّفها (لا ببريد المتبرع واسمه)، والحمولة مشفّرة في الطابور.
  */
-class PaymentReceipt extends Notification implements ShouldQueue
+class PaymentReceipt extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
-    use Queueable;
+    use Queueable, SerializesModels;
 
     public function __construct(public Payment $payment) {}
 

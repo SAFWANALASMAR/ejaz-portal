@@ -74,6 +74,15 @@ return new class extends Migration
                     OR NEW.payable_id IS DISTINCT FROM OLD.payable_id THEN
                     RAISE EXCEPTION 'payment amount, currency, purpose and owner are immutable';
                 END IF;
+                -- المكتملة لا تعود: المدفوعة لا تصير إلا مستردة، والمستردة لا تتغير
+                IF OLD.status IN ('paid', 'refunded') AND NEW.status <> OLD.status
+                    AND NOT (OLD.status = 'paid' AND NEW.status = 'refunded') THEN
+                    RAISE EXCEPTION 'a settled payment cannot change its status';
+                END IF;
+                IF (OLD.receipt_number IS NOT NULL AND NEW.receipt_number IS DISTINCT FROM OLD.receipt_number)
+                    OR (OLD.paid_at IS NOT NULL AND NEW.paid_at IS DISTINCT FROM OLD.paid_at) THEN
+                    RAISE EXCEPTION 'the receipt of a payment is immutable';
+                END IF;
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;

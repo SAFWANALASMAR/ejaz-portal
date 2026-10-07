@@ -7,7 +7,7 @@
 
 return [
 
-    // fake أو moyasar
+    // fake أو moyasar. وfake يرفض العمل في الإنتاج، فيُضبط moyasar قبل النشر (roadmap.md — خطوات النشر)
     'driver' => env('PAYMENT_DRIVER', 'fake'),
 
     'currency' => 'SAR',
@@ -18,6 +18,14 @@ return [
     // الرمز السري لإشعارات البوابة (Secret Token في لوحة ميسر)، يُقارن بإشعارها. بلا رمز لا يُقبل إشعار
     'webhook_secret' => env('PAYMENT_WEBHOOK_SECRET', ''),
 
+    // صلاحية الفاتورة عند البوابة بالساعات؛ وبعدها تنتهي فيعلّمها الأمر المجدول «فاشلة»
+    'invoice_hours' => 24,
+
+    // الأمر المجدول ejaz:sync-pending-payments: يستعلم عن المعلّق بمرجع لم يتحدث منذ هذه الدقائق،
+    // ويعلّم المعلّق بلا مرجع (فشلت البوابة عند البدء) «فاشلة» بعد هذه الساعات
+    'pending_sync_minutes' => 30,
+    'unstarted_hours' => 1,
+
     'moyasar' => [
         'secret_key' => env('MOYASAR_SECRET_KEY', ''),
         'publishable_key' => env('MOYASAR_PUBLISHABLE_KEY', ''),
@@ -27,6 +35,9 @@ return [
         // حدا التبرع بالهللات: الأدنى ريال واحد (أدنى ما تقبله البوابة)، والأقصى سقف تقني
         'min_halalas' => (int) env('DONATION_MIN_SAR', 1) * 100,
         'max_halalas' => (int) env('DONATION_MAX_SAR', 100000) * 100,
+
+        // سقف عام لبدء التبرعات في الساعة للبوابة كلها (كسقف الرسائل النصية)، فلا تُغرق بفواتير معلّقة
+        'per_hour' => (int) env('DONATIONS_PER_HOUR', 500),
     ],
 
 ];

@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustHosts();
 
         // إشعارات بوابة الدفع تأتي من خادمها بلا جلسة، ويُفحص توقيعها في الإجراء (docs/security.md)
-        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+        $middleware->validateCsrfTokens(except: ['webhooks/payments']);
 
         $middleware->web(append: [
             SecurityHeaders::class,

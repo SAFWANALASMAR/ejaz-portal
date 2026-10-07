@@ -54,6 +54,7 @@ return [
         'submissions_exported' => 'تصدير مشاركات مسابقة',
         'survey_results_exported' => 'تصدير نتائج استبيان',
         'payment_refunded' => 'استرداد مبلغ عملية دفع',
+        'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)

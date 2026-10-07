@@ -16,8 +16,14 @@ use Illuminate\Support\Str;
 /**
  * اعتماد نتيجة من البوابة (إشعار أو استعلام) على السجل: داخل معاملة بقفل على العملية، فالإشعار
  * المكرر (بمعرّفه) والرجوع المتزامن لا يضاعفان شيئاً. والمبلغ والعملة يُطابقان السجل وإلا سُجّلت
- * مخالفة ولم تُعتمد. والانتقال: معلّقة إلى مدفوعة (برقم إيصال وبريد إيصال واحد) أو فاشلة، ومدفوعة
- * إلى مستردة. وما سوى ذلك لا يغيّر الحالة.
+ * مخالفة ولم تُعتمد.
+ *
+ * الانتقالات (الفاتورة تقبل أكثر من محاولة دفع):
+ * - «مدفوعة» من معلّقة أو فاشلة متى قالت البوابة إن الفاتورة دُفعت، برقم إيصال وبريد إيصال واحد.
+ * - فشل محاولة واحدة (إشعار دفعة) يُقيَّد حدثاً وتبقى العملية معلّقة، لأن المتبرع قد ينجح في المحاولة
+ *   التالية على الفاتورة نفسها. وفشل الفاتورة نفسها (منتهية أو ملغاة، من الاستعلام) يُنهيها «فاشلة».
+ * - «مستردة» من مدفوعة.
+ * - إشعار صحيح لا يغيّر الحالة (مدفوع لسجل مدفوع أو مسترد مثلاً) يُقيَّد «أُهمل» ولا يضيع بصمت.
  */
 class RecordPaymentOutcome
 {
@@ -47,19 +53,26 @@ class RecordPaymentOutcome
                 $locked->gateway_message = Str::limit($result->message, 250, '');
             }
 
-            if ($result->status === PaymentStatus::Paid && $locked->status === PaymentStatus::Pending) {
+            $open = in_array($locked->status, [PaymentStatus::Pending, PaymentStatus::Failed], true);
+
+            if ($result->status === PaymentStatus::Paid && $open) {
                 $locked->status = PaymentStatus::Paid;
                 $locked->paid_at = now();
                 $locked->receipt_number = self::receiptNumber();
                 $this->event($locked, PaymentEventType::Paid, $result, $eventId);
                 $receipt = true;
             } elseif ($result->status === PaymentStatus::Failed && $locked->status === PaymentStatus::Pending) {
-                $locked->status = PaymentStatus::Failed;
+                if (! $result->attempt) {
+                    $locked->status = PaymentStatus::Failed;
+                }
+
                 $this->event($locked, PaymentEventType::Failed, $result, $eventId);
             } elseif ($result->status === PaymentStatus::Refunded && $locked->status === PaymentStatus::Paid) {
                 $locked->status = PaymentStatus::Refunded;
                 $locked->refunded_at ??= now();
                 $this->event($locked, PaymentEventType::Refunded, $result, $eventId);
+            } elseif ($eventId !== null && $result->status !== PaymentStatus::Pending) {
+                $this->event($locked, PaymentEventType::Ignored, $result, $eventId);
             }
 
             $locked->save();

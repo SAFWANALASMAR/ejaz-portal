@@ -10,7 +10,9 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\Payments\FakePaymentGateway;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Validation\ValidationException;
+use Mockery\MockInterface;
 
 beforeEach(function () {
     Setting::put('donations', ['enabled' => true, 'intro' => 'نص تجريبي', 'amounts' => [50, 100]]);
@@ -93,7 +95,7 @@ it('validates the amount in the action itself', function () {
         ->toThrow(ValidationException::class);
 });
 
-it('offers the local fake checkout only with the fake driver outside production', function () {
+it('offers the local fake checkout only with the fake driver, in the local and testing environments, for a pending payment', function () {
     $this->post('/donate', ['amount' => '10', 'email' => 'donor@example.test']);
     $payment = Payment::sole();
 
@@ -102,4 +104,36 @@ it('offers the local fake checkout only with the fake driver outside production'
     config(['payments.driver' => 'moyasar']);
     $this->get(route('payments.fake-checkout', $payment))->assertNotFound();
     $this->post(route('payments.fake-checkout.pay', $payment))->assertNotFound();
+    config(['payments.driver' => 'fake']);
+
+    // بيئة تجريبية عامة: لا صفحة وهمية ولو كان المشغّل fake
+    $this->app->detectEnvironment(fn (): string => 'staging');
+    $this->get(route('payments.fake-checkout', $payment))->assertNotFound();
+    $this->app->detectEnvironment(fn (): string => 'testing');
+
+    // بعد الدفع لا تُفتح الصفحة ثانية
+    $this->post(route('payments.fake-checkout.pay', $payment))->assertRedirect(route('payments.return', $payment));
+    $this->get(route('payments.return', $payment))->assertOk()->assertSee(__('payments.statuses.paid'));
+    $this->get(route('payments.fake-checkout', $payment))->assertNotFound();
+});
+
+it('caps donation starts per hour for the whole portal', function () {
+    config(['payments.donation.per_hour' => 1]);
+
+    $this->post('/donate', ['amount' => '10', 'email' => 'donor@example.test'])->assertRedirect();
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'other@example.test'])->assertRedirect('/donate')->assertSessionHasErrors('amount');
+
+    expect(Payment::count())->toBe(1);
+});
+
+it('tells the donor when the gateway is down, keeps the record pending without a reference, and logs the error', function () {
+    $this->mock(PaymentGateway::class, fn (MockInterface $mock) => $mock->shouldReceive('start')->once()->andThrow(new ConnectionException('gateway down')));
+
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'donor@example.test'])->assertRedirect('/donate')->assertSessionHasErrors('amount');
+
+    $payment = Payment::sole();
+
+    expect($payment->status)->toBe(PaymentStatus::Pending)
+        ->and($payment->gateway_reference)->toBeNull()
+        ->and($payment->events()->pluck('type')->all())->toBe([PaymentEventType::Started, PaymentEventType::GatewayError]);
 });
