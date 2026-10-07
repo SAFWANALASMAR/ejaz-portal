@@ -21,7 +21,9 @@
                 <x-flash />
 
                 @if (filled($program->description))
-                    <x-card class="leading-8 whitespace-pre-line text-ink">{{ $program->description }}</x-card>
+                    <x-card>
+                        <div class="leading-8 whitespace-pre-line text-ink">{{ $program->description }}</div>
+                    </x-card>
                 @endif
 
                 @if (filled($program->conditions))

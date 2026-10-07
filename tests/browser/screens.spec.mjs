@@ -17,12 +17,14 @@ const guestScreens = [
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
     { name: 'services', path: '/services', heading: 'h1' },
     { name: 'services-jobs', path: '/services/jobs', heading: 'h1' },
+    { name: 'programs', path: '/programs', heading: 'h1' },
 ];
 
 const accountScreens = [
     { name: 'dashboard', path: '/account', heading: 'main p.text-2xl' },
     { name: 'profile', path: '/account/profile', heading: 'h1' },
     { name: 'requests', path: '/account/requests', heading: 'h1' },
+    { name: 'my-programs', path: '/account/programs', heading: 'h1' },
 ];
 
 async function checkScreen(page, testInfo, screen) {
