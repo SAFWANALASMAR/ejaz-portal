@@ -4,6 +4,8 @@ namespace App\Actions\Content;
 
 use App\Enums\SiteIcon;
 use App\Models\Initiative;
+use App\Models\NewsArticle;
+use App\Models\Partner;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
 use Illuminate\Database\Eloquent\Collection;
@@ -34,6 +36,8 @@ class BuildHomePage
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
      *     shortcuts: list<array{key: string, icon: string, url: string}>,
      *     initiatives: Collection<int, Initiative>,
+     *     news: Collection<int, NewsArticle>,
+     *     partners: Collection<int, Partner>,
      * }
      */
     public function handle(): array
@@ -46,6 +50,9 @@ class BuildHomePage
             'shortcuts' => self::shows($home, 'shortcuts') ? self::shortcuts() : [],
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
             'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->limit(3)->get() : new Collection,
+            // مفتاح «أحدث البرامج والأخبار»: الأخبار الآن، والبرامج مع وحدتها في المرحلة 3
+            'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(3)->get() : new Collection,
+            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->get() : new Collection,
         ];
     }
 

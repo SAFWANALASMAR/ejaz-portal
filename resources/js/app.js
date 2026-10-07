@@ -36,6 +36,22 @@ function playVideo(link) {
     frame.focus();
 }
 
+// نسخ رابط الخبر، ويُعلَن النسخ على الزر نفسه (aria-live)
+function copyLink(button) {
+    if (!navigator.clipboard) {
+        return;
+    }
+
+    navigator.clipboard.writeText(button.dataset.copyLink).then(() => {
+        const label = button.textContent;
+
+        button.textContent = button.dataset.copied;
+        setTimeout(() => {
+            button.textContent = label;
+        }, 2000);
+    });
+}
+
 function togglePassword(button) {
     const input = document.getElementById(button.dataset.passwordToggle);
 
@@ -55,6 +71,14 @@ document.addEventListener('click', (event) => {
 
     if (passwordToggle) {
         togglePassword(passwordToggle);
+
+        return;
+    }
+
+    const copy = event.target.closest('[data-copy-link]');
+
+    if (copy) {
+        copyLink(copy);
 
         return;
     }
