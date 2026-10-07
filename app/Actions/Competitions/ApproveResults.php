@@ -47,7 +47,7 @@ class ApproveResults
             }
 
             // ما لم يصله التصحيح الآلي بعد (طابور متأخر وقت الذروة) يُصحح هنا قبل القفل
-            $locked->submissions()->where('status', SubmissionStatus::Submitted)->whereNull('auto_score')->lazyById()
+            $locked->submissions()->where('status', SubmissionStatus::Submitted)->whereNull('auto_score')->with('competition.questions')->lazyById()
                 ->each(fn (CompetitionSubmission $submission) => $this->grade->handle($submission));
 
             // الدرجة النهائية لكل المشاركات في استعلام واحد: متوسط مجاميع محكّميها، أو لا شيء بلا تحكيم

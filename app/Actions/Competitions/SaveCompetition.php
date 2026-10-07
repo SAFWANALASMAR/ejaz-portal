@@ -201,7 +201,8 @@ class SaveCompetition
     private function changesSchedule(Competition $competition, array $data): bool
     {
         foreach (['opens_at', 'closes_at'] as $field) {
-            if (array_key_exists($field, $data) && ! $competition->{$field}->equalTo(Carbon::parse((string) $data[$field]))) {
+            // بدقة الدقيقة: نموذج اللوحة يحذف الثواني، فالموعد المعروض كما هو لا يُعدّ تغييراً
+            if (array_key_exists($field, $data) && ! $competition->{$field}->copy()->startOfMinute()->equalTo(Carbon::parse((string) $data[$field])->startOfMinute())) {
                 return true;
             }
         }

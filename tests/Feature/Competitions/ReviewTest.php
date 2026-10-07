@@ -301,3 +301,12 @@ it('logs an automatic distribution as one admin operation', function () {
 
     expect(Activity::where('event', 'submissions_distributed')->where('causer_id', $this->manager->id)->exists())->toBeTrue();
 });
+
+it('grades every ungraded entry during approval without lazy loading', function () {
+    $entries = collect([submittedEntry('b'), submittedEntry('a'), submittedEntry('b')]);
+    $this->travelTo($this->competition->closes_at->addMinute());
+
+    app(ApproveResults::class)->handle($this->manager, $this->competition);
+
+    expect($entries->map(fn ($entry) => $entry->fresh()->auto_score)->all())->toBe(['2.00', '0.00', '2.00']);
+});

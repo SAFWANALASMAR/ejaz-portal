@@ -22,7 +22,7 @@ return new class extends Migration
         });
 
         DB::unprepared(<<<'SQL'
-            CREATE OR REPLACE FUNCTION competition_draws_immutable() RETURNS trigger AS $$
+            CREATE OR REPLACE FUNCTION competition_draw_records_append_only() RETURNS trigger AS $$
             BEGIN
                 RAISE EXCEPTION 'competition draw records are append-only';
             END;
@@ -30,15 +30,15 @@ return new class extends Migration
 
             CREATE TRIGGER competition_draw_voids_immutable
                 BEFORE UPDATE OR DELETE ON competition_draw_voids
-                FOR EACH ROW EXECUTE FUNCTION competition_draws_immutable();
+                FOR EACH ROW EXECUTE FUNCTION competition_draw_records_append_only();
 
             CREATE TRIGGER competition_draws_no_truncate
                 BEFORE TRUNCATE ON competition_draws
-                FOR EACH STATEMENT EXECUTE FUNCTION competition_draws_immutable();
+                FOR EACH STATEMENT EXECUTE FUNCTION competition_draw_records_append_only();
 
             CREATE TRIGGER competition_draw_voids_no_truncate
                 BEFORE TRUNCATE ON competition_draw_voids
-                FOR EACH STATEMENT EXECUTE FUNCTION competition_draws_immutable();
+                FOR EACH STATEMENT EXECUTE FUNCTION competition_draw_records_append_only();
             SQL);
     }
 
@@ -46,5 +46,6 @@ return new class extends Migration
     {
         DB::unprepared('DROP TRIGGER IF EXISTS competition_draws_no_truncate ON competition_draws');
         Schema::dropIfExists('competition_draw_voids');
+        DB::unprepared('DROP FUNCTION IF EXISTS competition_draw_records_append_only()');
     }
 };

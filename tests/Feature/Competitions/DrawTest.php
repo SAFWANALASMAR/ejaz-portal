@@ -5,6 +5,7 @@ use App\Actions\Competitions\SaveCompetition;
 use App\Actions\Competitions\VoidDraw;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\CompetitionResource;
+use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ViewCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\DrawsRelationManager;
 use App\Models\Competition;
@@ -173,4 +174,24 @@ it('hides the correct option from the board on the read-only page', function () 
     $options = collect($page->get('data.questions'))->pluck('options')->flatten(1)->filter();
 
     expect($options->pluck('is_correct')->unique()->values()->all())->toBe([false]);
+});
+
+it('still saves other changes from the edit page after a draw, and refuses a new closing date', function () {
+    $competition = Competition::factory()->closed()->withQuestions()->create();
+    CompetitionSubmission::factory()->submitted()->create(['competition_id' => $competition->id]);
+    app(RunDraw::class)->handle($this->manager, $competition, 1);
+    $this->actingAs($this->manager);
+
+    Livewire::test(EditCompetition::class, ['record' => $competition->getRouteKey()])
+        ->fillForm(['title' => 'عنوان بعد السحب'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($competition->fresh()->title)->toBe('عنوان بعد السحب');
+
+    // تجاوز التعطيل من المتصفح لا يغيّر الموعد
+    Livewire::test(EditCompetition::class, ['record' => $competition->getRouteKey()])
+        ->set('data.closes_at', now()->addMonth()->format('Y-m-d H:i:s'))
+        ->call('save')
+        ->assertHasFormErrors(['closes_at']);
 });

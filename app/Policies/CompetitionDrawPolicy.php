@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleName;
 use App\Models\CompetitionDraw;
 use App\Models\User;
 
@@ -24,6 +25,14 @@ class CompetitionDrawPolicy
     public function create(User $user): bool
     {
         return $user->can('competitions.draw');
+    }
+
+    /**
+     * إلغاء سحب معتمد بسبب: للمشرف العام وحده (VoidDraw).
+     */
+    public function void(User $user, CompetitionDraw $draw): bool
+    {
+        return $user->hasRole(RoleName::SuperAdmin->value);
     }
 
     public function update(User $user, CompetitionDraw $draw): bool

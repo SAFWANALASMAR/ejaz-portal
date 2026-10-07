@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Competitions\RelationManagers;
 
 use App\Actions\Competitions\RunDraw;
 use App\Actions\Competitions\VoidDraw;
-use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionDraw;
 use App\Models\User;
@@ -80,7 +79,8 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.run'))
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
-                    ->visible(fn (): bool => auth()->user()?->can('competitions.draw') ?? false)
+                    ->visible(fn (): bool => (auth()->user()?->can('competitions.draw') ?? false)
+                        && $this->competition()->draws()->whereDoesntHave('void')->doesntExist())
                     ->modalDescription(__('competitions.draws.run_confirm'))
                     ->schema([
                         TextInput::make('winners_count')->label(__('competitions.draws.winners_count'))->integer()->minValue(1)->required(),
@@ -88,8 +88,7 @@ class DrawsRelationManager extends RelationManager
                     ->action(function (array $data): void {
                         /** @var User $user */
                         $user = auth()->user();
-                        /** @var Competition $competition */
-                        $competition = $this->getOwnerRecord();
+                        $competition = $this->competition();
 
                         try {
                             app(RunDraw::class)->handle($user, $competition, (int) $data['winners_count']);
@@ -106,7 +105,7 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.void'))
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && (auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false))
+                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && (auth()->user()?->can('void', $record) ?? false))
                     ->modalDescription(__('competitions.draws.void_confirm'))
                     ->schema([
                         Textarea::make('reason')->label(__('competitions.draws.void_reason'))->required()->minLength(10)->maxLength(500),
@@ -123,5 +122,11 @@ class DrawsRelationManager extends RelationManager
                         }
                     }),
             ]);
+    }
+
+    private function competition(): Competition
+    {
+        /** @var Competition */
+        return $this->getOwnerRecord();
     }
 }

@@ -49,6 +49,7 @@ return [
         'draw_executed' => 'تنفيذ سحب إلكتروني',
         'draw_voided' => 'إلغاء سحب إلكتروني',
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
+        'submissions_exported' => 'تصدير مشاركات مسابقة',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)

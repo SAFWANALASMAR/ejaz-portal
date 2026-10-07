@@ -31,6 +31,13 @@ class CreateLoadAccounts extends Command
             return self::FAILURE;
         }
 
+        // أرقام الحسابات بصيغة سعودية، فلا تُنشأ ومزود رسائل حقيقي مفعّل، فلا يصل إشعار إلى أرقام أشخاص
+        if (config('services.sms.driver') !== 'log') {
+            $this->error('شغّل الأمر ومزود الرسائل log فقط (SMS_DRIVER=log).');
+
+            return self::FAILURE;
+        }
+
         $count = (int) $this->argument('count');
 
         if ($count < 1 || $count > self::MAX) {
@@ -44,12 +51,12 @@ class CreateLoadAccounts extends Command
         $now = now();
         $role = Role::findByName(RoleName::Member->value, 'web');
 
-        // الحسابات السابقة من هذا الأمر تُستبدل، فيعاد الاختبار بكلمة مرور جديدة
-        DB::table('users')->where('email', 'like', '%@'.self::DOMAIN)->delete();
+        // الحسابات السابقة تبقى بمشاركاتها، وتأخذ كلمة مرور هذا التشغيل، فيُعاد الاختبار بلا حذف
+        DB::table('users')->where('email', 'like', '%@'.self::DOMAIN)->update(['password' => $hash, 'updated_at' => $now]);
 
         foreach (array_chunk(range(1, $count), 1000) as $chunk) {
             DB::transaction(function () use ($chunk, $hash, $now, $role): void {
-                DB::table('users')->insert(array_map(fn (int $n): array => [
+                DB::table('users')->insertOrIgnore(array_map(fn (int $n): array => [
                     'name' => 'حساب اختبار '.$n,
                     'email' => 'load-'.$n.'@'.self::DOMAIN,
                     // أرقام في مدى لا يُستعمل للمستخدمين الفعليين في التجريبية
@@ -65,7 +72,7 @@ class CreateLoadAccounts extends Command
 
                 $ids = DB::table('users')->whereIn('email', array_map(fn (int $n): string => 'load-'.$n.'@'.self::DOMAIN, $chunk))->pluck('id');
 
-                DB::table('model_has_roles')->insert($ids->map(fn (int $id): array => ['role_id' => $role->id, 'model_type' => 'App\\Models\\User', 'model_id' => $id])->all());
+                DB::table('model_has_roles')->insertOrIgnore($ids->map(fn (int $id): array => ['role_id' => $role->id, 'model_type' => 'App\\Models\\User', 'model_id' => $id])->all());
             });
         }
 

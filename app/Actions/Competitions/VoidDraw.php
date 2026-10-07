@@ -3,7 +3,6 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\ActivityEvent;
-use App\Enums\RoleName;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionDrawVoid;
 use App\Models\User;
@@ -23,7 +22,7 @@ class VoidDraw
      */
     public function handle(User $actor, CompetitionDraw $draw, string $reason): CompetitionDrawVoid
     {
-        if (! $actor->hasRole(RoleName::SuperAdmin->value)) {
+        if (! $actor->can('void', $draw)) {
             throw new AuthorizationException;
         }
 

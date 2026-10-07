@@ -12,3 +12,6 @@ Schedule::command('activitylog:clean --force')->daily()->onOneServer();
 
 // أجزاء مقاطع المسابقات المهجورة لا تبقى على القرص الخاص
 Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
+
+// ملفات التصدير فيها بيانات شخصية، فتُحذف بعد يوم
+Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();

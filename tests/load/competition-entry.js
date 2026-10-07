@@ -9,6 +9,10 @@
 import http from 'k6/http';
 import { check, fail } from 'k6';
 import exec from 'k6/execution';
+import { Counter } from 'k6/metrics';
+
+// المشاركات التي أُرسلت فعلاً برقم مرجعي، لتُقارن بعدد الحسابات
+const confirmed = new Counter('entries_confirmed');
 
 const BASE = __ENV.BASE_URL;
 const SLUG = __ENV.COMPETITION;
@@ -100,7 +104,14 @@ export default function () {
     }
 
     const submit = http.post(`${BASE}/competitions/${SLUG}/entry/submit`, { _token: csrf, ...form }, { redirects: 0 });
-    check(submit, { 'submitted or waiting for video': (r) => r.status === 302, 'no server error': serverOk });
+    check(submit, { 'submit answered': (r) => r.status === 302, 'no server error': serverOk });
+
+    // الرد 302 في النجاح وفي رفض التحقق معاً، فالتأكيد من الرقم المرجعي في صفحة المشاركة بعده
+    const after = http.get(`${BASE}/competitions/${SLUG}/entry`, { tags: { step: 'page' } });
+
+    if (/dir="ltr">[A-HJ-NP-Z2-9]{10}</.test(after.body)) {
+        confirmed.add(1);
+    }
 
     jar.clear(BASE);
 }

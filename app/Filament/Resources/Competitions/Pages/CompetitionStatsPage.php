@@ -43,6 +43,9 @@ class CompetitionStatsPage extends Page
         /** @var Competition $competition */
         $competition = $this->getRecord();
 
+        // يُعاد الفحص مع كل تحديث دوري، فلا تبقى اللوحة لمن سُحبت صلاحيته
+        abort_unless(auth()->user()?->can('view', $competition), 403);
+
         return CompetitionStats::for($competition);
     }
 }

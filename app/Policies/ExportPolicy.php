@@ -2,17 +2,27 @@
 
 namespace App\Policies;
 
+use App\Filament\Exports\SubmissionExporter;
 use App\Models\User;
 use Filament\Actions\Exports\Models\Export;
 
 /**
  * ملف التصدير ينزّله من طلبه وحده، وما دام يملك صلاحية التصدير. فمن سُحبت صلاحيته لا ينزّل ما صدّره
- * قبلها (فيه بيانات شخصية).
+ * قبلها (فيه بيانات شخصية). ومسار التنزيل من Filament خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا.
  */
 class ExportPolicy
 {
     public function view(User $user, Export $export): bool
     {
-        return $export->user_id === $user->id && $user->can('submissions.export');
+        // مسار التنزيل خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا أيضاً
+        $permission = match ($export->exporter) {
+            SubmissionExporter::class => 'submissions.export',
+            default => null,
+        };
+
+        return $permission !== null
+            && $export->user_id === $user->id
+            && $user->can($permission)
+            && $user->hasEnabledTwoFactorAuthentication();
     }
 }

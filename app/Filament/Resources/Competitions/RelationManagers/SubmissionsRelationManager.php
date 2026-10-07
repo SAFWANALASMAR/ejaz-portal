@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Competitions\RelationManagers;
 use App\Actions\Competitions\ApproveResults;
 use App\Actions\Competitions\AssignReviewers;
 use App\Actions\Competitions\DistributeSubmissions;
+use App\Enums\ActivityEvent;
 use App\Enums\SaudiRegion;
 use App\Enums\SubmissionStatus;
 use App\Filament\Exports\SubmissionExporter;
@@ -71,7 +72,10 @@ class SubmissionsRelationManager extends RelationManager
                     ->label(__('competitions.export.action'))
                     ->exporter(SubmissionExporter::class)
                     ->visible(fn (): bool => $this->allows('submissions.export'))
-                    ->modifyQueryUsing(fn (Builder $query) => $query->where('competition_id', $this->competition()->id)->with('user')),
+                    ->modifyQueryUsing(fn (Builder $query) => $query->where('competition_id', $this->competition()->id)->with('user'))
+                    // تصدير البيانات الشخصية عملية إدارية تُسجَّل
+                    ->before(fn () => activity('competitions')->performedOn($this->competition())->causedBy($this->user())
+                        ->event(ActivityEvent::SubmissionsExported->value)->log(ActivityEvent::SubmissionsExported->value)),
                 Action::make('distribute')
                     ->label(__('competitions.reviews.distribute'))
                     ->icon('heroicon-o-arrows-right-left')

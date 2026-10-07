@@ -9,7 +9,8 @@ use Filament\Actions\Exports\Models\Export;
 
 /**
  * التصدير الكامل لمشاركات مسابقة (لوحة المتابعة): يُبنى في الطابور، ولمن له submissions.export.
- * وفيه بيانات المتقدمين للتواصل، فلا ينزّله إلا من طلبه (ExportPolicy).
+ * وفيه بيانات المتقدمين للتواصل، فلا ينزّله إلا من طلبه (ExportPolicy)، ويُحذف بعد يوم (ejaz:prune-exports).
+ * والنصوص التي يكتبها المتقدم تُحمى من حقن الصيغ في برامج الجداول.
  */
 class SubmissionExporter extends Exporter
 {
@@ -18,14 +19,15 @@ class SubmissionExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('reference')->label(__('competitions.entry.reference')),
-            ExportColumn::make('user.name')->label(__('competitions.export.name')),
-            ExportColumn::make('user.email')->label(__('competitions.export.email')),
-            ExportColumn::make('user.phone')->label(__('competitions.export.phone')),
+            ExportColumn::make('reference')->preventFormulaInjection()->label(__('competitions.entry.reference')),
+            ExportColumn::make('user.name')->preventFormulaInjection()->label(__('competitions.export.name')),
+            ExportColumn::make('user.email')->preventFormulaInjection()->label(__('competitions.export.email')),
+            ExportColumn::make('user.phone')->preventFormulaInjection()->label(__('competitions.export.phone')),
             ExportColumn::make('status')->label(__('competitions.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
-            ExportColumn::make('category')->label(__('competitions.entry.category')),
+            ExportColumn::make('category')->preventFormulaInjection()->label(__('competitions.entry.category')),
             ExportColumn::make('region')->label(__('competitions.entry.region'))->formatStateUsing(fn ($state) => $state?->getLabel()),
-            ExportColumn::make('submitted_at')->label(__('competitions.entry.submitted_at')),
+            ExportColumn::make('submitted_at')->label(__('competitions.entry.submitted_at'))
+                ->formatStateUsing(fn ($state) => $state?->timezone(config('app.display_timezone'))->format('Y-m-d H:i')),
             ExportColumn::make('auto_score')->label(__('competitions.submissions.auto_score')),
             ExportColumn::make('final_score')->label(__('competitions.submissions.final_score')),
         ];

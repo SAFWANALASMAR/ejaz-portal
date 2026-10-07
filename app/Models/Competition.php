@@ -167,7 +167,8 @@ class Competition extends Model
      */
     public function scheduleLocked(): bool
     {
-        return $this->exists && ($this->resultsApproved() || $this->draws()->exists());
+        // السحب الملغى لا يقفل، فيُصحَّح موعد خاطئ كان سبب الإلغاء
+        return $this->exists && ($this->resultsApproved() || $this->draws()->whereDoesntHave('void')->exists());
     }
 
     /**
