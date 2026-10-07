@@ -6,6 +6,7 @@ use App\Actions\Competitions\PurgeSubmissionPersonalData;
 use App\Models\CompetitionSubmission;
 use App\Support\Retention;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * يحذف بيانات الحسابات المحذوفة (المخفاة بطلب أصحابها) بعد مدة الاحتفاظ من اللوحة (App\Support\Retention).
@@ -29,6 +30,18 @@ class PurgeAnonymizedData extends Command
         }
 
         $purged = 0;
+        $failed = 0;
+
+        // سجل يتعذر حذفه (تعطل التخزين مثلاً) يُبلَّغ عنه ويبقى كما هو للدورة التالية، ولا يوقف الباقي
+        $attempt = function (callable $purge) use (&$purged, &$failed): void {
+            try {
+                $purge();
+                $purged++;
+            } catch (Throwable $exception) {
+                report($exception);
+                $failed++;
+            }
+        };
 
         CompetitionSubmission::query()
             ->withTrashed()
@@ -38,13 +51,10 @@ class PurgeAnonymizedData extends Command
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos'))
             ->lazyById()
-            ->each(function (CompetitionSubmission $submission) use ($purge, &$purged): void {
-                $purge->handle($submission);
-                $purged++;
-            });
+            ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purge->handle($submission)));
 
-        $this->info("مشاركات حُذفت بياناتها: {$purged}.");
+        $this->info("مشاركات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.");
 
-        return self::SUCCESS;
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
     }
 }
