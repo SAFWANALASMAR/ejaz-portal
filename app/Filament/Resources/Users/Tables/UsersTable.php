@@ -20,6 +20,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 
 class UsersTable
 {
@@ -106,7 +107,14 @@ class UsersTable
                     ->action(function (User $record, SendStaffInvitation $invite): void {
                         /** @var User $actor */
                         $actor = auth()->user();
-                        $invite->handle($actor, $record);
+
+                        try {
+                            $invite->handle($actor, $record);
+                        } catch (ValidationException $exception) {
+                            Notification::make()->danger()->title($exception->getMessage())->send();
+
+                            return;
+                        }
 
                         Notification::make()->success()->title(__('users.invitation.sent'))->send();
                     }),

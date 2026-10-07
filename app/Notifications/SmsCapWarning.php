@@ -3,14 +3,14 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * تنبيه المشرف العام قبل بلوغ سقف رسائل التحقق في الساعة، ليرفعه قبل أن يتوقف التسجيل.
  */
-class SmsCapWarning extends Notification implements ShouldQueue
+class SmsCapWarning extends Notification implements ShouldQueueAfterCommit
 {
     use Queueable;
 

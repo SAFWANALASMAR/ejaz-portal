@@ -4,14 +4,15 @@ namespace App\Notifications;
 
 use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * تنبيه المشرفين العامين عند منح دور المشرف العام أو سحبه، حتى يُكتشف أي منح غير متوقع.
+ * يدخل الطابور بعد اعتماد المعاملة أياً كان الاتصال، فلا يلتقطه عامل قبل حفظ الحساب.
  */
-class SuperAdminRoleChanged extends Notification implements ShouldQueue
+class SuperAdminRoleChanged extends Notification implements ShouldQueueAfterCommit
 {
     use Queueable;
 

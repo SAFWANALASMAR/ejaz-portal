@@ -11,6 +11,8 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\SmsCapWarning;
 use App\Notifications\StaffInvitation;
 use App\Notifications\SuperAdminRoleChanged;
 use App\Notifications\VerifyEmailNotification;
@@ -18,6 +20,8 @@ use App\Support\LoginIdentifier;
 use Database\Seeders\PermissionsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -116,6 +120,25 @@ it('resends the invitation to an account that has not signed in yet', function (
 
     Notification::assertSentTo($staff, StaffInvitation::class);
     expect(Activity::where('event', 'invitation_sent')->whereMorphedTo('subject', $staff)->exists())->toBeTrue();
+});
+
+it('sends one invitation a minute to the same account', function () {
+    Notification::fake();
+    $staff = User::factory()->create(['last_login_at' => null]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListUsers::class)
+        ->callAction(TestAction::make('resendInvitation')->table($staff))
+        ->callAction(TestAction::make('resendInvitation')->table($staff))
+        ->assertNotified(__('users.invitation.too_soon'));
+
+    Notification::assertSentToTimes($staff, StaffInvitation::class, 1);
+
+    $this->travel(61)->seconds();
+    app(SendStaffInvitation::class)->handle($this->admin, $staff);
+
+    Notification::assertSentToTimes($staff, StaffInvitation::class, 2);
 });
 
 it('refuses to resend an invitation without permission or to an account that cannot use it', function () {
@@ -292,8 +315,12 @@ it('tells a super admin when another removes their role, and names both in the m
     Notification::assertSentTo($this->admin, SuperAdminRoleChanged::class);
 });
 
-it('queues work only after the surrounding transaction commits', function () {
-    expect(config('queue.connections.redis.after_commit'))->toBeTrue();
+it('queues the security mails only after the transaction commits, and encrypts the ones carrying a token', function () {
+    // على أي اتصال للطابور، لا على إعداد Redis وحده
+    expect(new SuperAdminRoleChanged(User::factory()->make(), granted: true, by: $this->admin))->toBeInstanceOf(ShouldQueueAfterCommit::class)
+        ->and(new SmsCapWarning(70, 7, 10))->toBeInstanceOf(ShouldQueueAfterCommit::class)
+        ->and(new StaffInvitation('token'))->toBeInstanceOf(ShouldQueueAfterCommit::class)->toBeInstanceOf(ShouldBeEncrypted::class)
+        ->and(new ResetPasswordNotification('token'))->toBeInstanceOf(ShouldBeEncrypted::class);
 });
 
 it('locks an anonymized account against edits and reactivation', function () {
