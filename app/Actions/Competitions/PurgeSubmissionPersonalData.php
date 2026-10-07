@@ -8,6 +8,7 @@ use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * حذف بيانات مشاركة من حُذف حسابه بعد مدة الاحتفاظ (قرار صفوان، مراجعة #1): مقاطعها (الملفات وبقايا
@@ -27,8 +28,9 @@ class PurgeSubmissionPersonalData
         foreach ($videos as $video) {
             $this->uploads->discard($video);
 
-            if (filled($video->path)) {
-                Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
+            // القرص لا يرمي استثناءً عند التعذر (throw: false) بل يعيد false، والملف الغائب أصلاً نجاح
+            if (filled($video->path) && ! Storage::disk(SubmissionVideo::disk())->delete((string) $video->path)) {
+                throw new RuntimeException("Cannot delete the video of submission {$submission->id}.");
             }
         }
 
