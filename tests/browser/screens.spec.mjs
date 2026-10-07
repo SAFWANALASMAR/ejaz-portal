@@ -63,6 +63,16 @@ test.describe('guest screens', () => {
         await page.click('[aria-controls="mobile-menu"]');
         await expect(page.locator('#mobile-menu')).toBeVisible();
     });
+
+    // لا يُحمَّل مشغّل يوتيوب حتى يضغط الزائر (المجموعة التجريبية وحدها — README)
+    test('library video loads the player only when pressed', async ({ page }) => {
+        const response = await page.goto('/library/videos/demo-video');
+        test.skip(response?.status() === 404, 'يحتاج المجموعة التجريبية');
+
+        await expect(page.locator('iframe')).toHaveCount(0);
+        await page.click('[data-video-embed]');
+        await expect(page.locator('iframe[src^="https://www.youtube-nocookie.com/embed/"]')).toHaveCount(1);
+    });
 });
 
 test.describe('account screens', () => {
