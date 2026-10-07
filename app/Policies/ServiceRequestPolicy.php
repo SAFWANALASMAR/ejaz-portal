@@ -25,7 +25,7 @@ class ServiceRequestPolicy extends ModulePolicy
     public function view(User $user, Model $record): bool
     {
         /** @var ServiceRequest $record */
-        return $record->status !== ServiceRequestStatus::Draft && $this->allows($user, 'view');
+        return $record->status !== ServiceRequestStatus::Draft && $record->user_id !== $user->id && $this->allows($user, 'view');
     }
 
     /**
@@ -66,6 +66,15 @@ class ServiceRequestPolicy extends ModulePolicy
     public function delete(User $user, Model $record): bool
     {
         /** @var ServiceRequest $record */
-        return $record->status !== ServiceRequestStatus::Draft && $this->allows($user, 'delete');
+        return $record->status !== ServiceRequestStatus::Draft && $record->user_id !== $user->id && $this->allows($user, 'delete');
+    }
+
+    /**
+     * ولا يستعيد طلبه المحذوف، فيعيد التقديم بعد رفضه.
+     */
+    public function restore(User $user, Model $record): bool
+    {
+        /** @var ServiceRequest $record */
+        return $record->user_id !== $user->id && $this->allows($user, 'delete');
     }
 }

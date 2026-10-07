@@ -12,6 +12,11 @@ const guestScreens = [
     { name: 'initiative', path: '/initiatives/qiyam', heading: 'h1', whenPublished: true },
     { name: 'governance', path: '/governance', heading: 'h1' },
     { name: 'document', path: '/governance/privacy-policy', heading: 'h1', whenPublished: true },
+    { name: 'library', path: '/library', heading: 'h1' },
+    { name: 'library-section', path: '/library/books', heading: 'h1' },
+    // لا عنصر منشور بعد، فيُصوَّر من المجموعة التجريبية وحدها (README)
+    { name: 'library-item', path: '/library/books/demo-book', heading: 'h1', whenPublished: true },
+    { name: 'library-video', path: '/library/videos/demo-video', heading: 'h1', whenPublished: true },
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
@@ -62,6 +67,16 @@ test.describe('guest screens', () => {
         await page.goto('/');
         await page.click('[aria-controls="mobile-menu"]');
         await expect(page.locator('#mobile-menu')).toBeVisible();
+    });
+
+    // لا يُحمَّل مشغّل يوتيوب حتى يضغط الزائر (المجموعة التجريبية وحدها — README)
+    test('library video loads the player only when pressed', async ({ page }) => {
+        const response = await page.goto('/library/videos/demo-video');
+        test.skip(response?.status() === 404, 'يحتاج المجموعة التجريبية');
+
+        await expect(page.locator('iframe')).toHaveCount(0);
+        await page.click('[data-video-embed]');
+        await expect(page.locator('iframe[src^="https://www.youtube-nocookie.com/embed/"]')).toHaveCount(1);
     });
 });
 

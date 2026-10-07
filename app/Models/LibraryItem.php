@@ -34,10 +34,15 @@ class LibraryItem extends Model implements HasPublicImages
 
     public const FILE_DIRECTORY = 'library';
 
+    public const MAX_TAGS = 10;
+
+    public const MAX_TAG_LENGTH = 40;
+
     /**
-     * الملف الصوتي بامتداده (من نوعه الحقيقي عند الرفع) ونوعه عند التقديم.
+     * الملف الصوتي بامتداده (من نوعه الحقيقي عند الرفع)، وأنواعه المقبولة من محتواه. وأولها
+     * نوعه عند التقديم.
      */
-    public const AUDIO_TYPES = ['mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4'];
+    public const AUDIO_TYPES = ['mp3' => ['audio/mpeg'], 'm4a' => ['audio/mp4', 'audio/x-m4a']];
 
     /**
      * @return array<string, string>
@@ -99,15 +104,25 @@ class LibraryItem extends Model implements HasPublicImages
 
     public function fileContentType(): string
     {
-        return $this->section->takesPdf() ? 'application/pdf' : self::AUDIO_TYPES[$this->fileExtension()] ?? 'application/octet-stream';
+        return $this->section->takesPdf() ? 'application/pdf' : self::AUDIO_TYPES[$this->fileExtension()][0] ?? 'application/octet-stream';
     }
 
     /**
-     * اسم الملف عند التنزيل: المعرّف بحروفه اللاتينية، فلا مشكلة ترميز في المتصفحات.
+     * اسم الملف عند التنزيل: المعرّف بحروفه اللاتينية، فلا مشكلة ترميز في المتصفحات. والامتداد
+     * من القسم للكتب والأبحاث، فلا يصل الزائر ملف PDF باسم آخر.
      */
     public function downloadName(): string
     {
-        return $this->slug.'.'.$this->fileExtension();
+        return $this->slug.'.'.($this->section->takesPdf() ? 'pdf' : $this->fileExtension());
+    }
+
+    /**
+     * مسار في مجلد ملفات المكتبة، بلا صعود ولا محرف null. فلا يحفظ الإجراء ولا يحذف ولا يقدّم
+     * ملفاً غيره.
+     */
+    public static function isOwnFile(string $path): bool
+    {
+        return str_starts_with($path, self::FILE_DIRECTORY.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
     }
 
     /**

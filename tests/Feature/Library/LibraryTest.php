@@ -55,6 +55,8 @@ it('searches by title or author and filters by tag, taking % and _ as plain lett
     storedLibraryItem(['title' => 'الرتق والفتق', 'author' => 'المتحدث الثاني', 'tags' => ['الفلك']]);
 
     $this->get('/library/books')->assertSee('href="'.route('library.section', ['books', 'tag' => 'الفلك']).'"', false);
+    // وروابط التصنيفات في نتيجة البحث تحفظ كلمته
+    $this->get('/library/books?q=الرتق')->assertSee('href="'.e(route('library.section', ['books', 'tag' => 'الفلك', 'q' => 'الرتق'])).'"', false);
 
     $this->get('/library/books?q=الجنين')->assertSee('مراحل خلق الجنين')->assertDontSee('الرتق والفتق');
     $this->get('/library/books?q=الثاني')->assertSee('الرتق والفتق')->assertDontSee('مراحل خلق الجنين');
@@ -76,14 +78,18 @@ it('answers 404 for an unknown section and for a page after the last one', funct
     $this->get('/library/books?page=1')->assertOk()->assertSee('الكتاب الوحيد');
 });
 
-it('embeds a YouTube video from youtube-nocookie, and plays a hosted file in the browser player', function () {
+it('loads a YouTube video from youtube-nocookie only when pressed, and plays a hosted file in the browser player', function () {
     config(['security.csp.media_src' => ['https://media.ejaz.sa']]);
     LibraryItem::factory()->video('https://youtu.be/abcdefghijk?si=share')->create(['slug' => 'embryo', 'title' => 'مراحل خلق الجنين']);
     LibraryItem::factory()->video('https://media.ejaz.sa/videos/clip.mp4')->create(['slug' => 'hosted']);
 
-    $this->get('/library/videos/embryo')->assertOk()
+    // لا إطار ليوتيوب قبل الضغط، فلا يتصل متصفح الزائر بخوادمه. وبلا JavaScript يفتح الرابط المقطع هناك
+    $page = $this->get('/library/videos/embryo')->assertOk()
         ->assertSeeInOrder(['<h1', 'مراحل خلق الجنين'], false)
-        ->assertSee('src="https://www.youtube-nocookie.com/embed/abcdefghijk"', false);
+        ->assertSee('href="https://www.youtube.com/watch?v=abcdefghijk"', false)
+        ->assertSee('data-video-embed="https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1"', false);
+
+    expect($page->getContent())->not->toContain('<iframe');
 
     $this->get('/library/videos/hosted')->assertOk()
         ->assertSee('<video src="https://media.ejaz.sa/videos/clip.mp4"', false);
@@ -106,15 +112,17 @@ it('serves the file with its type, frames only a PDF from the site, and answers 
     storedLibraryItem(['slug' => 'book']);
     storedLibraryItem(['slug' => 'lecture', 'section' => LibrarySection::Audio, 'file' => 'library/lecture.mp3']);
 
+    // PDF كاملاً لا أجزاءً، فلا يتجاوز عارض المتصفح حد الطلبات
     $pdf = $this->get('/library/books/book/file')->assertOk()
         ->assertHeader('Content-Type', 'application/pdf')
         ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
         ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");
 
-    expect($pdf->headers->get('Content-Disposition'))->toStartWith('inline')->toContain('book.pdf');
+    expect($pdf->headers->get('Content-Disposition'))->toStartWith('inline')->toContain('book.pdf')
+        ->and($pdf->headers->has('Accept-Ranges'))->toBeFalse();
 
     // الصوت لا يُضمَّن، ويُطلب أجزاءً عند التقديم والتأخير
-    $this->get('/library/audio/lecture/file')->assertOk()
+    $audio = $this->get('/library/audio/lecture/file')->assertOk()
         ->assertHeader('Content-Type', 'audio/mpeg')
         ->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('Accept-Ranges', 'bytes');
@@ -126,6 +134,25 @@ it('serves the file with its type, frames only a PDF from the site, and answers 
     $download = $this->get('/library/books/book/download')->assertOk();
 
     expect($download->headers->get('Content-Disposition'))->toStartWith('attachment')->toContain('book.pdf');
+
+    // ولا يحتفظ وسيط مشترك بملف قد يُلغى نشره
+    foreach ([$pdf, $audio, $download, $this->get('/library/audio/lecture/download')] as $response) {
+        expect($response->headers->get('Cache-Control'))->toContain('private')->not->toContain('public');
+    }
+});
+
+it('pages through a section, keeping the validated filter in the page links and nothing else', function () {
+    LibraryItem::factory()->count(13)->video()->create(['tags' => ['الفلك']]);
+
+    $this->get('/library/videos?tag=الفلك')->assertOk()
+        ->assertSee(route('library.section', ['videos', 'tag' => 'الفلك', 'page' => 2]))
+        ->assertSee(__('site.page_of', ['page' => 1, 'pages' => 2]));
+
+    $this->get('/library/videos?tag=الفلك&page=2')->assertOk()->assertSee(__('site.page_of', ['page' => 2, 'pages' => 2]));
+
+    // معامل لم يجتز التحقق لا يدخل روابط الصفحة الأولى المخزنة
+    expect($this->get('/library/videos?utm=evil')->assertOk()->getContent())->not->toContain('utm');
+    expect($this->get('/library/videos')->getContent())->not->toContain('utm');
 });
 
 it('answers 404 for an unpublished, deleted or unknown item and its file, and under another section', function () {

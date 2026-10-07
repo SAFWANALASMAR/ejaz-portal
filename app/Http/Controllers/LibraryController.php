@@ -100,16 +100,20 @@ class LibraryController extends Controller
     }
 
     /**
-     * على القرص المحلي يُقدَّم الملف بطلب الجزء (Range)، فيعمل التقديم والتأخير في مشغّل الصوت.
-     * وفي الإنتاج يُسلَّم للخادم أو لرابط تخزين موقّع قصير (roadmap.md).
+     * الصوت على القرص المحلي يُقدَّم بطلب الجزء (Range)، فيعمل التقديم والتأخير في مشغّله. وPDF
+     * كاملاً كالحوكمة، لأن عارض المتصفح يطلب الملف المحسَّن للويب قطعاً صغيرة كثيرة تتجاوز حد
+     * الطلبات. والاستجابة خاصة، فلا يحتفظ بها وسيط بعد إلغاء النشر. وفي الإنتاج يُسلَّم الملف
+     * للخادم أو لرابط تخزين موقّع قصير (roadmap.md).
      */
     private static function serve(LibraryItem $item, string $disposition): Response
     {
         $disk = Storage::disk(LibraryItem::disk());
         $headers = ['Content-Type' => $item->fileContentType()];
 
-        if (config('filesystems.disks.'.LibraryItem::disk().'.driver') === 'local') {
-            return response()->file($disk->path((string) $item->file), $headers)->setContentDisposition($disposition, $item->downloadName());
+        if (! $item->section->takesPdf() && config('filesystems.disks.'.LibraryItem::disk().'.driver') === 'local') {
+            return response()->file($disk->path((string) $item->file), $headers)
+                ->setPrivate()
+                ->setContentDisposition($disposition, $item->downloadName());
         }
 
         return $disposition === 'inline'
@@ -136,7 +140,8 @@ class LibraryController extends Controller
             ->paginate(self::PER_PAGE)
             // الروابط من APP_URL لا من رأس Host، لأن الصفحة الأولى تُخزَّن
             ->withPath(route('library.section', $section->value))
-            ->withQueryString();
+            // ولا يدخلها إلا ما اجتاز التحقق، فلا تحمل الصفحة المخزنة معاملات زائر
+            ->appends($filters);
     }
 
     /**
@@ -183,7 +188,7 @@ class LibraryController extends Controller
     {
         $item = LibraryItem::query()->published()->where('section', $section)->where('slug', $slug)->whereNotNull('file')->firstOrFail();
 
-        abort_unless(Storage::disk(LibraryItem::disk())->exists((string) $item->file), 404);
+        abort_unless(LibraryItem::isOwnFile((string) $item->file) && Storage::disk(LibraryItem::disk())->exists((string) $item->file), 404);
 
         return $item;
     }
