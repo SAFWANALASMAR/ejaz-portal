@@ -172,10 +172,10 @@ it('aggregates results without the respondents, and exports them', function () {
         ->and($results['questions'][1]['counts'])->toBe([0 => 2, 1 => 0, 2 => 1])
         ->and($results['questions'][2]['answered'])->toBe(2);
 
-    $this->actingAs(userWithRole(RoleName::BoardMember))->get(SurveyResource::getUrl('results', ['record' => $this->survey]))
+    // ثلاث إجابات: يراها من يدير الاستبيان، وعضو المجلس بعد خمس (الاختبار التالي)
+    $this->actingAs($this->manager)->get(SurveyResource::getUrl('results', ['record' => $this->survey]))
         ->assertOk()->assertSee('رائع')->assertDontSee('اسم مستجيب سري');
 
-    $this->actingAs($this->manager);
     $download = Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->callAction('export');
     $download->assertFileDownloaded('survey-'.$this->survey->uuid.'.csv');
 });
@@ -314,4 +314,22 @@ it('neutralizes a formula after leading spaces in the exported answers', functio
     $csv = base64_decode((string) data_get($download->effects, 'download.content'));
 
     expect($csv)->toContain("'\u{00A0}=HYPERLINK");
+});
+
+it('withholds the breakdown and texts below five responses from those who do not manage the survey', function () {
+    foreach (range(1, 4) as $i) {
+        answer([$this->scale->id => 5, $this->choice->id => 0, $this->text->id => 'نص-قد-يدل-على-كاتبه-'.$i], User::factory()->create());
+    }
+
+    $url = SurveyResource::getUrl('results', ['record' => $this->survey]);
+
+    // عضو المجلس يرى العدد وحده حتى خمس إجابات، فلا يُعرف كاتب نص في استبيان صغير
+    $this->actingAs(userWithRole(RoleName::BoardMember))->get($url)
+        ->assertOk()->assertSee(__('surveys.results.withheld', ['count' => SurveyResults::MIN_RESPONSES]))->assertDontSee('نص-قد-يدل-على-كاتبه-1');
+    $this->actingAs($this->manager)->get($url)->assertOk()->assertSee('نص-قد-يدل-على-كاتبه-1');
+
+    answer([$this->scale->id => 4, $this->choice->id => 1, $this->text->id => 'خامس'], User::factory()->create());
+
+    $this->actingAs(userWithRole(RoleName::BoardMember))->get($url)
+        ->assertOk()->assertSee('نص-قد-يدل-على-كاتبه-1')->assertDontSee(__('surveys.results.withheld', ['count' => SurveyResults::MIN_RESPONSES]));
 });

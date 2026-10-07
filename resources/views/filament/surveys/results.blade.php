@@ -8,6 +8,12 @@
 <x-filament-panels::page>
     <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('surveys.results.responses', ['count' => number_format($results['responses'])]) }}</p>
 
+    @if ($results['withheld'] ?? false)
+        <x-filament::section>
+            <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('surveys.results.withheld', ['count' => \App\Support\SurveyResults::MIN_RESPONSES]) }}</p>
+        </x-filament::section>
+    @endif
+
     @foreach ($results['questions'] as $row)
         <x-filament::section :heading="$loop->iteration.'. '.$row['question']->prompt" :description="__('surveys.results.answered', ['count' => number_format($row['answered'])])">
             @if ($row['answered'] === 0)

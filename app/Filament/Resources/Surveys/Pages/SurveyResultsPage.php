@@ -47,13 +47,22 @@ class SurveyResultsPage extends Page
     }
 
     /**
-     * @return array{responses: int, questions: list<array<string, mixed>>}
+     * ومن لا يدير الاستبيان (عضو المجلس) يرى العدد وحده حتى خمس إجابات (SurveyResults::MIN_RESPONSES).
+     *
+     * @return array{responses: int, questions: list<array<string, mixed>>, withheld?: bool}
      */
     public function getResults(): array
     {
         abort_unless(auth()->user()?->can('view', $this->survey()), 403);
 
-        return SurveyResults::for($this->survey()->load('questions'));
+        $results = SurveyResults::for($this->survey()->load('questions'));
+
+        // abort_unless أعلاه يضمن المستخدم
+        if ($results['responses'] < SurveyResults::MIN_RESPONSES && ! auth()->user()->can('update', $this->survey())) {
+            return SurveyResults::withheld($results);
+        }
+
+        return $results;
     }
 
     protected function getHeaderActions(): array
