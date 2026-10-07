@@ -113,7 +113,8 @@ class CompetitionSubmission extends Model
      */
     public static function lockDraft(int $id): self
     {
-        $locked = static::query()->withTrashed()->whereKey($id)->lockForUpdate()->firstOrFail();
+        /** @var self $locked */
+        $locked = self::query()->withTrashed()->whereKey($id)->lockForUpdate()->firstOrFail();
 
         if (! $locked->isDraft() || $locked->trashed()) {
             throw new AuthorizationException;
