@@ -5,6 +5,7 @@ namespace App\Actions\Programs;
 use App\Actions\Content\SaveContent;
 use App\Models\Program;
 use App\Models\User;
+use App\Rules\SafeUrl;
 use App\Support\FormFieldRules;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +29,10 @@ class SaveProgram
         }
 
         $check = (clone $program)->fill($data);
+
+        if (filled($check->meeting_url) && ! SafeUrl::isSafe($check->meeting_url, allowInternal: false)) {
+            throw ValidationException::withMessages(['meeting_url' => __('validation.url', ['attribute' => __('programs.admin.fields.meeting_url')])]);
+        }
 
         if ($check->ends_at !== null && $check->ends_at->lt($check->starts_at)) {
             throw ValidationException::withMessages(['ends_at' => __('programs.errors.ends_before_start')]);

@@ -23,7 +23,7 @@ class ProgramRegistrationExporter extends Exporter
         return [
             ExportColumn::make('program.title')->label(__('programs.registrations.fields.program'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
             ExportColumn::make('user.name')->label(__('programs.registrations.fields.name'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
-            ExportColumn::make('user.email')->label(__('programs.registrations.fields.email')),
+            ExportColumn::make('user.email')->label(__('programs.registrations.fields.email'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
             ExportColumn::make('user.phone')->label(__('programs.registrations.fields.phone'))->formatStateUsing(fn (?string $state) => SaudiPhone::display($state)),
             ExportColumn::make('status')->label(__('programs.registrations.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('attended_at')->label(__('programs.registrations.fields.attended_at'))

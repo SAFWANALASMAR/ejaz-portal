@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\User;
 
@@ -41,6 +42,15 @@ class ExportUserData
                     'answers' => $request->answers ?? [],
                     'files' => array_map(fn (array $file): string => $file['name'], $request->files ?? []),
                     'submitted_at' => $date($request->submitted_at),
+                ])->all(),
+            'program_registrations' => ProgramRegistration::query()->whereBelongsTo($user)->with('program')->orderBy('id')->get()
+                ->map(fn (ProgramRegistration $registration): array => [
+                    'program' => $registration->program->title,
+                    'status' => $registration->status->value,
+                    'answers' => $registration->answers ?? [],
+                    'attended_at' => $date($registration->attended_at),
+                    'cancelled_at' => $date($registration->cancelled_at),
+                    'registered_at' => $date($registration->created_at),
                 ])->all(),
         ];
     }

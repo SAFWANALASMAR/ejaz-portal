@@ -89,6 +89,11 @@ it('refuses file fields in program registration forms, even outside the panel', 
     ]))->toThrow(ValidationException::class);
 
     expect(Program::count())->toBe(0);
+
+    expect(fn () => app(SaveProgram::class)->handle($this->manager, new Program, [
+        ...Program::factory()->raw(['program_type_id' => $this->type->id]),
+        'meeting_url' => 'javascript:alert(1)',
+    ]))->toThrow(ValidationException::class);
 });
 
 it('records attendance for confirmed registrants once the program started, and refuses before', function () {

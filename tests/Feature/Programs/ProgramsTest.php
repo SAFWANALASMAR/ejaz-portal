@@ -1,10 +1,13 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Actions\Programs\RegisterForProgram;
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\FormFieldType;
 use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
+use App\Enums\RoleName;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
@@ -159,4 +162,43 @@ it('reminds confirmed registrants a day before, once', function () {
 
 it('adds my programs to the account navigation', function () {
     $this->actingAs($this->user)->get('/account')->assertOk()->assertSee(route('account.programs.index'));
+});
+
+it('includes my program registrations in my personal data copy', function () {
+    ProgramRegistration::factory()->for($this->program)->for($this->user)->create(['answers' => ['job' => 'جامعة']]);
+    ProgramRegistration::factory()->create();
+
+    $data = app(ExportUserData::class)->handle($this->user);
+
+    expect($data['program_registrations'])->toHaveCount(1)
+        ->and($data['program_registrations'][0]['answers'])->toBe(['job' => 'جامعة']);
+});
+
+it('releases the seats of an anonymized account to the waitlist and stops its reminders', function () {
+    $this->program->update(['seats' => 1, 'has_waitlist' => true, 'starts_at' => now()->addHours(12)]);
+    $gone = ProgramRegistration::factory()->for($this->program)->create();
+    $next = ProgramRegistration::factory()->waitlisted()->for($this->program)->create();
+    $gone->user->forceFill(['deletion_requested_at' => now()])->save();
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $gone->user);
+
+    expect($gone->fresh()->status)->toBe(RegistrationStatus::Cancelled)
+        ->and($next->fresh()->status)->toBe(RegistrationStatus::Confirmed);
+
+    $inactive = ProgramRegistration::factory()->for($this->program)->create(['status' => RegistrationStatus::Waitlisted]);
+    $inactive->user->forceFill(['is_active' => false])->save();
+    $this->artisan('programs:send-reminders')->expectsOutput('1')->assertSuccessful();
+    Notification::assertNotSentTo($inactive->user, ProgramRegistrationChanged::class, fn ($n) => $n->kind === ProgramRegistrationChanged::REMINDER);
+});
+
+it('refuses registering an unverified or inactive account even outside the route', function () {
+    expect(fn () => app(RegisterForProgram::class)->handle(User::factory()->unverified()->create(), $this->program, []))->toThrow(AuthorizationException::class);
+
+    $inactive = User::factory()->create();
+    $inactive->forceFill(['is_active' => false])->save();
+    expect(fn () => app(RegisterForProgram::class)->handle($inactive, $this->program, []))->toThrow(AuthorizationException::class);
+});
+
+it('keeps the signed-in program page out of shared caches', function () {
+    $this->actingAs($this->user)->get('/programs/research-skills')->assertHeader('Cache-Control', 'no-store, private');
 });

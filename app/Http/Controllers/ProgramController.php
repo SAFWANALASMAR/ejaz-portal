@@ -10,6 +10,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * «برامجنا» (الصورة 06): تبويبات بالأنواع وبطاقات البرامج المنشورة القادمة أولاً، ثم صفحة
@@ -46,7 +47,7 @@ class ProgramController extends Controller
         return view('programs.index', ['types' => $types, 'active' => $active, 'programs' => $programs]);
     }
 
-    public function show(Request $request, string $slug): View
+    public function show(Request $request, string $slug): Response
     {
         $program = Program::query()->published()->withConfirmedCount()->with(['type', 'initiative'])->where('slug', $slug)->firstOrFail();
 
@@ -56,6 +57,9 @@ class ProgramController extends Controller
             ->where('status', '!=', RegistrationStatus::Cancelled->value)
             ->first();
 
-        return view('programs.show', ['program' => $program, 'registration' => $registration]);
+        $response = response()->view('programs.show', ['program' => $program, 'registration' => $registration]);
+
+        // الصفحة لصاحب الحساب قد تحمل رابط اجتماعه، فلا تُحفظ في ذاكرة متصفح ولا وسيط
+        return $request->user() === null ? $response : $response->header('Cache-Control', 'private, no-store');
     }
 }

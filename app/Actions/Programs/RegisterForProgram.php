@@ -7,6 +7,7 @@ use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Notifications\ProgramRegistrationChanged;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,10 +21,16 @@ class RegisterForProgram
     /**
      * @param  array<string, mixed>  $answers  فُحصت أنواعها بقواعد حقول البرنامج (FormFieldRules)
      *
+     * @throws AuthorizationException
      * @throws ValidationException
      */
     public function handle(User $user, Program $program, array $answers): ProgramRegistration
     {
+        // حساب نشط موثق البريد فقط، ولو استُدعي الإجراء من غير مسار التسجيل
+        if (! $user->is_active || $user->anonymized_at !== null || ! $user->hasVerifiedEmail()) {
+            throw new AuthorizationException;
+        }
+
         $answers = collect($answers)->only(array_column($program->fields(), 'key'))->all();
 
         return DB::transaction(function () use ($user, $program, $answers): ProgramRegistration {

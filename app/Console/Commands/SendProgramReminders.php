@@ -29,6 +29,7 @@ class SendProgramReminders extends Command
                 ->withoutTrashed()
                 ->where('is_published', true)
                 ->whereBetween('starts_at', [now(), now()->addDay()]))
+            ->whereHas('user', fn (Builder $user) => $user->where('is_active', true)->whereNull('anonymized_at'))
             ->with(['program', 'user'])
             ->chunkById(500, function ($registrations) use (&$sent): void {
                 foreach ($registrations as $registration) {

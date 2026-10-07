@@ -26,7 +26,7 @@ class ServiceRequestExporter extends Exporter
             ExportColumn::make('opening.title')->label(__('services.admin.fields.opening'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('opening.kind')->label(__('services.admin.fields.kind'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('user.name')->label(__('services.admin.fields.applicant'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
-            ExportColumn::make('user.email')->label(__('services.admin.fields.email')),
+            ExportColumn::make('user.email')->label(__('services.admin.fields.email'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('user.phone')->label(__('services.admin.fields.phone')),
             ExportColumn::make('status')->label(__('services.admin.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('assignee.name')->label(__('services.admin.fields.assignee')),

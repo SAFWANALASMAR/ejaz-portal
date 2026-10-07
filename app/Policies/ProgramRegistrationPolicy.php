@@ -12,6 +12,19 @@ use App\Models\User;
  */
 class ProgramRegistrationPolicy
 {
+    /**
+     * المسجلون ببياناتهم الشخصية لمن يملك programs.view (docs/roles-permissions.md).
+     */
+    public function viewAny(User $user): bool
+    {
+        return $user->can('programs.view');
+    }
+
+    public function view(User $user, ProgramRegistration $registration): bool
+    {
+        return $user->can('programs.view');
+    }
+
     public function cancel(User $user, ProgramRegistration $registration): bool
     {
         return $registration->user_id === $user->id

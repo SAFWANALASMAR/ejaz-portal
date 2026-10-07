@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Support\LoginIdentifier;
@@ -58,6 +59,7 @@ class AnonymizeUser
 
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();
+            app(CancelProgramRegistration::class)->releaseAllOf($user);
 
             activity('users')
                 ->causedBy($actor)

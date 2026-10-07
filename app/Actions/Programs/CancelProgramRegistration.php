@@ -11,7 +11,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * إلغاء المستخدم تسجيله قبل بدء البرنامج. المقعد المحرر يذهب لأقدم المنتظرين في المعاملة نفسها
+ * إلغاء المستخدم تسجيله قبل بدء البرنامج، أو إلغاء تسجيلات حساب أُخفيت بياناته. المقعد المحرر يذهب لأقدم المنتظرين في المعاملة نفسها
  * (بقفل سطر البرنامج كالتسجيل)، ويُشعَر بالبريد.
  */
 class CancelProgramRegistration
@@ -25,6 +25,24 @@ class CancelProgramRegistration
             throw new AuthorizationException;
         }
 
+        $this->release($registration);
+    }
+
+    /**
+     * عند إخفاء بيانات حساب: تُلغى تسجيلاته في البرامج التي لم تبدأ، فتتحرر مقاعدها للمنتظرين.
+     */
+    public function releaseAllOf(User $user): void
+    {
+        ProgramRegistration::query()
+            ->whereBelongsTo($user)
+            ->where('status', '!=', RegistrationStatus::Cancelled->value)
+            ->whereHas('program', fn ($program) => $program->where('starts_at', '>', now()))
+            ->get()
+            ->each(fn (ProgramRegistration $registration) => $this->release($registration));
+    }
+
+    private function release(ProgramRegistration $registration): void
+    {
         DB::transaction(function () use ($registration): void {
             /** @var Program $program */
             $program = Program::withTrashed()->whereKey($registration->program_id)->lockForUpdate()->firstOrFail();
