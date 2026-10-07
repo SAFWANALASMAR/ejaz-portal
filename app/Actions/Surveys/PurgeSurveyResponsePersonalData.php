@@ -16,16 +16,19 @@ use Illuminate\Support\Facades\DB;
  */
 class PurgeSurveyResponsePersonalData
 {
+    /**
+     * والأسئلة من الاستبيان المحمَّل مع الإجابة (الأمر يحمّلها مسبقاً)، فلا استعلام لكل إجابة.
+     */
     public function handle(SurveyResponse $response): void
     {
-        DB::transaction(function () use ($response): void {
+        $texts = $response->survey->questions
+            ->filter(fn (SurveyQuestion $question): bool => $question->type === SurveyQuestionType::Text)
+            ->map(fn (SurveyQuestion $question): string => (string) $question->id)
+            ->all();
+
+        DB::transaction(function () use ($response, $texts): void {
             /** @var SurveyResponse $locked */
             $locked = SurveyResponse::query()->whereKey($response->id)->lockForUpdate()->firstOrFail();
-
-            $texts = $locked->survey->questions
-                ->filter(fn (SurveyQuestion $question): bool => $question->type === SurveyQuestionType::Text)
-                ->map(fn (SurveyQuestion $question): string => (string) $question->id)
-                ->all();
 
             $locked->answers = array_diff_key((array) $locked->answers, array_flip($texts));
             $locked->user_id = null;
@@ -35,8 +38,9 @@ class PurgeSurveyResponsePersonalData
                 ->event(ActivityEvent::PersonalDataPurged->value)
                 ->withProperties(['survey_id' => $locked->survey_id])
                 ->log(ActivityEvent::PersonalDataPurged->value);
-
-            SurveyResults::forget($locked->survey);
         });
+
+        // بعد الاعتماد، فلا تخزّن قراءة متزامنة النص المحذوف من جديد
+        SurveyResults::forget($response->survey);
     }
 }

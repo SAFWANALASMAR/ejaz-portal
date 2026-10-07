@@ -51,6 +51,7 @@ class PurgeAnonymizedData extends Command
         $responses = 0;
 
         SurveyResponse::query()
+            ->with('survey.questions')
             ->whereIn('user_id', User::query()->select('id')->where('anonymized_at', '<', now()->subDays($days)))
             ->lazyById()
             ->each(function (SurveyResponse $response) use ($purgeResponse, &$responses): void {

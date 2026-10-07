@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -16,6 +17,10 @@ return new class extends Migration
             $table->unsignedInteger('guest_limit')->nullable()->after('allow_guests');
             $table->unsignedInteger('guest_responses')->default(0)->after('guest_limit');
         });
+
+        // استبيان سُمح فيه لغير المسجلين قبل السقف: يُوقف السماح حتى يضبط المسؤول سقفه، فلا يُرفض الضيوف
+        // برسالة «اكتمل العدد» دون أن يعلم أحد
+        DB::table('surveys')->where('allow_guests', true)->whereNull('guest_limit')->update(['allow_guests' => false]);
     }
 
     public function down(): void
