@@ -28,7 +28,7 @@ it('shows my upcoming programs and latest requests, with counts on their cards',
         ->assertSeeInOrder(['برنامج قريب', 'برنامج لاحق'])
         ->assertDontSee('برنامج مضى')->assertDontSee('برنامج ملغى')
         ->assertSee(RegistrationStatus::Waitlisted->getLabel())
-        ->assertSee('وظيفة محلل')->assertSee($request->reference)->assertSee('قيد المراجعة');
+        ->assertSee('وظيفة محلل')->assertSee($request->reference)->assertSee(ServiceRequestStatus::UnderReview->getLabel());
 
     expect($response->viewData('summary')['upcoming_count'])->toBe(2)
         ->and($response->viewData('summary')['open_requests'])->toBe(1);
@@ -77,4 +77,29 @@ it('keeps the number of queries constant however many records I have', function 
     ServiceRequest::factory()->count(3)->for($this->user)->status(ServiceRequestStatus::NeedsCompletion)->create();
 
     expect($count())->toBe($few);
+});
+
+it('does not nudge a draft of a withdrawn opening, and keeps personal pages out of caches', function () {
+    $opening = Opening::factory()->create(['title' => 'فرصة سُحبت']);
+    ServiceRequest::factory()->draft()->for($this->user)->for($opening)->create();
+    $opening->delete();
+
+    $this->actingAs($this->user)->get('/account')->assertOk()
+        ->assertDontSee(__('account.summary.open_draft', ['opening' => 'فرصة سُحبت']))
+        ->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/account/requests')->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/account/programs')->assertHeader('Cache-Control', 'no-store, private');
+});
+
+it('leaves out deleted programs and drafts of unpublished openings', function () {
+    $gone = Program::factory()->create(['title' => 'برنامج محذوف']);
+    ProgramRegistration::factory()->for($gone)->for($this->user)->create();
+    $gone->delete();
+    ServiceRequest::factory()->draft()->for($this->user)->for(Opening::factory()->unpublished()->create(['title' => 'فرصة غير منشورة']))->create();
+
+    $response = $this->actingAs($this->user)->get('/account')->assertOk()
+        ->assertDontSee('برنامج محذوف')
+        ->assertDontSee(__('account.summary.open_draft', ['opening' => 'فرصة غير منشورة']));
+
+    expect($response->viewData('summary')['upcoming_count'])->toBe(0);
 });

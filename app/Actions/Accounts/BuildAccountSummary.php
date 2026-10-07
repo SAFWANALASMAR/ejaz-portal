@@ -19,6 +19,8 @@ class BuildAccountSummary
 {
     private const LATEST = 3;
 
+    private const ALERTS = 10;
+
     /**
      * @return array{
      *     needs_completion: Collection<int, ServiceRequest>,
@@ -39,17 +41,18 @@ class BuildAccountSummary
             ->whereHas('program', fn (Builder $program) => $program->whereNull('deleted_at')->where('starts_at', '>', now()));
 
         return [
-            'needs_completion' => $requests()->where('status', ServiceRequestStatus::NeedsCompletion->value)->with('opening')->latest('id')->get(),
+            // طلب واحد لكل فرصة (فهرس فريد)، والحد صريح فلا يكبر العمل بكثرة السجلات
+            'needs_completion' => $requests()->where('status', ServiceRequestStatus::NeedsCompletion->value)->with('opening')->latest('id')->limit(self::ALERTS)->get(),
             // المسودة تُذكَّر بها ما دامت فرصتها تقبل التقديم
             'open_drafts' => $requests()->where('status', ServiceRequestStatus::Draft->value)
-                ->whereHas('opening', fn (Builder $opening) => $opening->where('is_published', true)
+                ->whereHas('opening', fn (Builder $opening) => $opening->whereNull('deleted_at')->where('is_published', true)
                     ->where(fn (Builder $open) => $open->whereNull('closes_at')->orWhere('closes_at', '>', now())))
-                ->with('opening')->latest('id')->get(),
+                ->with('opening')->latest('id')->limit(self::ALERTS)->get(),
             'latest_requests' => $requests()->with('opening')->latest('id')->limit(self::LATEST)->get(),
             'open_requests' => $requests()->whereIn('status', [
                 ServiceRequestStatus::Received->value, ServiceRequestStatus::UnderReview->value, ServiceRequestStatus::NeedsCompletion->value,
             ])->count(),
-            'upcoming' => $upcoming()->with('program.type')
+            'upcoming' => $upcoming()->with('program')
                 ->orderBy(Program::query()->select('starts_at')->whereColumn('programs.id', 'program_registrations.program_id'))
                 ->limit(self::LATEST)->get(),
             'upcoming_count' => $upcoming()->count(),

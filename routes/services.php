@@ -25,7 +25,7 @@ Route::where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
 });
 
 // طلباتي
-Route::middleware('auth')->prefix('account/requests')->name('account.requests.')->group(function () {
+Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account/requests')->name('account.requests.')->group(function () {
     Route::get('/', [ServiceRequestController::class, 'index'])->name('index');
     Route::get('/{serviceRequest:uuid}', [ServiceRequestController::class, 'show'])->name('show');
     Route::put('/{serviceRequest:uuid}', [ServiceRequestController::class, 'update'])->middleware(['verified', 'throttle:10,1'])->name('update');

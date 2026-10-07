@@ -22,7 +22,7 @@ Route::where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
 });
 
 // برامجي
-Route::middleware('auth')->prefix('account/programs')->name('account.programs.')->group(function () {
+Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account/programs')->name('account.programs.')->group(function () {
     Route::get('/', [ProgramRegistrationController::class, 'index'])->name('index');
     Route::post('/{registration:uuid}/cancel', [ProgramRegistrationController::class, 'cancel'])->middleware('throttle:10,1')->name('cancel');
 });

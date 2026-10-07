@@ -20,7 +20,11 @@
                 @foreach ($summary['upcoming'] as $registration)
                     <li class="flex flex-wrap items-center justify-between gap-3 py-3">
                         <span class="min-w-0">
-                            <a href="{{ route('programs.show', $registration->program->slug) }}" class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
+                            @if ($registration->program->is_published)
+                                <a href="{{ route('programs.show', $registration->program->slug) }}" class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
+                            @else
+                                <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
+                            @endif
                             <span class="mt-1 flex items-center gap-1.5 text-sm text-muted">
                                 {{ svg('heroicon-o-calendar', 'size-4 text-gold') }}
                                 {{ Dates::display($registration->program->starts_at, withTime: true) }}
