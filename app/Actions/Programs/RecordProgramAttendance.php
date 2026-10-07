@@ -3,6 +3,7 @@
 namespace App\Actions\Programs;
 
 use App\Enums\RegistrationStatus;
+use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * تسجيل حضور المؤكدين في برنامج بدأ، أو إلغاؤه. يُسجَّل في سجل العمليات (LogsActivity).
+ * تسجيل حضور المؤكدين في برنامج بدأ، أو إلغاؤه. يُسجَّل في سجل العمليات (LogsActivity)، وتتبعه
+ * شهادة الحضور (SyncAttendanceCertificate).
  */
 class RecordProgramAttendance
 {
@@ -42,7 +44,12 @@ class RecordProgramAttendance
                 }
 
                 $registration->update(['attended_at' => $attended ? ($registration->attended_at ?? now()) : null]);
-                $changed += (int) $registration->wasChanged('attended_at');
+
+                if ($registration->wasChanged('attended_at')) {
+                    $changed++;
+                    // الشهادة تتبع الحضور: تُولَّد أو تُحذف في الخلفية بعد اعتماد المعاملة
+                    SyncAttendanceCertificate::dispatch($registration)->afterCommit();
+                }
             }
 
             return $changed;

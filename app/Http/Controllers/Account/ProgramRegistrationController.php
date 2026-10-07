@@ -8,13 +8,16 @@ use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Programs\RegisterForProgramRequest;
+use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * التسجيل في برنامج، و«برامجي»: التسجيلات بحالاتها وإلغاؤها. كل تسجيل لصاحبه فقط.
@@ -72,6 +75,17 @@ class ProgramRegistrationController extends Controller
 
         return redirect()->route('programs.show', $request->program()->slug)
             ->with('status', __($registration->status === RegistrationStatus::Confirmed ? 'programs.registered' : 'programs.waitlisted'));
+    }
+
+    /**
+     * شهادة الحضور لصاحبها، تنزيلاً. وتسجيل غيره كأنه غير موجود.
+     */
+    public function certificate(Request $request, ProgramRegistration $registration): StreamedResponse
+    {
+        abort_unless($registration->user_id === $request->user()?->id && $registration->certificate_path !== null, 404);
+
+        return Storage::disk(SyncAttendanceCertificate::disk())
+            ->download($registration->certificate_path, 'certificate-'.$registration->program->slug.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     public function cancel(Request $request, ProgramRegistration $registration, CancelProgramRegistration $cancel): RedirectResponse
