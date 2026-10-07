@@ -55,16 +55,31 @@ final class ChunkedVideoUpload
     }
 
     /**
+     * ينسخ من الطلب بايتاً واحداً فوق الحجم المتوقع إلى ملف مؤقت، فإن طابق الحجم تماماً حُفظ الجزء،
+     * وإلا رُفض بلا كتابة على القرص الخاص.
+     *
      * @param  resource  $stream
      */
-    public static function store(SubmissionVideo $video, int $index, $stream): void
+    public static function store(SubmissionVideo $video, int $index, $stream, int $expected): bool
     {
-        Storage::disk(SubmissionVideo::disk())->writeStream($video->chunkDirectory().'/'.$index, $stream);
-    }
+        $buffer = tmpfile();
 
-    public static function chunkSize(SubmissionVideo $video, int $index): int
-    {
-        return (int) Storage::disk(SubmissionVideo::disk())->size($video->chunkDirectory().'/'.$index);
+        if ($buffer === false) {
+            throw new RuntimeException('Cannot create a temporary file for the chunk.');
+        }
+
+        try {
+            if (stream_copy_to_stream($stream, $buffer, $expected + 1) !== $expected) {
+                return false;
+            }
+
+            rewind($buffer);
+            Storage::disk(SubmissionVideo::disk())->writeStream($video->chunkDirectory().'/'.$index, $buffer);
+
+            return true;
+        } finally {
+            fclose($buffer);
+        }
     }
 
     /**
@@ -99,7 +114,12 @@ final class ChunkedVideoUpload
 
     public static function discardChunks(SubmissionVideo $video): void
     {
-        Storage::disk(SubmissionVideo::disk())->deleteDirectory($video->chunkDirectory());
+        self::discardDirectory($video->uuid);
+    }
+
+    public static function discardDirectory(string $uuid): void
+    {
+        Storage::disk(SubmissionVideo::disk())->deleteDirectory(SubmissionVideo::CHUNK_DIRECTORY.'/'.$uuid);
     }
 
     /**

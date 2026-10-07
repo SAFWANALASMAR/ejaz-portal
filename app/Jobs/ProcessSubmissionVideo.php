@@ -10,17 +10,22 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * معالجة المقطع بعد استلامه في الخلفية: جمع الأجزاء، ثم مطابقة الحجم المعلن، والنوع الحقيقي من
  * المحتوى (MP4)، والمدة من ترويسته مقابل حد السؤال. فالسليم يُحفظ باسم عشوائي في القرص الخاص
- * ويصير جاهزاً، والمخالف يُرفض بسببه ويُحذف.
+ * ويصير جاهزاً، والمخالف يُرفض بسببه ويُحذف. والحفظ شرطي على المقطع نفسه (المعرّف والحالة)، فإن
+ * استُبدل أثناء المعالجة لم يُكتب فوق الجديد. وإن فشلت المعالجة نهائياً رُفض المقطع ليُعاد رفعه.
  */
 class ProcessSubmissionVideo implements ShouldQueue
 {
     use Queueable;
 
     public int $tries = 3;
+
+    // جمع مقطع كبير وكتابته مرتين يستغرق وقتاً (حتى COMPETITION_VIDEO_MAX_MB)
+    public int $timeout = 900;
 
     public function __construct(public int $videoId) {}
 
@@ -32,6 +37,8 @@ class ProcessSubmissionVideo implements ShouldQueue
             return;
         }
 
+        $uuid = $video->uuid;
+        $path = null;
         $file = ChunkedVideoUpload::assemble($video);
 
         try {
@@ -41,29 +48,44 @@ class ProcessSubmissionVideo implements ShouldQueue
                 rewind($file);
                 $path = SubmissionVideo::DIRECTORY.'/'.Str::random(40).'.mp4';
                 Storage::disk(SubmissionVideo::disk())->writeStream($path, $file);
-                $video->path = $path;
-                $video->status = VideoStatus::Ready;
-            } else {
-                $video->status = VideoStatus::Rejected;
-                $video->rejection_reason = $reason;
             }
         } finally {
             fclose($file);
         }
 
-        // مقطع حلّ محله غيره أثناء المعالجة لا يُكتب فوق الجديد
-        $current = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Processing)->exists();
+        $updated = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $uuid)->where('status', VideoStatus::Processing)->update([
+            'status' => $reason === null ? VideoStatus::Ready : VideoStatus::Rejected,
+            'rejection_reason' => $reason,
+            'duration_seconds' => $video->duration_seconds,
+            'path' => $path,
+            'updated_at' => now(),
+        ]);
 
-        if (! $current) {
-            if (filled($video->path)) {
-                Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
-            }
+        if ($updated === 0 && $path !== null) {
+            Storage::disk(SubmissionVideo::disk())->delete($path);
+        }
 
+        ChunkedVideoUpload::discardDirectory($uuid);
+    }
+
+    /**
+     * فشل نهائي (جزء مفقود، أو امتلاء القرص، أو انتهاء المهلة): يُرفض المقطع فيعيد المتقدم رفعه، ولا
+     * يبقى «قيد المعالجة» يمنع الإرسال.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $video = SubmissionVideo::find($this->videoId);
+
+        if ($video === null) {
             return;
         }
 
-        $video->save();
-        ChunkedVideoUpload::discardChunks($video);
+        $updated = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Processing)
+            ->update(['status' => VideoStatus::Rejected, 'rejection_reason' => 'processing_failed', 'updated_at' => now()]);
+
+        if ($updated > 0) {
+            ChunkedVideoUpload::discardDirectory($video->uuid);
+        }
     }
 
     /**

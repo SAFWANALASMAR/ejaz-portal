@@ -5,6 +5,10 @@ namespace App\Support;
 /**
  * مدة مقطع MP4 بالثواني من ترويسة mvhd داخل moov، بلا أداة خارجية. يتنقل بين الصناديق بأحجامها
  * (ومنها الحجم بـ 64 بت للصناديق الكبيرة)، فلا يقرأ محتوى المقطع نفسه، ويجد moov في أوله أو آخره.
+ *
+ * ولا يقبل إلا مدة موجبة من ملف غير مجزأ: الملف المجزأ (mvex أو moof) يكتب في mvhd صفراً ومدته
+ * الحقيقية في أجزائه، فيُرفض ليُعاد تصديره. وهذا خط دفاع أول، والفحص الكامل بأداة مثل ffprobe قرار
+ * معلّق (decisions.md).
  */
 final class Mp4Duration
 {
@@ -16,6 +20,10 @@ final class Mp4Duration
         $moov = self::findBox($stream, 'moov', 0, self::length($stream));
 
         if ($moov === null) {
+            return null;
+        }
+
+        if (self::findBox($stream, 'mvex', $moov[0], $moov[1]) !== null || self::findBox($stream, 'moof', 0, self::length($stream)) !== null) {
             return null;
         }
 
@@ -45,7 +53,7 @@ final class Mp4Duration
             return null;
         }
 
-        return $timescale > 0 ? $duration / $timescale : null;
+        return $timescale > 0 && $duration > 0 ? $duration / $timescale : null;
     }
 
     /**

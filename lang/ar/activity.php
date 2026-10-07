@@ -45,6 +45,8 @@ return [
         'anonymized' => 'إخفاء البيانات بطلب الحذف',
         'menu_reordered' => 'إعادة ترتيب القائمة',
         'content_reordered' => 'إعادة ترتيب المحتوى',
+        'results_approved' => 'اعتماد نتائج مسابقة',
+        'draw_executed' => 'تنفيذ سحب إلكتروني',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -60,6 +62,8 @@ return [
         'CompetitionQuestion' => 'سؤال مسابقة',
         'CompetitionCriterion' => 'معيار تقييم',
         'CompetitionSubmission' => 'مشاركة في مسابقة',
+        'SubmissionReview' => 'تحكيم مشاركة',
+        'CompetitionDraw' => 'سحب إلكتروني',
     ],
 
 ];

@@ -36,7 +36,11 @@ return [
         'activity' => ['view'],
 
         // المسابقات (المرحلة 2)
-        'competitions' => ['view', 'create', 'update', 'delete'],
+        'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],
+        // المشاركات منفصلة لأن فيها بيانات المتقدمين الشخصية
+        'submissions' => ['view', 'assign', 'export', 'delete'],
+        // التحكيم: السياسة تحصره في المسند إلى المحكّم نفسه
+        'reviews' => ['view', 'update'],
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -54,9 +58,11 @@ return [
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*',
         ],
         'program_manager' => [
-            'competitions.*',
+            'competitions.*', 'submissions.*',
         ],
-        'reviewer' => [],
+        'reviewer' => [
+            'reviews.*',
+        ],
         'assembly_member' => [],
         'member' => [],
     ],

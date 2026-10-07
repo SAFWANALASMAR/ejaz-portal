@@ -3,6 +3,7 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\QuestionType;
+use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
@@ -49,16 +50,25 @@ class SaveCompetition
             throw ValidationException::withMessages(['questions' => __('competitions.validation.questions_locked')]);
         }
 
+        if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
+            throw ValidationException::withMessages(['criteria' => __('competitions.validation.criteria_locked')]);
+        }
+
         $data = $this->validate($competition, $data);
 
         // ما لم يصل من المعايير أو الأسئلة يبقى كما هو
         $criteria = $data['criteria'] ?? null;
         $questions = $data['questions'] ?? null;
-        unset($data['criteria'], $data['questions']);
+        $reviewers = $data['reviewers'] ?? null;
+        unset($data['criteria'], $data['questions'], $data['reviewers']);
+
+        if ($reviewers !== null) {
+            $this->checkReviewers($competition, array_map('intval', $reviewers));
+        }
 
         $data['categories'] = array_values(array_unique(array_filter(array_map('trim', $data['categories'] ?? []), fn (string $category): bool => $category !== '')));
 
-        DB::transaction(function () use ($competition, $data, $criteria, $questions): void {
+        DB::transaction(function () use ($competition, $data, $criteria, $questions, $reviewers): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول
             if ($competition->exists) {
                 Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
@@ -71,6 +81,10 @@ class SaveCompetition
 
             if ($questions !== null) {
                 $this->syncQuestions($competition, $questions);
+            }
+
+            if ($reviewers !== null) {
+                $competition->reviewers()->sync(array_map('intval', $reviewers));
             }
         });
 
@@ -98,6 +112,9 @@ class SaveCompetition
             'shuffle_questions' => ['boolean'],
             'shuffle_options' => ['boolean'],
             'is_published' => ['boolean'],
+
+            'reviewers' => ['nullable', 'array', 'max:200'],
+            'reviewers.*' => ['integer', 'distinct'],
 
             'criteria' => ['nullable', 'array', 'max:20'],
             'criteria.*.id' => ['nullable', 'integer', 'distinct'],
@@ -170,6 +187,30 @@ class SaveCompetition
 
         if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));
+        }
+    }
+
+    /**
+     * المحكّم حساب نشط بدور reviewer. ولا يُرفع من المسابقة محكّم أُسندت إليه مشاركات فيها.
+     *
+     * @param  list<int>  $ids
+     *
+     * @throws ValidationException
+     */
+    private function checkReviewers(Competition $competition, array $ids): void
+    {
+        $valid = User::query()->whereKey($ids)->where('is_active', true)->role(RoleName::Reviewer->value)->count();
+
+        if ($valid !== count($ids)) {
+            throw ValidationException::withMessages(['reviewers' => __('competitions.validation.reviewers')]);
+        }
+
+        $assigned = $competition->exists
+            ? $competition->reviews()->whereNotIn('submission_reviews.reviewer_id', $ids)->exists()
+            : false;
+
+        if ($assigned) {
+            throw ValidationException::withMessages(['reviewers' => __('competitions.validation.reviewer_assigned')]);
         }
     }
 

@@ -9,3 +9,6 @@ use Illuminate\Support\Facades\Schedule;
 
 // سجل العمليات يُحذف ما تجاوز مدة الاحتفاظ منه، ومنه عناوين IP في السجل الأمني (docs/decisions.md)
 Schedule::command('activitylog:clean --force')->daily()->onOneServer();
+
+// أجزاء مقاطع المسابقات المهجورة لا تبقى على القرص الخاص
+Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();

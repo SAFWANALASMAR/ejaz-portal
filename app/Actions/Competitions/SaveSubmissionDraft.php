@@ -8,6 +8,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -72,7 +73,17 @@ class SaveSubmissionDraft
         }
 
         $submission->answers = array_filter($answers, fn ($value): bool => $value !== null);
-        $submission->save();
+
+        DB::transaction(function () use ($submission): void {
+            // حفظ تلقائي يصل بعد إرسال متزامن لا يكتب فوق مشاركة مرسلة
+            $locked = CompetitionSubmission::query()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isDraft()) {
+                throw new AuthorizationException;
+            }
+
+            $submission->save();
+        });
 
         return $submission;
     }

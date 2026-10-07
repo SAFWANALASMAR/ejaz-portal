@@ -1,10 +1,13 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\SaveCompetition;
+use App\Actions\Competitions\SaveSubmissionDraft;
 use App\Actions\Competitions\StartSubmission;
 use App\Enums\RoleName;
 use App\Enums\SubmissionStatus;
 use App\Enums\VideoStatus;
+use App\Jobs\ProcessSubmissionVideo;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
@@ -178,6 +181,7 @@ it('submits with a unique reference and a queued confirmation, then locks the en
     $this->get('/account/competitions')->assertOk()->assertSee($submission->reference);
 
     $this->post('/competitions/demo/entry', entryForm(['answers' => [$this->text->id => 'تعديل بعد الإرسال']]))->assertForbidden();
+    $this->postJson('/competitions/demo/entry/autosave', entryForm(['answers' => [$this->text->id => 'تعديل بعد الإرسال']]))->assertForbidden();
     $this->post('/competitions/demo/entry/submit', entryForm())->assertForbidden();
 
     expect($submission->fresh()->answer($this->text))->toBe('إجابتي النصية');
@@ -197,6 +201,23 @@ it('requires a ready video for a required video question', function () {
     $this->actingAs($this->applicant)->get('/competitions/demo/entry');
 
     $this->post('/competitions/demo/entry/submit', entryForm())->assertSessionHasErrors('answers.'.$this->video->id);
+});
+
+it('refuses an autosave that reaches a submission submitted meanwhile', function () {
+    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+    $stale = CompetitionSubmission::sole();
+
+    // الإرسال يسبق والنسخة في الذاكرة ما زالت مسودة
+    CompetitionSubmission::query()->whereKey($stale->id)->update(['status' => SubmissionStatus::Submitted, 'reference' => 'ABCDEFGHJK']);
+
+    expect(fn () => app(SaveSubmissionDraft::class)->handle($this->applicant, $stale, entryForm()))->toThrow(AuthorizationException::class)
+        ->and($stale->fresh()->answers)->toBeNull();
+});
+
+it('includes competition entries in the personal data export', function () {
+    CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id, 'user_id' => $this->applicant->id]);
+
+    expect(app(ExportUserData::class)->handle($this->applicant)['competition_submissions'][0]['competition'])->toBe($this->competition->title);
 });
 
 it('keeps every applicant inside their own entry', function () {
@@ -231,8 +252,18 @@ it('closes entries automatically after the closing time', function () {
     expect(CompetitionSubmission::count())->toBe(1);
 });
 
+it('does not lock the question bank for an empty draft opened by visiting the form', function () {
+    $this->actingAs($this->applicant)->get('/competitions/demo/entry');
+
+    expect($this->competition->questionsLocked())->toBeFalse();
+
+    $this->post('/competitions/demo/entry', entryForm());
+
+    expect($this->competition->questionsLocked())->toBeTrue();
+});
+
 it('locks the question bank after the first submission, from the panel or any caller', function () {
-    CompetitionSubmission::factory()->create(['competition_id' => $this->competition->id]);
+    CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id]);
     $manager = userWithRole(RoleName::ProgramManager);
 
     expect(fn () => app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'x', 'slug' => 'demo', 'opens_at' => now(), 'closes_at' => now()->addDay(), 'questions' => []]))
@@ -257,7 +288,7 @@ describe('video upload', function () {
 
     function putChunk(string $url, string $body): TestResponse
     {
-        return test()->call('PUT', $url, [], [], [], ['CONTENT_TYPE' => 'application/octet-stream', 'HTTP_ACCEPT' => 'application/json'], $body);
+        return test()->call('PUT', $url, [], [], [], ['CONTENT_TYPE' => 'application/octet-stream', 'HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) strlen($body)], $body);
     }
 
     it('uploads in chunks, resumes the missing ones, and accepts a valid MP4 in the background', function () {
@@ -316,7 +347,55 @@ describe('video upload', function () {
     })->with([
         'not a video' => ['<?php echo 1; ?>'.str_repeat('x', 100), 'not_mp4'],
         'longer than declared' => [mp4Contents(seconds: 600), 'too_long'],
+        'zero duration' => [mp4Contents(seconds: 0), 'unreadable'],
+        'fragmented' => [mp4Contents(seconds: 30).pack('N', 8).'moof', 'unreadable'],
     ]);
+
+    it('writes nothing for a chunk whose body is larger than declared or has no length', function () {
+        $contents = mp4Contents(padding: 1024 * 1024 + 10);
+        $start = startUpload($contents)->json();
+
+        // الرأس يعلن الحجم الصحيح والجسم أكبر: يُقرأ حتى الحد ثم يُرفض
+        $this->call('PUT', $start['urls'][0], [], [], [], ['CONTENT_TYPE' => 'application/octet-stream', 'HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) (1024 * 1024)], str_repeat('x', 3 * 1024 * 1024))
+            ->assertUnprocessable();
+        $this->call('PUT', $start['urls'][0], [], [], [], ['CONTENT_TYPE' => 'application/octet-stream', 'HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) (5 * 1024 * 1024)], str_repeat('x', 5 * 1024 * 1024))
+            ->assertUnprocessable();
+
+        expect(Storage::disk('local')->allFiles())->toBe([]);
+    });
+
+    it('stops uploads after closing, and prunes abandoned chunks', function () {
+        $contents = mp4Contents(padding: 1024 * 1024 + 10);
+        $start = startUpload($contents)->json();
+        putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertNoContent();
+
+        $this->travelTo($this->competition->closes_at->addMinute());
+
+        putChunk($start['urls'][1], substr($contents, 1024 * 1024))->assertForbidden();
+        $this->postJson('/competition-videos/'.$start['video'].'/complete')->assertForbidden();
+        expect($this->getJson('/competition-videos/'.$start['video'])->json('urls'))->toBe([]);
+
+        Storage::disk('local')->put('competition-chunks/orphan/0', 'x');
+        $this->artisan('ejaz:prune-video-uploads')->assertSuccessful();
+
+        $video = SubmissionVideo::sole();
+        expect($video->status)->toBe(VideoStatus::Rejected)
+            ->and($video->rejection_reason)->toBe('abandoned')
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
+    });
+
+    it('rejects the video when processing fails for good, so it can be uploaded again', function () {
+        $contents = mp4Contents();
+        $start = startUpload($contents)->json();
+        putChunk($start['urls'][0], $contents)->assertNoContent();
+
+        $video = SubmissionVideo::sole();
+        SubmissionVideo::query()->whereKey($video->id)->update(['status' => VideoStatus::Processing]);
+        (new ProcessSubmissionVideo($video->id))->failed(new RuntimeException('disk'));
+
+        expect($video->fresh()->status)->toBe(VideoStatus::Rejected)
+            ->and($video->fresh()->rejection_reason)->toBe('processing_failed');
+    });
 
     it('refuses a chunk of the wrong size, an unsigned or expired link, and another applicant', function () {
         $contents = mp4Contents(padding: 1024 * 1024 + 10);
@@ -327,9 +406,9 @@ describe('video upload', function () {
 
         $other = User::factory()->create(['phone' => '+966500000005', 'phone_verified_at' => now()]);
         $this->actingAs($other);
-        putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertForbidden();
+        putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertNotFound();
         $this->getJson('/competition-videos/'.$start['video'])->assertNotFound();
-        $this->postJson('/competition-videos/'.$start['video'].'/complete')->assertForbidden();
+        $this->postJson('/competition-videos/'.$start['video'].'/complete')->assertNotFound();
 
         $this->actingAs($this->applicant);
         $this->travel(3)->hours();

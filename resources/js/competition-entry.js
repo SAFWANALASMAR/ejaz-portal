@@ -31,8 +31,9 @@ function autosave(form) {
         try {
             await request(form.dataset.autosave, { method: 'POST', body: data });
             status.textContent = status.dataset.saved;
-        } catch {
-            status.textContent = status.dataset.failed;
+        } catch (error) {
+            // رسالة الخادم إن كانت (الإغلاق مثلاً)، وإلا الرسالة العامة
+            status.textContent = /^\d+$/.test(error.message) ? status.dataset.failed : error.message;
         }
     };
 
@@ -42,7 +43,7 @@ function autosave(form) {
         }
 
         clearTimeout(timer);
-        timer = setTimeout(save, 1500);
+        timer = setTimeout(save, 2500);
     };
 
     form.addEventListener('input', schedule);

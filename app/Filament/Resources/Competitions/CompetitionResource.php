@@ -6,6 +6,7 @@ use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Competitions\Pages\CreateCompetition;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ListCompetitions;
+use App\Filament\Resources\Competitions\RelationManagers\SubmissionsRelationManager;
 use App\Filament\Resources\Competitions\Schemas\CompetitionForm;
 use App\Filament\Resources\Competitions\Tables\CompetitionsTable;
 use App\Models\Competition;
@@ -52,6 +53,13 @@ class CompetitionResource extends Resource
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            SubmissionsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

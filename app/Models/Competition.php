@@ -3,13 +3,16 @@
 namespace App\Models;
 
 use App\Enums\CompetitionStatus;
+use App\Enums\SubmissionStatus;
 use Database\Factories\CompetitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -21,6 +24,7 @@ use Spatie\Activitylog\Support\LogOptions;
  *
  * @property Carbon $opens_at
  * @property Carbon $closes_at
+ * @property Carbon|null $results_approved_at
  * @property array<mixed>|null $categories
  */
 #[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published'])]
@@ -41,6 +45,7 @@ class Competition extends Model
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'is_published' => 'boolean',
+            'results_approved_at' => 'datetime',
         ];
     }
 
@@ -79,11 +84,49 @@ class Competition extends Model
     }
 
     /**
-     * بنك الأسئلة يُقفل بعد أول مشاركة (ولو مسودة أو محذوفة)، لأن الإجابات مربوطة بأسئلته.
+     * المحكّمون: حسابات بدور reviewer يُسند إليهم من مشاركات المسابقة.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function reviewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'competition_reviewer')->withTimestamps();
+    }
+
+    /**
+     * @return HasManyThrough<SubmissionReview, CompetitionSubmission, $this>
+     */
+    public function reviews(): HasManyThrough
+    {
+        return $this->hasManyThrough(SubmissionReview::class, CompetitionSubmission::class, 'competition_id', 'submission_id');
+    }
+
+    public function resultsApproved(): bool
+    {
+        return $this->results_approved_at !== null;
+    }
+
+    /**
+     * المعايير تُقفل بعد أول إسناد، لأن درجات المحكّمين مربوطة بها.
+     */
+    public function criteriaLocked(): bool
+    {
+        return $this->exists && $this->reviews()->exists();
+    }
+
+    /**
+     * بنك الأسئلة يُقفل بعد أول إجابة محفوظة أو مشاركة مرسلة (ولو محذوفة)، لأن الإجابات مربوطة
+     * بأسئلته. والمسودة الفارغة (فتح النموذج وحده) لا تقفله.
      */
     public function questionsLocked(): bool
     {
-        return $this->exists && $this->submissions()->withTrashed()->exists();
+        return $this->exists && $this->submissions()->withTrashed()
+            ->where(fn (Builder $query) => $query
+                ->where('status', SubmissionStatus::Submitted)
+                // الإجابات الفارغة تُحفظ [] وغير الفارغة كائن بمعرّفات الأسئلة
+                ->orWhere(fn (Builder $query) => $query->whereNotNull('answers')->where('answers', '!=', '[]'))
+                ->orWhereHas('videos'))
+            ->exists();
     }
 
     /**

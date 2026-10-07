@@ -89,6 +89,14 @@ class CompetitionSubmission extends Model
         return $this->hasMany(SubmissionVideo::class, 'submission_id');
     }
 
+    /**
+     * @return HasMany<SubmissionReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(SubmissionReview::class, 'submission_id');
+    }
+
     public function isDraft(): bool
     {
         return $this->status === SubmissionStatus::Draft;

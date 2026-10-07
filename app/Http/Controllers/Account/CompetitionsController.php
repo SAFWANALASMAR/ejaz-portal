@@ -24,6 +24,8 @@ class CompetitionsController extends Controller
             ->latest()
             ->paginate(20);
 
+        abort_if($submissions->currentPage() > max(1, $submissions->lastPage()), 404);
+
         return view('account.competitions', ['submissions' => $submissions]);
     }
 }

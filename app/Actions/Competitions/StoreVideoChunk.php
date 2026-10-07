@@ -7,12 +7,13 @@ use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\ChunkedVideoUpload;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * استلام جزء من المقطع: مقطع المتقدم نفسه قيد الرفع، ورقم جزء في مداه، وحجم مطابق تماماً لموضعه
- * (كامل إلا الأخير). والجزء المكرر يحل محل سابقه، فيصح إعادة إرساله بعد انقطاع.
+ * استلام جزء من المقطع: مقطع المتقدم نفسه قيد الرفع والمسابقة مفتوحة، ورقم جزء في مداه، وحجم مطابق
+ * تماماً لموضعه (كامل إلا الأخير). والحجم يُفحص من الرأس قبل أي قراءة، ثم يُنسخ الجسم بسقف إلى ملف
+ * مؤقت، فلا يُكتب على القرص الخاص إلا جزء صحيح. والجزء المكرر يحل محل سابقه بعد انقطاع.
  */
 class StoreVideoChunk
 {
@@ -22,21 +23,21 @@ class StoreVideoChunk
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function handle(User $user, SubmissionVideo $video, int $index, $stream): void
+    public function handle(User $user, SubmissionVideo $video, int $index, $stream, ?int $declaredLength): void
     {
-        if (! $user->can('update', $video->submission) || $video->status !== VideoStatus::Uploading) {
+        if (! $user->can('update', $video->submission)) {
+            throw new NotFoundHttpException;
+        }
+
+        if ($video->status !== VideoStatus::Uploading || ! $video->submission->competition->isOpen()) {
             throw new AuthorizationException;
         }
 
-        if ($index < 0 || $index >= $video->chunk_count) {
+        if ($index < 0 || $index >= $video->chunk_count || $declaredLength !== $video->expectedChunkSize($index)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
 
-        ChunkedVideoUpload::store($video, $index, $stream);
-
-        if (ChunkedVideoUpload::chunkSize($video, $index) !== $video->expectedChunkSize($index)) {
-            Storage::disk(SubmissionVideo::disk())->delete($video->chunkDirectory().'/'.$index);
-
+        if (! ChunkedVideoUpload::store($video, $index, $stream, $declaredLength)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
     }

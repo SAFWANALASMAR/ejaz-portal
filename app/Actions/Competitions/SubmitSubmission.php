@@ -5,6 +5,7 @@ namespace App\Actions\Competitions;
 use App\Enums\QuestionType;
 use App\Enums\SubmissionStatus;
 use App\Enums\VideoStatus;
+use App\Jobs\GradeSubmission;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
@@ -17,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * إرسال المشاركة: يحفظ آخر الإجابات، ثم يفحص الإلزامي (الفئة والمنطقة والأسئلة، وكل فيديو إلزامي
- * جاهز)، ثم يقفلها برقم مرجعي فريد، ويرسل التأكيد في الطابور. ولا تعديل بعده.
+ * جاهز)، ثم يقفلها برقم مرجعي فريد، ثم يرسل التصحيح الآلي والتأكيد إلى الطابور. ولا تعديل بعده.
  */
 class SubmitSubmission
 {
@@ -37,21 +38,25 @@ class SubmitSubmission
     public function handle(User $user, CompetitionSubmission $submission, array $data): CompetitionSubmission
     {
         $this->saveDraft->handle($user, $submission, $data);
-        $this->checkComplete($submission);
 
         DB::transaction(function () use ($submission): void {
-            // طلبان متزامنان للإرسال: الثاني ينتظر الأول، ثم يجدها مرسلة فيرفض
+            // طلبان متزامنان للإرسال: الثاني ينتظر الأول، ثم يجدها مرسلة فيرفض. والفحص بعد القفل،
+            // فلا يغيّر حفظ تلقائي متزامن إجابة بين الفحص والإرسال
             $locked = CompetitionSubmission::query()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
 
             if (! $locked->isDraft()) {
                 throw new AuthorizationException;
             }
 
+            $submission->setRawAttributes($locked->getAttributes(), true);
+            $this->checkComplete($submission);
+
             $submission->status = SubmissionStatus::Submitted;
             $submission->submitted_at = now();
             $this->assignReference($submission);
         });
 
+        GradeSubmission::dispatch($submission->id)->afterCommit();
         $user->notify(new SubmissionReceived($submission));
 
         return $submission;

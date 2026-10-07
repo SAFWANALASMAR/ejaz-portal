@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\Competitions\Schemas;
 
 use App\Enums\QuestionType;
+use App\Enums\RoleName;
 use App\Filament\Forms\ContentFields;
 use App\Models\Competition;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
+use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -49,9 +51,11 @@ class CompetitionForm
                 ]),
 
                 Tab::make(__('competitions.tabs.criteria'))->schema([
+                    // بعد أول إسناد تُقفل المعايير، فلا يُرسل الحقل ولا يُحفظ (SaveCompetition)
                     Repeater::make('criteria')
                         ->label(__('competitions.fields.criteria'))
-                        ->helperText(__('competitions.fields.criteria_hint'))
+                        ->disabled(fn (?Competition $record): bool => $record?->criteriaLocked() ?? false)
+                        ->helperText(fn (?Competition $record): string => $record?->criteriaLocked() ? __('competitions.fields.criteria_locked') : __('competitions.fields.criteria_hint'))
                         ->columns(3)
                         ->maxItems(20)
                         ->reorderable()
@@ -62,6 +66,14 @@ class CompetitionForm
                             TextInput::make('weight')->label(__('competitions.fields.weight'))->integer()->required()->minValue(1)->maxValue(100),
                             TextInput::make('max_score')->label(__('competitions.fields.max_score'))->integer()->required()->minValue(1)->maxValue(1000),
                         ]),
+                ]),
+
+                Tab::make(__('competitions.tabs.reviewers'))->schema([
+                    Select::make('reviewers')
+                        ->label(__('competitions.fields.reviewers'))
+                        ->helperText(__('competitions.fields.reviewers_hint'))
+                        ->multiple()
+                        ->options(fn (): array => User::query()->where('is_active', true)->role(RoleName::Reviewer->value)->orderBy('name')->pluck('name', 'id')->all()),
                 ]),
 
                 Tab::make(__('competitions.tabs.questions'))->schema([
@@ -123,11 +135,12 @@ class CompetitionForm
     /**
      * المعايير والأسئلة المحفوظة بشكل النموذج، لصفحة التعديل.
      *
-     * @return array{criteria: list<array<string, mixed>>, questions: list<array<string, mixed>>}
+     * @return array{reviewers: list<int>, criteria: list<array<string, mixed>>, questions: list<array<string, mixed>>}
      */
     public static function relationsState(Competition $competition): array
     {
         return [
+            'reviewers' => $competition->reviewers()->pluck('users.id')->all(),
             'criteria' => $competition->criteria->map(fn (CompetitionCriterion $criterion): array => $criterion->only(['id', 'name', 'weight', 'max_score']))->values()->all(),
             'questions' => $competition->questions->map(fn (CompetitionQuestion $question): array => [
                 'id' => $question->id,

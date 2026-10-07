@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Competitions;
 use App\Actions\Competitions\CompleteVideoUpload;
 use App\Actions\Competitions\StartVideoUpload;
 use App\Actions\Competitions\StoreVideoChunk;
+use App\Enums\VideoStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Competitions\StartVideoUploadRequest;
 use App\Models\Competition;
@@ -46,14 +47,16 @@ class VideoUploadController extends Controller
             'label' => $video->status->getLabel(),
             'reason' => $video->rejection_reason === null ? null : __('competitions.video.reasons.'.$video->rejection_reason),
             'chunk_size' => SubmissionVideo::chunkSize(),
-            // روابط جديدة للأجزاء الناقصة فقط، فيكمل المتصفح بعد انقطاع أو انتهاء الروابط
-            'urls' => $this->user($request)->can('update', $video->submission) ? ChunkedVideoUpload::urls($video, ChunkedVideoUpload::missing($video)) : [],
+            // روابط جديدة للأجزاء الناقصة فقط، فيكمل المتصفح بعد انقطاع أو انتهاء الروابط. ولا روابط بعد الإغلاق
+            'urls' => $this->canUpload($request, $video) ? ChunkedVideoUpload::urls($video, ChunkedVideoUpload::missing($video)) : [],
         ]);
     }
 
     public function chunk(Request $request, SubmissionVideo $video, int $index, StoreVideoChunk $store): Response
     {
-        $store->handle($this->user($request), $video, $index, $request->getContent(true));
+        $length = $request->header('Content-Length');
+
+        $store->handle($this->user($request), $video, $index, $request->getContent(true), is_numeric($length) ? (int) $length : null);
 
         return response()->noContent();
     }
@@ -63,6 +66,13 @@ class VideoUploadController extends Controller
         $video = $complete->handle($this->user($request), $video);
 
         return response()->json(['status' => $video->status->value, 'label' => $video->status->getLabel()], 202);
+    }
+
+    private function canUpload(Request $request, SubmissionVideo $video): bool
+    {
+        return $video->status === VideoStatus::Uploading
+            && $this->user($request)->can('update', $video->submission)
+            && $video->submission->competition->isOpen();
     }
 
     private function user(Request $request): User

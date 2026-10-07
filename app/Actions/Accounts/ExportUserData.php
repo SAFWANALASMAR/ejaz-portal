@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Models\CompetitionSubmission;
 use App\Models\User;
 
 /**
@@ -32,6 +33,16 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
+            'competition_submissions' => CompetitionSubmission::query()->where('user_id', $user->id)->with('competition')->get()
+                ->map(fn (CompetitionSubmission $submission): array => [
+                    'competition' => $submission->competition->title,
+                    'status' => $submission->status->value,
+                    'reference' => $submission->reference,
+                    'category' => $submission->category,
+                    'region' => $submission->region?->value,
+                    'answers' => (array) $submission->answers,
+                    'submitted_at' => $date($submission->submitted_at),
+                ])->all(),
         ];
     }
 }
