@@ -9,6 +9,7 @@ use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Services\VideoUploads\S3VideoUploads;
+use Aws\Api\DateTimeResult;
 use Aws\CommandInterface;
 use Aws\Result;
 use Aws\S3\Exception\S3Exception;
@@ -115,7 +116,7 @@ final class FakeS3
             case 'ListMultipartUploads':
                 $uploads = [];
                 foreach ($this->uploads as $id => $upload) {
-                    $uploads[] = ['Key' => $upload['key'], 'UploadId' => $id];
+                    $uploads[] = ['Key' => $upload['key'], 'UploadId' => $id, 'Initiated' => new DateTimeResult(($upload['initiated'] ?? now()->subDays(3))->toIso8601String())];
                 }
 
                 return Create::promiseFor(new Result(['Uploads' => $uploads, 'IsTruncated' => false]));
@@ -267,18 +268,39 @@ it('aborts the previous upload when the applicant starts again, after the transa
         ->and($storage->every(fn (array $call): bool => $call[1] === $outside))->toBeTrue();
 });
 
-it('aborts abandoned and orphan uploads on pruning', function () {
+it('aborts abandoned and orphan uploads on pruning, but not one just started', function () {
     startS3Upload($this->contents);
-    $this->s3->uploads['stray'] = ['key' => 'private/competition-uploads/stray.mp4', 'parts' => []];
+    $this->s3->uploads['stray'] = ['key' => 'private/competition-uploads/stray.mp4', 'parts' => [], 'initiated' => now()->subHours(2)];
+    // بدأ للتو ولم يُحفظ معرّفه في المقطع بعد (بين البدء والحفظ)، فلا يُلغى
+    $this->s3->uploads['fresh'] = ['key' => 'private/competition-uploads/fresh.mp4', 'parts' => [], 'initiated' => now()->subMinutes(5)];
 
     $this->artisan('ejaz:prune-video-uploads')->assertSuccessful();
-    expect(array_keys($this->s3->uploads))->toBe(['upload-0']);
+    expect(array_keys($this->s3->uploads))->toBe(['upload-0', 'fresh']);
+    unset($this->s3->uploads['fresh']);
 
     $this->travel(2)->days();
     $this->artisan('ejaz:prune-video-uploads')->assertSuccessful();
 
     expect($this->s3->uploads)->toBe([])
         ->and(SubmissionVideo::sole()->rejection_reason)->toBe('abandoned');
+});
+
+it('rejects the video and aborts its upload when processing fails for good', function () {
+    startS3Upload($this->contents);
+    $video = SubmissionVideo::sole();
+    SubmissionVideo::query()->whereKey($video->id)->update(['status' => VideoStatus::Processing]);
+
+    (new ProcessSubmissionVideo($video->id))->failed(new RuntimeException('storage'));
+
+    expect($video->fresh()->status)->toBe(VideoStatus::Rejected)
+        ->and($video->fresh()->rejection_reason)->toBe('processing_failed')
+        ->and($this->s3->uploads)->toBe([])
+        ->and($this->s3->calls)->toContain('AbortMultipartUpload')->toContain('DeleteObject');
+
+    // وإن انتهى الرفع من قبل (NoSuchUpload) لم يفشل الإلغاء
+    SubmissionVideo::query()->whereKey($video->id)->update(['status' => VideoStatus::Processing]);
+    (new ProcessSubmissionVideo($video->id))->failed(new RuntimeException('storage'));
+    expect($video->fresh()->status)->toBe(VideoStatus::Rejected);
 });
 
 it('needs an s3 private disk for direct uploads', function () {

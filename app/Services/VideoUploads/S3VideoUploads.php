@@ -8,6 +8,7 @@ use App\Exceptions\VideoRejected;
 use App\Models\SubmissionVideo;
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
+use DateTimeInterface;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -145,14 +146,20 @@ final class S3VideoUploads implements VideoUploads
     }
 
     /**
-     * الرفوع المجزأة التي لا مقطع يُرفع أو يُعالج بمعرّفها.
+     * الرفوع المجزأة التي لا مقطع يُرفع أو يُعالج بمعرّفها. وما بدأ في الساعة الأخيرة يُترك، فقد يكون
+     * بين بدئه في التخزين وحفظ معرّفه في المقطع (begin).
      */
     public function pruneOrphans(): int
     {
         $orphans = 0;
+        $recent = now()->subHour();
 
         foreach ($this->client->getPaginator('ListMultipartUploads', ['Bucket' => $this->bucket, 'Prefix' => $this->key(self::UPLOAD_DIRECTORY.'/')]) as $page) {
             foreach ((array) ($page['Uploads'] ?? []) as $upload) {
+                if (($upload['Initiated'] ?? null) instanceof DateTimeInterface && $upload['Initiated'] > $recent) {
+                    continue;
+                }
+
                 $active = SubmissionVideo::query()->where('upload_id', $upload['UploadId'])
                     ->whereIn('status', [VideoStatus::Uploading, VideoStatus::Processing])->exists();
 

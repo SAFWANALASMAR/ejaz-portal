@@ -29,7 +29,11 @@ it('requires two-factor before sensitive roles reach the panel', function (RoleN
 })->with(RoleName::twoFactorRoles());
 
 it('requires two-factor for the reviewer, who sees applicants videos and answers', function () {
-    expect(RoleName::twoFactorRoles())->toContain(RoleName::Reviewer);
+    // صريح للمحكّم (قرار صفوان)، فلا يسقط من القائمة دون أن يفشل اختبار
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole(RoleName::Reviewer->value);
+
+    $this->actingAs($reviewer)->get('/admin')->assertRedirect(route('account.security'));
 });
 
 it('blocks deactivated administrators and ends their session', function () {
