@@ -451,6 +451,14 @@ it('records which personal fields changed without their values', function () {
     expect($all)->not->toContain('first@example.test')->not->toContain('الاسم الثاني');
 });
 
+it('refuses to anonymize for someone without the user permissions', function () {
+    $requester = User::factory()->create(['deletion_requested_at' => now()]);
+
+    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::ContentEditor), $requester))
+        ->toThrow(AuthorizationException::class)
+        ->and($requester->fresh()->anonymized_at)->toBeNull();
+});
+
 it('refuses to anonymize without a request, twice, or one\'s own account', function () {
     $noRequest = User::factory()->create();
     $done = User::factory()->create(['deletion_requested_at' => now(), 'anonymized_at' => now()]);
