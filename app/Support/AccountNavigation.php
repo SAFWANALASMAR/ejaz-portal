@@ -29,7 +29,7 @@ final class AccountNavigation
      * بطاقات الرئيسية: العناصر التي لها وصف، بترتيب account.cards، وما لم يُذكر فيه بعدها بترتيب
      * القائمة.
      *
-     * @return Collection<int, array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string}>
+     * @return Collection<int, array{route: string, label: string, icon: string, active: list<string>, description: string, can?: string}>
      */
     public static function cards(User $user): Collection
     {
