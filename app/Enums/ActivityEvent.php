@@ -14,6 +14,7 @@ enum ActivityEvent: string implements HasLabel
     case Created = 'created';
     case Updated = 'updated';
     case Deleted = 'deleted';
+    case Restored = 'restored';
 
     // الأمن والدخول
     case Login = 'login';

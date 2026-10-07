@@ -21,8 +21,16 @@ class SecurityHeaders
 
         $response = $next($request);
 
-        $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy($request));
-        $response->headers->set('X-Frame-Options', 'DENY');
+        // ملف وثيقة الحوكمة يُعرض مدمجاً في صفحتها، فيُقبل تضمينه من الموقع نفسه وحده. وسياسته
+        // سطر التضمين وحده، حتى لا تعطل عارض PDF في المتصفح
+        if ($request->routeIs('governance.file')) {
+            $response->headers->set('Content-Security-Policy', "frame-ancestors 'self'");
+            $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        } else {
+            $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy($request));
+            $response->headers->set('X-Frame-Options', 'DENY');
+        }
+
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
@@ -51,7 +59,8 @@ class SecurityHeaders
             'font-src' => ["'self'", 'data:', $dev],
             'connect-src' => ["'self'", $dev, $devSocket, ...config('security.csp.connect_src')],
             'media-src' => ["'self'", 'blob:', ...config('security.csp.media_src')],
-            'frame-src' => config('security.csp.frame_src'),
+            // 'self' لعرض ملف الوثيقة داخل صفحتها
+            'frame-src' => ["'self'", ...config('security.csp.frame_src')],
             'object-src' => ["'none'"],
             'base-uri' => ["'self'"],
             'form-action' => ["'self'", ...config('security.csp.form_action')],

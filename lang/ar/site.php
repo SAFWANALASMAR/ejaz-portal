@@ -35,6 +35,8 @@ return [
     'download' => 'تنزيل',
     'share' => 'مشاركة',
     'no_results' => 'لا توجد نتائج.',
+    'pagination' => 'التنقل بين الصفحات',
+    'page_of' => 'صفحة :page من :pages',
     'required_hint' => 'الحقول المعلّمة بنجمة مطلوبة.',
 
     'footer' => [

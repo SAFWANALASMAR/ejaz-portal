@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Content\BuildHomePage;
 use App\Enums\RoleName;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Setting;
@@ -7,6 +8,7 @@ use App\Support\ContentCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 
 it('shows the hero from the site settings', function () {
@@ -68,18 +70,30 @@ it('draws only the allowed statistic icons', function () {
 });
 
 it('shows a section shortcut only once its section exists, and none when switched off', function () {
-    $this->get('/')->assertDontSee(__('home.shortcuts.governance.title'));
+    $built = collect(BuildHomePage::SHORTCUTS)->filter(fn (array $shortcut) => Route::has($shortcut['route']));
+    $missing = collect(BuildHomePage::SHORTCUTS)->reject(fn (array $shortcut) => Route::has($shortcut['route']));
 
-    registerSectionRoute('/governance', 'governance.index');
+    // الأقسام المبنية لها بطاقاتها، والباقية بلا بطاقة حتى يُبنى مسارها
+    foreach ($built->keys() as $key) {
+        $this->get('/')->assertSee(__('home.shortcuts.'.$key.'.title'));
+    }
 
-    $this->get('/')
-        ->assertSee(__('home.shortcuts.governance.title'))
-        ->assertSee('href="'.route('governance.index').'"', false)
-        ->assertDontSee(__('home.shortcuts.media.title'));
+    if ($missing->isNotEmpty()) {
+        $key = $missing->keys()->first();
+        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+
+        registerSectionRoute('/'.$key.'-section', $missing[$key]['route']);
+
+        $this->get('/')
+            ->assertSee(__('home.shortcuts.'.$key.'.title'))
+            ->assertSee('href="'.route($missing[$key]['route']).'"', false);
+    }
 
     Setting::put('home', ['show_shortcuts' => false]);
 
-    $this->get('/')->assertDontSee(__('home.shortcuts.governance.title'));
+    foreach (array_keys(BuildHomePage::SHORTCUTS) as $key) {
+        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+    }
 });
 
 /**

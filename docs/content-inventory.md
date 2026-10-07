@@ -26,7 +26,7 @@
 - `/` ← الرئيسية الجديدة
 - `/#about` ← `/about`
 - `/مبادرة-قيـم/` و`/مبادرة-تطوير/` و`/مبادرة-كنوز/` و`/مبادرة-ابتكــــار/` و`/مبادرة-ارتقاء/` ← `/initiatives/{slug}`
-- `/التقارير/` ← `/governance/reports`
+- `/التقارير/` ← `/governance?category=annual-reports` (الصفحة القديمة فارغة، وأقرب ما يقابلها التقارير السنوية)
 - `/التطوع/` ← `/volunteer`
 - `/ejaz_library` ← `/library`
 - `/video_library/` ← `/library/videos`

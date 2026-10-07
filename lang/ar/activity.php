@@ -29,6 +29,7 @@ return [
         'created' => 'إنشاء',
         'updated' => 'تعديل',
         'deleted' => 'حذف',
+        'restored' => 'استعادة',
         'login' => 'دخول',
         'login_failed' => 'محاولة دخول فاشلة',
         'login_lockout' => 'قفل الدخول بعد محاولات خاطئة',
@@ -53,6 +54,7 @@ return [
         'Page' => 'صفحة',
         'Initiative' => 'مبادرة',
         'BoardMember' => 'عضو مجلس الإدارة',
+        'Document' => 'وثيقة',
     ],
 
 ];

@@ -5,6 +5,7 @@ use App\Http\Controllers\Account\DataRightsController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
+use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
 use App\Http\Controllers\PageController;
@@ -21,6 +22,12 @@ Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/pages/{slug}', [PageController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('pages.show');
+Route::get('/governance', [GovernanceController::class, 'index'])->name('governance.index');
+Route::get('/governance/{slug}', [GovernanceController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.show');
+Route::middleware('throttle:120,1')->group(function () {
+    Route::get('/governance/{slug}/file', [GovernanceController::class, 'file'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.file');
+    Route::get('/governance/{slug}/download', [GovernanceController::class, 'download'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.download');
+});
 Route::get('/initiatives', [InitiativeController::class, 'index'])->name('initiatives.index');
 Route::get('/initiatives/{slug}', [InitiativeController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')

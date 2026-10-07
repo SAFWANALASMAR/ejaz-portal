@@ -10,6 +10,8 @@ const guestScreens = [
     { name: 'about', path: '/about', heading: 'h1', whenPublished: true },
     { name: 'initiatives', path: '/initiatives', heading: 'h1' },
     { name: 'initiative', path: '/initiatives/qiyam', heading: 'h1', whenPublished: true },
+    { name: 'governance', path: '/governance', heading: 'h1' },
+    { name: 'document', path: '/governance/privacy-policy', heading: 'h1', whenPublished: true },
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },

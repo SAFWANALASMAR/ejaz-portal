@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\DocumentCategory;
+use App\Models\Concerns\FlushesContentCache;
+use Database\Factories\DocumentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
+
+/**
+ * وثيقة حوكمة: لائحة أو سياسة أو تقرير أو وثيقة رسمية أو آلية عمل. ملفها PDF في القرص
+ * الخاص، ولا يُقدَّم إلا منشوراً (GovernanceController).
+ */
+#[Fillable(['slug', 'title', 'category', 'issued_at', 'version', 'file', 'file_size', 'description', 'is_published'])]
+class Document extends Model
+{
+    /** @use HasFactory<DocumentFactory> */
+    use FlushesContentCache, HasFactory, LogsActivity, SoftDeletes;
+
+    public const DISK = 'local';
+
+    public const DIRECTORY = 'documents';
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'category' => DocumentCategory::class,
+            'issued_at' => 'date',
+            'file_size' => 'integer',
+            'is_published' => 'boolean',
+        ];
+    }
+
+    /**
+     * المنشورة، الأحدث إصداراً أولاً.
+     *
+     * @param  Builder<Document>  $query
+     */
+    public function scopePublished(Builder $query): void
+    {
+        $query->where('is_published', true)->orderByDesc('issued_at')->orderBy('title');
+    }
+
+    /**
+     * اسم الملف عند التنزيل: المعرّف بحروفه اللاتينية، فلا مشكلة ترميز في المتصفحات.
+     */
+    public function downloadName(): string
+    {
+        return $this->slug.'.pdf';
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
+    }
+}
