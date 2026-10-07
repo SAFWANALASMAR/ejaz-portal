@@ -6,7 +6,6 @@ use App\Enums\FormFieldType;
 use App\Models\Opening;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,7 +31,7 @@ class SaveOpening
         $opening->fill($data);
         $opening->form_fields = self::cleanFields($opening->form_fields ?? []);
 
-        DB::transaction(fn () => $opening->save());
+        $opening->save();
 
         return $opening;
     }

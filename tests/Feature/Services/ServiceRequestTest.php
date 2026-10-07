@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Accounts\ExportUserData;
+use App\Actions\Services\SaveServiceRequest;
 use App\Enums\FormFieldType;
 use App\Enums\OpeningKind;
 use App\Enums\RoleName;
@@ -9,6 +10,7 @@ use App\Models\Opening;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use App\Notifications\ServiceRequestStatusChanged;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +48,7 @@ it('lists open published openings of each kind only', function () {
     $this->get('/services/assembly-membership')->assertOk()->assertSee(__('services.listing.membership_closed'));
     $this->get('/services/openings/data-analyst')->assertOk()->assertSee($this->opening->title);
     $this->get('/services/openings/'.Opening::where('title', 'وظيفة غير منشورة')->value('slug'))->assertNotFound();
+    $this->get('/services/jobs?page=2')->assertNotFound();
 });
 
 it('asks guests to log in and unverified users to verify their email before applying', function () {
@@ -166,7 +169,7 @@ it('never shows, changes or serves a request to anyone but its owner', function 
     $this->actingAs($this->user);
     $this->get(route('account.requests.show', $request))->assertNotFound();
     $this->get(route('account.requests.file', [$request, 'cv']))->assertNotFound();
-    $this->put(route('account.requests.update', $request), ['intent' => 'save', 'answers' => ['about' => 'اختراق']])->assertForbidden();
+    $this->put(route('account.requests.update', $request), ['intent' => 'save', 'answers' => ['about' => 'اختراق']])->assertNotFound();
     expect($request->fresh()->answers)->not->toBe(['about' => 'اختراق']);
 
     // ولا موظف الطلبات من صفحات صاحب الطلب
@@ -177,7 +180,7 @@ it('never shows, changes or serves a request to anyone but its owner', function 
     $this->get(route('account.requests.file', [$request, 'cv']))->assertRedirect(route('login'));
 
     $this->actingAs($request->user)->get(route('account.requests.file', [$request, 'cv']))
-        ->assertOk()->assertDownload('cv.pdf');
+        ->assertOk()->assertDownload($request->reference.'-cv.pdf');
     $this->get(route('account.requests.file', [$request, 'missing']))->assertNotFound();
 });
 
@@ -206,4 +209,15 @@ it('includes my requests, and only mine, in my personal data copy', function () 
 
     expect($data['service_requests'])->toHaveCount(1)
         ->and($data['service_requests'][0]['answers'])->toBe(['about' => 'إجابتي']);
+});
+
+it('does not let a stale applicant save overwrite a staff decision taken meanwhile', function () {
+    $request = ServiceRequest::factory()->status(ServiceRequestStatus::NeedsCompletion)->for($this->user)->for($this->opening)->create();
+    $stale = ServiceRequest::find($request->id);
+
+    ServiceRequest::whereKey($request->id)->update(['status' => ServiceRequestStatus::Rejected->value]);
+
+    expect(fn () => app(SaveServiceRequest::class)->handle($this->user, $this->opening, $stale, ['about' => 'نص'], [], true))
+        ->toThrow(AuthorizationException::class);
+    expect($request->fresh()->status)->toBe(ServiceRequestStatus::Rejected);
 });

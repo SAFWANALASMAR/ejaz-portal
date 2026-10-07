@@ -90,7 +90,7 @@ class ServiceRequestController extends Controller
 
         $file = $serviceRequest->files[$key] ?? abort(404);
 
-        return Storage::disk(ServiceRequest::disk())->download($file['path'], $key.'.pdf', ['Content-Type' => 'application/pdf']);
+        return Storage::disk(ServiceRequest::disk())->download($file['path'], $serviceRequest->reference.'-'.$key.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     /**

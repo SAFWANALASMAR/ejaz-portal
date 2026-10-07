@@ -38,6 +38,11 @@ class ChangeServiceRequestStatus
             throw new AuthorizationException(__('services.membership_accept_super_admin'));
         }
 
+        // لا تُمنح أدوار لحساب موقوف أو أُخفيت بياناته (docs/roles-permissions.md)
+        if ($grantsMembership && (! $request->user->is_active || $request->user->anonymized_at !== null)) {
+            throw ValidationException::withMessages(['status' => __('services.inactive_applicant')]);
+        }
+
         DB::transaction(function () use ($actor, $request, $to, $message, $note, $grantsMembership): void {
             // قفل السطر، فلا يُبنى انتقالان متزامنان على حالة قديمة
             /** @var ServiceRequest $locked */
@@ -48,10 +53,11 @@ class ChangeServiceRequestStatus
                 throw ValidationException::withMessages(['status' => __('services.invalid_transition')]);
             }
 
-            $request->status = $to;
-            $request->save();
+            $locked->status = $to;
+            $locked->save();
+            $request->setRawAttributes($locked->getAttributes(), true);
 
-            $event = $request->events()->create([
+            $event = $locked->events()->create([
                 'actor_id' => $actor->id,
                 'from_status' => $from,
                 'to_status' => $to,
@@ -63,7 +69,9 @@ class ChangeServiceRequestStatus
                 $this->grantMembership($actor, $request->user);
             }
 
-            $request->user->notify(new ServiceRequestStatusChanged($request, $event));
+            if ($request->user->anonymized_at === null) {
+                $request->user->notify(new ServiceRequestStatusChanged($request, $event));
+            }
         });
 
         return $request;

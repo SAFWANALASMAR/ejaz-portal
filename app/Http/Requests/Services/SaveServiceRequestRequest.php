@@ -13,11 +13,24 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class SaveServiceRequestRequest extends FormRequest
 {
+    private ?Opening $opening = null;
+
     public function authorize(): bool
     {
         $existing = $this->existing();
 
         return $existing === null || ($this->user()?->can('edit', $existing) ?? false);
+    }
+
+    /**
+     * طلب غيره يُعامل كأنه غير موجود، كصفحته (ServiceRequestController). وطلبه في حالة لا
+     * تُعدَّل يُرفض بـ 403.
+     */
+    protected function failedAuthorization(): void
+    {
+        abort_if($this->existing()?->user_id !== $this->user()?->id, 404);
+
+        parent::failedAuthorization();
     }
 
     public function submitting(): bool
@@ -59,6 +72,6 @@ class SaveServiceRequestRequest extends FormRequest
             return $existing->opening;
         }
 
-        return Opening::query()->published()->where('slug', (string) $this->route('slug'))->firstOrFail();
+        return $this->opening ??= Opening::query()->published()->where('slug', (string) $this->route('slug'))->firstOrFail();
     }
 }

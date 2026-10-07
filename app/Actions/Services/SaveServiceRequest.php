@@ -78,6 +78,15 @@ class SaveServiceRequest
             }
 
             DB::transaction(function () use ($request, $user, $submit): void {
+                // قفل الطلب وإعادة فحص حالته، فلا يمحو حفظُ المتقدم قراراً اتخذه موظف في الأثناء
+                if ($request->exists) {
+                    $current = ServiceRequest::query()->whereKey($request->getKey())->lockForUpdate()->value('status');
+
+                    if ($current !== $request->getOriginal('status')) {
+                        throw new AuthorizationException;
+                    }
+                }
+
                 $from = $request->exists ? $request->status : null;
 
                 if ($submit) {

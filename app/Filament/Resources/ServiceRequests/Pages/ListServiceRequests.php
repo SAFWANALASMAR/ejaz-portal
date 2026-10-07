@@ -18,7 +18,7 @@ class ListServiceRequests extends ListRecords
             ExportAction::make()
                 ->label(__('services.admin.actions.export'))
                 ->exporter(ServiceRequestExporter::class)
-                ->visible(fn (): bool => auth()->user()?->can('export', ServiceRequest::class) ?? false),
+                ->authorize(fn (): bool => auth()->user()?->can('export', ServiceRequest::class) ?? false),
         ];
     }
 }

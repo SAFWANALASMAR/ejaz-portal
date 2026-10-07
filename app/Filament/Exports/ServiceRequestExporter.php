@@ -23,9 +23,9 @@ class ServiceRequestExporter extends Exporter
     {
         return [
             ExportColumn::make('reference')->label(__('services.admin.fields.reference')),
-            ExportColumn::make('opening.title')->label(__('services.admin.fields.opening')),
+            ExportColumn::make('opening.title')->label(__('services.admin.fields.opening'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('opening.kind')->label(__('services.admin.fields.kind'))->formatStateUsing(fn ($state) => $state?->getLabel()),
-            ExportColumn::make('user.name')->label(__('services.admin.fields.applicant')),
+            ExportColumn::make('user.name')->label(__('services.admin.fields.applicant'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('user.email')->label(__('services.admin.fields.email')),
             ExportColumn::make('user.phone')->label(__('services.admin.fields.phone')),
             ExportColumn::make('status')->label(__('services.admin.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
@@ -33,7 +33,7 @@ class ServiceRequestExporter extends Exporter
             ExportColumn::make('submitted_at')->label(__('services.admin.fields.submitted_at'))
                 ->formatStateUsing(fn ($state) => $state?->setTimezone(config('app.display_timezone'))->format('Y-m-d H:i')),
             ExportColumn::make('answers')->label(__('services.admin.fields.answers'))
-                ->state(fn (ServiceRequest $record): string => self::answersText($record)),
+                ->state(fn (ServiceRequest $record): ?string => self::safeCell(self::answersText($record))),
         ];
     }
 
@@ -73,5 +73,13 @@ class ServiceRequestExporter extends Exporter
                 ? ($record->files[$field['key']]['name'] ?? '')
                 : ($record->answers[$field['key']] ?? '')))
             ->implode("\n");
+    }
+
+    /**
+     * نص يبدأ بـ = أو + أو - أو @ يُقرأ صيغةً إن حُفظ الملف CSV، فيُسبق بعلامة اقتباس.
+     */
+    public static function safeCell(?string $value): ?string
+    {
+        return $value !== null && preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
     }
 }

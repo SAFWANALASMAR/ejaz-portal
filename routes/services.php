@@ -20,7 +20,7 @@ Route::where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
     // التقديم بحساب موثق البريد
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/services/openings/{slug}/apply', [ServiceRequestController::class, 'create'])->name('services.apply');
-        Route::post('/services/openings/{slug}/apply', [ServiceRequestController::class, 'store'])->middleware('throttle:20,1')->name('services.apply.store');
+        Route::post('/services/openings/{slug}/apply', [ServiceRequestController::class, 'store'])->middleware('throttle:10,1')->name('services.apply.store');
     });
 });
 
@@ -28,7 +28,7 @@ Route::where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
 Route::middleware('auth')->prefix('account/requests')->name('account.requests.')->group(function () {
     Route::get('/', [ServiceRequestController::class, 'index'])->name('index');
     Route::get('/{serviceRequest:uuid}', [ServiceRequestController::class, 'show'])->name('show');
-    Route::put('/{serviceRequest:uuid}', [ServiceRequestController::class, 'update'])->middleware(['verified', 'throttle:20,1'])->name('update');
+    Route::put('/{serviceRequest:uuid}', [ServiceRequestController::class, 'update'])->middleware(['verified', 'throttle:10,1'])->name('update');
     Route::get('/{serviceRequest:uuid}/files/{key}', [ServiceRequestController::class, 'file'])
         ->where('key', '[a-z0-9_]+')->middleware('throttle:60,1')->name('file');
 });

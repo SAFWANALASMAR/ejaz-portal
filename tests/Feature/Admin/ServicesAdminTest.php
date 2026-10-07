@@ -9,6 +9,7 @@ use App\Enums\ServiceRequestStatus;
 use App\Filament\Exports\ServiceRequestExporter;
 use App\Filament\Resources\Openings\OpeningResource;
 use App\Filament\Resources\Openings\Pages\CreateOpening;
+use App\Filament\Resources\Openings\Pages\EditOpening;
 use App\Filament\Resources\ServiceRequests\Pages\ListServiceRequests;
 use App\Filament\Resources\ServiceRequests\Pages\ViewServiceRequest;
 use App\Filament\Resources\ServiceRequests\ServiceRequestResource;
@@ -203,4 +204,78 @@ it('hides the export from staff without the export permission', function () {
     Livewire::test(ListServiceRequests::class)->assertActionVisible('export');
 
     expect(userWithRole(RoleName::ContentEditor)->can('export', ServiceRequest::class))->toBeFalse();
+});
+
+it('keeps applicants with a panel role out of their own request in the panel, and out of handling it', function () {
+    $editor = userWithRole(RoleName::ContentEditor);
+    $own = ServiceRequest::factory()->for($editor)->create();
+    $own->events()->create(['to_status' => ServiceRequestStatus::Received, 'internal_note' => 'ملاحظة سرية']);
+
+    $this->actingAs($editor)->get(ServiceRequestResource::getUrl('view', ['record' => $own]))->assertForbidden();
+
+    $mine = ServiceRequest::factory()->for($this->secretary)->create();
+    expect($this->secretary->can('update', $mine))->toBeFalse()
+        ->and($this->secretary->can('assign', $mine))->toBeFalse()
+        ->and(fn () => app(ChangeServiceRequestStatus::class)->handle($this->secretary, $mine, ServiceRequestStatus::Accepted))
+        ->toThrow(AuthorizationException::class);
+});
+
+it('lets the requester download their own export', function () {
+    ServiceRequest::factory()->create();
+    $this->actingAs($this->secretary);
+
+    Livewire::test(ListServiceRequests::class)->callAction('export');
+
+    $this->actingAs($this->secretary)->get(route('filament.exports.download', ['export' => Export::sole(), 'format' => 'xlsx']))->assertOk();
+});
+
+it('removes an opening from the public pages when it is unpublished or deleted', function () {
+    $opening = Opening::factory()->create(['slug' => 'temp-job']);
+    $this->actingAs($this->secretary);
+
+    Livewire::test(EditOpening::class, ['record' => $opening->getRouteKey()])
+        ->fillForm(['is_published' => false])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $this->get('/services/openings/temp-job')->assertNotFound();
+    $this->get('/services/jobs')->assertDontSee($opening->title);
+
+    $opening->update(['is_published' => true]);
+    Livewire::test(EditOpening::class, ['record' => $opening->getRouteKey()])->callAction('delete');
+
+    expect($opening->fresh()->trashed())->toBeTrue();
+    $this->get('/services/openings/temp-job')->assertNotFound();
+});
+
+it('refuses granting membership to an inactive or anonymized applicant', function () {
+    $opening = Opening::factory()->kind(OpeningKind::Membership)->create();
+    $request = ServiceRequest::factory()->for($opening)->status(ServiceRequestStatus::UnderReview)->create();
+    $request->user->forceFill(['is_active' => false])->save();
+
+    expect(fn () => app(ChangeServiceRequestStatus::class)->handle(userWithRole(RoleName::SuperAdmin), $request, ServiceRequestStatus::Accepted))
+        ->toThrow(ValidationException::class);
+    expect($request->user->fresh()->hasRole(RoleName::AssemblyMember->value))->toBeFalse();
+});
+
+it('prunes exports and their files after a day', function () {
+    ServiceRequest::factory()->create();
+    $this->actingAs($this->secretary);
+    Livewire::test(ListServiceRequests::class)->callAction('export');
+    $export = Export::sole();
+    $directory = $export->getFileDirectory();
+    expect(Storage::disk('local')->allFiles($directory))->not->toBe([]);
+
+    $this->artisan('ejaz:prune-exports')->assertSuccessful();
+    expect(Export::count())->toBe(1);
+
+    $this->travel(25)->hours();
+    $this->artisan('ejaz:prune-exports')->assertSuccessful();
+    expect(Export::count())->toBe(0)
+        ->and(Storage::disk('local')->allFiles($directory))->toBe([]);
+});
+
+it('neutralises spreadsheet formulas in exported text', function () {
+    expect(ServiceRequestExporter::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
+        ->and(ServiceRequestExporter::safeCell('نص عادي'))->toBe('نص عادي');
 });

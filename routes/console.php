@@ -9,3 +9,6 @@ use Illuminate\Support\Facades\Schedule;
 
 // سجل العمليات يُحذف ما تجاوز مدة الاحتفاظ منه، ومنه عناوين IP في السجل الأمني (docs/decisions.md)
 Schedule::command('activitylog:clean --force')->daily()->onOneServer();
+
+// ملفات التصدير ببياناتها الشخصية لا تبقى أكثر من يوم (docs/decisions.md)
+Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();
