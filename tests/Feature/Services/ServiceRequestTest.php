@@ -221,3 +221,8 @@ it('does not let a stale applicant save overwrite a staff decision taken meanwhi
         ->toThrow(AuthorizationException::class);
     expect($request->fresh()->status)->toBe(ServiceRequestStatus::Rejected);
 });
+
+it('keeps the signed-in opening page out of shared caches', function () {
+    expect($this->get('/services/openings/data-analyst')->assertOk()->headers->get('Cache-Control'))->not->toContain('no-store');
+    $this->actingAs($this->user)->get('/services/openings/data-analyst')->assertHeader('Cache-Control', 'no-store, private');
+});

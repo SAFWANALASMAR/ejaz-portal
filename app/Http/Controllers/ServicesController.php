@@ -7,6 +7,7 @@ use App\Models\Opening;
 use App\Models\ServiceRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -39,7 +40,7 @@ class ServicesController extends Controller
         return $this->listing(OpeningKind::Volunteering);
     }
 
-    public function show(Request $request, string $slug): View
+    public function show(Request $request, string $slug): Response
     {
         $opening = Opening::query()->published()->where('slug', $slug)->firstOrFail();
 
@@ -48,7 +49,10 @@ class ServicesController extends Controller
             ->where('user_id', $request->user()->id)
             ->first();
 
-        return view('services.show', ['opening' => $opening, 'existing' => $existing]);
+        $response = response()->view('services.show', ['opening' => $opening, 'existing' => $existing]);
+
+        // الصفحة لصاحب الحساب تحمل رقم طلبه المرجعي، فلا تُحفظ في ذاكرة متصفح ولا وسيط
+        return $request->user() === null ? $response : $response->header('Cache-Control', 'private, no-store');
     }
 
     private function listing(OpeningKind $kind): View
