@@ -4,10 +4,12 @@ namespace App\Actions\Competitions;
 
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
+use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\ChunkedVideoUpload;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -40,6 +42,16 @@ class StoreVideoChunk
         if ($index < 0 || $index >= $video->chunk_count || $declaredLength !== $video->expectedChunkSize($index)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
+
+        // الفحص على الصفين المقفولين: المشاركة مسودة، والمقطع نفسه قيد الرفع. والكتابة بعد المعاملة،
+        // فلا يُمسك القفل طوال قراءة الجزء من الشبكة. ومقطع قيد الرفع يمنع الإرسال (SubmitSubmission)
+        DB::transaction(function () use ($video): void {
+            CompetitionSubmission::lockDraft($video->submission_id);
+
+            if (! SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)->exists()) {
+                throw new AuthorizationException;
+            }
+        });
 
         if (! $this->uploads->store($video, $index, $stream, $declaredLength)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);

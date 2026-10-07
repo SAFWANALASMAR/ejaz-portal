@@ -57,6 +57,9 @@ class StartVideoUpload
         }
 
         $video = DB::transaction(function () use ($submission, $question, $size): SubmissionVideo {
+            // إرسال متزامن يتسلسل مع الاستبدال: فإن سبق، لا يُحذف مقطع مشاركة مرسلة ولا يُستبدل
+            CompetitionSubmission::lockDraft($submission->id);
+
             $video = SubmissionVideo::query()->where('submission_id', $submission->id)->where('question_id', $question->id)->lockForUpdate()->first();
 
             if ($video !== null) {

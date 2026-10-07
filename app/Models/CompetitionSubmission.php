@@ -6,6 +6,7 @@ use App\Enums\QuestionType;
 use App\Enums\SaudiRegion;
 use App\Enums\SubmissionStatus;
 use Database\Factories\CompetitionSubmissionFactory;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -102,6 +103,23 @@ class CompetitionSubmission extends Model
     public function isDraft(): bool
     {
         return $this->status === SubmissionStatus::Draft;
+    }
+
+    /**
+     * يقفل صف المشاركة حتى نهاية المعاملة، ويرفض إن لم تعد مسودة (أُرسلت أو حُذفت بعد قراءتها).
+     * فيتسلسل ما يغيّر مقاطعها مع الإرسال، والفحص على الحالة المقفولة لا على نسخة قديمة.
+     *
+     * @throws AuthorizationException
+     */
+    public static function lockDraft(int $id): self
+    {
+        $locked = static::query()->withTrashed()->whereKey($id)->lockForUpdate()->firstOrFail();
+
+        if (! $locked->isDraft() || $locked->trashed()) {
+            throw new AuthorizationException;
+        }
+
+        return $locked;
     }
 
     public function answer(CompetitionQuestion $question): ?string

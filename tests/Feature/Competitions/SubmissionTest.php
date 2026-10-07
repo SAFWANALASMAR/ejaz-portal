@@ -1,9 +1,12 @@
 <?php
 
 use App\Actions\Accounts\ExportUserData;
+use App\Actions\Competitions\CompleteVideoUpload;
 use App\Actions\Competitions\SaveCompetition;
 use App\Actions\Competitions\SaveSubmissionDraft;
 use App\Actions\Competitions\StartSubmission;
+use App\Actions\Competitions\StartVideoUpload;
+use App\Actions\Competitions\StoreVideoChunk;
 use App\Enums\RoleName;
 use App\Enums\SubmissionStatus;
 use App\Enums\VideoStatus;
@@ -418,5 +421,32 @@ describe('video upload', function () {
 
         $this->postJson('/competitions/demo/entry/videos/'.$other->questions[2]->id, ['size' => 10, 'type' => 'video/mp4'])->assertNotFound();
         $this->postJson('/competitions/demo/entry/videos/'.$this->text->id, ['size' => 10, 'type' => 'video/mp4'])->assertForbidden();
+    });
+
+    it('does not replace, receive or complete a video once the entry was submitted meanwhile', function () {
+        // سباق: الطلب قرأ المشاركة مسودة، ثم أُرسلت قبل أن يكتب. فيُعاد الفحص على الصف المقفول
+        $contents = mp4Contents(padding: 1024 * 1024 + 10);
+        $start = startUpload($contents)->json();
+        putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertNoContent();
+        putChunk($start['urls'][1], substr($contents, 1024 * 1024))->assertNoContent();
+        $submission = CompetitionSubmission::sole();
+        $stale = CompetitionSubmission::findOrFail($submission->id);
+        $staleVideo = SubmissionVideo::with('submission')->sole();
+        $chunks = Storage::disk('local')->allFiles('competition-chunks');
+
+        CompetitionSubmission::query()->whereKey($submission->id)->update(['status' => SubmissionStatus::Submitted, 'submitted_at' => now()]);
+
+        expect(fn () => app(StartVideoUpload::class)->handle($this->applicant, $stale, $this->video, strlen($contents), 'video/mp4', 30))
+            ->toThrow(AuthorizationException::class);
+
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, substr($contents, 0, 1024 * 1024));
+        rewind($stream);
+
+        expect(fn () => app(StoreVideoChunk::class)->handle($this->applicant, $staleVideo, 0, $stream, 1024 * 1024))->toThrow(AuthorizationException::class)
+            ->and(fn () => app(CompleteVideoUpload::class)->handle($this->applicant, $staleVideo))->toThrow(AuthorizationException::class)
+            ->and(SubmissionVideo::sole()->uuid)->toBe($start['video'])
+            ->and(SubmissionVideo::sole()->status)->toBe(VideoStatus::Uploading)
+            ->and(Storage::disk('local')->allFiles('competition-chunks'))->toBe($chunks);
     });
 });
