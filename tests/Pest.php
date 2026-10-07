@@ -64,3 +64,11 @@ function pdfContents(string $extra = ''): string
     return "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
         ."3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n".$extra."\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
 }
+
+/**
+ * محتوى MP3 صغير للاختبارات: وسم ID3 ثم إطارات صوت فارغة، ويتعرف عليه نوعاً audio/mpeg.
+ */
+function mp3Contents(): string
+{
+    return "ID3\x04\x00\x00\x00\x00\x00\x00".str_repeat("\xFF\xFB\x90\x64".str_repeat("\x00", 413), 4);
+}

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
 use App\Http\Controllers\Account\PhoneVerificationController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,18 @@ Route::get('/initiatives', [InitiativeController::class, 'index'])->name('initia
 Route::get('/initiatives/{slug}', [InitiativeController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('initiatives.show');
+
+// المكتبة بأقسامها الأربعة
+Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
+Route::where(['section' => implode('|', LibrarySection::values()), 'slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
+    Route::get('/library/{section}', [LibraryController::class, 'section'])->name('library.section');
+    Route::get('/library/{section}/{slug}', [LibraryController::class, 'show'])->name('library.show');
+    // الملف يُبث من الخادم، فحد لكل عنوان. ومشغّل الصوت يطلب أجزاءً من الملف عند التقديم والتأخير
+    Route::middleware('throttle:120,1')->group(function () {
+        Route::get('/library/{section}/{slug}/file', [LibraryController::class, 'file'])->name('library.file');
+        Route::get('/library/{section}/{slug}/download', [LibraryController::class, 'download'])->name('library.download');
+    });
+});
 
 // لوحة المستخدم
 Route::middleware('auth')->prefix('account')->name('account.')->group(function () {
