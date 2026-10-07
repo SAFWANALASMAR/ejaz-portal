@@ -5,6 +5,7 @@ namespace App\Filament\Forms;
 use App\Enums\SiteIcon;
 use App\Models\Contracts\HasPublicImages;
 use App\Support\ContentBlocks;
+use App\Support\RichText;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
@@ -17,12 +18,15 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * محرر المقاطع المرنة (requirements: «محرر محتوى مرن»): نص منسق، وبطاقات، وصورة.
- * يُعرض في الموقع بـ x-content-blocks، والنص المنسق بعد تنقيته (App\Support\RichText).
+ * حقول نماذج المحتوى في اللوحة: محرر المقاطع المرنة، ورفع الصور، والمعرّف في الرابط.
  */
-final class ContentBlocksField
+final class ContentFields
 {
-    public static function make(string $directory): Builder
+    /**
+     * محرر المقاطع (requirements: «محرر محتوى مرن»): نص منسق، وبطاقات، وصورة. يُعرض في
+     * الموقع بـ x-content-blocks، والنص المنسق بعد تنقيته (App\Support\RichText).
+     */
+    public static function blocks(string $directory): Builder
     {
         return Builder::make('blocks')
             ->label(__('content.blocks.label'))
@@ -35,7 +39,9 @@ final class ContentBlocksField
                         // أدوات النص الأساسية وحدها، وهي ما يبقى بعد التنقية في الموقع
                         RichEditor::make('body')
                             ->label(__('content.blocks.body'))
+                            ->helperText(__('content.blocks.body_hint'))
                             ->required()
+                            ->maxLength(RichText::MAX_LENGTH)
                             ->toolbarButtons([
                                 ['bold', 'italic', 'underline', 'strike', 'link'],
                                 ['h2', 'h3'],
@@ -79,7 +85,9 @@ final class ContentBlocksField
     }
 
     /**
-     * رفع صورة على القرص العام: JPG أو PNG أو WebP، ولا SVG (docs/security.md).
+     * رفع صورة على القرص العام: JPG أو PNG أو WebP، ولا SVG (docs/security.md). وتُعاد
+     * ترميزها قبل النشر داخل طلب الحفظ، فتُحدّ أبعادها بما يكفي للموقع ولا يثقل الحفظ.
+     * ومنع التلاعب بالمسار مفعّل لكل حقول الرفع في AdminPanelProvider.
      */
     public static function image(string $name, string $directory): FileUpload
     {
@@ -87,7 +95,7 @@ final class ContentBlocksField
             ->image()
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->maxSize(4096)
-            ->rules(['dimensions:max_width=4000,max_height=4000'])
+            ->rules(['dimensions:max_width=3000,max_height=3000'])
             ->disk('public')
             ->directory($directory)
             ->visibility('public');

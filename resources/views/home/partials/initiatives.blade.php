@@ -5,7 +5,7 @@
             <x-section-heading id="home-initiatives">{{ __('content.initiatives.title') }}</x-section-heading>
             <a href="{{ route('initiatives.index') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
                 {{ __('site.view_all') }}
-                {{ svg('heroicon-o-arrow-left', 'size-4') }}
+                {{ svg('heroicon-o-arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
             </a>
         </div>
 

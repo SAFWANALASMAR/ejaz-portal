@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Initiative;
 use App\Support\ContentCache;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -33,13 +34,15 @@ class InitiativeController extends Controller
 
         abort_unless(in_array($slug, $published, true), 404);
 
-        /** @var array{title: string, summary: ?string, html: string} $page */
-        $page = ContentCache::remember('initiatives.'.$slug, function () use ($slug): array {
+        // فضاء مستقل لصفحة كل مبادرة، فلا يصطدم معرّف مثل index أو slugs بمفاتيح القائمة
+        /** @var array{title: string, summary: ?string, image: ?string, html: string} $page */
+        $page = ContentCache::remember('initiatives.show.'.$slug, function () use ($slug): array {
             $initiative = Initiative::query()->published()->where('slug', $slug)->firstOrFail();
 
             return [
                 'title' => $initiative->name,
                 'summary' => $initiative->summary,
+                'image' => $initiative->image ? Storage::disk('public')->url($initiative->image) : null,
                 'html' => view('content.initiatives.show', ['initiative' => $initiative])->render(),
             ];
         });

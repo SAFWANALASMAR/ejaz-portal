@@ -44,7 +44,8 @@ class BuildHomePage
             'hero' => self::hero($home),
             'stats' => self::shows($home, 'stats') ? self::stats($home) : [],
             'shortcuts' => self::shows($home, 'shortcuts') ? self::shortcuts() : [],
-            'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->get() : new Collection,
+            // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
+            'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->limit(3)->get() : new Collection,
         ];
     }
 

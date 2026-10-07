@@ -16,7 +16,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * الصلاحيات: pages.* — PagePolicy.
+ * صفحات المحتوى (النموذج Page). الاسم ContentPages لا Pages، حتى لا يلتبس بمجلد Pages الذي
+ * يضع فيه Filament صفحات كل مورد. الصلاحيات: pages.* — PagePolicy.
  */
 class ContentPageResource extends Resource
 {

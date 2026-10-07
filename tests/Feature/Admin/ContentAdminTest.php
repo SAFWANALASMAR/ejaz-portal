@@ -4,7 +4,9 @@ use App\Actions\Content\DeleteContent;
 use App\Actions\Content\SaveContent;
 use App\Enums\RoleName;
 use App\Filament\Resources\BoardMembers\BoardMemberResource;
+use App\Filament\Resources\BoardMembers\Pages\CreateBoardMember;
 use App\Filament\Resources\ContentPages\ContentPageResource;
+use App\Filament\Resources\ContentPages\Pages\CreateContentPage;
 use App\Filament\Resources\ContentPages\Pages\EditContentPage;
 use App\Filament\Resources\Initiatives\InitiativeResource;
 use App\Filament\Resources\Initiatives\Pages\CreateInitiative;
@@ -33,9 +35,9 @@ beforeEach(function () {
 /**
  * صورة JPEG فيها بيانات موقع (EXIF) تُكتشف بعد التنظيف.
  */
-function photoWithLocation(string $name = 'photo.jpg'): UploadedFile
+function photoWithLocation(string $name = 'photo.jpg', int $width = 800, int $height = 500): UploadedFile
 {
-    $jpeg = UploadedFile::fake()->image($name, 800, 500)->getContent();
+    $jpeg = UploadedFile::fake()->image($name, $width, $height)->getContent();
     $payload = "Exif\0\0GPS-LATITUDE-21.4225";
 
     return UploadedFile::fake()->createWithContent($name, substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($payload) + 2).$payload.substr($jpeg, 2));
@@ -211,4 +213,66 @@ it('flushes the public content cache from every model that has public images', f
     foreach ($models as $class) {
         expect(class_uses_recursive($class))->toHaveKey(FlushesContentCache::class);
     }
+});
+
+it('stores the rich text written in the editor and shows it on the site', function () {
+    $page = Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditContentPage::class, ['record' => $page->getRouteKey()])
+        ->fillForm(['blocks' => [['type' => 'text', 'data' => ['heading' => 'من نحن', 'body' => '<p>نص <strong>من المحرر</strong></p>']]]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $this->get('/about')->assertSee('<strong>من المحرر</strong>', false);
+});
+
+it('creates a page and a board member from the panel', function () {
+    $this->actingAs($this->editor);
+
+    Livewire::test(CreateContentPage::class)
+        ->fillForm(['title' => 'سياسة الخصوصية', 'slug' => 'privacy', 'is_published' => true])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Livewire::test(CreateBoardMember::class)
+        ->fillForm(['name' => 'عضو', 'position' => 'صفة', 'photo' => [photoWithLocation('member.jpg', 500, 500)], 'is_visible' => true])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $member = BoardMember::where('name', 'عضو')->sole();
+
+    expect(Page::where('slug', 'privacy')->exists())->toBeTrue()
+        ->and($member->photo)->toStartWith('board/')
+        ->and(Storage::disk('public')->get($member->photo))->not->toContain('GPS-LATITUDE');
+});
+
+it('refuses an image path outside the folder of the record, and deletes nothing there', function (string $path) {
+    Storage::disk('public')->put('settings/hero.jpg', UploadedFile::fake()->image('hero.jpg')->getContent());
+    $initiative = Initiative::factory()->create();
+
+    expect(fn () => app(SaveContent::class)->handle($this->editor, $initiative, ['image' => $path]))
+        ->toThrow(ValidationException::class)
+        ->and(Storage::disk('public')->exists('settings/hero.jpg'))->toBeTrue()
+        ->and($initiative->fresh()->image)->toBeNull();
+})->with(['settings/hero.jpg', 'initiatives/../settings/hero.jpg']);
+
+it('lets the editor save again after a rejected image, keeping the stored one', function () {
+    Storage::disk('public')->put('initiatives/current.jpg', UploadedFile::fake()->image('current.jpg', 800, 500)->getContent());
+    $initiative = Initiative::factory()->create(['image' => 'initiatives/current.jpg']);
+    $header = "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.pack('NN', 800, 400)."\x08\x02\x00\x00\x00";
+    $broken = UploadedFile::fake()->createWithContent('broken.png', $header.pack('N', crc32(substr($header, 12))).random_bytes(2048));
+
+    $this->actingAs($this->editor);
+
+    $component = Livewire::test(EditInitiative::class, ['record' => $initiative->getRouteKey()])
+        ->set('data.image', null)
+        ->fillForm(['image' => [$broken]])
+        ->call('save');
+
+    expect($component->errors()->first('data.image'))->toBe(__('validation.unreadable_image'));
+
+    $component->fillForm(['name' => 'اسم بعد الرفض'])->call('save')->assertHasNoFormErrors();
+
+    expect($initiative->fresh())->name->toBe('اسم بعد الرفض')->image->toBe('initiatives/current.jpg');
 });

@@ -8,13 +8,20 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 
 /**
  * النص المنسق من محرر اللوحة يُعرض في الموقع العام بعد تنقية صارمة (symfony/html-sanitizer،
- * المثبت مع Filament):
+ * المثبت مع Filament — docs/decisions.md):
  * - عناصر النص الأساسية فقط، بلا سمة style، لأن سياسة أمان المحتوى تسمح بالأنماط المضمّنة.
- * - والروابط https وmailto والداخلية فقط، وتُفتح بلا وصول إلى الصفحة الأصل.
+ * - والروابط بقاعدة البوابة نفسها (SafeLinkSanitizer)، وتُفتح بلا وصول إلى الصفحة الأصل.
  * وما سواها يُحذف: لا سكربت، ولا معالجات أحداث، ولا javascript:، ولو وصلت إلى القاعدة.
  */
 final class RichText
 {
+    /**
+     * أقصى طول للنص المنسق، في المحرر وفي التنقية.
+     */
+    public const MAX_LENGTH = 100_000;
+
+    private const ELEMENTS = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'blockquote', 'hr'];
+
     private static ?HtmlSanitizer $sanitizer = null;
 
     public static function toHtml(?string $html): HtmlString
@@ -24,19 +31,24 @@ final class RichText
 
     private static function sanitizer(): HtmlSanitizer
     {
+        if (self::$sanitizer !== null) {
+            return self::$sanitizer;
+        }
+
         $config = new HtmlSanitizerConfig;
 
-        foreach (['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'blockquote', 'hr'] as $element) {
+        foreach (self::ELEMENTS as $element) {
             $config = $config->allowElement($element);
         }
 
-        return self::$sanitizer ??= new HtmlSanitizer(
+        return self::$sanitizer = new HtmlSanitizer(
             $config
                 ->allowElement('a', ['href'])
                 ->allowLinkSchemes(['https', 'mailto'])
                 ->allowRelativeLinks()
+                ->withAttributeSanitizer(new SafeLinkSanitizer)
                 ->forceAttribute('a', 'rel', 'noopener noreferrer')
-                ->withMaxInputLength(100_000),
+                ->withMaxInputLength(self::MAX_LENGTH),
         );
     }
 }

@@ -5,6 +5,7 @@ use App\Models\Initiative;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Support\ContentCache;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @param  array<string, mixed>  $attributes
@@ -134,5 +135,66 @@ it('marks the missing board members in development, and shows nothing of them in
     $this->app['env'] = 'production';
     ContentCache::flush();
 
-    $this->withoutVite()->get('/about')->assertOk()->assertDontSee(__('content.about.board_missing'));
+    $this->withoutVite()->get('/about')->assertOk()
+        ->assertDontSee(__('content.about.board_missing'))
+        ->assertDontSee(__('content.about.board'));
+});
+
+it('keeps the cache of each initiative apart from the list, whatever its slug', function (array $visits) {
+    Initiative::factory()->create(['slug' => 'index', 'name' => 'مبادرة الفهرس']);
+    Initiative::factory()->create(['slug' => 'slugs', 'name' => 'مبادرة المعرّفات']);
+
+    foreach ($visits as $path) {
+        $this->get($path)->assertOk();
+    }
+
+    $this->get('/initiatives')->assertOk()->assertSee('مبادرة الفهرس')->assertSee('مبادرة المعرّفات');
+    $this->get('/initiatives/index')->assertOk()->assertSee('مبادرة الفهرس');
+    $this->get('/initiatives/slugs')->assertOk()->assertSee('مبادرة المعرّفات');
+})->with([
+    'pages first' => [['/initiatives/index', '/initiatives/slugs']],
+    'list first' => [['/initiatives', '/initiatives/index']],
+]);
+
+it('serves other published pages by their slug, and the about page by its own link only', function () {
+    Page::factory()->create(['slug' => 'privacy', 'title' => 'سياسة الخصوصية', 'blocks' => [
+        ['type' => 'text', 'data' => ['body' => '<p>نص السياسة</p>']],
+    ]]);
+    Page::factory()->unpublished()->create(['slug' => 'draft']);
+    aboutPage();
+
+    $this->get('/pages/privacy')->assertOk()->assertSeeInOrder(['<h1', 'سياسة الخصوصية'], false)->assertSee('نص السياسة');
+    $this->get('/pages/draft')->assertNotFound();
+    $this->get('/pages/unknown')->assertNotFound();
+    $this->get('/pages/Bad_Slug')->assertNotFound();
+    $this->get('/pages/about')->assertRedirect(route('about'))->assertStatus(301);
+});
+
+it('keeps only safe links in the rich text', function () {
+    aboutPage(['blocks' => [['type' => 'text', 'data' => ['body' => <<<'HTML'
+        <p><a href="//evil.example/x">بلا بروتوكول</a> <a href="http://ejaz.sa">غير آمن</a> <a href="mailto:info@ejaz.sa">بريد</a>
+        <a href="mailto:not-an-email">بريد خاطئ</a> <a href="/initiatives">داخلي</a> <a href="https://ejaz.sa/x">آمن</a></p>
+        HTML]]]]);
+
+    $html = $this->get('/about')->assertOk()->getContent();
+
+    expect($html)
+        ->not->toContain('evil.example')
+        ->not->toContain('http://ejaz.sa')
+        ->not->toContain('not-an-email')
+        // المنقّي يرمّز @ في السمات، والمتصفح يفكّه
+        ->toContain('href="mailto:info&#64;ejaz.sa"')
+        ->toContain('href="/initiatives"')
+        ->toContain('href="https://ejaz.sa/x"')
+        ->toContain('بلا بروتوكول')
+        ->toContain('غير آمن');
+});
+
+it('shares the initiative image, and shows at most three initiatives on the home page', function () {
+    Initiative::factory()->create(['slug' => 'qiyam', 'image' => 'initiatives/cover.jpg']);
+    Initiative::factory()->count(3)->create();
+
+    $this->get('/initiatives/qiyam')->assertSee('<meta property="og:image" content="'.Storage::disk('public')->url('initiatives/cover.jpg').'">', false);
+
+    expect(substr_count($this->get('/')->getContent(), 'href="'.route('initiatives.index').'/'))->toBe(3);
 });

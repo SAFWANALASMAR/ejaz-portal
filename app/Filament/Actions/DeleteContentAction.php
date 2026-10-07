@@ -21,9 +21,11 @@ final class DeleteContentAction
 
             if ($record instanceof HasPublicImages) {
                 app(DeleteContent::class)->handle($actor, $record);
+
+                return true;
             }
 
-            return true;
+            return (bool) $record->delete();
         });
     }
 }

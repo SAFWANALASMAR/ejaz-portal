@@ -17,6 +17,11 @@ class ContentSeeder extends Seeder
     {
         Page::query()->firstOrCreate(['slug' => Page::ABOUT], ['title' => 'عن الجمعية', 'is_published' => false]);
 
+        // المبادرات مرة واحدة كالقائمة، فلا تعود مبادرة حذفها المحرر بعد كل بذر
+        if (Initiative::query()->exists()) {
+            return;
+        }
+
         $initiatives = ['qiyam' => 'قيم', 'tatweer' => 'تطوير', 'kunooz' => 'كنوز', 'ibtikar' => 'ابتكار', 'irtiqa' => 'ارتقاء'];
 
         foreach (array_keys($initiatives) as $sort => $slug) {

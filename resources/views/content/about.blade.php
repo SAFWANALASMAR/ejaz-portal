@@ -3,11 +3,11 @@
 
 <x-content-blocks :blocks="$page->blocks" />
 
-<section class="bg-sand py-12 sm:py-16" aria-labelledby="board">
-    <div class="container-page">
-        <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
+@if ($members->isNotEmpty())
+    <section class="bg-sand py-12 sm:py-16" aria-labelledby="board">
+        <div class="container-page">
+            <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
 
-        @if ($members->isNotEmpty())
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach ($members as $member)
                     <li class="rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs">
@@ -23,8 +23,11 @@
                     </li>
                 @endforeach
             </ul>
-        @else
-            <x-missing :what="__('content.about.board_missing')" class="mt-6" />
-        @endif
+        </div>
+    </section>
+@elseif (! app()->isProduction())
+    {{-- مجلس الإدارة لا يظهر في الموقع حتى تُدخل أسماؤه بموافقة أصحابها --}}
+    <div class="container-page py-8">
+        <x-missing :what="__('content.about.board_missing')" />
     </div>
-</section>
+@endif

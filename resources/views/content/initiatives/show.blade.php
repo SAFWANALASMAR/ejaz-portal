@@ -31,7 +31,10 @@
             <x-section-heading id="gallery">{{ __('content.initiatives.gallery') }}</x-section-heading>
             <ul class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 @foreach ($gallery as $path)
-                    <li><img src="{{ Storage::disk('public')->url($path) }}" alt="" loading="lazy" class="aspect-square w-full rounded-2xl object-cover"></li>
+                    <li>
+                        <img src="{{ Storage::disk('public')->url($path) }}" loading="lazy" class="aspect-square w-full rounded-2xl object-cover"
+                            alt="{{ __('content.initiatives.gallery_alt', ['number' => $loop->iteration, 'name' => $initiative->name]) }}">
+                    </li>
                 @endforeach
             </ul>
         </div>

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Initiatives\Schemas;
 
-use App\Filament\Forms\ContentBlocksField;
+use App\Filament\Forms\ContentFields;
 use App\Models\Initiative;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
@@ -18,9 +18,9 @@ class InitiativeForm
         return $schema->components([
             Section::make()->columns(2)->columnSpanFull()->schema([
                 TextInput::make('name')->label(__('initiatives.fields.name'))->required()->maxLength(120),
-                ContentBlocksField::slug(),
+                ContentFields::slug(),
                 Textarea::make('summary')->label(__('initiatives.fields.summary'))->rows(2)->maxLength(300)->columnSpanFull(),
-                ContentBlocksField::image('image', Initiative::IMAGE_DIRECTORY)
+                ContentFields::image('image', Initiative::IMAGE_DIRECTORY)
                     ->label(__('initiatives.fields.image'))
                     ->helperText(__('content.image_hint'))
                     ->columnSpanFull(),
@@ -33,14 +33,14 @@ class InitiativeForm
                     ->defaultItems(0)
                     ->maxItems(12),
             ]),
-            ContentBlocksField::make(Initiative::IMAGE_DIRECTORY),
+            ContentFields::blocks(Initiative::IMAGE_DIRECTORY),
             Section::make(__('initiatives.fields.gallery'))->columnSpanFull()->schema([
-                ContentBlocksField::image('gallery', Initiative::IMAGE_DIRECTORY)
+                ContentFields::image('gallery', Initiative::IMAGE_DIRECTORY)
                     ->hiddenLabel()
                     ->helperText(__('content.image_hint'))
                     ->multiple()
                     ->reorderable()
-                    ->maxFiles(12),
+                    ->maxFiles(8),
             ]),
         ]);
     }

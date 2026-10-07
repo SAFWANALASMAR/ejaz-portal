@@ -1,5 +1,5 @@
 {{--
-    المقاطع المرنة من محرر اللوحة (App\Filament\Forms\ContentBlocksField): نص، وبطاقات، وصورة.
+    المقاطع المرنة من محرر اللوحة (App\Filament\Forms\ContentFields::blocks): نص، وبطاقات، وصورة.
     الأنواع من قائمة معروفة (ContentBlocks::normalize)، فلا يُبنى اسم قالب من مدخل حر.
 --}}
 @props(['blocks'])
