@@ -2,14 +2,17 @@
 
 use App\Actions\Accounts\ExportUserData;
 use App\Actions\Surveys\SaveSurvey;
+use App\Actions\Surveys\SubmitSurveyResponse;
 use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
+use App\Enums\SurveyAudience;
 use App\Enums\SurveyQuestionType;
 use App\Filament\Resources\Surveys\Pages\CreateSurvey;
 use App\Filament\Resources\Surveys\Pages\EditSurvey;
 use App\Filament\Resources\Surveys\Pages\SurveyResultsPage;
 use App\Filament\Resources\Surveys\SurveyResource;
 use App\Models\Competition;
+use App\Models\CompetitionSubmission;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -245,4 +248,44 @@ it('shows a survey not yet opened as unavailable, and a deleted one as not found
     $this->survey->update(['opens_at' => null]);
     $this->survey->delete();
     $this->actingAs($user)->get('/surveys/'.$this->survey->token)->assertNotFound();
+});
+
+it('lets only assembly members answer a members survey, and refuses guests even when guests are allowed', function () {
+    $this->survey->update(['audience' => SurveyAudience::Members, 'allow_guests' => true]);
+    $member = userWithRole(RoleName::AssemblyMember);
+    $outsider = User::factory()->create();
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], $outsider)->assertSessionHas('error', __('surveys.public.not_audience'));
+    answer([$this->scale->id => 4, $this->choice->id => 1])->assertSessionHas('error');
+    $this->actingAs($outsider)->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.not_audience'));
+
+    expect(SurveyResponse::count())->toBe(0)
+        ->and(fn () => app(SubmitSurveyResponse::class)->handle($outsider, $this->survey->load('questions'), [$this->scale->id => 4, $this->choice->id => 1]))
+        ->toThrow(AuthorizationException::class);
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], $member)->assertSessionHas('status');
+    expect(SurveyResponse::sole()->user_id)->toBe($member->id);
+});
+
+it('lets only those who submitted an entry answer a competition survey', function () {
+    $competition = Competition::factory()->create();
+    $this->survey->subject()->associate($competition)->save();
+
+    $entrant = User::factory()->create();
+    CompetitionSubmission::factory()->submitted()->create(['competition_id' => $competition->id, 'user_id' => $entrant->id]);
+    $drafter = User::factory()->create();
+    CompetitionSubmission::factory()->create(['competition_id' => $competition->id, 'user_id' => $drafter->id]);
+    $other = User::factory()->create();
+    CompetitionSubmission::factory()->submitted()->create(['user_id' => $other->id]);
+
+    foreach ([$drafter, $other] as $user) {
+        answer([$this->scale->id => 4, $this->choice->id => 1], $user)->assertSessionHas('error', __('surveys.public.not_audience'));
+    }
+
+    $this->survey->update(['allow_guests' => true]);
+    answer([$this->scale->id => 4, $this->choice->id => 1])->assertSessionHas('error');
+    expect(SurveyResponse::count())->toBe(0);
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], $entrant)->assertSessionHas('status');
+    expect(SurveyResponse::sole()->user_id)->toBe($entrant->id);
 });

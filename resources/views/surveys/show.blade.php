@@ -9,6 +9,8 @@
 <x-layouts.auth :title="$survey->title" :intro="$survey->description ?: __('surveys.public.intro')" :image="false">
     @if ($state === 'unavailable')
         <x-alert type="warning">{{ __('surveys.public.unavailable') }}</x-alert>
+    @elseif ($state === 'not_audience')
+        <x-alert type="info">{{ __('surveys.public.not_audience') }}</x-alert>
     @elseif ($state === 'answered')
         @unless (session('status'))
             <x-alert type="info">{{ __('surveys.public.already') }}</x-alert>

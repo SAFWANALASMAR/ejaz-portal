@@ -2,7 +2,12 @@
 
 namespace App\Actions\Surveys;
 
+use App\Enums\RoleName;
+use App\Enums\SubmissionStatus;
+use App\Enums\SurveyAudience;
 use App\Enums\SurveyQuestionType;
+use App\Models\Competition;
+use App\Models\CompetitionSubmission;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -15,8 +20,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * إجابة استبيان: منشور مفتوح، ولغير المسجل إن سمح به، والإجابات بأنواع أسئلتها، والإلزامي. وإجابة
- * واحدة لكل صاحب حساب بقيد فريد، فالمكرر يُرفض ولو تزامن طلبان.
+ * إجابة استبيان: منشور مفتوح، ولغير المسجل إن سمح به، ولفئته المستهدفة وحدها، والإجابات بأنواع
+ * أسئلتها، والإلزامي. وإجابة واحدة لكل صاحب حساب بقيد فريد، فالمكرر يُرفض ولو تزامن طلبان.
  */
 class SubmitSurveyResponse
 {
@@ -32,6 +37,10 @@ class SubmitSurveyResponse
     {
         if (! $survey->isOpen() || ($user === null && ! $survey->allow_guests)) {
             throw new AuthorizationException(__('surveys.public.unavailable'));
+        }
+
+        if (! self::eligible($survey, $user)) {
+            throw new AuthorizationException(__('surveys.public.not_audience'));
         }
 
         if ($user !== null && self::answered($survey, $user)) {
@@ -81,6 +90,27 @@ class SubmitSurveyResponse
         SurveyResults::forget($survey);
 
         return $response;
+    }
+
+    /**
+     * الفئة المستهدفة: استبيان المسابقة لمن أرسل مشاركة فيها، واستبيان «الأعضاء» لعضو الجمعية
+     * العمومية. وفي الحالتين لا يجيب غير المسجل ولو سُمح لغير المسجلين. وما سواهما لكل من يصل إليه.
+     */
+    public static function eligible(Survey $survey, ?User $user): bool
+    {
+        if ($survey->subject_type === (new Competition)->getMorphClass()) {
+            return $user !== null && CompetitionSubmission::query()
+                ->where('competition_id', $survey->subject_id)
+                ->where('user_id', $user->id)
+                ->where('status', SubmissionStatus::Submitted)
+                ->exists();
+        }
+
+        if ($survey->audience === SurveyAudience::Members) {
+            return $user !== null && $user->hasRole(RoleName::AssemblyMember->value);
+        }
+
+        return true;
     }
 
     public static function answered(Survey $survey, User $user): bool

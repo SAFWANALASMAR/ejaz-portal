@@ -34,10 +34,15 @@ class SurveyController extends Controller
             return view('surveys.show', ['survey' => $survey, 'state' => 'unavailable']);
         }
 
-        if ($user === null && ! $survey->allow_guests) {
+        // ولفئة محددة (الأعضاء أو المشاركون في مسابقة) يلزم الحساب ولو سُمح لغير المسجلين
+        if ($user === null && (! $survey->allow_guests || ! SubmitSurveyResponse::eligible($survey, null))) {
             redirect()->setIntendedUrl(route('surveys.show', $token));
 
             return redirect()->route('login')->with('status', __('surveys.public.login'));
+        }
+
+        if (! SubmitSurveyResponse::eligible($survey, $user)) {
+            return view('surveys.show', ['survey' => $survey, 'state' => 'not_audience']);
         }
 
         $answered = $user instanceof User ? SubmitSurveyResponse::answered($survey, $user) : $request->hasCookie(self::cookie($survey));
