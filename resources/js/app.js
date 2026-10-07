@@ -81,3 +81,5 @@ if (header) {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
 }
+
+import './competition-entry';

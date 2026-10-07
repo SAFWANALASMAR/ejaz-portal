@@ -23,6 +23,7 @@ return [
         'security' => 'الأمن',
         'users' => 'المستخدمون',
         'content' => 'المحتوى',
+        'competitions' => 'المسابقات',
     ],
 
     'events' => [
@@ -55,6 +56,10 @@ return [
         'Initiative' => 'مبادرة',
         'BoardMember' => 'عضو مجلس الإدارة',
         'Document' => 'وثيقة',
+        'Competition' => 'مسابقة',
+        'CompetitionQuestion' => 'سؤال مسابقة',
+        'CompetitionCriterion' => 'معيار تقييم',
+        'CompetitionSubmission' => 'مشاركة في مسابقة',
     ],
 
 ];

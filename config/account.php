@@ -28,6 +28,13 @@ return [
             'icon' => 'user',
             'active' => ['account.profile', 'account.security', 'account.data*', 'account.phone*'],
         ],
+        [
+            'route' => 'account.competitions',
+            'label' => 'competitions.account.nav',
+            'description' => 'competitions.account.nav_description',
+            'icon' => 'trophy',
+            'active' => ['account.competitions', 'competitions.entry'],
+        ],
     ],
 
 ];

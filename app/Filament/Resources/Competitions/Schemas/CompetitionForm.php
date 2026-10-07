@@ -65,8 +65,11 @@ class CompetitionForm
                 ]),
 
                 Tab::make(__('competitions.tabs.questions'))->schema([
+                    // بعد أول مشاركة يُقفل البنك، فلا يُرسل الحقل ولا يُحفظ (SaveCompetition)
                     Repeater::make('questions')
                         ->label(__('competitions.fields.questions'))
+                        ->disabled(fn (?Competition $record): bool => $record?->questionsLocked() ?? false)
+                        ->helperText(fn (?Competition $record): ?string => $record?->questionsLocked() ? __('competitions.fields.questions_locked') : null)
                         ->columns(2)
                         ->maxItems(200)
                         ->reorderable()

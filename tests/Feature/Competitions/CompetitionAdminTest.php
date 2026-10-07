@@ -200,3 +200,22 @@ it('hides the correct option when a question is turned into an array', function 
 
     expect($competition->questions[1]->toArray())->not->toHaveKey('correct_option');
 });
+
+it('keeps the ids of new questions and criteria when the edit page is saved twice', function () {
+    $competition = Competition::factory()->withQuestions()->create();
+    $this->actingAs($this->manager);
+
+    $page = Livewire::test(EditCompetition::class, ['record' => $competition->getRouteKey()]);
+    $questions = $page->get('data.questions');
+    $questions[(string) str()->uuid()] = ['type' => 'text', 'prompt' => 'سؤال مضاف', 'is_required' => true];
+
+    $page->fillForm(['questions' => $questions])->call('save')->assertHasNoFormErrors();
+    $ids = $competition->questions()->pluck('id')->all();
+
+    $page->call('save')->assertHasNoFormErrors();
+
+    expect($competition->questions()->pluck('id')->all())->toBe($ids)->and($ids)->toHaveCount(4)
+        ->and(array_values(collect($page->get('data.questions'))->firstWhere('prompt', 'سؤال اختيار تجريبي')['options']))->toBe([
+            ['label' => 'الخيار الأول', 'is_correct' => false], ['label' => 'الخيار الثاني', 'is_correct' => true],
+        ]);
+});

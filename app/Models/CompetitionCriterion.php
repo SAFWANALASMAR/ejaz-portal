@@ -40,6 +40,6 @@ class CompetitionCriterion extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('competitions')->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('competitions')->logOnly(['competition_id', 'name', 'weight', 'max_score', 'sort_order'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

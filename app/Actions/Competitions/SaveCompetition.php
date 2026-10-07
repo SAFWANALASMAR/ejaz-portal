@@ -44,18 +44,34 @@ class SaveCompetition
             throw new AuthorizationException;
         }
 
+        // بعد أول مشاركة لا يصل بنك الأسئلة من اللوحة (حقله معطل)، ولا يُقبل من غيرها
+        if (array_key_exists('questions', $data) && $competition->questionsLocked()) {
+            throw ValidationException::withMessages(['questions' => __('competitions.validation.questions_locked')]);
+        }
+
         $data = $this->validate($competition, $data);
 
-        $criteria = $data['criteria'] ?? [];
-        $questions = $data['questions'] ?? [];
+        // ما لم يصل من المعايير أو الأسئلة يبقى كما هو
+        $criteria = $data['criteria'] ?? null;
+        $questions = $data['questions'] ?? null;
         unset($data['criteria'], $data['questions']);
 
         $data['categories'] = array_values(array_unique(array_filter(array_map('trim', $data['categories'] ?? []), fn (string $category): bool => $category !== '')));
 
         DB::transaction(function () use ($competition, $data, $criteria, $questions): void {
+            // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول
+            if ($competition->exists) {
+                Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
+            }
+
             $competition->fill($data)->save();
-            $this->syncCriteria($competition, $criteria);
-            $this->syncQuestions($competition, $questions);
+            if ($criteria !== null) {
+                $this->syncCriteria($competition, $criteria);
+            }
+
+            if ($questions !== null) {
+                $this->syncQuestions($competition, $questions);
+            }
         });
 
         return $competition->refresh();
@@ -84,13 +100,13 @@ class SaveCompetition
             'is_published' => ['boolean'],
 
             'criteria' => ['nullable', 'array', 'max:20'],
-            'criteria.*.id' => ['nullable', 'integer'],
+            'criteria.*.id' => ['nullable', 'integer', 'distinct'],
             'criteria.*.name' => ['required', 'string', 'max:150'],
             'criteria.*.weight' => ['required', 'integer', 'min:1', 'max:100'],
             'criteria.*.max_score' => ['required', 'integer', 'min:1', 'max:1000'],
 
             'questions' => ['nullable', 'array', 'max:200'],
-            'questions.*.id' => ['nullable', 'integer'],
+            'questions.*.id' => ['nullable', 'integer', 'distinct'],
             'questions.*.type' => ['required', Rule::enum(QuestionType::class)],
             'questions.*.prompt' => ['required', 'string', 'max:2000'],
             'questions.*.is_required' => ['boolean'],
@@ -102,7 +118,12 @@ class SaveCompetition
             'questions.*.max_video_mb' => ['nullable', 'integer', 'min:1', 'max:'.config('competitions.video.max_mb')],
         ], attributes: __('competitions.attributes'));
 
-        $validator->after(fn (ValidatorInstance $validator) => $this->checkCriteriaAndQuestions($validator, $data));
+        // الفحوص المركبة بعد سلامة كل حقل، فلا يتكرر الخطأ نفسه
+        $validator->after(function (ValidatorInstance $validator) use ($competition, $data): void {
+            if ($validator->errors()->isEmpty()) {
+                $this->checkCriteriaAndQuestions($validator, $competition, $data);
+            }
+        });
 
         return $validator->validate();
     }
@@ -113,7 +134,7 @@ class SaveCompetition
      *
      * @param  array<string, mixed>  $data
      */
-    private function checkCriteriaAndQuestions(ValidatorInstance $validator, array $data): void
+    private function checkCriteriaAndQuestions(ValidatorInstance $validator, Competition $competition, array $data): void
     {
         $criteria = is_array($data['criteria'] ?? null) ? $data['criteria'] : [];
         $questions = is_array($data['questions'] ?? null) ? $data['questions'] : [];
@@ -133,6 +154,11 @@ class SaveCompetition
                 if (count($options) < 2 || $correct !== 1) {
                     $validator->errors()->add('questions', __('competitions.validation.choices', ['number' => $number]));
                 }
+
+                // سؤال يُصحَّح آلياً ولا درجة له لا معنى له
+                if ((int) ($question['points'] ?? 0) < 1) {
+                    $validator->errors()->add('questions', __('competitions.validation.points', ['number' => $number]));
+                }
             }
 
             if ($type === QuestionType::Video && (blank($question['max_video_seconds'] ?? null) || blank($question['max_video_mb'] ?? null))) {
@@ -140,7 +166,9 @@ class SaveCompetition
             }
         }
 
-        if (($data['is_published'] ?? false) && $questions === []) {
+        $hasQuestions = array_key_exists('questions', $data) ? $questions !== [] : $competition->exists && $competition->questions()->exists();
+
+        if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));
         }
     }

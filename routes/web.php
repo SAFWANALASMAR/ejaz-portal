@@ -62,3 +62,6 @@ Route::middleware('auth')->prefix('account')->name('account.')->group(function (
     Route::get('/data/export', [DataRightsController::class, 'export'])->middleware(['password.confirm', 'throttle:5,60'])->name('data.export');
     Route::post('/data/deletion', [DataRightsController::class, 'requestDeletion'])->middleware('throttle:5,60')->name('data.deletion');
 });
+
+// المسابقات (المرحلة 2)
+require __DIR__.'/competitions.php';

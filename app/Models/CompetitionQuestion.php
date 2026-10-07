@@ -63,8 +63,11 @@ class CompetitionQuestion extends Model
         return array_column($this->optionList(), 'key');
     }
 
+    /**
+     * مع المسابقة التي يتبعها السؤال، وبلا الخيار الصحيح نفسه: لا يُكشف لمن يطّلع على السجل.
+     */
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('competitions')->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('competitions')->logOnly(['competition_id', 'type', 'prompt', 'options', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

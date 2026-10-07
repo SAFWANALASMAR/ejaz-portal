@@ -13,6 +13,12 @@ return [
 
         // السقف الأعلى لحد المدة بالثواني
         'max_seconds' => (int) env('COMPETITION_VIDEO_MAX_SECONDS', 3600),
+
+        // حجم الجزء في الرفع المجزأ بالميجابايت. ويبقى دون حد الطلب في nginx وPHP
+        'chunk_mb' => (int) env('COMPETITION_VIDEO_CHUNK_MB', 5),
+
+        // مدة صلاحية روابط رفع الأجزاء الموقّعة بالدقائق. وبعدها يعيد طلب الاستئناف روابط جديدة
+        'url_minutes' => (int) env('COMPETITION_VIDEO_URL_MINUTES', 120),
     ],
 
 ];

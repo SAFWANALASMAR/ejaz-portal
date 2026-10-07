@@ -39,6 +39,14 @@ class EditCompetition extends EditRecord
     }
 
     /**
+     * المعرّفات الجديدة إلى النموذج بعد الحفظ، فلا يُعاد إنشاء ما أُضيف إن حُفظت الصفحة ثانية.
+     */
+    protected function afterSave(): void
+    {
+        $this->fillForm();
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model

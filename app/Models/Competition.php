@@ -71,6 +71,22 @@ class Competition extends Model
     }
 
     /**
+     * @return HasMany<CompetitionSubmission, $this>
+     */
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(CompetitionSubmission::class);
+    }
+
+    /**
+     * بنك الأسئلة يُقفل بعد أول مشاركة (ولو مسودة أو محذوفة)، لأن الإجابات مربوطة بأسئلته.
+     */
+    public function questionsLocked(): bool
+    {
+        return $this->exists && $this->submissions()->withTrashed()->exists();
+    }
+
+    /**
      * @param  Builder<Competition>  $query
      */
     public function scopePublished(Builder $query): void
@@ -105,6 +121,6 @@ class Competition extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('competitions')->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
     }
 }
