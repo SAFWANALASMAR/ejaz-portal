@@ -69,3 +69,16 @@ it('names events and affected records in Arabic', function () {
 it('has an Arabic label for every event', function (ActivityEvent $event) {
     expect(__('activity.events.'.$event->value))->not->toBe('activity.events.'.$event->value);
 })->with(ActivityEvent::cases());
+
+it('shows an unknown actor for failed sign-ins, and the system for other automatic events', function () {
+    $admin = userWithRole(RoleName::SuperAdmin);
+    activity('security')->event(ActivityEvent::LoginFailed->value)->log(ActivityEvent::LoginFailed->value);
+    activity('security')->event(ActivityEvent::AdminCreated->value)->log(ActivityEvent::AdminCreated->value);
+
+    expect(ActivityResource::causerPlaceholder(Activity::where('event', 'login_failed')->sole()))->toBe(__('activity.fields.unknown'))
+        ->and(ActivityResource::causerPlaceholder(Activity::where('event', 'admin_created')->sole()))->toBe(__('activity.fields.system'));
+
+    $this->actingAs($admin);
+
+    Livewire::test(ListActivities::class)->assertSee(__('activity.fields.unknown'));
+});

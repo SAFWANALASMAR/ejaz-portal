@@ -52,7 +52,8 @@ class ActivityResource extends Resource
                     ->formatStateUsing(fn (?string $state) => __('activity.logs.'.($state ?? 'default'))),
                 TextColumn::make('event')->label(__('activity.fields.event'))
                     ->formatStateUsing(fn (?string $state) => self::eventLabel($state)),
-                TextColumn::make('causer.name')->label(__('activity.fields.causer'))->placeholder(__('activity.fields.system')),
+                TextColumn::make('causer.name')->label(__('activity.fields.causer'))
+                    ->placeholder(fn (?Activity $record): string => self::causerPlaceholder($record)),
                 TextColumn::make('subject_type')->label(__('activity.fields.subject'))
                     ->formatStateUsing(fn (?string $state, Activity $record) => self::subjectLabel($record)),
             ])
@@ -73,7 +74,8 @@ class ActivityResource extends Resource
         return $schema->components([
             Section::make()->columns(2)->schema([
                 TextEntry::make('created_at')->label(__('activity.fields.created_at'))->dateTime('Y-m-d H:i:s'),
-                TextEntry::make('causer.name')->label(__('activity.fields.causer'))->placeholder(__('activity.fields.system')),
+                TextEntry::make('causer.name')->label(__('activity.fields.causer'))
+                    ->placeholder(fn (?Activity $record): string => self::causerPlaceholder($record)),
                 TextEntry::make('event')->label(__('activity.fields.event'))
                     ->formatStateUsing(fn (?string $state) => self::eventLabel($state)),
                 TextEntry::make('subject_type')->label(__('activity.fields.subject'))
@@ -83,6 +85,16 @@ class ActivityResource extends Resource
                 KeyValueEntry::make('properties')->label(__('activity.fields.properties'))->columnSpanFull(),
             ]),
         ]);
+    }
+
+    /**
+     * حدث بلا منفّذ: محاولة دخول من مجهول، أو عملية آلية من النظام.
+     */
+    public static function causerPlaceholder(?Activity $record): string
+    {
+        $anonymous = [ActivityEvent::LoginFailed->value, ActivityEvent::LoginLockout->value];
+
+        return __(in_array($record?->event, $anonymous, true) ? 'activity.fields.unknown' : 'activity.fields.system');
     }
 
     public static function eventLabel(?string $event): string

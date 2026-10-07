@@ -65,6 +65,18 @@ it('finds a user by any spelling of the phone number', function () {
     }
 });
 
+it('narrows a name search by part of the phone number', function () {
+    $wanted = User::factory()->create(['name' => 'محمد العتيبي', 'phone' => '+966512349876']);
+    User::factory()->create(['name' => 'محمد الحربي', 'phone' => '+966598765432']);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListUsers::class)
+        ->searchTable('محمد 0512')
+        ->assertCanSeeTableRecords([$wanted])
+        ->assertCountTableRecords(1);
+});
+
 it('still searches names word by word', function () {
     $member = User::factory()->create(['name' => 'محمد بن سعد العتيبي']);
     User::factory()->create(['name' => 'محمد الحربي']);
@@ -120,6 +132,21 @@ it('resends the invitation to an account that has not signed in yet', function (
 
     Notification::assertSentTo($staff, StaffInvitation::class);
     expect(Activity::where('event', 'invitation_sent')->whereMorphedTo('subject', $staff)->exists())->toBeTrue();
+});
+
+it('invites only active accounts, and administrators only by the super admin', function () {
+    config(['permissions.roles.secretary' => ['requests.*', 'users.*']]);
+    $this->seed(PermissionsSeeder::class);
+    $secretary = userWithRole(RoleName::Secretary);
+
+    $inactive = User::factory()->create(['is_active' => false]);
+    $editor = userWithRole(RoleName::ContentEditor);
+    $member = User::factory()->create();
+
+    expect($this->admin->can('invite', $inactive))->toBeFalse()
+        ->and($secretary->can('invite', $editor))->toBeFalse()
+        ->and($this->admin->can('invite', $editor))->toBeTrue()
+        ->and($secretary->can('invite', $member))->toBeTrue();
 });
 
 it('sends one invitation a minute to the same account', function () {

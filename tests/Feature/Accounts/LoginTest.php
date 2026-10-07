@@ -135,7 +135,11 @@ it('locks the account across different spellings of the same number', function (
         ->post('/login', ['login' => '0512345678', 'password' => 'password']), 900);
 
     $this->assertGuest();
-    expect(Activity::where('event', 'login_lockout')->exists())->toBeTrue();
+
+    // القفل مربوط بالحساب حساباً معنياً لا منفّذاً
+    $lockout = Activity::where('event', 'login_lockout')->firstOrFail();
+    expect($lockout->subject?->is($this->user))->toBeTrue()
+        ->and($lockout->causer_id)->toBeNull();
 });
 
 it('fingerprints every spelling of an identifier the same way', function () {

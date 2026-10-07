@@ -39,7 +39,9 @@ class RecordAuthenticationEvents
     public function handleFailed(Failed $event): void
     {
         $identifier = $this->identifier($event->credentials);
-        $account = $event->user instanceof User ? $event->user : User::findByLoginIdentifier($identifier);
+        // مع authenticateUsing يطلق Fortify الحدث بلا مستخدم دائماً، فيُبحث عن الحساب بالمعرّف:
+        // استعلام واحد سواء وُجد الحساب أم لا، فلا يختلف الزمن
+        $account = User::findByLoginIdentifier($identifier);
 
         $this->log(ActivityEvent::LoginFailed, $account, [
             'identifier_hash' => LoginIdentifier::hash($identifier),
