@@ -2,8 +2,10 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\SurveyQuestionType;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
+use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
 
@@ -53,12 +55,26 @@ class ExportUserData
                         'uploaded_at' => $date($video->created_at),
                     ])->all(),
                 ])->all(),
-            'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey')->get()
+            'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey.questions')->get()
                 ->map(fn (SurveyResponse $response): array => [
                     'survey' => $response->survey->title,
-                    'answers' => $response->answers,
+                    // نص السؤال ونص الخيار، لا المعرّفات، فتُقرأ النسخة بلا الرجوع إلى البوابة
+                    'answers' => $response->survey->questions
+                        ->filter(fn (SurveyQuestion $question): bool => array_key_exists((string) $question->id, (array) $response->answers))
+                        ->map(fn (SurveyQuestion $question): array => [
+                            'question' => $question->prompt,
+                            'answer' => self::answer($question, ((array) $response->answers)[(string) $question->id]),
+                        ])->values()->all(),
                     'submitted_at' => $date($response->submitted_at),
                 ])->all(),
         ];
+    }
+
+    /**
+     * الإجابة كما رآها المستجيب: الخيار بنصه، والمقياس رقمه، والنص كما كتبه.
+     */
+    private static function answer(SurveyQuestion $question, mixed $value): mixed
+    {
+        return $question->type === SurveyQuestionType::Choice && is_int($value) ? ($question->optionList()[$value] ?? $value) : $value;
     }
 }

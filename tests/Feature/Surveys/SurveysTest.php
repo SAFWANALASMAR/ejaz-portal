@@ -201,9 +201,16 @@ it('caps guest answers per survey and network for the day', function () {
 
 it('includes survey answers in the data export and detaches them from an anonymized account', function () {
     $user = User::factory()->create();
-    answer([$this->scale->id => 4, $this->choice->id => 1], $user);
+    answer([$this->scale->id => 4, $this->choice->id => 1, $this->text->id => 'ملاحظتي'], $user);
 
-    expect(app(ExportUserData::class)->handle($user)['survey_responses'][0]['survey'])->toBe($this->survey->title);
+    // نص السؤال ونص الخيار، لا المعرّفات
+    $exported = app(ExportUserData::class)->handle($user)['survey_responses'][0];
+    expect($exported['survey'])->toBe($this->survey->title)
+        ->and($exported['answers'])->toBe([
+            ['question' => 'ما مدى رضاك؟', 'answer' => 4],
+            ['question' => 'كيف عرفت البرنامج؟', 'answer' => 'صديق'],
+            ['question' => 'ملاحظاتك', 'answer' => 'ملاحظتي'],
+        ]);
 
     $user->forceFill(['deletion_requested_at' => now()])->save();
     app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user->fresh());
