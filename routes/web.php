@@ -5,13 +5,14 @@ use App\Http\Controllers\Account\DataRightsController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
 /*
 | مسارات الدخول والتسجيل والاستعادة والتحقق الثنائي يسجلها Fortify (config/fortify.php).
 */
 
-Route::view('/', 'home')->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 // لوحة المستخدم
 Route::middleware('auth')->prefix('account')->name('account.')->group(function () {

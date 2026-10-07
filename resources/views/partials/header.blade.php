@@ -55,6 +55,12 @@
                 <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-sand hover:text-primary" aria-label="{{ __('site.search') }}">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </a>
+            @else
+                {{-- البحث الشامل لم يُبنَ بعد (ملاحظة المشرف ٧): الأيقونة ظاهرة معطلة بتلميح --}}
+                <button type="button" aria-disabled="true" title="{{ __('site.search_soon') }}" class="cursor-not-allowed rounded-full p-2.5 text-ink/35">
+                    <span class="sr-only">{{ __('site.search_soon') }}</span>
+                    {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
+                </button>
             @endif
 
             {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}

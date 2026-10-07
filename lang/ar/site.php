@@ -18,6 +18,7 @@ return [
     'main_navigation' => 'القائمة الرئيسية',
     'search' => 'بحث',
     'search_placeholder' => 'ابحث في الموقع',
+    'search_soon' => 'البحث قريباً',
     'login' => 'تسجيل الدخول',
     'register' => 'حساب جديد',
     'my_account' => 'حسابي',

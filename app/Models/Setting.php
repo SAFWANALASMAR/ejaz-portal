@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ContentCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -19,8 +20,12 @@ class Setting extends Model
 
     protected static function booted(): void
     {
-        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القيمة القديمة وخزّنها دائماً
-        $flush = fn (Setting $setting) => DB::afterCommit(fn () => Cache::forget(self::cacheKey($setting->key)));
+        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القيمة القديمة وخزّنها. ومعها ذاكرة
+        // المحتوى العام (مقاطع الرئيسية)، فيظهر التعديل فوراً
+        $flush = function (Setting $setting): void {
+            DB::afterCommit(fn () => Cache::forget(self::cacheKey($setting->key)));
+            ContentCache::flush();
+        };
 
         static::saved($flush);
         static::deleted($flush);
