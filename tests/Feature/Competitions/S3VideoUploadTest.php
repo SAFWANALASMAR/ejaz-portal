@@ -1,9 +1,11 @@
 <?php
 
+use App\Actions\Competitions\StartVideoUpload;
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Jobs\ProcessSubmissionVideo;
 use App\Models\Competition;
+use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Services\VideoUploads\S3VideoUploads;
@@ -28,6 +30,9 @@ final class FakeS3
 
     /** @var list<string> */
     public array $calls = [];
+
+    /** تعطّل التخزين عند بدء الرفع */
+    public bool $failCreate = false;
 
     private int $next = 0;
 
@@ -56,6 +61,10 @@ final class FakeS3
 
         switch ($command->getName()) {
             case 'CreateMultipartUpload':
+                if ($this->failCreate) {
+                    return Create::rejectionFor(new S3Exception('ServiceUnavailable', $command, ['code' => 'ServiceUnavailable']));
+                }
+
                 $id = 'upload-'.$this->next++;
                 $this->uploads[$id] = ['key' => $command['Key'], 'parts' => []];
 
@@ -225,6 +234,17 @@ it('checks the stored size before downloading a video completed on an earlier tr
     expect($video->fresh()->rejection_reason)->toBe('size_mismatch')
         ->and($this->s3->calls)->toContain('HeadObject')->not->toContain('GetObject')
         ->and($this->s3->objects)->toBe([]);
+});
+
+it('rejects the video when the storage fails to start the upload, so it is not left uploading', function () {
+    $this->s3->failCreate = true;
+    $this->withoutExceptionHandling();
+
+    expect(fn () => app(StartVideoUpload::class)->handle($this->applicant, CompetitionSubmission::sole(), $this->video, strlen($this->contents), 'video/mp4', 30))
+        ->toThrow(S3Exception::class);
+
+    expect(SubmissionVideo::sole()->status)->toBe(VideoStatus::Rejected)
+        ->and(SubmissionVideo::sole()->rejection_reason)->toBe('processing_failed');
 });
 
 it('aborts the previous upload when the applicant starts again', function () {

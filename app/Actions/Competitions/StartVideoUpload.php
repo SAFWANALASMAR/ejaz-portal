@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * بدء رفع مقطع لسؤال فيديو: يفحص النوع والحجم والمدة المعلنة مقابل حدود السؤال قبل أي رفع، ثم يعيد
@@ -87,7 +88,15 @@ class StartVideoUpload
             return $video;
         });
 
-        $this->uploads->begin($video);
+        try {
+            $this->uploads->begin($video);
+        } catch (Throwable $exception) {
+            // تعطّل التخزين عند البدء: يُرفض المقطع فيعاد رفعه، ولا يبقى «قيد الرفع» بلا معرّف رفع
+            SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)
+                ->update(['status' => VideoStatus::Rejected, 'rejection_reason' => 'processing_failed', 'updated_at' => now()]);
+
+            throw $exception;
+        }
 
         return ['video' => $video, 'urls' => $this->uploads->urls($video, range(0, $video->chunk_count - 1))];
     }
