@@ -24,7 +24,7 @@ final class TurnstileChallenge implements BotChallenge
         return $this->siteKey;
     }
 
-    public function passes(string $token): bool
+    public function passes(string $token, string $action): bool
     {
         if ($token === '' || strlen($token) > 2048) {
             return false;
@@ -41,6 +41,7 @@ final class TurnstileChallenge implements BotChallenge
 
         return $response->successful()
             && $response->json('success') === true
+            && $response->json('action') === $action
             && ($this->hostname === null || $response->json('hostname') === $this->hostname);
     }
 }

@@ -21,7 +21,7 @@ final class FakeBotChallenge implements BotChallenge
         return $this->siteKey;
     }
 
-    public function passes(string $token): bool
+    public function passes(string $token, string $action): bool
     {
         if (app()->isProduction()) {
             throw new RuntimeException('FakeBotChallenge must not be used in production.');

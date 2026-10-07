@@ -4,6 +4,7 @@ use App\Actions\Accounts\ExportUserData;
 use App\Actions\Surveys\SaveSurvey;
 use App\Actions\Surveys\SubmitSurveyResponse;
 use App\Actions\Users\AnonymizeUser;
+use App\Contracts\BotChallenge;
 use App\Enums\RoleName;
 use App\Enums\SurveyAudience;
 use App\Enums\SurveyQuestionType;
@@ -18,6 +19,7 @@ use App\Models\Setting;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
+use App\Services\BotChallenge\FakeBotChallenge;
 use App\Support\SurveyResults;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -215,7 +217,7 @@ it('stops a guest who answered from answering again after signing in', function 
 
     $user = User::factory()->create();
     $this->flushSession();
-    $this->actingAs($user)->withCookie($cookie->getName(), '1');
+    $this->actingAs($user)->withCookie($cookie->getName(), 'g');
 
     $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.already'));
     $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 4, $this->choice->id => 1]])->assertSessionHas('error', __('surveys.public.already'));
@@ -434,13 +436,22 @@ it('limits a text answer to 1000 characters in a survey open to guests', functio
         ->assertSessionHasErrors('answers.'.$this->text->id);
 });
 
-it('does not block a second account on the same device of a guest-open survey', function () {
+it('does not block a second account on the same device, but blocks a guest after an account answered there', function () {
     $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
 
     $first = answer([$this->scale->id => 3, $this->choice->id => 0], User::factory()->create())->assertSessionHas('status');
-    expect(collect($first->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_')))->toBeNull();
+    $cookie = collect($first->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_'));
+    expect($cookie?->getValue())->not->toBeNull();
 
+    // حساب ثانٍ على الجهاز نفسه: كعكة صاحب حساب لا تمنعه
+    $this->flushSession();
+    $this->withCookie($cookie->getName(), 'u');
     answer([$this->scale->id => 4, $this->choice->id => 1], User::factory()->create())->assertSessionHas('status');
+
+    // صاحب الحساب يخرج ويجيب ضيفاً: أي كعكة تمنعه
+    $this->flushSession();
+    answer([$this->scale->id => 5, $this->choice->id => 2])->assertSessionHas('error', __('surveys.public.already'));
+
     expect(SurveyResponse::count())->toBe(2);
 });
 
@@ -467,4 +478,14 @@ it('shows the satisfaction tile on the services page only while a general survey
 
     $newer->update(['closes_at' => now()->subMinute()]);
     $this->get('/surveys')->assertRedirect(route('surveys.show', $older->token));
+});
+
+it('checks the cheap local rules before the outside challenge', function () {
+    $challenge = new FakeBotChallenge;
+    app()->instance(BotChallenge::class, $challenge);
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100, 'closes_at' => now()->subMinute()]);
+
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error');
+
+    expect($challenge->checked)->toBe([])->and(SurveyResponse::count())->toBe(0);
 });

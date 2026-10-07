@@ -51,11 +51,10 @@ return [
         'frame_src' => [
             'https://www.youtube-nocookie.com',
             'https://www.youtube.com',
-            // عنصر التحدي في الاستبيان العام، متى فُعّل وحده
-            ...(env('BOT_CHALLENGE_DRIVER') === 'turnstile' ? ['https://challenges.cloudflare.com'] : []),
         ],
-        // سكربت عنصر التحدي (Turnstile)، متى فُعّل وحده
-        'script_src' => env('BOT_CHALLENGE_DRIVER') === 'turnstile' ? ['https://challenges.cloudflare.com'] : [],
+        // عنصر التحدي (Turnstile): يُضاف إلى script-src وframe-src في صفحة الاستبيان وحدها، ومتى كان
+        // مشغّل التحدي turnstile (SecurityHeaders)
+        'challenge_src' => ['https://challenges.cloudflare.com'],
         // التخزين السحابي للرفع المباشر يضاف هنا عند تفعيله
         'connect_src' => array_filter(explode(',', (string) env('CSP_CONNECT_SRC', ''))),
         'media_src' => array_filter(explode(',', (string) env('CSP_MEDIA_SRC', ''))),

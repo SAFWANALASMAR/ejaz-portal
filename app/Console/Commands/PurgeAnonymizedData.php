@@ -13,6 +13,7 @@ use App\Models\SurveyResponse;
 use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * يحذف بيانات الحسابات المحذوفة (المخفاة بطلب أصحابها) بعد مدة الاحتفاظ من اللوحة (App\Support\Retention)،
@@ -20,7 +21,7 @@ use Illuminate\Console\Command;
  * - مقاطع المسابقات وإجاباتها: محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها وفترة الاعتراض.
  * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها، وإجابات التسجيل في البرامج: من إخفاء
  *   بيانات الحساب.
- * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم.
+ * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
 {
@@ -45,7 +46,19 @@ class PurgeAnonymizedData extends Command
         $cutoff = now()->subDays($days);
         // أصحاب الحسابات المخفاة قبل المدة
         $expired = User::query()->select('id')->where('anonymized_at', '<', $cutoff);
-        $counts = ['submissions' => 0, 'responses' => 0, 'requests' => 0, 'registrations' => 0];
+        $purged = 0;
+        $failed = 0;
+
+        // سجل يتعذر حذفه (تعطل التخزين مثلاً) يُبلَّغ عنه ويبقى كما هو للدورة التالية، ولا يوقف الباقي
+        $attempt = function (callable $purge) use (&$purged, &$failed): void {
+            try {
+                $purge();
+                $purged++;
+            } catch (Throwable $exception) {
+                report($exception);
+                $failed++;
+            }
+        };
 
         CompetitionSubmission::query()
             ->withTrashed()
@@ -55,42 +68,30 @@ class PurgeAnonymizedData extends Command
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos'))
             ->lazyById()
-            ->each(function (CompetitionSubmission $submission) use ($purgeSubmission, &$counts): void {
-                $purgeSubmission->handle($submission);
-                $counts['submissions']++;
-            });
+            ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purgeSubmission->handle($submission)));
 
         // والمعالَجة تُفصل عن الحساب فلا تُعاد
         SurveyResponse::query()
             ->with('survey.questions')
             ->whereIn('user_id', $expired)
             ->lazyById()
-            ->each(function (SurveyResponse $response) use ($purgeResponse, &$counts): void {
-                $purgeResponse->handle($response);
-                $counts['responses']++;
-            });
+            ->each(fn (SurveyResponse $response) => $attempt(fn () => $purgeResponse->handle($response)));
 
         ServiceRequest::query()
             ->withTrashed()
             ->whereIn('user_id', $expired)
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('files'))
             ->lazyById()
-            ->each(function (ServiceRequest $request) use ($purgeRequest, &$counts): void {
-                $purgeRequest->handle($request);
-                $counts['requests']++;
-            });
+            ->each(fn (ServiceRequest $request) => $attempt(fn () => $purgeRequest->handle($request)));
 
         ProgramRegistration::query()
             ->whereIn('user_id', $expired)
             ->whereNotNull('answers')
             ->lazyById()
-            ->each(function (ProgramRegistration $registration) use ($purgeRegistration, &$counts): void {
-                $purgeRegistration->handle($registration);
-                $counts['registrations']++;
-            });
+            ->each(fn (ProgramRegistration $registration) => $attempt(fn () => $purgeRegistration->handle($registration)));
 
-        $this->info("مشاركات: {$counts['submissions']}، وإجابات استبيانات: {$counts['responses']}، وطلبات: {$counts['requests']}، وتسجيلات: {$counts['registrations']}.");
+        $this->info("سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.");
 
-        return self::SUCCESS;
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
     }
 }

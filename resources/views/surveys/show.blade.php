@@ -78,7 +78,7 @@
 
             {{-- التحدي ضد الآليات لغير المسجل (Turnstile)، ويتحقق الخادم من رمزه --}}
             @if ($challengeKey ?? null)
-                <div class="cf-turnstile" data-sitekey="{{ $challengeKey }}" data-language="ar"></div>
+                <div class="cf-turnstile" data-sitekey="{{ $challengeKey }}" data-action="survey" data-language="ar"></div>
                 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="{{ Vite::cspNonce() }}"></script>
             @endif
 

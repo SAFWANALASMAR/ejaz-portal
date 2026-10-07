@@ -47,17 +47,21 @@ class AppServiceProvider extends ServiceProvider
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
         });
 
-        $this->app->singleton(BotChallenge::class, fn () => match (config('services.bot_challenge.driver')) {
-            // الوهمي في الإنتاج خطأ في الإعداد يظهر عند أول استعمال للاستبيان العام، لا عند إرسال الزائر
-            'fake' => $this->app->isProduction()
-                ? throw new RuntimeException('The fake bot challenge must not be used in production; set BOT_CHALLENGE_DRIVER=turnstile.')
-                : new FakeBotChallenge,
-            'turnstile' => new TurnstileChallenge(
-                (string) config('services.bot_challenge.turnstile_site_key'),
-                (string) config('services.bot_challenge.turnstile_secret_key'),
-                parse_url((string) config('app.url'), PHP_URL_HOST) ?: null,
-            ),
-            default => throw new InvalidArgumentException('Unsupported bot challenge driver: '.config('services.bot_challenge.driver')),
+        // خطأ الإعداد يُرمى عند أول استعمال (صفحة الاستبيان العام لغير المسجل)، لا رفضاً صامتاً لكل زائر.
+        // والفحص عند كل نشر في docs/security.md
+        $this->app->singleton(BotChallenge::class, function () {
+            $site = (string) config('services.bot_challenge.turnstile_site_key');
+            $secret = (string) config('services.bot_challenge.turnstile_secret_key');
+
+            return match (config('services.bot_challenge.driver')) {
+                'fake' => $this->app->isProduction()
+                    ? throw new RuntimeException('The fake bot challenge must not be used in production; set BOT_CHALLENGE_DRIVER=turnstile.')
+                    : new FakeBotChallenge,
+                'turnstile' => $site === '' || $secret === ''
+                    ? throw new RuntimeException('Turnstile needs TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY.')
+                    : new TurnstileChallenge($site, $secret, parse_url((string) config('app.url'), PHP_URL_HOST) ?: null),
+                default => throw new InvalidArgumentException('Unsupported bot challenge driver: '.config('services.bot_challenge.driver')),
+            };
         });
 
         $this->app->singleton(VideoUploads::class, function () {

@@ -59,7 +59,7 @@ class SurveyController extends Controller
             return view('surveys.show', ['survey' => $survey, 'state' => 'not_audience']);
         }
 
-        $answered = ($user instanceof User && SubmitSurveyResponse::answered($survey, $user)) || self::answeredOnDevice($request, $survey);
+        $answered = ($user instanceof User && SubmitSurveyResponse::answered($survey, $user)) || self::answeredOnDevice($request, $survey, $user);
 
         return view('surveys.show', [
             'survey' => $survey->load('questions'),
@@ -75,21 +75,23 @@ class SurveyController extends Controller
         /** @var User|null $user */
         $user = $request->user();
 
-        // كعكة الضيف تُفحص للجميع في الاستبيان المفتوح لغير المسجلين: فلا يجيب الضيف ثم يجيب ثانية بعد الدخول.
-        // ولا تُزرع إلا لإجابة ضيف، فحساب بعد حساب على جهاز مشترك يضبطه القيد الفريد وحده
-        if (self::answeredOnDevice($request, $survey)) {
+        if (self::answeredOnDevice($request, $survey, $user)) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
 
-        // التحدي ضد الآليات على غير المسجل (Turnstile)، يُتحقق منه في الخادم قبل أي احتساب أو حفظ
-        if ($user === null && ! $challenge->passes((string) $request->validated('cf-turnstile-response', ''))) {
-            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.challenge_failed'));
-        }
+        // الفحوص المحلية الرخيصة أولاً: ضيف لا يجيب هذا الاستبيان أصلاً (مغلق، أو لا يقبل الضيوف، أو لفئة،
+        // أو اكتمل سقفه) يرفضه الإجراء برسالته، بلا طلب تحقق خارجي ولا احتساب في حد شبكته
+        if ($user === null && self::guestMayAnswer($survey)) {
+            // التحدي ضد الآليات (Turnstile)، يُتحقق منه في الخادم قبل الاحتساب والحفظ
+            if (! $challenge->passes((string) $request->validated('cf-turnstile-response', ''), 'survey')) {
+                return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.challenge_failed'));
+            }
 
-        // سقف يومي لمحاولات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة.
-        // يُحتسب قبل الحفظ بزيادة ذرية، فلا يمر طلبان متزامنان معاً، والمرفوض يُحتسب أيضاً
-        if ($user === null && RateLimiter::increment(self::guestKey($survey, (string) $request->ip()), 60 * 60 * 24) > self::GUEST_DAILY) {
-            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.too_many'));
+            // سقف يومي لمحاولات غير المسجلين من عنوان واحد، فلا تُحرَّف النتائج بحذف الكعكة. يُحتسب قبل الحفظ
+            // بزيادة ذرية، فلا يمر طلبان متزامنان معاً، والمرفوض يُحتسب أيضاً
+            if (RateLimiter::increment(self::guestKey($survey, (string) $request->ip()), 60 * 60 * 24) > self::GUEST_DAILY) {
+                return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.too_many'));
+            }
         }
 
         try {
@@ -98,8 +100,9 @@ class SurveyController extends Controller
             return redirect()->route('surveys.show', $token)->with('error', $exception->getMessage());
         }
 
-        if ($user === null) {
-            Cookie::queue(self::cookie($survey), '1', 60 * 24 * 365);
+        // في الاستبيان المفتوح للضيوف كعكة بمصدر الإجابة: g للضيف وu لصاحب الحساب (مشفّرة كبقية الكعكات)
+        if ($survey->allow_guests) {
+            Cookie::queue(self::cookie($survey), $user === null ? 'g' : 'u', 60 * 24 * 365);
         }
 
         return redirect()->route('surveys.show', $token)->with('status', __('surveys.public.thanks'));
@@ -113,9 +116,27 @@ class SurveyController extends Controller
         return 'survey-guest:'.$survey->id.'|'.hash_hmac('sha256', $ip, (string) config('app.key'));
     }
 
-    private static function answeredOnDevice(Request $request, Survey $survey): bool
+    /**
+     * أُجيب من هذا الجهاز: الضيف يُمنع بأي كعكة (فلا يجيب صاحب حساب ثم يخرج ويجيب ضيفاً)، وصاحب الحساب
+     * بكعكة الضيف وحدها (فلا يجيب ضيف ثم يدخل ويجيب)، ولا يُمنع حساب بعد حساب على جهاز مشترك.
+     */
+    private static function answeredOnDevice(Request $request, Survey $survey, ?User $user): bool
     {
-        return $survey->allow_guests && $request->hasCookie(self::cookie($survey));
+        $source = $survey->allow_guests ? $request->cookie(self::cookie($survey)) : null;
+
+        return $source !== null && ($user === null || $source === 'g');
+    }
+
+    /**
+     * يجيب غير المسجل هذا الاستبيان: مفتوح، ويقبل الضيوف، وليس لفئة، ولم يكتمل سقفه.
+     */
+    private static function guestMayAnswer(Survey $survey): bool
+    {
+        return $survey->isOpen()
+            && $survey->allow_guests
+            && SubmitSurveyResponse::eligible($survey, null)
+            && $survey->guest_limit !== null
+            && $survey->guest_responses < $survey->guest_limit;
     }
 
     private function survey(string $token): Survey
