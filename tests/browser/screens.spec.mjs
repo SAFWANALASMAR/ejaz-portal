@@ -15,11 +15,16 @@ const guestScreens = [
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
+    // المسابقات: صفحة المسابقة تُصوَّر بمسابقة منشورة معرّفها في COMPETITION_SLUG
+    { name: 'competitions', path: '/competitions', heading: 'h1' },
+    { name: 'competition', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}`, heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [
     { name: 'dashboard', path: '/account', heading: 'main p.text-2xl' },
     { name: 'profile', path: '/account/profile', heading: 'h1' },
+    { name: 'my-competitions', path: '/account/competitions', heading: 'h1' },
+    { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true },
 ];
 
 async function checkScreen(page, testInfo, screen) {
