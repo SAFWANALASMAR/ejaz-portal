@@ -33,7 +33,8 @@ class PurgeAnonymizedData extends Command
         CompetitionSubmission::query()
             ->withTrashed()
             ->whereHas('user', fn ($query) => $query->whereNotNull('anonymized_at'))
-            ->whereHas('competition', fn ($query) => $query->where('closes_at', '<', now()->subDays($days)))
+            // والمسابقة المحذوفة من اللوحة داخلة (العلاقة بـ withTrashed، وصريحة هنا)
+            ->whereHas('competition', fn ($query) => $query->withTrashed()->where('closes_at', '<', now()->subDays($days)))
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos'))
             ->lazyById()

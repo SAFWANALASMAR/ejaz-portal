@@ -120,6 +120,16 @@ it('purges a removed entry and a draft of a deleted account too', function () {
         ->and($draft->fresh()->answers)->toBeNull();
 });
 
+it('purges entries of a deleted account in a competition removed from the panel too', function () {
+    Setting::put('retention', ['days' => 30]);
+    $entry = entryWithVideo($this->competition, $this->deleted);
+    $this->competition->delete();
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($entry->videos()->count())->toBe(0)->and($entry->fresh()->answers)->toBeNull();
+});
+
 it('lets only the super admin set the retention period, within limits', function () {
     $admin = userWithRole(RoleName::SuperAdmin);
     $editor = userWithRole(RoleName::ContentEditor);
