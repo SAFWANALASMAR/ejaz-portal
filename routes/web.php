@@ -7,6 +7,7 @@ use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
@@ -58,6 +59,9 @@ Route::get('/media/news/{slug}', [NewsController::class, 'show'])->where('slug',
 Route::get('/media/albums', [AlbumController::class, 'index'])->name('media.albums.index');
 Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.albums.show');
 
+// التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحد 10 رسائل في الساعة لكل عنوان
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:10,60')->name('contact.store');
 // لوحة المستخدم
 Route::middleware('auth')->prefix('account')->name('account.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');

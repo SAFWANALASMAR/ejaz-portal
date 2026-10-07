@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Models\Inquiry;
 use App\Models\User;
 
 /**
@@ -32,6 +33,15 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
+            'inquiries' => Inquiry::withTrashed()->whereBelongsTo($user)->orderBy('id')->get()
+                ->map(fn (Inquiry $inquiry): array => [
+                    'reference' => $inquiry->reference,
+                    'type' => $inquiry->type->value,
+                    'subject' => $inquiry->subject,
+                    'message' => $inquiry->message,
+                    'status' => $inquiry->status->value,
+                    'sent_at' => $date($inquiry->created_at),
+                ])->all(),
         ];
     }
 }
