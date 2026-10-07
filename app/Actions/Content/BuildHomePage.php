@@ -2,7 +2,7 @@
 
 namespace App\Actions\Content;
 
-use App\Filament\Pages\SiteSettings;
+use App\Enums\StatIcon;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +17,7 @@ class BuildHomePage
 {
     /**
      * اختصارات الأقسام (الصورة 07). البطاقة تظهر حين يُبنى قسمها (يوجد مساره)، فلا رابط معطل.
+     * أسماء المسارات عقد مع بنودها في docs/roadmap.md، فلا تُغيَّر هناك دون تغييرها هنا.
      */
     public const SHORTCUTS = [
         'governance' => ['icon' => 'shield-check', 'route' => 'governance.index'],
@@ -92,7 +93,7 @@ class BuildHomePage
                 'value' => (int) $stat['value'],
                 'suffix' => is_string($stat['suffix'] ?? null) ? $stat['suffix'] : '',
                 // الأيقونة من القائمة المسموحة فقط، فاسمها يبني مسار ملف
-                'icon' => in_array($stat['icon'] ?? null, SiteSettings::STAT_ICONS, true) ? $stat['icon'] : null,
+                'icon' => is_string($stat['icon'] ?? null) ? StatIcon::tryFrom($stat['icon'])?->value : null,
             ];
         }
 

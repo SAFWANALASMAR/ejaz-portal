@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Enums\StatIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\SafeUrl;
@@ -38,8 +39,6 @@ use UnitEnum;
 class SiteSettings extends Page
 {
     public const SOCIAL = ['x', 'instagram', 'youtube', 'linkedin', 'snapchat', 'tiktok', 'facebook', 'whatsapp'];
-
-    public const STAT_ICONS = ['users', 'academic-cap', 'book-open', 'calendar', 'trophy', 'hand-raised', 'building-library', 'light-bulb'];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
@@ -143,7 +142,7 @@ class SiteSettings extends Page
                                     ->dehydrateStateUsing(fn ($state) => (int) $state),
                                 TextInput::make('suffix')->label(__('settings.home.stat_suffix'))->maxLength(3),
                                 Select::make('icon')->label(__('settings.home.stat_icon'))
-                                    ->options(collect(self::STAT_ICONS)->mapWithKeys(fn (string $icon) => [$icon => __('settings.icons.'.$icon)]))
+                                    ->options(StatIcon::class)
                                     ->required(),
                             ]),
                         ]),
