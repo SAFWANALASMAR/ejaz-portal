@@ -14,7 +14,10 @@ final class TurnstileChallenge implements BotChallenge
 {
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-    public function __construct(private string $siteKey, private string $secretKey) {}
+    /**
+     * @param  string|null  $hostname  مضيف البوابة، فلا يُقبل رمز حُل على موقع آخر بالمفتاح نفسه
+     */
+    public function __construct(private string $siteKey, private string $secretKey, private ?string $hostname = null) {}
 
     public function siteKey(): string
     {
@@ -36,6 +39,8 @@ final class TurnstileChallenge implements BotChallenge
             return false;
         }
 
-        return $response->successful() && $response->json('success') === true;
+        return $response->successful()
+            && $response->json('success') === true
+            && ($this->hostname === null || $response->json('hostname') === $this->hostname);
     }
 }

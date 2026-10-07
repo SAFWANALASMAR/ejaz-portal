@@ -67,3 +67,36 @@ it('refuses the fake challenge in production', function () {
 
     expect(fn () => (new FakeBotChallenge)->passes('x'))->toThrow(RuntimeException::class);
 });
+
+it('refuses to boot the fake challenge in production, so a forgotten driver shows at deploy', function () {
+    app()->detectEnvironment(fn () => 'production');
+    app()->forgetInstance(BotChallenge::class);
+    config(['services.bot_challenge.driver' => 'fake']);
+
+    expect(fn () => app(BotChallenge::class))->toThrow(RuntimeException::class);
+});
+
+it('refuses a malformed token cleanly instead of failing on the server', function () {
+    $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0], 'cf-turnstile-response' => ['x']])
+        ->assertSessionHasErrors('cf-turnstile-response');
+
+    expect(SurveyResponse::count())->toBe(0);
+});
+
+it('accepts a Turnstile token solved on this site only', function () {
+    $turnstile = new TurnstileChallenge('site', 'secret', 'ejaz.sa');
+
+    Http::fake(['challenges.cloudflare.com/*' => Http::sequence()
+        ->push(['success' => true, 'hostname' => 'ejaz.sa'])
+        ->push(['success' => true, 'hostname' => 'other.example']),
+    ]);
+
+    expect($turnstile->passes('here'))->toBeTrue()
+        ->and($turnstile->passes('elsewhere'))->toBeFalse();
+});
+
+it('tells a guest that an outside provider checks the form, when the challenge shows', function () {
+    app()->instance(BotChallenge::class, new FakeBotChallenge(siteKey: 'site-key-test'));
+
+    $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.privacy_challenge'));
+});

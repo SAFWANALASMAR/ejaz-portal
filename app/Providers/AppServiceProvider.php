@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -47,8 +48,15 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(BotChallenge::class, fn () => match (config('services.bot_challenge.driver')) {
-            'fake' => new FakeBotChallenge,
-            'turnstile' => new TurnstileChallenge((string) config('services.bot_challenge.turnstile_site_key'), (string) config('services.bot_challenge.turnstile_secret_key')),
+            // الوهمي في الإنتاج خطأ في الإعداد يظهر عند أول استعمال للاستبيان العام، لا عند إرسال الزائر
+            'fake' => $this->app->isProduction()
+                ? throw new RuntimeException('The fake bot challenge must not be used in production; set BOT_CHALLENGE_DRIVER=turnstile.')
+                : new FakeBotChallenge,
+            'turnstile' => new TurnstileChallenge(
+                (string) config('services.bot_challenge.turnstile_site_key'),
+                (string) config('services.bot_challenge.turnstile_secret_key'),
+                parse_url((string) config('app.url'), PHP_URL_HOST) ?: null,
+            ),
             default => throw new InvalidArgumentException('Unsupported bot challenge driver: '.config('services.bot_challenge.driver')),
         });
 

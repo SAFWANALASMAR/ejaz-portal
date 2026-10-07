@@ -69,7 +69,7 @@ class SurveyController extends Controller
         }
 
         // التحدي ضد الآليات على غير المسجل (Turnstile)، يُتحقق منه في الخادم قبل أي احتساب أو حفظ
-        if ($user === null && ! $challenge->passes((string) $request->input('cf-turnstile-response', ''))) {
+        if ($user === null && ! $challenge->passes((string) $request->validated('cf-turnstile-response', ''))) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.challenge_failed'));
         }
 
