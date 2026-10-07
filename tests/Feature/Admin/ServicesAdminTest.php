@@ -19,11 +19,13 @@ use App\Notifications\ServiceRequestStatusChanged;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
+use Tests\Fakes\FakeSmsGateway;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -278,4 +280,27 @@ it('prunes exports and their files after a day', function () {
 it('neutralises spreadsheet formulas in exported text', function () {
     expect(ServiceRequestExporter::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
         ->and(ServiceRequestExporter::safeCell('نص عادي'))->toBe('نص عادي');
+});
+
+it('also texts the applicant on a status change when enabled, to a verified phone only, without the reply', function () {
+    $sms = FakeSmsGateway::swap();
+    $request = ServiceRequest::factory()->create();
+    $request->user->forceFill(['phone' => '+966500000001', 'phone_verified_at' => now()])->save();
+    $unverified = ServiceRequest::factory()->create();
+    $unverified->user->forceFill(['phone' => '+966500000002'])->save();
+
+    // معطل افتراضياً: بريد فقط
+    $notification = new ServiceRequestStatusChanged($request, $request->events()->make(['to_status' => ServiceRequestStatus::UnderReview]));
+    expect($notification->via($request->user))->toBe(['mail']);
+
+    config(['services.sms.request_updates' => true]);
+    Notification::swap(app(ChannelManager::class));
+
+    app(ChangeServiceRequestStatus::class)->handle($this->secretary, $request, ServiceRequestStatus::UnderReview, 'رد سري طويل');
+    app(ChangeServiceRequestStatus::class)->handle($this->secretary, $unverified, ServiceRequestStatus::UnderReview);
+
+    expect($sms->sent)->toHaveCount(1)
+        ->and($sms->sent[0]['phone'])->toBe('+966500000001')
+        ->and($sms->sent[0]['message'])->toContain($request->reference)->toContain(ServiceRequestStatus::UnderReview->getLabel())
+        ->and($sms->sent[0]['message'])->not->toContain('رد سري طويل');
 });

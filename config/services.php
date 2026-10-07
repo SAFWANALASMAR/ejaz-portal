@@ -39,6 +39,8 @@ return [
     'sms' => [
         'driver' => env('SMS_DRIVER', 'log'),
         'sender' => env('SMS_SENDER'),
+        // إشعار المتقدم برسالة نصية عند تغيّر حالة طلبه (requirements/02)، مع البريد. معطل افتراضياً
+        'request_updates' => (bool) env('SMS_REQUEST_UPDATES', false),
     ],
 
 ];
