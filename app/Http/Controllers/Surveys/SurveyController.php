@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Surveys;
 
 use App\Actions\Surveys\SubmitSurveyResponse;
 use App\Contracts\BotChallenge;
+use App\Enums\SurveyAudience;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Surveys\SubmitSurveyRequest;
 use App\Models\Survey;
@@ -25,6 +26,27 @@ class SurveyController extends Controller
      * إجابات غير المسجلين على الاستبيان الواحد من العنوان الواحد في اليوم (شبكة جهة أو منزل).
      */
     private const GUEST_DAILY = 20;
+
+    /**
+     * «قياس الرضا» العام (بطاقة المركز الإعلامي والخدمات): الاستبيان المنشور المفتوح لفئة «عام» غير
+     * المربوط بمسابقة، الأحدث فتحاً، وإلا 404. وبوجود المسار تظهر البطاقة (Route::has في قوالبها).
+     */
+    public function index(): RedirectResponse
+    {
+        $survey = Survey::query()
+            ->where('is_published', true)
+            ->where('audience', SurveyAudience::General)
+            ->whereNull('subject_type')
+            ->where(fn ($query) => $query->whereNull('opens_at')->orWhere('opens_at', '<=', now()))
+            ->where(fn ($query) => $query->whereNull('closes_at')->orWhere('closes_at', '>', now()))
+            ->latest('opens_at')
+            ->latest('id')
+            ->first();
+
+        abort_if($survey === null, 404);
+
+        return redirect()->route('surveys.show', $survey->token);
+    }
 
     public function show(Request $request, string $token): View|RedirectResponse
     {

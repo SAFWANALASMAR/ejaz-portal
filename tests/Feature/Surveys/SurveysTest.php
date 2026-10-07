@@ -443,3 +443,14 @@ it('does not block a second account on the same device of a guest-open survey', 
     answer([$this->scale->id => 4, $this->choice->id => 1], User::factory()->create())->assertSessionHas('status');
     expect(SurveyResponse::count())->toBe(2);
 });
+
+it('opens the public general survey from /surveys, and finds nothing without one', function () {
+    $this->get('/surveys')->assertNotFound();
+
+    $this->survey->update(['audience' => SurveyAudience::General]);
+    $this->get('/surveys')->assertRedirect(route('surveys.show', $this->survey->token));
+
+    // استبيان مغلق أو غير منشور لا يُفتح منه
+    $this->survey->update(['closes_at' => now()->subMinute()]);
+    $this->get('/surveys')->assertNotFound();
+});

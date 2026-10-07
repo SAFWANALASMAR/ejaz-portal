@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Route;
 
 // لكل مسار بادئة في حده: الحد بلا بادئة مفتاحه المستخدم (أو العنوان) وحده فتشترك فيه المسارات، فيستهلك
 // فتح الصفحة حد الإجابة
+// الاستبيان العام المفتوح (بطاقة «قياس الرضا»)، أو 404
+Route::get('/surveys', [SurveyController::class, 'index'])->middleware('throttle:60,1,survey-index')->name('surveys.index');
+
 Route::where(['token' => '[A-Za-z0-9]{32}'])->group(function () {
     Route::get('/surveys/{token}', [SurveyController::class, 'show'])->middleware('throttle:60,1,survey-show')->name('surveys.show');
     Route::post('/surveys/{token}', [SurveyController::class, 'submit'])->middleware('throttle:10,1,survey-submit')->name('surveys.submit');
