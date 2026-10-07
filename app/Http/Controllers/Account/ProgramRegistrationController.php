@@ -82,10 +82,11 @@ class ProgramRegistrationController extends Controller
      */
     public function certificate(Request $request, ProgramRegistration $registration): StreamedResponse
     {
-        abort_unless($registration->user_id === $request->user()?->id && $registration->certificate_path !== null, 404);
+        // تسجيل غيره أو بلا شهادة كأنه غير موجود
+        abort_unless($request->user()?->can('download', $registration), 404);
 
         return Storage::disk(SyncAttendanceCertificate::disk())
-            ->download($registration->certificate_path, 'certificate-'.$registration->program->slug.'.pdf', ['Content-Type' => 'application/pdf']);
+            ->download((string) $registration->certificate_path, 'certificate-'.$registration->program->slug.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     public function cancel(Request $request, ProgramRegistration $registration, CancelProgramRegistration $cancel): RedirectResponse

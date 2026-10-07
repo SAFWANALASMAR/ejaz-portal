@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Programs\RecordProgramAttendance;
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
@@ -57,5 +58,20 @@ it('issues no certificate without attendance or to a waitlisted registrant', fun
 
     expect($this->registration->fresh()->certificate_path)->toBeNull()
         ->and($waiting->fresh()->certificate_path)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
+});
+
+it('sends guests to log in, keeps placeholders in names literal, and drops certificates of anonymized accounts', function () {
+    $this->user->forceFill(['name' => 'اسم {PAGENO} {DATE Y}'])->save();
+    $this->registration->update(['attended_at' => now()]);
+    (new SyncAttendanceCertificate($this->registration))->handle();
+    $registration = $this->registration->fresh();
+
+    $this->get(route('account.programs.certificate', $registration))->assertRedirect(route('login'));
+
+    $this->user->forceFill(['deletion_requested_at' => now()])->save();
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user);
+
+    expect($registration->fresh()->certificate_path)->toBeNull()
         ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
 });

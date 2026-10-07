@@ -4,6 +4,8 @@ namespace App\Actions\Users;
 
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
+use App\Jobs\SyncAttendanceCertificate;
+use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -60,6 +62,9 @@ class AnonymizeUser
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();
             app(CancelProgramRegistration::class)->releaseAllOf($user);
+            // شهادات الحضور تحمل الاسم، وتُولَّد من جديد من البيانات إن احتيج إليها
+            ProgramRegistration::query()->whereBelongsTo($user)->whereNotNull('certificate_path')->get()
+                ->each(fn (ProgramRegistration $registration) => SyncAttendanceCertificate::remove($registration));
 
             activity('users')
                 ->causedBy($actor)
