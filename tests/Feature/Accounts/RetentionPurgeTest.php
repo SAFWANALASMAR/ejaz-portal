@@ -1,8 +1,12 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
+use App\Models\CompetitionSubmission;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\Setting;
+use App\Models\Survey;
+use App\Models\SurveyResponse;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
@@ -72,4 +76,22 @@ it('purges request answers and files and registration answers of a deleted accou
     // مرة ثانية لا تمس شيئاً ولا تسجل من جديد
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
     expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
+});
+
+it('exports the data of every module for one account, in one copy', function () {
+    // القضية #6 (١.١١): الطلبات والتسجيلات والمشاركات والإجابات معاً بعد التكامل
+    $user = User::factory()->create();
+    ServiceRequest::factory()->for($user)->create();
+    ProgramRegistration::factory()->for($user)->create();
+    CompetitionSubmission::factory()->create(['user_id' => $user->id]);
+    $survey = Survey::factory()->withQuestions()->create();
+    SurveyResponse::query()->forceCreate(['survey_id' => $survey->id, 'user_id' => $user->id, 'answers' => [], 'submitted_at' => now()]);
+
+    $copy = app(ExportUserData::class)->handle($user);
+
+    expect($copy)->toHaveKeys(['account', 'service_requests', 'program_registrations', 'competition_submissions', 'survey_responses'])
+        ->and($copy['service_requests'])->toHaveCount(1)
+        ->and($copy['program_registrations'])->toHaveCount(1)
+        ->and($copy['competition_submissions'])->toHaveCount(1)
+        ->and($copy['survey_responses'])->toHaveCount(1);
 });
