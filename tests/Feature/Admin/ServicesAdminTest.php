@@ -315,3 +315,13 @@ it('keeps a staff applicant out of their own request in the panel: page, list an
     expect($this->secretary->can('view', $own))->toBeFalse();
     Livewire::test(ListServiceRequests::class)->assertCanSeeTableRecords([$other])->assertCanNotSeeTableRecords([$own]);
 });
+
+it('refuses a staff applicant deleting or restoring their own request', function () {
+    $own = ServiceRequest::factory()->for($this->secretary)->status(ServiceRequestStatus::Rejected)->create();
+    $other = ServiceRequest::factory()->create();
+
+    expect($this->secretary->can('delete', $own))->toBeFalse()
+        ->and($this->secretary->can('restore', $own))->toBeFalse()
+        ->and($this->secretary->can('delete', $other))->toBeTrue()
+        ->and($this->secretary->can('restore', $other))->toBeTrue();
+});
