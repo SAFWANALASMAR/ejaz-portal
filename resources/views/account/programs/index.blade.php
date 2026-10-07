@@ -21,6 +21,12 @@
                             @if ($registration->attended_at)
                                 <span class="text-primary">{{ __('programs.mine.attended') }}</span>
                             @endif
+                            @if ($registration->certificate_path)
+                                <a href="{{ route('account.programs.certificate', $registration) }}" class="inline-flex items-center gap-1 text-primary underline decoration-gold underline-offset-4">
+                                    {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}
+                                    {{ __('programs.certificate.download') }}
+                                </a>
+                            @endif
                         </p>
                     </div>
                     <div class="flex items-center gap-3">

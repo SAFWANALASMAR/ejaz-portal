@@ -14,6 +14,7 @@ use Filament\Actions\ExportAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -48,6 +49,7 @@ class RegistrationsRelationManager extends RelationManager
                 TextColumn::make('user.phone')->label(__('programs.registrations.fields.phone'))->formatStateUsing(fn (?string $state): string => SaudiPhone::display($state)),
                 TextColumn::make('status')->label(__('programs.registrations.fields.status'))->badge(),
                 TextColumn::make('attended_at')->label(__('programs.registrations.fields.attended_at'))->dateTime('Y-m-d H:i')->placeholder('—'),
+                IconColumn::make('certificate_issued_at')->label(__('programs.certificate.issued'))->boolean()->state(fn ($record): bool => $record->certificate_issued_at !== null),
                 TextColumn::make('created_at')->label(__('programs.registrations.fields.registered_at'))->dateTime('Y-m-d H:i'),
             ])
             ->filters([
