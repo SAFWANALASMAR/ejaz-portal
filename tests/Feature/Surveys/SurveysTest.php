@@ -373,3 +373,13 @@ it('tells the respondent how the answer is used, at the point of collection', fu
     $this->survey->update(['allow_guests' => true]);
     $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.privacy_guest'));
 });
+
+it('counts viewing and answering on their own, so opening the page does not use up the submit limit', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 12) as $attempt) {
+        $this->actingAs($user)->get('/surveys/'.$this->survey->token)->assertOk();
+    }
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], $user)->assertSessionHas('status');
+});
