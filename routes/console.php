@@ -12,3 +12,6 @@ Schedule::command('activitylog:clean --force')->daily()->onOneServer();
 
 // ملفات التصدير ببياناتها الشخصية لا تبقى أكثر من يوم (docs/decisions.md)
 Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();
+
+// تذكير المسجلين في البرامج قبل موعدها بيوم (requirements/03)
+Schedule::command('programs:send-reminders')->hourly()->onOneServer();

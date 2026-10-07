@@ -81,3 +81,13 @@ if (header) {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
 }
+
+// نموذج بـ data-confirm يُسأل المستخدم قبل إرساله (إلغاء تسجيل مثلاً). بلا سكربت مضمّن، فتسمح
+// به سياسة أمان المحتوى
+document.addEventListener('submit', (event) => {
+    const message = event.target.dataset?.confirm;
+
+    if (message && !window.confirm(message)) {
+        event.preventDefault();
+    }
+});

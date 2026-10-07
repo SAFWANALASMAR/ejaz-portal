@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Actions\Programs;
+
+use App\Enums\RegistrationStatus;
+use App\Models\Program;
+use App\Models\ProgramRegistration;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * تسجيل حضور المؤكدين في برنامج بدأ، أو إلغاؤه. يُسجَّل في سجل العمليات (LogsActivity).
+ */
+class RecordProgramAttendance
+{
+    /**
+     * @param  Collection<int, ProgramRegistration>  $registrations
+     * @return int عدد ما تغيّر
+     *
+     * @throws AuthorizationException
+     * @throws ValidationException البرنامج لم يبدأ
+     */
+    public function handle(User $actor, Program $program, Collection $registrations, bool $attended): int
+    {
+        if (! $actor->can('update', $program)) {
+            throw new AuthorizationException;
+        }
+
+        if ($program->starts_at->isFuture()) {
+            throw ValidationException::withMessages(['attended_at' => __('programs.errors.not_started')]);
+        }
+
+        $changed = 0;
+
+        foreach ($registrations as $registration) {
+            if ($registration->program_id !== $program->id || $registration->status !== RegistrationStatus::Confirmed) {
+                continue;
+            }
+
+            $registration->update(['attended_at' => $attended ? ($registration->attended_at ?? now()) : null]);
+            $changed += (int) $registration->wasChanged('attended_at');
+        }
+
+        return $changed;
+    }
+}

@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\FormFieldType;
 use App\Enums\OpeningKind;
+use App\Models\Concerns\DefinesFormFields;
+use App\Models\Contracts\HasFormFields;
 use Database\Factories\OpeningFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,10 +25,10 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<mixed>|null $form_fields
  */
 #[Fillable(['kind', 'title', 'slug', 'summary', 'description', 'closes_at', 'is_published', 'form_fields'])]
-class Opening extends Model
+class Opening extends Model implements HasFormFields
 {
     /** @use HasFactory<OpeningFactory> */
-    use HasFactory, LogsActivity, SoftDeletes;
+    use DefinesFormFields, HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -64,30 +65,6 @@ class Opening extends Model
     public function acceptsApplications(): bool
     {
         return $this->is_published && ! $this->trashed() && ($this->closes_at === null || $this->closes_at->isFuture());
-    }
-
-    /**
-     * حقول النموذج بأنواعها.
-     *
-     * @return list<array{key: string, label: string, type: FormFieldType, required: bool, options: list<string>}>
-     */
-    public function fields(): array
-    {
-        return array_values(array_filter(array_map(function (mixed $field): ?array {
-            $type = is_array($field) ? FormFieldType::tryFrom((string) ($field['type'] ?? '')) : null;
-
-            if ($type === null || ! is_string($field['key'] ?? null) || ! is_string($field['label'] ?? null)) {
-                return null;
-            }
-
-            return [
-                'key' => $field['key'],
-                'label' => $field['label'],
-                'type' => $type,
-                'required' => (bool) ($field['required'] ?? false),
-                'options' => array_values(array_filter((array) ($field['options'] ?? []), 'is_string')),
-            ];
-        }, $this->form_fields ?? [])));
     }
 
     public function getActivitylogOptions(): LogOptions

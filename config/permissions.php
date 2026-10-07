@@ -31,6 +31,10 @@ return [
         'requests' => ['view', 'update', 'assign', 'export', 'delete'],
         'openings' => $crud,
 
+        // البرامج والدورات
+        'program_types' => $crud,
+        'programs' => [...$crud, 'export'],
+
         // الإدارة
         // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
         'users' => $crud,
@@ -51,7 +55,9 @@ return [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*',
         ],
-        'program_manager' => [],
+        'program_manager' => [
+            'program_types.*', 'programs.*',
+        ],
         'reviewer' => [],
         'assembly_member' => [],
         'member' => [],

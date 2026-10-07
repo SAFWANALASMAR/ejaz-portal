@@ -4,7 +4,7 @@ namespace App\Http\Requests\Services;
 
 use App\Models\Opening;
 use App\Models\ServiceRequest;
-use App\Support\OpeningFormRules;
+use App\Support\FormFieldRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -45,7 +45,7 @@ class SaveServiceRequestRequest extends FormRequest
     {
         return [
             'intent' => ['required', 'in:save,submit'],
-            ...OpeningFormRules::for($this->opening(), $this->submitting(), $this->existing()),
+            ...FormFieldRules::for($this->opening(), $this->submitting(), $this->existing()->files ?? []),
         ];
     }
 
@@ -54,7 +54,7 @@ class SaveServiceRequestRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return OpeningFormRules::attributes($this->opening());
+        return FormFieldRules::attributes($this->opening());
     }
 
     public function existing(): ?ServiceRequest

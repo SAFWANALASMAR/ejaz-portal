@@ -4,7 +4,7 @@
 --}}
 @php
     use App\Enums\FormFieldType;
-    use App\Support\OpeningFormRules;
+    use App\Support\FormFieldRules;
 
     $answers = $serviceRequest?->answers ?? [];
     $files = $serviceRequest?->files ?? [];
@@ -38,7 +38,7 @@
                     @if ($error) aria-invalid="true" @endif
                     class="block w-full rounded-xl border border-line bg-white px-4 py-2.5 text-ink file:me-4 file:rounded-full file:border-0 file:bg-primary-soft file:px-4 file:py-1.5 file:font-semibold file:text-primary">
                 <p id="{{ $id }}-hint" class="text-sm text-muted">
-                    {{ __('services.form.pdf_hint', ['size' => OpeningFormRules::PDF_MAX_KB / 1024]) }}
+                    {{ __('services.form.pdf_hint', ['size' => FormFieldRules::PDF_MAX_KB / 1024]) }}
                     @isset($files[$field['key']])
                         {{ __('services.form.current_file', ['name' => $files[$field['key']]['name']]) }}
                     @endisset

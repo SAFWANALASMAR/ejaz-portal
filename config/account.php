@@ -35,6 +35,13 @@ return [
             'icon' => 'inbox-stack',
             'active' => ['account.requests.*'],
         ],
+        [
+            'route' => 'account.programs.index',
+            'label' => 'programs.nav.programs',
+            'description' => 'programs.nav.programs_description',
+            'icon' => 'academic-cap',
+            'active' => ['account.programs.*'],
+        ],
     ],
 
 ];

@@ -65,3 +65,6 @@ Route::middleware('auth')->prefix('account')->name('account.')->group(function (
 
 // الخدمات الإلكترونية
 require __DIR__.'/services.php';
+
+// البرامج والدورات
+require __DIR__.'/programs.php';
