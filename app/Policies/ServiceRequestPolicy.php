@@ -25,7 +25,7 @@ class ServiceRequestPolicy extends ModulePolicy
     public function view(User $user, Model $record): bool
     {
         /** @var ServiceRequest $record */
-        return $record->status !== ServiceRequestStatus::Draft && $this->allows($user, 'view');
+        return $record->status !== ServiceRequestStatus::Draft && $record->user_id !== $user->id && $this->allows($user, 'view');
     }
 
     /**

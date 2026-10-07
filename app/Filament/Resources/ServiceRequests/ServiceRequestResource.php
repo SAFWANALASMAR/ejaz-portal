@@ -49,7 +49,8 @@ class ServiceRequestResource extends Resource
         /** @var Builder<ServiceRequest> $query */
         $query = parent::getEloquentQuery();
 
-        return $query->submitted()->with(['opening', 'user', 'assignee']);
+        // طلب الموظف نفسه لا يظهر له في اللوحة ولا في تصديرها، فلا يرى ملاحظات زملائه عليه
+        return $query->submitted()->where('user_id', '!=', auth()->id())->with(['opening', 'user', 'assignee']);
     }
 
     /**
