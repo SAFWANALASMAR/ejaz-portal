@@ -289,3 +289,29 @@ it('lets only those who submitted an entry answer a competition survey', functio
     answer([$this->scale->id => 4, $this->choice->id => 1], $entrant)->assertSessionHas('status');
     expect(SurveyResponse::sole()->user_id)->toBe($entrant->id);
 });
+
+it('lets the board read the results but only the program manager export them', function () {
+    $board = userWithRole(RoleName::BoardMember);
+    $this->actingAs($board);
+
+    $this->get(SurveyResource::getUrl('results', ['record' => $this->survey]))->assertOk();
+    Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->assertActionHidden('export');
+
+    expect($board->can('surveys.export'))->toBeFalse()
+        ->and($this->manager->can('surveys.export'))->toBeTrue()
+        ->and(Activity::where('event', 'survey_results_exported')->exists())->toBeFalse();
+
+    // ومن لا يطّلع على الاستبيانات لا يصل إلى صفحة النتائج
+    $this->actingAs(userWithRole(RoleName::ContentEditor))->get(SurveyResource::getUrl('results', ['record' => $this->survey]))->assertForbidden();
+});
+
+it('neutralizes a formula after leading spaces in the exported answers', function () {
+    // الطلب يقص المسافات (TrimStrings)، والإجراء من غير الطلب يُبقي المسافة غير القاطعة، وبرامج الجداول تتجاهلها
+    app(SubmitSurveyResponse::class)->handle(User::factory()->create(), $this->survey->load('questions'), [$this->scale->id => 4, $this->choice->id => 0, $this->text->id => "\u{00A0}=HYPERLINK(\"x\")"]);
+    $this->actingAs($this->manager);
+
+    $download = Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->callAction('export');
+    $csv = base64_decode((string) data_get($download->effects, 'download.content'));
+
+    expect($csv)->toContain("'\u{00A0}=HYPERLINK");
+});

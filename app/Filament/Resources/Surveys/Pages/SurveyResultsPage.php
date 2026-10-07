@@ -24,6 +24,16 @@ class SurveyResultsPage extends Page
 
     protected string $view = 'filament.surveys.results';
 
+    /**
+     * الصفحة لمن يطّلع على الاستبيانات، والسجل نفسه يُفحص في mount وعند كل قراءة وتصدير.
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()?->can('viewAny', Survey::class) ?? false;
+    }
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
@@ -49,9 +59,11 @@ class SurveyResultsPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            // التصدير بصلاحيته (surveys.export، لمسؤول البرامج)، لا بالاطلاع وحده: الملف يخرج من اللوحة
             Action::make('export')
                 ->label(__('surveys.results.export'))
                 ->icon('heroicon-o-arrow-down-tray')
+                ->visible(fn (): bool => auth()->user()?->can('surveys.export') ?? false)
                 ->action(fn (): StreamedResponse => $this->export()),
         ];
     }
@@ -62,7 +74,7 @@ class SurveyResultsPage extends Page
     private function export(): StreamedResponse
     {
         $survey = $this->survey()->load('questions');
-        abort_unless(auth()->user()?->can('view', $survey), 403);
+        abort_unless(auth()->user()?->can('view', $survey) && auth()->user()->can('surveys.export'), 403);
 
         activity('surveys')->performedOn($survey)->causedBy(auth()->user())
             ->event(ActivityEvent::SurveyResultsExported->value)->log(ActivityEvent::SurveyResultsExported->value);
@@ -111,7 +123,8 @@ class SurveyResultsPage extends Page
      */
     private static function safe(array $row): array
     {
-        return array_map(fn ($value) => is_string($value) && preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value, $row);
+        // ولو سبقتها فراغات (برامج الجداول تتجاهلها فتنفّذ الصيغة)
+        return array_map(fn ($value) => is_string($value) && preg_match('/^[\s\x{00A0}\x{FEFF}]*[=+\-@\t\r]/u', $value) ? "'".$value : $value, $row);
     }
 
     private function survey(): Survey
