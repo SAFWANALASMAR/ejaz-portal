@@ -2,6 +2,7 @@
 
 use App\Actions\Accounts\ExportUserData;
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
@@ -164,4 +165,59 @@ it('mentions the videos in the personal data export, without the file', function
         'size_bytes' => 11,
         'uploaded_at' => $entry->videos()->sole()->created_at->toIso8601String(),
     ]]);
+});
+
+it('keeps an entry as it was when its files cannot be deleted, retries tomorrow, and goes on with the others', function () {
+    Setting::put('retention', ['days' => 30]);
+    $failing = entryWithVideo($this->competition, $this->deleted);
+    $other = entryWithVideo($this->competition, User::factory()->create(['anonymized_at' => now()->subDays(40)]));
+
+    // تعطّل التخزين عند حذف بقايا رفع المشاركة الأولى وحدها
+    $real = app(VideoUploads::class);
+    app()->instance(VideoUploads::class, new class($real, $failing->id) implements VideoUploads
+    {
+        public function __construct(private VideoUploads $real, private int $failingId) {}
+
+        public function begin(SubmissionVideo $video): void {}
+
+        public function urls(SubmissionVideo $video, array $indexes): array
+        {
+            return [];
+        }
+
+        public function missing(SubmissionVideo $video): array
+        {
+            return [];
+        }
+
+        public function open(SubmissionVideo $video)
+        {
+            return $this->real->open($video);
+        }
+
+        public function keep(SubmissionVideo $video, $file): string
+        {
+            return '';
+        }
+
+        public function discard(SubmissionVideo $video): void
+        {
+            if ($video->submission_id === $this->failingId) {
+                throw new RuntimeException('storage down');
+            }
+        }
+
+        public function pruneOrphans(): int
+        {
+            return 0;
+        }
+    });
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
+
+    expect($failing->videos()->count())->toBe(1)
+        ->and($failing->fresh()->answers)->not->toBeNull()
+        ->and(Storage::disk('local')->exists('competition-videos/'.$failing->uuid.'.mp4'))->toBeTrue()
+        ->and($other->videos()->count())->toBe(0)
+        ->and($other->fresh()->answers)->toBeNull();
 });

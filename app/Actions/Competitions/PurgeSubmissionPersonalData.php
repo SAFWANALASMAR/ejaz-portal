@@ -6,7 +6,6 @@ use App\Contracts\VideoUploads;
 use App\Enums\ActivityEvent;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,11 +20,21 @@ class PurgeSubmissionPersonalData
 
     public function handle(CompetitionSubmission $submission): void
     {
-        /** @var Collection<int, SubmissionVideo> $videos */
-        $videos = DB::transaction(function () use ($submission): Collection {
+        $videos = SubmissionVideo::query()->where('submission_id', $submission->id)->get();
+
+        // الملفات أولاً، خارج المعاملة: إن تعذر حذفها بقيت المشاركة وسجلات مقاطعها كما هي، فيعاد الحذف
+        // في الدورة التالية ولا يضيع مسار ملف باقٍ. وصاحب الحساب المخفى لا يرفع مقطعاً جديداً بينهما
+        foreach ($videos as $video) {
+            $this->uploads->discard($video);
+
+            if (filled($video->path)) {
+                Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
+            }
+        }
+
+        DB::transaction(function () use ($submission, $videos): void {
             /** @var CompetitionSubmission $locked */
             $locked = CompetitionSubmission::query()->withTrashed()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
-            $videos = $locked->videos()->lockForUpdate()->get();
 
             SubmissionVideo::query()->whereKey($videos->modelKeys())->delete();
 
@@ -36,17 +45,6 @@ class PurgeSubmissionPersonalData
                 ->event(ActivityEvent::PersonalDataPurged->value)
                 ->withProperties(['competition_id' => $locked->competition_id, 'videos' => $videos->count()])
                 ->log(ActivityEvent::PersonalDataPurged->value);
-
-            return $videos;
         });
-
-        // الملفات بعد اعتماد المعاملة، فلا يُحذف ملف بقي سجله إن فشلت
-        foreach ($videos as $video) {
-            $this->uploads->discard($video);
-
-            if (filled($video->path)) {
-                Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
-            }
-        }
     }
 }

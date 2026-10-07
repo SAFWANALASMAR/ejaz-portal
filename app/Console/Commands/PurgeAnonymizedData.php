@@ -9,6 +9,7 @@ use App\Models\SurveyResponse;
 use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * يحذف بيانات الحسابات المحذوفة (المخفاة بطلب أصحابها) بعد مدة الاحتفاظ من اللوحة (App\Support\Retention).
@@ -33,6 +34,18 @@ class PurgeAnonymizedData extends Command
         }
 
         $purged = 0;
+        $failed = 0;
+
+        // سجل يتعذر حذفه (تعطل التخزين مثلاً) يُبلَّغ عنه ويبقى كما هو للدورة التالية، ولا يوقف الباقي
+        $attempt = function (callable $purge) use (&$purged, &$failed): void {
+            try {
+                $purge();
+                $purged++;
+            } catch (Throwable $exception) {
+                report($exception);
+                $failed++;
+            }
+        };
 
         CompetitionSubmission::query()
             ->withTrashed()
@@ -42,25 +55,17 @@ class PurgeAnonymizedData extends Command
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos'))
             ->lazyById()
-            ->each(function (CompetitionSubmission $submission) use ($purge, &$purged): void {
-                $purge->handle($submission);
-                $purged++;
-            });
+            ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purge->handle($submission)));
 
         // إجابات الاستبيانات: المدة من إخفاء بيانات الحساب، والمعالَجة تُفصل عن الحساب فلا تُعاد
-        $responses = 0;
-
         SurveyResponse::query()
             ->with('survey.questions')
             ->whereIn('user_id', User::query()->select('id')->where('anonymized_at', '<', now()->subDays($days)))
             ->lazyById()
-            ->each(function (SurveyResponse $response) use ($purgeResponse, &$responses): void {
-                $purgeResponse->handle($response);
-                $responses++;
-            });
+            ->each(fn (SurveyResponse $response) => $attempt(fn () => $purgeResponse->handle($response)));
 
-        $this->info("مشاركات حُذفت بياناتها: {$purged}، وإجابات استبيانات: {$responses}.");
+        $this->info("سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.");
 
-        return self::SUCCESS;
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
     }
 }
