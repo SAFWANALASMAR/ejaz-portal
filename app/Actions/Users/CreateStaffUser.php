@@ -6,7 +6,6 @@ use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 /**
@@ -15,7 +14,10 @@ use Illuminate\Support\Str;
  */
 class CreateStaffUser
 {
-    public function __construct(private ChangeUserRoles $changeRoles) {}
+    public function __construct(
+        private ChangeUserRoles $changeRoles,
+        private SendStaffInvitation $invite,
+    ) {}
 
     /**
      * @param  array{name: string, email: string, phone?: ?string}  $data
@@ -48,7 +50,7 @@ class CreateStaffUser
             return $user;
         });
 
-        Password::broker()->sendResetLink(['email' => $user->email]);
+        $this->invite->handle($actor, $user);
 
         return $user;
     }

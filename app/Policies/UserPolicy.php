@@ -44,6 +44,18 @@ class UserPolicy extends ModulePolicy
     }
 
     /**
+     * دعوة تعيين كلمة المرور: لحساب مفعّل لم يدخل بعد، ممن ينشئ الحسابات أو يعدّلها.
+     */
+    public function invite(User $user, User $record): bool
+    {
+        return $record->anonymized_at === null
+            && $record->is_active
+            && $record->last_login_at === null
+            && ($this->allows($user, 'create') || $this->allows($user, 'update'))
+            && ! $this->protectsAdministrator($user, $record);
+    }
+
+    /**
      * إخفاء البيانات (معالجة طلب الحذف). وشروط الحساب نفسه في AnonymizeUser::eligible.
      */
     public function anonymize(User $user, User $record): bool

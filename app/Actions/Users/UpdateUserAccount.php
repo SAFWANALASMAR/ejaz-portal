@@ -28,6 +28,7 @@ class UpdateUserAccount
         }
 
         $isActive = $data['is_active'] ?? $user->is_active;
+        $emailChanged = mb_strtolower($data['email']) !== $user->email;
 
         // حماية النفس تُفحص صراحة في الإجراء أيضاً (دفاع إضافي فوق السياسة)
         if ($actor->is($user) && ! $isActive) {
@@ -53,7 +54,8 @@ class UpdateUserAccount
             }
         });
 
-        if ($user->email_verified_at === null) {
+        // البريد الجديد يُوثَّق؛ وتعديل الاسم مثلاً لا يعيد إرسال التوثيق
+        if ($emailChanged) {
             $user->sendEmailVerificationNotification();
         }
     }

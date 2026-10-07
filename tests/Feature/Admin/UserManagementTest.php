@@ -3,6 +3,7 @@
 use App\Actions\Users\AnonymizeUser;
 use App\Actions\Users\ChangeUserRoles;
 use App\Actions\Users\CreateStaffUser;
+use App\Actions\Users\SendStaffInvitation;
 use App\Actions\Users\UpdateUserAccount;
 use App\Enums\RoleName;
 use App\Filament\Resources\Users\Pages\CreateUser;
@@ -10,8 +11,9 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
-use App\Notifications\ResetPasswordNotification;
+use App\Notifications\StaffInvitation;
 use App\Notifications\SuperAdminRoleChanged;
+use App\Notifications\VerifyEmailNotification;
 use App\Support\LoginIdentifier;
 use Database\Seeders\PermissionsSeeder;
 use Filament\Actions\Testing\TestAction;
@@ -90,7 +92,40 @@ it('creates a staff account that sets its own password by email', function () {
     expect($staff->phone)->toBe('+966512345678')
         ->and($staff->hasRole(RoleName::ContentEditor->value))->toBeTrue();
 
-    Notification::assertSentTo($staff, ResetPasswordNotification::class);
+    // دعوة بنصها الخاص، لا بريد «إن لم تطلب ذلك فتجاهل الرسالة»
+    Notification::assertSentTo($staff, StaffInvitation::class, function (StaffInvitation $invitation) use ($staff) {
+        $mail = $invitation->toMail($staff);
+
+        expect($mail->subject)->toBe(__('users.invitation.subject'))
+            ->and($mail->actionUrl)->toContain('/reset-password/'.$invitation->token);
+
+        return true;
+    });
+});
+
+it('resends the invitation to an account that has not signed in yet', function () {
+    Notification::fake();
+    $staff = User::factory()->create(['last_login_at' => null]);
+    $active = User::factory()->create(['last_login_at' => now()]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListUsers::class)
+        ->assertActionHidden(TestAction::make('resendInvitation')->table($active))
+        ->callAction(TestAction::make('resendInvitation')->table($staff));
+
+    Notification::assertSentTo($staff, StaffInvitation::class);
+    expect(Activity::where('event', 'invitation_sent')->whereMorphedTo('subject', $staff)->exists())->toBeTrue();
+});
+
+it('refuses to resend an invitation without permission or to an account that cannot use it', function () {
+    $staff = User::factory()->create(['last_login_at' => null]);
+    $gone = User::factory()->create(['last_login_at' => null, 'anonymized_at' => now(), 'is_active' => false]);
+
+    expect(fn () => app(SendStaffInvitation::class)->handle(userWithRole(RoleName::ContentEditor), $staff))
+        ->toThrow(AuthorizationException::class)
+        ->and(fn () => app(SendStaffInvitation::class)->handle($this->admin, $gone))
+        ->toThrow(AuthorizationException::class);
 });
 
 it('rejects an email or phone already in use, whatever the spelling', function () {
@@ -166,6 +201,17 @@ it('keeps the verification when the phone and email do not change', function () 
 
     expect($member->fresh()->hasVerifiedPhone())->toBeTrue()
         ->and($member->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+it('sends the email verification only when the email changes', function () {
+    Notification::fake();
+    $member = User::factory()->unverified()->create(['email' => 'member@example.test']);
+
+    app(UpdateUserAccount::class)->handle($this->admin, $member, ['name' => 'اسم جديد', 'email' => 'member@example.test']);
+    Notification::assertNotSentTo($member, VerifyEmailNotification::class);
+
+    app(UpdateUserAccount::class)->handle($this->admin, $member->fresh(), ['name' => 'اسم جديد', 'email' => 'new@example.test']);
+    Notification::assertSentTo($member, VerifyEmailNotification::class);
 });
 
 it('keeps role assignment for the super admin even if the permission file is changed', function () {

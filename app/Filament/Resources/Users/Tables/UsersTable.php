@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Actions\Users\AnonymizeUser;
+use App\Actions\Users\SendStaffInvitation;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Support\Digits;
@@ -62,6 +63,11 @@ class UsersTable
                 IconColumn::make('is_active')
                     ->label(__('users.fields.is_active'))
                     ->boolean(),
+                IconColumn::make('two_factor')
+                    ->label(__('users.fields.two_factor'))
+                    ->state(fn (User $record): bool => $record->two_factor_confirmed_at !== null)
+                    ->boolean()
+                    ->toggleable(),
                 TextColumn::make('last_login_at')
                     ->label(__('users.fields.last_login_at'))
                     ->since()
@@ -91,6 +97,19 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('resendInvitation')
+                    ->label(__('users.invitation.resend'))
+                    ->icon(Heroicon::OutlinedEnvelope)
+                    ->requiresConfirmation()
+                    ->modalDescription(__('users.invitation.resend_description'))
+                    ->visible(fn (User $record) => auth()->user()?->can('invite', $record) ?? false)
+                    ->action(function (User $record, SendStaffInvitation $invite): void {
+                        /** @var User $actor */
+                        $actor = auth()->user();
+                        $invite->handle($actor, $record);
+
+                        Notification::make()->success()->title(__('users.invitation.sent'))->send();
+                    }),
                 Action::make('anonymize')
                     ->label(__('users.anonymize.action'))
                     ->icon(Heroicon::OutlinedTrash)
