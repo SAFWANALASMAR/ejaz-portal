@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Enums\FormFieldType;
 use App\Enums\OpeningKind;
 use App\Enums\RoleName;
@@ -195,4 +196,14 @@ it('replaces an uploaded file and deletes the old one', function () {
 
 it('adds my requests to the account navigation', function () {
     $this->actingAs($this->user)->get('/account')->assertOk()->assertSee(route('account.requests.index'));
+});
+
+it('includes my requests, and only mine, in my personal data copy', function () {
+    ServiceRequest::factory()->for($this->user)->for($this->opening)->create(['answers' => ['about' => 'إجابتي']]);
+    ServiceRequest::factory()->create(['answers' => ['about' => 'إجابة غيري']]);
+
+    $data = app(ExportUserData::class)->handle($this->user);
+
+    expect($data['service_requests'])->toHaveCount(1)
+        ->and($data['service_requests'][0]['answers'])->toBe(['about' => 'إجابتي']);
 });

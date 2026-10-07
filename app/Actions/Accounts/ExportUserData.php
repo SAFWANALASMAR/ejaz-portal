@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Models\ServiceRequest;
 use App\Models\User;
 
 /**
@@ -32,6 +33,15 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
+            'service_requests' => ServiceRequest::query()->whereBelongsTo($user)->with('opening')->orderBy('id')->get()
+                ->map(fn (ServiceRequest $request): array => [
+                    'reference' => $request->reference,
+                    'opening' => $request->opening->title,
+                    'status' => $request->status->value,
+                    'answers' => $request->answers ?? [],
+                    'files' => array_map(fn (array $file): string => $file['name'], $request->files ?? []),
+                    'submitted_at' => $date($request->submitted_at),
+                ])->all(),
         ];
     }
 }
