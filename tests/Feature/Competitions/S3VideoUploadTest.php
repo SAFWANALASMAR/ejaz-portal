@@ -15,6 +15,7 @@ use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Psr7\Utils;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 /**
@@ -30,6 +31,9 @@ final class FakeS3
 
     /** @var list<string> */
     public array $calls = [];
+
+    /** @var list<array{0: string, 1: int}> */
+    public array $levels = [];
 
     /** تعطّل التخزين عند بدء الرفع */
     public bool $failCreate = false;
@@ -57,6 +61,8 @@ final class FakeS3
     private function handle(CommandInterface $command)
     {
         $this->calls[] = $command->getName();
+        // عمق المعاملة عند كل طلب، فيُختبر أن الشبكة لا تُطلب وصف مقفول في معاملة
+        $this->levels[] = [$command->getName(), DB::transactionLevel()];
         $missing = fn () => Create::rejectionFor(new S3Exception('NoSuchUpload', $command, ['code' => 'NoSuchUpload']));
 
         switch ($command->getName()) {
@@ -247,12 +253,18 @@ it('rejects the video when the storage fails to start the upload, so it is not l
         ->and(SubmissionVideo::sole()->rejection_reason)->toBe('processing_failed');
 });
 
-it('aborts the previous upload when the applicant starts again', function () {
+it('aborts the previous upload when the applicant starts again, after the transaction', function () {
     startS3Upload($this->contents);
+    $outside = DB::transactionLevel();
     startS3Upload($this->contents);
 
     expect(array_keys($this->s3->uploads))->toBe(['upload-1'])
         ->and(SubmissionVideo::sole()->upload_id)->toBe('upload-1');
+
+    // الإلغاء والحذف بعد اعتماد الاستبدال، لا وصف المشاركة مقفول
+    $storage = collect($this->s3->levels)->filter(fn (array $call): bool => in_array($call[0], ['AbortMultipartUpload', 'DeleteObject'], true));
+    expect($storage)->not->toBeEmpty()
+        ->and($storage->every(fn (array $call): bool => $call[1] === $outside))->toBeTrue();
 });
 
 it('aborts abandoned and orphan uploads on pruning', function () {

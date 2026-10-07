@@ -57,18 +57,18 @@ class StartVideoUpload
             throw ValidationException::withMessages(['video' => $problem]);
         }
 
-        $video = DB::transaction(function () use ($submission, $question, $size): SubmissionVideo {
+        /** @var SubmissionVideo|null $previous */
+        $previous = null;
+
+        $video = DB::transaction(function () use ($submission, $question, $size, &$previous): SubmissionVideo {
             // إرسال متزامن يتسلسل مع الاستبدال: فإن سبق، لا يُحذف مقطع مشاركة مرسلة ولا يُستبدل
             CompetitionSubmission::lockDraft($submission->id);
 
             $video = SubmissionVideo::query()->where('submission_id', $submission->id)->where('question_id', $question->id)->lockForUpdate()->first();
 
             if ($video !== null) {
-                $this->uploads->discard($video);
-
-                if (filled($video->path)) {
-                    Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
-                }
+                // نسخة المقطع السابق لحذف بقاياه وملفه بعد الاعتماد، لا وصف المشاركة مقفول
+                $previous = clone $video;
             } else {
                 $video = new SubmissionVideo;
                 $video->submission()->associate($submission);
@@ -87,6 +87,15 @@ class StartVideoUpload
 
             return $video;
         });
+
+        // بعد الاعتماد: إن فشل الحفظ بقي المقطع السابق وملفه كما هما
+        if ($previous !== null) {
+            $this->uploads->discard($previous);
+
+            if (filled($previous->path)) {
+                Storage::disk(SubmissionVideo::disk())->delete((string) $previous->path);
+            }
+        }
 
         try {
             $this->uploads->begin($video);
