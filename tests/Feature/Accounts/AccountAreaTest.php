@@ -90,11 +90,35 @@ it('changes the password only with the current one', function () {
 it('asks for the password before opening the security page', function () {
     $this->actingAs($this->user)->get('/account/security')->assertRedirect(route('password.confirm'));
 
-    $this->actingAs($this->user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get('/account/security')
+    // عبر نموذج التأكيد نفسه، لا بحقن وقت التأكيد في الجلسة
+    $this->actingAs($this->user)->post('/user/confirm-password', ['password' => 'wrong-password'])
+        ->assertSessionHasErrors('password');
+    $this->actingAs($this->user)->get('/account/security')->assertRedirect(route('password.confirm'));
+
+    $this->actingAs($this->user)->post('/user/confirm-password', ['password' => 'password'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->user)->get('/account/security')
         ->assertOk()
         ->assertSee(__('account.security.enable'));
+});
+
+it('locks the password confirmation after five wrong attempts', function () {
+    foreach (range(1, 5) as $ignored) {
+        $this->actingAs($this->user)->post('/user/confirm-password', ['password' => 'wrong-password'])
+            ->assertSessionHasErrors('password');
+    }
+
+    $this->actingAs($this->user)->post('/user/confirm-password', ['password' => 'password'])
+        ->assertSessionHasErrors(['password' => __('account.confirm_password.throttle', ['minutes' => 15])]);
+
+    $this->actingAs($this->user)->get('/account/security')->assertRedirect(route('password.confirm'));
+});
+
+it('opens the data export after a real password confirmation', function () {
+    $this->actingAs($this->user)->post('/user/confirm-password', ['password' => 'password'])->assertSessionHasNoErrors();
+
+    $this->actingAs($this->user)->get('/account/data/export')->assertOk()->assertHeader('Content-Disposition');
 });
 
 it('does not let administrators switch two-factor off', function () {

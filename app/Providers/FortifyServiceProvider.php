@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
@@ -48,6 +49,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
         Fortify::authenticateUsing(fn (Request $request): ?User => $this->authenticate($request));
+        Fortify::confirmPasswordsUsing(fn (User $user, ?string $password): bool => $this->confirmPassword($user, $password));
 
         $this->registerViews();
         $this->registerRateLimiters();
@@ -75,6 +77,32 @@ class FortifyServiceProvider extends ServiceProvider
         }
 
         return $user;
+    }
+
+    /**
+     * تأكيد كلمة المرور قبل الصفحات الحساسة: الأمان والتحقق الثنائي، وتنزيل البيانات.
+     * تأكيد Fortify الافتراضي يبحث بعمود اسم الدخول (login)، ولا عمود بهذا الاسم لأن
+     * الدخول بالبريد أو الجوال. وخمس محاولات خاطئة تقفله ربع ساعة، كقفل الدخول.
+     */
+    private function confirmPassword(User $user, ?string $password): bool
+    {
+        $key = 'confirm-password:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            throw ValidationException::withMessages([
+                'password' => __('account.confirm_password.throttle', ['minutes' => (int) ceil(RateLimiter::availableIn($key) / 60)]),
+            ]);
+        }
+
+        if ($user->is_active && Hash::check((string) $password, $user->password)) {
+            RateLimiter::clear($key);
+
+            return true;
+        }
+
+        RateLimiter::hit($key, 900);
+
+        return false;
     }
 
     private function registerViews(): void
