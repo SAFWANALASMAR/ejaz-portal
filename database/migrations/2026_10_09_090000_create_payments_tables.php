@@ -34,6 +34,8 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->string('receipt_number', 30)->nullable()->unique();
             $table->timestamp('paid_at')->nullable();
+            // وقت الدفع بالإيصال إلى الطابور؛ وفارغاً بعد الدفع يعيد الأمر المجدول إرساله
+            $table->timestamp('receipt_sent_at')->nullable();
             $table->string('gateway_message')->nullable();
             $table->timestamp('refunded_at')->nullable();
             $table->string('refund_reason', 500)->nullable();
@@ -98,6 +100,18 @@ return new class extends Migration
             CREATE TRIGGER payment_events_immutable
                 BEFORE UPDATE OR DELETE ON payment_events
                 FOR EACH ROW EXECUTE FUNCTION payment_records_immutable();
+
+            -- TRUNCATE لا يمر بالمشغّلات الصفّية
+            CREATE TRIGGER payments_no_truncate
+                BEFORE TRUNCATE ON payments
+                FOR EACH STATEMENT EXECUTE FUNCTION payment_records_immutable();
+
+            CREATE TRIGGER payment_events_no_truncate
+                BEFORE TRUNCATE ON payment_events
+                FOR EACH STATEMENT EXECUTE FUNCTION payment_records_immutable();
+
+            -- unsignedInteger في PostgreSQL عدد صحيح بلا فحص، فالمبلغ الموجب قيد في القاعدة لا في التحقق وحده
+            ALTER TABLE payments ADD CONSTRAINT payments_amount_positive CHECK (amount > 0);
             SQL);
     }
 

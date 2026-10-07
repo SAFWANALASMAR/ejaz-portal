@@ -17,6 +17,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
@@ -52,8 +53,9 @@ class StartDonation
         $validated = Validator::make(
             [
                 'amount' => $amount,
+                // بيانات الحساب لا تخضع لقواعد مدخلات الزائر: الاسم حتى 120 حرفاً في الحساب و100 في الإيصال
                 'email' => $user !== null ? $user->email : ($input['email'] ?? null),
-                'name' => $user !== null ? $user->name : ($input['name'] ?? null),
+                'name' => $user !== null ? Str::limit($user->name, 100, '') : ($input['name'] ?? null),
             ],
             [
                 'amount' => ['required', 'integer', 'between:'.config('payments.donation.min_halalas').','.config('payments.donation.max_halalas')],
@@ -93,6 +95,13 @@ class StartDonation
         try {
             $result = $this->gateway->start($payment, route('payments.return', $payment));
             $url = $result->checkoutUrl ?? throw new RuntimeException('The gateway returned no checkout URL.');
+
+            // مرجع فارغ لا يطابقه إشعار، ورابط دفع لا يُحوَّل إليه إلا بـ https (والبوابة الوهمية محلياً بـ http)
+            $scheme = parse_url($url, PHP_URL_SCHEME);
+
+            if ($result->reference === '' || ! ($scheme === 'https' || ($scheme === 'http' && app()->environment('local', 'testing')))) {
+                throw new RuntimeException('The gateway returned no usable reference or checkout URL.');
+            }
         } catch (ConnectionException|RequestException|RuntimeException $exception) {
             report($exception);
             $payment->events()->create(['type' => PaymentEventType::GatewayError, 'payload' => ['message' => $exception::class]]);
@@ -107,15 +116,19 @@ class StartDonation
     }
 
     /**
-     * المبلغ بالهللات من حقل المبلغ (أرقام عربية أو هندية، وفاصلة عشرية بأي شكل، وخانتان عشريتان
-     * على الأكثر)، أو من المبلغ المقترح المختار إن كان من قائمة اللوحة. وما سواه null فيُرفض.
+     * المبلغ بالهللات من حقل المبلغ (أرقام عربية أو هندية، وفواصل آلاف، وفاصلة عشرية بأي شكل، وخانتان
+     * عشريتان على الأكثر)، أو من المبلغ المقترح المختار إن كان من قائمة اللوحة. وما سواه null فيُرفض.
      *
      * @param  array<string, mixed>  $input
      * @param  list<mixed>  $presets
      */
     private static function halalas(array $input, array $presets): ?int
     {
-        $raw = is_scalar($input['amount'] ?? null) ? trim(str_replace(['٫', ',', '٬'], ['.', '.', ''], Digits::latin((string) $input['amount']))) : '';
+        $raw = is_scalar($input['amount'] ?? null) ? trim(Digits::latin((string) $input['amount'])) : '';
+        // فاصلة الآلاف العربية والمسافات تُحذف، والفاصلة اللاتينية فاصلة آلاف إن تلتها ثلاث خانات بالضبط، وإلا عشرية
+        $raw = str_replace(['٬', ' '], '', $raw);
+        $raw = (string) preg_replace('/,(?=\d{3}(?!\d))/', '', $raw);
+        $raw = str_replace(['٫', ','], '.', $raw);
 
         if ($raw === '' && is_scalar($input['preset'] ?? null) && in_array((int) $input['preset'], array_map('intval', $presets), true)) {
             return (int) $input['preset'] * 100;

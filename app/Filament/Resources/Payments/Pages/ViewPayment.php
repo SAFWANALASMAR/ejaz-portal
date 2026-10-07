@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +32,9 @@ class ViewPayment extends ViewRecord
                 ->visible(fn (Payment $record): bool => $record->status === PaymentStatus::Paid && (auth()->user()?->can('refund', $record) ?? false))
                 ->modalDescription(__('payments.refund.confirm'))
                 ->schema([
-                    Textarea::make('reason')->label(__('payments.refund.reason'))->required()->minLength(10)->maxLength(500),
+                    Textarea::make('reason')->label(__('payments.refund.reason'))->helperText(__('payments.refund.reason_hint'))->required()->minLength(10)->maxLength(500),
+                    // عملية مالية لا رجعة فيها: إعادة توثيق بكلمة المرور، لا الجلسة المفتوحة وحدها
+                    TextInput::make('password')->label(__('payments.refund.password'))->password()->required()->currentPassword()->autocomplete('current-password'),
                 ])
                 ->action(function (Payment $record, array $data): void {
                     /** @var User $user */

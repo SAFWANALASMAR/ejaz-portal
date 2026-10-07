@@ -108,9 +108,37 @@ it('does not accept a paid notification whose amount or currency differs from th
     Notification::assertNothingSent();
 });
 
-it('answers 404 for a notification about an unknown payment, and rejects an oversized event id', function () {
+it('answers 404 for a notification about an unknown payment, and 400 for a malformed one with a valid token', function () {
     webhook($this->payment, ['invoice_id' => 'unknown'])->assertNotFound();
-    webhook($this->payment, eventId: str_repeat('e', 101))->assertForbidden();
+    webhook($this->payment, eventId: str_repeat('e', 101))->assertStatus(400);
+    $this->postJson('/webhooks/payments', ['id' => 'evt_x', 'type' => 'card_auth_failed', 'secret_token' => 'test-webhook-secret', 'data' => []])->assertStatus(400);
+
+    // الشكل غير المقبول ليس توقيعاً خاطئاً، فلا يُقيَّد أمنياً
+    expect(Activity::where('event', ActivityEvent::PaymentWebhookRejected->value)->exists())->toBeFalse();
+});
+
+it('keeps the paid attempt and its message when a late failed notice for another attempt arrives', function () {
+    webhook($this->payment, ['id' => 'pay_B'])->assertOk();
+    webhook($this->payment, ['id' => 'pay_A', 'status' => 'failed', 'source' => ['message' => 'DECLINED']], eventId: 'evt_2')->assertOk();
+
+    $payment = $this->payment->fresh();
+
+    expect($payment->status)->toBe(PaymentStatus::Paid)
+        ->and($payment->gateway_payment_id)->toBe('pay_B')
+        ->and($payment->gateway_message)->toBe('APPROVED')
+        ->and($payment->events()->where('type', PaymentEventType::Ignored)->count())->toBe(1);
+});
+
+it('records a partial refund from the gateway as a mismatch and keeps the payment paid', function () {
+    $paid = Payment::factory()->paid()->create(['amount' => 10000]);
+    app(RecordPaymentOutcome::class)->handle($paid, new GatewayPayment($paid->gateway_reference, PaymentStatus::Refunded, 10000, 'SAR', paymentId: 'pay_9', attempt: true, refunded: 4000), 'evt_partial');
+
+    $paid->refresh();
+
+    expect($paid->status)->toBe(PaymentStatus::Paid)
+        ->and($paid->refunded_at)->toBeNull()
+        ->and($paid->events()->where('type', PaymentEventType::Mismatch)->count())->toBe(1)
+        ->and(Activity::where('event', ActivityEvent::PaymentMismatch->value)->where('subject_id', $paid->id)->exists())->toBeTrue();
 });
 
 it('records a failed attempt without closing the invoice, then pays it on the next successful attempt with one receipt', function () {

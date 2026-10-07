@@ -4,6 +4,7 @@ namespace App\Support\Payments;
 
 use App\Enums\PaymentStatus;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * قراءة كائنات ميسر (الفاتورة، والدفعة، والإشعار) إلى حالة موحدة. والبوابة الوهمية تقبل الإشعار
@@ -47,36 +48,45 @@ final class MoyasarPayload
             paymentId: self::id($data['id'] ?? null),
             message: self::string($message),
             attempt: true,
+            refunded: self::amount($data['refunded'] ?? null),
         );
     }
 
     /**
-     * فاتورة (invoice) بدفعاتها: الحالة من الفاتورة، ورقم الدفعة ورسالتها من آخر دفعة محصَّلة أو
-     * آخر محاولة.
+     * فاتورة (invoice) بدفعاتها: الحالة من الفاتورة، ورقم الدفعة ورسالتها من الدفعة التي بحالة الفاتورة
+     * نفسها (المدفوعة لفاتورة مدفوعة، فبها يُسترد المبلغ)، وإلا آخر دفعة محسومة، وإلا آخر محاولة؛
+     * لأن ترتيب الدفعات في رد البوابة غير مضمون.
      *
      * @param  array<string, mixed>  $data
      */
     public static function fromInvoice(array $data): GatewayPayment
     {
+        $status = self::status(self::string($data['status'] ?? null));
         $payments = array_values(array_filter((array) ($data['payments'] ?? []), 'is_array'));
-        $settled = array_values(array_filter($payments, fn (array $payment): bool => self::status(self::string($payment['status'] ?? null)) !== PaymentStatus::Pending));
-        $last = ($settled !== [] ? end($settled) : ($payments !== [] ? end($payments) : null)) ?: null;
+        $statusOf = fn (array $payment): PaymentStatus => self::status(self::string($payment['status'] ?? null));
+        $matching = array_values(array_filter($payments, fn (array $payment): bool => $statusOf($payment) === $status));
+        $settled = array_values(array_filter($payments, fn (array $payment): bool => $statusOf($payment) !== PaymentStatus::Pending));
+        $last = ($matching !== [] ? end($matching) : ($settled !== [] ? end($settled) : ($payments !== [] ? end($payments) : null))) ?: null;
         $source = is_array($last['source'] ?? null) ? $last['source'] : [];
 
         return new GatewayPayment(
             reference: (string) ($data['id'] ?? ''),
-            status: self::status(self::string($data['status'] ?? null)),
+            status: $status,
             amount: (int) ($data['amount'] ?? 0),
             currency: strtoupper((string) ($data['currency'] ?? '')),
             paymentId: self::id($last['id'] ?? null),
             message: self::string($source['message'] ?? null),
             checkoutUrl: self::string($data['url'] ?? null),
+            refunded: self::amount($last['refunded'] ?? null),
         );
     }
 
     /**
      * الإشعار من جسم الطلب وحده (لا من سلسلة الاستعلام): رمزه السري بمقارنة ثابتة الزمن مع المضبوط
-     * (ولا قبول بلا رمز مضبوط)، ونوعه حدث دفع، ومعرّفه بطول مقبول، وبياناته دفعة. وما سوى ذلك null فيُرفض.
+     * (ولا قبول بلا رمز مضبوط) وإلا null فيُرفض ويُقيَّد أمنياً. ثم نوعه حدث دفع، ومعرّفه بطول مقبول،
+     * وبياناته دفعة، وإلا فالشكل غير مقبول (استثناء) لا توقيع خاطئ.
+     *
+     * @throws InvalidArgumentException إشعار بتوقيع صحيح وشكل غير مقبول
      */
     public static function webhook(Request $request, string $secret): ?GatewayEvent
     {
@@ -92,7 +102,7 @@ final class MoyasarPayload
         }
 
         if (! is_string($type) || ! str_starts_with($type, 'payment_') || self::id($id) === null || ! is_array($data)) {
-            return null;
+            throw new InvalidArgumentException('Malformed payment webhook.');
         }
 
         /** @var array<string, mixed> $data */
@@ -102,6 +112,14 @@ final class MoyasarPayload
     private static function string(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * مبلغ بالهللات إن ذكرته البوابة (المسترد مثلاً)، وإلا null.
+     */
+    private static function amount(mixed $value): ?int
+    {
+        return is_int($value) || (is_string($value) && ctype_digit($value)) ? (int) $value : null;
     }
 
     /**

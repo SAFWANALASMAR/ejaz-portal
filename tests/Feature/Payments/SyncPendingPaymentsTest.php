@@ -36,8 +36,36 @@ it('settles old pending payments from the gateway and closes the ones that never
         ->and($open->fresh()->status)->toBe(PaymentStatus::Pending)
         ->and($unstarted->fresh()->status)->toBe(PaymentStatus::Failed)
         ->and($unstarted->fresh()->events()->where('type', PaymentEventType::Failed)->count())->toBe(1)
+        // لم تبدأ عند البوابة: ليست سجلاً مالياً فعلياً، فتُمسح هوية المتبرع منها
+        ->and($unstarted->fresh()->donor_email)->toBeNull()
         ->and($recent->fresh()->status)->toBe(PaymentStatus::Pending)
         ->and($recent->fresh()->events()->count())->toBe(0);
+
+    Notification::assertCount(1);
+});
+
+it('closes a pending payment the gateway no longer knows after the stale window, resends missing receipts, and leaves other drivers alone', function () {
+    Notification::fake();
+
+    // مرجع لا تعرفه البوابة (فاتورة حُذفت، أو بقايا مشغّل سابق)
+    $unknown = Payment::factory()->create();
+    $unknown->forceFill(['gateway_reference' => 'fake_unknown'])->save();
+
+    // مشغّل آخر: لا يُمس
+    $other = Payment::factory()->create(['gateway' => 'moyasar']);
+    $other->forceFill(['gateway_reference' => 'inv_other'])->save();
+
+    // مدفوعة قبل ساعة لم يُدفع إيصالها إلى الطابور (وقت الدفع لا يُعدَّل بعد الحفظ، فيُضبط عند الإنشاء)
+    $paid = Payment::factory()->paid()->create(['receipt_sent_at' => null, 'paid_at' => now()->subHour()]);
+
+    Payment::query()->whereKey([$unknown->id, $other->id])->update(['created_at' => now()->subHours(72), 'updated_at' => now()->subHours(72)]);
+
+    $this->artisan('ejaz:sync-pending-payments')->assertSuccessful();
+
+    expect($unknown->fresh()->status)->toBe(PaymentStatus::Failed)
+        ->and($unknown->fresh()->events()->where('type', PaymentEventType::Failed)->count())->toBe(1)
+        ->and($other->fresh()->status)->toBe(PaymentStatus::Pending)
+        ->and($paid->fresh()->receipt_sent_at)->not->toBeNull();
 
     Notification::assertCount(1);
 });

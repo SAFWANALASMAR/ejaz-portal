@@ -74,9 +74,10 @@ class RefundPayment
 
             $refunded = $this->record->handle($locked, $result);
 
+            // السبب في سجل العملية وحده (قد يذكر المتبرع)، لا في سجل العمليات الذي يراه غير المخوّلين بهويته
             activity('payments')->performedOn($refunded)->causedBy($actor)
                 ->event(ActivityEvent::PaymentRefunded->value)
-                ->withProperties(['reason' => $reason, 'amount' => $refunded->amount])
+                ->withProperties(['amount' => $refunded->amount])
                 ->log(ActivityEvent::PaymentRefunded->value);
 
             return $refunded;

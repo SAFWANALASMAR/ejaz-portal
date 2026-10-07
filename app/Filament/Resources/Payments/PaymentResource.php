@@ -78,7 +78,8 @@ class PaymentResource extends Resource
                 TextEntry::make('gateway_message')->label(__('payments.fields.gateway_message'))->placeholder('—'),
                 TextEntry::make('refunded_at')->label(__('payments.fields.refunded_at'))->dateTime('Y-m-d H:i')->placeholder('—'),
                 TextEntry::make('refundedBy.name')->label(__('payments.fields.refunded_by'))->placeholder('—'),
-                TextEntry::make('refund_reason')->label(__('payments.fields.refund_reason'))->placeholder('—')->columnSpanFull(),
+                // السبب قد يذكر المتبرع، فمع هويته
+                TextEntry::make('refund_reason')->label(__('payments.fields.refund_reason'))->placeholder('—')->columnSpanFull()->visible(self::canViewDonor()),
             ]),
             Section::make(__('payments.fields.events'))->schema([
                 RepeatableEntry::make('events')->hiddenLabel()->columns(4)->schema([

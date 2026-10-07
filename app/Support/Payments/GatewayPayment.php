@@ -9,7 +9,8 @@ use App\Enums\PaymentStatus;
  * بالهللات، والعملة، ورقم الدفعة داخل الفاتورة (للاسترداد)، ورسالة البوابة، ورابط صفحة الدفع عند البدء.
  *
  * و`attempt` تعني أن الحالة لمحاولة دفع واحدة (إشعار دفعة أو استرداد) لا للفاتورة كلها: فالفاتورة تقبل
- * محاولات متعددة، وفشل محاولة لا يُنهيها (RecordPaymentOutcome).
+ * محاولات متعددة، وفشل محاولة لا يُنهيها (RecordPaymentOutcome). و`refunded` المبلغ المسترد بالهللات إن
+ * ذكرته البوابة، فالاسترداد الجزئي لا يُعلَّم «مستردة».
  */
 final readonly class GatewayPayment
 {
@@ -22,5 +23,6 @@ final readonly class GatewayPayment
         public ?string $message = null,
         public ?string $checkoutUrl = null,
         public bool $attempt = false,
+        public ?int $refunded = null,
     ) {}
 }

@@ -60,12 +60,25 @@ it('accepts a webhook only with the configured secret token', function () {
         ->and($event?->payment->status)->toBe(PaymentStatus::Paid)
         ->and($event?->payment->message)->toBe('APPROVED');
 
-    expect($this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['secret_token' => 'wrong'] + $body)))->toBeNull()
-        ->and($this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['type' => 'card_auth_failed'] + $body)))->toBeNull();
+    expect($this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['secret_token' => 'wrong'] + $body)))->toBeNull();
+
+    // توقيع صحيح وشكل غير مقبول: استثناء لا رفض توقيع
+    expect(fn () => $this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['type' => 'card_auth_failed'] + $body)))->toThrow(InvalidArgumentException::class);
 
     // بلا رمز مضبوط لا يُقبل إشعار، ولو كان رمزه فارغاً مثله
     config(['payments.webhook_secret' => '']);
     expect(app(MoyasarPaymentGateway::class)->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['secret_token' => ''] + $body)))->toBeNull();
+});
+
+it('picks the payment that settled the invoice, whatever order the gateway lists the attempts in', function () {
+    Http::fake(['api.moyasar.com/v1/invoices/inv_1' => Http::response(['id' => 'inv_1', 'status' => 'paid', 'amount' => 25000, 'currency' => 'SAR', 'payments' => [
+        ['id' => 'pay_2', 'status' => 'paid', 'source' => ['message' => 'APPROVED']],
+        ['id' => 'pay_1', 'status' => 'failed', 'source' => ['message' => 'DECLINED']],
+    ]])]);
+
+    $result = $this->gateway->fetch('inv_1');
+
+    expect($result->paymentId)->toBe('pay_2')->and($result->message)->toBe('APPROVED');
 });
 
 it('refunds the full amount of the gateway payment', function () {

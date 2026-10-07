@@ -37,7 +37,7 @@ if (app()->environment('local', 'testing')) {
 // إشعار بوابة الدفع: من خادمها بلا متصفح، فلا جلسة ولا كعكات ولا CSRF (وهو مستثنى منه صراحة في
 // bootstrap/app.php أيضاً)، ويفحص توقيعه بنفسه
 Route::post('/webhooks/payments', PaymentWebhookController::class)
-    ->middleware('throttle:120,1')
+    ->middleware('throttle:60,1')
     ->withoutMiddleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class, EnsureAccountIsActive::class])
     ->name('payments.webhook');
 

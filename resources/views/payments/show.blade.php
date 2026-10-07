@@ -43,7 +43,7 @@
     </dl>
 
     <div class="mt-6 flex flex-col gap-3">
-        @if ($payment->status === PaymentStatus::Pending || $payment->status === PaymentStatus::Failed)
+        @if ($donationsEnabled && ($payment->status === PaymentStatus::Pending || $payment->status === PaymentStatus::Failed))
             <x-button :href="route('donate')" class="w-full">{{ __('payments.show.retry') }}</x-button>
         @endif
         @auth

@@ -7,7 +7,9 @@
     @if ($payments->isEmpty())
         <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
             <p class="text-muted">{{ __('payments.account.empty') }}</p>
-            <x-button :href="route('donate')" variant="outline" class="mt-4" arrow>{{ __('payments.account.donate') }}</x-button>
+            @if ($donationsEnabled)
+                <x-button :href="route('donate')" variant="outline" class="mt-4" arrow>{{ __('payments.account.donate') }}</x-button>
+            @endif
         </div>
     @else
         <ul class="space-y-4">

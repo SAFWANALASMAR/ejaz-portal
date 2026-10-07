@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Support\Payments\GatewayEvent;
 use App\Support\Payments\GatewayPayment;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * بوابة الدفع (ميسر في الإنتاج، ووهمية في التطوير والاختبارات). المبلغ يأتي من سجل العملية دائماً،
@@ -25,7 +26,9 @@ interface PaymentGateway
     public function fetch(string $reference): GatewayPayment;
 
     /**
-     * يفحص إشعار البوابة ويعيد حدثه، أو null إن لم يصح توقيعه أو شكله.
+     * يفحص إشعار البوابة ويعيد حدثه، أو null إن لم يصح توقيعه (فيُرفض ويُقيَّد أمنياً).
+     *
+     * @throws InvalidArgumentException توقيع صحيح وشكل غير مقبول (يُرد 400 بلا قيد أمني)
      */
     public function webhook(Request $request): ?GatewayEvent;
 

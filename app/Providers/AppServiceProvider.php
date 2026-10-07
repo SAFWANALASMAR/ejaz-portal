@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -67,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // يكشف التحميل الكسول (N+1) والحقول غير المعرّفة أثناء التطوير
         Model::shouldBeStrict(! $this->app->isProduction());
+
+        // المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج، لا عند أول تبرع
+        if ($this->app->isProduction() && config('payments.driver') === 'fake') {
+            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
+        }
 
         // قواعد كلمة المرور في docs/security.md
         Password::defaults(fn () => Password::min(10)->uncompromised());

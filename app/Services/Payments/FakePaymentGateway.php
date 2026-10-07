@@ -23,8 +23,9 @@ class FakePaymentGateway implements PaymentGateway
 
     public function __construct()
     {
-        if (app()->isProduction()) {
-            throw new RuntimeException('FakePaymentGateway must not be used in production.');
+        // صفحتها التجريبية لا تُسجَّل إلا في البيئتين المحلية والاختبارية، فلا تعمل البوابة الوهمية في غيرهما
+        if (! app()->environment('local', 'testing')) {
+            throw new RuntimeException('FakePaymentGateway is for the local and testing environments only; set PAYMENT_DRIVER=moyasar.');
         }
     }
 

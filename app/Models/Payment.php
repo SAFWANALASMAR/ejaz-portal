@@ -23,6 +23,7 @@ use LogicException;
  * @property PaymentPurpose $purpose
  * @property PaymentStatus $status
  * @property Carbon|null $paid_at
+ * @property Carbon|null $receipt_sent_at
  * @property Carbon|null $refunded_at
  */
 #[Fillable(['user_id', 'purpose', 'amount', 'currency', 'gateway', 'donor_name', 'donor_email', 'description'])]
@@ -51,6 +52,7 @@ class Payment extends Model
             'status' => PaymentStatus::class,
             'amount' => 'integer',
             'paid_at' => 'datetime',
+            'receipt_sent_at' => 'datetime',
             'refunded_at' => 'datetime',
         ];
     }

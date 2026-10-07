@@ -62,7 +62,7 @@
 ## المرحلة 5 — المتجر والخدمات المكملة
 
 - 🟨 ربط متجر سلة، وبوابة دفع ميسر، والتبرعات. (`requirements/08-store-payments.md`) منجز في `feature/store-payments` فوق `feature/surveys-stats`: صفحة المتجر ببطاقات من اللوحة وزر إلى سلة خلف واجهة `StoreCatalog`، والتبرع بفاتورة ميسر من الخادم خلف واجهة `PaymentGateway` (وهمية محلياً)، والإشعار بالرمز السري ومنع التكرار، والسجل المالي الثابت، والإيصال، والاسترداد للمشرف العام، و«مدفوعاتي»، ومورد المدفوعات. ينتظر حساب ميسر وصلاحية سلة. وفي الإنتاج يُضاف نطاق صفحة دفع ميسر إلى `CSP_FORM_ACTION`.
-- ⬜ قبل نشر الدفع: `PAYMENT_DRIVER=moyasar` ومفاتيح ميسر و`PAYMENT_WEBHOOK_SECRET` (المشغّل `fake` يرفض العمل في الإنتاج)، ونطاق صفحة دفع ميسر في `CSP_FORM_ACTION`، و`zend.exception_ignore_args=On` في PHP، والمجدول `ejaz:sync-pending-payments` كل ساعة.
+- ⬜ قبل نشر الدفع: `PAYMENT_DRIVER=moyasar` ومفاتيح ميسر و`PAYMENT_WEBHOOK_SECRET` (المشغّل `fake` يرفض العمل في الإنتاج)، ونطاق صفحة دفع ميسر في `CSP_FORM_ACTION`، و`zend.exception_ignore_args=On` في PHP، والمجدول `ejaz:sync-pending-payments` كل ساعة. وبعد النشر `php artisan db:seed --class=PermissionsSeeder` لصلاحيات `payments.*`، و`REVOKE TRUNCATE` على جدولي الدفع (و`UPDATE`/`DELETE` على `payment_events`) عن دور التطبيق.
 - ⬜ البث المباشر. (`requirements/09-extras.md`)
 - ⬜ المساعد الذكي: يجيب من محتوى الجمعية المنشور فقط، بمفتاح تشغيل من الإدارة. (`requirements/10-ai-assistant.md`)
 

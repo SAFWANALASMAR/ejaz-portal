@@ -7,10 +7,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * إشعارات بوابة الدفع (مستثناة من CSRF بعد التحقق من التوقيع في الإجراء — docs/security.md).
- * ترد 2xx بسرعة بعد الاعتماد، و403 لتوقيع خاطئ، و404 لعملية مجهولة.
+ * ترد 2xx بسرعة بعد الاعتماد، و403 لتوقيع خاطئ، و400 لشكل غير مقبول، و404 لعملية مجهولة.
  */
 class PaymentWebhookController extends Controller
 {
@@ -20,6 +21,8 @@ class PaymentWebhookController extends Controller
             $handle->handle($request);
         } catch (AuthorizationException) {
             return response()->json(['received' => false], 403);
+        } catch (InvalidArgumentException) {
+            return response()->json(['received' => false], 400);
         }
 
         return response()->json(['received' => true]);

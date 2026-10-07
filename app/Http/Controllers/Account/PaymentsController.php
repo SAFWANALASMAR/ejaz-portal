@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,6 +23,9 @@ class PaymentsController extends Controller
 
         abort_if($payments->currentPage() > max(1, $payments->lastPage()), 404);
 
-        return view('account.payments', ['payments' => $payments]);
+        return view('account.payments', [
+            'payments' => $payments,
+            'donationsEnabled' => (bool) (Setting::group('donations')['enabled'] ?? false),
+        ]);
     }
 }

@@ -41,6 +41,7 @@ class PaymentFactory extends Factory
         return $this->state(fn (): array => [
             'status' => PaymentStatus::Paid,
             'paid_at' => now(),
+            'receipt_sent_at' => now(),
             'receipt_number' => 'R-'.now()->year.'-'.Str::upper(Str::random(8)),
             'gateway_reference' => 'fake_'.Str::random(20),
             'gateway_payment_id' => 'fake_pay_'.Str::random(12),

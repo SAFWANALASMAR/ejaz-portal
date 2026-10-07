@@ -8,7 +8,9 @@ use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use App\Services\Payments\FakePaymentGateway;
+use App\Support\Payments\GatewayPayment;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Validation\ValidationException;
@@ -115,6 +117,46 @@ it('offers the local fake checkout only with the fake driver, in the local and t
     $this->post(route('payments.fake-checkout.pay', $payment))->assertRedirect(route('payments.return', $payment));
     $this->get(route('payments.return', $payment))->assertOk()->assertSee(__('payments.statuses.paid'));
     $this->get(route('payments.fake-checkout', $payment))->assertNotFound();
+});
+
+it('reads thousands separators and decimal marks the way people type them', function (string $input, int $halalas) {
+    $this->post('/donate', ['amount' => $input, 'email' => 'donor@example.test'])->assertRedirect();
+
+    expect(Payment::sole()->amount)->toBe($halalas);
+})->with([
+    'latin thousands' => ['1,000', 100000],
+    'thousands and decimals' => ['1,000.50', 100050],
+    'comma as a decimal mark' => ['10,5', 1050],
+    'arabic thousands and decimal mark' => ['١٬٢٥٠٫٧٥', 125075],
+]);
+
+it('lets an account with a long name donate, trimming the name on the receipt', function () {
+    $user = User::factory()->create(['name' => str_repeat('م', 120)]);
+
+    $this->actingAs($user)->post('/donate', ['amount' => '20'])->assertRedirect();
+
+    expect(mb_strlen((string) Payment::sole()->donor_name))->toBe(100);
+});
+
+it('treats a gateway answer without a reference or with a non-https checkout link as a gateway error', function (GatewayPayment $answer) {
+    $this->mock(PaymentGateway::class, fn (MockInterface $mock) => $mock->shouldReceive('start')->once()->andReturn($answer));
+
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'donor@example.test'])->assertRedirect('/donate')->assertSessionHasErrors('amount');
+
+    expect(Payment::sole()->gateway_reference)->toBeNull()
+        ->and(Payment::sole()->events()->where('type', PaymentEventType::GatewayError)->count())->toBe(1);
+})->with([
+    'no reference' => [new GatewayPayment('', PaymentStatus::Pending, 1000, 'SAR', checkoutUrl: 'https://pay.example/inv')],
+    'javascript link' => [new GatewayPayment('inv_1', PaymentStatus::Pending, 1000, 'SAR', checkoutUrl: 'javascript:alert(1)')],
+]);
+
+it('refuses the fake driver at boot in production', function () {
+    $this->app->detectEnvironment(fn (): string => 'production');
+    config(['payments.driver' => 'fake']);
+
+    expect(fn () => (new AppServiceProvider($this->app))->boot())->toThrow(RuntimeException::class);
+
+    $this->app->detectEnvironment(fn (): string => 'testing');
 });
 
 it('caps donation starts per hour for the whole portal', function () {

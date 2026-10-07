@@ -25,10 +25,12 @@ return [
     // ويعلّم المعلّق بلا مرجع (فشلت البوابة عند البدء) «فاشلة» بعد هذه الساعات
     'pending_sync_minutes' => 30,
     'unstarted_hours' => 1,
+    // وما بقي معلّقاً بعد هذه الساعات (الفاتورة منتهية بهامش) يُغلق «فاشلة» ولو تعذر الاستعلام
+    'stale_hours' => 48,
 
+    // المفتاح السري وحده: الفواتير تُنشأ من الخادم، ولا نموذج مدمج بالمفتاح المعلن (decisions.md)
     'moyasar' => [
         'secret_key' => env('MOYASAR_SECRET_KEY', ''),
-        'publishable_key' => env('MOYASAR_PUBLISHABLE_KEY', ''),
     ],
 
     'donation' => [

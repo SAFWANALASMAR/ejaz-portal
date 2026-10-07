@@ -49,6 +49,7 @@ enum ActivityEvent: string implements HasLabel
     // المدفوعات
     case PaymentRefunded = 'payment_refunded';
     case PaymentWebhookRejected = 'payment_webhook_rejected';
+    case PaymentMismatch = 'payment_mismatch';
 
     public function getLabel(): string
     {
