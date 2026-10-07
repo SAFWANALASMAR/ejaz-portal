@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Enums\VideoStatus;
 use App\Models\SubmissionVideo;
 use App\Support\ChunkedVideoUpload;
-use App\Support\Mp4Duration;
+use App\Support\VideoProbe;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +14,7 @@ use Throwable;
 
 /**
  * معالجة المقطع بعد استلامه في الخلفية: جمع الأجزاء، ثم مطابقة الحجم المعلن، والنوع الحقيقي من
- * المحتوى (MP4)، والمدة من ترويسته مقابل حد السؤال. فالسليم يُحفظ باسم عشوائي في القرص الخاص
+ * المحتوى (MP4)، والمدة الحقيقية (VideoProbe) مقابل حد السؤال. فالسليم يُحفظ باسم عشوائي في القرص الخاص
  * ويصير جاهزاً، والمخالف يُرفض بسببه ويُحذف. والحفظ شرطي على المقطع نفسه (المعرّف والحالة)، فإن
  * استُبدل أثناء المعالجة لم يُكتب فوق الجديد. وإن فشلت المعالجة نهائياً رُفض المقطع ليُعاد رفعه.
  */
@@ -105,7 +105,7 @@ class ProcessSubmissionVideo implements ShouldQueue
             return 'not_mp4';
         }
 
-        $seconds = Mp4Duration::seconds($file);
+        $seconds = VideoProbe::seconds($file);
 
         if ($seconds === null) {
             return 'unreadable';

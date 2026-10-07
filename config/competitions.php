@@ -19,6 +19,9 @@ return [
 
         // مدة صلاحية روابط رفع الأجزاء الموقّعة بالدقائق. وبعدها يعيد طلب الاستئناف روابط جديدة
         'url_minutes' => (int) env('COMPETITION_VIDEO_URL_MINUTES', 120),
+
+        // أداة فحص المدة الحقيقية. وفارغة: المدة من ترويسة MP4 وحدها (للاختبارات والتطوير بلا الأداة)
+        'ffprobe' => (string) env('COMPETITION_VIDEO_FFPROBE', 'ffprobe'),
     ],
 
 ];
