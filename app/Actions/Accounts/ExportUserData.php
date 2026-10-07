@@ -3,6 +3,7 @@
 namespace App\Actions\Accounts;
 
 use App\Models\CompetitionSubmission;
+use App\Models\SubmissionVideo;
 use App\Models\User;
 
 /**
@@ -33,7 +34,7 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
-            'competition_submissions' => CompetitionSubmission::query()->where('user_id', $user->id)->with('competition')->get()
+            'competition_submissions' => CompetitionSubmission::query()->where('user_id', $user->id)->with(['competition', 'videos.question'])->get()
                 ->map(fn (CompetitionSubmission $submission): array => [
                     'competition' => $submission->competition->title,
                     'status' => $submission->status->value,
@@ -42,6 +43,14 @@ class ExportUserData
                     'region' => $submission->region?->value,
                     'answers' => (array) $submission->answers,
                     'submitted_at' => $date($submission->submitted_at),
+                    // وجود المقاطع وبياناتها، لا الملف نفسه (يُطلب من الجمعية)
+                    'videos' => $submission->videos->map(fn (SubmissionVideo $video): array => [
+                        'question' => $video->question->prompt,
+                        'status' => $video->status->value,
+                        'duration_seconds' => $video->duration_seconds,
+                        'size_bytes' => $video->size,
+                        'uploaded_at' => $date($video->created_at),
+                    ])->all(),
                 ])->all(),
         ];
     }

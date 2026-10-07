@@ -50,6 +50,7 @@ return [
         'draw_voided' => 'إلغاء سحب إلكتروني',
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
+        'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)

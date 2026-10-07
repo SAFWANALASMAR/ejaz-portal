@@ -34,6 +34,8 @@ return [
         // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
         'users' => $crud,
         'activity' => ['view'],
+        // مدة الاحتفاظ ببيانات الحسابات المحذوفة: لا تُربط بدور، فهي للمشرف العام وحده (Gate::after)
+        'retention' => ['update'],
 
         // المسابقات (المرحلة 2)
         'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],

@@ -15,3 +15,6 @@ Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 
 // ملفات التصدير فيها بيانات شخصية، فتُحذف بعد يوم
 Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();
+
+// بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
+Schedule::command('ejaz:purge-anonymized-data')->daily()->onOneServer();
