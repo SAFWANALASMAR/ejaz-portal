@@ -50,7 +50,15 @@ class SaveContent
             $record->setAttribute('sort', (int) $record->newQuery()->max('sort') + 1);
         }
 
+        // الصورة الجديدة لا تكون لسجل آخر، فلا يعيد الحفظ ترميزها، ولا يحذفها لاحقاً حذفُ هذا
+        // السجل أو تعديله. وجداول المحتوى صغيرة (عشرات السجلات)، فيُقرأ ما فيها من صور مرة
+        $used = self::imagesOfOtherRecords($record);
+
         foreach ($after as $field => $paths) {
+            if (array_intersect(array_diff($paths, $before[$field] ?? []), $used) !== []) {
+                throw ValidationException::withMessages([$field => __('validation.image_in_use')]);
+            }
+
             PublicImages::prepare($before[$field] ?? [], $paths, $record->imageDirectory(), $field);
         }
 
@@ -59,6 +67,19 @@ class SaveContent
         PublicImages::discard(self::flatten($before), self::flatten($after), $record->imageDirectory());
 
         return $record;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function imagesOfOtherRecords(Model&HasPublicImages $record): array
+    {
+        return $record->newQuery()
+            ->when($record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
+            ->get()
+            ->flatMap(fn (Model&HasPublicImages $other): array => self::flatten($other->publicImages()))
+            ->values()
+            ->all();
     }
 
     /**

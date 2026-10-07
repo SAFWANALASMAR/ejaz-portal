@@ -56,7 +56,7 @@ final class PublicImages
 
     private static function inDirectory(string $path, string $directory): bool
     {
-        return str_starts_with($path, $directory.'/') && ! str_contains($path, '..');
+        return str_starts_with($path, $directory.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
     }
 
     private static function reject(string $field): ValidationException

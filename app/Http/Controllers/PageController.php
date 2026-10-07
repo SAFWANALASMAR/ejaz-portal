@@ -18,11 +18,12 @@ class PageController extends Controller
 {
     public function about(): View
     {
-        /** @var array{title: string, summary: ?string, html: string}|null $page */
-        $page = ContentCache::remember('pages.about', function (): ?array {
+        // false لا null للصفحة غير المنشورة، لأن الذاكرة لا تحفظ null فتُسأل القاعدة كل مرة
+        /** @var array{title: string, summary: ?string, html: string}|false $page */
+        $page = ContentCache::remember('pages.about', function (): array|false {
             $page = Page::query()->published()->where('slug', Page::ABOUT)->first();
 
-            return $page === null ? null : [
+            return $page === null ? false : [
                 'title' => $page->title,
                 'summary' => $page->summary,
                 'html' => view('content.about', [
@@ -32,7 +33,7 @@ class PageController extends Controller
             ];
         });
 
-        abort_if($page === null, 404);
+        abort_if($page === false, 404);
 
         return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
     }

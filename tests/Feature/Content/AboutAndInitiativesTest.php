@@ -24,7 +24,7 @@ it('shows the published about page with its blocks and the visible board members
                 ['icon' => 'heart', 'title' => 'قيمة أولى', 'text' => 'وصفها'],
                 ['icon' => '../../evil', 'title' => 'قيمة ثانية', 'text' => ''],
             ]]],
-            ['type' => 'image', 'data' => ['image' => 'pages/photo.jpg', 'caption' => 'وصف الصورة']],
+            ['type' => 'image', 'data' => ['picture' => 'pages/photo.jpg', 'caption' => 'وصف الصورة']],
             ['type' => 'unknown', 'data' => ['x' => 'y']],
         ],
     ]);
@@ -173,7 +173,9 @@ it('serves other published pages by their slug, and the about page by its own li
 it('keeps only safe links in the rich text', function () {
     aboutPage(['blocks' => [['type' => 'text', 'data' => ['body' => <<<'HTML'
         <p><a href="//evil.example/x">بلا بروتوكول</a> <a href="http://ejaz.sa">غير آمن</a> <a href="mailto:info@ejaz.sa">بريد</a>
-        <a href="mailto:not-an-email">بريد خاطئ</a> <a href="/initiatives">داخلي</a> <a href="https://ejaz.sa/x">آمن</a></p>
+        <a href="mailto:not-an-email">بريد خاطئ</a> <a href="/initiatives">داخلي</a> <a href="https://ejaz.sa/x">آمن</a>
+        <a href="https://ejaz.sa@evil.example/">مخادع</a></p>
+        <div><span>نص ملصوق من مستند</span></div><table><tr><td>خلية جدول</td></tr></table>
         HTML]]]]);
 
     $html = $this->get('/about')->assertOk()->getContent();
@@ -187,7 +189,11 @@ it('keeps only safe links in the rich text', function () {
         ->toContain('href="/initiatives"')
         ->toContain('href="https://ejaz.sa/x"')
         ->toContain('بلا بروتوكول')
-        ->toContain('غير آمن');
+        ->toContain('غير آمن')
+        ->toContain('نص ملصوق من مستند')
+        ->toContain('خلية جدول')
+        ->not->toContain('<span>نص ملصوق من مستند</span>')
+        ->not->toContain('<td>خلية جدول</td>');
 });
 
 it('shares the initiative image, and shows at most three initiatives on the home page', function () {

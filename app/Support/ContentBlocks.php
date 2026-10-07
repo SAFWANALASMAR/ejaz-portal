@@ -38,7 +38,7 @@ final class ContentBlocks
         $images = [];
 
         foreach (self::normalize($blocks) as $block) {
-            $path = $block['data']['image'] ?? null;
+            $path = $block['data']['picture'] ?? null;
 
             if ($block['type'] === 'image' && is_string($path) && $path !== '') {
                 $images[] = $path;

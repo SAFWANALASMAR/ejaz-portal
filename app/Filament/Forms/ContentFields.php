@@ -3,8 +3,6 @@
 namespace App\Filament\Forms;
 
 use App\Enums\SiteIcon;
-use App\Models\Contracts\HasPublicImages;
-use App\Support\ContentBlocks;
 use App\Support\RichText;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
@@ -15,7 +13,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * حقول نماذج المحتوى في اللوحة: محرر المقاطع المرنة، ورفع الصور، والمعرّف في الرابط.
@@ -69,16 +66,15 @@ final class ContentFields
                     ->label(__('content.blocks.image'))
                     ->icon(Heroicon::OutlinedPhoto)
                     ->schema([
-                        self::image('image', $directory)
+                        // المحفوظ صور مقاطع السجل نفسه، لا غلاف المبادرة (BlockPictureUpload)
+                        self::image('picture', $directory, BlockPictureUpload::class)
                             ->label(__('content.blocks.image'))
                             ->helperText(__('content.image_hint'))
-                            ->required()
-                            // الصورة المحفوظة في مقاطع السجل نفسه مسموحة، وما سواها يجب أن يُرفع الآن
-                            ->preventFilePathTampering(allowFilePathUsing: fn (string $file, ?Model $record): bool => $record instanceof HasPublicImages
-                                && in_array($file, ContentBlocks::images($record->getOriginal('blocks')), true)),
+                            ->required(),
                         TextInput::make('caption')->label(__('content.blocks.caption'))->maxLength(200),
                     ]),
             ])
+            ->maxItems(30)
             ->collapsible()
             ->blockNumbers(false)
             ->columnSpanFull();
@@ -89,9 +85,12 @@ final class ContentFields
      * ترميزها قبل النشر داخل طلب الحفظ، فتُحدّ أبعادها بما يكفي للموقع ولا يثقل الحفظ.
      * ومنع التلاعب بالمسار مفعّل لكل حقول الرفع في AdminPanelProvider.
      */
-    public static function image(string $name, string $directory): FileUpload
+    /**
+     * @param  class-string<FileUpload>  $component
+     */
+    public static function image(string $name, string $directory, string $component = FileUpload::class): FileUpload
     {
-        return FileUpload::make($name)
+        return $component::make($name)
             ->image()
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->maxSize(4096)

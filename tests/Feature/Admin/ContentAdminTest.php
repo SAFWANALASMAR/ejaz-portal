@@ -108,11 +108,11 @@ it('keeps the images of the blocks when an initiative is saved again', function 
     $this->actingAs($this->editor);
 
     Livewire::test(EditInitiative::class, ['record' => $initiative->getRouteKey()])
-        ->fillForm(['blocks' => [['type' => 'image', 'data' => ['image' => [photoWithLocation('block.jpg')], 'caption' => 'وصف']]]])
+        ->fillForm(['blocks' => [['type' => 'image', 'data' => ['picture' => [photoWithLocation('block.jpg')], 'caption' => 'وصف']]]])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    $path = $initiative->fresh()->blocks[array_key_first($initiative->fresh()->blocks)]['data']['image'];
+    $path = $initiative->fresh()->blocks[array_key_first($initiative->fresh()->blocks)]['data']['picture'];
     expect(Storage::disk('public')->get($path))->not->toContain('GPS-LATITUDE');
 
     // حفظ ثانٍ بلا تغيير في الصورة: مسارها المحفوظ مسموح، لا «مسار غير مسموح به»
@@ -275,4 +275,39 @@ it('lets the editor save again after a rejected image, keeping the stored one', 
     $component->fillForm(['name' => 'اسم بعد الرفض'])->call('save')->assertHasNoFormErrors();
 
     expect($initiative->fresh())->name->toBe('اسم بعد الرفض')->image->toBe('initiatives/current.jpg');
+});
+
+it('refuses an image that belongs to another record, and never deletes it', function () {
+    Storage::disk('public')->put('initiatives/other.jpg', UploadedFile::fake()->image('other.jpg')->getContent());
+    Initiative::factory()->create(['image' => 'initiatives/other.jpg']);
+    $initiative = Initiative::factory()->create();
+
+    expect(fn () => app(SaveContent::class)->handle($this->editor, $initiative, ['gallery' => ['initiatives/other.jpg']]))
+        ->toThrow(ValidationException::class, __('validation.image_in_use'))
+        ->and(Storage::disk('public')->exists('initiatives/other.jpg'))->toBeTrue();
+});
+
+it('refuses a path with a null byte instead of failing', function () {
+    $initiative = Initiative::factory()->create();
+
+    expect(fn () => app(SaveContent::class)->handle($this->editor, $initiative, ['image' => "initiatives/x\0.jpg"]))
+        ->toThrow(ValidationException::class);
+});
+
+it('keeps the image of a block on a page saved twice from the panel', function () {
+    $page = Page::factory()->create(['slug' => 'privacy']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditContentPage::class, ['record' => $page->getRouteKey()])
+        ->fillForm(['blocks' => [['type' => 'image', 'data' => ['picture' => [photoWithLocation('page.jpg')], 'caption' => 'وصف']]]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    Livewire::test(EditContentPage::class, ['record' => $page->getRouteKey()])
+        ->fillForm(['title' => 'عنوان معدّل'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $path = $page->fresh()->blocks[0]['data']['picture'];
+    expect($path)->toStartWith('pages/')->and(Storage::disk('public')->exists($path))->toBeTrue();
 });

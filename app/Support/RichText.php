@@ -22,6 +22,13 @@ final class RichText
 
     private const ELEMENTS = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'blockquote', 'hr'];
 
+    /**
+     * عناصر تنسيق تأتي مع النص الملصوق (من مستند أو صفحة): يُحذف العنصر ويبقى نصه.
+     * وما سواها يُحذف بمحتواه، ومنه script وstyle.
+     */
+    private const UNWRAPPED = ['div', 'span', 'section', 'article', 'font', 'center', 'small', 'sub', 'sup', 'mark', 'pre', 'code',
+        'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption', 'figure', 'figcaption', 'h1', 'h5', 'h6'];
+
     private static ?HtmlSanitizer $sanitizer = null;
 
     public static function toHtml(?string $html): HtmlString
@@ -39,6 +46,10 @@ final class RichText
 
         foreach (self::ELEMENTS as $element) {
             $config = $config->allowElement($element);
+        }
+
+        foreach (self::UNWRAPPED as $element) {
+            $config = $config->blockElement($element);
         }
 
         return self::$sanitizer = new HtmlSanitizer(
