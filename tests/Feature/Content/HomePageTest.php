@@ -1,29 +1,13 @@
 <?php
 
+use App\Enums\RoleName;
+use App\Filament\Pages\SiteSettings;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Route;
-
-/**
- * مسار مؤقت لقسم لم يُبنَ بعد، ليُختبر ظهور بطاقته في الرئيسية.
- */
-function registerSectionRoute(string $uri, string $name): void
-{
-    Route::get($uri, fn () => 'ok')->name($name);
-    Route::getRoutes()->refreshNameLookups();
-    ContentCache::flush();
-}
-
-/**
- * @return array<string, mixed>
- */
-function approvedStat(array $overrides = []): array
-{
-    return ['label' => 'مستفيد', 'value' => 25000, 'suffix' => '+', 'icon' => 'users', ...$overrides];
-}
+use Livewire\Livewire;
 
 it('shows the hero from the site settings', function () {
     Setting::put('home', [
@@ -98,36 +82,79 @@ it('shows a section shortcut only once its section exists, and none when switche
     $this->get('/')->assertDontSee(__('home.shortcuts.governance.title'));
 });
 
-it('caches the home sections as text and shows a settings change at once', function () {
-    $this->get('/')->assertOk();
+/**
+ * تعديل الإعداد في القاعدة دون أحداث النموذج، ومسح ذاكرة الإعداد وحدها: فما تعرضه الرئيسية
+ * بعدها يأتي من ذاكرة المقاطع.
+ */
+function changeHomeSettingsSilently(array $home): void
+{
+    DB::table('settings')->where('key', 'home')->update(['value' => json_encode($home)]);
+    Cache::forget(Setting::cacheKey('home'));
+}
 
-    expect(Cache::tags(ContentCache::TAG)->get('home'))->toBeString()->toContain(__('site.name'));
+it('serves the home sections from the cache until content changes', function () {
+    Setting::put('home', ['hero_title' => 'العنوان الأول']);
+    $this->get('/')->assertSee('العنوان الأول');
+
+    changeHomeSettingsSilently(['hero_title' => 'عنوان لم يُعتمد']);
+    $this->get('/')->assertSee('العنوان الأول')->assertDontSee('عنوان لم يُعتمد');
 
     DB::enableQueryLog();
-    $this->get('/')->assertOk();
+    $this->get('/');
     expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql) => str_contains($sql, 'settings')))->toBeEmpty();
 
-    Setting::put('home', ['hero_title' => 'عنوان معدّل']);
+    ContentCache::flush();
+    $this->get('/')->assertSee('عنوان لم يُعتمد');
+});
 
-    $this->get('/')->assertSee('عنوان معدّل');
+it('shows a change saved from the settings page at once', function () {
+    $this->get('/')->assertSee(__('site.name'));
+
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+    Livewire::test(SiteSettings::class)
+        ->fillForm(['home.hero_title' => 'عنوان من اللوحة'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $this->get('/')->assertSee('عنوان من اللوحة');
 });
 
 it('builds every cached link from the site address, never from the Host header of a request', function () {
     $this->get('http://evil.example/')->assertOk();
 
     $this->get('/')->assertOk()->assertDontSee('evil.example', false);
-
-    expect(Cache::tags(ContentCache::TAG)->get('home'))->not->toContain('evil.example');
 });
 
 it('refreshes the content cache after a deployment without touching the protection limits', function () {
-    $this->get('/');
+    Setting::put('home', ['hero_title' => 'قبل النشر']);
+    $this->get('/')->assertSee('قبل النشر');
+    changeHomeSettingsSilently(['hero_title' => 'بعد النشر']);
     RateLimiter::hit('login-account:someone', 900);
 
     $this->artisan('ejaz:refresh-content')->assertSuccessful();
 
-    expect(Cache::tags(ContentCache::TAG)->get('home'))->toBeNull()
-        ->and(RateLimiter::attempts('login-account:someone'))->toBe(1);
+    $this->get('/')->assertSee('بعد النشر');
+    expect(RateLimiter::attempts('login-account:someone'))->toBe(1);
+});
+
+it('escapes the texts that come from the settings', function () {
+    Setting::put('home', ['hero_title' => '<script>alert(1)</script>']);
+
+    $this->get('/')->assertDontSee('<script>alert(1)</script>', false)->assertSee('&lt;script&gt;', false);
+});
+
+it('shows no button and no missing-content marker in production', function () {
+    $this->app['env'] = 'production';
+
+    $this->withoutVite()->get('/')->assertOk()
+        ->assertDontSee(__('home.hero.button_missing'))
+        ->assertSee(__('site.name'));
+});
+
+it('turns the search icon into a link once search exists', function () {
+    registerSectionRoute('/search', 'search');
+
+    $this->get('/')->assertSee('href="'.route('search').'"', false)->assertDontSee(__('site.search_soon'));
 });
 
 it('shows the search icon as coming soon until search is built', function () {

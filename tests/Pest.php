@@ -2,7 +2,9 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\ContentCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /*
@@ -31,4 +33,25 @@ function userWithRole(RoleName $role, array $attributes = []): User
     $user->assignRole($role->value);
 
     return $user;
+}
+
+/**
+ * مسار مؤقت لقسم لم يُبنَ بعد، ليُختبر ما يظهر حين يُبنى (بطاقته في الرئيسية مثلاً).
+ */
+function registerSectionRoute(string $uri, string $name): void
+{
+    Route::get($uri, fn () => 'ok')->name($name);
+    Route::getRoutes()->refreshNameLookups();
+    ContentCache::flush();
+}
+
+/**
+ * خانة إحصائية معتمدة لاختبارات الرئيسية.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function approvedStat(array $overrides = []): array
+{
+    return ['label' => 'مستفيد', 'value' => 25000, 'suffix' => '+', 'icon' => 'users', ...$overrides];
 }

@@ -21,7 +21,8 @@ class Setting extends Model
     protected static function booted(): void
     {
         // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القيمة القديمة وخزّنها. ومعها ذاكرة
-        // المحتوى العام (مقاطع الرئيسية)، فيظهر التعديل فوراً
+        // المحتوى العام (مقاطع الرئيسية)، فيظهر التعديل فوراً. والترتيب مقصود: مفتاح الإعداد
+        // أولاً، فلا يُعاد بناء المقاطع من إعداد قديم بين المسحين
         $flush = function (Setting $setting): void {
             DB::afterCommit(fn () => Cache::forget(self::cacheKey($setting->key)));
             ContentCache::flush();
