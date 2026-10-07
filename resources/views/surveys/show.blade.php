@@ -64,6 +64,14 @@
                 </fieldset>
             @endforeach
 
+            {{-- إشعار عند نقطة الجمع: الجملة دائماً، والرابط متى وُجدت صفحة الخصوصية --}}
+            <p class="text-sm text-muted">
+                {{ auth()->check() ? __('surveys.public.privacy') : __('surveys.public.privacy_guest') }}
+                @if (Route::has('privacy'))
+                    <a href="{{ route('privacy') }}" target="_blank" class="text-primary underline">{{ __('surveys.public.privacy_link') }}</a>
+                @endif
+            </p>
+
             <x-button class="w-full" size="lg">{{ __('surveys.public.submit') }}</x-button>
         </form>
     @endif

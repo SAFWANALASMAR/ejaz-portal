@@ -364,3 +364,12 @@ it('withholds the breakdown and texts below five responses from those who do not
     $this->actingAs(userWithRole(RoleName::BoardMember))->get($url)
         ->assertOk()->assertSee('نص-قد-يدل-على-كاتبه-1')->assertDontSee(__('surveys.results.withheld', ['count' => SurveyResults::MIN_RESPONSES]));
 });
+
+it('tells the respondent how the answer is used, at the point of collection', function () {
+    $this->actingAs(User::factory()->create())->get('/surveys/'.$this->survey->token)
+        ->assertOk()->assertSee(__('surveys.public.privacy'));
+
+    auth()->logout();
+    $this->survey->update(['allow_guests' => true]);
+    $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.privacy_guest'));
+});
