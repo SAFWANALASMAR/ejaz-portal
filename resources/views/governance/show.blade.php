@@ -44,7 +44,10 @@
                         <span class="font-normal opacity-80">({{ $size }})</span>
                     @endif
                 </x-button>
-                <x-button variant="outline" :href="route('governance.file', $document->slug)" target="_blank" rel="noopener">{{ __('governance.document.open') }}</x-button>
+                <x-button variant="outline" :href="route('governance.file', $document->slug)" target="_blank" rel="noopener">
+                    {{ __('governance.document.open') }}
+                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                </x-button>
             </div>
         </div>
 

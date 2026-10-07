@@ -34,6 +34,7 @@ return [
     'send' => 'إرسال',
     'download' => 'تنزيل',
     'share' => 'مشاركة',
+    'opens_in_new_tab' => 'يفتح في نافذة جديدة',
     'no_results' => 'لا توجد نتائج.',
     'pagination' => 'التنقل بين الصفحات',
     'page_of' => 'صفحة :page من :pages',

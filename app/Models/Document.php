@@ -39,13 +39,21 @@ class Document extends Model
     }
 
     /**
-     * المنشورة، الأحدث إصداراً أولاً.
-     *
      * @param  Builder<Document>  $query
      */
     public function scopePublished(Builder $query): void
     {
-        $query->where('is_published', true)->orderByDesc('issued_at')->orderBy('title');
+        $query->where('is_published', true);
+    }
+
+    /**
+     * الأحدث إصداراً أولاً، وما لا تاريخ له في آخرها. والمعرّف يثبّت الترتيب بين الصفحات.
+     *
+     * @param  Builder<Document>  $query
+     */
+    public function scopeNewestFirst(Builder $query): void
+    {
+        $query->orderByRaw('issued_at desc nulls last')->orderBy('title')->orderBy('id');
     }
 
     /**

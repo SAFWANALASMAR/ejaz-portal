@@ -18,8 +18,8 @@
             @foreach (DocumentCategory::cases() as $category)
                 <li>
                     <a href="{{ route('governance.index', ['category' => $category->value]) }}"
-                        @if ($active === $category->value) aria-current="page" @endif
-                        class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md aria-[current=page]:border-gold aria-[current=page]:ring-1 aria-[current=page]:ring-gold">
+                        @if ($active === $category->value) aria-current="true" @endif
+                        class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md aria-[current=true]:border-gold aria-[current=true]:ring-1 aria-[current=true]:ring-gold">
                         <span class="text-gold" aria-hidden="true">{{ svg('heroicon-o-'.$category->icon(), 'size-8') }}</span>
                         <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>
                     </a>

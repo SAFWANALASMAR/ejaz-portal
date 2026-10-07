@@ -15,6 +15,7 @@ use App\Filament\Resources\Initiatives\Pages\ListInitiatives;
 use App\Models\BoardMember;
 use App\Models\Concerns\FlushesContentCache;
 use App\Models\Contracts\HasPublicImages;
+use App\Models\Document;
 use App\Models\Initiative;
 use App\Models\Page;
 use App\Models\User;
@@ -203,10 +204,14 @@ it('puts a new initiative and board member at the end of the order', function ()
     expect($initiative->sort)->toBe(8)->and($member->sort)->toBe(4);
 });
 
-it('flushes the public content cache from every model that has public images', function () {
+it('flushes the public content cache from every model shown in the cached pages', function () {
+    // كل نموذج بصور عامة، وكل نموذج تُخزَّن صفحاته ولو بلا صور. ويُضاف إليها كل نموذج جديد
+    // يُعرض في صفحة مخزنة
     $models = collect(File::files(app_path('Models')))
         ->map(fn ($file) => 'App\\Models\\'.$file->getFilenameWithoutExtension())
-        ->filter(fn (string $class) => is_subclass_of($class, HasPublicImages::class));
+        ->filter(fn (string $class) => is_subclass_of($class, HasPublicImages::class))
+        ->merge([Page::class, Initiative::class, BoardMember::class, Document::class])
+        ->unique();
 
     expect($models)->not->toBeEmpty();
 

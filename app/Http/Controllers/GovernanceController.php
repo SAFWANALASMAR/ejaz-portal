@@ -26,11 +26,18 @@ class GovernanceController extends Controller
         /** @var array{category?: ?string, year?: ?int, q?: ?string} $filters */
         $filters = array_filter($request->safe()->only(['category', 'year', 'q']), fn ($value): bool => filled($value));
 
-        $render = fn (): string => view('governance.index', [
-            'documents' => self::search($filters),
-            'filters' => $filters,
-            'years' => self::years(),
-        ])->render();
+        $render = function () use ($filters): string {
+            $documents = self::search($filters);
+
+            // لا صفحة بعد الأخيرة، فلا تُعرض قائمة فارغة لأي رقم يُكتب في الرابط
+            abort_if($documents->currentPage() > $documents->lastPage(), 404);
+
+            return view('governance.index', [
+                'documents' => $documents,
+                'filters' => $filters,
+                'years' => self::years(),
+            ])->render();
+        };
 
         // الصفحة الأولى بلا تصفية مخزنة. والبحث والتصفية والصفحات التالية بلا تخزين، فلا تُملأ
         // الذاكرة بمفاتيح من مدخلات الزوار
@@ -87,6 +94,7 @@ class GovernanceController extends Controller
             ->when($filters['year'] ?? null, fn ($query, $year) => $query->whereYear('issued_at', (int) $year))
             // حرفا % و_ في البحث حرفان عاديان، لا نمطان
             ->when($filters['q'] ?? null, fn ($query, $term) => $query->where('title', 'ilike', '%'.addcslashes((string) $term, '\\%_').'%'))
+            ->newestFirst()
             ->paginate(self::PER_PAGE)
             // الروابط من APP_URL لا من رأس Host، لأن الصفحة الأولى تُخزَّن
             ->withPath(route('governance.index'))
@@ -101,7 +109,7 @@ class GovernanceController extends Controller
     private static function years(): Collection
     {
         return Document::query()
-            ->where('is_published', true)
+            ->published()
             ->whereNotNull('issued_at')
             ->pluck('issued_at')
             ->map(fn ($date): int => (int) $date->year)
@@ -115,12 +123,12 @@ class GovernanceController extends Controller
      */
     private static function publishedSlugs(): array
     {
-        return ContentCache::remember('governance.slugs', fn (): array => Document::query()->where('is_published', true)->pluck('slug')->all());
+        return ContentCache::remember('governance.slugs', fn (): array => Document::query()->published()->pluck('slug')->all());
     }
 
     private static function publishedDocument(string $slug): Document
     {
-        $document = Document::query()->where('is_published', true)->where('slug', $slug)->firstOrFail();
+        $document = Document::query()->published()->where('slug', $slug)->firstOrFail();
 
         abort_unless(Storage::disk(Document::disk())->exists($document->file), 404);
 

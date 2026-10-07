@@ -22,8 +22,9 @@ class SecurityHeaders
         $response = $next($request);
 
         // ملف وثيقة الحوكمة يُعرض مدمجاً في صفحتها، فيُقبل تضمينه من الموقع نفسه وحده. وسياسته
-        // سطر التضمين وحده، حتى لا تعطل عارض PDF في المتصفح
-        if ($request->routeIs('governance.file')) {
+        // سطر التضمين وحده، حتى لا تعطل عارض PDF في المتصفح. والاستثناء للملف وحده، فصفحة
+        // الخطأ على المسار نفسه تأخذ السياسة الكاملة
+        if ($request->routeIs('governance.file') && $response->headers->get('Content-Type') === 'application/pdf') {
             $response->headers->set('Content-Security-Policy', "frame-ancestors 'self'");
             $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         } else {

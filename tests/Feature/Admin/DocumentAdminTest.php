@@ -5,6 +5,7 @@ use App\Enums\DocumentCategory;
 use App\Enums\RoleName;
 use App\Filament\Resources\Documents\DocumentResource;
 use App\Filament\Resources\Documents\Pages\CreateDocument;
+use App\Filament\Resources\Documents\Pages\EditDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
 use App\Models\Document;
 use App\Rules\RealPdf;
@@ -105,6 +106,75 @@ it('removes the previous file when the file is replaced', function () {
 
     expect($document->fresh()->file)->toBe('documents/new.pdf')
         ->and(Storage::disk('local')->exists('documents/old.pdf'))->toBeFalse();
+});
+
+it('replaces the file from the edit screen and removes the old one', function () {
+    Storage::disk('local')->put('documents/old.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/old.pdf']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['file' => [UploadedFile::fake()->createWithContent('new.pdf', pdfContents())]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $file = $document->fresh()->file;
+
+    expect($file)->not->toBe('documents/old.pdf')->toStartWith('documents/')
+        ->and(Storage::disk('local')->allFiles('documents'))->toBe([$file]);
+});
+
+it('keeps the document and its file when the edit screen refuses a replacement', function () {
+    Storage::disk('local')->put('documents/old.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/old.pdf', 'title' => 'العنوان المحفوظ']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm([
+            'title' => 'عنوان لم يُحفظ',
+            'file' => [UploadedFile::fake()->createWithContent('bad.pdf', pdfContents('4 0 obj << /S /JavaScript /JS (app.alert(1)) >> endobj'))],
+        ])
+        ->call('save')
+        ->assertHasFormErrors(['file']);
+
+    expect($document->fresh())->file->toBe('documents/old.pdf')->title->toBe('العنوان المحفوظ')
+        ->and(Storage::disk('local')->allFiles('documents'))->toBe(['documents/old.pdf']);
+});
+
+it('shows a refusal from the action under the file field, and puts the saved file back in it', function () {
+    Storage::disk('local')->put('documents/old.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/old.pdf']);
+    $this->actingAs($this->editor);
+
+    // رفض لا يصل إليه فحص النموذج، كملف تملكه وثيقة أخرى
+    $this->mock(SaveDocument::class)->shouldReceive('handle')->once()
+        ->andThrow(ValidationException::withMessages(['file' => __('validation.file_in_use')]));
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['file' => [UploadedFile::fake()->createWithContent('new.pdf', pdfContents())]])
+        ->call('save')
+        ->assertHasFormErrors(['file' => __('validation.file_in_use')])
+        ->assertSet('data.file', fn (array $state): bool => array_values($state) === ['documents/old.pdf']);
+
+    expect($document->fresh()->file)->toBe('documents/old.pdf');
+});
+
+it('lists the documents without a date last, and filters them by year and by publishing', function () {
+    $dated = Document::factory()->create(['title' => 'مؤرخة', 'issued_at' => '2025-03-01']);
+    $undated = Document::factory()->create(['title' => 'بلا تاريخ', 'issued_at' => null]);
+    $draft = Document::factory()->unpublished()->create(['title' => 'مسودة', 'issued_at' => '2024-06-01']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(ListDocuments::class)
+        ->assertCanSeeTableRecords([$dated, $draft, $undated], inOrder: true)
+        ->filterTable('year', 2025)
+        ->assertCanSeeTableRecords([$dated])
+        ->assertCanNotSeeTableRecords([$draft, $undated]);
+
+    Livewire::test(ListDocuments::class)
+        ->filterTable('is_published', false)
+        ->assertCanSeeTableRecords([$draft])
+        ->assertCanNotSeeTableRecords([$dated, $undated]);
 });
 
 it('soft deletes and restores a document, keeping its file, and never deletes it for good', function () {

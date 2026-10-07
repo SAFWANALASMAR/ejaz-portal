@@ -32,6 +32,13 @@ it('lists the published documents under the category tiles, newest first', funct
         ->assertDontSee('وثيقة غير منشورة');
 });
 
+it('lists the documents without an issue date after the dated ones', function () {
+    storedDocument(['title' => 'وثيقة بلا تاريخ', 'issued_at' => null]);
+    storedDocument(['title' => 'وثيقة مؤرخة', 'issued_at' => '2020-01-01']);
+
+    $this->get('/governance')->assertSeeInOrder(['وثيقة مؤرخة', 'وثيقة بلا تاريخ']);
+});
+
 it('filters by category, year and title, taking % and _ as plain letters', function () {
     storedDocument(['title' => 'سياسة الخصوصية', 'issued_at' => '2025-05-01', 'category' => DocumentCategory::Policies]);
     storedDocument(['title' => 'التقرير المالي', 'issued_at' => '2026-02-01', 'category' => DocumentCategory::FinancialReports]);
@@ -46,6 +53,15 @@ it('filters by category, year and title, taking % and _ as plain letters', funct
 it('sends an invalid filter back to the full list', function (string $query) {
     $this->get('/governance?'.$query)->assertRedirect(route('governance.index'));
 })->with(['category=evil', 'year=abc', 'year=1200', 'q='.str_repeat('x', 101), 'page=0']);
+
+it('answers 404 for a page after the last one, with or without a filter', function () {
+    storedDocument(['title' => 'الوثيقة الوحيدة']);
+
+    $this->get('/governance?page=1')->assertOk()->assertSee('الوثيقة الوحيدة');
+    $this->get('/governance?page=2')->assertNotFound();
+    $this->get('/governance?q=الوحيدة&page=2')->assertNotFound();
+    $this->get('/governance?q=لا-يوجد')->assertOk()->assertSee(__('governance.list.no_results'));
+});
 
 it('shows a published document with its file embedded and a download link', function () {
     $document = storedDocument(['slug' => 'privacy-policy', 'title' => 'سياسة الخصوصية', 'version' => '2', 'description' => 'وصف الوثيقة']);
@@ -72,8 +88,9 @@ it('serves the file for embedding on the site only, and as a download', function
     $download = $this->get('/governance/privacy-policy/download')->assertOk()->assertHeader('X-Frame-Options', 'DENY');
     expect($download->headers->get('Content-Disposition'))->toStartWith('attachment');
 
-    // وكل صفحة أخرى تبقى غير قابلة للتضمين
+    // وكل صفحة أخرى تبقى غير قابلة للتضمين، ومنها صفحة الخطأ على مسار الملف نفسه
     $this->get('/governance/privacy-policy')->assertHeader('X-Frame-Options', 'DENY');
+    $this->get('/governance/unknown/file')->assertNotFound()->assertHeader('X-Frame-Options', 'DENY');
     expect($this->get('/governance')->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'none'");
 });
 
