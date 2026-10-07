@@ -11,6 +11,7 @@ use App\Filament\Resources\Surveys\Pages\CreateSurvey;
 use App\Filament\Resources\Surveys\Pages\EditSurvey;
 use App\Filament\Resources\Surveys\Pages\SurveyResultsPage;
 use App\Filament\Resources\Surveys\SurveyResource;
+use App\Http\Controllers\Surveys\SurveyController;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\Setting;
@@ -188,16 +189,38 @@ it('refuses a null byte in a text answer instead of failing on the server', func
     expect(SurveyResponse::count())->toBe(0);
 });
 
-it('caps guest answers per survey and network for the day', function () {
+it('caps guest answers per survey and network for the day, counting before saving', function () {
     $this->survey->update(['allow_guests' => true]);
+    $key = SurveyController::guestKey($this->survey, '127.0.0.1');
 
-    // عشرون إجابة سابقة اليوم من العنوان نفسه (بكعكات محذوفة)
-    for ($i = 0; $i < 20; $i++) {
-        RateLimiter::hit('survey-guest:'.$this->survey->id.'|127.0.0.1', 86400);
+    // المفتاح ببصمة العنوان لا بنصه
+    expect($key)->not->toContain('127.0.0.1');
+
+    // تسع عشرة محاولة سابقة اليوم من العنوان نفسه (بكعكات محذوفة)، ومنها المرفوضة: تُحتسب قبل الحفظ
+    for ($i = 0; $i < 19; $i++) {
+        RateLimiter::increment($key, 86400);
     }
 
-    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error');
-    expect(SurveyResponse::count())->toBe(0);
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('status');
+    $this->withCookies([])->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0]])
+        ->assertSessionHas('error', __('surveys.public.already'));
+
+    expect(SurveyResponse::count())->toBe(1);
+});
+
+it('stops a guest who answered from answering again after signing in', function () {
+    $this->survey->update(['allow_guests' => true]);
+    $response = answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('status');
+    $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_'));
+
+    $user = User::factory()->create();
+    $this->flushSession();
+    $this->actingAs($user)->withCookie($cookie->getName(), '1');
+
+    $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.already'));
+    $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 4, $this->choice->id => 1]])->assertSessionHas('error', __('surveys.public.already'));
+
+    expect(SurveyResponse::count())->toBe(1);
 });
 
 it('includes survey answers in the data export with question and option texts', function () {

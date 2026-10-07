@@ -45,7 +45,7 @@ class SurveyController extends Controller
             return view('surveys.show', ['survey' => $survey, 'state' => 'not_audience']);
         }
 
-        $answered = $user instanceof User ? SubmitSurveyResponse::answered($survey, $user) : $request->hasCookie(self::cookie($survey));
+        $answered = ($user instanceof User && SubmitSurveyResponse::answered($survey, $user)) || self::answeredOnDevice($request, $survey);
 
         return view('surveys.show', ['survey' => $survey->load('questions'), 'state' => $answered ? 'answered' : 'open']);
     }
@@ -56,14 +56,14 @@ class SurveyController extends Controller
         /** @var User|null $user */
         $user = $request->user();
 
-        if ($user === null && $request->hasCookie(self::cookie($survey))) {
+        // الكعكة للجميع في الاستبيان المفتوح لغير المسجلين: فلا يجيب الضيف ثم يجيب ثانية بعد الدخول
+        if (self::answeredOnDevice($request, $survey)) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
 
-        // سقف يومي لإجابات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة
-        $guestKey = 'survey-guest:'.$survey->id.'|'.$request->ip();
-
-        if ($user === null && RateLimiter::tooManyAttempts($guestKey, self::GUEST_DAILY)) {
+        // سقف يومي لمحاولات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة.
+        // يُحتسب قبل الحفظ بزيادة ذرية، فلا يمر طلبان متزامنان معاً، والمرفوض يُحتسب أيضاً
+        if ($user === null && RateLimiter::increment(self::guestKey($survey, (string) $request->ip()), 60 * 60 * 24) > self::GUEST_DAILY) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
 
@@ -73,12 +73,24 @@ class SurveyController extends Controller
             return redirect()->route('surveys.show', $token)->with('error', $exception->getMessage());
         }
 
-        if ($user === null) {
+        if ($survey->allow_guests) {
             Cookie::queue(self::cookie($survey), '1', 60 * 24 * 365);
-            RateLimiter::hit($guestKey, 60 * 60 * 24);
         }
 
         return redirect()->route('surveys.show', $token)->with('status', __('surveys.public.thanks'));
+    }
+
+    /**
+     * مفتاح سقف العنوان: ببصمة العنوان لا بنصه، فلا يُخزَّن عنوان الزائر في الذاكرة المؤقتة.
+     */
+    public static function guestKey(Survey $survey, string $ip): string
+    {
+        return 'survey-guest:'.$survey->id.'|'.hash_hmac('sha256', $ip, (string) config('app.key'));
+    }
+
+    private static function answeredOnDevice(Request $request, Survey $survey): bool
+    {
+        return $survey->allow_guests && $request->hasCookie(self::cookie($survey));
     }
 
     private function survey(string $token): Survey
