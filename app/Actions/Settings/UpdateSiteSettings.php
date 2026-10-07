@@ -53,9 +53,14 @@ class UpdateSiteSettings
         });
 
         // القديمة لا تبقى منشورة على رابطها
-        if ($imageChanged && is_string($previousImage) && $previousImage !== '') {
+        if ($imageChanged && is_string($previousImage) && self::inImageDirectory($previousImage)) {
             Storage::disk('public')->delete($previousImage);
         }
+    }
+
+    private static function inImageDirectory(string $path): bool
+    {
+        return str_starts_with($path, self::IMAGE_DIRECTORY.'/') && ! str_contains($path, '..');
     }
 
     /**
@@ -71,7 +76,7 @@ class UpdateSiteSettings
             'home.hero_image' => __('settings.home.hero_image_unreadable'),
         ]);
 
-        if (! str_starts_with($path, self::IMAGE_DIRECTORY.'/') || str_contains($path, '..')) {
+        if (! self::inImageDirectory($path)) {
             throw $reject();
         }
 

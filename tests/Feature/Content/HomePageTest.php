@@ -4,6 +4,7 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -109,6 +110,24 @@ it('caches the home sections as text and shows a settings change at once', funct
     Setting::put('home', ['hero_title' => 'عنوان معدّل']);
 
     $this->get('/')->assertSee('عنوان معدّل');
+});
+
+it('builds every cached link from the site address, never from the Host header of a request', function () {
+    $this->get('http://evil.example/')->assertOk();
+
+    $this->get('/')->assertOk()->assertDontSee('evil.example', false);
+
+    expect(Cache::tags(ContentCache::TAG)->get('home'))->not->toContain('evil.example');
+});
+
+it('refreshes the content cache after a deployment without touching the protection limits', function () {
+    $this->get('/');
+    RateLimiter::hit('login-account:someone', 900);
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+
+    expect(Cache::tags(ContentCache::TAG)->get('home'))->toBeNull()
+        ->and(RateLimiter::attempts('login-account:someone'))->toBe(1);
 });
 
 it('shows the search icon as coming soon until search is built', function () {

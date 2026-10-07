@@ -47,6 +47,10 @@ class AppServiceProvider extends ServiceProvider
         // قواعد كلمة المرور في docs/security.md
         Password::defaults(fn () => Password::min(10)->uncompromised());
 
+        // الروابط المطلقة (asset وroute وurl) من APP_URL لا من رأس Host في الطلب، فلا يُسمَّم
+        // ما يُخزَّن من HTML (ContentCache) بنطاق آخر. ويرفض trustHosts المضيف المجهول في الإنتاج
+        URL::forceRootUrl((string) config('app.url'));
+
         if ($this->app->isProduction()) {
             URL::forceScheme('https');
         }

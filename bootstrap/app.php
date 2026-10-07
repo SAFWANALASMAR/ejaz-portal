@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // طلب بمضيف غير نطاق البوابة (APP_URL ونطاقاته الفرعية) يُرفض برد 400.
+        // لارافيل لا يفعّله في البيئة المحلية والاختبارات
+        $middleware->trustHosts();
+
         $middleware->web(append: [
             SecurityHeaders::class,
             EnsureAccountIsActive::class,
