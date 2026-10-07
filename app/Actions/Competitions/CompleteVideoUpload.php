@@ -2,11 +2,11 @@
 
 namespace App\Actions\Competitions;
 
+use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Jobs\ProcessSubmissionVideo;
 use App\Models\SubmissionVideo;
 use App\Models\User;
-use App\Support\ChunkedVideoUpload;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -16,6 +16,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class CompleteVideoUpload
 {
+    public function __construct(private VideoUploads $uploads) {}
+
     /**
      * @throws AuthorizationException
      * @throws ValidationException
@@ -30,7 +32,7 @@ class CompleteVideoUpload
             throw new AuthorizationException;
         }
 
-        if (ChunkedVideoUpload::missing($video) !== []) {
+        if ($this->uploads->missing($video) !== []) {
             throw ValidationException::withMessages(['video' => __('competitions.video.incomplete')]);
         }
 

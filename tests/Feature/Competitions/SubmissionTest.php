@@ -29,19 +29,6 @@ beforeEach(function () {
 });
 
 /**
- * مقطع MP4 صغير بمدته: صندوق ftyp، ثم moov فيه mvhd (الإصدار 0)، ثم بيانات بالحجم المطلوب.
- */
-function mp4Contents(int $seconds = 30, int $padding = 0): string
-{
-    $box = fn (string $type, string $body): string => pack('N', 8 + strlen($body)).$type.$body;
-    $mvhd = "\x00\x00\x00\x00".pack('N', 0).pack('N', 0).pack('N', 1000).pack('N', $seconds * 1000).str_repeat("\x00", 80);
-
-    return $box('ftyp', 'isom'.pack('N', 512).'isomiso2mp41')
-        .$box('moov', $box('mvhd', $mvhd))
-        .$box('mdat', str_repeat("\x00", $padding));
-}
-
-/**
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */

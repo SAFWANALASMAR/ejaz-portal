@@ -4,17 +4,23 @@ namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
 use App\Contracts\SmsGateway;
+use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
+use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
 use App\Services\Sms\LogSmsGateway;
+use App\Services\VideoUploads\S3VideoUploads;
+use App\Support\ChunkedVideoUpload;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +41,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
             'log' => new LogSmsGateway,
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
+        });
+
+        $this->app->singleton(VideoUploads::class, function () {
+            $disk = SubmissionVideo::disk();
+
+            return match (config('competitions.video.upload')) {
+                'app' => new ChunkedVideoUpload,
+                's3' => new S3VideoUploads(self::s3Disk($disk)->getClient(), (string) config("filesystems.disks.{$disk}.bucket"), (string) config("filesystems.disks.{$disk}.root", '')),
+                default => throw new InvalidArgumentException('Unsupported video upload driver: '.config('competitions.video.upload')),
+            };
         });
     }
 
@@ -79,5 +95,19 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Export::class, ExportPolicy::class);
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+    }
+
+    /**
+     * الرفع المباشر يكتب في القرص الخاص نفسه، فيلزم أن يكون قرص S3.
+     */
+    private static function s3Disk(string $disk): AwsS3V3Adapter
+    {
+        $adapter = Storage::disk($disk);
+
+        if (! $adapter instanceof AwsS3V3Adapter) {
+            throw new InvalidArgumentException("The private disk [{$disk}] must use the s3 driver for direct video uploads.");
+        }
+
+        return $adapter;
     }
 }

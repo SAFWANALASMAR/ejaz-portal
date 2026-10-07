@@ -2,6 +2,7 @@
 
 namespace App\Actions\Competitions;
 
+use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Models\SubmissionVideo;
 use App\Models\User;
@@ -17,6 +18,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class StoreVideoChunk
 {
+    public function __construct(private VideoUploads $uploads) {}
+
     /**
      * @param  resource  $stream
      *
@@ -25,7 +28,8 @@ class StoreVideoChunk
      */
     public function handle(User $user, SubmissionVideo $video, int $index, $stream, ?int $declaredLength): void
     {
-        if (! $user->can('update', $video->submission)) {
+        // الأجزاء تمر بالخادم في الرفع عبره وحده، وفي الرفع المباشر تذهب إلى التخزين
+        if (! $this->uploads instanceof ChunkedVideoUpload || ! $user->can('update', $video->submission)) {
             throw new NotFoundHttpException;
         }
 
@@ -37,7 +41,7 @@ class StoreVideoChunk
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
 
-        if (! ChunkedVideoUpload::store($video, $index, $stream, $declaredLength)) {
+        if (! $this->uploads->store($video, $index, $stream, $declaredLength)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
 

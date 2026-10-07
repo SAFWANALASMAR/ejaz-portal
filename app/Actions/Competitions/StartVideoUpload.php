@@ -2,15 +2,16 @@
 
 namespace App\Actions\Competitions;
 
+use App\Contracts\VideoUploads;
 use App\Enums\QuestionType;
 use App\Enums\VideoStatus;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
-use App\Support\ChunkedVideoUpload;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +21,8 @@ use Illuminate\Validation\ValidationException;
  */
 class StartVideoUpload
 {
+    public function __construct(private VideoUploads $uploads) {}
+
     /**
      * @return array{video: SubmissionVideo, urls: array<int, string>}
      *
@@ -57,7 +60,11 @@ class StartVideoUpload
             $video = SubmissionVideo::query()->where('submission_id', $submission->id)->where('question_id', $question->id)->lockForUpdate()->first();
 
             if ($video !== null) {
-                ChunkedVideoUpload::discard($video);
+                $this->uploads->discard($video);
+
+                if (filled($video->path)) {
+                    Storage::disk(SubmissionVideo::disk())->delete((string) $video->path);
+                }
             } else {
                 $video = new SubmissionVideo;
                 $video->submission()->associate($submission);
@@ -71,11 +78,14 @@ class StartVideoUpload
             $video->duration_seconds = null;
             $video->path = null;
             $video->rejection_reason = null;
+            $video->upload_id = null;
             $video->save();
 
             return $video;
         });
 
-        return ['video' => $video, 'urls' => ChunkedVideoUpload::urls($video, range(0, $video->chunk_count - 1))];
+        $this->uploads->begin($video);
+
+        return ['video' => $video, 'urls' => $this->uploads->urls($video, range(0, $video->chunk_count - 1))];
     }
 }
