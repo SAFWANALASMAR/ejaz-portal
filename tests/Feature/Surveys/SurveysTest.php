@@ -203,7 +203,7 @@ it('caps guest answers per survey and network for the day, counting before savin
 
     answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('status');
     $this->withCookies([])->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0]])
-        ->assertSessionHas('error', __('surveys.public.already'));
+        ->assertSessionHas('error', __('surveys.public.too_many'));
 
     expect(SurveyResponse::count())->toBe(1);
 });
@@ -432,4 +432,14 @@ it('limits a text answer to 1000 characters in a survey open to guests', functio
     $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
     answer([$this->scale->id => 3, $this->choice->id => 0, $this->text->id => str_repeat('ن', 1001)], User::factory()->create())
         ->assertSessionHasErrors('answers.'.$this->text->id);
+});
+
+it('does not block a second account on the same device of a guest-open survey', function () {
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100]);
+
+    $first = answer([$this->scale->id => 3, $this->choice->id => 0], User::factory()->create())->assertSessionHas('status');
+    expect(collect($first->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'survey_')))->toBeNull();
+
+    answer([$this->scale->id => 4, $this->choice->id => 1], User::factory()->create())->assertSessionHas('status');
+    expect(SurveyResponse::count())->toBe(2);
 });

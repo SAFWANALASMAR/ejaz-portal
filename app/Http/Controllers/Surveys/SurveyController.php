@@ -62,7 +62,8 @@ class SurveyController extends Controller
         /** @var User|null $user */
         $user = $request->user();
 
-        // الكعكة للجميع في الاستبيان المفتوح لغير المسجلين: فلا يجيب الضيف ثم يجيب ثانية بعد الدخول
+        // كعكة الضيف تُفحص للجميع في الاستبيان المفتوح لغير المسجلين: فلا يجيب الضيف ثم يجيب ثانية بعد الدخول.
+        // ولا تُزرع إلا لإجابة ضيف، فحساب بعد حساب على جهاز مشترك يضبطه القيد الفريد وحده
         if (self::answeredOnDevice($request, $survey)) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
@@ -75,7 +76,7 @@ class SurveyController extends Controller
         // سقف يومي لمحاولات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة.
         // يُحتسب قبل الحفظ بزيادة ذرية، فلا يمر طلبان متزامنان معاً، والمرفوض يُحتسب أيضاً
         if ($user === null && RateLimiter::increment(self::guestKey($survey, (string) $request->ip()), 60 * 60 * 24) > self::GUEST_DAILY) {
-            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
+            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.too_many'));
         }
 
         try {
@@ -84,7 +85,7 @@ class SurveyController extends Controller
             return redirect()->route('surveys.show', $token)->with('error', $exception->getMessage());
         }
 
-        if ($survey->allow_guests) {
+        if ($user === null) {
             Cookie::queue(self::cookie($survey), '1', 60 * 24 * 365);
         }
 
