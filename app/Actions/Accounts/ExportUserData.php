@@ -39,7 +39,8 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
-            'service_requests' => ServiceRequest::query()->whereBelongsTo($user)->with('opening')->orderBy('id')->get()
+            // والمحذوف من اللوحة داخل: بياناته باقية حتى مدة الاحتفاظ، فيشملها حق الاطلاع
+            'service_requests' => ServiceRequest::query()->withTrashed()->whereBelongsTo($user)->with('opening')->orderBy('id')->get()
                 ->map(fn (ServiceRequest $request): array => [
                     'reference' => $request->reference,
                     'opening' => $request->opening->title,
@@ -57,7 +58,7 @@ class ExportUserData
                     'cancelled_at' => $date($registration->cancelled_at),
                     'registered_at' => $date($registration->created_at),
                 ])->all(),
-            'competition_submissions' => CompetitionSubmission::query()->where('user_id', $user->id)->with(['competition', 'videos.question'])->get()
+            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question'])->get()
                 ->map(fn (CompetitionSubmission $submission): array => [
                     'competition' => $submission->competition->title,
                     'status' => $submission->status->value,

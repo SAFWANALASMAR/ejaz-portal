@@ -95,3 +95,14 @@ it('exports the data of every module for one account, in one copy', function () 
         ->and($copy['competition_submissions'])->toHaveCount(1)
         ->and($copy['survey_responses'])->toHaveCount(1);
 });
+
+it('includes requests and competition entries removed from the panel in the personal data copy', function () {
+    // ما زالت بياناتها محفوظة حتى مدة الاحتفاظ، فحق الاطلاع يشملها
+    $user = User::factory()->create();
+    ServiceRequest::factory()->for($user)->create()->delete();
+    CompetitionSubmission::factory()->create(['user_id' => $user->id])->delete();
+
+    $copy = app(ExportUserData::class)->handle($user);
+
+    expect($copy['service_requests'])->toHaveCount(1)->and($copy['competition_submissions'])->toHaveCount(1);
+});
