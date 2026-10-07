@@ -26,6 +26,23 @@ final class AccountNavigation
     }
 
     /**
+     * بطاقات الرئيسية: العناصر التي لها وصف، بترتيب account.cards، وما لم يُذكر فيه بعدها بترتيب
+     * القائمة.
+     *
+     * @return Collection<int, array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string}>
+     */
+    public static function cards(User $user): Collection
+    {
+        /** @var list<string> $order */
+        $order = config('account.cards', []);
+
+        return self::for($user)
+            ->filter(fn (array $link): bool => isset($link['description']))
+            ->sortBy(fn (array $link, int $index): int => ($position = array_search($link['route'], $order, true)) === false ? count($order) + $index : $position)
+            ->values();
+    }
+
+    /**
      * @param  array{active: list<string>}  $link
      */
     public static function isActive(array $link): bool

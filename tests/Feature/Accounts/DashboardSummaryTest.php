@@ -7,6 +7,7 @@ use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Support\AccountNavigation;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -102,4 +103,12 @@ it('leaves out deleted programs and drafts of unpublished openings', function ()
         ->assertDontSee(__('account.summary.open_draft', ['opening' => 'فرصة غير منشورة']));
 
     expect($response->viewData('summary')['upcoming_count'])->toBe(0);
+});
+
+it('orders the cards as in the reference (programs, my info, requests) and the sidebar as home, my info, programs, requests', function () {
+    $this->actingAs($this->user)->get('/account')->assertOk()
+        ->assertSeeInOrder([__('programs.nav.programs_description'), __('account.nav.profile_description'), __('services.nav.requests_description')]);
+
+    expect(AccountNavigation::for($this->user)->pluck('route')->all())
+        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index']);
 });

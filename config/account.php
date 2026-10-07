@@ -29,19 +29,27 @@ return [
             'active' => ['account.profile', 'account.security', 'account.data*', 'account.phone*'],
         ],
         [
-            'route' => 'account.requests.index',
-            'label' => 'services.nav.requests',
-            'description' => 'services.nav.requests_description',
-            'icon' => 'inbox-stack',
-            'active' => ['account.requests.*'],
-        ],
-        [
             'route' => 'account.programs.index',
             'label' => 'programs.nav.programs',
             'description' => 'programs.nav.programs_description',
             'icon' => 'academic-cap',
             'active' => ['account.programs.*'],
         ],
+        [
+            'route' => 'account.requests.index',
+            'label' => 'services.nav.requests',
+            'description' => 'services.nav.requests_description',
+            'icon' => 'inbox-stack',
+            'active' => ['account.requests.*'],
+        ],
+    ],
+
+    // ترتيب بطاقات الرئيسية (الصورة 04)، ويختلف عن ترتيب القائمة الجانبية أعلاه. وما لم يُذكر هنا
+    // يأتي بعدها بترتيب القائمة
+    'cards' => [
+        'account.programs.index',
+        'account.profile',
+        'account.requests.index',
     ],
 
 ];
