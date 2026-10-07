@@ -317,6 +317,15 @@ it('checks the bank lock again after locking the competition, so an entry sent m
     expect($injected)->toBeTrue()->and($this->competition->questions()->count())->toBe(3);
 });
 
+it('refuses saving a competition removed from the panel, before and after the lock', function () {
+    $manager = userWithRole(RoleName::ProgramManager);
+    $this->competition->delete();
+
+    expect(fn () => app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'عنوان', 'slug' => 'demo', 'opens_at' => now(), 'closes_at' => now()->addDay()]))
+        ->toThrow(AuthorizationException::class)
+        ->and(Competition::withTrashed()->find($this->competition->id)->title)->not->toBe('عنوان');
+});
+
 describe('video upload', function () {
     beforeEach(function () {
         config(['competitions.video.chunk_mb' => 1]);
@@ -473,6 +482,17 @@ describe('video upload', function () {
 
         $this->postJson('/competitions/demo/entry/videos/'.$other->questions[2]->id, ['size' => 10, 'type' => 'video/mp4'])->assertNotFound();
         $this->postJson('/competitions/demo/entry/videos/'.$this->text->id, ['size' => 10, 'type' => 'video/mp4'])->assertForbidden();
+    });
+
+    it('refuses to submit while a video is still uploading, even an optional one', function () {
+        // يكمّل قفل المشاركة في الرفع: مقطع قيد الرفع يمنع الإرسال، فلا يُكتب جزء لمشاركة مرسلة
+        $start = startUpload(mp4Contents(padding: 1024 * 1024 + 10))->json();
+        putChunk($start['urls'][0], str_repeat('x', 1024 * 1024))->assertNoContent();
+
+        $this->post('/competitions/demo/entry/submit', entryForm())->assertSessionHasErrors(['answers.'.$this->video->id => __('competitions.entry.video_pending')]);
+
+        expect(CompetitionSubmission::sole()->isDraft())->toBeTrue()
+            ->and(SubmissionVideo::sole()->status)->toBe(VideoStatus::Uploading);
     });
 
     it('does not replace, receive or complete a video once the entry was submitted meanwhile', function () {

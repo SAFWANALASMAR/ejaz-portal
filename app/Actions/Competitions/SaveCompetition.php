@@ -42,7 +42,8 @@ class SaveCompetition
     {
         $allowed = $competition->exists ? $actor->can('update', $competition) : $actor->can('create', Competition::class);
 
-        if (! $allowed) {
+        // المسابقة المحذوفة من اللوحة لا تُعدَّل حتى تُستعاد، ويُعاد الفحص على الصف المقفول
+        if (! $allowed || ($competition->exists && $competition->trashed())) {
             throw new AuthorizationException;
         }
 
@@ -68,7 +69,13 @@ class SaveCompetition
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
-                $this->checkLocks(Competition::query()->withTrashed()->whereKey($competition->id)->lockForUpdate()->firstOrFail(), $requested);
+                $locked = Competition::query()->withTrashed()->whereKey($competition->id)->lockForUpdate()->firstOrFail();
+
+                if ($locked->trashed()) {
+                    throw new AuthorizationException;
+                }
+
+                $this->checkLocks($locked, $requested);
             }
 
             $competition->fill($data)->save();
