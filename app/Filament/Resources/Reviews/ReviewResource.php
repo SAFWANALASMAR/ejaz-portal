@@ -55,6 +55,8 @@ class ReviewResource extends Resource
 
         return parent::getEloquentQuery()
             ->with(['submission.competition', 'reviewer'])
+            // تحكيمات مسابقة محذوفة لا تظهر ولا تُفتح
+            ->whereHas('submission.competition', fn (Builder $query) => $query->whereNull('deleted_at'))
             ->when(! $user->can('submissions.view'), fn (Builder $query) => $query->where('reviewer_id', $user->id));
     }
 

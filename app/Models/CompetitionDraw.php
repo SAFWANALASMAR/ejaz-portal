@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use LogicException;
 
@@ -62,7 +63,15 @@ class CompetitionDraw extends Model
      */
     public function competition(): BelongsTo
     {
-        return $this->belongsTo(Competition::class);
+        return $this->belongsTo(Competition::class)->withTrashed();
+    }
+
+    /**
+     * @return HasOne<CompetitionDrawVoid, $this>
+     */
+    public function void(): HasOne
+    {
+        return $this->hasOne(CompetitionDrawVoid::class, 'draw_id');
     }
 
     /**

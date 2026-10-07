@@ -18,6 +18,8 @@ use Illuminate\Validation\ValidationException;
  */
 class ApproveResults
 {
+    public function __construct(private GradeMultipleChoice $grade) {}
+
     /**
      * @throws AuthorizationException
      * @throws ValidationException
@@ -44,10 +46,15 @@ class ApproveResults
                 throw ValidationException::withMessages(['competition' => __('competitions.reviews.incomplete')]);
             }
 
+            // ما لم يصله التصحيح الآلي بعد (طابور متأخر وقت الذروة) يُصحح هنا قبل القفل
+            $locked->submissions()->where('status', SubmissionStatus::Submitted)->whereNull('auto_score')->lazyById()
+                ->each(fn (CompetitionSubmission $submission) => $this->grade->handle($submission));
+
             // الدرجة النهائية لكل المشاركات في استعلام واحد: متوسط مجاميع محكّميها، أو لا شيء بلا تحكيم
             $averages = SubmissionReview::query()
                 ->selectRaw('submission_id, round(avg(total), 2) as average')
                 ->whereNotNull('total')
+                ->whereIn('submission_id', $locked->submissions()->select('id'))
                 ->groupBy('submission_id');
 
             CompetitionSubmission::query()

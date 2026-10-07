@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\Competitions\RunDraw;
+use App\Actions\Competitions\SaveCompetition;
+use App\Actions\Competitions\VoidDraw;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Pages\ViewCompetition;
@@ -106,4 +108,69 @@ it('runs the draw from the panel, and shows the record to the board without the 
 
     $this->actingAs(userWithRole(RoleName::Reviewer));
     expect(DrawsRelationManager::canViewForRecord($this->competition, ViewCompetition::class))->toBeFalse();
+});
+
+it('allows one active draw per competition, so it cannot be repeated until a wanted result', function () {
+    app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+
+    expect(fn () => app(RunDraw::class)->handle($this->manager, $this->competition, 1))->toThrow(ValidationException::class, __('competitions.draws.already_drawn'))
+        ->and(CompetitionDraw::count())->toBe(1);
+});
+
+it('lets only the super admin void a draw with a reason, keeps it visible, and then allows a new one', function () {
+    $first = app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+
+    expect(fn () => app(VoidDraw::class)->handle($this->manager, $first, 'سبب كافٍ للإلغاء هنا'))->toThrow(AuthorizationException::class);
+
+    $admin = userWithRole(RoleName::SuperAdmin);
+    expect(fn () => app(VoidDraw::class)->handle($admin, $first, 'قصير'))->toThrow(ValidationException::class);
+
+    app(VoidDraw::class)->handle($admin, $first, 'خطأ في قائمة المشاركات قبل السحب');
+    $second = app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+
+    expect($first->fresh()->void->reason)->toBe('خطأ في قائمة المشاركات قبل السحب')
+        ->and($this->competition->draws()->count())->toBe(2)
+        ->and($second->void)->toBeNull()
+        ->and(Activity::where('event', 'draw_voided')->exists())->toBeTrue()
+        ->and(fn () => DB::transaction(fn () => DB::table('competition_draw_voids')->delete()))->toThrow(QueryException::class)
+        ->and(fn () => DB::statement('truncate competition_draws cascade'))->toThrow(QueryException::class);
+});
+
+it('refuses a draw on a deleted or unpublished competition, and leaves out deleted entries', function () {
+    $this->entries->first()->delete();
+    $draw = app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+    expect($draw->entrants_count)->toBe(5);
+
+    $deleted = Competition::factory()->closed()->create();
+    CompetitionSubmission::factory()->submitted()->create(['competition_id' => $deleted->id]);
+    $deleted->delete();
+
+    expect(fn () => app(RunDraw::class)->handle($this->manager, $deleted, 1))->toThrow(AuthorizationException::class);
+
+    $this->artisan('ejaz:verify-draw', ['uuid' => $draw->uuid])->assertSuccessful();
+    $this->competition->delete();
+    $this->artisan('ejaz:verify-draw', ['uuid' => $draw->uuid])->assertSuccessful();
+});
+
+it('locks the schedule and publishing after a draw', function () {
+    app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+    $base = ['title' => 'x', 'slug' => $this->competition->slug, 'opens_at' => $this->competition->opens_at->toDateTimeString(), 'closes_at' => now()->addWeek()->toDateTimeString(), 'is_published' => true];
+
+    expect(fn () => app(SaveCompetition::class)->handle($this->manager, $this->competition, $base))
+        ->toThrow(ValidationException::class, __('competitions.validation.schedule_locked'));
+
+    // المسابقة هنا بلا أسئلة، فلا يُرسل النشر (غير المتغير) حتى لا يُفحص شرط الأسئلة
+    $unchanged = collect($base)->except('is_published')->all();
+    app(SaveCompetition::class)->handle($this->manager, $this->competition, [...$unchanged, 'closes_at' => $this->competition->closes_at->toDateTimeString(), 'title' => 'عنوان جديد']);
+    expect($this->competition->fresh()->title)->toBe('عنوان جديد');
+});
+
+it('hides the correct option from the board on the read-only page', function () {
+    $competition = Competition::factory()->withQuestions()->create();
+    $this->actingAs(userWithRole(RoleName::BoardMember));
+
+    $page = Livewire::test(ViewCompetition::class, ['record' => $competition->getRouteKey()]);
+    $options = collect($page->get('data.questions'))->pluck('options')->flatten(1)->filter();
+
+    expect($options->pluck('is_correct')->unique()->values()->all())->toBe([false]);
 });

@@ -7,8 +7,10 @@ use App\Contracts\SmsGateway;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
+use App\Policies\ExportPolicy;
 use App\Services\Sms\LogSmsGateway;
 use App\View\Composers\SiteChromeComposer;
+use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -72,6 +74,9 @@ class AppServiceProvider extends ServiceProvider
 
         // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
         Gate::policy(Activity::class, ActivityPolicy::class);
+
+        // ملفات تصدير Filament (المسابقات): لمن طلبها وما زال يملك صلاحية التصدير
+        Gate::policy(Export::class, ExportPolicy::class);
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
     }

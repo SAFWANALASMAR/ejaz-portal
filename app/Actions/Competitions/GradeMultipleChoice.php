@@ -9,8 +9,8 @@ use App\Models\CompetitionSubmission;
 
 /**
  * درجة التصحيح الآلي: مجموع درجات أسئلة الاختيار التي طابقت إجابتُها الخيارَ الصحيح. للمرسلة فقط،
- * وتُعاد بلا أثر جانبي (ejaz:grade-competition). وهي حتمية من الإجابات ولا تدخل في الدرجة النهائية،
- * فتُحسب ولو تأخر الطابور إلى ما بعد الاعتماد.
+ * وتُعاد بلا أثر جانبي (ejaz:grade-competition)، ولا تتغير بعد اعتماد النتائج. والاعتماد يصحح قبله ما
+ * لم يصله الطابور بعد (ApproveResults).
  */
 class GradeMultipleChoice
 {
@@ -18,7 +18,7 @@ class GradeMultipleChoice
     {
         $competition = $submission->competition;
 
-        if ($submission->status !== SubmissionStatus::Submitted) {
+        if ($submission->status !== SubmissionStatus::Submitted || $competition->resultsApproved()) {
             return;
         }
 

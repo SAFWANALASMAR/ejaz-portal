@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Competitions;
 
 use App\Filament\Concerns\HasTranslatedLabels;
+use App\Filament\Resources\Competitions\Pages\CompetitionStatsPage;
 use App\Filament\Resources\Competitions\Pages\CreateCompetition;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ListCompetitions;
@@ -71,6 +72,7 @@ class CompetitionResource extends Resource
             'index' => ListCompetitions::route('/'),
             'create' => CreateCompetition::route('/create'),
             'view' => ViewCompetition::route('/{record}'),
+            'stats' => CompetitionStatsPage::route('/{record}/stats'),
             'edit' => EditCompetition::route('/{record}/edit'),
         ];
     }

@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * السحب الإلكتروني بعد إغلاق التقديم: المشمولون كل المشاركات المرسلة (غير المحذوفة) بأرقامها المرجعية
  * مرتبة، والبذرة 32 بايتاً من random_int، والفائزون منها (DrawSelector). ويُسجَّل كل ذلك سجلاً ثابتاً.
+ * وسحب معتمد واحد لكل مسابقة، فلا يُكرر حتى تأتي نتيجة مرغوبة.
  * ونطاق «المؤهلين» ينتظر تعريفهم من الجمعية (open-questions.md).
  */
 class RunDraw
@@ -29,13 +30,22 @@ class RunDraw
             throw new AuthorizationException;
         }
 
-        if ($competition->closes_at->isFuture()) {
-            throw ValidationException::withMessages(['winners_count' => __('competitions.draws.still_open')]);
-        }
-
         return DB::transaction(function () use ($actor, $competition, $winnersCount): CompetitionDraw {
-            // سحبان متزامنان لا يتداخلان
-            Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
+            // سحبان متزامنان (أو نقرتان) يتسلسلان، والثاني يجد الأول فيُرفض. والفحوص على النسخة المقفولة
+            $locked = Competition::query()->withTrashed()->whereKey($competition->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->trashed() || ! $locked->is_published) {
+                throw new AuthorizationException;
+            }
+
+            if ($locked->closes_at->isFuture()) {
+                throw ValidationException::withMessages(['winners_count' => __('competitions.draws.still_open')]);
+            }
+
+            // سحب معتمد واحد لكل مسابقة، ولا جديد إلا بعد إلغاء السابق بسبب (VoidDraw)
+            if ($locked->draws()->whereDoesntHave('void')->exists()) {
+                throw ValidationException::withMessages(['winners_count' => __('competitions.draws.already_drawn')]);
+            }
 
             /** @var list<string> $entrants */
             $entrants = $competition->submissions()

@@ -40,14 +40,17 @@ class CompetitionForm
                         ->helperText(__('competitions.fields.categories_hint'))
                         ->rules(['array', 'max:20'])
                         ->nestedRecursiveRules(['string', 'max:60']),
-                    DateTimePicker::make('opens_at')->label(__('competitions.fields.opens_at'))->helperText(__('competitions.fields.dates_hint'))->seconds(false)->required(),
-                    DateTimePicker::make('closes_at')->label(__('competitions.fields.closes_at'))->seconds(false)->required()->after('opens_at'),
+                    DateTimePicker::make('opens_at')->label(__('competitions.fields.opens_at'))->helperText(__('competitions.fields.dates_hint'))->seconds(false)->required()
+                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false),
+                    DateTimePicker::make('closes_at')->label(__('competitions.fields.closes_at'))->seconds(false)->required()->after('opens_at')
+                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false),
                     Textarea::make('description')->label(__('competitions.fields.description'))->rows(4)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('terms')->label(__('competitions.fields.terms'))->rows(5)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('prizes')->label(__('competitions.fields.prizes'))->rows(3)->maxLength(2000)->columnSpanFull(),
                     Toggle::make('shuffle_questions')->label(__('competitions.fields.shuffle_questions')),
                     Toggle::make('shuffle_options')->label(__('competitions.fields.shuffle_options')),
-                    Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('competitions.fields.publish_hint')),
+                    Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('competitions.fields.publish_hint'))
+                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false),
                 ]),
 
                 Tab::make(__('competitions.tabs.criteria'))->schema([
@@ -108,7 +111,9 @@ class CompetitionForm
                                 ->defaultItems(2)
                                 ->schema([
                                     TextInput::make('label')->label(__('competitions.fields.option_label'))->required()->maxLength(300),
-                                    Toggle::make('is_correct')->label(__('competitions.fields.is_correct'))->inline(false),
+                                    // الإجابة الصحيحة لمن يدير المسابقة وحده، لا لمن يطّلع (عضو المجلس في صفحة العرض)
+                                    Toggle::make('is_correct')->label(__('competitions.fields.is_correct'))->inline(false)
+                                        ->visible(fn (): bool => auth()->user()?->can('competitions.update') ?? false),
                                 ])
                                 ->columnSpanFull(),
                             TextInput::make('points')
@@ -145,6 +150,8 @@ class CompetitionForm
      */
     public static function relationsState(Competition $competition): array
     {
+        $manages = auth()->user()?->can('competitions.update') ?? false;
+
         return [
             'reviewers' => $competition->reviewers()->pluck('users.id')->all(),
             'criteria' => $competition->criteria->map(fn (CompetitionCriterion $criterion): array => $criterion->only(['id', 'name', 'weight', 'max_score']))->values()->all(),
@@ -153,7 +160,7 @@ class CompetitionForm
                 'type' => $question->type->value,
                 'prompt' => $question->prompt,
                 'is_required' => $question->is_required,
-                'options' => array_map(fn (array $option): array => ['label' => $option['label'], 'is_correct' => $option['key'] === $question->correct_option], $question->optionList()),
+                'options' => array_map(fn (array $option): array => ['label' => $option['label'], 'is_correct' => $manages && $option['key'] === $question->correct_option], $question->optionList()),
                 'points' => $question->points,
                 'max_video_seconds' => $question->max_video_seconds,
                 'max_video_mb' => $question->max_video_mb,

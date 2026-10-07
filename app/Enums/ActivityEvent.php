@@ -39,6 +39,8 @@ enum ActivityEvent: string implements HasLabel
     // المسابقات
     case ResultsApproved = 'results_approved';
     case DrawExecuted = 'draw_executed';
+    case DrawVoided = 'draw_voided';
+    case SubmissionsDistributed = 'submissions_distributed';
 
     public function getLabel(): string
     {

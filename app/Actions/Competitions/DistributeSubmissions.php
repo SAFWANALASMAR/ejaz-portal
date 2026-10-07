@@ -2,6 +2,7 @@
 
 namespace App\Actions\Competitions;
 
+use App\Enums\ActivityEvent;
 use App\Enums\SubmissionStatus;
 use App\Models\Competition;
 use App\Models\SubmissionReview;
@@ -38,7 +39,7 @@ class DistributeSubmissions
             throw ValidationException::withMessages(['per_submission' => __('competitions.reviews.per_submission', ['max' => count($reviewerIds)])]);
         }
 
-        return DB::transaction(function () use ($competition, $reviewerIds, $perSubmission): int {
+        $created = DB::transaction(function () use ($competition, $reviewerIds, $perSubmission): int {
             // قفل المسابقة: توزيعان متزامنان لا يُسندان المشاركة نفسها مرتين، ولا توزيع بعد الاعتماد
             if (Competition::query()->whereKey($competition->id)->lockForUpdate()->firstOrFail()->resultsApproved()) {
                 throw new AuthorizationException;
@@ -86,9 +87,15 @@ class DistributeSubmissions
                 SubmissionReview::query()->insert($batch);
             }
 
-            $created = count($rows);
-
-            return $created;
+            return count($rows);
         });
+
+        // الإدراج بالدفعات لا يمر بالنموذج، فتُسجَّل العملية كلها سطراً واحداً
+        activity('competitions')->performedOn($competition)->causedBy($actor)
+            ->event(ActivityEvent::SubmissionsDistributed->value)
+            ->withProperties(['per_submission' => $perSubmission, 'created' => $created])
+            ->log(ActivityEvent::SubmissionsDistributed->value);
+
+        return $created;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Competitions\Pages;
 use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Schemas\CompetitionForm;
 use App\Models\Competition;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -18,6 +19,10 @@ class ViewCompetition extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('stats')
+                ->label(__('competitions.stats.action'))
+                ->icon('heroicon-o-chart-bar')
+                ->url(fn (): string => CompetitionResource::getUrl('stats', ['record' => $this->getRecord()])),
             EditAction::make(),
         ];
     }

@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\Competitions\RelationManagers;
 
 use App\Actions\Competitions\RunDraw;
+use App\Actions\Competitions\VoidDraw;
+use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionDraw;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
@@ -51,19 +54,26 @@ class DrawsRelationManager extends RelationManager
             TextEntry::make('seed')->label(__('competitions.draws.seed'))->copyable()->extraAttributes(['dir' => 'ltr']),
             TextEntry::make('uuid')->label(__('competitions.draws.uuid'))->copyable()->extraAttributes(['dir' => 'ltr']),
             TextEntry::make('winners')->label(__('competitions.draws.winners'))->listWithLineBreaks()->bulleted(),
+            TextEntry::make('void.reason')->label(__('competitions.draws.void_reason'))->visible(fn (CompetitionDraw $record): bool => $record->void !== null),
         ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('executor'))
+            // قائمة المشمولين (قد تبلغ عشرات الآلاف) لا تُقرأ في الجدول، بل في صفحة السحب وحدها
+            ->modifyQueryUsing(fn ($query) => $query->with(['executor', 'void.voider'])
+                ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at']))
             ->columns([
                 TextColumn::make('executed_at')->label(__('competitions.draws.executed_at'))->dateTime('Y-m-d H:i'),
                 TextColumn::make('executor.name')->label(__('competitions.draws.executor')),
                 TextColumn::make('entrants_count')->label(__('competitions.draws.entrants_count'))->numeric(),
                 TextColumn::make('winners_count')->label(__('competitions.draws.winners_count'))->numeric(),
                 TextColumn::make('entrants_hash')->label(__('competitions.draws.entrants_hash'))->limit(16),
+                TextColumn::make('status')->label(__('competitions.draws.status'))->badge()
+                    ->state(fn (CompetitionDraw $record): string => $record->void ? __('competitions.draws.voided_label') : __('competitions.draws.active'))
+                    ->color(fn (CompetitionDraw $record): string => $record->void ? 'gray' : 'success')
+                    ->description(fn (CompetitionDraw $record): ?string => $record->void?->reason),
             ])
             ->headerActions([
                 Action::make('draw')
@@ -91,6 +101,27 @@ class DrawsRelationManager extends RelationManager
             ])
             ->recordActions([
                 ViewAction::make(),
+                // للمشرف العام وحده، بسبب إلزامي، والسحب الملغى يبقى ظاهراً (VoidDraw)
+                Action::make('void')
+                    ->label(__('competitions.draws.void'))
+                    ->icon('heroicon-o-no-symbol')
+                    ->color('danger')
+                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && (auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false))
+                    ->modalDescription(__('competitions.draws.void_confirm'))
+                    ->schema([
+                        Textarea::make('reason')->label(__('competitions.draws.void_reason'))->required()->minLength(10)->maxLength(500),
+                    ])
+                    ->action(function (CompetitionDraw $record, array $data): void {
+                        /** @var User $user */
+                        $user = auth()->user();
+
+                        try {
+                            app(VoidDraw::class)->handle($user, $record, (string) $data['reason']);
+                            Notification::make()->success()->title(__('competitions.draws.voided'))->send();
+                        } catch (ValidationException $exception) {
+                            Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
+                        }
+                    }),
             ]);
     }
 }

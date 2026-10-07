@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -292,4 +293,11 @@ it('keeps saving a competition whose assigned reviewer was deactivated', functio
     ]);
 
     expect($this->competition->fresh()->title)->toBe('عنوان معدّل');
+});
+
+it('logs an automatic distribution as one admin operation', function () {
+    submittedEntry();
+    app(DistributeSubmissions::class)->handle($this->manager, $this->competition, 1);
+
+    expect(Activity::where('event', 'submissions_distributed')->where('causer_id', $this->manager->id)->exists())->toBeTrue();
 });

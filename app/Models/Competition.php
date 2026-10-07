@@ -159,7 +159,15 @@ class Competition extends Model
 
     public function isOpen(): bool
     {
-        return $this->status() === CompetitionStatus::Open;
+        return ! $this->trashed() && $this->status() === CompetitionStatus::Open;
+    }
+
+    /**
+     * بعد اعتماد النتائج أو السحب تُقفل المواعيد والنشر، فلا يُعاد فتح التقديم وتتغير قائمة المشمولين.
+     */
+    public function scheduleLocked(): bool
+    {
+        return $this->exists && ($this->resultsApproved() || $this->draws()->exists());
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -48,6 +49,10 @@ class SaveCompetition
         // بعد أول مشاركة لا يصل بنك الأسئلة من اللوحة (حقله معطل)، ولا يُقبل من غيرها
         if (array_key_exists('questions', $data) && $competition->questionsLocked()) {
             throw ValidationException::withMessages(['questions' => __('competitions.validation.questions_locked')]);
+        }
+
+        if ($competition->scheduleLocked() && $this->changesSchedule($competition, $data)) {
+            throw ValidationException::withMessages(['closes_at' => __('competitions.validation.schedule_locked')]);
         }
 
         if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
@@ -188,6 +193,20 @@ class SaveCompetition
         if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function changesSchedule(Competition $competition, array $data): bool
+    {
+        foreach (['opens_at', 'closes_at'] as $field) {
+            if (array_key_exists($field, $data) && ! $competition->{$field}->equalTo(Carbon::parse((string) $data[$field]))) {
+                return true;
+            }
+        }
+
+        return array_key_exists('is_published', $data) && (bool) $data['is_published'] !== $competition->is_published;
     }
 
     /**

@@ -47,6 +47,8 @@ return [
         'content_reordered' => 'إعادة ترتيب المحتوى',
         'results_approved' => 'اعتماد نتائج مسابقة',
         'draw_executed' => 'تنفيذ سحب إلكتروني',
+        'draw_voided' => 'إلغاء سحب إلكتروني',
+        'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -64,6 +66,7 @@ return [
         'CompetitionSubmission' => 'مشاركة في مسابقة',
         'SubmissionReview' => 'تحكيم مشاركة',
         'CompetitionDraw' => 'سحب إلكتروني',
+        'CompetitionDrawVoid' => 'إلغاء سحب',
     ],
 
 ];

@@ -7,12 +7,14 @@ use App\Actions\Competitions\AssignReviewers;
 use App\Actions\Competitions\DistributeSubmissions;
 use App\Enums\SaudiRegion;
 use App\Enums\SubmissionStatus;
+use App\Filament\Exports\SubmissionExporter;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Actions\ExportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -64,10 +66,16 @@ class SubmissionsRelationManager extends RelationManager
                 SelectFilter::make('region')->label(__('competitions.entry.region'))->options(SaudiRegion::class),
             ])
             ->headerActions([
+                // التصدير الكامل في الطابور، بمشاركات هذه المسابقة وحدها
+                ExportAction::make()
+                    ->label(__('competitions.export.action'))
+                    ->exporter(SubmissionExporter::class)
+                    ->visible(fn (): bool => $this->allows('submissions.export'))
+                    ->modifyQueryUsing(fn (Builder $query) => $query->where('competition_id', $this->competition()->id)->with('user')),
                 Action::make('distribute')
                     ->label(__('competitions.reviews.distribute'))
                     ->icon('heroicon-o-arrows-right-left')
-                    ->visible(fn (): bool => $this->user()->can('submissions.assign') && ! $this->competition()->resultsApproved())
+                    ->visible(fn (): bool => $this->allows('submissions.assign') && ! $this->competition()->resultsApproved())
                     ->schema([
                         TextInput::make('per_submission')->label(__('competitions.reviews.per_submission_label'))->integer()->minValue(1)->default(1)->required(),
                     ])
@@ -82,7 +90,7 @@ class SubmissionsRelationManager extends RelationManager
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalDescription(__('competitions.reviews.approve_confirm'))
-                    ->visible(fn (): bool => $this->user()->can('competitions.approve') && ! $this->competition()->resultsApproved())
+                    ->visible(fn (): bool => $this->allows('competitions.approve') && ! $this->competition()->resultsApproved())
                     ->action(fn () => $this->run(function (): string {
                         app(ApproveResults::class)->handle($this->user(), $this->competition());
 
@@ -93,7 +101,7 @@ class SubmissionsRelationManager extends RelationManager
                 BulkAction::make('assign')
                     ->label(__('competitions.reviews.assign'))
                     ->icon('heroicon-o-user-plus')
-                    ->visible(fn (): bool => $this->user()->can('submissions.assign') && ! $this->competition()->resultsApproved())
+                    ->visible(fn (): bool => $this->allows('submissions.assign') && ! $this->competition()->resultsApproved())
                     ->schema([
                         Select::make('reviewers')
                             ->label(__('competitions.fields.reviewers'))
@@ -132,6 +140,11 @@ class SubmissionsRelationManager extends RelationManager
     {
         /** @var Competition */
         return $this->getOwnerRecord();
+    }
+
+    private function allows(string $permission): bool
+    {
+        return auth()->user()?->can($permission) ?? false;
     }
 
     private function user(): User
