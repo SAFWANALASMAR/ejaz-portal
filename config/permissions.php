@@ -29,6 +29,7 @@ return [
 
         // الطلبات والتواصل
         'requests' => ['view', 'update', 'assign', 'export', 'delete'],
+        'openings' => $crud,
 
         // الإدارة
         // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
@@ -44,6 +45,7 @@ return [
         ],
         'secretary' => [
             'requests.*',
+            'openings.*',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',

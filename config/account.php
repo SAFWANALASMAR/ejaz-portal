@@ -28,6 +28,13 @@ return [
             'icon' => 'user',
             'active' => ['account.profile', 'account.security', 'account.data*', 'account.phone*'],
         ],
+        [
+            'route' => 'account.requests.index',
+            'label' => 'services.nav.requests',
+            'description' => 'services.nav.requests_description',
+            'icon' => 'inbox-stack',
+            'active' => ['account.requests.*'],
+        ],
     ],
 
 ];
