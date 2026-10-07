@@ -59,9 +59,8 @@ class AnonymizeUser
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();
 
-            // إجابات الاستبيانات تبقى في الإحصاء بلا رابط بالشخص
-            DB::table('survey_responses')->where('user_id', $user->id)->update(['user_id' => null]);
-
+            // إجابات الاستبيانات تبقى مربوطة بالحساب المخفى (بلا بيانات شخصية) حتى تمضي مدة الاحتفاظ،
+            // فيفرّغ ejaz:purge-anonymized-data نصوصها ويفصلها، وتبقى أرقامها للإحصاء
             activity('users')
                 ->causedBy($actor)
                 ->performedOn($user)

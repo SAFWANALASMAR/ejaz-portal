@@ -13,6 +13,7 @@ use App\Filament\Resources\Surveys\Pages\SurveyResultsPage;
 use App\Filament\Resources\Surveys\SurveyResource;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
+use App\Models\Setting;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -199,7 +200,7 @@ it('caps guest answers per survey and network for the day', function () {
     expect(SurveyResponse::count())->toBe(0);
 });
 
-it('includes survey answers in the data export and detaches them from an anonymized account', function () {
+it('includes survey answers in the data export with question and option texts', function () {
     $user = User::factory()->create();
     answer([$this->scale->id => 4, $this->choice->id => 1, $this->text->id => 'ملاحظتي'], $user);
 
@@ -211,11 +212,34 @@ it('includes survey answers in the data export and detaches them from an anonymi
             ['question' => 'كيف عرفت البرنامج؟', 'answer' => 'صديق'],
             ['question' => 'ملاحظاتك', 'answer' => 'ملاحظتي'],
         ]);
+});
 
+it('blanks the free text of a deleted account after the retention period, and keeps the numbers', function () {
+    $user = User::factory()->create();
+    answer([$this->scale->id => 4, $this->choice->id => 1, $this->text->id => 'نص قد يدل على كاتبه'], $user);
     $user->forceFill(['deletion_requested_at' => now()])->save();
     app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user->fresh());
 
-    expect(SurveyResponse::sole()->user_id)->toBeNull();
+    // بلا مدة مضبوطة لا يُحذف شيء، والمدة تُحسب من إخفاء بيانات الحساب
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    Setting::put('retention', ['days' => 30]);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(SurveyResponse::sole()->answers)->toHaveKey((string) $this->text->id);
+
+    $this->travel(31)->days();
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    $response = SurveyResponse::sole();
+    expect($response->answers)->toBe([(string) $this->scale->id => 4, (string) $this->choice->id => 1])
+        ->and($response->user_id)->toBeNull()
+        ->and(SurveyResults::for($this->survey->fresh()->load('questions'))['questions'][0]['average'])->toBe(4.0)
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_type', $response->getMorphClass())->count())->toBe(1);
+
+    // ومن لم يحذف حسابه لا يُمس
+    $kept = User::factory()->create();
+    answer([$this->scale->id => 2, $this->choice->id => 0, $this->text->id => 'باقٍ'], $kept);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(SurveyResponse::where('user_id', $kept->id)->sole()->answers)->toHaveKey((string) $this->text->id);
 });
 
 it('logs the export of survey results', function () {

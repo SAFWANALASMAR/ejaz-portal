@@ -3,14 +3,18 @@
 namespace App\Console\Commands;
 
 use App\Actions\Competitions\PurgeSubmissionPersonalData;
+use App\Actions\Surveys\PurgeSurveyResponsePersonalData;
 use App\Models\CompetitionSubmission;
+use App\Models\SurveyResponse;
+use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Console\Command;
 
 /**
  * يحذف بيانات الحسابات المحذوفة (المخفاة بطلب أصحابها) بعد مدة الاحتفاظ من اللوحة (App\Support\Retention).
  * وبلا مدة مضبوطة لا يحذف شيئاً. ومقاطع المسابقات وإجاباتها محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها
- * وفترة الاعتراض. ويتسع في فرع التكامل للطلبات والتسجيلات والاستبيانات (القضية #6).
+ * وفترة الاعتراض. والإجابات النصية في الاستبيانات محسوبة من إخفاء بيانات الحساب. ويتسع في فرع التكامل
+ * للطلبات والتسجيلات (القضية #6).
  */
 class PurgeAnonymizedData extends Command
 {
@@ -18,7 +22,7 @@ class PurgeAnonymizedData extends Command
 
     protected $description = 'حذف بيانات الحسابات المحذوفة بعد مدة الاحتفاظ';
 
-    public function handle(PurgeSubmissionPersonalData $purge): int
+    public function handle(PurgeSubmissionPersonalData $purge, PurgeSurveyResponsePersonalData $purgeResponse): int
     {
         $days = Retention::days();
 
@@ -43,7 +47,18 @@ class PurgeAnonymizedData extends Command
                 $purged++;
             });
 
-        $this->info("مشاركات حُذفت بياناتها: {$purged}.");
+        // إجابات الاستبيانات: المدة من إخفاء بيانات الحساب، والمعالَجة تُفصل عن الحساب فلا تُعاد
+        $responses = 0;
+
+        SurveyResponse::query()
+            ->whereIn('user_id', User::query()->select('id')->where('anonymized_at', '<', now()->subDays($days)))
+            ->lazyById()
+            ->each(function (SurveyResponse $response) use ($purgeResponse, &$responses): void {
+                $purgeResponse->handle($response);
+                $responses++;
+            });
+
+        $this->info("مشاركات حُذفت بياناتها: {$purged}، وإجابات استبيانات: {$responses}.");
 
         return self::SUCCESS;
     }
