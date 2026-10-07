@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Jobs\SendSms;
 use App\Models\User;
 use App\Notifications\SmsCapWarning;
+use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  *
  * الحدود (config/security.php — وdocs/performance.md):
  * - لكل مستخدم: رمز كل دقيقة، وخمسة رموز في الساعة.
+ * - لكل رقم مستهدف: خمسة رموز في الساعة وعشرة في اليوم، أياً كان الحساب الذي يطلبها،
+ *   فلا يُقصف رقم برسائل بنقله بين حسابات.
  * - لكل شبكة حدان: الرموز المعلّقة (أُرسلت ولم يُتحقق منها)، والرمز الجديد يحل محل
  *   السابق فيه، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة. وكل رسالة
  *   مرسلة، بلا استبدال ولا تحرير، فلا تضاعف إعادةُ الإرسال حدَّ الشبكة.
@@ -33,6 +36,14 @@ class SendPhoneVerificationCode
 
     private const PENDING_WINDOW = 3600;
 
+    /**
+     * حدود الرقم المستهدف: [بادئة المفتاح، الحد، المدة بالثواني].
+     */
+    private const NUMBER_LIMITS = [
+        ['otp-number-hour:', 5, 3600],
+        ['otp-number-day:', 10, 86400],
+    ];
+
     public function handle(User $user): void
     {
         $phone = $user->phone;
@@ -41,13 +52,22 @@ class SendPhoneVerificationCode
             throw ValidationException::withMessages(['code' => __('account.phone.no_phone')]);
         }
 
-        foreach ([['otp-minute:', 1, 60], ['otp-hour:', 5, 3600]] as [$prefix, $max, $decay]) {
+        foreach ([['otp-minute:', 1], ['otp-hour:', 5]] as [$prefix, $max]) {
             $key = $prefix.$user->id;
 
             if (RateLimiter::tooManyAttempts($key, $max)) {
                 throw ValidationException::withMessages([
                     'code' => __('account.phone.wait', ['seconds' => RateLimiter::availableIn($key)]),
                 ]);
+            }
+        }
+
+        // مفتاح الرقم ببصمته، فلا يُخزَّن الرقم نصاً في مفاتيح الحدود
+        $number = (string) LoginIdentifier::hash($phone);
+
+        foreach (self::NUMBER_LIMITS as [$prefix, $max]) {
+            if (RateLimiter::tooManyAttempts($prefix.$number, $max)) {
+                throw ValidationException::withMessages(['code' => __('account.phone.number_busy')]);
             }
         }
 
@@ -81,6 +101,11 @@ class SendPhoneVerificationCode
 
         RateLimiter::hit('otp-minute:'.$user->id, 60);
         RateLimiter::hit('otp-hour:'.$user->id, 3600);
+
+        foreach (self::NUMBER_LIMITS as [$prefix, , $decay]) {
+            RateLimiter::hit($prefix.$number, $decay);
+        }
+
         $sent = RateLimiter::hit('sms:global', 3600);
 
         self::releaseBuckets($previousBuckets);

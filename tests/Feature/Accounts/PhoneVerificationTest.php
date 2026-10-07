@@ -298,6 +298,41 @@ it('opens the network again once the hour passes', function () {
     expect($this->sms->lastCodeFor('+966511111111'))->not->toBeNull();
 });
 
+it('limits the codes sent to one number, whichever account asks for them', function () {
+    $victim = '+966500000001';
+
+    // المهاجم يسجّل برقم الضحية، ثم ينقل الرقم إلى حساب جديد بعد استنفاد حد الحساب
+    foreach (range(1, 5) as $i) {
+        $account = User::factory()->create(['phone' => $victim]);
+        sendCode($account);
+        $account->forceFill(['phone' => '+96651111111'.$i])->save();
+    }
+
+    $next = User::factory()->create(['phone' => $victim]);
+
+    expect(fn () => sendCode($next))->toThrow(ValidationException::class, __('account.phone.number_busy'))
+        ->and(collect($this->sms->sent)->where('phone', $victim))->toHaveCount(5);
+});
+
+it('caps the codes to one number at ten a day', function () {
+    $victim = '+966500000002';
+    $account = User::factory()->create(['phone' => $victim]);
+
+    foreach (range(1, 2) as $hour) {
+        foreach (range(1, 5) as $ignored) {
+            RateLimiter::clear('otp-minute:'.$account->id);
+            RateLimiter::clear('otp-hour:'.$account->id);
+            sendCode($account);
+        }
+
+        $this->travel(3601)->seconds();
+    }
+
+    RateLimiter::clear('otp-hour:'.$account->id);
+
+    expect(fn () => sendCode($account))->toThrow(ValidationException::class, __('account.phone.number_busy'));
+});
+
 it('keeps the send limit of every network at a tenth of the global cap or less', function () {
     $cap = (int) config('security.sms_per_hour');
 
