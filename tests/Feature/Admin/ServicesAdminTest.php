@@ -294,7 +294,7 @@ it('also texts the applicant on a status change when enabled, to a verified phon
     expect($notification->via($request->user))->toBe(['mail']);
 
     config(['services.sms.request_updates' => true]);
-    Notification::swap(app(ChannelManager::class));
+    Notification::swap(new ChannelManager(app()));
 
     app(ChangeServiceRequestStatus::class)->handle($this->secretary, $request, ServiceRequestStatus::UnderReview, 'رد سري طويل');
     app(ChangeServiceRequestStatus::class)->handle($this->secretary, $unverified, ServiceRequestStatus::UnderReview);
