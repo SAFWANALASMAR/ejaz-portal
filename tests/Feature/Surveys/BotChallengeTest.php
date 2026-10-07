@@ -44,28 +44,28 @@ it('verifies the Turnstile token on the server, and fails closed', function () {
     $turnstile = new TurnstileChallenge('site', 'secret');
 
     Http::fake(['challenges.cloudflare.com/*' => Http::sequence()
-        ->push(['success' => true])
+        ->push(['success' => true, 'action' => 'survey'])
         ->push(['success' => false, 'error-codes' => ['invalid-input-response']])
-        ->push(['success' => true], 500)
+        ->push(['success' => true, 'action' => 'survey'], 500)
         ->pushFailedConnection(),
     ]);
 
-    expect($turnstile->passes('good'))->toBeTrue();
+    expect($turnstile->passes('good', 'survey'))->toBeTrue();
     Http::assertSent(fn ($request) => $request['secret'] === 'secret' && $request['response'] === 'good' && ! isset($request['remoteip']));
 
-    expect($turnstile->passes('bad'))->toBeFalse()
-        ->and($turnstile->passes('server-error'))->toBeFalse()
-        ->and($turnstile->passes('down'))->toBeFalse();
+    expect($turnstile->passes('bad', 'survey'))->toBeFalse()
+        ->and($turnstile->passes('server-error', 'survey'))->toBeFalse()
+        ->and($turnstile->passes('down', 'survey'))->toBeFalse();
 
     // بلا رمز لا طلب أصلاً
-    expect($turnstile->passes(''))->toBeFalse();
+    expect($turnstile->passes('', 'survey'))->toBeFalse();
     Http::assertSentCount(4);
 });
 
 it('refuses the fake challenge in production', function () {
     app()->detectEnvironment(fn () => 'production');
 
-    expect(fn () => (new FakeBotChallenge)->passes('x'))->toThrow(RuntimeException::class);
+    expect(fn () => (new FakeBotChallenge)->passes('x', 'survey'))->toThrow(RuntimeException::class);
 });
 
 it('refuses to boot the fake challenge in production, so a forgotten driver shows at deploy', function () {
@@ -87,16 +87,39 @@ it('accepts a Turnstile token solved on this site only', function () {
     $turnstile = new TurnstileChallenge('site', 'secret', 'ejaz.sa');
 
     Http::fake(['challenges.cloudflare.com/*' => Http::sequence()
-        ->push(['success' => true, 'hostname' => 'ejaz.sa'])
-        ->push(['success' => true, 'hostname' => 'other.example']),
+        ->push(['success' => true, 'action' => 'survey', 'hostname' => 'ejaz.sa'])
+        ->push(['success' => true, 'action' => 'survey', 'hostname' => 'other.example']),
     ]);
 
-    expect($turnstile->passes('here'))->toBeTrue()
-        ->and($turnstile->passes('elsewhere'))->toBeFalse();
+    expect($turnstile->passes('here', 'survey'))->toBeTrue()
+        ->and($turnstile->passes('elsewhere', 'survey'))->toBeFalse();
 });
 
 it('tells a guest that an outside provider checks the form, when the challenge shows', function () {
     app()->instance(BotChallenge::class, new FakeBotChallenge(siteKey: 'site-key-test'));
 
     $this->get('/surveys/'.$this->survey->token)->assertOk()->assertSee(__('surveys.public.privacy_challenge'));
+});
+
+it('refuses a token solved for another form', function () {
+    Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'contact'])]);
+
+    expect((new TurnstileChallenge('site', 'secret'))->passes('token', 'survey'))->toBeFalse();
+});
+
+it('refuses Turnstile without both keys, instead of turning every guest away in silence', function () {
+    app()->forgetInstance(BotChallenge::class);
+    config(['services.bot_challenge.driver' => 'turnstile', 'services.bot_challenge.turnstile_site_key' => 'site', 'services.bot_challenge.turnstile_secret_key' => '']);
+
+    expect(fn () => app(BotChallenge::class))->toThrow(RuntimeException::class);
+});
+
+it('opens the CSP to the challenge on the survey page only, and only with the turnstile driver', function () {
+    expect($this->get('/surveys/'.$this->survey->token)->headers->get('Content-Security-Policy'))->not->toContain('challenges.cloudflare.com');
+
+    config(['services.bot_challenge.driver' => 'turnstile']);
+    app()->instance(BotChallenge::class, new FakeBotChallenge(siteKey: 'site-key-test'));
+
+    expect($this->get('/surveys/'.$this->survey->token)->headers->get('Content-Security-Policy'))->toContain('challenges.cloudflare.com')
+        ->and($this->get('/')->headers->get('Content-Security-Policy'))->not->toContain('challenges.cloudflare.com');
 });

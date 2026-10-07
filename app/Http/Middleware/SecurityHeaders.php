@@ -54,7 +54,7 @@ class SecurityHeaders
 
         $directives = [
             'default-src' => ["'self'"],
-            'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev, ...config('security.csp.script_src', [])],
+            'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
             'img-src' => ["'self'", 'data:', 'blob:', 'https:'],
             'font-src' => ["'self'", 'data:', $dev],
@@ -67,6 +67,13 @@ class SecurityHeaders
             'form-action' => ["'self'", ...config('security.csp.form_action')],
             'frame-ancestors' => ["'none'"],
         ];
+
+        // عنصر التحدي ضد الآليات في صفحة الاستبيان وحدها، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
+        // الصفحات الأخرى (docs/decisions.md)
+        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show')) {
+            $directives['script-src'] = [...$directives['script-src'], ...config('security.csp.challenge_src')];
+            $directives['frame-src'] = [...$directives['frame-src'], ...config('security.csp.challenge_src')];
+        }
 
         // لوحة Horizon (للمشرف العام فقط) تضمّن سكربتاتها وخطوطها دون رمز
         if ($request->is(trim(config('horizon.path'), '/').'*')) {
