@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SurveyAudience;
 use Database\Factories\SurveyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -93,6 +94,31 @@ class Survey extends Model
             && ! $this->trashed()
             && ($this->opens_at === null || $this->opens_at->isPast())
             && ($this->closes_at === null || $this->closes_at->isFuture());
+    }
+
+    /**
+     * الاستبيان العام المفتوح (بطاقة «قياس الرضا»): منشور، لفئة «عام»، غير مربوط بمسابقة، مفتوح الآن،
+     * والأحدث فتحاً (أو إنشاءً إن لم يُحدد موعد فتحه).
+     */
+    public static function openGeneral(): ?self
+    {
+        return self::query()
+            ->where('is_published', true)
+            ->where('audience', SurveyAudience::General)
+            ->whereNull('subject_type')
+            ->where(fn (Builder $query) => $query->whereNull('opens_at')->orWhere('opens_at', '<=', now()))
+            ->where(fn (Builder $query) => $query->whereNull('closes_at')->orWhere('closes_at', '>', now()))
+            ->orderByRaw('coalesce(opens_at, created_at) desc')
+            ->latest('id')
+            ->first();
+    }
+
+    /**
+     * شرط ظهور بطاقة «قياس الرضا» (config/eservices.php)، فلا تُعرض رابطاً إلى صفحة غير موجودة.
+     */
+    public static function hasOpenGeneral(): bool
+    {
+        return self::openGeneral() !== null;
     }
 
     public function getActivitylogOptions(): LogOptions

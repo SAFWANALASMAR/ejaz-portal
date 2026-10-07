@@ -454,3 +454,17 @@ it('opens the public general survey from /surveys, and finds nothing without one
     $this->survey->update(['closes_at' => now()->subMinute()]);
     $this->get('/surveys')->assertNotFound();
 });
+
+it('shows the satisfaction tile on the services page only while a general survey is open, and picks the newest', function () {
+    $this->get('/services')->assertOk()->assertDontSee(route('surveys.index'));
+
+    // استبيان قديم بلا موعد فتح، وأحدث منه فُتح أمس: يُفتح الأحدث
+    $older = Survey::factory()->withQuestions()->create(['audience' => SurveyAudience::General, 'opens_at' => null, 'created_at' => now()->subMonth()]);
+    $newer = Survey::factory()->withQuestions()->create(['audience' => SurveyAudience::General, 'opens_at' => now()->subDay()]);
+
+    $this->get('/services')->assertOk()->assertSee(route('surveys.index'))->assertSee('قياس الرضا');
+    $this->get('/surveys')->assertRedirect(route('surveys.show', $newer->token));
+
+    $newer->update(['closes_at' => now()->subMinute()]);
+    $this->get('/surveys')->assertRedirect(route('surveys.show', $older->token));
+});

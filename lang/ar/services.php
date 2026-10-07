@@ -18,6 +18,7 @@ return [
         'membership' => 'طلب الانضمام للجمعية العمومية',
         'jobs' => 'التوظيف',
         'volunteering' => 'التطوع',
+        'surveys' => 'قياس الرضا',
     ],
 
     'kinds' => [

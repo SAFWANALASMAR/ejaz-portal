@@ -17,11 +17,13 @@ class ServicesController extends Controller
 {
     public function index(): View
     {
-        /** @var list<array{route: string, label: string, icon: string, wide?: bool}> $tiles */
+        /** @var list<array{route: string, label: string, icon: string, wide?: bool, available?: callable(): bool}> $tiles */
         $tiles = config('eservices.tiles', []);
 
+        // بطاقة وحدة مبنية، وبشرطها إن كان لها (قياس الرضا بوجود استبيان عام مفتوح)
         return view('services.index', [
-            'tiles' => array_values(array_filter($tiles, fn (array $tile): bool => Route::has($tile['route']))),
+            'tiles' => array_values(array_filter($tiles, fn (array $tile): bool => Route::has($tile['route'])
+                && (! isset($tile['available']) || call_user_func($tile['available'])))),
         ]);
     }
 
