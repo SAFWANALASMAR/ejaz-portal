@@ -146,6 +146,7 @@ class SiteSettings extends Page
                                 Select::make('source')->label(__('settings.home.stat_source'))
                                     ->options(fn (): array => collect(PortalStats::PUBLIC)->mapWithKeys(fn (string $key): array => [$key => __('settings.home.stat_sources.'.$key)])->all())
                                     ->placeholder(__('settings.home.stat_manual'))
+                                    ->in(PortalStats::PUBLIC)
                                     ->live(),
                                 TextInput::make('value')->label(__('settings.home.stat_value'))->integer()->minValue(0)->maxValue(100000000)
                                     ->required(fn (Get $get): bool => blank($get('source')))

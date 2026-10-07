@@ -21,8 +21,9 @@ final class PortalStats
 
     /**
      * ما يجوز عرضه في الرئيسية مصدراً آلياً لخانة إحصائية (SiteSettings). وما سواه للإدارة وحدها.
+     * والحسابات الموثّقة وحدها، لا كل التسجيلات (منها الآلية والمهجورة).
      */
-    public const PUBLIC = ['users', 'competitions', 'submissions'];
+    public const PUBLIC = ['verified_users', 'competitions', 'submissions'];
 
     /**
      * @return array<string, int>

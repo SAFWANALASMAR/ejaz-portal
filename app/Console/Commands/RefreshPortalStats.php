@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 
 /**
  * يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي تستعمله خانة في الرئيسية مُسحت ذاكرة
- * المحتوى، فيظهر الرقم الجديد. وما لا تستعمله الرئيسية لا يمسح شيئاً.
+ * الرئيسية وحدها، فيظهر الرقم الجديد ولا تفقد الصفحات الأخرى تخزينها. وما لا تستعمله الرئيسية لا يمسح شيئاً.
  */
 class RefreshPortalStats extends Command
 {
@@ -28,7 +28,8 @@ class RefreshPortalStats extends Command
             ->all()));
 
         if ($used !== [] && ($previous === null || array_intersect_key($previous, $used) !== array_intersect_key($current, $used))) {
-            ContentCache::flush();
+            // مقطع الإحصائيات جزء من ذاكرة الرئيسية (HomeController)
+            ContentCache::forget('home');
         }
 
         $this->info('حُسبت الإحصائيات.');
