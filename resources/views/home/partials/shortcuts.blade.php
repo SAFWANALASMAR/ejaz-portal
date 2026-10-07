@@ -17,6 +17,7 @@
                         <span class="text-primary" aria-hidden="true">{{ svg('heroicon-o-'.$shortcut['icon'], 'size-8') }}</span>
                         <span class="mt-1 font-bold text-ink">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
                         <span class="text-sm leading-6 text-muted">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
+                        {{-- السهم «للأمام» إلى اليسار في الموقع العربي، كما في x-button --}}
                         <span class="mt-3 inline-flex size-8 items-center justify-center rounded-full bg-gold text-white transition group-hover:bg-gold-dark" aria-hidden="true">
                             {{ svg('heroicon-o-arrow-left', 'size-4') }}
                         </span>

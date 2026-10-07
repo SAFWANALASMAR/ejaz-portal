@@ -19,6 +19,7 @@
 
     <div class="relative h-64 sm:h-96 lg:absolute lg:inset-0 lg:h-auto">
         <img src="{{ $hero['image'] }}" alt="" fetchpriority="high" class="size-full object-cover">
+        {{-- لا اتجاه منطقي للتدرج في Tailwind، فيُحدد باتجاه الصفحة: يبدأ من جهة النص (البداية) --}}
         <div class="absolute inset-0 hidden from-sand from-25% via-sand/80 via-45% to-transparent to-70% lg:block ltr:bg-linear-to-r rtl:bg-linear-to-l" aria-hidden="true"></div>
     </div>
 </section>

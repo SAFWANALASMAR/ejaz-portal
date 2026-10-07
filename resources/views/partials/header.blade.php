@@ -56,9 +56,9 @@
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </a>
             @else
-                {{-- البحث الشامل لم يُبنَ بعد (ملاحظة المشرف ٧): الأيقونة ظاهرة معطلة بتلميح --}}
-                <button type="button" aria-disabled="true" title="{{ __('site.search_soon') }}" class="cursor-not-allowed rounded-full p-2.5 text-ink/35">
-                    <span class="sr-only">{{ __('site.search_soon') }}</span>
+                {{-- البحث الشامل لم يُبنَ بعد (ملاحظة المشرف ٧): الأيقونة معطلة بتلميح على الشاشات
+                     الأوسع، وعلى الجوال الشعار وزر القائمة فقط كما في المرجع --}}
+                <button type="button" aria-disabled="true" title="{{ __('site.search_soon') }}" class="hidden cursor-not-allowed rounded-full p-2.5 text-ink/35 sm:inline-flex">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </button>
             @endif
