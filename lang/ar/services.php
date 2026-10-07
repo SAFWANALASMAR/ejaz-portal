@@ -104,6 +104,8 @@ return [
     'invalid_assignee' => 'لا يمكن إسناد الطلب إلى هذا الحساب.',
     'inactive_applicant' => 'حساب مقدم الطلب موقوف أو أُخفيت بياناته، فلا تُمنح له العضوية.',
 
+    'sms' => 'طلبك :reference: :status. التفاصيل: :url',
+
     'mail' => [
         'subject' => 'تحديث على طلبك رقم :reference',
         'line' => 'تغيّرت حالة طلبك رقم :reference (:opening) إلى: :status.',
