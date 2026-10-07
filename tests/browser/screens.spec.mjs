@@ -18,6 +18,8 @@ const guestScreens = [
     // المسابقات: صفحة المسابقة تُصوَّر بمسابقة منشورة معرّفها في COMPETITION_SLUG
     { name: 'competitions', path: '/competitions', heading: 'h1' },
     { name: 'competition', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}`, heading: 'h1', whenPublished: true },
+    // استبيان منشور يقبل غير المسجلين، برمزه في SURVEY_TOKEN
+    { name: 'survey', path: `/surveys/${process.env.SURVEY_TOKEN ?? 'x'.repeat(32)}`, heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [
