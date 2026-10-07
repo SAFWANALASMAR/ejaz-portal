@@ -42,10 +42,17 @@ return [
             'icon' => 'inbox-stack',
             'active' => ['account.requests.*'],
         ],
+        [
+            'route' => 'account.competitions',
+            'label' => 'competitions.account.nav',
+            'description' => 'competitions.account.nav_description',
+            'icon' => 'trophy',
+            'active' => ['account.competitions', 'competitions.entry'],
+        ],
     ],
 
     // ترتيب بطاقات الرئيسية (الصورة 04)، ويختلف عن ترتيب القائمة الجانبية أعلاه. وما لم يُذكر هنا
-    // يأتي بعدها بترتيب القائمة
+    // يأتي بعدها بترتيب القائمة (ومنه «مسابقاتي»)
     'cards' => [
         'account.programs.index',
         'account.profile',

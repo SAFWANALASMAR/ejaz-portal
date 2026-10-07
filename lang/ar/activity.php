@@ -23,6 +23,8 @@ return [
         'security' => 'الأمن',
         'users' => 'المستخدمون',
         'content' => 'المحتوى',
+        'competitions' => 'المسابقات',
+        'surveys' => 'قياس الرضا',
     ],
 
     'events' => [
@@ -44,6 +46,13 @@ return [
         'anonymized' => 'إخفاء البيانات بطلب الحذف',
         'menu_reordered' => 'إعادة ترتيب القائمة',
         'content_reordered' => 'إعادة ترتيب المحتوى',
+        'results_approved' => 'اعتماد نتائج مسابقة',
+        'draw_executed' => 'تنفيذ سحب إلكتروني',
+        'draw_voided' => 'إلغاء سحب إلكتروني',
+        'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
+        'submissions_exported' => 'تصدير مشاركات مسابقة',
+        'survey_results_exported' => 'تصدير نتائج استبيان',
+        'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -55,6 +64,15 @@ return [
         'Initiative' => 'مبادرة',
         'BoardMember' => 'عضو مجلس الإدارة',
         'Document' => 'وثيقة',
+        'Competition' => 'مسابقة',
+        'CompetitionQuestion' => 'سؤال مسابقة',
+        'CompetitionCriterion' => 'معيار تقييم',
+        'CompetitionSubmission' => 'مشاركة في مسابقة',
+        'SubmissionReview' => 'تحكيم مشاركة',
+        'CompetitionDraw' => 'سحب إلكتروني',
+        'CompetitionDrawVoid' => 'إلغاء سحب',
+        'Survey' => 'استبيان',
+        'SurveyQuestion' => 'سؤال استبيان',
     ],
 
 ];

@@ -68,3 +68,9 @@ require __DIR__.'/services.php';
 
 // البرامج والدورات
 require __DIR__.'/programs.php';
+
+// المسابقات (المرحلة 2)
+require __DIR__.'/competitions.php';
+
+// قياس الرضا (المرحلة 2)
+require __DIR__.'/surveys.php';

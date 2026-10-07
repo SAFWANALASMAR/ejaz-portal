@@ -105,10 +105,11 @@ it('leaves out deleted programs and drafts of unpublished openings', function ()
     expect($response->viewData('summary')['upcoming_count'])->toBe(0);
 });
 
-it('orders the cards as in the reference (programs, my info, requests) and the sidebar as home, my info, programs, requests', function () {
+it('orders the cards as in the reference (programs, my info, requests, then my competitions) and the sidebar as home, my info, programs, requests, my competitions', function () {
+    // «مسابقاتي» بعد عناصر الصورة 04، بقرار المشرف في التكامل (القضية #6)
     $this->actingAs($this->user)->get('/account')->assertOk()
-        ->assertSeeInOrder([__('programs.nav.programs_description'), __('account.nav.profile_description'), __('services.nav.requests_description')]);
+        ->assertSeeInOrder([__('programs.nav.programs_description'), __('account.nav.profile_description'), __('services.nav.requests_description'), __('competitions.account.nav_description')]);
 
     expect(AccountNavigation::for($this->user)->pluck('route')->all())
-        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index']);
+        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index', 'account.competitions']);
 });

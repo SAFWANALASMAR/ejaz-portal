@@ -36,6 +36,17 @@ enum ActivityEvent: string implements HasLabel
     case MenuReordered = 'menu_reordered';
     case ContentReordered = 'content_reordered';
 
+    // المسابقات
+    case ResultsApproved = 'results_approved';
+    case DrawExecuted = 'draw_executed';
+    case DrawVoided = 'draw_voided';
+    case SubmissionsDistributed = 'submissions_distributed';
+    case SubmissionsExported = 'submissions_exported';
+    case PersonalDataPurged = 'personal_data_purged';
+
+    // قياس الرضا
+    case SurveyResultsExported = 'survey_results_exported';
+
     public function getLabel(): string
     {
         return __('activity.events.'.$this->value);

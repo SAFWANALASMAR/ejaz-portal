@@ -37,6 +37,15 @@ final class ContentCache
     }
 
     /**
+     * يمسح مفتاحاً واحداً من الإصدار الحالي (الرئيسية عند تغيّر إحصائياتها الآلية مثلاً)، فلا تفقد
+     * الصفحات الأخرى تخزينها.
+     */
+    public static function forget(string $key): void
+    {
+        DB::afterCommit(fn () => Cache::forget('content.'.self::version().'.'.$key));
+    }
+
+    /**
      * إصدار جديد عشوائي بعد اعتماد المعاملة، فلا يكتب حفظان متزامنان الرقم نفسه.
      */
     public static function flush(): void

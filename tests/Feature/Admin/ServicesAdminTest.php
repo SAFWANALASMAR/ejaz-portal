@@ -325,3 +325,22 @@ it('refuses a staff applicant deleting or restoring their own request', function
         ->and($this->secretary->can('delete', $other))->toBeTrue()
         ->and($this->secretary->can('restore', $other))->toBeTrue();
 });
+
+it('refuses the requests export download once the permission is withdrawn, or without two-factor', function () {
+    ServiceRequest::factory()->create();
+    $this->actingAs($this->secretary);
+    Livewire::test(ListServiceRequests::class)->callAction('export');
+    $url = route('filament.exports.download', ['export' => Export::sole(), 'format' => 'xlsx']);
+
+    // مسار التنزيل خارج وسطاء اللوحة: ExportPolicy تشترط الصلاحية ما زالت معه والتحقق الثنائي (القضية #6)
+    $this->secretary->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+    $this->actingAs($this->secretary->fresh())->get($url)->assertForbidden();
+
+    $secretary = userWithRole(RoleName::Secretary);
+    $this->actingAs($secretary);
+    Livewire::test(ListServiceRequests::class)->callAction('export');
+    $mine = Export::query()->where('user_id', $secretary->id)->sole();
+    $secretary->syncRoles([]);
+
+    $this->actingAs($secretary->fresh())->get(route('filament.exports.download', ['export' => $mine, 'format' => 'xlsx']))->assertForbidden();
+});

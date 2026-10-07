@@ -117,3 +117,5 @@ document.addEventListener('submit', (event) => {
         event.preventDefault();
     }
 });
+
+import './competition-entry';

@@ -7,6 +7,8 @@ use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\SafeUrl;
+use App\Support\PortalStats;
+use App\Support\Retention;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -23,6 +25,7 @@ use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
@@ -31,8 +34,8 @@ use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 /**
- * إعدادات الموقع: التواصل، والتواصل الاجتماعي، ومقاطع الرئيسية.
- * الصلاحية: settings.update (المشرف العام ومحرر المحتوى).
+ * إعدادات الموقع: التواصل، والتواصل الاجتماعي، ومقاطع الرئيسية، ومدة الاحتفاظ.
+ * الصلاحية: settings.update (المشرف العام ومحرر المحتوى)، ومدة الاحتفاظ retention.update (المشرف العام).
  *
  * @property-read Schema $form
  */
@@ -79,6 +82,7 @@ class SiteSettings extends Page
                 'show_partners' => true,
                 ...Setting::group('home'),
             ],
+            'retention' => Setting::group('retention'),
         ]);
     }
 
@@ -136,10 +140,18 @@ class SiteSettings extends Page
                             Toggle::make('home.show_partners')->label(__('settings.home.show_partners')),
                         ]),
                         Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
-                            Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(4)->defaultItems(0)->schema([
+                            Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(5)->defaultItems(0)->schema([
                                 TextInput::make('label')->label(__('settings.home.stat_label'))->required()->maxLength(60),
-                                TextInput::make('value')->label(__('settings.home.stat_value'))->required()->integer()->minValue(0)->maxValue(100000000)
-                                    ->dehydrateStateUsing(fn ($state) => (int) $state),
+                                // رقم معتمد يُدخل يدوياً، أو رقم من بيانات البوابة الفعلية (PortalStats)
+                                Select::make('source')->label(__('settings.home.stat_source'))
+                                    ->options(fn (): array => collect(PortalStats::PUBLIC)->mapWithKeys(fn (string $key): array => [$key => __('settings.home.stat_sources.'.$key)])->all())
+                                    ->placeholder(__('settings.home.stat_manual'))
+                                    ->in(PortalStats::PUBLIC)
+                                    ->live(),
+                                TextInput::make('value')->label(__('settings.home.stat_value'))->integer()->minValue(0)->maxValue(100000000)
+                                    ->required(fn (Get $get): bool => blank($get('source')))
+                                    ->visible(fn (Get $get): bool => blank($get('source')))
+                                    ->dehydrateStateUsing(fn ($state) => $state === null ? null : (int) $state),
                                 TextInput::make('suffix')->label(__('settings.home.stat_suffix'))->maxLength(3),
                                 Select::make('icon')->label(__('settings.home.stat_icon'))
                                     ->options(SiteIcon::class)
@@ -147,6 +159,18 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
+                    // تحذف بيانات شخصية آلياً، فللمشرف العام وحده (retention.update)، ولا تُرسل من غيره
+                    Tab::make(__('settings.tabs.retention'))
+                        ->visible(fn (): bool => auth()->user()?->can('retention.update') ?? false)
+                        ->schema([
+                            Section::make()->description(__('settings.retention.hint'))->schema([
+                                TextInput::make('retention.days')->label(__('settings.retention.days'))
+                                    ->helperText(__('settings.retention.days_hint'))
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(Retention::MAX_DAYS),
+                            ]),
+                        ]),
                 ]),
             ]);
     }
@@ -170,7 +194,7 @@ class SiteSettings extends Page
         /** @var User $user */
         $user = auth()->user();
 
-        /** @var array{contact: array<string, mixed>, home: array<string, mixed>} $state */
+        /** @var array{contact: array<string, mixed>, home: array<string, mixed>, retention?: array<string, mixed>} $state */
         $state = $this->form->getState();
 
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);

@@ -146,3 +146,24 @@ it('keeps a program type with programs from being deleted', function () {
 
     expect(fn () => $this->type->delete())->toThrow(QueryException::class);
 });
+
+it('refuses the registrants export download once the permission is withdrawn, or without two-factor', function () {
+    $program = Program::factory()->create();
+    ProgramRegistration::factory()->for($program)->create();
+    $this->actingAs($this->manager);
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $program, 'pageClass' => EditProgram::class])
+        ->callAction(TestAction::make('export')->table());
+    $url = route('filament.exports.download', ['export' => Export::sole(), 'format' => 'xlsx']);
+
+    $this->manager->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+    $this->actingAs($this->manager->fresh())->get($url)->assertForbidden();
+
+    $manager = userWithRole(RoleName::ProgramManager);
+    $this->actingAs($manager);
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $program, 'pageClass' => EditProgram::class])
+        ->callAction(TestAction::make('export')->table());
+    $mine = Export::query()->where('user_id', $manager->id)->sole();
+    $manager->syncRoles([]);
+
+    $this->actingAs($manager->fresh())->get(route('filament.exports.download', ['export' => $mine, 'format' => 'xlsx']))->assertForbidden();
+});

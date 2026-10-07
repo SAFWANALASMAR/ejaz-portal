@@ -23,6 +23,11 @@ const guestScreens = [
     { name: 'services', path: '/services', heading: 'h1' },
     { name: 'services-jobs', path: '/services/jobs', heading: 'h1' },
     { name: 'programs', path: '/programs', heading: 'h1' },
+    // المسابقات: صفحة المسابقة تُصوَّر بمسابقة منشورة معرّفها في COMPETITION_SLUG
+    { name: 'competitions', path: '/competitions', heading: 'h1' },
+    { name: 'competition', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}`, heading: 'h1', whenPublished: true },
+    // استبيان منشور يقبل غير المسجلين، برمزه في SURVEY_TOKEN
+    { name: 'survey', path: `/surveys/${process.env.SURVEY_TOKEN ?? 'x'.repeat(32)}`, heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [
@@ -30,9 +35,22 @@ const accountScreens = [
     { name: 'profile', path: '/account/profile', heading: 'h1' },
     { name: 'requests', path: '/account/requests', heading: 'h1' },
     { name: 'my-programs', path: '/account/programs', heading: 'h1' },
+    { name: 'my-competitions', path: '/account/competitions', heading: 'h1' },
+    // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، لا بفتح النموذج
+    { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true, startFrom: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}` },
 ];
 
 async function checkScreen(page, testInfo, screen) {
+    if (screen.startFrom) {
+        await page.goto(screen.startFrom);
+        const start = page.locator('form[action$="/entry/start"] button');
+
+        if (await start.count()) {
+            await start.first().click();
+            await page.waitForLoadState();
+        }
+    }
+
     const response = await page.goto(screen.path);
     test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
 
