@@ -137,6 +137,26 @@ it('lets only the super admin void a draw with a reason, keeps it visible, and t
         ->and(fn () => DB::statement('truncate competition_draws cascade'))->toThrow(QueryException::class);
 });
 
+it('refuses a new draw by the super admin who voided the last one, so voiding and redrawing stay apart', function () {
+    $admin = userWithRole(RoleName::SuperAdmin);
+    $first = app(RunDraw::class)->handle($admin, $this->competition, 1);
+    app(VoidDraw::class)->handle($admin, $first, 'خطأ في قائمة المشاركات قبل السحب');
+
+    // المشرف العام ينال competitions.draw عبر Gate::after، والرفض صريح في الإجراء
+    expect(fn () => app(RunDraw::class)->handle($admin, $this->competition, 1))->toThrow(AuthorizationException::class, __('competitions.draws.voided_by_you'))
+        ->and($this->competition->draws()->count())->toBe(1);
+
+    // ومن اللوحة رسالة لا صفحة 403
+    $this->actingAs($admin);
+    Livewire::test(DrawsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->callAction(TestAction::make('draw')->table(), ['winners_count' => 1])
+        ->assertNotified(__('competitions.draws.voided_by_you'));
+    expect($this->competition->draws()->count())->toBe(1);
+
+    $second = app(RunDraw::class)->handle($this->manager, $this->competition, 1);
+    expect($second->executed_by)->toBe($this->manager->id);
+});
+
 it('refuses a draw on a deleted or unpublished competition, and leaves out deleted entries', function () {
     $this->entries->first()->delete();
     $draw = app(RunDraw::class)->handle($this->manager, $this->competition, 1);

@@ -17,6 +17,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
@@ -95,6 +96,9 @@ class DrawsRelationManager extends RelationManager
                             Notification::make()->success()->title(__('competitions.draws.done'))->send();
                         } catch (ValidationException $exception) {
                             Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
+                        } catch (AuthorizationException $exception) {
+                            // من ألغى آخر سحب لا يعيده بنفسه: رسالة الإجراء لا صفحة 403
+                            Notification::make()->danger()->title($exception->getMessage() ?: __('competitions.draws.voided_by_you'))->send();
                         }
                     }),
             ])

@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Enums\SubmissionStatus;
 use App\Models\Competition;
 use App\Models\CompetitionDraw;
+use App\Models\CompetitionDrawVoid;
 use App\Models\User;
 use App\Support\DrawSelector;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -45,6 +46,18 @@ class RunDraw
             // سحب معتمد واحد لكل مسابقة، ولا جديد إلا بعد إلغاء السابق بسبب (VoidDraw)
             if ($locked->draws()->whereDoesntHave('void')->exists()) {
                 throw ValidationException::withMessages(['winners_count' => __('competitions.draws.already_drawn')]);
+            }
+
+            // من ألغى آخر سحب لا يعيده بنفسه، فلا يكرر المشرف العام السحب حتى نتيجة بعينها. رفض صريح
+            // في الإجراء، لأن المشرف العام ينال competitions.draw عبر Gate::after
+            $lastVoid = CompetitionDrawVoid::query()
+                ->whereIn('draw_id', $locked->draws()->select('id'))
+                ->latest('voided_at')
+                ->latest('id')
+                ->first();
+
+            if ($lastVoid?->voided_by === $actor->id) {
+                throw new AuthorizationException(__('competitions.draws.voided_by_you'));
             }
 
             /** @var list<string> $entrants */
