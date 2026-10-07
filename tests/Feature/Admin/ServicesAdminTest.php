@@ -213,7 +213,7 @@ it('keeps applicants with a panel role out of their own request in the panel, an
     $own = ServiceRequest::factory()->for($editor)->create();
     $own->events()->create(['to_status' => ServiceRequestStatus::Received, 'internal_note' => 'ملاحظة سرية']);
 
-    $this->actingAs($editor)->get(ServiceRequestResource::getUrl('view', ['record' => $own]))->assertForbidden();
+    $this->actingAs($editor)->get(ServiceRequestResource::getUrl('view', ['record' => $own]))->assertNotFound();
 
     $mine = ServiceRequest::factory()->for($this->secretary)->create();
     expect($this->secretary->can('update', $mine))->toBeFalse()
@@ -303,4 +303,25 @@ it('also texts the applicant on a status change when enabled, to a verified phon
         ->and($sms->sent[0]['phone'])->toBe('+966500000001')
         ->and($sms->sent[0]['message'])->toContain($request->reference)->toContain(ServiceRequestStatus::UnderReview->getLabel())
         ->and($sms->sent[0]['message'])->not->toContain('رد سري طويل');
+});
+
+it('keeps a staff applicant out of their own request in the panel: page, list and export', function () {
+    $own = ServiceRequest::factory()->for($this->secretary)->create();
+    $other = ServiceRequest::factory()->create();
+    $own->events()->create(['to_status' => ServiceRequestStatus::Received, 'internal_note' => 'ملاحظة زميل']);
+    $this->actingAs($this->secretary);
+
+    $this->get(ServiceRequestResource::getUrl('view', ['record' => $own]))->assertNotFound();
+    expect($this->secretary->can('view', $own))->toBeFalse();
+    Livewire::test(ListServiceRequests::class)->assertCanSeeTableRecords([$other])->assertCanNotSeeTableRecords([$own]);
+});
+
+it('refuses a staff applicant deleting or restoring their own request', function () {
+    $own = ServiceRequest::factory()->for($this->secretary)->status(ServiceRequestStatus::Rejected)->create();
+    $other = ServiceRequest::factory()->create();
+
+    expect($this->secretary->can('delete', $own))->toBeFalse()
+        ->and($this->secretary->can('restore', $own))->toBeFalse()
+        ->and($this->secretary->can('delete', $other))->toBeTrue()
+        ->and($this->secretary->can('restore', $other))->toBeTrue();
 });

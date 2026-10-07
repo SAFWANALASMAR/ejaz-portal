@@ -54,6 +54,14 @@ it('sends an invalid filter back to the full list', function (string $query) {
     $this->get('/governance?'.$query)->assertRedirect(route('governance.index'));
 })->with(['category=evil', 'year=abc', 'year=1200', 'q='.str_repeat('x', 101), 'page=0']);
 
+it('keeps only the validated filters in the page links of the cached list', function () {
+    Document::factory()->count(13)->create(['category' => DocumentCategory::Policies]);
+
+    $this->get('/governance?category=policies')->assertSee(route('governance.index', ['category' => 'policies', 'page' => 2]));
+    expect($this->get('/governance?utm=evil')->assertOk()->getContent())->not->toContain('utm');
+    expect($this->get('/governance')->getContent())->not->toContain('utm');
+});
+
 it('answers 404 for a page after the last one, with or without a filter', function () {
     storedDocument(['title' => 'الوثيقة الوحيدة']);
 

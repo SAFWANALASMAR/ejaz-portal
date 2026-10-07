@@ -10,6 +10,7 @@ use App\Rules\VideoUrl;
 use App\Support\PublicImages;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -21,11 +22,6 @@ use Illuminate\Validation\ValidationException;
  */
 class SaveLibraryItem
 {
-    /**
-     * أنواع الصوت المقبولة من محتوى الملف، وامتداد كل نوع كما يحفظه الرفع.
-     */
-    private const AUDIO_EXTENSIONS = ['audio/mpeg' => 'mp3', 'audio/x-m4a' => 'm4a', 'audio/mp4' => 'm4a'];
-
     /**
      * @param  array<string, mixed>  $data
      *
@@ -44,12 +40,16 @@ class SaveLibraryItem
         $previousSection = $item->exists ? $item->section : null;
         $thumbnailBefore = $item->publicImages()['thumbnail'];
 
-        $item->fill($data);
+        // القسم من قيمه الأربع، ولو استُدعي الإجراء من غير اللوحة بقيمة أخرى أو بلا قسم
+        $section = $data['section'] ?? $item->getAttribute('section');
+        $section = $section instanceof LibrarySection ? $section : LibrarySection::tryFrom(is_string($section) ? $section : '');
 
-        // العنصر الجديد قد يصل بلا قسم إن استُدعي الإجراء من غير اللوحة
-        if (! $item->getAttribute('section') instanceof LibrarySection) {
-            throw ValidationException::withMessages(['section' => __('validation.required', ['attribute' => __('library.fields.section')])]);
+        if ($section === null) {
+            throw ValidationException::withMessages(['section' => __('validation.enum', ['attribute' => __('library.fields.section')])]);
         }
+
+        // وحجم الملف يُحسب من الملف نفسه، لا مما يُمرَّر
+        $item->fill([...Arr::except($data, ['file_size']), 'section' => $section]);
 
         // لكل قسم مصدر واحد، فيُمسح مصدر القسم الآخر: لا ملف لمقطع، ولا رابط لكتاب
         if ($item->section->takesVideoUrl()) {
@@ -66,8 +66,15 @@ class SaveLibraryItem
             throw ValidationException::withMessages(['is_published' => __('library.validation.needs_source')]);
         }
 
-        // التصنيفات للتصفية بالمطابقة التامة، فلا مسافات زائدة ولا تكرار
-        $item->tags = array_values(array_unique(array_filter(array_map('trim', $item->tagList()), fn (string $tag): bool => $tag !== '')));
+        // التصنيفات للتصفية بالمطابقة التامة، فلا مسافات زائدة ولا تكرار. وحدودها حدود النموذج نفسها،
+        // فلا يتجاوزها مستدعٍ من غير اللوحة فيثقل استعلام العناصر ذات الصلة
+        $tags = array_values(array_unique(array_filter(array_map('trim', $item->tagList()), fn (string $tag): bool => $tag !== '')));
+
+        if (count($tags) > LibraryItem::MAX_TAGS || array_filter($tags, fn (string $tag): bool => mb_strlen($tag) > LibraryItem::MAX_TAG_LENGTH) !== []) {
+            throw ValidationException::withMessages(['tags' => __('library.validation.tags', ['count' => LibraryItem::MAX_TAGS, 'length' => LibraryItem::MAX_TAG_LENGTH])]);
+        }
+
+        $item->tags = $tags;
 
         $this->checkThumbnail($item, $thumbnailBefore);
 
@@ -83,7 +90,7 @@ class SaveLibraryItem
 
         DB::transaction(fn () => $item->save());
 
-        if ($previousFile !== null && $previousFile !== $item->file && self::inDirectory($previousFile)) {
+        if ($previousFile !== null && $previousFile !== $item->file && LibraryItem::isOwnFile($previousFile)) {
             Storage::disk(LibraryItem::disk())->delete($previousFile);
         }
 
@@ -135,13 +142,13 @@ class SaveLibraryItem
         }
 
         $disk = Storage::disk(LibraryItem::disk());
-        $problem = self::inDirectory($path) && $disk->exists($path) ? $this->problem($item, $disk, $path) : 'validation.library_file';
+        $problem = LibraryItem::isOwnFile($path) && $disk->exists($path) ? $this->problem($item, $disk, $path) : 'validation.library_file';
 
         if ($problem === null) {
             return;
         }
 
-        if ($isNew && self::inDirectory($path)) {
+        if ($isNew && LibraryItem::isOwnFile($path)) {
             $disk->delete($path);
         }
 
@@ -154,8 +161,9 @@ class SaveLibraryItem
      */
     private function problem(LibraryItem $item, Filesystem $disk, string $path): ?string
     {
+        // والامتداد pdf، فيُنزَّل باسمه الصحيح
         if ($item->section->takesPdf()) {
-            return RealPdf::problem((string) $disk->get($path));
+            return $item->fileExtension() === 'pdf' ? RealPdf::problem((string) $disk->get($path)) : 'validation.real_pdf';
         }
 
         // بداية الملف تكفي لمعرفة نوعه، فلا يُقرأ ملف صوتي كبير كله
@@ -168,11 +176,6 @@ class SaveLibraryItem
 
         $type = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($head);
 
-        return (self::AUDIO_EXTENSIONS[$type] ?? null) === $item->fileExtension() ? null : 'validation.audio_file';
-    }
-
-    private static function inDirectory(string $path): bool
-    {
-        return str_starts_with($path, LibraryItem::FILE_DIRECTORY.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
+        return in_array($type, LibraryItem::AUDIO_TYPES[$item->fileExtension()] ?? [], true) ? null : 'validation.audio_file';
     }
 }

@@ -18,9 +18,14 @@ class VideoUrl implements ValidationRule
 
     private const FILE_EXTENSIONS = ['mp4', 'webm'];
 
+    /**
+     * طول العمود في القاعدة.
+     */
+    public const MAX_LENGTH = 500;
+
     public static function isValid(?string $url): bool
     {
-        return self::youtubeId($url) !== null || self::isHostedFile($url);
+        return mb_strlen((string) $url) <= self::MAX_LENGTH && (self::youtubeId($url) !== null || self::isHostedFile($url));
     }
 
     /**

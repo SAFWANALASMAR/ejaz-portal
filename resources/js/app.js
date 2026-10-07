@@ -20,6 +20,22 @@ function closeAll(except = null) {
     });
 }
 
+// مشغّل يوتيوب في صفحة عنصر المكتبة لا يُحمَّل إلا بضغط الزائر، ومن هذا المصدر وحده
+const VIDEO_EMBED = 'https://www.youtube-nocookie.com/embed/';
+
+function playVideo(link) {
+    const frame = document.createElement('iframe');
+
+    frame.src = link.dataset.videoEmbed;
+    frame.title = link.dataset.videoTitle;
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.allowFullscreen = true;
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.className = 'block aspect-video w-full';
+    link.replaceWith(frame);
+    frame.focus();
+}
+
 function togglePassword(button) {
     const input = document.getElementById(button.dataset.passwordToggle);
 
@@ -39,6 +55,16 @@ document.addEventListener('click', (event) => {
 
     if (passwordToggle) {
         togglePassword(passwordToggle);
+
+        return;
+    }
+
+    const video = event.target.closest('[data-video-embed]');
+
+    // والضغط مع Ctrl أو Cmd يفتح المقطع في يوتيوب كما يريد الزائر
+    if (video && video.dataset.videoEmbed.startsWith(VIDEO_EMBED) && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+        event.preventDefault();
+        playVideo(video);
 
         return;
     }
