@@ -98,7 +98,8 @@ class GovernanceController extends Controller
             ->paginate(self::PER_PAGE)
             // الروابط من APP_URL لا من رأس Host، لأن الصفحة الأولى تُخزَّن
             ->withPath(route('governance.index'))
-            ->withQueryString();
+            // ولا يدخلها إلا ما اجتاز التحقق، فلا تحمل الصفحة المخزنة معاملات زائر
+            ->appends($filters);
     }
 
     /**

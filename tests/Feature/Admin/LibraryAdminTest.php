@@ -272,6 +272,42 @@ it('refuses to save for someone without the permission, a file outside its folde
         ->and(LibraryItem::withTrashed()->count())->toBe(1);
 });
 
+it('checks everything again when the action is called directly, not only in the form', function () {
+    Storage::disk('local')->put('library/fake.mp3', pdfContents());
+    Storage::disk('local')->put('library/book.exe', pdfContents());
+    Storage::disk('public')->put('library/taken.jpg', 'صورة عنصر آخر');
+    LibraryItem::factory()->video()->create(['thumbnail' => 'library/taken.jpg'])->delete();
+    $save = fn (array $data) => app(SaveLibraryItem::class)->handle($this->editor, new LibraryItem, libraryForm($data));
+
+    expect(fn () => $save(['section' => LibrarySection::Audio->value, 'file' => 'library/fake.mp3']))
+        ->toThrow(ValidationException::class, __('validation.audio_file'))
+        ->and(Storage::disk('local')->exists('library/fake.mp3'))->toBeFalse()
+        // PDF بامتداد آخر لا يُقبل، فلا يصل الزائر ملف باسم مضلل
+        ->and(fn () => $save(['section' => LibrarySection::Books->value, 'file' => 'library/book.exe']))
+        ->toThrow(ValidationException::class, __('validation.real_pdf'))
+        ->and(fn () => $save(['video_url' => 'https://evil.example/watch?v=abcdefghijk']))
+        ->toThrow(ValidationException::class, __('validation.video_url'))
+        ->and(fn () => $save(['video_url' => 'https://www.youtube.com/watch?v=abcdefghijk&x='.str_repeat('a', 500)]))
+        ->toThrow(ValidationException::class, __('validation.video_url'))
+        ->and(fn () => $save(['thumbnail' => 'library/taken.jpg']))
+        ->toThrow(ValidationException::class, __('validation.image_in_use'))
+        ->and(Storage::disk('public')->exists('library/taken.jpg'))->toBeTrue()
+        ->and(fn () => $save(['section' => 'novels']))
+        ->toThrow(ValidationException::class, __('validation.enum', ['attribute' => __('library.fields.section')]))
+        ->and(fn () => $save(['tags' => array_map(fn (int $number): string => 'تصنيف '.$number, range(1, 11))]))
+        ->toThrow(ValidationException::class)
+        ->and(fn () => $save(['tags' => [str_repeat('س', 41)]]))
+        ->toThrow(ValidationException::class)
+        ->and(LibraryItem::count())->toBe(0);
+
+    // وحجم الملف يُحسب من الملف نفسه، واسم تنزيل الكتاب PDF دائماً
+    Storage::disk('local')->put('library/book.pdf', pdfContents());
+    $book = $save(['section' => LibrarySection::Books->value, 'file' => 'library/book.pdf', 'file_size' => 1]);
+
+    expect($book->file_size)->toBe(strlen(pdfContents()))
+        ->and(LibraryItem::factory()->make(['slug' => 'book', 'file' => 'library/x.exe'])->downloadName())->toBe('book.pdf');
+});
+
 it('lets those who may view an item download its file from the panel', function () {
     Storage::disk('local')->put('library/draft.mp3', mp3Contents());
     $item = LibraryItem::factory()->audio()->unpublished()->create(['file' => 'library/draft.mp3', 'slug' => 'draft']);
