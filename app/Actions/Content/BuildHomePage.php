@@ -6,6 +6,7 @@ use App\Enums\SiteIcon;
 use App\Models\Initiative;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
+use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -88,14 +89,24 @@ class BuildHomePage
     {
         $stats = [];
 
+        $live = PortalStats::cached() ?? [];
+
         foreach ((array) ($home['stats'] ?? []) as $stat) {
-            if (! is_array($stat) || ! is_string($stat['label'] ?? null) || trim($stat['label']) === '' || ! is_numeric($stat['value'] ?? null)) {
+            if (! is_array($stat) || ! is_string($stat['label'] ?? null) || trim($stat['label']) === '') {
+                continue;
+            }
+
+            // الخانة الآلية من بيانات البوابة المحسوبة في الخلفية، فلا تظهر قبل أول حساب
+            $source = is_string($stat['source'] ?? null) && in_array($stat['source'], PortalStats::PUBLIC, true) ? $stat['source'] : null;
+            $value = $source !== null ? ($live[$source] ?? null) : ($stat['value'] ?? null);
+
+            if (! is_numeric($value)) {
                 continue;
             }
 
             $stats[] = [
                 'label' => trim($stat['label']),
-                'value' => (int) $stat['value'],
+                'value' => (int) $value,
                 'suffix' => is_string($stat['suffix'] ?? null) ? $stat['suffix'] : '',
                 // الأيقونة من القائمة المسموحة فقط، فاسمها يبني مسار ملف
                 'icon' => is_string($stat['icon'] ?? null) ? SiteIcon::tryFrom($stat['icon'])?->value : null,

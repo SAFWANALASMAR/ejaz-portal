@@ -15,3 +15,6 @@ Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 
 // ملفات التصدير فيها بيانات شخصية، فتُحذف بعد يوم
 Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();
+
+// إحصائيات البوابة تُحسب في الخلفية وتُخزَّن (performance.md)
+Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();

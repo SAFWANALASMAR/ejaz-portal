@@ -41,6 +41,10 @@ return [
         'submissions' => ['view', 'assign', 'export', 'delete'],
         // التحكيم: السياسة تحصره في المسند إلى المحكّم نفسه
         'reviews' => ['view', 'update'],
+
+        // قياس الرضا والإحصائيات
+        'surveys' => $crud,
+        'stats' => ['view'],
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -49,6 +53,7 @@ return [
             'menu.view', 'pages.view', 'initiatives.view', 'board.view', 'governance.view',
             'library.view', 'news.view', 'media.view', 'partners.view',
             'competitions.view',
+            'surveys.view', 'stats.view',
         ],
         'secretary' => [
             'requests.*',
@@ -59,6 +64,7 @@ return [
         ],
         'program_manager' => [
             'competitions.*', 'submissions.*',
+            'surveys.*',
         ],
         'reviewer' => [
             'reviews.*',

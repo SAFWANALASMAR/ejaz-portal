@@ -65,3 +65,6 @@ Route::middleware('auth')->prefix('account')->name('account.')->group(function (
 
 // المسابقات (المرحلة 2)
 require __DIR__.'/competitions.php';
+
+// قياس الرضا (المرحلة 2)
+require __DIR__.'/surveys.php';
