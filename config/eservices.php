@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Survey;
+
 /*
 | بطاقات صفحة «خدماتنا الإلكترونية» (docs/design/ui-reference.md — الصورة 06 اللوحي).
 | البطاقة لا تظهر إلا إن وُجد مسارها، فكل وحدة تضيف بطاقتها هنا عند بنائها:
@@ -16,7 +18,7 @@ return [
         ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase'],
         ['route' => 'services.volunteering', 'label' => 'services.tiles.volunteering', 'icon' => 'hand-raised'],
         // الاستبيان العام المفتوح، متى وُجد
-        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'wide' => true, 'available' => [App\Models\Survey::class, 'hasOpenGeneral']],
+        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'wide' => true, 'available' => [Survey::class, 'hasOpenGeneral']],
     ],
 
 ];
