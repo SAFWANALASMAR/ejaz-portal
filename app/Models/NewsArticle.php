@@ -8,6 +8,7 @@ use App\Support\ContentBlocks;
 use Database\Factories\NewsArticleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -39,6 +40,16 @@ class NewsArticle extends Model implements HasPublicImages
             'published_on' => 'date',
             'is_published' => 'boolean',
         ];
+    }
+
+    /**
+     * التصنيف بلا مسافات زائدة، والفارغ بلا تصنيف، فلا تظهر بلاطة فارغة في التصفية.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function category(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value): ?string => filled($value) ? trim($value) : null);
     }
 
     /**

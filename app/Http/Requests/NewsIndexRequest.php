@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\PlainText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,8 +24,8 @@ class NewsIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'q' => ['nullable', 'string', 'max:100'],
-            'category' => ['nullable', 'string', 'max:60'],
+            'q' => ['nullable', 'string', 'max:100', new PlainText],
+            'category' => ['nullable', 'string', 'max:60', new PlainText],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ];
     }

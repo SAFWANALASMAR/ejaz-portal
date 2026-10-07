@@ -6,6 +6,8 @@ use App\Http\Requests\NewsIndexRequest;
 use App\Models\NewsArticle;
 use App\Support\ContentCache;
 use Illuminate\Contracts\View\View;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
@@ -13,8 +15,16 @@ use Illuminate\Support\HtmlString;
  * الأخبار: القائمة بالتصفية والبحث والترقيم، وصفحة كل خبر. ولا يُخزَّن إلا معرّف منشور، فلا
  * تملأ الروابط العشوائية الذاكرة.
  */
-class NewsController extends Controller
+class NewsController extends Controller implements HasMiddleware
 {
+    /**
+     * البحث والتصفية والصفحات التالية تُقرأ من القاعدة في كل طلب، فحد لكل عنوان.
+     */
+    public static function middleware(): array
+    {
+        return [new Middleware('throttle:120,1', only: ['index'])];
+    }
+
     private const PER_PAGE = 12;
 
     private const MORE = 3;

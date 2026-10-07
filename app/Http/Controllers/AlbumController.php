@@ -7,14 +7,24 @@ use App\Models\Album;
 use App\Support\ContentCache;
 use App\Support\Dates;
 use Illuminate\Contracts\View\View;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 /**
  * مكتبة الصور: الألبومات بترقيم، وصفحة كل ألبوم بصوره. ولا يُخزَّن إلا معرّف منشور.
  */
-class AlbumController extends Controller
+class AlbumController extends Controller implements HasMiddleware
 {
+    /**
+     * البحث والتصفية والصفحات التالية تُقرأ من القاعدة في كل طلب، فحد لكل عنوان.
+     */
+    public static function middleware(): array
+    {
+        return [new Middleware('throttle:120,1', only: ['index'])];
+    }
+
     private const PER_PAGE = 12;
 
     public function index(AlbumIndexRequest $request): View

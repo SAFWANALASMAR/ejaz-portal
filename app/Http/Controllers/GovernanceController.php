@@ -7,6 +7,8 @@ use App\Models\Document;
 use App\Support\ContentCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
@@ -17,8 +19,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * وتنزيلاً. الملفات في القرص الخاص، فلا يُقدَّم إلا ملف وثيقة منشورة، فإذا أُلغي نشرها لم
  * يبقَ ملفها متاحاً برابط قديم.
  */
-class GovernanceController extends Controller
+class GovernanceController extends Controller implements HasMiddleware
 {
+    /**
+     * البحث والتصفية والصفحات التالية تُقرأ من القاعدة في كل طلب، فحد لكل عنوان.
+     */
+    public static function middleware(): array
+    {
+        return [new Middleware('throttle:120,1', only: ['index'])];
+    }
+
     private const PER_PAGE = 12;
 
     public function index(GovernanceIndexRequest $request): View

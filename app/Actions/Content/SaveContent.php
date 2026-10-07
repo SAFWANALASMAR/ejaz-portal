@@ -74,9 +74,12 @@ class SaveContent
      */
     private static function imagesOfOtherRecords(Model&HasPublicImages $record): array
     {
+        // أعمدة الصور وحدها: مفاتيح publicImages أسماء أعمدتها
+        $columns = [$record->getKeyName(), ...array_keys($record->publicImages())];
+
         return $record->newQuery()
             ->when($record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
-            ->get()
+            ->get($columns)
             ->flatMap(fn (Model&HasPublicImages $other): array => self::flatten($other->publicImages()))
             ->values()
             ->all();

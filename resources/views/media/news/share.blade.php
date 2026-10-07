@@ -21,7 +21,7 @@
             <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
         </a>
     @endforeach
-    <button type="button" data-copy-link="{{ $url }}" data-copied="{{ __('news.article.link_copied') }}" aria-live="polite"
+    <button type="button" hidden data-copy-link="{{ $url }}" data-copied="{{ __('news.article.link_copied') }}" aria-live="polite"
         class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-primary hover:text-primary">
         {{ __('news.article.copy_link') }}
     </button>

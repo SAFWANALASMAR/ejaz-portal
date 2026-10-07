@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\PlainText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -21,8 +22,8 @@ class LibraryIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'q' => ['nullable', 'string', 'max:100'],
-            'tag' => ['nullable', 'string', 'max:40'],
+            'q' => ['nullable', 'string', 'max:100', new PlainText],
+            'tag' => ['nullable', 'string', 'max:40', new PlainText],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ];
     }

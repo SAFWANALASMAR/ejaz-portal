@@ -17,6 +17,7 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -110,6 +111,46 @@ it('accepts a partner with an https link and a picture logo, and refuses unsafe 
     'svg logo' => [['logo' => [UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')]], ['logo']],
     'no logo' => [['logo' => null], ['logo']],
 ]);
+
+it('refuses a photo of another album, and deletes a photo removed from an album', function () {
+    foreach (['other', 'kept', 'removed'] as $name) {
+        Storage::disk('public')->put("albums/{$name}.jpg", 'x');
+    }
+
+    Album::factory()->create(['photos' => ['albums/other.jpg']]);
+    $album = Album::factory()->create(['photos' => ['albums/kept.jpg', 'albums/removed.jpg']]);
+
+    expect(fn () => app(SaveContent::class)->handle($this->editor, $album, ['photos' => ['albums/kept.jpg', 'albums/other.jpg']]))
+        ->toThrow(ValidationException::class, __('validation.image_in_use'));
+
+    app(SaveContent::class)->handle($this->editor, $album->fresh(), ['photos' => ['albums/kept.jpg']]);
+
+    expect(Storage::disk('public')->exists('albums/removed.jpg'))->toBeFalse()
+        ->and(Storage::disk('public')->exists('albums/kept.jpg'))->toBeTrue()
+        ->and(Storage::disk('public')->exists('albums/other.jpg'))->toBeTrue();
+});
+
+it('keeps the news categories tidy: trimmed, and none when left empty', function () {
+    $save = fn (string $category) => app(SaveContent::class)->handle($this->editor, new NewsArticle, [
+        'title' => 'خبر', 'slug' => 'news-'.md5($category), 'published_on' => '2026-02-01', 'category' => $category,
+    ]);
+
+    expect($save('  فعاليات  ')->category)->toBe('فعاليات')
+        ->and($save('   ')->category)->toBeNull()
+        ->and(NewsArticle::categoriesIn(NewsArticle::query()))->toBe(['فعاليات']);
+});
+
+it('accepts a partner without a link and shows it without one', function () {
+    $this->actingAs($this->editor);
+
+    Livewire::test(CreatePartner::class)
+        ->fillForm(['name' => 'شريك بلا رابط', 'logo' => [UploadedFile::fake()->image('logo.png', 400, 200)], 'is_published' => true])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Partner::where('name', 'شريك بلا رابط')->sole()->url)->toBeNull();
+    $this->get('/media/partners')->assertSee('شريك بلا رابط');
+});
 
 it('creates a partner at the end of the order and shows it on the site', function () {
     Partner::factory()->create(['sort' => 5]);

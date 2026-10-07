@@ -52,7 +52,8 @@ class BuildHomePage
             'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->limit(3)->get() : new Collection,
             // مفتاح «أحدث البرامج والأخبار»: الأخبار الآن، والبرامج مع وحدتها في المرحلة 3
             'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(3)->get() : new Collection,
-            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->get() : new Collection,
+            // اثنا عشر شريكاً، والبقية في صفحة الشركاء
+            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->limit(12)->get() : new Collection,
         ];
     }
 

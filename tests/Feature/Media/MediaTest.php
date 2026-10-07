@@ -46,7 +46,20 @@ it('lists the published news newest first, filters by category and searches titl
 
 it('sends an invalid filter back to the news list', function (string $query) {
     $this->get('/media/news?'.$query)->assertRedirect(route('media.news.index'));
-})->with(['q='.str_repeat('x', 101), 'category='.str_repeat('x', 61), 'q[]=x', 'page=0', 'page=abc']);
+})->with(['q='.str_repeat('x', 101), 'category='.str_repeat('x', 61), 'q[]=x', 'page=0', 'page=abc', 'q=%FF', 'category=x%00y']);
+
+it('pages through the albums, answering 404 after the last page and sending a wrong page back to the first', function () {
+    Album::factory()->count(13)->create();
+
+    $this->get('/media/albums?page=2')->assertOk()->assertSee(__('site.page_of', ['page' => 2, 'pages' => 2]));
+    $this->get('/media/albums?page=3')->assertNotFound();
+    $this->get('/media/albums?page=0')->assertRedirect(route('media.albums.index'));
+    $this->get('/media/albums?page=abc')->assertRedirect(route('media.albums.index'));
+});
+
+it('limits the requests to the list pages that read the database for every search', function (string $route) {
+    expect(Route::getRoutes()->getByName($route)?->gatherMiddleware())->toContain('throttle:120,1');
+})->with(['governance.index', 'library.section', 'media.news.index', 'media.albums.index']);
 
 it('pages through the news with the validated filter only, and answers 404 after the last page', function () {
     NewsArticle::factory()->count(13)->create(['category' => 'فعاليات']);
@@ -59,7 +72,7 @@ it('pages through the news with the validated filter only, and answers 404 after
 });
 
 it('shows an article with its cleaned content, its gallery and share links, and other news without itself', function () {
-    $article = NewsArticle::factory()->create([
+    NewsArticle::factory()->create([
         'slug' => 'annual-forum',
         'title' => 'الملتقى السنوي',
         'summary' => 'ملخص الخبر',
@@ -87,8 +100,6 @@ it('shows an article with its cleaned content, its gallery and share links, and 
 
     // والخبر نفسه ليس في «أخبار أخرى»
     expect(Str::after((string) $response->getContent(), __('news.article.more')))->not->toContain('الملتقى السنوي');
-
-    expect($article->fresh()->is_published)->toBeTrue();
 });
 
 it('answers 404 for an unpublished or unknown article or album', function () {
