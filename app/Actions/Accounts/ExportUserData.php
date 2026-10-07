@@ -3,6 +3,7 @@
 namespace App\Actions\Accounts;
 
 use App\Models\CompetitionSubmission;
+use App\Models\SurveyResponse;
 use App\Models\User;
 
 /**
@@ -42,6 +43,12 @@ class ExportUserData
                     'region' => $submission->region?->value,
                     'answers' => (array) $submission->answers,
                     'submitted_at' => $date($submission->submitted_at),
+                ])->all(),
+            'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey')->get()
+                ->map(fn (SurveyResponse $response): array => [
+                    'survey' => $response->survey->title,
+                    'answers' => $response->answers,
+                    'submitted_at' => $date($response->submitted_at),
                 ])->all(),
         ];
     }

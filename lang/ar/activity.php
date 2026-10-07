@@ -24,6 +24,7 @@ return [
         'users' => 'المستخدمون',
         'content' => 'المحتوى',
         'competitions' => 'المسابقات',
+        'surveys' => 'قياس الرضا',
     ],
 
     'events' => [
@@ -50,6 +51,7 @@ return [
         'draw_voided' => 'إلغاء سحب إلكتروني',
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
+        'survey_results_exported' => 'تصدير نتائج استبيان',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -68,6 +70,7 @@ return [
         'SubmissionReview' => 'تحكيم مشاركة',
         'CompetitionDraw' => 'سحب إلكتروني',
         'CompetitionDrawVoid' => 'إلغاء سحب',
+        'Survey' => 'استبيان',
     ],
 
 ];

@@ -47,10 +47,12 @@ class SurveyResponse extends Model
     }
 
     /**
+     * الاستبيان ولو حُذف حذفاً ناعماً، فتبقى الإجابة مقروءة لصاحبها في تصدير بياناته.
+     *
      * @return BelongsTo<Survey, $this>
      */
     public function survey(): BelongsTo
     {
-        return $this->belongsTo(Survey::class);
+        return $this->belongsTo(Survey::class)->withTrashed();
     }
 }

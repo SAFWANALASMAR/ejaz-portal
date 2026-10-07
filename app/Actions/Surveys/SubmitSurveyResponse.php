@@ -48,7 +48,8 @@ class SubmitSurveyResponse
             $rules[$key] = match ($question->type) {
                 SurveyQuestionType::Scale => [$required, 'integer', 'between:1,5'],
                 SurveyQuestionType::Choice => [$required, 'integer', Rule::in(array_keys($question->optionList()))],
-                SurveyQuestionType::Text => [$required, 'string', 'max:'.self::MAX_TEXT],
+                // البايت الصفري لا يقبله PostgreSQL في النص، فيُرفض هنا لا بخطأ خادم يكتب الإجابة في السجل
+                SurveyQuestionType::Text => [$required, 'string', 'max:'.self::MAX_TEXT, 'not_regex:/\x00/'],
             };
         }
 

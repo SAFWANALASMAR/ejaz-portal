@@ -59,6 +59,9 @@ class AnonymizeUser
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();
 
+            // إجابات الاستبيانات تبقى في الإحصاء بلا رابط بالشخص
+            DB::table('survey_responses')->where('user_id', $user->id)->update(['user_id' => null]);
+
             activity('users')
                 ->causedBy($actor)
                 ->performedOn($user)

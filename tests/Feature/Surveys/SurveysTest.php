@@ -1,6 +1,8 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Surveys\SaveSurvey;
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
 use App\Enums\SurveyQuestionType;
 use App\Filament\Resources\Surveys\Pages\CreateSurvey;
@@ -13,9 +15,11 @@ use App\Models\User;
 use App\Support\SurveyResults;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->manager = userWithRole(RoleName::ProgramManager);
@@ -170,4 +174,42 @@ it('aggregates results without the respondents, and exports them', function () {
     $this->actingAs($this->manager);
     $download = Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->callAction('export');
     $download->assertFileDownloaded('survey-'.$this->survey->uuid.'.csv');
+});
+
+it('refuses a null byte in a text answer instead of failing on the server', function () {
+    answer([$this->scale->id => 3, $this->choice->id => 0, $this->text->id => "abc\0def"], User::factory()->create())
+        ->assertSessionHasErrors('answers.'.$this->text->id);
+
+    expect(SurveyResponse::count())->toBe(0);
+});
+
+it('caps guest answers per survey and network for the day', function () {
+    $this->survey->update(['allow_guests' => true]);
+
+    // عشرون إجابة سابقة اليوم من العنوان نفسه (بكعكات محذوفة)
+    for ($i = 0; $i < 20; $i++) {
+        RateLimiter::hit('survey-guest:'.$this->survey->id.'|127.0.0.1', 86400);
+    }
+
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error');
+    expect(SurveyResponse::count())->toBe(0);
+});
+
+it('includes survey answers in the data export and detaches them from an anonymized account', function () {
+    $user = User::factory()->create();
+    answer([$this->scale->id => 4, $this->choice->id => 1], $user);
+
+    expect(app(ExportUserData::class)->handle($user)['survey_responses'][0]['survey'])->toBe($this->survey->title);
+
+    $user->forceFill(['deletion_requested_at' => now()])->save();
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user->fresh());
+
+    expect(SurveyResponse::sole()->user_id)->toBeNull();
+});
+
+it('logs the export of survey results', function () {
+    $this->actingAs($this->manager);
+    Livewire::test(SurveyResultsPage::class, ['record' => $this->survey->getRouteKey()])->callAction('export');
+
+    expect(Activity::where('event', 'survey_results_exported')->exists())->toBeTrue();
 });

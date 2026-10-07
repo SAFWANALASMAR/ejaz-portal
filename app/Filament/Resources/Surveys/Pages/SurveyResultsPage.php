@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Surveys\Pages;
 
+use App\Enums\ActivityEvent;
 use App\Enums\SurveyQuestionType;
 use App\Filament\Resources\Surveys\SurveyResource;
 use App\Models\Survey;
@@ -63,6 +64,9 @@ class SurveyResultsPage extends Page
         $survey = $this->survey()->load('questions');
         abort_unless(auth()->user()?->can('view', $survey), 403);
 
+        activity('surveys')->performedOn($survey)->causedBy(auth()->user())
+            ->event(ActivityEvent::SurveyResultsExported->value)->log(ActivityEvent::SurveyResultsExported->value);
+
         return response()->streamDownload(function () use ($survey): void {
             $out = fopen('php://output', 'w');
 
@@ -72,7 +76,7 @@ class SurveyResultsPage extends Page
 
             // علامة الترميز ليقرأ Excel العربية
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, [__('surveys.results.csv_question'), __('surveys.results.csv_type'), __('surveys.results.csv_answer'), __('surveys.results.csv_count'), __('surveys.results.csv_average')]);
+            fputcsv($out, [__('surveys.results.csv_question'), __('surveys.results.csv_type'), __('surveys.results.csv_answer'), __('surveys.results.csv_count'), __('surveys.results.csv_average')], escape: '');
 
             foreach (SurveyResults::for($survey)['questions'] as $row) {
                 $question = $row['question'];
@@ -83,7 +87,7 @@ class SurveyResultsPage extends Page
 
                 foreach ($row['counts'] ?? [] as $value => $count) {
                     $label = $question->type === SurveyQuestionType::Choice ? ($question->optionList()[$value] ?? '') : (string) $value;
-                    fputcsv($out, self::safe([$question->prompt, $question->type->getLabel(), $label, $count, $row['average'] ?? '']));
+                    fputcsv($out, self::safe([$question->prompt, $question->type->getLabel(), $label, $count, $row['average'] ?? '']), escape: '');
                 }
             }
 
@@ -91,7 +95,7 @@ class SurveyResultsPage extends Page
                 $key = (string) $question->id;
 
                 $survey->responses()->whereRaw('jsonb_exists(answers, ?)', [$key])->lazyById()->each(function (SurveyResponse $response) use ($out, $question, $key): void {
-                    fputcsv($out, self::safe([$question->prompt, $question->type->getLabel(), (string) ($response->answers[$key] ?? ''), '', '']));
+                    fputcsv($out, self::safe([$question->prompt, $question->type->getLabel(), (string) ($response->answers[$key] ?? ''), '', '']), escape: '');
                 });
             }
 

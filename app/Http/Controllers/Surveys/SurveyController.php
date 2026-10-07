@@ -12,6 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * الاستبيان برابط رمزه: النموذج، والإجابة. وصاحب الحساب يجيب مرة (قيد فريد)، وغير المسجل —إن سُمح
@@ -19,6 +20,11 @@ use Illuminate\Support\Facades\Cookie;
  */
 class SurveyController extends Controller
 {
+    /**
+     * إجابات غير المسجلين على الاستبيان الواحد من العنوان الواحد في اليوم (شبكة جهة أو منزل).
+     */
+    private const GUEST_DAILY = 20;
+
     public function show(Request $request, string $token): View|RedirectResponse
     {
         $survey = $this->survey($token);
@@ -49,6 +55,13 @@ class SurveyController extends Controller
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
 
+        // سقف يومي لإجابات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة
+        $guestKey = 'survey-guest:'.$survey->id.'|'.$request->ip();
+
+        if ($user === null && RateLimiter::tooManyAttempts($guestKey, self::GUEST_DAILY)) {
+            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
+        }
+
         try {
             $submit->handle($user, $survey->load('questions'), (array) $request->validated('answers', []));
         } catch (AuthorizationException $exception) {
@@ -57,6 +70,7 @@ class SurveyController extends Controller
 
         if ($user === null) {
             Cookie::queue(self::cookie($survey), '1', 60 * 24 * 365);
+            RateLimiter::hit($guestKey, 60 * 60 * 24);
         }
 
         return redirect()->route('surveys.show', $token)->with('status', __('surveys.public.thanks'));

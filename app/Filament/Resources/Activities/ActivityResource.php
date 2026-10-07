@@ -59,7 +59,7 @@ class ActivityResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('log_name')->label(__('activity.fields.log_name'))
-                    ->options(collect(['default', 'security', 'users', 'content', 'competitions'])->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
+                    ->options(collect(['default', 'security', 'users', 'content', 'competitions', 'surveys'])->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
                 // الخيارات من التعداد، لا من استعلام DISTINCT على سجل يكبر بلا حد
                 SelectFilter::make('event')->label(__('activity.fields.event'))
                     ->options(ActivityEvent::class),
