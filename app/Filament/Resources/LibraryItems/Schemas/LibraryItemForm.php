@@ -37,8 +37,8 @@ class LibraryItemForm
                     ->label(__('library.fields.tags'))
                     ->helperText(__('library.fields.tags_hint'))
                     ->suggestions(fn (): array => LibraryItem::tagsIn(LibraryItem::query()))
-                    ->rules(['array', 'max:10'])
-                    ->nestedRecursiveRules(['string', 'max:40'])
+                    ->rules(['array', 'max:'.LibraryItem::MAX_TAGS])
+                    ->nestedRecursiveRules(['string', 'max:'.LibraryItem::MAX_TAG_LENGTH])
                     ->columnSpanFull(),
                 Textarea::make('description')->label(__('library.fields.description'))->rows(4)->maxLength(2000)->columnSpanFull(),
                 ContentFields::image('thumbnail', LibraryItem::IMAGE_DIRECTORY)
@@ -48,7 +48,7 @@ class LibraryItemForm
                 TextInput::make('video_url')
                     ->label(__('library.fields.video_url'))
                     ->helperText(__('library.fields.video_url_hint'))
-                    ->maxLength(500)
+                    ->maxLength(VideoUrl::MAX_LENGTH)
                     ->rules([new VideoUrl])
                     ->required(fn (Get $get): bool => (bool) $get('is_published'))
                     ->visible(fn (Get $get): bool => self::section($get)?->takesVideoUrl() ?? false)
@@ -63,7 +63,7 @@ class LibraryItemForm
                     ->disk(LibraryItem::disk())
                     ->directory(LibraryItem::FILE_DIRECTORY)
                     ->visibility('private')
-                    ->acceptedFileTypes(fn (Get $get): array => self::section($get)?->takesPdf() ? ['application/pdf'] : ['audio/mpeg', 'audio/mp4', 'audio/x-m4a'])
+                    ->acceptedFileTypes(fn (Get $get): array => self::section($get)?->takesPdf() ? ['application/pdf'] : array_merge(...array_values(LibraryItem::AUDIO_TYPES)))
                     ->maxSize(fn (Get $get): int => self::section($get)?->takesPdf() ? 20480 : 25600)
                     ->rules(fn (Get $get): array => self::section($get)?->takesPdf() ? [new RealPdf] : [])
                     // لا رابط مؤقت موقّع: الملف يُنزَّل من إجراء «تنزيل الملف» بعد فحص الصلاحية

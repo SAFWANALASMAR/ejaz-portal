@@ -6,6 +6,7 @@
     use App\Enums\LibrarySection;
 
     $activeTag = $filters['tag'] ?? null;
+    $search = isset($filters['q']) ? ['q' => $filters['q']] : [];
 @endphp
 
 <x-page-hero :title="$section->getLabel()" />
@@ -44,7 +45,7 @@
                 <ul class="mt-2 flex flex-wrap gap-2" aria-labelledby="tags">
                     @foreach ($tags as $tag)
                         <li>
-                            <a href="{{ route('library.section', [$section->value, 'tag' => $tag]) }}" @if ($activeTag === $tag) aria-current="true" @endif
+                            <a href="{{ route('library.section', [$section->value, 'tag' => $tag, ...$search]) }}" @if ($activeTag === $tag) aria-current="true" @endif
                                 class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-gold aria-[current=true]:border-gold aria-[current=true]:bg-gold/15 aria-[current=true]:font-semibold">
                                 {{ $tag }}
                             </a>
