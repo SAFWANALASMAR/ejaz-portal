@@ -2,6 +2,7 @@
 
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
+use App\Jobs\ProcessSubmissionVideo;
 use App\Models\Competition;
 use App\Models\SubmissionVideo;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Psr7\Utils;
+use Illuminate\Support\Facades\Queue;
 
 /**
  * تخزين S3 وهمي في الذاكرة: يكفي لعمليات الرفع المجزأ التي يستدعيها S3VideoUploads.
@@ -84,6 +86,8 @@ final class FakeS3
                 return Create::promiseFor(new Result([]));
             case 'GetObject':
                 return Create::promiseFor(new Result(['Body' => Utils::streamFor($this->objects[$command['Key']])]));
+            case 'HeadObject':
+                return Create::promiseFor(new Result(['ContentLength' => strlen($this->objects[$command['Key']])]));
             case 'CopyObject':
                 [, $source] = explode('/', $command['CopySource'], 2);
                 $this->objects[$command['Key']] = $this->objects[rawurldecode($source)];
@@ -180,6 +184,47 @@ it('leaves out of the video any part beyond its count', function () {
 
     expect($video->fresh()->status)->toBe(VideoStatus::Ready)
         ->and(array_values($this->s3->objects))->toBe([$this->contents]);
+});
+
+it('rejects a part replaced with another size after completing was asked, without downloading it', function () {
+    startS3Upload($this->contents);
+    $video = SubmissionVideo::sole();
+    $this->s3->uploadPart('upload-0', 1, substr($this->contents, 0, 5 * 1024 * 1024));
+    $this->s3->uploadPart('upload-0', 2, substr($this->contents, 5 * 1024 * 1024));
+
+    Queue::fake();
+    $this->postJson('/competition-videos/'.$video->uuid.'/complete')->assertStatus(202);
+
+    // بالرابط الموقّع نفسه وما زال صالحاً: جزء أكبر من حجمه بعد طلب الإكمال (S3 لا يوقّع الحجم)
+    $this->s3->uploadPart('upload-0', 1, substr($this->contents, 0, 5 * 1024 * 1024).str_repeat('x', 1024));
+
+    (new ProcessSubmissionVideo($video->id))->handle(app(VideoUploads::class));
+
+    expect($video->fresh()->status)->toBe(VideoStatus::Rejected)
+        ->and($video->fresh()->rejection_reason)->toBe('size_mismatch')
+        ->and($this->s3->calls)->not->toContain('CompleteMultipartUpload')->not->toContain('GetObject')
+        ->and($this->s3->uploads)->toBe([])
+        ->and($this->s3->objects)->toBe([]);
+});
+
+it('checks the stored size before downloading a video completed on an earlier try', function () {
+    startS3Upload($this->contents);
+    $video = SubmissionVideo::sole();
+    $this->s3->uploadPart('upload-0', 1, substr($this->contents, 0, 5 * 1024 * 1024));
+    $this->s3->uploadPart('upload-0', 2, substr($this->contents, 5 * 1024 * 1024));
+
+    Queue::fake();
+    $this->postJson('/competition-videos/'.$video->uuid.'/complete')->assertStatus(202);
+
+    // محاولة سابقة أكملت الرفع ثم توقفت، والكائن المخزّن لا يطابق الحجم المعلن
+    unset($this->s3->uploads['upload-0']);
+    $this->s3->objects['private/competition-uploads/'.$video->uuid.'.mp4'] = $this->contents.str_repeat('x', 1024);
+
+    (new ProcessSubmissionVideo($video->id))->handle(app(VideoUploads::class));
+
+    expect($video->fresh()->rejection_reason)->toBe('size_mismatch')
+        ->and($this->s3->calls)->toContain('HeadObject')->not->toContain('GetObject')
+        ->and($this->s3->objects)->toBe([]);
 });
 
 it('aborts the previous upload when the applicant starts again', function () {

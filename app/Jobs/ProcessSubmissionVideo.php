@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
+use App\Exceptions\VideoRejected;
 use App\Models\SubmissionVideo;
 use App\Support\VideoProbe;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -38,16 +39,25 @@ class ProcessSubmissionVideo implements ShouldQueue
 
         $uuid = $video->uuid;
         $path = null;
-        $file = $uploads->open($video);
 
         try {
-            $reason = $this->problem($video, $file);
+            $file = $uploads->open($video);
+        } catch (VideoRejected $rejected) {
+            // المستلم لا يطابق حجمه المعلن: يُرفض دون تنزيله أو فحصه
+            $file = null;
+            $reason = $rejected->reason;
+        }
 
-            if ($reason === null) {
-                $path = $uploads->keep($video, $file);
+        if ($file !== null) {
+            try {
+                $reason = $this->problem($video, $file);
+
+                if ($reason === null) {
+                    $path = $uploads->keep($video, $file);
+                }
+            } finally {
+                fclose($file);
             }
-        } finally {
-            fclose($file);
         }
 
         $updated = SubmissionVideo::query()->whereKey($video->id)->where('uuid', $uuid)->where('status', VideoStatus::Processing)->update([

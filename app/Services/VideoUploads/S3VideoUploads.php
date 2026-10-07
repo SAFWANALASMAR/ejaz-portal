@@ -4,6 +4,7 @@ namespace App\Services\VideoUploads;
 
 use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
+use App\Exceptions\VideoRejected;
 use App\Models\SubmissionVideo;
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
@@ -76,6 +77,13 @@ final class S3VideoUploads implements VideoUploads
     {
         $this->complete($video);
 
+        // الحجم قبل التنزيل: كائن أكبر من المعلن لا يُكتب على قرص العامل
+        $stored = (int) $this->client->headObject(['Bucket' => $this->bucket, 'Key' => $this->key($this->uploadPath($video))])['ContentLength'];
+
+        if ($stored !== $video->size) {
+            throw new VideoRejected('size_mismatch');
+        }
+
         $target = tmpfile();
 
         if ($target === false) {
@@ -88,8 +96,17 @@ final class S3VideoUploads implements VideoUploads
             '@http' => ['stream' => true],
         ])['Body'];
 
+        $written = 0;
+
         while (! $body->eof()) {
-            fwrite($target, $body->read(1024 * 1024));
+            $written += (int) fwrite($target, $body->read(1024 * 1024));
+
+            // ولا يتجاوز النسخ الحجم المعلن ولو تغيّر الكائن بين الفحص والتنزيل
+            if ($written > $video->size) {
+                fclose($target);
+
+                throw new VideoRejected('size_mismatch');
+            }
         }
 
         rewind($target);
@@ -151,6 +168,11 @@ final class S3VideoUploads implements VideoUploads
 
     /**
      * يكمل الرفع بأجزائه المسجلة في التخزين. وإعادة المهمة بعد إكماله تجد الرفع منتهياً فتمضي.
+     *
+     * والأجزاء تُفحص من جديد هنا: الرابط الموقّع يبقى صالحاً بعد طلب الإكمال، والحجم لا يدخل في توقيعه،
+     * فقد يُستبدل جزء بأكبر منه. فكل جزء بحجمه المتوقع تماماً، وإلا أُلغي الرفع ورُفض المقطع.
+     *
+     * @throws VideoRejected
      */
     private function complete(SubmissionVideo $video): void
     {
@@ -166,10 +188,22 @@ final class S3VideoUploads implements VideoUploads
 
         // أجزاء المقطع وحدها بترتيبها، وما زاد عليها لا يدخل فيه
         $parts = array_values(array_filter(
-            array_map(fn (array $part): array => ['PartNumber' => (int) $part['PartNumber'], 'ETag' => $part['ETag']], $parts),
-            fn (array $part): bool => $part['PartNumber'] >= 1 && $part['PartNumber'] <= $video->chunk_count,
+            $parts,
+            fn (array $part): bool => (int) $part['PartNumber'] >= 1 && (int) $part['PartNumber'] <= $video->chunk_count,
         ));
-        usort($parts, fn (array $a, array $b): int => $a['PartNumber'] <=> $b['PartNumber']);
+        usort($parts, fn (array $a, array $b): int => (int) $a['PartNumber'] <=> (int) $b['PartNumber']);
+
+        $sized = count($parts) === $video->chunk_count && collect($parts)->every(
+            fn (array $part): bool => (int) $part['Size'] === $video->expectedChunkSize((int) $part['PartNumber'] - 1),
+        );
+
+        if (! $sized) {
+            $this->discard($video);
+
+            throw new VideoRejected('size_mismatch');
+        }
+
+        $parts = array_map(fn (array $part): array => ['PartNumber' => (int) $part['PartNumber'], 'ETag' => $part['ETag']], $parts);
 
         $this->client->completeMultipartUpload([
             'Bucket' => $this->bucket,

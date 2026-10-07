@@ -2,6 +2,7 @@
 
 namespace App\Contracts;
 
+use App\Exceptions\VideoRejected;
 use App\Models\SubmissionVideo;
 
 /**
@@ -35,6 +36,8 @@ interface VideoUploads
      * المقطع كاملاً في ملف مؤقت محلي للفحص، والمستدعي يغلقه.
      *
      * @return resource
+     *
+     * @throws VideoRejected المستلم لا يطابق حجمه المعلن، فلا يُنزَّل ولا يُكتب على القرص
      */
     public function open(SubmissionVideo $video);
 
