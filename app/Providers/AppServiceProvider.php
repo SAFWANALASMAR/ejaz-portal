@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
+use App\Contracts\BotChallenge;
 use App\Contracts\SmsGateway;
 use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
@@ -10,6 +11,8 @@ use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
+use App\Services\BotChallenge\FakeBotChallenge;
+use App\Services\BotChallenge\TurnstileChallenge;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\VideoUploads\S3VideoUploads;
 use App\Support\ChunkedVideoUpload;
@@ -41,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
             'log' => new LogSmsGateway,
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
+        });
+
+        $this->app->singleton(BotChallenge::class, fn () => match (config('services.bot_challenge.driver')) {
+            'fake' => new FakeBotChallenge,
+            'turnstile' => new TurnstileChallenge((string) config('services.bot_challenge.turnstile_site_key'), (string) config('services.bot_challenge.turnstile_secret_key')),
+            default => throw new InvalidArgumentException('Unsupported bot challenge driver: '.config('services.bot_challenge.driver')),
         });
 
         $this->app->singleton(VideoUploads::class, function () {

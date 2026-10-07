@@ -54,7 +54,7 @@ class SecurityHeaders
 
         $directives = [
             'default-src' => ["'self'"],
-            'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
+            'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev, ...config('security.csp.script_src', [])],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
             'img-src' => ["'self'", 'data:', 'blob:', 'https:'],
             'font-src' => ["'self'", 'data:', $dev],

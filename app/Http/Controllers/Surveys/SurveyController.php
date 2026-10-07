@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Surveys;
 
 use App\Actions\Surveys\SubmitSurveyResponse;
+use App\Contracts\BotChallenge;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Surveys\SubmitSurveyRequest;
 use App\Models\Survey;
@@ -47,10 +48,15 @@ class SurveyController extends Controller
 
         $answered = ($user instanceof User && SubmitSurveyResponse::answered($survey, $user)) || self::answeredOnDevice($request, $survey);
 
-        return view('surveys.show', ['survey' => $survey->load('questions'), 'state' => $answered ? 'answered' : 'open']);
+        return view('surveys.show', [
+            'survey' => $survey->load('questions'),
+            'state' => $answered ? 'answered' : 'open',
+            // عنصر التحدي لغير المسجل وحده، متى ضُبط مفتاح الموقع
+            'challengeKey' => $user === null ? app(BotChallenge::class)->siteKey() : null,
+        ]);
     }
 
-    public function submit(SubmitSurveyRequest $request, string $token, SubmitSurveyResponse $submit): RedirectResponse
+    public function submit(SubmitSurveyRequest $request, string $token, SubmitSurveyResponse $submit, BotChallenge $challenge): RedirectResponse
     {
         $survey = $this->survey($token);
         /** @var User|null $user */
@@ -59,6 +65,11 @@ class SurveyController extends Controller
         // الكعكة للجميع في الاستبيان المفتوح لغير المسجلين: فلا يجيب الضيف ثم يجيب ثانية بعد الدخول
         if (self::answeredOnDevice($request, $survey)) {
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
+        }
+
+        // التحدي ضد الآليات على غير المسجل (Turnstile)، يُتحقق منه في الخادم قبل أي احتساب أو حفظ
+        if ($user === null && ! $challenge->passes((string) $request->input('cf-turnstile-response', ''))) {
+            return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.challenge_failed'));
         }
 
         // سقف يومي لمحاولات غير المسجلين من عنوان واحد على هذا الاستبيان، فلا تُحرَّف النتائج بحذف الكعكة.

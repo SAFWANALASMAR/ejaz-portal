@@ -73,6 +73,12 @@
                 @endif
             </p>
 
+            {{-- التحدي ضد الآليات لغير المسجل (Turnstile)، ويتحقق الخادم من رمزه --}}
+            @if ($challengeKey ?? null)
+                <div class="cf-turnstile" data-sitekey="{{ $challengeKey }}" data-language="ar"></div>
+                <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="{{ Vite::cspNonce() }}"></script>
+            @endif
+
             <x-button class="w-full" size="lg">{{ __('surveys.public.submit') }}</x-button>
         </form>
     @endif
