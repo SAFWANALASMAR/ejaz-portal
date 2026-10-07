@@ -25,6 +25,14 @@ class ProgramRegistrationPolicy
         return $user->can('programs.view');
     }
 
+    /**
+     * صاحب التسجيل وحده يرى شهادته وينزّلها.
+     */
+    public function download(User $user, ProgramRegistration $registration): bool
+    {
+        return $registration->user_id === $user->id && $registration->certificate_path !== null;
+    }
+
     public function cancel(User $user, ProgramRegistration $registration): bool
     {
         return $registration->user_id === $user->id

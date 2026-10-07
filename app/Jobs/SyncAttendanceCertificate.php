@@ -6,12 +6,17 @@ use App\Enums\RegistrationStatus;
 use App\Models\ProgramRegistration;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Mpdf\HTMLParserMode;
 use Mpdf\Mpdf;
 
 /**
  * شهادة الحضور تتبع حالة الحضور: تُولَّد PDF لمسجل مؤكد سُجّل حضوره، وتُحذف إن أُلغي حضوره.
- * في الطابور لأن التوليد يتجاوز ثانية (performance.md). والقالب مؤقت حتى يصل قالب الجمعية.
+ * في الطابور لأن التوليد يتجاوز ثانية (performance.md). ومهام التسجيل الواحد لا تتداخل، وكل
+ * مهمة تقرأ الحالة عند تنفيذها، فتبقى آخر حالة هي الصحيحة ولو تتابع التسجيل والإلغاء.
+ * والقالب مؤقت حتى يصل قالب الجمعية، ولا يحمّل أي مورد خارجي.
  */
 class SyncAttendanceCertificate implements ShouldQueue
 {
@@ -19,7 +24,20 @@ class SyncAttendanceCertificate implements ShouldQueue
 
     public const DIRECTORY = 'certificates';
 
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [10, 60];
+
     public function __construct(public ProgramRegistration $registration) {}
+
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping('certificate-'.$this->registration->getKey()))->releaseAfter(10)];
+    }
 
     public function handle(): void
     {
@@ -29,33 +47,47 @@ class SyncAttendanceCertificate implements ShouldQueue
             return;
         }
 
-        $disk = Storage::disk(self::disk());
-        $eligible = $registration->status === RegistrationStatus::Confirmed && $registration->attended_at !== null;
+        $eligible = $registration->status === RegistrationStatus::Confirmed
+            && $registration->attended_at !== null
+            && $registration->user->anonymized_at === null;
 
         if (! $eligible) {
-            if ($registration->certificate_path !== null) {
-                $disk->delete($registration->certificate_path);
-                $registration->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
-            }
+            self::remove($registration);
 
             return;
         }
 
         $path = self::DIRECTORY.'/'.$registration->uuid.'.pdf';
-        $disk->put($path, self::render($registration));
+        Storage::disk(self::disk())->put($path, self::render($registration));
         $registration->forceFill(['certificate_path' => $path, 'certificate_issued_at' => now()])->saveQuietly();
     }
 
     /**
-     * محتوى PDF للشهادة من قالبها (resources/views/certificates/attendance.blade.php).
+     * حذف ملف الشهادة ومساره (إلغاء الحضور، أو إخفاء بيانات الحساب).
      */
-    public static function render(ProgramRegistration $registration): string
+    public static function remove(ProgramRegistration $registration): void
+    {
+        if ($registration->certificate_path === null) {
+            return;
+        }
+
+        Storage::disk(self::disk())->delete($registration->certificate_path);
+        $registration->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
+    }
+
+    public static function disk(): string
+    {
+        return (string) config('filesystems.private_disk', 'local');
+    }
+
+    /**
+     * محتوى PDF للشهادة من قالبها (resources/views/certificates/attendance.blade.php). بلا جلب
+     * لأي ملف أو رابط، وبلا إصدار المكتبة في بيانات الملف.
+     */
+    private static function render(ProgramRegistration $registration): string
     {
         $tempDir = storage_path('framework/mpdf');
-
-        if (! is_dir($tempDir)) {
-            mkdir($tempDir, 0775, true);
-        }
+        File::ensureDirectoryExists($tempDir);
 
         $pdf = new Mpdf([
             'mode' => 'utf-8',
@@ -65,15 +97,16 @@ class SyncAttendanceCertificate implements ShouldQueue
             'tempDir' => $tempDir,
             'autoScriptToLang' => true,
             'autoLangToFont' => true,
+            'whitelistStreamWrappers' => [],
+            'exposeVersion' => false,
         ]);
         $pdf->SetTitle(__('programs.certificate.title'));
-        $pdf->WriteHTML(view('certificates.attendance', ['registration' => $registration])->render());
+        $pdf->WriteHTML(view('certificates.attendance-style')->render(), HTMLParserMode::HEADER_CSS);
+        // mPDF يستبدل نصوصاً مثل {PAGENO} و{DATE} في المحتوى عند الإخراج، ومنه اسم المسجل وعنوان
+        // البرنامج، فتُفصل الأقواس بمسافة صفرية العرض لا تُرى
+        $html = view('certificates.attendance', ['registration' => $registration])->render();
+        $pdf->WriteHTML(str_replace('{', '{&#8203;', $html), HTMLParserMode::HTML_BODY);
 
         return $pdf->Output('', 'S');
-    }
-
-    public static function disk(): string
-    {
-        return (string) config('filesystems.private_disk', 'local');
     }
 }
