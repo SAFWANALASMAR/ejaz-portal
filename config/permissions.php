@@ -34,6 +34,9 @@ return [
         // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
         'users' => $crud,
         'activity' => ['view'],
+
+        // المسابقات (المرحلة 2)
+        'competitions' => ['view', 'create', 'update', 'delete'],
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -41,6 +44,7 @@ return [
         'board_member' => [
             'menu.view', 'pages.view', 'initiatives.view', 'board.view', 'governance.view',
             'library.view', 'news.view', 'media.view', 'partners.view',
+            'competitions.view',
         ],
         'secretary' => [
             'requests.*',
@@ -49,7 +53,9 @@ return [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*',
         ],
-        'program_manager' => [],
+        'program_manager' => [
+            'competitions.*',
+        ],
         'reviewer' => [],
         'assembly_member' => [],
         'member' => [],
