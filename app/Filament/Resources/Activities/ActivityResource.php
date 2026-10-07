@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Activities;
 
+use App\Enums\ActivityEvent;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Activities\Pages\ListActivities;
 use App\Filament\Resources\Activities\Pages\ViewActivity;
@@ -17,6 +18,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Lang;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -48,16 +50,18 @@ class ActivityResource extends Resource
                 TextColumn::make('created_at')->label(__('activity.fields.created_at'))->dateTime('Y-m-d H:i')->sortable(),
                 TextColumn::make('log_name')->label(__('activity.fields.log_name'))->badge()
                     ->formatStateUsing(fn (?string $state) => __('activity.logs.'.($state ?? 'default'))),
-                TextColumn::make('event')->label(__('activity.fields.event'))->searchable(),
+                TextColumn::make('event')->label(__('activity.fields.event'))
+                    ->formatStateUsing(fn (?string $state) => self::eventLabel($state)),
                 TextColumn::make('causer.name')->label(__('activity.fields.causer'))->placeholder(__('activity.fields.system')),
                 TextColumn::make('subject_type')->label(__('activity.fields.subject'))
-                    ->formatStateUsing(fn (?string $state, Activity $record) => $state ? class_basename($state).' #'.$record->subject_id : '—'),
+                    ->formatStateUsing(fn (?string $state, Activity $record) => self::subjectLabel($record)),
             ])
             ->filters([
                 SelectFilter::make('log_name')->label(__('activity.fields.log_name'))
                     ->options(collect(['default', 'security', 'users', 'content'])->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
+                // الخيارات من التعداد، لا من استعلام DISTINCT على سجل يكبر بلا حد
                 SelectFilter::make('event')->label(__('activity.fields.event'))
-                    ->options(fn () => Activity::query()->whereNotNull('event')->distinct()->orderBy('event')->pluck('event', 'event')),
+                    ->options(ActivityEvent::class),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -70,14 +74,34 @@ class ActivityResource extends Resource
             Section::make()->columns(2)->schema([
                 TextEntry::make('created_at')->label(__('activity.fields.created_at'))->dateTime('Y-m-d H:i:s'),
                 TextEntry::make('causer.name')->label(__('activity.fields.causer'))->placeholder(__('activity.fields.system')),
-                TextEntry::make('event')->label(__('activity.fields.event')),
+                TextEntry::make('event')->label(__('activity.fields.event'))
+                    ->formatStateUsing(fn (?string $state) => self::eventLabel($state)),
                 TextEntry::make('subject_type')->label(__('activity.fields.subject'))
-                    ->formatStateUsing(fn (?string $state, Activity $record) => $state ? class_basename($state).' #'.$record->subject_id : '—'),
+                    ->formatStateUsing(fn (?string $state, Activity $record) => self::subjectLabel($record)),
                 KeyValueEntry::make('attribute_changes.old')->label(__('activity.fields.old'))->columnSpanFull(),
                 KeyValueEntry::make('attribute_changes.attributes')->label(__('activity.fields.new'))->columnSpanFull(),
                 KeyValueEntry::make('properties')->label(__('activity.fields.properties'))->columnSpanFull(),
             ]),
         ]);
+    }
+
+    public static function eventLabel(?string $event): string
+    {
+        return ActivityEvent::tryFrom((string) $event)?->getLabel() ?? (string) $event;
+    }
+
+    /**
+     * نوع السجل المتأثر بالعربية ورقمه، مثل «حساب #5».
+     */
+    public static function subjectLabel(Activity $record): string
+    {
+        if ($record->subject_type === null) {
+            return '—';
+        }
+
+        $type = class_basename($record->subject_type);
+
+        return (Lang::has('activity.subjects.'.$type) ? __('activity.subjects.'.$type) : $type).' #'.$record->subject_id;
     }
 
     public static function getPages(): array

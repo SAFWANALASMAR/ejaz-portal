@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Actions\Accounts\SendPhoneVerificationCode;
+use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Events\Failed;
@@ -32,7 +33,7 @@ class RecordAuthenticationEvents
 
         $event->user->forceFill(['last_login_at' => now()])->saveQuietly();
 
-        $this->log('login', $event->user);
+        $this->log(ActivityEvent::Login, $event->user);
     }
 
     public function handleFailed(Failed $event): void
@@ -40,7 +41,7 @@ class RecordAuthenticationEvents
         $identifier = $this->identifier($event->credentials);
         $account = $event->user instanceof User ? $event->user : User::findByLoginIdentifier($identifier);
 
-        $this->log('login_failed', $account, [
+        $this->log(ActivityEvent::LoginFailed, $account, [
             'identifier_hash' => LoginIdentifier::hash($identifier),
         ], byAccountOwner: false);
     }
@@ -49,7 +50,7 @@ class RecordAuthenticationEvents
     {
         $identifier = $this->identifier($event->request->only('login', 'email'));
 
-        $this->log('login_lockout', User::findByLoginIdentifier($identifier), [
+        $this->log(ActivityEvent::LoginLockout, User::findByLoginIdentifier($identifier), [
             'identifier_hash' => LoginIdentifier::hash($identifier),
         ], byAccountOwner: false);
     }
@@ -57,14 +58,14 @@ class RecordAuthenticationEvents
     public function handleLogout(Logout $event): void
     {
         if ($event->user instanceof User) {
-            $this->log('logout', $event->user);
+            $this->log(ActivityEvent::Logout, $event->user);
         }
     }
 
     public function handlePasswordReset(PasswordReset $event): void
     {
         if ($event->user instanceof User) {
-            $this->log('password_reset', $event->user);
+            $this->log(ActivityEvent::PasswordReset, $event->user);
         }
     }
 
@@ -77,7 +78,7 @@ class RecordAuthenticationEvents
             return;
         }
 
-        $this->log('registered', $event->user);
+        $this->log(ActivityEvent::Registered, $event->user);
 
         try {
             app(SendPhoneVerificationCode::class)->handle($event->user);
@@ -91,7 +92,7 @@ class RecordAuthenticationEvents
      * @param  array<string, mixed>  $properties
      * @param  bool  $byAccountOwner  الحدث من صاحب الحساب نفسه، لا محاولة دخول عليه
      */
-    private function log(string $event, ?User $user, array $properties = [], bool $byAccountOwner = true): void
+    private function log(ActivityEvent $event, ?User $user, array $properties = [], bool $byAccountOwner = true): void
     {
         $request = request();
 
@@ -100,7 +101,7 @@ class RecordAuthenticationEvents
             : [];
 
         $logger = activity('security')
-            ->event($event)
+            ->event($event->value)
             ->withProperties([...$origin, ...$properties]);
 
         if ($user !== null) {
@@ -111,7 +112,7 @@ class RecordAuthenticationEvents
             }
         }
 
-        $logger->log($event);
+        $logger->log($event->value);
     }
 
     /**

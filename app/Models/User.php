@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
@@ -114,9 +115,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             if ($changed !== []) {
                 activity('users')
                     ->performedOn($user)
-                    ->event('personal_data_changed')
+                    ->event(ActivityEvent::PersonalDataChanged->value)
                     ->withProperties(['fields' => $changed])
-                    ->log('personal_data_changed');
+                    ->log(ActivityEvent::PersonalDataChanged->value);
             }
         });
     }

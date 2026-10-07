@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Notifications\SuperAdminRoleChanged;
@@ -51,9 +52,9 @@ class ChangeUserRoles
                 activity('users')
                     ->causedBy($actor)
                     ->performedOn($user)
-                    ->event('roles_changed')
+                    ->event(ActivityEvent::RolesChanged->value)
                     ->withProperties(['old' => $before, 'new' => $after])
-                    ->log('roles_changed');
+                    ->log(ActivityEvent::RolesChanged->value);
             }
         });
 

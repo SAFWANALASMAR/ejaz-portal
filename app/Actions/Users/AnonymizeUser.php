@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -61,8 +62,8 @@ class AnonymizeUser
             activity('users')
                 ->causedBy($actor)
                 ->performedOn($user)
-                ->event('anonymized')
-                ->log('anonymized');
+                ->event(ActivityEvent::Anonymized->value)
+                ->log(ActivityEvent::Anonymized->value);
         });
     }
 

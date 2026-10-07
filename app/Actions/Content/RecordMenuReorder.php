@@ -2,6 +2,7 @@
 
 namespace App\Actions\Content;
 
+use App\Enums\ActivityEvent;
 use App\Models\MenuItem;
 use Illuminate\Support\Facades\Cache;
 
@@ -28,11 +29,11 @@ class RecordMenuReorder
         Cache::forget(MenuItem::CACHE_KEY);
 
         activity('content')
-            ->event('menu_reordered')
+            ->event(ActivityEvent::MenuReordered->value)
             ->withProperties([
                 'old' => $this->before,
                 'new' => array_map('intval', array_values($order)),
             ])
-            ->log('menu_reordered');
+            ->log(ActivityEvent::MenuReordered->value);
     }
 }

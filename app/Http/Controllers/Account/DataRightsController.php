@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Account;
 
 use App\Actions\Accounts\ExportUserData;
+use App\Enums\ActivityEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\RequestAccountDeletionRequest;
 use App\Models\User;
@@ -26,7 +27,7 @@ class DataRightsController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        activity('security')->causedBy($user)->performedOn($user)->event('data_exported')->log('data_exported');
+        activity('security')->causedBy($user)->performedOn($user)->event(ActivityEvent::DataExported->value)->log(ActivityEvent::DataExported->value);
 
         return response()->json(
             $action->handle($user),

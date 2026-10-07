@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
@@ -48,7 +49,7 @@ class CreateAdmin extends Command
         $user->forceFill(['email_verified_at' => now()])->save();
         $user->assignRole(RoleName::SuperAdmin->value);
 
-        activity('security')->performedOn($user)->event('admin_created')->log('admin_created');
+        activity('security')->performedOn($user)->event(ActivityEvent::AdminCreated->value)->log(ActivityEvent::AdminCreated->value);
 
         $this->info('أُنشئ حساب المشرف العام: '.$email);
         $this->line('سجّل الدخول من /login ثم فعّل التحقق الثنائي، فهو شرط لدخول لوحة الإدارة.');

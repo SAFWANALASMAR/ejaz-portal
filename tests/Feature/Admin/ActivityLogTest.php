@@ -1,8 +1,12 @@
 <?php
 
+use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Filament\Resources\Activities\ActivityResource;
+use App\Filament\Resources\Activities\Pages\ListActivities;
 use App\Models\MenuItem;
+use App\Models\User;
+use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
 it('shows the activity log to the super admin only', function () {
@@ -45,3 +49,23 @@ it('offers no way to change or delete the log', function () {
         ->and($admin->can('deleteAny', Activity::class))->toBeFalse()
         ->and($admin->can('view', $log))->toBeTrue();
 });
+
+it('names events and affected records in Arabic', function () {
+    $admin = userWithRole(RoleName::SuperAdmin);
+    $member = User::factory()->create();
+    activity('users')->causedBy($admin)->performedOn($member)
+        ->event(ActivityEvent::RolesChanged->value)->log(ActivityEvent::RolesChanged->value);
+    $log = Activity::where('event', ActivityEvent::RolesChanged->value)->sole();
+
+    $this->actingAs($admin);
+
+    Livewire::test(ListActivities::class)
+        ->assertTableColumnFormattedStateSet('event', __('activity.events.roles_changed'), $log)
+        ->assertTableColumnFormattedStateSet('subject_type', __('activity.subjects.User').' #'.$member->id, $log)
+        ->filterTable('event', ActivityEvent::RolesChanged->value)
+        ->assertCanSeeTableRecords([$log]);
+});
+
+it('has an Arabic label for every event', function (ActivityEvent $event) {
+    expect(__('activity.events.'.$event->value))->not->toBe('activity.events.'.$event->value);
+})->with(ActivityEvent::cases());
