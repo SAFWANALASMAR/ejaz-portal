@@ -143,7 +143,7 @@ it('refuses a new draw by the super admin who voided the last one, so voiding an
     app(VoidDraw::class)->handle($admin, $first, 'خطأ في قائمة المشاركات قبل السحب');
 
     // المشرف العام ينال competitions.draw عبر Gate::after، والرفض صريح في الإجراء
-    expect(fn () => app(RunDraw::class)->handle($admin, $this->competition, 1))->toThrow(AuthorizationException::class, __('competitions.draws.voided_by_you'))
+    expect(fn () => app(RunDraw::class)->handle($admin, $this->competition, 1))->toThrow(ValidationException::class, __('competitions.draws.voided_by_you'))
         ->and($this->competition->draws()->count())->toBe(1);
 
     // ومن اللوحة رسالة لا صفحة 403

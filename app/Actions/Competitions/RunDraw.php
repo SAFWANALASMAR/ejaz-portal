@@ -49,7 +49,8 @@ class RunDraw
             }
 
             // من ألغى آخر سحب لا يعيده بنفسه، فلا يكرر المشرف العام السحب حتى نتيجة بعينها. رفض صريح
-            // في الإجراء، لأن المشرف العام ينال competitions.draw عبر Gate::after
+            // في الإجراء، لأن المشرف العام ينال competitions.draw عبر Gate::after. وهو رفض إجرائي كبقية رفضات
+            // السحب، فتعرضه اللوحة رسالةً، ويبقى رفض الصلاحية نفسه 403
             $lastVoid = CompetitionDrawVoid::query()
                 ->whereIn('draw_id', $locked->draws()->select('id'))
                 ->latest('voided_at')
@@ -57,7 +58,7 @@ class RunDraw
                 ->first();
 
             if ($lastVoid?->voided_by === $actor->id) {
-                throw new AuthorizationException(__('competitions.draws.voided_by_you'));
+                throw ValidationException::withMessages(['winners_count' => __('competitions.draws.voided_by_you')]);
             }
 
             /** @var list<string> $entrants */
