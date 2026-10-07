@@ -57,7 +57,8 @@ class StoreVideoChunk
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
 
-        // رفع نشط ولو استؤنف بعد مدة، فلا يعدّه التنظيف مهجوراً (ejaz:prune-video-uploads)
-        SubmissionVideo::query()->whereKey($video->id)->update(['updated_at' => now()]);
+        // رفع نشط ولو استؤنف بعد مدة، فلا يعدّه التنظيف مهجوراً (ejaz:prune-video-uploads). وللمقطع نفسه
+        // ما دام قيد الرفع، فلا يجدّد جزء متأخر مقطعاً استُبدل أو أُكمل
+        SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)->update(['updated_at' => now()]);
     }
 }
