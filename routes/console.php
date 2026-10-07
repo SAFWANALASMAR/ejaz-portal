@@ -19,8 +19,8 @@ Schedule::command('programs:send-reminders')->hourly()->onOneServer();
 // أجزاء مقاطع المسابقات المهجورة لا تبقى على القرص الخاص
 Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 
+// بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، لكل الوحدات، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
+Schedule::command('ejaz:purge-anonymized-data')->daily()->onOneServer();
+
 // إحصائيات البوابة تُحسب في الخلفية وتُخزَّن (performance.md)
 Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
-
-// بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
-Schedule::command('ejaz:purge-anonymized-data')->daily()->onOneServer();
