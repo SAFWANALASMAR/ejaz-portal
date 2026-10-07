@@ -114,6 +114,18 @@ it('creates no draft by opening the form, and limits starting by rate', function
     expect(CompetitionSubmission::count())->toBe(1);
 });
 
+it('counts each entry route on its own, so autosaves do not use up the submit limit', function () {
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
+
+    // الحد بلا بادئة مفتاحه المستخدم وحده، فتشترك فيه كل المسارات: 15 حفظاً تلقائياً تستهلك حد الإرسال (10)
+    foreach (range(1, 15) as $attempt) {
+        $this->postJson('/competitions/demo/entry/autosave', entryForm())->assertOk();
+    }
+
+    $this->post('/competitions/demo/entry/submit', entryForm())->assertRedirect('/competitions/demo/entry')->assertSessionHasNoErrors();
+    expect(CompetitionSubmission::sole()->status)->toBe(SubmissionStatus::Submitted);
+});
+
 it('refuses a duplicate submission at the database level', function () {
     CompetitionSubmission::factory()->create(['competition_id' => $this->competition->id, 'user_id' => $this->applicant->id]);
 
