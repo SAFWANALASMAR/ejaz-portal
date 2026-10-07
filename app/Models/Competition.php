@@ -101,6 +101,14 @@ class Competition extends Model
         return $this->hasManyThrough(SubmissionReview::class, CompetitionSubmission::class, 'competition_id', 'submission_id');
     }
 
+    /**
+     * @return HasMany<CompetitionDraw, $this>
+     */
+    public function draws(): HasMany
+    {
+        return $this->hasMany(CompetitionDraw::class)->orderByDesc('executed_at');
+    }
+
     public function resultsApproved(): bool
     {
         return $this->results_approved_at !== null;

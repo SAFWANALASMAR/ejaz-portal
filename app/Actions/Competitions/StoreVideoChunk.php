@@ -40,5 +40,8 @@ class StoreVideoChunk
         if (! ChunkedVideoUpload::store($video, $index, $stream, $declaredLength)) {
             throw ValidationException::withMessages(['index' => __('competitions.video.bad_chunk')]);
         }
+
+        // رفع نشط ولو استؤنف بعد مدة، فلا يعدّه التنظيف مهجوراً (ejaz:prune-video-uploads)
+        SubmissionVideo::query()->whereKey($video->id)->update(['updated_at' => now()]);
     }
 }

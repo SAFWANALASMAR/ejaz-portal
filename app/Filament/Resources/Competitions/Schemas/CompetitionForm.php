@@ -73,7 +73,13 @@ class CompetitionForm
                         ->label(__('competitions.fields.reviewers'))
                         ->helperText(__('competitions.fields.reviewers_hint'))
                         ->multiple()
-                        ->options(fn (): array => User::query()->where('is_active', true)->role(RoleName::Reviewer->value)->orderBy('name')->pluck('name', 'id')->all()),
+                        // النشطون بدور المحكّم، ومعهم المرتبطون بالمسابقة ولو عُطّلت حساباتهم
+                        ->options(fn (?Competition $record): array => User::query()
+                            ->where(fn ($query) => $query->where('is_active', true)->role(RoleName::Reviewer->value))
+                            ->when($record, fn ($query) => $query->orWhereIn('id', $record->reviewers()->select('users.id')))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()),
                 ]),
 
                 Tab::make(__('competitions.tabs.questions'))->schema([

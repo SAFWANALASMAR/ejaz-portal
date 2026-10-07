@@ -5,6 +5,8 @@ namespace App\Actions\Competitions;
 use App\Enums\ActivityEvent;
 use App\Enums\SubmissionStatus;
 use App\Models\Competition;
+use App\Models\CompetitionSubmission;
+use App\Models\SubmissionReview;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -22,26 +24,36 @@ class ApproveResults
      */
     public function handle(User $actor, Competition $competition): Competition
     {
-        if (! $actor->can('competitions.approve') || $competition->resultsApproved()) {
+        if (! $actor->can('competitions.approve')) {
             throw new AuthorizationException;
         }
 
-        if ($competition->isOpen() || $competition->closes_at->isFuture()) {
-            throw ValidationException::withMessages(['competition' => __('competitions.reviews.still_open')]);
-        }
-
-        if ($competition->reviews()->whereNull('completed_at')->exists()) {
-            throw ValidationException::withMessages(['competition' => __('competitions.reviews.incomplete')]);
-        }
-
         DB::transaction(function () use ($actor, $competition): void {
-            Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
+            // الفحوص بعد القفل وعلى النسخة المقفولة: لا اعتمادان متزامنان، ولا درجة تُحفظ أثناءه
+            $locked = Competition::query()->whereKey($competition->id)->lockForUpdate()->firstOrFail();
 
-            $competition->submissions()->where('status', SubmissionStatus::Submitted)->with('reviews')->lazyById()->each(function ($submission): void {
-                $totals = $submission->reviews->pluck('total')->filter(fn ($total): bool => $total !== null);
-                $submission->final_score = $totals->isEmpty() ? null : round((float) $totals->avg(), 2);
-                $submission->save();
-            });
+            if ($locked->resultsApproved()) {
+                throw new AuthorizationException;
+            }
+
+            if ($locked->closes_at->isFuture()) {
+                throw ValidationException::withMessages(['competition' => __('competitions.reviews.still_open')]);
+            }
+
+            if ($locked->reviews()->whereNull('completed_at')->exists()) {
+                throw ValidationException::withMessages(['competition' => __('competitions.reviews.incomplete')]);
+            }
+
+            // الدرجة النهائية لكل المشاركات في استعلام واحد: متوسط مجاميع محكّميها، أو لا شيء بلا تحكيم
+            $averages = SubmissionReview::query()
+                ->selectRaw('submission_id, round(avg(total), 2) as average')
+                ->whereNotNull('total')
+                ->groupBy('submission_id');
+
+            CompetitionSubmission::query()
+                ->where('competition_id', $competition->id)
+                ->where('status', SubmissionStatus::Submitted)
+                ->update(['final_score' => SubmissionReview::query()->fromSub($averages, 'averages')->select('average')->whereColumn('averages.submission_id', 'competition_submissions.id')]);
 
             $competition->results_approved_at = now();
             $competition->results_approved_by = $actor->id;

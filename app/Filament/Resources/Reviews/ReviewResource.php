@@ -54,7 +54,7 @@ class ReviewResource extends Resource
         $user = auth()->user();
 
         return parent::getEloquentQuery()
-            ->with('submission.competition')
+            ->with(['submission.competition', 'reviewer'])
             ->when(! $user->can('submissions.view'), fn (Builder $query) => $query->where('reviewer_id', $user->id));
     }
 

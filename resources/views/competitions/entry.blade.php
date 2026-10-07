@@ -30,6 +30,7 @@
     @if ($editable)
         <x-alert type="info">
             {{ __('competitions.entry.intro') }}
+            <span class="mt-1 block">{{ __('competitions.entry.anonymous') }}</span>
             <span class="mt-1 block font-semibold">{{ __('competitions.entry.closes', ['date' => Dates::display($competition->closes_at, withTime: true)]) }}</span>
         </x-alert>
     @elseif (! $submission->reference)

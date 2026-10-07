@@ -7,6 +7,7 @@ use App\Models\Competition;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -35,6 +36,7 @@ class CompetitionsTable
             ])
             // حذف ناعم فردي واستعادة، ولا حذف نهائي (CompetitionPolicy)
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),

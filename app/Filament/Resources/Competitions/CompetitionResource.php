@@ -6,6 +6,8 @@ use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Competitions\Pages\CreateCompetition;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ListCompetitions;
+use App\Filament\Resources\Competitions\Pages\ViewCompetition;
+use App\Filament\Resources\Competitions\RelationManagers\DrawsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\SubmissionsRelationManager;
 use App\Filament\Resources\Competitions\Schemas\CompetitionForm;
 use App\Filament\Resources\Competitions\Tables\CompetitionsTable;
@@ -59,6 +61,7 @@ class CompetitionResource extends Resource
     {
         return [
             SubmissionsRelationManager::class,
+            DrawsRelationManager::class,
         ];
     }
 
@@ -67,6 +70,7 @@ class CompetitionResource extends Resource
         return [
             'index' => ListCompetitions::route('/'),
             'create' => CreateCompetition::route('/create'),
+            'view' => ViewCompetition::route('/{record}'),
             'edit' => EditCompetition::route('/{record}/edit'),
         ];
     }

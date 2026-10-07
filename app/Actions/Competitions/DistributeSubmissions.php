@@ -30,13 +30,19 @@ class DistributeSubmissions
 
         $reviewerIds = $competition->reviewers()->pluck('users.id')->all();
 
+        if ($competition->criteria()->doesntExist()) {
+            throw ValidationException::withMessages(['per_submission' => __('competitions.reviews.no_criteria')]);
+        }
+
         if ($perSubmission < 1 || $perSubmission > count($reviewerIds)) {
             throw ValidationException::withMessages(['per_submission' => __('competitions.reviews.per_submission', ['max' => count($reviewerIds)])]);
         }
 
         return DB::transaction(function () use ($competition, $reviewerIds, $perSubmission): int {
-            // قفل المسابقة: توزيعان متزامنان لا يُسندان المشاركة نفسها مرتين
-            Competition::query()->whereKey($competition->id)->lockForUpdate()->first();
+            // قفل المسابقة: توزيعان متزامنان لا يُسندان المشاركة نفسها مرتين، ولا توزيع بعد الاعتماد
+            if (Competition::query()->whereKey($competition->id)->lockForUpdate()->firstOrFail()->resultsApproved()) {
+                throw new AuthorizationException;
+            }
 
             $assigned = SubmissionReview::query()
                 ->whereIn('submission_id', $competition->submissions()->select('id'))
@@ -52,10 +58,11 @@ class DistributeSubmissions
                 }
             }
 
-            $created = 0;
+            $rows = [];
+            $now = now();
 
             $competition->submissions()->where('status', SubmissionStatus::Submitted)->orderBy('id')->select('id')->lazyById()
-                ->each(function ($submission) use ($assigned, &$load, $perSubmission, &$created): void {
+                ->each(function ($submission) use ($assigned, &$load, $perSubmission, &$rows, $now): void {
                     $current = $assigned->get($submission->id, []);
 
                     while (count($current) < $perSubmission) {
@@ -68,16 +75,18 @@ class DistributeSubmissions
                         asort($candidates);
                         $reviewerId = (int) array_key_first($candidates);
 
-                        $review = new SubmissionReview;
-                        $review->submission_id = $submission->id;
-                        $review->reviewer_id = $reviewerId;
-                        $review->save();
-
+                        $rows[] = ['submission_id' => $submission->id, 'reviewer_id' => $reviewerId, 'created_at' => $now, 'updated_at' => $now];
                         $current[] = $reviewerId;
                         $load[$reviewerId]++;
-                        $created++;
                     }
                 });
+
+            // إدراج بالدفعات: عشرات الآلاف من الإسنادات في استعلامات قليلة
+            foreach (array_chunk($rows, 1000) as $batch) {
+                SubmissionReview::query()->insert($batch);
+            }
+
+            $created = count($rows);
 
             return $created;
         });

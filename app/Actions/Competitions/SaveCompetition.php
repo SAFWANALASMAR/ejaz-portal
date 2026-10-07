@@ -191,7 +191,7 @@ class SaveCompetition
     }
 
     /**
-     * المحكّم حساب نشط بدور reviewer. ولا يُرفع من المسابقة محكّم أُسندت إليه مشاركات فيها.
+     * المحكّم المضاف حساب نشط بدور reviewer. ولا يُرفع من المسابقة محكّم أُسندت إليه مشاركات فيها.
      *
      * @param  list<int>  $ids
      *
@@ -199,9 +199,12 @@ class SaveCompetition
      */
     private function checkReviewers(Competition $competition, array $ids): void
     {
-        $valid = User::query()->whereKey($ids)->where('is_active', true)->role(RoleName::Reviewer->value)->count();
+        // الشرط على المضافين فقط، فمحكّم مرتبط عُطّل حسابه لا يمنع حفظ المسابقة
+        $current = $competition->exists ? $competition->reviewers()->pluck('users.id')->all() : [];
+        $added = array_values(array_diff($ids, $current));
+        $valid = User::query()->whereKey($added)->where('is_active', true)->role(RoleName::Reviewer->value)->count();
 
-        if ($valid !== count($ids)) {
+        if ($valid !== count($added)) {
             throw ValidationException::withMessages(['reviewers' => __('competitions.validation.reviewers')]);
         }
 

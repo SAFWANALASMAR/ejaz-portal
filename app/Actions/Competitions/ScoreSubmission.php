@@ -2,10 +2,12 @@
 
 namespace App\Actions\Competitions;
 
+use App\Models\Competition;
 use App\Models\CompetitionCriterion;
 use App\Models\SubmissionReview;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -44,7 +46,17 @@ class ScoreSubmission
             ? round($criteria->sum(fn (CompetitionCriterion $criterion): float => $clean[(string) $criterion->id] / $criterion->max_score * $criterion->weight), 2)
             : null;
         $review->completed_at = $complete ? ($review->completed_at ?? now()) : null;
-        $review->save();
+
+        DB::transaction(function () use ($review): void {
+            // القفل نفسه الذي يأخذه الاعتماد: درجة تصل بعده تُرفض ولو مرّ فحص السياسة قبله
+            $competition = Competition::query()->whereKey($review->submission->competition_id)->lockForUpdate()->firstOrFail();
+
+            if ($competition->resultsApproved()) {
+                throw new AuthorizationException;
+            }
+
+            $review->save();
+        });
 
         return $review;
     }

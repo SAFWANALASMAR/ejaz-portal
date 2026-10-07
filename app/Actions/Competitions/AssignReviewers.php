@@ -29,6 +29,10 @@ class AssignReviewers
             throw new AuthorizationException;
         }
 
+        if ($competition->criteria()->doesntExist()) {
+            throw ValidationException::withMessages(['reviewers' => __('competitions.reviews.no_criteria')]);
+        }
+
         $reviewers = $competition->reviewers()->whereKey($reviewerIds)->pluck('users.id');
         $submissions = $competition->submissions()->whereKey($submissionIds)->where('status', SubmissionStatus::Submitted)->pluck('id');
 
@@ -40,7 +44,12 @@ class AssignReviewers
             throw ValidationException::withMessages(['submissions' => __('competitions.reviews.not_submitted')]);
         }
 
-        return DB::transaction(function () use ($submissions, $reviewers): int {
+        return DB::transaction(function () use ($competition, $submissions, $reviewers): int {
+            // قفل المسابقة كالتوزيع الآلي والاعتماد: لا إسناد مكرر بالتزامن، ولا إسناد بعد الاعتماد
+            if (Competition::query()->whereKey($competition->id)->lockForUpdate()->firstOrFail()->resultsApproved()) {
+                throw new AuthorizationException;
+            }
+
             $created = 0;
 
             foreach ($submissions as $submissionId) {

@@ -35,7 +35,7 @@
 - ⬜ التحقق قبل التعاقد مع أوراكل كلاود: توفر OCI Database with PostgreSQL في منطقتي جدة والرياض، وسعر OCI Cache (وإلا فـ Redis على خادم مستقل)، وتخزين الملفات المتوافق مع S3 في المنطقة نفسها. (`decisions.md`)
 - ⬜ بيئة الإنتاج داخل المملكة على أوراكل كلاود، والنسخ الاحتياطي، والمراقبة.
 - ⬜ المجدول في الإنتاج: مهمة cron كل دقيقة تشغّل `php artisan schedule:run` على خادم واحد. يعتمد عليها مسح سجل العمليات بعد مدة الاحتفاظ (`decisions.md`).
-- ⬜ خطوات النشر: `php artisan ejaz:refresh-content` بعد كل نشر، ولا `cache:clear` في الإنتاج (`security.md` — عند كل نشر).
+- ⬜ خطوات النشر: `php artisan ejaz:refresh-content` بعد كل نشر، ولا `cache:clear` في الإنتاج (`security.md` — عند كل نشر). وبعد كل نشر يغيّر `config/permissions.php` (ومنه المسابقات): `php artisan db:seed --class=PermissionsSeeder`.
 - ⬜ قرص الملفات الخاصة في الإنتاج (`FILESYSTEM_PRIVATE_DISK`) على تخزين متوافق مع S3 داخل المملكة، وتقديم ملفات الوثائق بعد فحص النشر بتسليمها للخادم (`X-Accel-Redirect`) أو برابط تخزين موقّع قصير، لا ببثها من PHP.
 - ⬜ حدود الرفع في الإنتاج: `client_max_body_size` في nginx، و`upload_max_filesize` و`post_max_size` في PHP، لا تقل عن 20M (المحلي 64M). وذاكرة PHP 512M كالمحلي، لأن فحص PDF يقرأ الملف كاملاً مرتين (قاعدة الرفع ثم الإجراء) ويفك ضغط تدفقاته حتى 50 ميجابايت. وإن رُفع حد الملف فالفحص يصير تدفقياً.
 

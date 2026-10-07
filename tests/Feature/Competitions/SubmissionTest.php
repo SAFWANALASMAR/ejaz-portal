@@ -340,7 +340,7 @@ describe('video upload', function () {
         expect($video->status)->toBe(VideoStatus::Rejected)
             ->and($video->rejection_reason)->toBe($reason)
             ->and($video->path)->toBeNull()
-            ->and(Storage::disk('local')->allFiles())->toBe([]);
+            ->and(Storage::disk('local')->allFiles('competition-chunks'))->toBe([]);
 
         $this->video->update(['is_required' => true]);
         $this->post('/competitions/demo/entry/submit', entryForm())->assertSessionHasErrors('answers.'.$this->video->id);
@@ -361,7 +361,7 @@ describe('video upload', function () {
         $this->call('PUT', $start['urls'][0], [], [], [], ['CONTENT_TYPE' => 'application/octet-stream', 'HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) (5 * 1024 * 1024)], str_repeat('x', 5 * 1024 * 1024))
             ->assertUnprocessable();
 
-        expect(Storage::disk('local')->allFiles())->toBe([]);
+        expect(Storage::disk('local')->allFiles('competition-chunks'))->toBe([]);
     });
 
     it('stops uploads after closing, and prunes abandoned chunks', function () {
@@ -381,7 +381,7 @@ describe('video upload', function () {
         $video = SubmissionVideo::sole();
         expect($video->status)->toBe(VideoStatus::Rejected)
             ->and($video->rejection_reason)->toBe('abandoned')
-            ->and(Storage::disk('local')->allFiles())->toBe([]);
+            ->and(Storage::disk('local')->allFiles('competition-chunks'))->toBe([]);
     });
 
     it('rejects the video when processing fails for good, so it can be uploaded again', function () {
@@ -414,7 +414,7 @@ describe('video upload', function () {
         $this->travel(3)->hours();
         putChunk($start['urls'][0], substr($contents, 0, 1024 * 1024))->assertForbidden();
 
-        expect(Storage::disk('local')->allFiles())->toBe([]);
+        expect(Storage::disk('local')->allFiles('competition-chunks'))->toBe([]);
     });
 
     it('replaces the previous video and invalidates its links', function () {

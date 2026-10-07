@@ -250,3 +250,46 @@ it('locks the criteria after the first assignment and keeps assigned reviewers',
     app(SaveCompetition::class)->handle($this->manager, $this->competition, [...$base, 'reviewers' => [$this->reviewerA->id]]);
     expect($this->competition->reviewers()->pluck('users.id')->all())->toBe([$this->reviewerA->id]);
 });
+
+it('refuses a score that reaches the competition after it was approved meanwhile', function () {
+    $entry = submittedEntry();
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $stale = SubmissionReview::with('submission.competition')->sole();
+
+    // الاعتماد يسبق والنسخة في الذاكرة ما زالت غير معتمدة، فيمر فحص السياسة عليها
+    Competition::query()->whereKey($this->competition->id)->update(['results_approved_at' => now()]);
+
+    expect(fn () => app(ScoreSubmission::class)->handle($this->reviewerA, $stale, [$this->first->id => 1, $this->second->id => 1], true))
+        ->toThrow(AuthorizationException::class)
+        ->and($stale->fresh()->total)->toBeNull();
+});
+
+it('refuses a second approval, keeps grading deterministic after it, and refuses assignment without criteria', function () {
+    $entry = submittedEntry();
+    $this->travelTo($this->competition->closes_at->addMinute());
+    app(ApproveResults::class)->handle($this->manager, $this->competition);
+
+    expect(fn () => app(ApproveResults::class)->handle($this->manager, $this->competition->fresh()))->toThrow(AuthorizationException::class);
+
+    app(GradeMultipleChoice::class)->handle($entry->fresh());
+    expect($entry->fresh()->auto_score)->toBe('2.00');
+
+    $bare = Competition::factory()->create();
+    $bare->reviewers()->attach($this->reviewerA->id);
+    $bareEntry = CompetitionSubmission::factory()->submitted()->create(['competition_id' => $bare->id]);
+
+    expect(fn () => app(AssignReviewers::class)->handle($this->manager, $bare, [$bareEntry->id], [$this->reviewerA->id]))->toThrow(ValidationException::class, __('competitions.reviews.no_criteria'));
+});
+
+it('keeps saving a competition whose assigned reviewer was deactivated', function () {
+    $entry = submittedEntry();
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $this->reviewerA->forceFill(['is_active' => false])->save();
+
+    app(SaveCompetition::class)->handle($this->manager, $this->competition, [
+        'title' => 'عنوان معدّل', 'slug' => $this->competition->slug, 'opens_at' => now()->subDay(), 'closes_at' => now()->addDay(),
+        'reviewers' => [$this->reviewerA->id, $this->reviewerB->id],
+    ]);
+
+    expect($this->competition->fresh()->title)->toBe('عنوان معدّل');
+});

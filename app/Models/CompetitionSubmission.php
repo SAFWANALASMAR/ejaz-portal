@@ -66,11 +66,13 @@ class CompetitionSubmission extends Model
     }
 
     /**
+     * المسابقة ولو حُذفت حذفاً ناعماً، فتبقى المشاركة مقروءة لصاحبها (مشاركاتي وتصدير بياناته).
+     *
      * @return BelongsTo<Competition, $this>
      */
     public function competition(): BelongsTo
     {
-        return $this->belongsTo(Competition::class);
+        return $this->belongsTo(Competition::class)->withTrashed();
     }
 
     /**
