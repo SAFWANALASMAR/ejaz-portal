@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Notifications\SubmissionReceived;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -296,6 +297,24 @@ it('locks the question bank after the first submission, from the panel or any ca
     app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'عنوان جديد', 'slug' => 'demo', 'opens_at' => now()->subDay(), 'closes_at' => now()->addDay(), 'is_published' => true]);
 
     expect($this->competition->fresh()->title)->toBe('عنوان جديد')->and($this->competition->questions()->count())->toBe(3);
+});
+
+it('checks the bank lock again after locking the competition, so an entry sent meanwhile is respected', function () {
+    $manager = userWithRole(RoleName::ProgramManager);
+    $injected = false;
+
+    // سباق: أول مشاركة مرسلة تصل بعد الفحص الأول وقبل قفل صف المسابقة. والفحص بعد القفل يراها
+    DB::beforeExecuting(function (string $query) use (&$injected): void {
+        if (! $injected && str_contains($query, 'from "competitions"') && str_contains($query, 'for update')) {
+            $injected = true;
+            CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id]);
+        }
+    });
+
+    expect(fn () => app(SaveCompetition::class)->handle($manager, $this->competition, ['title' => 'x', 'slug' => 'demo', 'opens_at' => now(), 'closes_at' => now()->addDay(), 'questions' => []]))
+        ->toThrow(ValidationException::class, __('competitions.validation.questions_locked'));
+
+    expect($injected)->toBeTrue()->and($this->competition->questions()->count())->toBe(3);
 });
 
 describe('video upload', function () {
