@@ -8,6 +8,7 @@ use App\Models\ProgramRegistration;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,17 +33,19 @@ class RecordProgramAttendance
             throw ValidationException::withMessages(['attended_at' => __('programs.errors.not_started')]);
         }
 
-        $changed = 0;
+        return DB::transaction(function () use ($program, $registrations, $attended): int {
+            $changed = 0;
 
-        foreach ($registrations as $registration) {
-            if ($registration->program_id !== $program->id || $registration->status !== RegistrationStatus::Confirmed) {
-                continue;
+            foreach ($registrations as $registration) {
+                if ($registration->program_id !== $program->id || $registration->status !== RegistrationStatus::Confirmed) {
+                    continue;
+                }
+
+                $registration->update(['attended_at' => $attended ? ($registration->attended_at ?? now()) : null]);
+                $changed += (int) $registration->wasChanged('attended_at');
             }
 
-            $registration->update(['attended_at' => $attended ? ($registration->attended_at ?? now()) : null]);
-            $changed += (int) $registration->wasChanged('attended_at');
-        }
-
-        return $changed;
+            return $changed;
+        });
     }
 }

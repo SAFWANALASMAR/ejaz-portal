@@ -129,6 +129,18 @@ it('exports the registrants of a program to Excel for the manager', function () 
     $this->actingAs($this->manager)->get(route('filament.exports.download', ['export' => $export, 'format' => 'xlsx']))->assertOk();
 });
 
+it('hides the registrants export from staff who may view programs but not export them', function () {
+    $program = Program::factory()->create();
+    $viewer = userWithRole(RoleName::ProgramManager);
+    $viewer->syncRoles([]);
+    $viewer->assignRole(RoleName::BoardMember->value);
+    $viewer->givePermissionTo('programs.view');
+
+    $this->actingAs($viewer);
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $program, 'pageClass' => EditProgram::class])
+        ->assertActionHidden(TestAction::make('export')->table());
+});
+
 it('keeps a program type with programs from being deleted', function () {
     Program::factory()->for($this->type, 'type')->create();
 

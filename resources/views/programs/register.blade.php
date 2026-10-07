@@ -7,9 +7,9 @@
             <x-alert type="error">{{ $message }}</x-alert>
         @enderror
 
-        @unless ($program->hasFreeSeat())
+        @if ($program->has_waitlist && ! $program->hasFreeSeat())
             <x-alert type="warning">{{ __('programs.register.waitlist_hint') }}</x-alert>
-        @endunless
+        @endif
 
         <x-card>
             @if ($program->fields() === [])

@@ -28,7 +28,7 @@ class ProgramRegistrationFactory extends Factory
 
     public function waitlisted(): static
     {
-        return $this->state(['status' => RegistrationStatus::Waitlisted]);
+        return $this->state(['status' => RegistrationStatus::Waitlisted, 'waitlisted_at' => now()]);
     }
 
     public function cancelled(): static

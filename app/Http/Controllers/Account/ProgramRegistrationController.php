@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Actions\Programs\RegisterForProgram;
+use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Programs\RegisterForProgramRequest;
@@ -13,6 +14,7 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * التسجيل في برنامج، و«برامجي»: التسجيلات بحالاتها وإلغاؤها. كل تسجيل لصاحبه فقط.
@@ -43,7 +45,7 @@ class ProgramRegistrationController extends Controller
             ->where('status', '!=', RegistrationStatus::Cancelled->value)
             ->exists();
 
-        if ($registered || ! $program->registrationIsOpen()) {
+        if ($registered || $program->status() !== ProgramStatus::Open) {
             return redirect()->route('programs.show', $program->slug);
         }
 
@@ -57,7 +59,16 @@ class ProgramRegistrationController extends Controller
 
         /** @var array<string, mixed> $answers */
         $answers = $request->validated('answers') ?? [];
-        $registration = $register->handle($user, $request->program(), $answers);
+        try {
+            $registration = $register->handle($user, $request->program(), $answers);
+        } catch (ValidationException $exception) {
+            // صفحة التسجيل تُغلق إذا امتلأ البرنامج، فيظهر السبب في صفحته
+            if (isset($exception->errors()['registration'])) {
+                return redirect()->route('programs.show', $request->program()->slug)->with('error', $exception->errors()['registration'][0]);
+            }
+
+            throw $exception;
+        }
 
         return redirect()->route('programs.show', $request->program()->slug)
             ->with('status', __($registration->status === RegistrationStatus::Confirmed ? 'programs.registered' : 'programs.waitlisted'));

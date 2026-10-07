@@ -58,20 +58,20 @@ class CancelProgramRegistration
             $locked->update(['status' => RegistrationStatus::Cancelled, 'cancelled_at' => now()]);
             $registration->setRawAttributes($locked->getAttributes(), true);
 
-            if (! $freesSeat || ! $program->has_waitlist || ! $program->hasFreeSeat()) {
+            if (! $freesSeat || ! $program->has_waitlist || $program->trashed() || ! $program->is_published || ! $program->hasFreeSeat()) {
                 return;
             }
 
             $next = ProgramRegistration::query()
                 ->where('program_id', $program->id)
                 ->where('status', RegistrationStatus::Waitlisted->value)
-                ->orderBy('updated_at')
+                ->orderBy('waitlisted_at')
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->first();
 
             if ($next !== null) {
-                $next->update(['status' => RegistrationStatus::Confirmed]);
+                $next->update(['status' => RegistrationStatus::Confirmed, 'waitlisted_at' => null]);
                 $next->user->notify(new ProgramRegistrationChanged($next, ProgramRegistrationChanged::PROMOTED));
             }
         });

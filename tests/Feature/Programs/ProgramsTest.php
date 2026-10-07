@@ -70,7 +70,7 @@ it('registers a verified user with the extra fields, confirms by email, and refu
         ->and($registration->answers)->toBe(['job' => 'جامعة']);
     Notification::assertSentTo($this->user, ProgramRegistrationChanged::class, fn ($n) => $n->kind === ProgramRegistrationChanged::CONFIRMED);
 
-    $this->post('/programs/research-skills/register', ['answers' => ['job' => 'أخرى']])->assertSessionHasErrors('registration');
+    $this->post('/programs/research-skills/register', ['answers' => ['job' => 'أخرى']])->assertSessionHas('error', __('programs.errors.already_registered'));
     expect(ProgramRegistration::count())->toBe(1);
     $this->get('/programs/research-skills/register')->assertRedirect('/programs/research-skills');
 });
@@ -201,4 +201,27 @@ it('refuses registering an unverified or inactive account even outside the route
 
 it('keeps the signed-in program page out of shared caches', function () {
     $this->actingAs($this->user)->get('/programs/research-skills')->assertHeader('Cache-Control', 'no-store, private');
+});
+
+it('closes the register page of a full program without a waitlist and explains why after a late submit', function () {
+    $this->program->update(['seats' => 1]);
+    ProgramRegistration::factory()->for($this->program)->create();
+
+    $this->actingAs($this->user)->get('/programs/research-skills/register')->assertRedirect('/programs/research-skills');
+    $this->post('/programs/research-skills/register')->assertRedirect('/programs/research-skills')->assertSessionHas('error', __('programs.errors.full'));
+    $this->get('/programs/research-skills')->assertSee(__('programs.errors.full'));
+});
+
+it('promotes nobody when a waitlisted registrant cancels, or when the program was withdrawn', function () {
+    $this->program->update(['seats' => 1, 'has_waitlist' => true]);
+    $confirmed = ProgramRegistration::factory()->for($this->program)->for($this->user)->create();
+    $first = ProgramRegistration::factory()->waitlisted()->for($this->program)->create();
+    $second = ProgramRegistration::factory()->waitlisted()->for($this->program)->create();
+
+    app(CancelProgramRegistration::class)->handle($first->user, $first);
+    expect($second->fresh()->status)->toBe(RegistrationStatus::Waitlisted);
+
+    $this->program->delete();
+    app(CancelProgramRegistration::class)->handle($this->user, $confirmed->fresh());
+    expect($second->fresh()->status)->toBe(RegistrationStatus::Waitlisted);
 });

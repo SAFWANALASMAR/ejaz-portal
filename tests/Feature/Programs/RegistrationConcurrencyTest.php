@@ -74,7 +74,7 @@ it('accepts only one of several simultaneous registrations for the last seat', f
 
         $outcomes = collect(glob($results.'/*'))->map(fn (string $file) => file_get_contents($file))->countBy()->all();
 
-        expect($outcomes)->toBe(['full' => $racers - 1, 'ok' => 1]);
+        expect($outcomes['ok'] ?? 0)->toBe(1)->and($outcomes['full'] ?? 0)->toBe($racers - 1)->and(array_sum($outcomes))->toBe($racers);
         expect(ProgramRegistration::on('committed')->where('program_id', $program->id)->where('status', RegistrationStatus::Confirmed->value)->count())->toBe(1);
     } finally {
         array_map('unlink', glob($results.'/*'));

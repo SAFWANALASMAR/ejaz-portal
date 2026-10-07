@@ -34,7 +34,7 @@ class SaveProgram
             throw ValidationException::withMessages(['meeting_url' => __('validation.url', ['attribute' => __('programs.admin.fields.meeting_url')])]);
         }
 
-        if ($check->ends_at !== null && $check->ends_at->lt($check->starts_at)) {
+        if (isset($check->starts_at) && $check->ends_at !== null && $check->ends_at->lt($check->starts_at)) {
             throw ValidationException::withMessages(['ends_at' => __('programs.errors.ends_before_start')]);
         }
 

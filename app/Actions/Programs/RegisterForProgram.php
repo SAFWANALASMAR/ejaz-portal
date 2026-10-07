@@ -65,6 +65,7 @@ class RegisterForProgram
                 'cancelled_at' => null,
                 'reminded_at' => null,
                 'attended_at' => null,
+                'waitlisted_at' => $status === RegistrationStatus::Waitlisted ? now() : null,
             ])->save();
             $registration->setRelation('program', $locked);
 

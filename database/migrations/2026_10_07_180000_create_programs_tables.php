@@ -59,6 +59,7 @@ return new class extends Migration
             $table->timestamp('attended_at')->nullable();
             $table->timestamp('reminded_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('waitlisted_at')->nullable();
             $table->timestamps();
 
             $table->unique(['program_id', 'user_id']);

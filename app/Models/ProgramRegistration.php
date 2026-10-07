@@ -22,8 +22,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $attended_at
  * @property Carbon|null $reminded_at
  * @property Carbon|null $cancelled_at
+ * @property Carbon|null $waitlisted_at ترتيب قائمة الانتظار: الأقدم يُرقّى أولاً
  */
-#[Fillable(['status', 'answers', 'attended_at', 'reminded_at', 'cancelled_at'])]
+#[Fillable(['status', 'answers', 'attended_at', 'reminded_at', 'cancelled_at', 'waitlisted_at'])]
 class ProgramRegistration extends Model
 {
     /** @use HasFactory<ProgramRegistrationFactory> */
@@ -40,6 +41,7 @@ class ProgramRegistration extends Model
             'attended_at' => 'datetime',
             'reminded_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'waitlisted_at' => 'datetime',
         ];
     }
 
