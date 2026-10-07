@@ -3,6 +3,7 @@
 namespace App\Actions\Users;
 
 use App\Enums\ActivityEvent;
+use App\Models\Inquiry;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -55,6 +56,14 @@ class AnonymizeUser
             });
 
             $this->scrubActivityLog($user, $oldEmail, $oldPhone);
+
+            // ورسائل «تواصل معنا» من حسابه: اسم المرسل وبريده وجواله، بلا تسجيل. ونص الرسالة سؤال
+            // مدة الاحتفاظ (open-questions.md)
+            Inquiry::withTrashed()->where('user_id', $user->id)->update([
+                'name' => __('users.anonymized_name'),
+                'email' => $user->email,
+                'phone' => null,
+            ]);
 
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();

@@ -4,6 +4,7 @@ use App\Actions\Content\SaveContent;
 use App\Enums\RoleName;
 use App\Filament\Resources\Albums\AlbumResource;
 use App\Filament\Resources\Albums\Pages\CreateAlbum;
+use App\Filament\Resources\Albums\Pages\ListAlbums;
 use App\Filament\Resources\NewsArticles\NewsArticleResource;
 use App\Filament\Resources\NewsArticles\Pages\CreateNewsArticle;
 use App\Filament\Resources\NewsArticles\Pages\ListNewsArticles;
@@ -33,6 +34,20 @@ it('opens the media screens to the editor, lets the board look only, and keeps o
     $this->actingAs(userWithRole(RoleName::BoardMember))->get($resource::getUrl('create'))->assertForbidden();
     $this->actingAs(userWithRole(RoleName::Secretary))->get($resource::getUrl('index'))->assertForbidden();
 })->with([NewsArticleResource::class, AlbumResource::class, PartnerResource::class]);
+
+it('lets the board neither edit nor delete media content', function (string $resource, string $list, string $model) {
+    $record = $model::factory()->create();
+    $this->actingAs(userWithRole(RoleName::BoardMember));
+
+    $this->get($resource::getUrl('edit', ['record' => $record]))->assertForbidden();
+    Livewire::test($list)->assertActionHidden(TestAction::make('delete')->table($record));
+
+    expect($model::query()->whereKey($record->getKey())->exists())->toBeTrue();
+})->with([
+    'news' => [NewsArticleResource::class, ListNewsArticles::class, NewsArticle::class],
+    'albums' => [AlbumResource::class, ListAlbums::class, Album::class],
+    'partners' => [PartnerResource::class, ListPartners::class, Partner::class],
+]);
 
 it('creates an article with its cover, content and category, logs it and shows it on the site at once', function () {
     $this->actingAs($this->editor);
@@ -111,6 +126,16 @@ it('accepts a partner with an https link and a picture logo, and refuses unsafe 
     'svg logo' => [['logo' => [UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')]], ['logo']],
     'no logo' => [['logo' => null], ['logo']],
 ]);
+
+it('never publishes an album without photos, even when the action is called directly', function () {
+    expect(fn () => app(SaveContent::class)->handle($this->editor, new Album, ['title' => 'ألبوم', 'slug' => 'empty', 'published_on' => '2026-02-01', 'is_published' => true]))
+        ->toThrow(ValidationException::class, __('albums.validation.needs_photos'));
+
+    // ويُحفظ مسودة بلا صور
+    app(SaveContent::class)->handle($this->editor, new Album, ['title' => 'ألبوم', 'slug' => 'empty', 'published_on' => '2026-02-01', 'is_published' => false]);
+
+    expect(Album::count())->toBe(1);
+});
 
 it('refuses a photo of another album, and deletes a photo removed from an album', function () {
     foreach (['other', 'kept', 'removed'] as $name) {

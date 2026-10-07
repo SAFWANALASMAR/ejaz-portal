@@ -55,6 +55,22 @@ it('processes a message: status, assignee and note, logged without the personal 
     $log = Activity::whereMorphedTo('subject', $inquiry)->where('event', 'updated')->sole();
 
     expect(json_encode($log->attribute_changes))->not->toContain('sender@example.com')->not->toContain('اسم المرسل');
+
+    // والملاحظة حدث بلا قيمتها، فقد تحوي بيانات شخصية
+    $logs = Activity::all()->map(fn (Activity $activity) => json_encode([$activity->attribute_changes, $activity->properties], JSON_UNESCAPED_UNICODE))->implode("\n");
+
+    expect(Activity::whereMorphedTo('subject', $inquiry)->where('event', 'inquiry_note_updated')->exists())->toBeTrue()
+        ->and($logs)->not->toContain('مراجعة الجدول');
+});
+
+it('checks the internal note in the action itself', function () {
+    $inquiry = Inquiry::factory()->create();
+
+    expect(fn () => app(UpdateInquiry::class)->handle($this->secretary, $inquiry, ['internal_note' => str_repeat('م', 2001)]))
+        ->toThrow(ValidationException::class)
+        ->and(fn () => app(UpdateInquiry::class)->handle($this->secretary, $inquiry, ['internal_note' => "ملاحظة\x07"]))
+        ->toThrow(ValidationException::class)
+        ->and($inquiry->fresh()->internal_note)->toBeNull();
 });
 
 it('assigns a message only to active staff who may see the requests', function () {

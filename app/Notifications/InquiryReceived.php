@@ -12,8 +12,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * إشعار الجمعية برسالة «تواصل معنا» على بريد التواصل في الإعدادات. ونص المرسل يُعرض في قالب
- * HTML مهرّباً، لا بـ Markdown، فلا تصير روابط كتبها المرسل روابط في بريد الموظفين.
+ * إشعار الجمعية برسالة «تواصل معنا» على بريد التواصل في الإعدادات: الرقم والنوع والموضوع ورابط
+ * اللوحة وحدها، وبيانات المرسل ونص رسالته في اللوحة خلف الصلاحية (decisions.md). والموضوع يُعرض
+ * في قالب HTML مهرّباً، لا بـ Markdown، فلا يصير رابط كتبه المرسل رابطاً في بريد الموظفين.
  */
 class InquiryReceived extends Notification implements ShouldBeEncrypted, ShouldQueue, ShouldQueueAfterCommit
 {

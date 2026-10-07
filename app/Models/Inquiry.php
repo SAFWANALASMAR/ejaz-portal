@@ -83,10 +83,11 @@ class Inquiry extends Model
     }
 
     /**
-     * السجل للمعالجة وحدها (الحالة، والمسؤول، والملاحظة)، لا للبيانات الشخصية.
+     * السجل للمعالجة وحدها (الحالة، والمسؤول)، لا للبيانات الشخصية. وتعديل الملاحظة الداخلية حدث
+     * بلا قيمتها (UpdateInquiry)، لأنها قد تحوي بيانات شخصية يكتبها الموظف.
      */
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['status', 'assigned_to', 'internal_note'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->logOnly(['status', 'assigned_to'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

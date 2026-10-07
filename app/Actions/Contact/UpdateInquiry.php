@@ -2,17 +2,21 @@
 
 namespace App\Actions\Contact;
 
+use App\Enums\ActivityEvent;
 use App\Enums\InquiryStatus;
 use App\Enums\RoleName;
 use App\Models\Inquiry;
 use App\Models\User;
+use App\Rules\PlainText;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
  * معالجة الاستفسار في اللوحة: الحالة والملاحظة الداخلية بصلاحية requests.update، والإسناد بصلاحية
- * requests.assign إلى موظف نشط له الاطلاع على الطلبات. وكل تغيير في سجل العمليات (LogsActivity).
+ * requests.assign إلى موظف نشط له الاطلاع على الطلبات. والحالة والمسؤول في سجل العمليات
+ * (LogsActivity)، وتعديل الملاحظة حدث بلا قيمتها.
  */
 class UpdateInquiry
 {
@@ -34,6 +38,11 @@ class UpdateInquiry
             throw ValidationException::withMessages(['status' => __('inquiries.validation.status')]);
         }
 
+        // حدود الملاحظة هنا لا في النموذج وحده، فتسري على كل مستدعٍ
+        Validator::make($data, ['internal_note' => ['nullable', 'string', 'max:2000', new PlainText(multiline: true)]], [], [
+            'internal_note' => __('inquiries.fields.internal_note'),
+        ])->validate();
+
         $inquiry->fill($data);
 
         if ($inquiry->isDirty('assigned_to')) {
@@ -46,7 +55,17 @@ class UpdateInquiry
             }
         }
 
+        $noteChanged = $inquiry->isDirty('internal_note');
+
         $inquiry->save();
+
+        if ($noteChanged) {
+            activity('requests')
+                ->causedBy($actor)
+                ->performedOn($inquiry)
+                ->event(ActivityEvent::InquiryNoteUpdated->value)
+                ->log(ActivityEvent::InquiryNoteUpdated->value);
+        }
 
         return $inquiry;
     }

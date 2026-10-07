@@ -66,8 +66,8 @@
                     @csrf
                     <input type="hidden" name="form_token" value="{{ $token }}">
 
-                    {{-- فخ للروبوتات: خارج الشاشة، ومخفي عن القارئات الصوتية ولوحة المفاتيح --}}
-                    <div class="absolute -z-10 size-px overflow-hidden opacity-0" aria-hidden="true">
+                    {{-- فخ للروبوتات: مخفي عن العين (sr-only)، وعن القارئات الصوتية (aria-hidden) ولوحة المفاتيح --}}
+                    <div class="sr-only" aria-hidden="true">
                         <label for="website">{{ __('contact.form.website') }}</label>
                         <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
                     </div>
@@ -90,13 +90,14 @@
                     <x-field name="subject" :label="__('contact.form.subject')" required maxlength="200" />
                     <x-field name="message" type="textarea" :label="__('contact.form.message')" required maxlength="5000" rows="7" />
 
-                    {{-- كالتذييل: الرابط متى وُجدت صفحة سياسة الخصوصية --}}
-                    @if (Route::has('privacy'))
-                        <p class="text-sm text-muted">
-                            {{ __('contact.form.privacy') }}
+                    {{-- غرض الجمع عند نقطة الجمع دائماً، والرابط متى وُجدت صفحة سياسة الخصوصية (كالتذييل) --}}
+                    <p class="text-sm text-muted">
+                        {{ __('contact.form.privacy') }}
+                        @if (Route::has('privacy'))
+                            {{ __('contact.form.privacy_more') }}
                             <a href="{{ route('privacy') }}" class="text-primary underline decoration-gold underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
-                        </p>
-                    @endif
+                        @endif
+                    </p>
 
                     <x-button>{{ __('contact.form.submit') }}</x-button>
                 </form>

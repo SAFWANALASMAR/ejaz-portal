@@ -3,20 +3,43 @@
 namespace App\Http\Requests;
 
 use App\Enums\InquiryType;
+use App\Models\Inquiry;
 use App\Rules\PlainText;
+use App\Support\FormTimer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
- * نموذج «الاستفسارات والاقتراحات». والفخ (website) وختم الوقت (form_token) يفحصهما المتحكم،
- * لأن الروبوت يُعطى نجاحاً لا خطأ.
+ * نموذج «الاستفسارات والاقتراحات». علامتا الروبوت (الفخ المملوء، والإرسال قبل ثوانٍ) تُفحصان قبل
+ * أي تحقق، فيُعطى الروبوت نجاحاً برقم لا يُحفظ ولا يتعلم شيئاً من رسائل الخطأ. أما الختم المعطوب
+ * أو المنتهي أو من جلسة أخرى فحال إنسان أطال البقاء، فيُطلب منه تحديث الصفحة.
  */
 class ContactRequest extends FormRequest
 {
+    /**
+     * أدنى ثوانٍ لتعبئة النموذج، وأقصاها قبل أن يُطلب تحديث الصفحة.
+     */
+    public const MIN_SECONDS = 3;
+
+    public const MAX_SECONDS = 7200;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
+
+        if (filled($this->input('website')) || ($elapsed !== null && $elapsed < self::MIN_SECONDS)) {
+            throw new HttpResponseException(
+                redirect()->route('contact')->with('status', __('contact.form.sent', ['reference' => Inquiry::newReference()])),
+            );
+        }
     }
 
     /**
@@ -27,12 +50,27 @@ class ContactRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150', new PlainText],
             'email' => ['required', 'string', 'email:rfc', 'max:255'],
-            'phone' => ['nullable', 'string', 'regex:/^\+?[0-9 -]{7,20}$/'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9 -]{7,20}$/'],
             'type' => ['required', Rule::enum(InquiryType::class)],
             'subject' => ['required', 'string', 'max:200', new PlainText],
             'message' => ['required', 'string', 'max:5000', new PlainText(multiline: true)],
             'form_token' => ['required', 'string'],
-            'website' => ['nullable', 'string', 'max:200'],
+        ];
+    }
+
+    /**
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
+
+                if ($elapsed === null || $elapsed > self::MAX_SECONDS) {
+                    $validator->errors()->add('form_token', __('contact.form.expired'));
+                }
+            },
         ];
     }
 
