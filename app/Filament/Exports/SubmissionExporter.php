@@ -43,7 +43,7 @@ class SubmissionExporter extends Exporter
     public static function getOptionsFormComponents(): array
     {
         return [
-            Toggle::make('include_drafts')->label(__('competitions.export.include_drafts'))->default(false),
+            Toggle::make('include_drafts')->label(__('competitions.export.include_drafts'))->helperText(__('competitions.export.include_drafts_hint'))->default(false),
         ];
     }
 

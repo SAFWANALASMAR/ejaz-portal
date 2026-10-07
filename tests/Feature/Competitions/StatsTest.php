@@ -79,6 +79,11 @@ it('adds drafts to the export only on request, and leaves email and phone off by
         ->assertNotified();
 
     expect(Export::sole()->total_rows)->toBe(6);
+
+    // السجل يذكر ما صُدّر: المسودات، والأعمدة المفعّلة ومنها البريد والجوال
+    $logged = Activity::where('event', 'submissions_exported')->sole()->properties;
+    expect($logged['include_drafts'])->toBeTrue()
+        ->and($logged['columns'])->toContain('user.email')->toContain('user.phone')->toContain('reference');
 });
 
 it('hides the export from whoever may see the entries but not export them', function () {
