@@ -66,8 +66,8 @@ class FortifyServiceProvider extends ServiceProvider
         $user = User::findByLoginIdentifier($request->input(Fortify::username()));
 
         if ($user === null) {
-            // زمن استجابة متقارب سواء وُجد الحساب أم لا
-            Hash::check($password, '$2y$12$'.str_repeat('a', 53));
+            // زمن استجابة متقارب سواء وُجد الحساب أم لا، بتكلفة التجزئة المضبوطة نفسها
+            Hash::check($password, sprintf('$2y$%02d$%s', (int) config('hashing.bcrypt.rounds', 12), str_repeat('a', 53)));
 
             return null;
         }

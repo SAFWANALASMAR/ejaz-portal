@@ -64,6 +64,8 @@ class UsersTable
                 IconColumn::make('is_active')
                     ->label(__('users.fields.is_active'))
                     ->boolean(),
+                // يكشف أي الحسابات الإدارية بلا تحقق ثنائي لمن يملك users.view (المشرف العام وحده
+                // اليوم). يُراجع إن مُنحت users.view لدور آخر
                 IconColumn::make('two_factor')
                     ->label(__('users.fields.two_factor'))
                     ->state(fn (User $record): bool => $record->two_factor_confirmed_at !== null)
