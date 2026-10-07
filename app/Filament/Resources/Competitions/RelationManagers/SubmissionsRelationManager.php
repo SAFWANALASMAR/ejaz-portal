@@ -67,12 +67,14 @@ class SubmissionsRelationManager extends RelationManager
                 SelectFilter::make('region')->label(__('competitions.entry.region'))->options(SaudiRegion::class),
             ])
             ->headerActions([
-                // التصدير الكامل في الطابور، بمشاركات هذه المسابقة وحدها
+                // التصدير الكامل في الطابور، بمشاركات هذه المسابقة وحدها، والمرسلة وحدها ما لم تُطلب المسودات
                 ExportAction::make()
                     ->label(__('competitions.export.action'))
                     ->exporter(SubmissionExporter::class)
                     ->visible(fn (): bool => $this->allows('submissions.export'))
-                    ->modifyQueryUsing(fn (Builder $query) => $query->where('competition_id', $this->competition()->id)->with('user'))
+                    ->modifyQueryUsing(fn (Builder $query, array $options) => $query->where('competition_id', $this->competition()->id)
+                        ->when(! ($options['include_drafts'] ?? false), fn (Builder $query) => $query->where('status', SubmissionStatus::Submitted))
+                        ->with('user'))
                     // تصدير البيانات الشخصية عملية إدارية تُسجَّل
                     ->before(fn () => activity('competitions')->performedOn($this->competition())->causedBy($this->user())
                         ->event(ActivityEvent::SubmissionsExported->value)->log(ActivityEvent::SubmissionsExported->value)),
