@@ -27,6 +27,8 @@ trait SavesThroughAction
         } catch (ValidationException $exception) {
             foreach (array_intersect(array_keys($exception->errors()), $fileFields) as $field) {
                 $this->data[$field] = collect((array) $record->getOriginal($field))
+                    // والملفات المحفوظة بأسمائها ([path, name]) تعود بمساراتها
+                    ->map(fn ($file) => is_array($file) ? ($file['path'] ?? null) : $file)
                     ->filter(fn ($path): bool => is_string($path) && $path !== '')
                     ->mapWithKeys(fn (string $path): array => [(string) Str::uuid() => $path])
                     ->all();

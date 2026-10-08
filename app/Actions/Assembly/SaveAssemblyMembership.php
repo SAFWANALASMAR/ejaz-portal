@@ -48,7 +48,9 @@ class SaveAssemblyMembership
             $membership->user()->associate(User::query()->findOrFail($validated['user_id']));
         }
 
-        $membership->status = MembershipStatus::from($validated['status']);
+        // من اللوحة يصل التعداد نفسه، ومن غيرها قيمته
+        $status = $validated['status'];
+        $membership->status = $status instanceof MembershipStatus ? $status : MembershipStatus::from($status);
 
         if (array_key_exists('joined_on', $validated)) {
             $membership->joined_on = filled($validated['joined_on']) ? Carbon::parse($validated['joined_on']) : null;
