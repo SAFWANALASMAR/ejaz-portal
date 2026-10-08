@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Filament\Forms;
+
+use App\Enums\DocumentFieldType;
+use App\Support\DocumentFields;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
+
+/**
+ * حقول النموذج الإلكتروني التي يحددها السكرتير. ويعيد SaveFormTemplate تنظيفها عند الحفظ
+ * (App\Support\DocumentFields::clean)، وتغييرها ينشئ إصداراً جديداً.
+ */
+final class DocumentFieldsRepeater
+{
+    public static function make(): Repeater
+    {
+        return Repeater::make('fields')
+            ->label(__('documents.fields.fields'))
+            ->helperText(__('documents.fields.fields_hint'))
+            ->schema([
+                TextInput::make('label')->label(__('documents.fields.field_label'))->required()->maxLength(150),
+                TextInput::make('key')
+                    ->label(__('documents.fields.field_key'))
+                    ->helperText(__('documents.fields.field_key_hint'))
+                    ->required()
+                    ->maxLength(40)
+                    ->regex('/^[a-z][a-z0-9_]*$/')
+                    ->distinct()
+                    ->extraInputAttributes(['dir' => 'ltr']),
+                Select::make('type')->label(__('documents.fields.field_type'))->options(DocumentFieldType::class)->required()->live(),
+                Toggle::make('required')->label(__('documents.fields.field_required'))->inline(false),
+                TagsInput::make('options')
+                    ->label(__('documents.fields.field_options'))
+                    ->visible(fn (Get $get): bool => $get('type') === DocumentFieldType::Select || $get('type') === DocumentFieldType::Select->value)
+                    ->required()
+                    ->columnSpanFull(),
+            ])
+            ->columns(4)
+            ->minItems(1)
+            ->maxItems(DocumentFields::MAX_FIELDS)
+            ->reorderable()
+            ->collapsible()
+            ->columnSpanFull();
+    }
+}
