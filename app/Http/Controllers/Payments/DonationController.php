@@ -34,7 +34,7 @@ class DonationController extends Controller
         ]);
     }
 
-    public function store(StartDonationRequest $request, StartDonation $start, BotChallenge $challenge): RedirectResponse
+    public function store(StartDonationRequest $request, StartDonation $start): RedirectResponse
     {
         $this->settings();
 
@@ -47,7 +47,8 @@ class DonationController extends Controller
                 return redirect()->route('donate')->withInput()->with('error', __('payments.donate.busy'));
             }
 
-            if (! $challenge->passes((string) $request->validated('cf-turnstile-response', ''), 'donation')) {
+            // يُحل هنا وحده: خطأ إعداده يظهر عند أول زائر، ولا يمس صاحب الحساب
+            if (! app(BotChallenge::class)->passes((string) $request->validated('cf-turnstile-response', ''), 'donation')) {
                 return redirect()->route('donate')->withInput()->with('error', __('payments.donate.challenge_failed'));
             }
         }

@@ -180,6 +180,18 @@ it('shows the bot challenge to guests only and refuses a guest who fails it, whi
     expect(Payment::count())->toBe(1)->and($challenge->checked)->toBe(['bad']);
 });
 
+it('resolves the bot challenge for guests only, so a misconfigured one never stops a signed-in donor', function () {
+    // في التكامل: الربط يرمي في الإنتاج بلا مفتاحي Turnstile، وحقنه في توقيع الإرسال كان يرفض كل تبرع
+    // (كما في قياس الرضا)
+    app()->bind(BotChallenge::class, fn () => throw new RuntimeException('misconfigured'));
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/donate')->assertOk();
+    $this->actingAs($user)->post('/donate', ['amount' => '10'])->assertRedirect();
+
+    expect(Payment::count())->toBe(1);
+});
+
 it('caps donation starts per address and per email', function () {
     config(['payments.donation.per_ip_per_hour' => 1]);
 
