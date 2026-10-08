@@ -38,7 +38,7 @@ class NewsController extends Controller implements HasMiddleware
             $articles = NewsArticle::query()
                 ->published()
                 ->when($filters['category'] ?? null, fn ($query, $category) => $query->where('category', $category))
-                // حرفا % و_ في البحث حرفان عاديان، لا نمطان
+                // ilike من PostgreSQL المعتمد (architecture.md). وحرفا % و_ في البحث حرفان عاديان، لا نمطان
                 ->when($filters['q'] ?? null, fn ($query, $term) => $query->where('title', 'ilike', '%'.addcslashes((string) $term, '\\%_').'%'))
                 ->newestFirst()
                 ->paginate(self::PER_PAGE)
