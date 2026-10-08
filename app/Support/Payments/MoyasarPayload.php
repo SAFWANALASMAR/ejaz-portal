@@ -83,9 +83,10 @@ final class MoyasarPayload
 
     /**
      * الإشعار من جسم الطلب وحده (لا من سلسلة الاستعلام): رمزه السري بمقارنة ثابتة الزمن مع المضبوط
-     * (ولا قبول بلا رمز مضبوط) وإلا null فيُرفض ويُقيَّد أمنياً. ثم نوعه حدث دفع، ومعرّفه بطول مقبول،
-     * وبياناته دفعة، وإلا فالشكل غير مقبول (استثناء) لا توقيع خاطئ.
+     * (ولا قبول بلا رمز مضبوط) وإلا null فيُرفض ويُقيَّد أمنياً. ثم نوعه حدث دفع وإلا قُبل بلا أثر
+     * (UnsupportedWebhook)، ومعرّفه بطول مقبول وبياناته دفعة وإلا فالشكل غير مقبول (استثناء) لا توقيع خاطئ.
      *
+     * @throws UnsupportedWebhook إشعار بتوقيع صحيح لحدث غير معالَج
      * @throws InvalidArgumentException إشعار بتوقيع صحيح وشكل غير مقبول
      */
     public static function webhook(Request $request, string $secret): ?GatewayEvent
@@ -101,7 +102,11 @@ final class MoyasarPayload
             return null;
         }
 
-        if (! is_string($type) || ! str_starts_with($type, 'payment_') || self::id($id) === null || ! is_array($data)) {
+        if (! is_string($type) || ! str_starts_with($type, 'payment_')) {
+            throw new UnsupportedWebhook('Unsupported webhook event: '.(is_string($type) ? $type : 'none'));
+        }
+
+        if (self::id($id) === null || ! is_array($data)) {
             throw new InvalidArgumentException('Malformed payment webhook.');
         }
 

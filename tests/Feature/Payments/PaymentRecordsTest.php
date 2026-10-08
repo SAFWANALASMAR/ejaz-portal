@@ -20,6 +20,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Mockery\MockInterface;
@@ -118,7 +119,11 @@ it('keeps the amount and the ledger immutable, in the model and in the database'
         ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['amount' => 1])))->toThrow(QueryException::class)
         // المكتملة لا تعود معلّقة، وإيصالها لا يتغير
         ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['status' => 'pending'])))->toThrow(QueryException::class)
-        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['receipt_number' => 'R-0000-FORGED00'])))->toThrow(QueryException::class);
+        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['receipt_number' => 'R-0000-FORGED00'])))->toThrow(QueryException::class)
+        // رقم الدفعة التي بها يُسترد المبلغ لا يُستبدل بعد الاكتمال
+        ->and(fn () => DB::transaction(fn () => Payment::query()->whereKey($payment->id)->update(['gateway_payment_id' => 'pay_other'])))->toThrow(QueryException::class)
+        // ولا مبلغ صفري أو سالب في القاعدة أصلاً
+        ->and(fn () => DB::transaction(fn () => DB::table('payments')->insert(['uuid' => Str::uuid7(), 'purpose' => 'donation', 'amount' => 0, 'currency' => 'SAR', 'status' => 'pending', 'gateway' => 'fake', 'created_at' => now(), 'updated_at' => now()])))->toThrow(QueryException::class);
 
     expect($payment->fresh()->amount)->toBe($amount);
 });

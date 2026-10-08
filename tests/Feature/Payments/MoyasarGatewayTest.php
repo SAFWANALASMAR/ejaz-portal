@@ -3,6 +3,7 @@
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Services\Payments\MoyasarPaymentGateway;
+use App\Support\Payments\UnsupportedWebhook;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
@@ -28,6 +29,8 @@ it('creates an invoice with the amount from the record, the return URL and the s
         && $request['currency'] === 'SAR'
         && $request['success_url'] === 'https://ejaz.test/return'
         && $request['back_url'] === 'https://ejaz.test/return'
+        // تنتهي الفاتورة بعد مدة، فلا تبقى قابلة للدفع إلى الأبد
+        && is_string($request['expired_at']) && strtotime($request['expired_at']) > time()
         && $request['metadata']['payment'] === $this->payment->uuid);
 });
 
@@ -62,8 +65,13 @@ it('accepts a webhook only with the configured secret token', function () {
 
     expect($this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['secret_token' => 'wrong'] + $body)))->toBeNull();
 
-    // توقيع صحيح وشكل غير مقبول: استثناء لا رفض توقيع
-    expect(fn () => $this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['type' => 'card_auth_failed'] + $body)))->toThrow(InvalidArgumentException::class);
+    // توقيع صحيح وحدث غير معالَج أو شكل غير مقبول: استثناء لا رفض توقيع
+    expect(fn () => $this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['type' => 'card_auth_failed'] + $body)))->toThrow(UnsupportedWebhook::class)
+        ->and(fn () => $this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['id' => str_repeat('e', 101)] + $body)))->toThrow(InvalidArgumentException::class);
+
+    // رقم دفعة أطول من العمود يُهمل لا يُقص
+    $event = $this->gateway->webhook(HttpRequest::create('/webhooks/payments', 'POST', ['data' => ['id' => str_repeat('p', 101)] + $body['data']] + $body));
+    expect($event?->payment->paymentId)->toBeNull();
 
     // بلا رمز مضبوط لا يُقبل إشعار، ولو كان رمزه فارغاً مثله
     config(['payments.webhook_secret' => '']);

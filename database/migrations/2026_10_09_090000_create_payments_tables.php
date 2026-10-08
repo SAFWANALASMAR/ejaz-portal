@@ -85,6 +85,10 @@ return new class extends Migration
                     OR (OLD.paid_at IS NOT NULL AND NEW.paid_at IS DISTINCT FROM OLD.paid_at) THEN
                     RAISE EXCEPTION 'the receipt of a payment is immutable';
                 END IF;
+                -- رقم الدفعة المدفوعة (الذي بها يُسترد المبلغ) لا يستبدله إشعار متأخر عن محاولة أخرى
+                IF OLD.status IN ('paid', 'refunded') AND NEW.gateway_payment_id IS DISTINCT FROM OLD.gateway_payment_id THEN
+                    RAISE EXCEPTION 'the gateway payment id of a settled payment is immutable';
+                END IF;
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;

@@ -67,7 +67,8 @@ class RecordPaymentOutcome
 
                 $this->event($locked, PaymentEventType::Failed, $result, $eventId);
             } elseif ($result->status === PaymentStatus::Refunded && $locked->status === PaymentStatus::Paid) {
-                $this->apply($locked, $result);
+                // رقم الدفعة المدفوعة يبقى (المشغّل يحرسه بعد الاكتمال)، والرسالة وحدها تتحدث
+                $this->apply($locked, $result, withPaymentId: false);
                 $locked->status = PaymentStatus::Refunded;
                 $locked->refunded_at ??= now();
                 $this->event($locked, PaymentEventType::Refunded, $result, $eventId);
@@ -90,9 +91,9 @@ class RecordPaymentOutcome
     /**
      * رقم الدفعة ورسالة البوابة تُحفظ مع تغيّر الحالة وحده.
      */
-    private function apply(Payment $payment, GatewayPayment $result): void
+    private function apply(Payment $payment, GatewayPayment $result, bool $withPaymentId = true): void
     {
-        if ($result->paymentId !== null) {
+        if ($withPaymentId && $result->paymentId !== null) {
             $payment->gateway_payment_id = $result->paymentId;
         }
 

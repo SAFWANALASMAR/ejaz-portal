@@ -108,13 +108,16 @@ it('does not accept a paid notification whose amount or currency differs from th
     Notification::assertNothingSent();
 });
 
-it('answers 404 for a notification about an unknown payment, and 400 for a malformed one with a valid token', function () {
+it('answers 404 for an unknown payment, 400 for a malformed notice, and 2xx for an unsupported event with a valid token', function () {
     webhook($this->payment, ['invoice_id' => 'unknown'])->assertNotFound();
+    webhook($this->payment, ['invoice_id' => str_repeat('i', 101)])->assertNotFound();
     webhook($this->payment, eventId: str_repeat('e', 101))->assertStatus(400);
-    $this->postJson('/webhooks/payments', ['id' => 'evt_x', 'type' => 'card_auth_failed', 'secret_token' => 'test-webhook-secret', 'data' => []])->assertStatus(400);
+    // حدث لا نعالجه (توثيق بطاقة): يُقبل بلا أثر حتى لا تعيد البوابة إرساله
+    $this->postJson('/webhooks/payments', ['id' => 'evt_x', 'type' => 'card_auth_failed', 'secret_token' => 'test-webhook-secret', 'data' => []])->assertOk()->assertJson(['ignored' => true]);
 
-    // الشكل غير المقبول ليس توقيعاً خاطئاً، فلا يُقيَّد أمنياً
-    expect(Activity::where('event', ActivityEvent::PaymentWebhookRejected->value)->exists())->toBeFalse();
+    // لا شيء من ذلك توقيع خاطئ، فلا يُقيَّد أمنياً، ولا يمس السجل المالي
+    expect(Activity::where('event', ActivityEvent::PaymentWebhookRejected->value)->exists())->toBeFalse()
+        ->and($this->payment->fresh()->events()->count())->toBe(0);
 });
 
 it('keeps the paid attempt and its message when a late failed notice for another attempt arrives', function () {
@@ -187,7 +190,9 @@ it('refunds a paid record from the gateway without a receipt', function () {
     app(RecordPaymentOutcome::class)->handle($paid, new GatewayPayment($paid->gateway_reference, PaymentStatus::Refunded, $paid->amount, $paid->currency, paymentId: 'pay_9', attempt: true));
 
     expect($paid->fresh()->status)->toBe(PaymentStatus::Refunded)
-        ->and($paid->fresh()->refunded_at)->not->toBeNull();
+        ->and($paid->fresh()->refunded_at)->not->toBeNull()
+        // رقم الدفعة المدفوعة يبقى كما هو بعد الاكتمال
+        ->and($paid->fresh()->gateway_payment_id)->toBe($paid->gateway_payment_id);
     Notification::assertNothingSent();
 });
 
