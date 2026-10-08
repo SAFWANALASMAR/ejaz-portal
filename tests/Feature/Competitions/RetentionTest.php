@@ -4,7 +4,6 @@ use App\Actions\Accounts\ExportUserData;
 use App\Actions\Settings\UpdateSiteSettings;
 use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
-use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Competition;
@@ -14,7 +13,8 @@ use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -33,34 +33,51 @@ beforeEach(function () {
 });
 
 /**
- * مشاركة مرسلة بإجابة ومنطقة ومقطع محفوظ على القرص.
+ * رفع المقاطع الحقيقي، إلا أن حذف بقايا الرفع (discard) يستدعي ما يُعطى قبل أن يمضي، فيحاكي ما يحدث
+ * بين قراءة المقاطع وقفلها: تعطل التخزين، أو مهمة معالجة تنهي مقطعاً.
  */
-function entryWithVideo(Competition $competition, User $user): CompetitionSubmission
+function uploadsOnDiscard(Closure $before): VideoUploads
 {
-    $submission = CompetitionSubmission::factory()->submitted()->create([
-        'competition_id' => $competition->id,
-        'user_id' => $user->id,
-        'category' => 'الفئة الأولى',
-        'region' => SaudiRegion::Makkah,
-        'answers' => [(string) $competition->questions[0]->id => 'نص المتقدم'],
-        'auto_score' => 7,
-        'final_score' => 8.5,
-    ]);
+    return new class(app(VideoUploads::class), $before) implements VideoUploads
+    {
+        public function __construct(private VideoUploads $real, private Closure $before) {}
 
-    $path = 'competition-videos/'.$submission->uuid.'.mp4';
-    Storage::disk('local')->put($path, 'video-bytes');
+        public function begin(SubmissionVideo $video): void
+        {
+            $this->real->begin($video);
+        }
 
-    $video = new SubmissionVideo;
-    $video->submission_id = $submission->id;
-    $video->question_id = $competition->questions[2]->id;
-    $video->status = VideoStatus::Ready;
-    $video->size = 11;
-    $video->chunk_count = 1;
-    $video->duration_seconds = 30;
-    $video->path = $path;
-    $video->save();
+        public function urls(SubmissionVideo $video, array $indexes): array
+        {
+            return $this->real->urls($video, $indexes);
+        }
 
-    return $submission;
+        public function missing(SubmissionVideo $video): array
+        {
+            return $this->real->missing($video);
+        }
+
+        public function open(SubmissionVideo $video)
+        {
+            return $this->real->open($video);
+        }
+
+        public function keep(SubmissionVideo $video, $file): string
+        {
+            return $this->real->keep($video, $file);
+        }
+
+        public function discard(SubmissionVideo $video): void
+        {
+            ($this->before)($video);
+            $this->real->discard($video);
+        }
+
+        public function pruneOrphans(): int
+        {
+            return $this->real->pruneOrphans();
+        }
+    };
 }
 
 it('deletes nothing while the retention period is not set by the association', function () {
@@ -175,44 +192,11 @@ it('keeps an entry as it was when its files cannot be deleted, retries tomorrow,
 
     // تعطّل التخزين عند حذف بقايا رفع المشاركة الأولى وحدها
     $real = app(VideoUploads::class);
-    app()->instance(VideoUploads::class, new class($real, $failing->id) implements VideoUploads
-    {
-        public function __construct(private VideoUploads $real, private int $failingId) {}
-
-        public function begin(SubmissionVideo $video): void {}
-
-        public function urls(SubmissionVideo $video, array $indexes): array
-        {
-            return [];
+    app()->instance(VideoUploads::class, uploadsOnDiscard(function (SubmissionVideo $video) use ($failing): void {
+        if ($video->submission_id === $failing->id) {
+            throw new RuntimeException('storage down');
         }
-
-        public function missing(SubmissionVideo $video): array
-        {
-            return [];
-        }
-
-        public function open(SubmissionVideo $video)
-        {
-            return $this->real->open($video);
-        }
-
-        public function keep(SubmissionVideo $video, $file): string
-        {
-            return '';
-        }
-
-        public function discard(SubmissionVideo $video): void
-        {
-            if ($video->submission_id === $this->failingId) {
-                throw new RuntimeException('storage down');
-            }
-        }
-
-        public function pruneOrphans(): int
-        {
-            return 0;
-        }
-    });
+    }));
 
     $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
 
@@ -221,31 +205,71 @@ it('keeps an entry as it was when its files cannot be deleted, retries tomorrow,
         ->and(Storage::disk('local')->exists('competition-videos/'.$failing->uuid.'.mp4'))->toBeTrue()
         ->and($other->videos()->count())->toBe(0)
         ->and($other->fresh()->answers)->toBeNull();
+
+    // وفي الدورة التالية بعد عودة التخزين يُحذف
+    app()->instance(VideoUploads::class, $real);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($failing->videos()->count())->toBe(0)
+        ->and($failing->fresh()->answers)->toBeNull()
+        ->and(Storage::disk('local')->exists('competition-videos/'.$failing->uuid.'.mp4'))->toBeFalse();
 });
 
-it('keeps an entry as it was when the disk reports a failed delete without throwing', function () {
+it('keeps an entry as it was when the disk reports a failed delete without throwing, and retries tomorrow', function () {
     Setting::put('retention', ['days' => 30]);
     $failing = entryWithVideo($this->competition, $this->deleted);
     $path = 'competition-videos/'.$failing->uuid.'.mp4';
 
     // الأقراص مضبوطة بلا رمي استثناء (throw: false)، فتعذر الحذف يظهر قيمةً لا استثناءً
-    $fake = Storage::disk('local');
-    Storage::set('local', new class($fake, $path) extends FilesystemAdapter
-    {
-        public function __construct(FilesystemAdapter $fake, private string $failing)
-        {
-            parent::__construct($fake->getDriver(), $fake->getAdapter(), $fake->getConfig());
-        }
-
-        public function delete($paths)
-        {
-            return in_array($this->failing, (array) $paths, true) ? false : parent::delete($paths);
-        }
-    });
+    $original = failDeletesOf($path);
 
     $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
 
     expect($failing->videos()->count())->toBe(1)
         ->and($failing->fresh()->answers)->not->toBeNull()
         ->and(Storage::disk('local')->exists($path))->toBeTrue();
+
+    Storage::set('local', $original);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($failing->videos()->count())->toBe(0)->and(Storage::disk('local')->exists($path))->toBeFalse();
+});
+
+it('leaves an entry for the next run when a video finishes processing during the purge', function () {
+    // مراجعة الوكيل الأمني على التكامل: مقطع يُحفظ بين قراءة المقاطع وقفلها لا يُحذف صفه وملفه باقٍ
+    Setting::put('retention', ['days' => 30]);
+    $entry = entryWithVideo($this->competition, $this->deleted);
+    $video = $entry->videos()->sole();
+    Storage::disk('local')->delete((string) $video->path);
+    $video->forceFill(['status' => VideoStatus::Processing, 'path' => null])->save();
+
+    // مهمة المعالجة تنهي المقطع في تلك اللحظة: ملف جديد ومساره في الصف
+    $late = 'competition-videos/late.mp4';
+    $real = app(VideoUploads::class);
+    app()->instance(VideoUploads::class, uploadsOnDiscard(function () use ($video, $late): void {
+        Storage::disk('local')->put($late, 'video-bytes');
+        SubmissionVideo::query()->whereKey($video->id)->update(['status' => VideoStatus::Ready, 'path' => $late]);
+    }));
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
+
+    expect($entry->videos()->sole()->path)->toBe($late)
+        ->and(Storage::disk('local')->exists($late))->toBeTrue()
+        ->and($entry->fresh()->answers)->not->toBeNull();
+
+    // وفي الدورة التالية يُعرف المسار، فيُحذف الملف ثم الصف
+    app()->instance(VideoUploads::class, $real);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($entry->videos()->count())->toBe(0)
+        ->and(Storage::disk('local')->exists($late))->toBeFalse()
+        ->and($entry->fresh()->answers)->toBeNull();
+});
+
+it('does not let two purge runs overlap', function () {
+    $this->artisan('schedule:list')->assertSuccessful();
+
+    $event = collect(app(Schedule::class)->events())->first(fn (Event $event): bool => str_contains((string) $event->command, 'ejaz:purge-anonymized-data'));
+
+    expect($event?->withoutOverlapping)->toBeTrue();
 });

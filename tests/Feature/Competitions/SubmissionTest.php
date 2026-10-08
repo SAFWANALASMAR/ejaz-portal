@@ -64,6 +64,17 @@ it('lists published competitions with their status, and hides drafts', function 
     $this->get('/competitions?page=9')->assertNotFound();
 });
 
+it('keeps the pages of an applicant out of caches, and the public page cacheable for guests', function () {
+    // مراجعة الوكيلين على التكامل: صفحة المسابقة لصاحب الحساب فيها رقم مشاركته، وصفحة المشاركة إجاباته
+    $this->get('/competitions/demo')->assertOk()->assertHeader('Cache-Control', 'no-cache, private');
+
+    $this->actingAs($this->applicant)->post('/competitions/demo/entry/start');
+
+    $this->get('/competitions/demo')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/competitions/demo/entry')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/account/competitions')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+});
+
 it('shows no unpublished competition, and never shows the correct option', function () {
     $draft = Competition::factory()->unpublished()->create();
 

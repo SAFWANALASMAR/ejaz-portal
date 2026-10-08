@@ -53,8 +53,16 @@ class PurgeAnonymizedData extends Command
             ->lazyById()
             ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purge->handle($submission)));
 
-        $this->info("مشاركات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.");
+        $summary = "مشاركات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.";
 
-        return $failed === 0 ? self::SUCCESS : self::FAILURE;
+        if ($failed > 0) {
+            $this->warn($summary);
+
+            return self::FAILURE;
+        }
+
+        $this->info($summary);
+
+        return self::SUCCESS;
     }
 }
