@@ -47,7 +47,7 @@ class ContactRequest extends FormRequest
 
         if (filled($this->input(self::TRAP)) || ($this->elapsed !== null && $this->elapsed < self::MIN_SECONDS)) {
             throw new HttpResponseException(
-                redirect()->route('contact')->with('status', __('contact.form.sent', ['reference' => Inquiry::newReference()])),
+                redirect()->route('contact')->with('status', __('contact.form.sent', ['reference' => Inquiry::randomReference()])),
             );
         }
     }

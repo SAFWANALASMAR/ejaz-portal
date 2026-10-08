@@ -14,6 +14,7 @@ use App\Notifications\InquiryReceived;
 use App\Support\FormTimer;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -137,9 +138,14 @@ it('tells the association the reference and type only, keeping everything the se
 });
 
 it('answers a filled trap like a success and keeps nothing, before checking anything else', function (array $form) {
-    sendContactForm($form)->assertRedirect(route('contact'))->assertSessionHas('status')->assertSessionHasNoErrors();
+    DB::enableQueryLog();
 
-    expect(Inquiry::count())->toBe(0);
+    sendContactForm($form)->assertRedirect(route('contact'))->assertSessionHasNoErrors()
+        ->assertSessionHas('status', fn (string $status) => preg_match('/INQ-[A-Z2-9]{8}/', $status) === 1);
+
+    // الرقم الوهمي بلا استعلام، فلا يكلّف الروبوت القاعدة شيئاً
+    expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql) => str_contains($sql, 'inquiries')))->toBeEmpty()
+        ->and(Inquiry::count())->toBe(0);
     Notification::assertNothingSent();
 })->with([
     'trap' => [[ContactRequest::TRAP => 'https://bot.example.test']],

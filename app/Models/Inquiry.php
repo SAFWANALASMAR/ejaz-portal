@@ -50,19 +50,29 @@ class Inquiry extends Model
     }
 
     /**
-     * رقم مرجعي يُعطى للمرسل: حروف وأرقام لا تلتبس (بلا 0 وO و1 وI)، فلا يُخمَّن ولا يُخطأ نقله.
+     * رقم مرجعي يُعطى للمرسل، لا يتكرر في القاعدة.
      */
     public static function newReference(): string
     {
-        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
         do {
-            $reference = 'INQ-';
-
-            for ($i = 0; $i < 8; $i++) {
-                $reference .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-            }
+            $reference = self::randomReference();
         } while (self::withTrashed()->where('reference', $reference)->exists());
+
+        return $reference;
+    }
+
+    /**
+     * رقم بشكل المرجعي بلا استعلام: حروف وأرقام لا تلتبس (بلا 0 وO و1 وI)، فلا يُخمَّن ولا يُخطأ
+     * نقله. ويكفي وحده للرد الوهمي على الروبوت، فلا يكلّف القاعدة شيئاً.
+     */
+    public static function randomReference(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $reference = 'INQ-';
+
+        for ($i = 0; $i < 8; $i++) {
+            $reference .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
 
         return $reference;
     }
