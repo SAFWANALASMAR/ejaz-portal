@@ -28,6 +28,8 @@ const guestScreens = [
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
+    // صفحة الخطأ العربية لمسار لا صفحة له ولا تحويل
+    { name: 'not-found', path: '/no-such-page', heading: 'h1', status: 404 },
 ];
 
 const accountScreens = [
@@ -39,7 +41,11 @@ async function checkScreen(page, testInfo, screen) {
     const response = await page.goto(screen.path);
     test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
 
-    expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
+    if (screen.status) {
+        expect(response?.status(), `${screen.path} status`).toBe(screen.status);
+    } else {
+        expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
+    }
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
