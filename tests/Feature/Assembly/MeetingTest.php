@@ -194,16 +194,46 @@ it('talks to Microsoft Graph with an app token, sends only the title and time, a
     Http::assertSentCount(5);
 });
 
-it('fails when Graph returns no Teams link or an error, so the job retries', function () {
+it('reads a Teams link that arrives late, and leaves no event without one behind, so a retry never doubles it', function () {
     Http::fake([
         'login.microsoftonline.com/*' => Http::response(['access_token' => 'graph-token', 'expires_in' => 3600]),
-        'graph.microsoft.com/*' => Http::sequence()->push(['id' => 'event-1'])->push(['error' => 'down'], 503),
+        'graph.microsoft.com/*' => Http::sequence()
+            // الأول: الرابط يصل بقراءة الحدث بعد إنشائه
+            ->push(['id' => 'event-1'])
+            ->push(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])
+            // الثاني: لا رابط بعد القراءة، فيُحذف الحدث
+            ->push(['id' => 'event-2'])
+            ->push(['id' => 'event-2', 'onlineMeeting' => null])
+            ->push([], 204)
+            // الثالث: تعذر البوابة
+            ->push(['error' => 'down'], 503),
     ]);
     $graph = new GraphOnlineMeetings('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example');
     $meeting = Meeting::factory()->online()->create();
 
-    expect(fn () => $graph->create($meeting))->toThrow(RuntimeException::class)
+    expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1'])
+        ->and(fn () => $graph->create($meeting))->toThrow(RuntimeException::class)
         ->and(fn () => $graph->create($meeting))->toThrow(Exception::class);
+
+    Http::assertSent(fn ($request) => $request->method() === 'DELETE' && str_ends_with($request->url(), '/events/event-2'));
+});
+
+it('creates the Teams meeting again for an online meeting restored after deletion', function () {
+    app()->instance(OnlineMeetings::class, $teams = new FakeOnlineMeetings);
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'is_online' => true]);
+
+    $meeting->fresh()->delete();
+    $meeting->fresh()->restore();
+
+    expect($teams->calls)->toBe(['create:'.$meeting->uuid, 'cancel:'.$meeting->uuid, 'create:'.$meeting->uuid])
+        ->and($meeting->fresh()->online_join_url)->not->toBeNull();
+});
+
+it('keeps an attachment name safe for the download header', function () {
+    $file = meetingAttachment();
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'attachments' => [['path' => $file['path'], 'name' => '../مجلد\\جدول.pdf']]]);
+
+    expect($meeting->attachments[0]['name'])->toBe('..-مجلد-جدول.pdf');
 });
 
 it('marks a meeting held after it starts, and records attendance of active members with the quorum', function () {

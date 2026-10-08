@@ -75,9 +75,15 @@ class Meeting extends Model
 
     protected static function booted(): void
     {
-        // المحذوف من اللوحة يُلغى اجتماع تيمز له في الطابور
+        // المحذوف من اللوحة يُلغى اجتماع تيمز له في الطابور، والمستعاد يُنشأ له من جديد
         static::deleted(function (Meeting $meeting): void {
             if ($meeting->online_meeting_id !== null) {
+                SyncOnlineMeeting::dispatch($meeting->id);
+            }
+        });
+
+        static::restored(function (Meeting $meeting): void {
+            if ($meeting->is_online) {
                 SyncOnlineMeeting::dispatch($meeting->id);
             }
         });

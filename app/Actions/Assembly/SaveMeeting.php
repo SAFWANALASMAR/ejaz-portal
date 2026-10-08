@@ -143,6 +143,11 @@ class SaveMeeting
             throw ValidationException::withMessages(['attachments' => __('validation.file_in_use')]);
         }
 
-        return ['path' => $file['path'], 'name' => $file['name'], 'size' => PrivatePdf::check(Meeting::disk(), Meeting::ATTACHMENTS_DIRECTORY, $file['path'], 'attachments')];
+        return [
+            'path' => $file['path'],
+            // الاسم في ترويسة التنزيل، ولا تقبل ترويسة التنزيل الشرطتين المائلتين
+            'name' => str_replace(['/', '\\'], '-', $file['name']),
+            'size' => PrivatePdf::check(Meeting::disk(), Meeting::ATTACHMENTS_DIRECTORY, $file['path'], 'attachments'),
+        ];
     }
 }

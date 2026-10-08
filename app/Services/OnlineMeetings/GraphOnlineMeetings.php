@@ -30,11 +30,19 @@ final class GraphOnlineMeetings implements OnlineMeetings
     public function create(Meeting $meeting): array
     {
         $event = $this->graph()->post($this->events(), $this->payload($meeting))->throw();
-
         $id = $event->json('id');
-        $url = $event->json('onlineMeeting.joinUrl');
 
-        if (! is_string($id) || $id === '' || ! is_string($url) || ! str_starts_with($url, 'https://')) {
+        if (! is_string($id) || $id === '') {
+            throw new RuntimeException('Microsoft Graph returned no event for the meeting.');
+        }
+
+        // قد يتأخر تجهيز الاجتماع عن إنشاء الحدث، فيُقرأ الحدث مرة
+        $url = $event->json('onlineMeeting.joinUrl') ?? $this->graph()->get($this->events().'/'.rawurlencode($id))->throw()->json('onlineMeeting.joinUrl');
+
+        if (! is_string($url) || ! str_starts_with($url, 'https://')) {
+            // لا يبقى في التقويم حدث بلا رابط، فلا تتكرر الأحداث بإعادة المحاولة
+            $this->graph()->delete($this->events().'/'.rawurlencode($id));
+
             throw new RuntimeException('Microsoft Graph returned no Teams link for the meeting.');
         }
 
