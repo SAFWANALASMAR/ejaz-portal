@@ -7,6 +7,7 @@ use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 
@@ -74,4 +75,34 @@ it('sends guests to log in, keeps placeholders in names literal, and drops certi
 
     expect($registration->fresh()->certificate_path)->toBeNull()
         ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
+});
+
+it('keeps a certificate and its path when the disk cannot delete it, so no file with the name is left unreferenced', function () {
+    // مراجعة الوكيل على التكامل: نمط ٥.٢ في الشهادات. والأقراص بـ throw: false تعيد false بلا استثناء
+    $this->registration->update(['attended_at' => now()]);
+    (new SyncAttendanceCertificate($this->registration))->handle();
+    $path = $this->registration->fresh()->certificate_path;
+
+    $fake = Storage::disk('local');
+    Storage::set('local', new class($fake) extends FilesystemAdapter
+    {
+        public function __construct(FilesystemAdapter $fake)
+        {
+            parent::__construct($fake->getDriver(), $fake->getAdapter(), $fake->getConfig());
+        }
+
+        public function delete($paths)
+        {
+            return false;
+        }
+    });
+
+    $this->user->forceFill(['deletion_requested_at' => now()])->save();
+
+    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user))->toThrow(RuntimeException::class);
+
+    // الإخفاء كله ينتظر إعادة المحاولة، والشهادة ومسارها كما هما
+    expect($this->registration->fresh()->certificate_path)->toBe($path)
+        ->and(Storage::disk('local')->exists($path))->toBeTrue()
+        ->and($this->user->fresh()->anonymized_at)->toBeNull();
 });
