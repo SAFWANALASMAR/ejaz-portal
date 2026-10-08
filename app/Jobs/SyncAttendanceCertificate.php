@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Mpdf\HTMLParserMode;
 use Mpdf\Mpdf;
+use RuntimeException;
 
 /**
  * شهادة الحضور تتبع حالة الحضور: تُولَّد PDF لمسجل مؤكد سُجّل حضوره، وتُحذف إن أُلغي حضوره.
@@ -71,7 +72,12 @@ class SyncAttendanceCertificate implements ShouldQueue
             return;
         }
 
-        Storage::disk(self::disk())->delete($registration->certificate_path);
+        // القرص لا يرمي استثناءً عند التعذر (throw: false) بل يعيد false. فيبقى المسار لإعادة المحاولة، ولا
+        // يبقى ملف بالاسم بلا مرجع إليه. والملف الغائب أصلاً نجاح
+        if (! Storage::disk(self::disk())->delete($registration->certificate_path)) {
+            throw new RuntimeException("Cannot delete the certificate of registration {$registration->id}.");
+        }
+
         $registration->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
     }
 
