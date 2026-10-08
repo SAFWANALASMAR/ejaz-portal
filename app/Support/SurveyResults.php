@@ -17,6 +17,23 @@ final class SurveyResults
     public const TEXT_LIMIT = 200;
 
     /**
+     * أقل عدد إجابات تظهر بعده التوزيعات والنصوص لمن لا يدير الاستبيان، فلا يُعرف المستجيب في
+     * استبيان صغير من إجابته.
+     */
+    public const MIN_RESPONSES = 5;
+
+    /**
+     * النتائج بالعدد الكلي وحده، بلا تفاصيل الأسئلة، وعلامة الحجب.
+     *
+     * @param  array{responses: int, questions: list<array<string, mixed>>}  $results
+     * @return array{responses: int, questions: list<array<string, mixed>>, withheld: bool}
+     */
+    public static function withheld(array $results): array
+    {
+        return ['responses' => $results['responses'], 'questions' => [], 'withheld' => true];
+    }
+
+    /**
      * @return array{responses: int, questions: list<array{question: SurveyQuestion, answered: int, average?: float|null, counts?: array<int|string, int>, texts?: list<string>}>}
      */
     public static function for(Survey $survey): array

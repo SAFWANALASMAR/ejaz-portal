@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Competitions;
 use App\Actions\Competitions\CompleteVideoUpload;
 use App\Actions\Competitions\StartVideoUpload;
 use App\Actions\Competitions\StoreVideoChunk;
+use App\Contracts\VideoUploads;
 use App\Enums\VideoStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Competitions\StartVideoUploadRequest;
 use App\Models\Competition;
 use App\Models\SubmissionVideo;
 use App\Models\User;
-use App\Support\ChunkedVideoUpload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -38,7 +38,7 @@ class VideoUploadController extends Controller
         ]);
     }
 
-    public function status(Request $request, SubmissionVideo $video): JsonResponse
+    public function status(Request $request, SubmissionVideo $video, VideoUploads $uploads): JsonResponse
     {
         abort_unless($this->user($request)->can('view', $video->submission), 404);
 
@@ -48,7 +48,7 @@ class VideoUploadController extends Controller
             'reason' => $video->rejection_reason === null ? null : __('competitions.video.reasons.'.$video->rejection_reason),
             'chunk_size' => SubmissionVideo::chunkSize(),
             // روابط جديدة للأجزاء الناقصة فقط، فيكمل المتصفح بعد انقطاع أو انتهاء الروابط. ولا روابط بعد الإغلاق
-            'urls' => $this->canUpload($request, $video) ? ChunkedVideoUpload::urls($video, ChunkedVideoUpload::missing($video)) : [],
+            'urls' => $this->canUpload($request, $video) ? $uploads->urls($video, $uploads->missing($video)) : [],
         ]);
     }
 

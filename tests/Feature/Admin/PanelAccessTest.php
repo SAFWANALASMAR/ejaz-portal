@@ -21,11 +21,19 @@ it('lets every administrative role in', function (RoleName $role) {
     $this->actingAs(userWithRole($role))->get('/admin')->assertOk();
 })->with(RoleName::panelRoles());
 
-it('requires two-factor before sensitive roles reach the panel', function () {
-    $editor = User::factory()->create();
-    $editor->assignRole(RoleName::ContentEditor->value);
+it('requires two-factor before sensitive roles reach the panel', function (RoleName $role) {
+    $user = User::factory()->create();
+    $user->assignRole($role->value);
 
-    $this->actingAs($editor)->get('/admin')->assertRedirect(route('account.security'));
+    $this->actingAs($user)->get('/admin')->assertRedirect(route('account.security'));
+})->with(RoleName::twoFactorRoles());
+
+it('requires two-factor for the reviewer, who sees applicants videos and answers', function () {
+    // صريح للمحكّم (قرار صفوان)، فلا يسقط من القائمة دون أن يفشل اختبار
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole(RoleName::Reviewer->value);
+
+    $this->actingAs($reviewer)->get('/admin')->assertRedirect(route('account.security'));
 });
 
 it('blocks deactivated administrators and ends their session', function () {

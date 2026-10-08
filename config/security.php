@@ -52,6 +52,9 @@ return [
             'https://www.youtube-nocookie.com',
             'https://www.youtube.com',
         ],
+        // عنصر التحدي (Turnstile): يُضاف إلى script-src وframe-src في صفحة الاستبيان وحدها، ومتى كان
+        // مشغّل التحدي turnstile (SecurityHeaders)
+        'challenge_src' => ['https://challenges.cloudflare.com'],
         // التخزين السحابي للرفع المباشر يضاف هنا عند تفعيله
         'connect_src' => array_filter(explode(',', (string) env('CSP_CONNECT_SRC', ''))),
         'media_src' => array_filter(explode(',', (string) env('CSP_MEDIA_SRC', ''))),

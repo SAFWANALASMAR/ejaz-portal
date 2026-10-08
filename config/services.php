@@ -41,4 +41,12 @@ return [
         'sender' => env('SMS_SENDER'),
     ],
 
+    // التحدي ضد الآليات على إرسال غير المسجلين: fake في التطوير والاختبارات، وturnstile (Cloudflare)
+    // بمفتاحيه في الإنتاج (docs/decisions.md)
+    'bot_challenge' => [
+        'driver' => env('BOT_CHALLENGE_DRIVER', 'fake'),
+        'turnstile_site_key' => env('TURNSTILE_SITE_KEY'),
+        'turnstile_secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
 ];

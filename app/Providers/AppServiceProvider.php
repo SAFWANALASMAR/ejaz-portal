@@ -3,23 +3,32 @@
 namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
+use App\Contracts\BotChallenge;
 use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
 use App\Contracts\StoreCatalog;
+use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
+use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
+use App\Services\BotChallenge\FakeBotChallenge;
+use App\Services\BotChallenge\TurnstileChallenge;
 use App\Services\Payments\FakePaymentGateway;
 use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\Store\SettingsStoreCatalog;
+use App\Services\VideoUploads\S3VideoUploads;
+use App\Support\ChunkedVideoUpload;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -58,6 +67,33 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StoreCatalog::class, fn () => match (config('store.driver')) {
             'settings' => new SettingsStoreCatalog,
             default => throw new InvalidArgumentException('Unsupported store driver: '.config('store.driver')),
+        });
+
+        // خطأ الإعداد يُرمى عند أول استعمال (صفحة الاستبيان العام لغير المسجل)، لا رفضاً صامتاً لكل زائر.
+        // والفحص عند كل نشر في docs/security.md
+        $this->app->singleton(BotChallenge::class, function () {
+            $site = (string) config('services.bot_challenge.turnstile_site_key');
+            $secret = (string) config('services.bot_challenge.turnstile_secret_key');
+
+            return match (config('services.bot_challenge.driver')) {
+                'fake' => $this->app->isProduction()
+                    ? throw new RuntimeException('The fake bot challenge must not be used in production; set BOT_CHALLENGE_DRIVER=turnstile.')
+                    : new FakeBotChallenge,
+                'turnstile' => $site === '' || $secret === ''
+                    ? throw new RuntimeException('Turnstile needs TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY.')
+                    : new TurnstileChallenge($site, $secret, parse_url((string) config('app.url'), PHP_URL_HOST) ?: null),
+                default => throw new InvalidArgumentException('Unsupported bot challenge driver: '.config('services.bot_challenge.driver')),
+            };
+        });
+
+        $this->app->singleton(VideoUploads::class, function () {
+            $disk = SubmissionVideo::disk();
+
+            return match (config('competitions.video.upload')) {
+                'app' => new ChunkedVideoUpload,
+                's3' => new S3VideoUploads(self::s3Disk($disk)->getClient(), (string) config("filesystems.disks.{$disk}.bucket"), (string) config("filesystems.disks.{$disk}.root", '')),
+                default => throw new InvalidArgumentException('Unsupported video upload driver: '.config('competitions.video.upload')),
+            };
         });
     }
 
@@ -107,5 +143,19 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Export::class, ExportPolicy::class);
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+    }
+
+    /**
+     * الرفع المباشر يكتب في القرص الخاص نفسه، فيلزم أن يكون قرص S3.
+     */
+    private static function s3Disk(string $disk): AwsS3V3Adapter
+    {
+        $adapter = Storage::disk($disk);
+
+        if (! $adapter instanceof AwsS3V3Adapter) {
+            throw new InvalidArgumentException("The private disk [{$disk}] must use the s3 driver for direct video uploads.");
+        }
+
+        return $adapter;
     }
 }

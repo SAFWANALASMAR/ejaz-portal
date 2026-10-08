@@ -32,7 +32,7 @@ class SurveyFactory extends Factory
 
     public function guests(): static
     {
-        return $this->state(['allow_guests' => true]);
+        return $this->state(['allow_guests' => true, 'guest_limit' => 1000]);
     }
 
     /**

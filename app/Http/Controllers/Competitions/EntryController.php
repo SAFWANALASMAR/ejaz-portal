@@ -17,26 +17,42 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * نموذج المشاركة: يُفتح بمسودة المتقدم (تُنشأ أول مرة)، ويُحفظ يدوياً أو تلقائياً، ثم يُرسل.
- * وبعد الإرسال يعرض ملخصها ورقمها المرجعي. والفحص كله في الإجراءات.
+ * نموذج المشاركة: تُنشأ المسودة بزر «شارك الآن» (POST بحد معدل)، فلا ينشئ فتح الرابط شيئاً.
+ * ثم تُحفظ يدوياً أو تلقائياً، ثم تُرسل. وبعد الإرسال يعرض ملخصها ورقمها المرجعي. والفحص كله في الإجراءات.
  */
 class EntryController extends Controller
 {
-    public function show(Request $request, string $slug, StartSubmission $start): View|RedirectResponse
+    public function start(Request $request, string $slug, StartSubmission $start): RedirectResponse
     {
         $competition = $this->competition($slug);
         $user = $this->user($request);
 
         if (! $user->hasVerifiedPhone()) {
-            redirect()->setIntendedUrl(route('competitions.entry', $competition->slug));
+            // بعد التحقق يعود إلى صفحة المسابقة وزرها، لأن POST لا يُعاد توجيهه
+            redirect()->setIntendedUrl(route('competitions.show', $competition->slug));
 
             return redirect()->route('account.phone.verify')->with('status', __('competitions.entry.verify_phone'));
         }
 
         try {
-            $submission = $start->handle($user, $competition);
+            $start->handle($user, $competition);
         } catch (AuthorizationException $exception) {
             return redirect()->route('competitions.show', $competition->slug)->with('error', $exception->getMessage());
+        }
+
+        return redirect()->route('competitions.entry', $competition->slug);
+    }
+
+    public function show(Request $request, string $slug): View|RedirectResponse
+    {
+        $competition = $this->competition($slug);
+
+        /** @var CompetitionSubmission|null $submission */
+        $submission = $competition->submissions()->where('user_id', $this->user($request)->id)->first();
+
+        // بلا مسودة: صفحة المسابقة وزرها، فلا تُنشأ مسودة من GET
+        if ($submission === null) {
+            return redirect()->route('competitions.show', $competition->slug);
         }
 
         $submission->load(['competition.questions', 'videos']);

@@ -24,6 +24,8 @@ class SubmitSurveyRequest extends FormRequest
             'answers' => ['nullable', 'array', 'max:50'],
             // النوع لكل سؤال (رقم أو نص) يُفحص في SubmitSurveyResponse
             'answers.*' => ['nullable'],
+            // رمز التحدي لغير المسجل نص، فلا يُسقط الطلب مدخل بشكل آخر
+            'cf-turnstile-response' => ['nullable', 'string', 'max:2048'],
         ];
     }
 }

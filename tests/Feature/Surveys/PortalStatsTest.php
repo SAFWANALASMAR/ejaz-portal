@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Filament\Pages\SiteSettings;
 use App\Filament\Widgets\PortalStatsWidget;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
@@ -58,21 +59,41 @@ it('feeds a home statistic from live portal data, and keeps manual ones as enter
     $this->get('/')->assertOk()->assertSee('مشاركة في المسابقات')->assertDontSee('مصدر غير مسموح');
 });
 
-it('clears the public pages cache only when a number the home page uses has changed', function () {
-    ContentCache::remember('probe', fn (): string => 'cached');
+it('clears the home page cache alone, and only when a number it uses has changed', function () {
+    $cache = function (): void {
+        ContentCache::remember('home', fn (): string => 'cached');
+        ContentCache::remember('governance.index', fn (): string => 'cached');
+    };
+    $cache();
     $this->artisan('ejaz:refresh-stats');
 
     // لا خانة آلية في الرئيسية: لا مسح ولو تغيّرت الأرقام
-    User::factory()->create();
+    User::factory()->create(['phone_verified_at' => now()]);
     $this->artisan('ejaz:refresh-stats');
-    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('cached');
+    expect(ContentCache::remember('home', fn (): string => 'fresh'))->toBe('cached');
 
-    Setting::put('home', ['show_stats' => true, 'stats' => [['label' => 'حساب مسجل', 'source' => 'users', 'icon' => 'users']]]);
-    ContentCache::remember('probe', fn (): string => 'cached');
+    Setting::put('home', ['show_stats' => true, 'stats' => [['label' => 'حساب موثّق', 'source' => 'verified_users', 'icon' => 'users']]]);
+    $cache();
     $this->artisan('ejaz:refresh-stats');
-    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('cached');
+    expect(ContentCache::remember('home', fn (): string => 'fresh'))->toBe('cached');
 
-    User::factory()->create();
+    // حساب غير موثّق لا يغيّر الرقم العام، والموثّق يغيّره فتُمسح الرئيسية وحدها
+    User::factory()->create(['phone_verified_at' => null]);
     $this->artisan('ejaz:refresh-stats');
-    expect(ContentCache::remember('probe', fn (): string => 'fresh'))->toBe('fresh');
+    expect(ContentCache::remember('home', fn (): string => 'fresh'))->toBe('cached');
+
+    User::factory()->create(['phone_verified_at' => now()]);
+    $this->artisan('ejaz:refresh-stats');
+    expect(ContentCache::remember('home', fn (): string => 'fresh'))->toBe('fresh')
+        ->and(ContentCache::remember('governance.index', fn (): string => 'fresh'))->toBe('cached');
+});
+
+it('shows only verified accounts in public, and takes the source from its list only', function () {
+    expect(PortalStats::PUBLIC)->toContain('verified_users')->not->toContain('users');
+
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+    Livewire::test(SiteSettings::class)
+        ->fillForm(['home.stats' => [['label' => 'رقم', 'source' => 'users', 'icon' => 'users']]])
+        ->call('save')
+        ->assertHasFormErrors();
 });

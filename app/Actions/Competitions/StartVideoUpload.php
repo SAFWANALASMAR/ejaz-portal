@@ -2,17 +2,20 @@
 
 namespace App\Actions\Competitions;
 
+use App\Contracts\VideoUploads;
 use App\Enums\QuestionType;
 use App\Enums\VideoStatus;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
-use App\Support\ChunkedVideoUpload;
+use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * بدء رفع مقطع لسؤال فيديو: يفحص النوع والحجم والمدة المعلنة مقابل حدود السؤال قبل أي رفع، ثم يعيد
@@ -20,6 +23,8 @@ use Illuminate\Validation\ValidationException;
  */
 class StartVideoUpload
 {
+    public function __construct(private VideoUploads $uploads) {}
+
     /**
      * @return array{video: SubmissionVideo, urls: array<int, string>}
      *
@@ -53,11 +58,18 @@ class StartVideoUpload
             throw ValidationException::withMessages(['video' => $problem]);
         }
 
-        $video = DB::transaction(function () use ($submission, $question, $size): SubmissionVideo {
+        /** @var SubmissionVideo|null $previous */
+        $previous = null;
+
+        $video = DB::transaction(function () use ($submission, $question, $size, &$previous): SubmissionVideo {
+            // إرسال متزامن يتسلسل مع الاستبدال: فإن سبق، لا يُحذف مقطع مشاركة مرسلة ولا يُستبدل
+            SubmissionLock::draft($submission->id);
+
             $video = SubmissionVideo::query()->where('submission_id', $submission->id)->where('question_id', $question->id)->lockForUpdate()->first();
 
             if ($video !== null) {
-                ChunkedVideoUpload::discard($video);
+                // نسخة المقطع السابق لحذف بقاياه وملفه بعد الاعتماد، لا وصف المشاركة مقفول
+                $previous = clone $video;
             } else {
                 $video = new SubmissionVideo;
                 $video->submission()->associate($submission);
@@ -71,11 +83,31 @@ class StartVideoUpload
             $video->duration_seconds = null;
             $video->path = null;
             $video->rejection_reason = null;
+            $video->upload_id = null;
             $video->save();
 
             return $video;
         });
 
-        return ['video' => $video, 'urls' => ChunkedVideoUpload::urls($video, range(0, $video->chunk_count - 1))];
+        // بعد الاعتماد: إن فشل الحفظ بقي المقطع السابق وملفه كما هما
+        if ($previous !== null) {
+            $this->uploads->discard($previous);
+
+            if (filled($previous->path)) {
+                Storage::disk(SubmissionVideo::disk())->delete((string) $previous->path);
+            }
+        }
+
+        try {
+            $this->uploads->begin($video);
+        } catch (Throwable $exception) {
+            // تعطّل التخزين عند البدء: يُرفض المقطع فيعاد رفعه، ولا يبقى «قيد الرفع» بلا معرّف رفع
+            SubmissionVideo::query()->whereKey($video->id)->where('uuid', $video->uuid)->where('status', VideoStatus::Uploading)
+                ->update(['status' => VideoStatus::Rejected, 'rejection_reason' => 'processing_failed', 'updated_at' => now()]);
+
+            throw $exception;
+        }
+
+        return ['video' => $video, 'urls' => $this->uploads->urls($video, range(0, $video->chunk_count - 1))];
     }
 }

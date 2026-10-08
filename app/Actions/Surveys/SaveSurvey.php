@@ -23,6 +23,11 @@ use Illuminate\Validation\Validator as ValidatorInstance;
 class SaveSurvey
 {
     /**
+     * سقف تقني لسقف إجابات غير المسجلين الذي يضبطه المسؤول.
+     */
+    public const MAX_GUEST_LIMIT = 100000;
+
+    /**
      * @param  array<string, mixed>  $data
      *
      * @throws AuthorizationException
@@ -76,6 +81,8 @@ class SaveSurvey
             'audience' => ['required', Rule::enum(SurveyAudience::class)],
             'competition_id' => ['nullable', 'integer', Rule::exists('competitions', 'id')->whereNull('deleted_at')],
             'allow_guests' => ['boolean'],
+            // سقف إجابات غير المسجلين إلزامي متى سُمح لهم (مراجعة #5)، فلا يُغرق الرابط المشترك النتائج
+            'guest_limit' => [Rule::requiredIf(fn (): bool => (bool) ($data['allow_guests'] ?? $survey->allow_guests)), 'nullable', 'integer', 'min:1', 'max:'.self::MAX_GUEST_LIMIT],
             'opens_at' => ['nullable', 'date'],
             'closes_at' => ['nullable', 'date', 'after:opens_at'],
             'is_published' => ['boolean'],

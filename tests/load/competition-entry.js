@@ -59,8 +59,10 @@ export default function () {
     const login = http.post(`${BASE}/login`, { _token: token(page.body), login: `load-${n}@load.test`, password: PASSWORD }, { redirects: 0 });
     check(login, { 'logged in': (r) => r.status === 302 && !String(r.headers.Location || '').includes('/login') });
 
-    page = http.get(`${BASE}/competitions/${SLUG}/entry`, { tags: { step: 'page' } });
-    if (!check(page, { 'entry form': (r) => r.status === 200 })) {
+    // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، ثم يُعاد التوجيه إلى النموذج
+    page = http.get(`${BASE}/competitions/${SLUG}`, { tags: { step: 'page' } });
+    page = http.post(`${BASE}/competitions/${SLUG}/entry/start`, { _token: token(page.body) }, { tags: { step: 'page' } });
+    if (!check(page, { 'entry form': (r) => r.status === 200 && r.url.endsWith('/entry') })) {
         return;
     }
 

@@ -3,12 +3,15 @@
     مقياس من 1 إلى 5، واختيار، ونص. وبعد الإجابة أو عند الإغلاق رسالة بدل النموذج.
 --}}
 @php
+    use App\Actions\Surveys\SubmitSurveyResponse;
     use App\Enums\SurveyQuestionType;
 @endphp
 
 <x-layouts.auth :title="$survey->title" :intro="$survey->description ?: __('surveys.public.intro')" :image="false">
     @if ($state === 'unavailable')
         <x-alert type="warning">{{ __('surveys.public.unavailable') }}</x-alert>
+    @elseif ($state === 'not_audience')
+        <x-alert type="info">{{ __('surveys.public.not_audience') }}</x-alert>
     @elseif ($state === 'answered')
         @unless (session('status'))
             <x-alert type="info">{{ __('surveys.public.already') }}</x-alert>
@@ -52,7 +55,7 @@
                         @endforeach
                     @else
                         <label for="answer-{{ $question->id }}" class="sr-only">{{ $question->prompt }}</label>
-                        <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="4" maxlength="2000"
+                        <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="4" maxlength="{{ SubmitSurveyResponse::maxText($survey) }}"
                             class="block w-full rounded-xl border border-line bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id) }}</textarea>
                     @endif
 
@@ -61,6 +64,23 @@
                     @endif
                 </fieldset>
             @endforeach
+
+            {{-- إشعار عند نقطة الجمع: الجملة دائماً، والرابط متى وُجدت صفحة الخصوصية --}}
+            <p class="text-sm text-muted">
+                {{ auth()->check() ? __('surveys.public.privacy') : __('surveys.public.privacy_guest') }}
+                @if ($challengeKey ?? null)
+                    {{ __('surveys.public.privacy_challenge') }}
+                @endif
+                @if (Route::has('privacy'))
+                    <a href="{{ route('privacy') }}" target="_blank" class="text-primary underline">{{ __('surveys.public.privacy_link') }}</a>
+                @endif
+            </p>
+
+            {{-- التحدي ضد الآليات لغير المسجل (Turnstile)، ويتحقق الخادم من رمزه --}}
+            @if ($challengeKey ?? null)
+                <div class="cf-turnstile" data-sitekey="{{ $challengeKey }}" data-action="survey" data-language="ar"></div>
+                <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="{{ Vite::cspNonce() }}"></script>
+            @endif
 
             <x-button class="w-full" size="lg">{{ __('surveys.public.submit') }}</x-button>
         </form>

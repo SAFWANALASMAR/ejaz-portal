@@ -5,17 +5,20 @@ namespace App\Actions\Settings;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\PublicImages;
+use App\Support\Retention;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * حفظ إعدادات الموقع (التواصل، والتواصل الاجتماعي، والرئيسية).
+ * حفظ إعدادات الموقع (التواصل، والتواصل الاجتماعي، والرئيسية، ومدة الاحتفاظ).
  * كل مجموعة سجل في جدول settings، والتعديل يُسجَّل ويمسح الذاكرة المؤقتة (نموذج Setting).
+ * ومدة الاحتفاظ تحذف بيانات شخصية آلياً، فلها صلاحيتها (retention.update، للمشرف العام وحده).
  */
 class UpdateSiteSettings
 {
-    public const GROUPS = ['contact', 'home', 'store', 'donations'];
+    public const GROUPS = ['contact', 'home', 'retention', 'store', 'donations'];
 
     /**
      * مجلد صور الإعدادات على القرص العام.
@@ -32,6 +35,17 @@ class UpdateSiteSettings
     {
         if (! $actor->can('update', Setting::class)) {
             throw new AuthorizationException;
+        }
+
+        if (array_key_exists('retention', $groups)) {
+            if (! $actor->can('retention.update')) {
+                throw new AuthorizationException;
+            }
+
+            $groups['retention'] = Validator::make($groups['retention'], [
+                'days' => ['nullable', 'integer', 'min:1', 'max:'.Retention::MAX_DAYS],
+            ], attributes: ['days' => __('settings.retention.days')])->validate();
+            $groups['retention']['days'] = isset($groups['retention']['days']) ? (int) $groups['retention']['days'] : null;
         }
 
         $before = self::imagePaths(Setting::group('home')['hero_image'] ?? null);
