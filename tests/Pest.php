@@ -1,10 +1,17 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Enums\SaudiRegion;
+use App\Enums\VideoStatus;
+use App\Models\Competition;
+use App\Models\CompetitionSubmission;
+use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\ContentCache;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /*
@@ -84,4 +91,63 @@ function mp4Contents(int $seconds = 30, int $padding = 0): string
     return $box('ftyp', 'isom'.pack('N', 512).'isomiso2mp41')
         .$box('moov', $box('mvhd', $mvhd))
         .$box('mdat', str_repeat("\x00", $padding));
+}
+
+/**
+ * مشاركة مرسلة بإجابة ومنطقة ومقطع محفوظ على القرص المحلي (اختبارات مدة الاحتفاظ).
+ */
+function entryWithVideo(Competition $competition, User $user): CompetitionSubmission
+{
+    $submission = CompetitionSubmission::factory()->submitted()->create([
+        'competition_id' => $competition->id,
+        'user_id' => $user->id,
+        'category' => 'الفئة الأولى',
+        'region' => SaudiRegion::Makkah,
+        'answers' => [(string) $competition->questions[0]->id => 'نص المتقدم'],
+        'auto_score' => 7,
+        'final_score' => 8.5,
+    ]);
+
+    $path = 'competition-videos/'.$submission->uuid.'.mp4';
+    Storage::disk('local')->put($path, 'video-bytes');
+
+    $video = new SubmissionVideo;
+    $video->submission_id = $submission->id;
+    $video->question_id = $competition->questions[2]->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->duration_seconds = 30;
+    $video->path = $path;
+    $video->save();
+
+    return $submission;
+}
+
+/**
+ * القرص المحلي يتعذر عليه حذف المسارات المذكورة، فيعيد false بلا استثناء كما تفعل الأقراص المضبوطة
+ * بـ throw: false. ويعيد القرص الأصلي لإعادة المحاولة بعده (Storage::set).
+ */
+function failDeletesOf(string ...$paths): FilesystemAdapter
+{
+    /** @var FilesystemAdapter $original */
+    $original = Storage::disk('local');
+
+    Storage::set('local', new class($original, array_values($paths)) extends FilesystemAdapter
+    {
+        /**
+         * @param  list<string>  $failing
+         */
+        public function __construct(FilesystemAdapter $original, private array $failing)
+        {
+            parent::__construct($original->getDriver(), $original->getAdapter(), $original->getConfig());
+        }
+
+        public function delete($paths)
+        {
+            return array_intersect($this->failing, (array) $paths) !== [] ? false : parent::delete($paths);
+        }
+    });
+
+    return $original;
 }

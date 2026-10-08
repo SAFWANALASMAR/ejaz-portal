@@ -38,7 +38,15 @@ class PurgeSubmissionPersonalData
             /** @var CompetitionSubmission $locked */
             $locked = CompetitionSubmission::query()->withTrashed()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
 
-            SubmissionVideo::query()->whereKey($videos->modelKeys())->delete();
+            // مهمة معالجة أنهت مقطعاً بين القراءة والقفل فظهر مسار لم يُحذف ملفه: يُعاد في الدورة التالية، فلا
+            // يُحذف صف يشير إلى ملف باقٍ. وبعد القفل تنتظر المهمة، ثم لا تجد الصف فتحذف ملفها
+            $current = SubmissionVideo::query()->where('submission_id', $locked->id)->lockForUpdate()->pluck('path', 'id')->sortKeys()->all();
+
+            if ($current !== $videos->pluck('path', 'id')->sortKeys()->all()) {
+                throw new RuntimeException("The videos of submission {$locked->id} changed during the purge.");
+            }
+
+            SubmissionVideo::query()->whereKey(array_keys($current))->delete();
 
             // الإجابات والمنطقة لا تدخل في سجل النموذج (LogsActivity)، فالحفظ لا يكتبها في السجل
             $locked->forceFill(['answers' => null, 'region' => null])->save();

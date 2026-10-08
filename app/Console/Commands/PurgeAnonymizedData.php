@@ -91,8 +91,16 @@ class PurgeAnonymizedData extends Command
             ->lazyById()
             ->each(fn (ProgramRegistration $registration) => $attempt(fn () => $purgeRegistration->handle($registration)));
 
-        $this->info("سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.");
+        $summary = "سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.";
 
-        return $failed === 0 ? self::SUCCESS : self::FAILURE;
+        if ($failed > 0) {
+            $this->warn($summary);
+
+            return self::FAILURE;
+        }
+
+        $this->info($summary);
+
+        return self::SUCCESS;
     }
 }

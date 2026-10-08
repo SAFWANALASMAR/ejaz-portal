@@ -12,7 +12,6 @@ use App\Models\SubmissionVideo;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 
@@ -82,31 +81,6 @@ it('purges request answers and files and registration answers of a deleted accou
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
     expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
 });
-
-/**
- * قرص الملفات الخاصة يتعذر عليه حذف المسارات المذكورة، ويعيد false بلا استثناء كما تفعل الأقراص
- * المضبوطة بـ throw: false.
- */
-function failDeletesOf(string ...$paths): void
-{
-    $fake = Storage::disk('local');
-
-    Storage::set('local', new class($fake, $paths) extends FilesystemAdapter
-    {
-        /**
-         * @param  list<string>  $failing
-         */
-        public function __construct(FilesystemAdapter $fake, private array $failing)
-        {
-            parent::__construct($fake->getDriver(), $fake->getAdapter(), $fake->getConfig());
-        }
-
-        public function delete($paths)
-        {
-            return array_intersect($this->failing, (array) $paths) !== [] ? false : parent::delete($paths);
-        }
-    });
-}
 
 it('clears staff replies and internal notes on a purged request, and keeps its statuses and dates', function () {
     // مراجعة الدورة ٨ (٥.٦): نص حر من الموظفين قد يحوي بيانات المتقدم

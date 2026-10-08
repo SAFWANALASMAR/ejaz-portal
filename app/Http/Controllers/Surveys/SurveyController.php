@@ -69,7 +69,7 @@ class SurveyController extends Controller
         ]);
     }
 
-    public function submit(SubmitSurveyRequest $request, string $token, SubmitSurveyResponse $submit, BotChallenge $challenge): RedirectResponse
+    public function submit(SubmitSurveyRequest $request, string $token, SubmitSurveyResponse $submit): RedirectResponse
     {
         $survey = $this->survey($token);
         /** @var User|null $user */
@@ -79,11 +79,19 @@ class SurveyController extends Controller
             return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.already'));
         }
 
-        // الفحوص المحلية الرخيصة أولاً: ضيف لا يجيب هذا الاستبيان أصلاً (مغلق، أو لا يقبل الضيوف، أو لفئة،
-        // أو اكتمل سقفه) يرفضه الإجراء برسالته، بلا طلب تحقق خارجي ولا احتساب في حد شبكته
-        if ($user === null && self::guestMayAnswer($survey)) {
-            // التحدي ضد الآليات (Turnstile)، يُتحقق منه في الخادم قبل الاحتساب والحفظ
-            if (! $challenge->passes((string) $request->validated('cf-turnstile-response', ''), 'survey')) {
+        if ($user === null) {
+            // الفحوص المحلية الرخيصة أولاً: ضيف لا يجيب هذا الاستبيان أصلاً (مغلق، أو لا يقبل الضيوف، أو لفئة، أو
+            // اكتمل سقفه) يُرد هنا برسالته، بلا طلب تحقق خارجي ولا احتساب في حد شبكته. ولا يُستدعى الإجراء، فلا
+            // يبقى للضيف مسار حفظ إلا عبر التحدي والحد، ولو تغيّر الاستبيان بين هذا الفحص وقفل الإجراء
+            $refusal = SubmitSurveyResponse::guestRefusal($survey);
+
+            if ($refusal !== null) {
+                return redirect()->route('surveys.show', $token)->with('error', $refusal);
+            }
+
+            // التحدي ضد الآليات (Turnstile)، يُتحقق منه في الخادم قبل الاحتساب والحفظ. ويُحل هنا وحده: خطأ إعداده
+            // يظهر عند أول ضيف، ولا يمس أصحاب الحسابات
+            if (! app(BotChallenge::class)->passes((string) $request->validated('cf-turnstile-response', ''), 'survey')) {
                 return redirect()->route('surveys.show', $token)->with('error', __('surveys.public.challenge_failed'));
             }
 
@@ -125,18 +133,6 @@ class SurveyController extends Controller
         $source = $survey->allow_guests ? $request->cookie(self::cookie($survey)) : null;
 
         return $source !== null && ($user === null || $source === 'g');
-    }
-
-    /**
-     * يجيب غير المسجل هذا الاستبيان: مفتوح، ويقبل الضيوف، وليس لفئة، ولم يكتمل سقفه.
-     */
-    private static function guestMayAnswer(Survey $survey): bool
-    {
-        return $survey->isOpen()
-            && $survey->allow_guests
-            && SubmitSurveyResponse::eligible($survey, null)
-            && $survey->guest_limit !== null
-            && $survey->guest_responses < $survey->guest_limit;
     }
 
     private function survey(string $token): Survey

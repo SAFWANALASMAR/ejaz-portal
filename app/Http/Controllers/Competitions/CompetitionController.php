@@ -7,6 +7,7 @@ use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * صفحات المسابقات العامة: القائمة بشارات حالتها، وصفحة المسابقة بزر التقديم حين تكون مفتوحة.
@@ -25,7 +26,7 @@ class CompetitionController extends Controller
         return view('competitions.index', ['competitions' => $competitions]);
     }
 
-    public function show(Request $request, string $slug): View
+    public function show(Request $request, string $slug): Response
     {
         $competition = Competition::query()->published()->where('slug', $slug)->firstOrFail();
         $user = $request->user();
@@ -33,6 +34,9 @@ class CompetitionController extends Controller
         /** @var CompetitionSubmission|null $submission */
         $submission = $user === null ? null : $competition->submissions()->where('user_id', $user->id)->first();
 
-        return view('competitions.show', ['competition' => $competition, 'submission' => $submission]);
+        $response = response()->view('competitions.show', ['competition' => $competition, 'submission' => $submission]);
+
+        // الصفحة لصاحب الحساب تحمل رقم مشاركته، فلا تُحفظ في ذاكرة متصفح ولا وسيط
+        return $user === null ? $response : $response->header('Cache-Control', 'private, no-store');
     }
 }

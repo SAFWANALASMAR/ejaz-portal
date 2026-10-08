@@ -489,3 +489,21 @@ it('checks the cheap local rules before the outside challenge', function () {
 
     expect($challenge->checked)->toBe([])->and(SurveyResponse::count())->toBe(0);
 });
+
+it('answers a guest who may not answer before the action, so no guest answer is saved without the challenge', function () {
+    // مراجعة الوكيل الأمني على التكامل: لو صار الاستبيان قابلاً للإجابة بين فحص المتحكم وقفل الإجراء
+    // لمرت إجابة ضيف بلا تحدٍّ ولا احتساب، فلا يُستدعى الإجراء للضيف المرفوض أصلاً
+    $this->mock(SubmitSurveyResponse::class)->shouldNotReceive('handle');
+    app()->instance(BotChallenge::class, $challenge = new FakeBotChallenge);
+
+    $this->survey->update(['allow_guests' => true, 'guest_limit' => 100, 'closes_at' => now()->subMinute()]);
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error', __('surveys.public.unavailable'));
+
+    $this->survey->forceFill(['closes_at' => null, 'guest_limit' => 1, 'guest_responses' => 1])->save();
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error', __('surveys.public.guests_full'));
+
+    $this->survey->update(['guest_limit' => 100, 'audience' => SurveyAudience::Members]);
+    answer([$this->scale->id => 3, $this->choice->id => 0])->assertSessionHas('error', __('surveys.public.not_audience'));
+
+    expect($challenge->checked)->toBe([]);
+});
