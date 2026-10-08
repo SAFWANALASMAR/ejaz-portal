@@ -62,6 +62,7 @@ return [
         'Album' => 'ألبوم',
         'Partner' => 'شريك',
         'Inquiry' => 'استفسار',
+        'Redirect' => 'تحويل رابط',
     ],
 
 ];

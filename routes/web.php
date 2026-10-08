@@ -8,6 +8,7 @@ use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
@@ -62,6 +63,9 @@ Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slu
 // التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحدود لكل مشترك وللبوابة (FortifyServiceProvider)
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:contact')->name('contact.store');
+
+// كل طلب GET لا يطابق مساراً: تحويل رابط قديم مسجل، وإلا 404 العربية. ولارافيل يطابقه آخراً أينما سُجّل
+Route::fallback(FallbackController::class);
 
 // لوحة المستخدم
 Route::middleware('auth')->prefix('account')->name('account.')->group(function () {

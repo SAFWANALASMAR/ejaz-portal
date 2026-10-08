@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             AccessSeeder::class,
             MenuSeeder::class,
             ContentSeeder::class,
+            LegacyRedirectsSeeder::class,
         ]);
     }
 }
