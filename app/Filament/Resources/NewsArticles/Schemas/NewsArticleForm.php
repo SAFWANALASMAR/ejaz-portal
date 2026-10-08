@@ -4,6 +4,7 @@ namespace App\Filament\Resources\NewsArticles\Schemas;
 
 use App\Filament\Forms\ContentFields;
 use App\Models\NewsArticle;
+use App\Rules\PlainText;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -27,6 +28,7 @@ class NewsArticleForm
                     ->label(__('news.fields.category'))
                     ->helperText(__('news.fields.category_hint'))
                     ->maxLength(60)
+                    ->rule(new PlainText)
                     ->datalist(fn (): array => NewsArticle::categoriesIn(NewsArticle::query())),
                 Toggle::make('is_published')->label(__('content.is_published')),
                 Textarea::make('summary')->label(__('news.fields.summary'))->rows(2)->maxLength(300)->columnSpanFull(),
