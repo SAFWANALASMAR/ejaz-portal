@@ -68,9 +68,9 @@ class SecurityHeaders
             'frame-ancestors' => ["'none'"],
         ];
 
-        // عنصر التحدي ضد الآليات في صفحة الاستبيان وحدها، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
+        // عنصر التحدي ضد الآليات في صفحتي الاستبيان والتبرع وحدهما، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
         // الصفحات الأخرى (docs/decisions.md)
-        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show')) {
+        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate')) {
             $directives['script-src'] = [...$directives['script-src'], ...config('security.csp.challenge_src')];
             $directives['frame-src'] = [...$directives['frame-src'], ...config('security.csp.challenge_src')];
         }

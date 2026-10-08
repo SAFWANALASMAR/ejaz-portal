@@ -31,11 +31,22 @@
             <p class="text-sm text-muted">{{ __('payments.donate.receipt_to', ['email' => $user->email]) }}</p>
         @endif
 
+        {{-- التحدي ضد الآليات لغير المسجل (Turnstile)، ويتحقق الخادم من رمزه --}}
+        @if ($challengeKey ?? null)
+            <div class="cf-turnstile" data-sitekey="{{ $challengeKey }}" data-action="donation" data-language="ar"></div>
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="{{ Vite::cspNonce() }}"></script>
+        @endif
+
         <x-button class="w-full" size="lg" arrow>{{ __('payments.donate.submit') }}</x-button>
 
         <p class="flex items-start gap-2 text-xs leading-5 text-muted">
             {{ svg('heroicon-o-lock-closed', 'mt-0.5 size-4 shrink-0 text-primary', ['aria-hidden' => 'true']) }}
-            {{ __('payments.donate.secure_note') }}
+            <span>
+                {{ __('payments.donate.secure_note') }}
+                @if ($challengeKey ?? null)
+                    {{ __('payments.donate.privacy_challenge') }}
+                @endif
+            </span>
         </p>
     </form>
 </x-layouts.auth>

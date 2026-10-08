@@ -38,8 +38,11 @@ return [
         'min_halalas' => (int) env('DONATION_MIN_SAR', 1) * 100,
         'max_halalas' => (int) env('DONATION_MAX_SAR', 100000) * 100,
 
-        // سقف عام لبدء التبرعات في الساعة للبوابة كلها (كسقف الرسائل النصية)، فلا تُغرق بفواتير معلّقة
-        'per_hour' => (int) env('DONATIONS_PER_HOUR', 500),
+        // حدود بدء التبرع، فلا تُغرق البوابة بسجلات دائمة وفواتير عند البوابة: لكل عنوان في الساعة (الزائر
+        // يمر بتحدي Turnstile أيضاً)، ولكل بريد في اليوم، وسقف عام في الساعة للبوابة كلها يُبلَّغ عند بلوغه
+        'per_ip_per_hour' => (int) env('DONATIONS_PER_IP_PER_HOUR', 20),
+        'per_email_per_day' => 10,
+        'per_hour' => (int) env('DONATIONS_PER_HOUR', 2000),
     ],
 
 ];

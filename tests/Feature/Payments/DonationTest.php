@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Payments\StartDonation;
+use App\Contracts\BotChallenge;
 use App\Contracts\PaymentGateway;
 use App\Enums\PaymentEventType;
 use App\Enums\PaymentPurpose;
@@ -9,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
+use App\Services\BotChallenge\FakeBotChallenge;
 use App\Services\Payments\FakePaymentGateway;
 use App\Support\Payments\GatewayPayment;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -157,6 +159,37 @@ it('refuses the fake driver at boot in production', function () {
     expect(fn () => (new AppServiceProvider($this->app))->boot())->toThrow(RuntimeException::class);
 
     $this->app->detectEnvironment(fn (): string => 'testing');
+});
+
+it('shows the bot challenge to guests only and refuses a guest who fails it, while accounts skip it', function () {
+    $challenge = new FakeBotChallenge(passes: false, siteKey: 'site-key-test');
+    app()->instance(BotChallenge::class, $challenge);
+    config(['services.bot_challenge.driver' => 'turnstile']);
+
+    $page = $this->get('/donate')->assertOk()->assertSee('data-sitekey="site-key-test"', false)->assertSee('challenges.cloudflare.com/turnstile', false);
+    expect($page->headers->get('Content-Security-Policy'))->toContain('challenges.cloudflare.com');
+
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'donor@example.test', 'cf-turnstile-response' => 'bad'])
+        ->assertRedirect('/donate')
+        ->assertSessionHas('error', __('payments.donate.challenge_failed'));
+    expect(Payment::count())->toBe(0)->and($challenge->checked)->toBe(['bad']);
+
+    $user = User::factory()->create();
+    $this->actingAs($user)->get('/donate')->assertOk()->assertDontSee('data-sitekey', false);
+    $this->actingAs($user)->post('/donate', ['amount' => '10'])->assertRedirect();
+    expect(Payment::count())->toBe(1)->and($challenge->checked)->toBe(['bad']);
+});
+
+it('caps donation starts per address and per email', function () {
+    config(['payments.donation.per_ip_per_hour' => 1]);
+
+    $this->post('/donate', ['amount' => '10', 'email' => 'donor@example.test'])->assertRedirect();
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'other@example.test'])->assertRedirect('/donate')->assertSessionHas('error', __('payments.donate.busy'));
+
+    config(['payments.donation.per_ip_per_hour' => 100, 'payments.donation.per_email_per_day' => 1]);
+    $this->from('/donate')->post('/donate', ['amount' => '10', 'email' => 'Donor@example.test'])->assertRedirect('/donate')->assertSessionHasErrors('email');
+
+    expect(Payment::count())->toBe(1);
 });
 
 it('caps donation starts per hour for the whole portal', function () {

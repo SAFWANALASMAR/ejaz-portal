@@ -66,11 +66,17 @@ class StartDonation
             ['amount' => __('payments.fields.amount'), 'email' => __('payments.fields.email'), 'name' => __('payments.fields.name')],
         )->validate();
 
-        if (RateLimiter::tooManyAttempts(self::HOURLY_KEY, (int) config('payments.donation.per_hour'))) {
-            throw ValidationException::withMessages(['amount' => __('payments.donate.busy')]);
+        // حد يومي لكل بريد، فلا يُغرق بريد شخص بفواتير وإيصالات، ولا يُنشأ باسمه سجل بعد سجل
+        if (RateLimiter::increment('donations:email:'.hash('sha256', strtolower($validated['email'])), 60 * 60 * 24) > (int) config('payments.donation.per_email_per_day')) {
+            throw ValidationException::withMessages(['email' => __('payments.donate.email_busy')]);
         }
 
-        RateLimiter::hit(self::HOURLY_KEY, 3600);
+        // سقف عام للبوابة في الساعة: بلوغه يُبلَّغ (هجوم أو ذروة حقيقية ترفع السقف)
+        if (RateLimiter::increment(self::HOURLY_KEY, 3600) > (int) config('payments.donation.per_hour')) {
+            report(new RuntimeException('Donation starts reached the hourly cap (DONATIONS_PER_HOUR).'));
+
+            throw ValidationException::withMessages(['amount' => __('payments.donate.busy')]);
+        }
 
         $payment = DB::transaction(function () use ($user, $validated): Payment {
             $payment = new Payment;

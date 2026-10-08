@@ -25,6 +25,8 @@ class StartDonationRequest extends FormRequest
             'preset' => ['nullable', 'integer'],
             'email' => ['nullable', 'string', 'max:255'],
             'name' => ['nullable', 'string', 'max:100'],
+            // رمز التحدي ضد الآليات لغير المسجل، يُتحقق منه في الخادم
+            'cf-turnstile-response' => ['nullable', 'string', 'max:2048'],
         ];
     }
 
