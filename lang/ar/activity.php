@@ -56,6 +56,7 @@ return [
         'payment_refunded' => 'استرداد مبلغ عملية دفع',
         'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
         'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
+        'live_stream_archived' => 'نقل تسجيل بث إلى المكتبة المرئية',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
     ],
 
@@ -74,6 +75,7 @@ return [
         'CompetitionSubmission' => 'مشاركة في مسابقة',
         'SubmissionReview' => 'تحكيم مشاركة',
         'Payment' => 'عملية دفع',
+        'LiveStream' => 'بث مباشر',
         'CompetitionDraw' => 'سحب إلكتروني',
         'CompetitionDrawVoid' => 'إلغاء سحب',
         'Survey' => 'استبيان',

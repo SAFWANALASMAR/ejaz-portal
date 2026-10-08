@@ -52,6 +52,9 @@ enum ActivityEvent: string implements HasLabel
     case PaymentWebhookRejected = 'payment_webhook_rejected';
     case PaymentMismatch = 'payment_mismatch';
 
+    // البث المباشر
+    case LiveStreamArchived = 'live_stream_archived';
+
     public function getLabel(): string
     {
         return __('activity.events.'.$this->value);

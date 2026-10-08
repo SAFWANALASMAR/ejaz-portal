@@ -10,6 +10,7 @@ use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\LiveStreamController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,3 +72,6 @@ require __DIR__.'/surveys.php';
 
 // المتجر والدفع والتبرعات (المرحلة 5)
 require __DIR__.'/payments.php';
+
+// البث المباشر (المرحلة 5): يظهر ويختفي بالموعد (docs/plans/livestream.md)
+Route::get('/live', LiveStreamController::class)->middleware('throttle:60,1')->name('live');

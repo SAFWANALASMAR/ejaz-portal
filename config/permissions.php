@@ -25,6 +25,7 @@ return [
         'news' => $crud,
         'media' => $crud,
         'partners' => $crud,
+        'livestreams' => $crud,
         'redirects' => $crud,
 
         // الطلبات والتواصل
@@ -58,6 +59,7 @@ return [
         'board_member' => [
             'menu.view', 'pages.view', 'initiatives.view', 'board.view', 'governance.view',
             'library.view', 'news.view', 'media.view', 'partners.view',
+            'livestreams.view',
             'competitions.view',
             'surveys.view', 'stats.view',
             'payments.view',
@@ -68,6 +70,7 @@ return [
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*',
+            'livestreams.*',
         ],
         'program_manager' => [
             'competitions.*', 'submissions.*',

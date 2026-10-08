@@ -83,3 +83,4 @@ if (header) {
 }
 
 import './competition-entry';
+import './live-countdown';

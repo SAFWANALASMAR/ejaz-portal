@@ -23,6 +23,8 @@ const guestScreens = [
     // المتجر والتبرع يظهران بعد تفعيلهما من اللوحة
     { name: 'store', path: '/store', heading: 'h1', whenPublished: true },
     { name: 'donate', path: '/donate', heading: 'h1', whenPublished: true },
+    // البث المباشر يظهر ببث منشور جارٍ أو قادم
+    { name: 'live', path: '/live', heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [
