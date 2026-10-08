@@ -2,7 +2,7 @@
 
 namespace App\Actions\Services;
 
-use App\Enums\ActivityEvent;
+use App\Actions\Assembly\SaveAssemblyMembership;
 use App\Enums\OpeningKind;
 use App\Enums\RoleName;
 use App\Enums\ServiceRequestStatus;
@@ -17,8 +17,9 @@ use Illuminate\Validation\ValidationException;
  * نقل الطلب إلى حالة جديدة من اللوحة، بالانتقالات المسموحة في ServiceRequestStatus فقط.
  * يُسجَّل في سجل الطلب (مع الرد على المتقدم والملاحظة الداخلية) وفي سجل العمليات، ويُشعَر المتقدم.
  *
- * قبول طلب الانضمام للجمعية العمومية يمنح صاحبه الدور assembly_member في المعاملة نفسها. ولأن
- * منح الأدوار للمشرف العام وحده (docs/roles-permissions.md)، فهذا القبول له وحده.
+ * قبول طلب الانضمام للجمعية العمومية يسجّل صاحبه عضواً فعّالاً في سجل الأعضاء (SaveAssemblyMembership)،
+ * فيُمنح الدور assembly_member في المعاملة نفسها. ولأن منح الأدوار للمشرف العام وحده
+ * (docs/roles-permissions.md)، فهذا القبول له وحده.
  */
 class ChangeServiceRequestStatus
 {
@@ -66,7 +67,7 @@ class ChangeServiceRequestStatus
             ]);
 
             if ($grantsMembership) {
-                $this->grantMembership($actor, $request->user);
+                app(SaveAssemblyMembership::class)->acceptRequest($actor, $request);
             }
 
             if ($request->user->anonymized_at === null) {
@@ -75,24 +76,5 @@ class ChangeServiceRequestStatus
         });
 
         return $request;
-    }
-
-    private function grantMembership(User $actor, User $member): void
-    {
-        $role = RoleName::AssemblyMember->value;
-
-        if ($member->hasRole($role)) {
-            return;
-        }
-
-        $before = $member->getRoleNames()->sort()->values()->all();
-        $member->assignRole($role);
-
-        activity('users')
-            ->causedBy($actor)
-            ->performedOn($member)
-            ->event(ActivityEvent::RolesChanged->value)
-            ->withProperties(['old' => $before, 'new' => $member->getRoleNames()->sort()->values()->all()])
-            ->log(ActivityEvent::RolesChanged->value);
     }
 }

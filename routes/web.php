@@ -75,5 +75,8 @@ require __DIR__.'/competitions.php';
 // قياس الرضا (المرحلة 2)
 require __DIR__.'/surveys.php';
 
+// الجمعية العمومية (المرحلة 4)
+require __DIR__.'/assembly.php';
+
 // المتجر والدفع والتبرعات (المرحلة 5)
 require __DIR__.'/payments.php';

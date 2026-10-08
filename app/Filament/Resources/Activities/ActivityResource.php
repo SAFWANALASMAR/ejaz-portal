@@ -43,7 +43,7 @@ class ActivityResource extends Resource
      *
      * @var list<string>
      */
-    public const LOGS = ['default', 'security', 'users', 'content', 'requests', 'programs', 'competitions', 'surveys', 'payments'];
+    public const LOGS = ['default', 'security', 'users', 'content', 'requests', 'programs', 'competitions', 'surveys', 'payments', 'assembly'];
 
     public static function getEloquentQuery(): Builder
     {

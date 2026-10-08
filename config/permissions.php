@@ -56,6 +56,14 @@ return [
 
         // المدفوعات (المرحلة 5): سجل مالي للقراءة، والاسترداد للمشرف العام (بلا ربط)
         'payments' => ['view', 'view_donor', 'refund'],
+
+        // الجمعية العمومية (المرحلة 4)
+        // السجل يمنح دور عضو الجمعية العمومية، فالإنشاء والتعديل لا يُربطان بدور (المشرف العام وحده، قرار صفوان)
+        'assembly_members' => ['view', 'create', 'update'],
+        'meetings' => $crud,
+        // المحضر يرفعه السكرتير ويعتمده المجلس، فالعمليتان منفصلتان
+        'minutes' => ['create', 'approve'],
+        'assembly_files' => $crud,
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -66,10 +74,12 @@ return [
             'competitions.view',
             'surveys.view', 'stats.view',
             'payments.view',
+            'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
         ],
         'secretary' => [
             'requests.*',
             'openings.*',
+            'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',

@@ -43,6 +43,15 @@ return [
             'active' => ['account.requests.*'],
         ],
         [
+            // لمن يصل إلى منطقة الجمعية العمومية وحده (الصورة 04)
+            'route' => 'assembly.index',
+            'label' => 'assembly.nav',
+            'description' => 'assembly.nav_description',
+            'icon' => 'user-group',
+            'active' => ['assembly.*'],
+            'can' => 'accessAssemblyArea',
+        ],
+        [
             'route' => 'account.competitions',
             'label' => 'competitions.account.nav',
             'description' => 'competitions.account.nav_description',
@@ -63,6 +72,7 @@ return [
     'cards' => [
         'account.programs.index',
         'account.profile',
+        'assembly.index',
         'account.requests.index',
     ],
 

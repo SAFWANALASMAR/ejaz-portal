@@ -4,7 +4,9 @@ namespace App\Actions\Users;
 
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
+use App\Enums\MembershipStatus;
 use App\Jobs\SyncAttendanceCertificate;
+use App\Models\AssemblyMembership;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
@@ -68,6 +70,9 @@ class AnonymizeUser
 
             // السجل المالي يبقى بمبلغه وإيصاله (لا يُحذف)، وتُمسح منه هوية المتبرع. ومشغّل القاعدة يسمح بذلك
             DB::table('payments')->where('user_id', $user->id)->update(['donor_name' => null, 'donor_email' => null]);
+
+            // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
+            AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);
 
             // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data: إجابات
             // الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل في البرامج، ونصوص الاستبيانات (وتبقى أرقامها

@@ -3,7 +3,9 @@
 namespace App\Actions\Accounts;
 
 use App\Enums\SurveyQuestionType;
+use App\Models\AssemblyMembership;
 use App\Models\CompetitionSubmission;
+use App\Models\Meeting;
 use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
@@ -11,6 +13,7 @@ use App\Models\SubmissionVideo;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
+use Closure;
 
 /**
  * نسخة من بيانات المستخدم بصيغة قابلة للقراءة (حق الاطلاع في نظام حماية البيانات).
@@ -89,6 +92,7 @@ class ExportUserData
                         ])->values()->all(),
                     'submitted_at' => $date($response->submitted_at),
                 ])->all(),
+            'assembly_membership' => self::membership($user, $date),
             'payments' => Payment::query()->where('user_id', $user->id)->orderBy('id')->get()
                 ->map(fn (Payment $payment): array => [
                     'purpose' => $payment->purpose->value,
@@ -99,6 +103,31 @@ class ExportUserData
                     'paid_at' => $date($payment->paid_at),
                     'created_at' => $date($payment->created_at),
                 ])->all(),
+        ];
+    }
+
+    /**
+     * العضوية في الجمعية العمومية وحضور اجتماعاتها، أو null بلا عضوية.
+     *
+     * @param  Closure(mixed): ?string  $date
+     * @return array<string, mixed>|null
+     */
+    private static function membership(User $user, Closure $date): ?array
+    {
+        $membership = AssemblyMembership::query()->whereBelongsTo($user)->first();
+
+        if ($membership === null) {
+            return null;
+        }
+
+        return [
+            'status' => $membership->status->value,
+            'joined_on' => $membership->joined_on?->toDateString(),
+            'meetings_attended' => Meeting::query()->withTrashed()
+                ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
+                ->orderBy('starts_at')->get()
+                ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'starts_at' => $date($meeting->starts_at)])
+                ->all(),
         ];
     }
 

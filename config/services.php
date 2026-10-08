@@ -51,4 +51,16 @@ return [
         'turnstile_secret_key' => env('TURNSTILE_SECRET_KEY'),
     ],
 
+    // اجتماعات تيمز للجمعية العمومية: fake في التطوير والاختبارات، وgraph (Microsoft Graph بمفتاح تطبيق
+    // الجمعية في Microsoft 365) في الإنتاج. والاجتماع حدث في تقويم حساب المنظِّم (docs/decisions.md)
+    'online_meetings' => [
+        'driver' => env('ONLINE_MEETINGS_DRIVER', 'fake'),
+        'graph' => [
+            'tenant_id' => env('MS_GRAPH_TENANT_ID'),
+            'client_id' => env('MS_GRAPH_CLIENT_ID'),
+            'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
+            'organizer' => env('MS_GRAPH_ORGANIZER'),
+        ],
+    ],
+
 ];

@@ -28,6 +28,7 @@ return [
         'competitions' => 'المسابقات',
         'surveys' => 'قياس الرضا',
         'payments' => 'المدفوعات',
+        'assembly' => 'الجمعية العمومية',
     ],
 
     'events' => [
@@ -59,6 +60,10 @@ return [
         'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
         'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
+        'attendance_recorded' => 'تسجيل حضور اجتماع',
+        'minutes_uploaded' => 'رفع مسودة محضر',
+        'minutes_approved' => 'اعتماد محضر',
+        'file_downloaded' => 'تنزيل ملف',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -85,6 +90,9 @@ return [
         'CompetitionDrawVoid' => 'إلغاء سحب',
         'Survey' => 'استبيان',
         'SurveyQuestion' => 'سؤال استبيان',
+        'AssemblyMembership' => 'عضوية في الجمعية العمومية',
+        'Meeting' => 'اجتماع',
+        'AssemblyFile' => 'ملف للأعضاء',
     ],
 
 ];

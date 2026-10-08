@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Notification;
  *
  * منح دور المشرف العام أو سحبه يُبلَّغ به كل من كان مشرفاً عاماً قبل التغيير أو بعده،
  * ومنهم من سُحب دوره، فلا يخفى السحب على صاحبه ولو نفّذه حساب مخترَق.
+ *
+ * ودور عضو الجمعية العمومية لا يُمنح هنا ولا يُسحب: يتبع العضوية في سجل الأعضاء (SaveAssemblyMembership)،
+ * فيبقى كما هو.
  */
 class ChangeUserRoles
 {
@@ -32,9 +35,14 @@ class ChangeUserRoles
         }
 
         $super = RoleName::SuperAdmin->value;
-        $valid = array_values(array_intersect($roles, RoleName::values(RoleName::cases())));
-        $valid = $valid === [] ? [RoleName::Member->value] : $valid;
+        $assemblyMember = RoleName::AssemblyMember->value;
         $before = $user->getRoleNames()->sort()->values()->all();
+        $valid = array_values(array_diff(array_intersect($roles, RoleName::values(RoleName::cases())), [$assemblyMember]));
+        $valid = $valid === [] ? [RoleName::Member->value] : $valid;
+
+        if (in_array($assemblyMember, $before, true)) {
+            $valid[] = $assemblyMember;
+        }
 
         if ($actor->is($user) && in_array($super, $before, true) && ! in_array($super, $valid, true)) {
             throw new AuthorizationException(__('users.cannot_demote_self'));

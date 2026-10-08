@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
 use App\Contracts\BotChallenge;
+use App\Contracts\OnlineMeetings;
 use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
 use App\Contracts\StoreCatalog;
@@ -15,11 +16,14 @@ use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
 use App\Services\BotChallenge\FakeBotChallenge;
 use App\Services\BotChallenge\TurnstileChallenge;
+use App\Services\OnlineMeetings\FakeOnlineMeetings;
+use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Services\Payments\FakePaymentGateway;
 use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\Store\SettingsStoreCatalog;
 use App\Services\VideoUploads\S3VideoUploads;
+use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
@@ -86,6 +90,24 @@ class AppServiceProvider extends ServiceProvider
             };
         });
 
+        // اجتماعات تيمز للجمعية العمومية: يُحل عند المزامنة وحدها، وخطأ إعداده يظهر للسكرتير عند حفظ اجتماع عن
+        // بعد (SaveMeeting)، ولا يمس غيره
+        $this->app->singleton(OnlineMeetings::class, function () {
+            /** @var array<string, mixed> $graph */
+            $graph = (array) config('services.online_meetings.graph');
+            $settings = array_map(fn (mixed $value): string => (string) $value, $graph);
+
+            return match (config('services.online_meetings.driver')) {
+                'fake' => $this->app->isProduction()
+                    ? throw new RuntimeException('The fake online meetings must not be used in production; set ONLINE_MEETINGS_DRIVER=graph.')
+                    : new FakeOnlineMeetings,
+                'graph' => in_array('', [$settings['tenant_id'] ?? '', $settings['client_id'] ?? '', $settings['client_secret'] ?? '', $settings['organizer'] ?? ''], true)
+                    ? throw new RuntimeException('Microsoft Graph needs MS_GRAPH_TENANT_ID, MS_GRAPH_CLIENT_ID, MS_GRAPH_CLIENT_SECRET and MS_GRAPH_ORGANIZER.')
+                    : new GraphOnlineMeetings($settings['tenant_id'], $settings['client_id'], $settings['client_secret'], $settings['organizer']),
+                default => throw new InvalidArgumentException('Unsupported online meetings driver: '.config('services.online_meetings.driver')),
+            };
+        });
+
         $this->app->singleton(VideoUploads::class, function () {
             $disk = SubmissionVideo::disk();
 
@@ -142,6 +164,10 @@ class AppServiceProvider extends ServiceProvider
         // ملفات تصدير Filament (الطلبات، والتسجيل في البرامج، والمشاركات): لمن طلبها وما زال يملك صلاحية
         // تصديرها، بتحقق ثنائي
         Gate::policy(Export::class, ExportPolicy::class);
+
+        // منطقة الجمعية العمومية في الموقع: لعضوها والمجلس والسكرتير والمشرف العام (AssemblyArea). وفيها المشرف
+        // العام صراحة، فالنتيجة الصريحة لا يغيّرها Gate::after
+        Gate::define('accessAssemblyArea', fn (User $user): bool => AssemblyArea::allows($user));
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
     }
