@@ -7,7 +7,6 @@ use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 
@@ -82,20 +81,7 @@ it('keeps a certificate and its path when the disk cannot delete it, so no file 
     $this->registration->update(['attended_at' => now()]);
     (new SyncAttendanceCertificate($this->registration))->handle();
     $path = $this->registration->fresh()->certificate_path;
-
-    $fake = Storage::disk('local');
-    Storage::set('local', new class($fake) extends FilesystemAdapter
-    {
-        public function __construct(FilesystemAdapter $fake)
-        {
-            parent::__construct($fake->getDriver(), $fake->getAdapter(), $fake->getConfig());
-        }
-
-        public function delete($paths)
-        {
-            return false;
-        }
-    });
+    failDeletesOf((string) $path);
 
     $this->user->forceFill(['deletion_requested_at' => now()])->save();
 

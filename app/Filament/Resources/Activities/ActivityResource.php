@@ -37,6 +37,14 @@ class ActivityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFingerPrint;
 
+    /**
+     * السجلات التي تكتب فيها الشيفرة (activity('...') وuseLogName)، للتسمية والتصفية. ويحرسها اختبار، فلا
+     * يظهر سجل جديد بمفتاحه الخام ولا يغيب عن التصفية.
+     *
+     * @var list<string>
+     */
+    public const LOGS = ['default', 'security', 'users', 'content', 'requests', 'programs', 'competitions', 'surveys'];
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with('causer');
@@ -59,7 +67,7 @@ class ActivityResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('log_name')->label(__('activity.fields.log_name'))
-                    ->options(collect(['default', 'security', 'users', 'content', 'competitions', 'surveys'])->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
+                    ->options(collect(self::LOGS)->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
                 // الخيارات من التعداد، لا من استعلام DISTINCT على سجل يكبر بلا حد
                 SelectFilter::make('event')->label(__('activity.fields.event'))
                     ->options(ActivityEvent::class),

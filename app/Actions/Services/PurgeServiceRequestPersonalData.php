@@ -18,11 +18,11 @@ class PurgeServiceRequestPersonalData
 {
     public function handle(ServiceRequest $request): void
     {
-        $paths = array_values(array_map(fn (array $file): string => $file['path'], (array) $request->files));
+        $paths = self::paths($request);
 
         // الملفات أولاً، خارج المعاملة: إن تعذر حذفها بقي الطلب كما هو، فيعاد الحذف في الدورة التالية
-        // ولا يضيع مسار ملف باقٍ. وصاحب الحساب المخفى لا يغيّر مرفقاته بينهما. والقرص لا يرمي استثناءً
-        // عند التعذر (throw: false) بل يعيد false، والملف الغائب أصلاً نجاح
+        // ولا يضيع مسار ملف باقٍ. والقرص لا يرمي استثناءً عند التعذر (throw: false) بل يعيد false، والملف
+        // الغائب أصلاً نجاح
         if ($paths !== [] && ! Storage::disk(ServiceRequest::disk())->delete($paths)) {
             throw new RuntimeException("Cannot delete the files of service request {$request->id}.");
         }
@@ -30,6 +30,11 @@ class PurgeServiceRequestPersonalData
         DB::transaction(function () use ($request, $paths): void {
             /** @var ServiceRequest $locked */
             $locked = ServiceRequest::query()->withTrashed()->whereKey($request->id)->lockForUpdate()->firstOrFail();
+
+            // مرفق تغيّر بين القراءة والقفل لم يُحذف ملفه: يُعاد في الدورة التالية، فلا يُفرَّغ مسار ملف باقٍ
+            if (self::paths($locked) !== $paths) {
+                throw new RuntimeException("The files of service request {$locked->id} changed during the purge.");
+            }
 
             // الإجابات والمرفقات لا تدخل في سجل النموذج (LogsActivity)، فالحفظ لا يكتبها في السجل
             $locked->forceFill(['answers' => null, 'files' => null])->save();
@@ -42,5 +47,16 @@ class PurgeServiceRequestPersonalData
                 ->withProperties(['opening_id' => $locked->opening_id, 'files' => count($paths)])
                 ->log(ActivityEvent::PersonalDataPurged->value);
         });
+    }
+
+    /**
+     * @return list<string> مسارات مرفقات الطلب مرتبة، فتُقارن نسختان منه
+     */
+    private static function paths(ServiceRequest $request): array
+    {
+        $paths = array_map(fn (array $file): string => $file['path'], array_values((array) $request->files));
+        sort($paths);
+
+        return $paths;
     }
 }

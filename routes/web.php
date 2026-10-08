@@ -48,8 +48,8 @@ Route::where(['section' => implode('|', LibrarySection::values()), 'slug' => '[a
     });
 });
 
-// لوحة المستخدم
-Route::middleware('auth')->prefix('account')->name('account.')->group(function () {
+// لوحة المستخدم. صفحاتها شخصية، فلا تحفظها ذاكرة المتصفح (كصفحات الطلبات والبرامج والمسابقات)
+Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/security', SecurityController::class)->middleware('password.confirm')->name('security');

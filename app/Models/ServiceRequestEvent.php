@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * تغيير في حالة طلب: من نفّذه، ومن أي حالة إلى أيها، والرد على المتقدم (يراه)، والملاحظة
- * الداخلية (للموظفين فقط). لا يُعدَّل بعد إنشائه.
+ * الداخلية (للموظفين فقط). لا يُعدَّل بعد إنشائه، إلا تفريغ الرد والملاحظة بعد مدة الاحتفاظ لمن حُذف حسابه
+ * (PurgeServiceRequestPersonalData).
  *
  * @property ServiceRequestStatus|null $from_status
  * @property ServiceRequestStatus $to_status

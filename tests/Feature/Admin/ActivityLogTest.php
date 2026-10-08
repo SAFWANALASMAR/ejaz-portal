@@ -6,8 +6,10 @@ use App\Filament\Resources\Activities\ActivityResource;
 use App\Filament\Resources\Activities\Pages\ListActivities;
 use App\Models\MenuItem;
 use App\Models\User;
+use Illuminate\Support\Facades\File;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\Finder\SplFileInfo;
 
 it('shows the activity log to the super admin only', function () {
     $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(ActivityResource::getUrl('index'))->assertOk();
@@ -69,6 +71,29 @@ it('names events and affected records in Arabic', function () {
 it('has an Arabic label for every event', function (ActivityEvent $event) {
     expect(__('activity.events.'.$event->value))->not->toBe('activity.events.'.$event->value);
 })->with(ActivityEvent::cases());
+
+it('names and filters by every log the code writes to', function () {
+    // سجلا الطلبات والبرامج ظهرا بمفتاحيهما الخامين بعد التكامل، وغابا عن التصفية
+    $written = collect(File::allFiles(app_path()))
+        ->flatMap(fn (SplFileInfo $file): array => preg_match_all("/(?:activity|useLogName)\\('([a-z_]+)'\\)/", $file->getContents(), $matches) ? $matches[1] : [])
+        ->unique();
+
+    expect($written->diff(ActivityResource::LOGS)->values()->all())->toBe([])
+        ->and($written)->toContain('requests', 'programs');
+
+    foreach (ActivityResource::LOGS as $log) {
+        expect(__('activity.logs.'.$log))->not->toBe('activity.logs.'.$log);
+    }
+
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    activity('requests')->event(ActivityEvent::PersonalDataPurged->value)->log(ActivityEvent::PersonalDataPurged->value);
+    $log = Activity::where('log_name', 'requests')->sole();
+
+    Livewire::test(ListActivities::class)
+        ->assertTableColumnFormattedStateSet('log_name', __('activity.logs.requests'), $log)
+        ->filterTable('log_name', 'requests')
+        ->assertCanSeeTableRecords([$log]);
+});
 
 it('shows an unknown actor for failed sign-ins, and the system for other automatic events', function () {
     $admin = userWithRole(RoleName::SuperAdmin);

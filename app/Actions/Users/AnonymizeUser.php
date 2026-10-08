@@ -66,8 +66,9 @@ class AnonymizeUser
             ProgramRegistration::query()->whereBelongsTo($user)->whereNotNull('certificate_path')->get()
                 ->each(fn (ProgramRegistration $registration) => SyncAttendanceCertificate::remove($registration));
 
-            // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data:
-            // إجابات الطلبات ومرفقاتها والتسجيلات، ونصوص الاستبيانات (وتبقى أرقامها للإحصاء)، ومقاطع المسابقات
+            // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data: إجابات
+            // الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل في البرامج، ونصوص الاستبيانات (وتبقى أرقامها
+            // للإحصاء)؛ ومدتها من هذا الإخفاء. ومقاطع المسابقات وإجاباتها ومنطقتها، ومدتها من إغلاق المسابقة
             activity('users')
                 ->causedBy($actor)
                 ->performedOn($user)

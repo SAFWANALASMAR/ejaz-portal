@@ -90,8 +90,11 @@ it('does not nudge a draft of a withdrawn opening, and keeps personal pages out 
         ->assertHeader('Cache-Control', 'no-store, private');
     $this->get('/account/requests')->assertHeader('Cache-Control', 'no-store, private');
     $this->get('/account/programs')->assertHeader('Cache-Control', 'no-store, private');
-    // ومسابقاتي مثلها بعد التكامل (مراجعة الدورة ٨، ٥.٧)
-    $this->get('/account/competitions')->assertHeader('Cache-Control', 'no-store, private');
+    // ومسابقاتي مثلها بعد التكامل (مراجعة الدورة ٨، ٥.٧). والصفحة نفسها تعمل، فالخطأ يمر بالوسيط أيضاً
+    $this->get('/account/competitions')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    // وبقية صفحات الحساب (مراجعة الوكيل الأمني على التكامل)
+    $this->get('/account/profile')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/account/data')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
 });
 
 it('leaves out deleted programs and drafts of unpublished openings', function () {

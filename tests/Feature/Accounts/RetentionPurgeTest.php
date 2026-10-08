@@ -1,14 +1,14 @@
 <?php
 
 use App\Actions\Accounts\ExportUserData;
+use App\Actions\Services\PurgeServiceRequestPersonalData;
+use App\Enums\RoleName;
 use App\Enums\ServiceRequestStatus;
-use App\Enums\VideoStatus;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\Setting;
-use App\Models\SubmissionVideo;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -82,11 +82,12 @@ it('purges request answers and files and registration answers of a deleted accou
     expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
 });
 
-it('clears staff replies and internal notes on a purged request, and keeps its statuses and dates', function () {
+it('clears staff replies and internal notes on a purged request, and keeps its statuses, actor and dates', function () {
     // مراجعة الدورة ٨ (٥.٦): نص حر من الموظفين قد يحوي بيانات المتقدم
     Setting::put('retention', ['days' => 30]);
+    $staff = userWithRole(RoleName::Secretary);
     $request = requestWithFile($this->deleted);
-    $event = $request->events()->create(['to_status' => ServiceRequestStatus::Rejected, 'message' => 'رد على المتقدم', 'internal_note' => 'ملاحظة داخلية']);
+    $event = $request->events()->create(['actor_id' => $staff->id, 'from_status' => ServiceRequestStatus::UnderReview, 'to_status' => ServiceRequestStatus::Rejected, 'message' => 'رد على المتقدم', 'internal_note' => 'ملاحظة داخلية']);
     $other = requestWithFile(User::factory()->create());
     $otherEvent = $other->events()->create(['to_status' => ServiceRequestStatus::Rejected, 'message' => 'رد باقٍ']);
 
@@ -95,9 +96,27 @@ it('clears staff replies and internal notes on a purged request, and keeps its s
     $event->refresh();
     expect($event->message)->toBeNull()
         ->and($event->internal_note)->toBeNull()
+        ->and($event->from_status)->toBe(ServiceRequestStatus::UnderReview)
         ->and($event->to_status)->toBe(ServiceRequestStatus::Rejected)
+        ->and($event->actor_id)->toBe($staff->id)
         ->and($event->created_at)->not->toBeNull()
         ->and($otherEvent->fresh()->message)->toBe('رد باقٍ');
+});
+
+it('clears a staff reply written after the purge, on the next run, and only once', function () {
+    // مراجعة الوكيل على التكامل: الموظف ما زال يغيّر حالة الطلب ويكتب رداً بعد تفريغه، فيلتقطه شرط الأحداث وحده
+    Setting::put('retention', ['days' => 30]);
+    $request = requestWithFile($this->deleted);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    $late = $request->events()->create(['to_status' => ServiceRequestStatus::Closed, 'message' => 'رد بعد التفريغ']);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($late->fresh()->message)->toBeNull()
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_id', $request->id)->count())->toBe(2);
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(Activity::where('event', 'personal_data_purged')->where('subject_id', $request->id)->count())->toBe(2);
 });
 
 it('keeps a request as it was when its file cannot be deleted, retries tomorrow, and goes on with the others', function () {
@@ -105,7 +124,7 @@ it('keeps a request as it was when its file cannot be deleted, retries tomorrow,
     Setting::put('retention', ['days' => 30]);
     $failing = requestWithFile($this->deleted);
     $other = requestWithFile($this->deleted);
-    failDeletesOf($failing->files['cv']['path']);
+    $original = failDeletesOf($failing->files['cv']['path']);
 
     $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
 
@@ -114,18 +133,38 @@ it('keeps a request as it was when its file cannot be deleted, retries tomorrow,
         ->and(Storage::disk('local')->exists($failing->files['cv']['path']))->toBeTrue()
         ->and($other->fresh()->files)->toBeNull()
         ->and(Storage::disk('local')->exists($other->files['cv']['path']))->toBeFalse();
+
+    Storage::set('local', $original);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($failing->fresh()->files)->toBeNull()
+        ->and(Storage::disk('local')->exists($failing->files['cv']['path']))->toBeFalse();
+});
+
+it('leaves a request for the next run when its files change between the read and the lock', function () {
+    // مراجعة الوكيل الأمني على التكامل: المسارات من نسخة قد تكون قديمة، فلا يُفرَّغ مسار ملف لم يُحذف
+    Setting::put('retention', ['days' => 30]);
+    $request = requestWithFile($this->deleted);
+    $stale = ServiceRequest::query()->find($request->id);
+
+    Storage::disk('local')->put($added = 'service-requests/added.pdf', '%PDF-1.4');
+    $request->forceFill(['files' => [...$request->files, 'other' => ['path' => $added, 'name' => 'آخر.pdf', 'size' => 8]]])->save();
+
+    expect(fn () => app(PurgeServiceRequestPersonalData::class)->handle($stale))->toThrow(RuntimeException::class);
+    expect($request->fresh()->files)->toHaveKey('other')
+        ->and(Storage::disk('local')->exists($added))->toBeTrue();
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect($request->fresh()->files)->toBeNull()->and(Storage::disk('local')->exists($added))->toBeFalse();
 });
 
 it('goes on to the requests when a competition entry before them cannot be purged', function () {
     // مراجعة الدورة ٨ (٥.٤): فشل مشاركة لا يمنع حذف طلب بعدها
     Setting::put('retention', ['days' => 30]);
     $competition = Competition::factory()->withQuestions()->create(['opens_at' => now()->subDays(60), 'closes_at' => now()->subDays(31)]);
-    $entry = CompetitionSubmission::factory()->submitted()->create(['competition_id' => $competition->id, 'user_id' => $this->deleted->id, 'answers' => ['1' => 'نص المتقدم']]);
-    Storage::disk('local')->put($path = 'competition-videos/'.$entry->uuid.'.mp4', 'video-bytes');
-    $video = new SubmissionVideo;
-    $video->forceFill(['submission_id' => $entry->id, 'question_id' => $competition->questions[2]->id, 'status' => VideoStatus::Ready, 'size' => 11, 'chunk_count' => 1, 'path' => $path])->save();
+    $entry = entryWithVideo($competition, $this->deleted);
     $request = requestWithFile($this->deleted);
-    failDeletesOf($path);
+    failDeletesOf((string) $entry->videos()->sole()->path);
 
     $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
 
