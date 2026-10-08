@@ -68,12 +68,27 @@ it('refuses the fake challenge in production', function () {
     expect(fn () => (new FakeBotChallenge)->passes('x', 'survey'))->toThrow(RuntimeException::class);
 });
 
-it('refuses to boot the fake challenge in production, so a forgotten driver shows at deploy', function () {
+it('refuses to resolve the fake challenge in production, so a forgotten driver shows at the first guest', function () {
     app()->detectEnvironment(fn () => 'production');
     app()->forgetInstance(BotChallenge::class);
     config(['services.bot_challenge.driver' => 'fake']);
 
     expect(fn () => app(BotChallenge::class))->toThrow(RuntimeException::class);
+});
+
+it('resolves the challenge for guests only, so a misconfigured one never stops account holders', function () {
+    // مراجعة الوكيل على التكامل: الربط يرمي في الإنتاج بلا Turnstile، وحقنه في توقيع الإرسال كان يرفض
+    // كل إجابة في كل استبيان
+    app()->bind(BotChallenge::class, fn () => throw new RuntimeException('misconfigured'));
+    $members = Survey::factory()->withQuestions()->create();
+    [$scale, $choice] = $members->questions->all();
+
+    $this->actingAs(User::factory()->create());
+    $this->get('/surveys/'.$members->token)->assertOk();
+    $this->post('/surveys/'.$members->token, ['answers' => [$scale->id => 4, $choice->id => 1]])->assertSessionHas('status');
+    $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0]])->assertSessionHas('status');
+
+    expect(SurveyResponse::count())->toBe(2);
 });
 
 it('refuses a malformed token cleanly instead of failing on the server', function () {

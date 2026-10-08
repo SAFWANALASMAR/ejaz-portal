@@ -142,4 +142,18 @@ class SubmitSurveyResponse
     {
         return $survey->responses()->where('user_id', $user->id)->exists();
     }
+
+    /**
+     * سبب رفض غير المسجل قبل الإرسال، بالرسائل نفسها التي يرفض بها الإجراء: مغلق أو لا يقبل الضيوف، أو
+     * لفئة، أو اكتمل سقفه. وnull إن جاز له. والإجراء يعيد فحص السقف على الصف المقفول.
+     */
+    public static function guestRefusal(Survey $survey): ?string
+    {
+        return match (true) {
+            ! $survey->isOpen() || ! $survey->allow_guests => __('surveys.public.unavailable'),
+            ! self::eligible($survey, null) => __('surveys.public.not_audience'),
+            $survey->guest_limit === null || $survey->guest_responses >= $survey->guest_limit => __('surveys.public.guests_full'),
+            default => null,
+        };
+    }
 }

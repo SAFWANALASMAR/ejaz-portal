@@ -47,8 +47,8 @@ class AppServiceProvider extends ServiceProvider
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
         });
 
-        // خطأ الإعداد يُرمى عند أول استعمال (صفحة الاستبيان العام لغير المسجل)، لا رفضاً صامتاً لكل زائر.
-        // والفحص عند كل نشر في docs/security.md
+        // خطأ الإعداد يُرمى عند أول استعمال، لا رفضاً صامتاً لكل زائر. ولا يُحل إلا لغير المسجل في استبيان يقبل
+        // الضيوف (صفحته وإرساله)، فلا يمس أصحاب الحسابات. والفحص عند كل نشر في docs/security.md
         $this->app->singleton(BotChallenge::class, function () {
             $site = (string) config('services.bot_challenge.turnstile_site_key');
             $secret = (string) config('services.bot_challenge.turnstile_secret_key');
