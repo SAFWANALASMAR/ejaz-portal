@@ -58,6 +58,10 @@ enum ActivityEvent: string implements HasLabel
     case MinutesApproved = 'minutes_approved';
     case FileDownloaded = 'file_downloaded';
 
+    // النماذج والأرشيف: كل اطلاع وتنزيل يُسجَّل (requirements/05)
+    case Viewed = 'viewed';
+    case FormEntryApproved = 'form_entry_approved';
+
     public function getLabel(): string
     {
         return __('activity.events.'.$this->value);

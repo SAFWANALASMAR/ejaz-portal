@@ -64,6 +64,14 @@ return [
         // المحضر يرفعه السكرتير ويعتمده المجلس، فالعمليتان منفصلتان
         'minutes' => ['create', 'approve'],
         'assembly_files' => $crud,
+
+        // النماذج الإلكترونية والأرشيف والشواهد (المرحلة 4)
+        'forms' => $crud,
+        // المعبأ يعبّئه السكرتير ويعتمده المجلس
+        'form_entries' => [...$crud, 'approve'],
+        'archive' => $crud,
+        // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
+        'archive_categories' => $crud,
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -75,11 +83,13 @@ return [
             'surveys.view', 'stats.view',
             'payments.view',
             'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
+            'forms.view', 'form_entries.view', 'form_entries.approve', 'archive.view',
         ],
         'secretary' => [
             'requests.*',
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'archive.*',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',

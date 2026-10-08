@@ -29,6 +29,7 @@ return [
         'surveys' => 'قياس الرضا',
         'payments' => 'المدفوعات',
         'assembly' => 'الجمعية العمومية',
+        'documents' => 'النماذج والأرشيف',
     ],
 
     'events' => [
@@ -64,6 +65,8 @@ return [
         'minutes_uploaded' => 'رفع مسودة محضر',
         'minutes_approved' => 'اعتماد محضر',
         'file_downloaded' => 'تنزيل ملف',
+        'viewed' => 'اطلاع',
+        'form_entry_approved' => 'اعتماد نموذج معبأ',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -93,6 +96,10 @@ return [
         'AssemblyMembership' => 'عضوية في الجمعية العمومية',
         'Meeting' => 'اجتماع',
         'AssemblyFile' => 'ملف للأعضاء',
+        'FormTemplate' => 'نموذج إلكتروني',
+        'FormEntry' => 'نموذج معبأ',
+        'ArchiveCategory' => 'تصنيف أرشيف',
+        'ArchiveItem' => 'عنصر أرشيف',
     ],
 
 ];
