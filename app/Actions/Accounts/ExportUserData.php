@@ -4,6 +4,7 @@ namespace App\Actions\Accounts;
 
 use App\Enums\SurveyQuestionType;
 use App\Models\CompetitionSubmission;
+use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SubmissionVideo;
@@ -87,6 +88,16 @@ class ExportUserData
                             'answer' => self::answer($question, ((array) $response->answers)[(string) $question->id]),
                         ])->values()->all(),
                     'submitted_at' => $date($response->submitted_at),
+                ])->all(),
+            'payments' => Payment::query()->where('user_id', $user->id)->orderBy('id')->get()
+                ->map(fn (Payment $payment): array => [
+                    'purpose' => $payment->purpose->value,
+                    'amount' => $payment->formattedAmount(),
+                    'currency' => $payment->currency,
+                    'status' => $payment->status->value,
+                    'receipt_number' => $payment->receipt_number,
+                    'paid_at' => $date($payment->paid_at),
+                    'created_at' => $date($payment->created_at),
                 ])->all(),
         ];
     }

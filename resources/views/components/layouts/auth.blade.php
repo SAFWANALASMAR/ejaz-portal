@@ -2,9 +2,9 @@
     صفحات الدخول والتسجيل والاستعادة (docs/design/ui-reference.md — صفحة الدخول):
     بطاقة في المنتصف فوق خلفية الهوية، بعنوان ووصف، وصورة معمارية في أسفلها.
 --}}
-@props(['title', 'heading' => null, 'intro' => null, 'image' => true])
+@props(['title', 'heading' => null, 'intro' => null, 'image' => true, 'noindex' => true])
 
-<x-layouts.app :title="$title" noindex>
+<x-layouts.app :title="$title" :noindex="$noindex">
     <div class="relative overflow-hidden bg-sand py-10 sm:py-16">
         <img src="{{ asset('images/decor/pattern-corner.svg') }}" alt="" aria-hidden="true"
             class="pointer-events-none absolute -top-10 -start-10 w-64 opacity-60">

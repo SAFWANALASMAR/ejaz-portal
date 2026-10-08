@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
 use App\Contracts\BotChallenge;
+use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
+use App\Contracts\StoreCatalog;
 use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
 use App\Models\SubmissionVideo;
@@ -13,7 +15,10 @@ use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
 use App\Services\BotChallenge\FakeBotChallenge;
 use App\Services\BotChallenge\TurnstileChallenge;
+use App\Services\Payments\FakePaymentGateway;
+use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\LogSmsGateway;
+use App\Services\Store\SettingsStoreCatalog;
 use App\Services\VideoUploads\S3VideoUploads;
 use App\Support\ChunkedVideoUpload;
 use App\View\Composers\SiteChromeComposer;
@@ -47,8 +52,25 @@ class AppServiceProvider extends ServiceProvider
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
         });
 
-        // خطأ الإعداد يُرمى عند أول استعمال، لا رفضاً صامتاً لكل زائر. ولا يُحل إلا لغير المسجل في استبيان يقبل
-        // الضيوف (صفحته وإرساله)، فلا يمس أصحاب الحسابات. والفحص عند كل نشر في docs/security.md
+        // بوابة الدفع: وهمية في التطوير والاختبارات، وميسر بمفاتيح من .env (docs/plans/store-payments.md)
+        $this->app->bind(MoyasarPaymentGateway::class, fn () => new MoyasarPaymentGateway(
+            (string) config('payments.moyasar.secret_key'),
+            (string) config('payments.webhook_secret'),
+        ));
+        $this->app->singleton(PaymentGateway::class, fn () => match (config('payments.driver')) {
+            'fake' => new FakePaymentGateway,
+            'moyasar' => $this->app->make(MoyasarPaymentGateway::class),
+            default => throw new InvalidArgumentException('Unsupported payment driver: '.config('payments.driver')),
+        });
+
+        // منتجات المتجر: من الإعدادات حتى تتوفر واجهة سلة البرمجية
+        $this->app->singleton(StoreCatalog::class, fn () => match (config('store.driver')) {
+            'settings' => new SettingsStoreCatalog,
+            default => throw new InvalidArgumentException('Unsupported store driver: '.config('store.driver')),
+        });
+
+        // خطأ الإعداد يُرمى عند أول استعمال، لا رفضاً صامتاً لكل زائر. ولا يُحل إلا لغير المسجل: في استبيان يقبل
+        // الضيوف وفي التبرع (صفحتاهما وإرسالهما)، فلا يمس أصحاب الحسابات. والفحص عند كل نشر في docs/security.md
         $this->app->singleton(BotChallenge::class, function () {
             $site = (string) config('services.bot_challenge.turnstile_site_key');
             $secret = (string) config('services.bot_challenge.turnstile_secret_key');
@@ -82,6 +104,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // يكشف التحميل الكسول (N+1) والحقول غير المعرّفة أثناء التطوير
         Model::shouldBeStrict(! $this->app->isProduction());
+
+        // المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج، لا عند أول تبرع
+        if ($this->app->isProduction() && config('payments.driver') === 'fake') {
+            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
+        }
 
         // قواعد كلمة المرور في docs/security.md
         Password::defaults(fn () => Password::min(10)->uncompromised());

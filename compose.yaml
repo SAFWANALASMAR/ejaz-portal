@@ -65,6 +65,8 @@ services:
     volumes:
       - .:/work
       - node_modules:/work/node_modules
+    environment:
+      APP_PORT: ${APP_PORT:-8000}
     ipc: host
     depends_on:
       - app

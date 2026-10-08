@@ -49,6 +49,13 @@ return [
             'icon' => 'trophy',
             'active' => ['account.competitions', 'competitions.entry'],
         ],
+        [
+            'route' => 'account.payments',
+            'label' => 'payments.account.nav',
+            'description' => 'payments.account.nav_description',
+            'icon' => 'banknotes',
+            'active' => ['account.payments'],
+        ],
     ],
 
     // ترتيب بطاقات الرئيسية (الصورة 04)، ويختلف عن ترتيب القائمة الجانبية أعلاه. وما لم يُذكر هنا

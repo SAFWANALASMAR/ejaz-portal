@@ -28,6 +28,9 @@ const guestScreens = [
     { name: 'competition', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}`, heading: 'h1', whenPublished: true },
     // استبيان منشور يقبل غير المسجلين، برمزه في SURVEY_TOKEN
     { name: 'survey', path: `/surveys/${process.env.SURVEY_TOKEN ?? 'x'.repeat(32)}`, heading: 'h1', whenPublished: true },
+    // المتجر والتبرع يظهران بعد تفعيلهما من اللوحة
+    { name: 'store', path: '/store', heading: 'h1', whenPublished: true },
+    { name: 'donate', path: '/donate', heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [
@@ -36,6 +39,7 @@ const accountScreens = [
     { name: 'requests', path: '/account/requests', heading: 'h1' },
     { name: 'my-programs', path: '/account/programs', heading: 'h1' },
     { name: 'my-competitions', path: '/account/competitions', heading: 'h1' },
+    { name: 'my-payments', path: '/account/payments', heading: 'h1' },
     // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، لا بفتح النموذج
     { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true, startFrom: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}` },
 ];

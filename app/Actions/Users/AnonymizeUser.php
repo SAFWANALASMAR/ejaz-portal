@@ -66,6 +66,9 @@ class AnonymizeUser
             ProgramRegistration::query()->whereBelongsTo($user)->whereNotNull('certificate_path')->get()
                 ->each(fn (ProgramRegistration $registration) => SyncAttendanceCertificate::remove($registration));
 
+            // السجل المالي يبقى بمبلغه وإيصاله (لا يُحذف)، وتُمسح منه هوية المتبرع. ومشغّل القاعدة يسمح بذلك
+            DB::table('payments')->where('user_id', $user->id)->update(['donor_name' => null, 'donor_email' => null]);
+
             // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data: إجابات
             // الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل في البرامج، ونصوص الاستبيانات (وتبقى أرقامها
             // للإحصاء)؛ ومدتها من هذا الإخفاء. ومقاطع المسابقات وإجاباتها ومنطقتها، ومدتها من إغلاق المسابقة

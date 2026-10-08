@@ -18,7 +18,7 @@ export default defineConfig({
     use: {
         // البوابة ووحدة Vite تُنقلان إلى هذين المنفذين داخل الحاوية (global-setup.mjs)،
         // فيرى المتصفح العناوين نفسها التي يراها صفوان في متصفحه
-        baseURL: 'http://localhost:8000',
+        baseURL: `http://localhost:${process.env.APP_PORT ?? 8000}`,
         locale: 'ar-SA',
         timezoneId: 'Asia/Riyadh',
         navigationTimeout: 90_000,

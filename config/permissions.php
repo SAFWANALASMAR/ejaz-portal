@@ -53,6 +53,9 @@ return [
         // تصدير النتائج منفصل عن الاطلاع: الملف يخرج من اللوحة (لمسؤول البرامج وحده)
         'surveys' => [...$crud, 'export'],
         'stats' => ['view'],
+
+        // المدفوعات (المرحلة 5): سجل مالي للقراءة، والاسترداد للمشرف العام (بلا ربط)
+        'payments' => ['view', 'view_donor', 'refund'],
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -62,6 +65,7 @@ return [
             'library.view', 'news.view', 'media.view', 'partners.view',
             'competitions.view',
             'surveys.view', 'stats.view',
+            'payments.view',
         ],
         'secretary' => [
             'requests.*',

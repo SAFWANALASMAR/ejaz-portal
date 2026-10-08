@@ -12,10 +12,7 @@
 # مستخدم تجريبي بكلمة مرور عشوائية لهذا التشغيل (البيئة المحلية فقط)
 creds=$(docker compose exec -T app php artisan ejaz:demo-user --json)
 
-docker compose run --rm \
-  -e DEMO_EMAIL="$(echo "$creds" | sed -E 's/.*"email":"([^"]+)".*/\1/')" \
-  -e DEMO_PASSWORD="$(echo "$creds" | sed -E 's/.*"password":"([^"]+)".*/\1/')" \
-  browser
+docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
 ```
 
 بدون المستخدم التجريبي تُختبر صفحات الزائر فقط.

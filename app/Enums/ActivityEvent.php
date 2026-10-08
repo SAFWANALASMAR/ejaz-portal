@@ -47,6 +47,11 @@ enum ActivityEvent: string implements HasLabel
     // قياس الرضا
     case SurveyResultsExported = 'survey_results_exported';
 
+    // المدفوعات
+    case PaymentRefunded = 'payment_refunded';
+    case PaymentWebhookRejected = 'payment_webhook_rejected';
+    case PaymentMismatch = 'payment_mismatch';
+
     public function getLabel(): string
     {
         return __('activity.events.'.$this->value);

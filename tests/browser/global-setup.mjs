@@ -24,8 +24,9 @@ function forward(localPort, host, port) {
 }
 
 export default async function globalSetup(config) {
+    // منفذ البوابة على الجهاز (APP_PORT في .env، وتمرره خدمة browser)، لأن روابط التطبيق تُبنى من APP_URL
     const servers = [
-        await forward(8000, process.env.APP_HOST ?? 'app', 8000),
+        await forward(Number(process.env.APP_PORT ?? 8000), process.env.APP_HOST ?? 'app', 8000),
         await forward(5173, process.env.VITE_HOST ?? 'vite', 5173),
     ];
 
@@ -34,7 +35,10 @@ export default async function globalSetup(config) {
         await fetch(`http://localhost:5173/${asset}`, { signal: AbortSignal.timeout(180_000) });
     }
 
-    const { DEMO_EMAIL, DEMO_PASSWORD } = process.env;
+    // البيانات كما طبعها ejaz:demo-user --json (كلمة المرور قد تحوي رموزاً يهربها JSON، فلا تُستخرج بـ sed)
+    const credentials = process.env.DEMO_CREDENTIALS ? JSON.parse(process.env.DEMO_CREDENTIALS) : {};
+    const DEMO_EMAIL = process.env.DEMO_EMAIL ?? credentials.email;
+    const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? credentials.password;
 
     if (DEMO_EMAIL && DEMO_PASSWORD) {
         const browser = await chromium.launch();

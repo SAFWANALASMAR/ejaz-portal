@@ -27,6 +27,7 @@ return [
         'programs' => 'البرامج',
         'competitions' => 'المسابقات',
         'surveys' => 'قياس الرضا',
+        'payments' => 'المدفوعات',
     ],
 
     'events' => [
@@ -54,6 +55,9 @@ return [
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
         'survey_results_exported' => 'تصدير نتائج استبيان',
+        'payment_refunded' => 'استرداد مبلغ عملية دفع',
+        'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
+        'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
     ],
 
@@ -76,6 +80,7 @@ return [
         'CompetitionCriterion' => 'معيار تقييم',
         'CompetitionSubmission' => 'مشاركة في مسابقة',
         'SubmissionReview' => 'تحكيم مشاركة',
+        'Payment' => 'عملية دفع',
         'CompetitionDraw' => 'سحب إلكتروني',
         'CompetitionDrawVoid' => 'إلغاء سحب',
         'Survey' => 'استبيان',
