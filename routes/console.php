@@ -20,4 +20,4 @@ Schedule::command('ejaz:prune-exports')->hourly()->onOneServer();
 Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 
 // بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
-Schedule::command('ejaz:purge-anonymized-data')->daily()->onOneServer();
+Schedule::command('ejaz:purge-anonymized-data')->daily()->withoutOverlapping()->onOneServer();

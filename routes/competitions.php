@@ -18,8 +18,9 @@ Route::get('/competitions/{slug}', [CompetitionController::class, 'show'])->wher
 
 // التقديم: حساب مسجل، والمشاركة مشاركته وحدها (EntryController والإجراءات).
 // ولكل مسار بادئة في حده: الحد بلا بادئة مفتاحه المستخدم وحده فتشترك فيه المسارات كلها، فيستهلك
-// رفع الأجزاء والحفظ التلقائي حد الإرسال
-Route::middleware('auth')->where(['slug' => $slug])->group(function () {
+// رفع الأجزاء والحفظ التلقائي حد الإرسال. والصفحات شخصية (المشاركة بإجاباتها، ومسابقاتي)، فلا تحفظها
+// ذاكرة المتصفح كبقية صفحات الحساب
+Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => $slug])->group(function () {
     // المسودة تُنشأ بـ POST وحده وبحد معدل، فلا ينشئ تكرار فتح الرابط مسودات
     Route::post('/competitions/{slug}/entry/start', [EntryController::class, 'start'])->middleware('throttle:10,1,competition-entry-start')->name('competitions.entry.start');
     Route::get('/competitions/{slug}/entry', [EntryController::class, 'show'])->middleware('throttle:60,1,competition-entry')->name('competitions.entry');
