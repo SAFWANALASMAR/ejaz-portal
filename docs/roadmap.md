@@ -58,7 +58,7 @@
 - 🟨 منطقة الجمعية العمومية: الأعضاء، والاجتماعات، والمحاضر، والملفات، وربط تيمز. (`requirements/04-general-assembly.md`)
   - منجز في `feature/assembly` (الخطة `plans/assembly.md`)، وطلب الدمج #9 مسودة حتى مراجعتي الوكيلين.
   - **يبقى للإنتاج:** تطبيق الجمعية في Azure بصلاحية `Calendars.ReadWrite`، وحساب المنظِّم، ومفاتيح `MS_GRAPH_*` (`security.md`).
-- 🟨 نظام الملفات والشواهد والنماذج الإلكترونية والأرشيف. (`requirements/05-documents-forms.md`) قيد العمل في `feature/documents-forms` (الخطة `plans/documents-forms.md`).
+- 🟨 نظام الملفات والشواهد والنماذج الإلكترونية والأرشيف. (`requirements/05-documents-forms.md`) منجز في `feature/documents-forms` (الخطة `plans/documents-forms.md`)، وطلب الدمج #10 مسودة حتى مراجعتي الوكيلين.
 - ⬜ لوحة إحصائيات للإدارة والمجلس.
 
 ## المرحلة 5 — المتجر والخدمات المكملة
