@@ -112,7 +112,8 @@ class AppServiceProvider extends ServiceProvider
         // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
         Gate::policy(Activity::class, ActivityPolicy::class);
 
-        // ملفات تصدير Filament (المسابقات): لمن طلبها وما زال يملك صلاحية التصدير
+        // ملفات تصدير Filament (الطلبات، والتسجيل في البرامج، والمشاركات): لمن طلبها وما زال يملك صلاحية
+        // تصديرها، بتحقق ثنائي
         Gate::policy(Export::class, ExportPolicy::class);
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);

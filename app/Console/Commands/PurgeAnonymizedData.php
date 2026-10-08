@@ -19,8 +19,8 @@ use Throwable;
  * يحذف بيانات الحسابات المحذوفة (المخفاة بطلب أصحابها) بعد مدة الاحتفاظ من اللوحة (App\Support\Retention)،
  * بإعداد واحد لكل الوحدات (القضية #6). وبلا مدة مضبوطة لا يحذف شيئاً.
  * - مقاطع المسابقات وإجاباتها: محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها وفترة الاعتراض.
- * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها، وإجابات التسجيل في البرامج: من إخفاء
- *   بيانات الحساب.
+ * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل
+ *   في البرامج: من إخفاء بيانات الحساب.
  * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
@@ -80,7 +80,8 @@ class PurgeAnonymizedData extends Command
         ServiceRequest::query()
             ->withTrashed()
             ->whereIn('user_id', $expired)
-            ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('files'))
+            ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('files')
+                ->orWhereHas('events', fn ($query) => $query->whereNotNull('message')->orWhereNotNull('internal_note')))
             ->lazyById()
             ->each(fn (ServiceRequest $request) => $attempt(fn () => $purgeRequest->handle($request)));
 

@@ -90,6 +90,8 @@ it('does not nudge a draft of a withdrawn opening, and keeps personal pages out 
         ->assertHeader('Cache-Control', 'no-store, private');
     $this->get('/account/requests')->assertHeader('Cache-Control', 'no-store, private');
     $this->get('/account/programs')->assertHeader('Cache-Control', 'no-store, private');
+    // ومسابقاتي مثلها بعد التكامل (مراجعة الدورة ٨، ٥.٧)
+    $this->get('/account/competitions')->assertHeader('Cache-Control', 'no-store, private');
 });
 
 it('leaves out deleted programs and drafts of unpublished openings', function () {

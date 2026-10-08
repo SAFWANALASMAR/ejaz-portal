@@ -33,7 +33,8 @@ Route::middleware('auth')->where(['slug' => $slug])->group(function () {
     Route::put('/competition-videos/{video}/chunks/{index}', [VideoUploadController::class, 'chunk'])->whereNumber('index')->middleware(['signed', 'throttle:600,1,competition-video-chunk'])->name('competitions.videos.chunk');
     Route::post('/competition-videos/{video}/complete', [VideoUploadController::class, 'complete'])->middleware('throttle:20,1,competition-video-complete')->name('competitions.videos.complete');
 
-    Route::get('/account/competitions', CompetitionsController::class)->name('account.competitions');
+    // صفحة شخصية كبقية صفحات الحساب، فلا تحفظها ذاكرة المتصفح
+    Route::get('/account/competitions', CompetitionsController::class)->middleware('cache.headers:private;no_store')->name('account.competitions');
 
     // مقطع المشاركة للمحكّم المسند إليه: يُفحص الإسناد عند كل طلب. والمشغّل يطلب أجزاءً عند التقديم
     Route::get('/competition-reviews/{review}/videos/{video}', ReviewVideoController::class)->middleware('throttle:240,1,competition-review-video')->name('competitions.reviews.video');
