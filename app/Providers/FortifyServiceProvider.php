@@ -11,6 +11,7 @@ use App\Auth\LoginRateLimiter;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
+use App\Support\NetworkPrefix;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -123,5 +124,22 @@ class FortifyServiceProvider extends ServiceProvider
     private function registerRateLimiters(): void
     {
         RateLimiter::for('two-factor', fn (Request $request): Limit => Limit::perMinute(5)->by('two-factor:'.$request->session()->get('login.id')));
+
+        // «تواصل معنا»: لكل مشترك (عنوان IPv4، أو /64 في IPv6 فلا يُلتف عليه بتدوير العناوين)، ولكل
+        // موقع /48 في IPv6، وسقف عام للبوابة حارساً أخيراً. والأرقام تتسع للشبكات المشتركة (CGNAT)
+        RateLimiter::for('contact', function (Request $request): array {
+            $ip = NetworkPrefix::normalize($request->ip());
+
+            $limits = [
+                Limit::perHour((int) config('security.contact_per_subscriber_per_hour'))->by('contact:'.NetworkPrefix::subscriber($ip)),
+                Limit::perHour((int) config('security.contact_per_hour'))->by('contact:all'),
+            ];
+
+            if ($ip !== null && NetworkPrefix::isIpv6($ip)) {
+                $limits[] = Limit::perHour((int) config('security.contact_per_ipv6_site_per_hour'))->by('contact:'.NetworkPrefix::prefix($ip, 48));
+            }
+
+            return $limits;
+        });
     }
 }

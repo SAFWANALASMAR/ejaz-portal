@@ -40,6 +40,16 @@ final class FormTimer
      */
     public static function consume(string $token, int $seconds): bool
     {
-        return Cache::add('form-timer:'.hash('sha256', $token), true, $seconds);
+        return Cache::add(self::key($token), true, $seconds);
+    }
+
+    public static function isConsumed(string $token): bool
+    {
+        return Cache::has(self::key($token));
+    }
+
+    private static function key(string $token): string
+    {
+        return 'form-timer:'.hash('sha256', $token);
     }
 }

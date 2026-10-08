@@ -10,15 +10,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\SerializesModels;
 
 /**
- * إشعار الجمعية برسالة «تواصل معنا» على بريد التواصل في الإعدادات: الرقم والنوع والموضوع ورابط
- * اللوحة وحدها، وبيانات المرسل ونص رسالته في اللوحة خلف الصلاحية (decisions.md). والموضوع يُعرض
- * في قالب HTML مهرّباً، لا بـ Markdown، فلا يصير رابط كتبه المرسل رابطاً في بريد الموظفين.
+ * إشعار الجمعية برسالة «تواصل معنا» على بريد التواصل في الإعدادات: الرقم والنوع ورابط اللوحة وحدها،
+ * بلا أي نص من المرسل (decisions.md). وحمولة الطابور معرّف السجل لا بياناته (SerializesModels).
  */
 class InquiryReceived extends Notification implements ShouldBeEncrypted, ShouldQueue, ShouldQueueAfterCommit
 {
-    use Queueable;
+    use Queueable, SerializesModels;
 
     public function __construct(public Inquiry $inquiry) {}
 

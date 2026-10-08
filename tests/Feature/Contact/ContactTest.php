@@ -5,14 +5,17 @@ use App\Actions\Users\AnonymizeUser;
 use App\Enums\InquiryStatus;
 use App\Enums\InquiryType;
 use App\Enums\RoleName;
+use App\Http\Requests\ContactRequest;
 use App\Models\Inquiry;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\InquiryConfirmation;
 use App\Notifications\InquiryReceived;
 use App\Support\FormTimer;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -71,7 +74,7 @@ it('shows the contact details from the settings, the form with its trap and time
         ->assertSee('العنوان التجريبي')
         ->assertSee('href="https://maps.example.test/ejaz" target="_blank" rel="noopener noreferrer"', false)
         ->assertSee('name="form_token"', false)
-        ->assertSee('name="website" type="text" tabindex="-1"', false)
+        ->assertSee('name="'.ContactRequest::TRAP.'" type="text" tabindex="-1"', false)
         ->assertSee(__('contact.form.title'))
         // غرض الجمع عند نقطة الجمع، ولو لم تُنشر سياسة الخصوصية بعد
         ->assertSee(__('contact.form.privacy'));
@@ -111,7 +114,7 @@ it('confirms to the sender with the reference only, never with what they wrote',
     });
 });
 
-it('tells the association the reference, type and subject only, keeping the sender and the message in the panel', function () {
+it('tells the association the reference and type only, keeping everything the sender wrote in the panel', function () {
     $inquiry = Inquiry::factory()->create([
         'name' => 'اسم المرسل',
         'email' => 'sender@example.com',
@@ -125,8 +128,7 @@ it('tells the association the reference, type and subject only, keeping the send
 
     expect($mail)->toContain($inquiry->reference)
         ->toContain($inquiry->type->getLabel())
-        ->toContain('[اضغط هنا](https://evil.example.test)')
-        ->not->toContain('href="https://evil.example.test"')
+        ->not->toContain('evil.example.test')
         ->not->toContain('اسم المرسل')
         ->not->toContain('sender@example.com')
         ->not->toContain('0509998887')
@@ -140,9 +142,9 @@ it('answers a filled trap like a success and keeps nothing, before checking anyt
     expect(Inquiry::count())->toBe(0);
     Notification::assertNothingSent();
 })->with([
-    'trap' => [['website' => 'https://bot.example.test']],
-    'trap with a broken timer' => [['website' => 'x', 'form_token' => 'broken']],
-    'trap with long text and bad fields' => [['website' => str_repeat('x', 500), 'email' => 'bad']],
+    'trap' => [[ContactRequest::TRAP => 'https://bot.example.test']],
+    'trap with a broken timer' => [[ContactRequest::TRAP => 'x', 'form_token' => 'broken']],
+    'trap with long text and bad fields' => [[ContactRequest::TRAP => str_repeat('x', 500), 'email' => 'bad']],
 ]);
 
 it('answers a message sent within seconds like a success and keeps nothing', function () {
@@ -165,6 +167,21 @@ it('asks for a refresh when the timer is broken, expired or from another session
     expect(Inquiry::count())->toBe(0);
 });
 
+it('keeps the first timer after a validation error, so a quick correction is saved, not taken for a bot', function () {
+    $session = Str::random(40);
+    $form = contactForm($session);
+    $this->travel(5)->seconds();
+
+    $this->withCookie(config('session.cookie'), $session)->post('/contact', [...$form, 'email' => 'bad'])->assertSessionHasErrors('email');
+
+    // الصفحة بعد الخطأ تعرض الختم نفسه، والتصحيح بعد ثانية يُحفظ
+    $this->withCookie(config('session.cookie'), $session)->get('/contact')->assertSee('value="'.$form['form_token'].'"', false);
+    $this->travel(1)->seconds();
+    $this->withCookie(config('session.cookie'), $session)->post('/contact', $form)->assertSessionHasNoErrors();
+
+    expect(Inquiry::count())->toBe(1);
+});
+
 it('uses a timer once, so a double click or a replay never makes two messages', function () {
     $session = Str::random(40);
     $form = contactForm($session);
@@ -173,7 +190,9 @@ it('uses a timer once, so a double click or a replay never makes two messages', 
     $this->withCookie(config('session.cookie'), $session)->post('/contact', $form)->assertSessionHasNoErrors();
     $this->withCookie(config('session.cookie'), $session)->post('/contact', $form)->assertSessionHasErrors(['form_token' => __('contact.form.already_sent')]);
 
-    expect(Inquiry::count())->toBe(1);
+    // والختم المستهلك لا يعود إلى الصفحة
+    expect($this->withCookie(config('session.cookie'), $session)->get('/contact')->getContent())->not->toContain($form['form_token'])
+        ->and(Inquiry::count())->toBe(1);
 });
 
 it('refuses wrong input under its field', function (array $data, string $field) {
@@ -186,6 +205,8 @@ it('refuses wrong input under its field', function (array $data, string $field) 
     'unknown type' => [['type' => 'complaint'], 'type'],
     'letters in the phone' => [['phone' => 'call me'], 'phone'],
     'too long a phone' => [['phone' => '+'.str_repeat('1', 20)], 'phone'],
+    'folding white space in the email' => [['email' => "visitor\r\n @example.com"], 'email'],
+    'right-to-left override in the subject' => [['subject' => "عنوان\u{202E}مقلوب"], 'subject'],
     'control character in the subject' => [['subject' => "عنوان\x07"], 'subject'],
     'broken encoding in the message' => [['message' => "رسالة\xFF"], 'message'],
     'too long a message' => [['message' => str_repeat('ر', 5001)], 'message'],
@@ -201,8 +222,27 @@ it('limits one mailbox to five messages a day, whatever way its address is writt
     expect(Inquiry::count())->toBe(5);
 });
 
-it('limits each address to ten messages an hour', function () {
-    expect(Route::getRoutes()->getByName('contact.store')?->gatherMiddleware())->toContain('throttle:10,60');
+it('limits the messages of each subscriber, each IPv6 site and the whole portal', function () {
+    expect(Route::getRoutes()->getByName('contact.store')?->gatherMiddleware())->toContain('throttle:contact');
+
+    $keys = fn (string $ip): array => collect(RateLimiter::limiter('contact')(Request::create('/contact', 'POST', server: ['REMOTE_ADDR' => $ip])))
+        ->map(fn ($limit): string => $limit->key)
+        ->all();
+
+    // IPv4: العنوان نفسه. IPv6: المشترك /64 والموقع /48، فلا يُلتف بتدوير العناوين
+    expect($keys('203.0.113.7'))->toBe(['contact:203.0.113.7', 'contact:all'])
+        ->and($keys('2001:db8:aa:bb:1:2:3:4'))->toBe(['contact:2001:db8:aa:bb::/64', 'contact:all', 'contact:2001:db8:aa::/48'])
+        ->and($keys('2001:db8:aa:bb:9:9:9:9'))->toBe($keys('2001:db8:aa:bb:1:2:3:4'));
+});
+
+it('answers 429 once a subscriber reaches the hourly limit', function () {
+    config(['security.contact_per_subscriber_per_hour' => 2]);
+
+    sendContactForm(['email' => 'one@example.com'])->assertSessionHasNoErrors();
+    sendContactForm(['email' => 'two@example.com'])->assertSessionHasNoErrors();
+    sendContactForm(['email' => 'three@example.com'])->assertStatus(429);
+
+    expect(Inquiry::count())->toBe(2);
 });
 
 it('fills in a signed-in sender and links the message to their account, and shows it in their data copy', function () {
@@ -219,11 +259,12 @@ it('fills in a signed-in sender and links the message to their account, and show
         ->and(app(ExportUserData::class)->handle($user)['inquiries'][0]['reference'])->toBe($inquiry->reference);
 });
 
-it('hides the sender of the account messages when the account is anonymized', function () {
-    $user = User::factory()->create();
+it('hides the sender of the account messages, and of the guest messages from its verified email, when the account is anonymized', function () {
+    $user = User::factory()->create(['email' => 'secret@example.com', 'email_verified_at' => now()]);
     $inquiry = Inquiry::factory()->create(['user_id' => $user->id, 'name' => 'اسم سري', 'email' => 'secret@example.com', 'phone' => '0501112223']);
     $deleted = Inquiry::factory()->create(['user_id' => $user->id, 'email' => 'secret@example.com']);
     $deleted->delete();
+    $guest = Inquiry::factory()->create(['email' => 'Secret@Example.com', 'name' => 'اسم قبل التسجيل']);
     $other = Inquiry::factory()->create(['email' => 'other@example.com']);
     $user->forceFill(['deletion_requested_at' => now()])->save();
 
@@ -231,9 +272,30 @@ it('hides the sender of the account messages when the account is anonymized', fu
 
     $user->refresh();
 
-    expect($inquiry->fresh())->name->toBe(__('users.anonymized_name'))->email->toBe($user->email)->phone->toBeNull()
+    expect($user->email)->not->toBe('secret@example.com')
+        ->and($inquiry->fresh())->name->toBe(__('users.anonymized_name'))->email->toBe($user->email)->phone->toBeNull()
         ->and(Inquiry::withTrashed()->find($deleted->id)->email)->toBe($user->email)
+        ->and($guest->fresh())->email->toBe($user->email)->name->toBe(__('users.anonymized_name'))
         ->and($other->fresh()->email)->toBe('other@example.com');
+});
+
+it('leaves the guest messages of an unverified email untouched, since nothing proves they are the same person', function () {
+    $user = User::factory()->create(['email' => 'claimed@example.com', 'email_verified_at' => null]);
+    $guest = Inquiry::factory()->create(['email' => 'claimed@example.com']);
+    $user->forceFill(['deletion_requested_at' => now()])->save();
+
+    expect(app(ExportUserData::class)->handle($user)['inquiries'])->toBe([]);
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+
+    expect($guest->fresh()->email)->toBe('claimed@example.com');
+});
+
+it('includes the guest messages from a verified email in the data copy', function () {
+    $user = User::factory()->create(['email' => 'member@example.com', 'email_verified_at' => now()]);
+    $guest = Inquiry::factory()->create(['email' => 'Member@Example.com']);
+
+    expect(app(ExportUserData::class)->handle($user)['inquiries'][0]['reference'])->toBe($guest->reference);
 });
 
 it('still saves the message without an association email in the settings', function () {

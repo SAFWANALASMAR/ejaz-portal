@@ -10,7 +10,9 @@ use App\Models\User;
 use App\Rules\PlainText;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -34,12 +36,14 @@ class UpdateInquiry
 
         $data = Arr::only($data, ['status', 'assigned_to', 'internal_note']);
 
-        if (array_key_exists('status', $data) && ! $data['status'] instanceof InquiryStatus && InquiryStatus::tryFrom((string) $data['status']) === null) {
-            throw ValidationException::withMessages(['status' => __('inquiries.validation.status')]);
-        }
-
-        // حدود الملاحظة هنا لا في النموذج وحده، فتسري على كل مستدعٍ
-        Validator::make($data, ['internal_note' => ['nullable', 'string', 'max:2000', new PlainText(multiline: true)]], [], [
+        // الحدود هنا لا في النموذج وحده، فتسري على كل مستدعٍ
+        Validator::make($data, [
+            'status' => ['sometimes', Rule::enum(InquiryStatus::class)],
+            'assigned_to' => ['nullable', 'integer'],
+            'internal_note' => ['nullable', 'string', 'max:2000', new PlainText(multiline: true)],
+        ], [], [
+            'status' => __('inquiries.fields.status'),
+            'assigned_to' => __('inquiries.fields.assignee'),
             'internal_note' => __('inquiries.fields.internal_note'),
         ])->validate();
 
@@ -57,15 +61,17 @@ class UpdateInquiry
 
         $noteChanged = $inquiry->isDirty('internal_note');
 
-        $inquiry->save();
+        DB::transaction(function () use ($actor, $inquiry, $noteChanged): void {
+            $inquiry->save();
 
-        if ($noteChanged) {
-            activity('requests')
-                ->causedBy($actor)
-                ->performedOn($inquiry)
-                ->event(ActivityEvent::InquiryNoteUpdated->value)
-                ->log(ActivityEvent::InquiryNoteUpdated->value);
-        }
+            if ($noteChanged) {
+                activity('requests')
+                    ->causedBy($actor)
+                    ->performedOn($inquiry)
+                    ->event(ActivityEvent::InquiryNoteUpdated->value)
+                    ->log(ActivityEvent::InquiryNoteUpdated->value);
+            }
+        });
 
         return $inquiry;
     }

@@ -26,6 +26,16 @@ class ContactRequest extends FormRequest
 
     public const MAX_SECONDS = 7200;
 
+    /**
+     * حقل الفخ: اسم بلا دلالة، فلا تملؤه إضافات التعبئة التلقائية في المتصفح.
+     */
+    public const TRAP = 'contact_extra';
+
+    /**
+     * الثواني منذ فتح النموذج، أو null إن كان الختم معطوباً أو من جلسة أخرى.
+     */
+    private ?int $elapsed = null;
+
     public function authorize(): bool
     {
         return true;
@@ -33,9 +43,9 @@ class ContactRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
+        $this->elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
 
-        if (filled($this->input('website')) || ($elapsed !== null && $elapsed < self::MIN_SECONDS)) {
+        if (filled($this->input(self::TRAP)) || ($this->elapsed !== null && $this->elapsed < self::MIN_SECONDS)) {
             throw new HttpResponseException(
                 redirect()->route('contact')->with('status', __('contact.form.sent', ['reference' => Inquiry::newReference()])),
             );
@@ -49,12 +59,11 @@ class ContactRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150', new PlainText],
-            'email' => ['required', 'string', 'email:rfc', 'max:255'],
+            'email' => ['required', 'string', 'email:rfc,strict', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9 -]{7,20}$/'],
             'type' => ['required', Rule::enum(InquiryType::class)],
             'subject' => ['required', 'string', 'max:200', new PlainText],
             'message' => ['required', 'string', 'max:5000', new PlainText(multiline: true)],
-            'form_token' => ['required', 'string'],
         ];
     }
 
@@ -65,9 +74,7 @@ class ContactRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
-
-                if ($elapsed === null || $elapsed > self::MAX_SECONDS) {
+                if ($this->elapsed === null || $this->elapsed > self::MAX_SECONDS) {
                     $validator->errors()->add('form_token', __('contact.form.expired'));
                 }
             },

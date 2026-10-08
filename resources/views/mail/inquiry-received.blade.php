@@ -1,7 +1,7 @@
 {{--
-    إشعار الجمعية برسالة «تواصل معنا» (InquiryReceived): الرقم والنوع والموضوع ورابط اللوحة وحدها.
-    بيانات المرسل ونص رسالته في اللوحة خلف الصلاحية والتحقق الثنائي، فلا تخرج إلى صندوق بريد
-    يغيّره إعداد واحد (decisions.md). والموضوع مهرّب بلا Markdown، وأنماط البريد مضمّنة.
+    إشعار الجمعية برسالة «تواصل معنا» (InquiryReceived): الرقم والنوع ورابط اللوحة وحدها، بلا أي نص
+    من المرسل. بياناته وموضوعه ونص رسالته في اللوحة خلف الصلاحية والتحقق الثنائي، فلا تخرج إلى صندوق
+    بريد يغيّره إعداد واحد، ولا يحوّل عميل البريد رابطاً كتبه المرسل رابطاً (decisions.md).
 --}}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -14,7 +14,7 @@
         <p style="margin-top: 0;">{{ __('inquiries.mail.received.line') }}</p>
 
         <table cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-            @foreach (['reference' => $inquiry->reference, 'type' => $inquiry->type->getLabel(), 'subject' => $inquiry->subject] as $field => $value)
+            @foreach (['reference' => $inquiry->reference, 'type' => $inquiry->type->getLabel()] as $field => $value)
                 <tr>
                     <th style="width: 30%; text-align: start; color: #5b6b6b; font-weight: normal; vertical-align: top;">{{ __('inquiries.fields.'.$field) }}</th>
                     <td style="text-align: start;">{{ $value }}</td>

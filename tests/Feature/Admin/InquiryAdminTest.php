@@ -63,6 +63,33 @@ it('processes a message: status, assignee and note, logged without the personal 
         ->and($logs)->not->toContain('مراجعة الجدول');
 });
 
+it('hides the process action from a viewer, and the assignee from an updater who may not assign', function () {
+    $inquiry = Inquiry::factory()->create();
+
+    $viewer = User::factory()->create();
+    $viewer->givePermissionTo('requests.view');
+    $this->actingAs($viewer);
+    Livewire::test(ViewInquiry::class, ['record' => $inquiry->getRouteKey()])->assertActionHidden('process');
+
+    $updater = User::factory()->create();
+    $updater->givePermissionTo(['requests.view', 'requests.update']);
+    $this->actingAs($updater);
+    Livewire::test(ViewInquiry::class, ['record' => $inquiry->getRouteKey()])
+        ->mountAction('process')
+        ->assertFormFieldDisabled('assigned_to')
+        ->assertFormFieldEnabled('status');
+});
+
+it('checks the types of the status and the assignee in the action itself', function () {
+    $inquiry = Inquiry::factory()->create();
+
+    expect(fn () => app(UpdateInquiry::class)->handle($this->secretary, $inquiry, ['assigned_to' => '5abc']))
+        ->toThrow(ValidationException::class)
+        ->and(fn () => app(UpdateInquiry::class)->handle($this->secretary, $inquiry, ['status' => 'archived']))
+        ->toThrow(ValidationException::class)
+        ->and($inquiry->fresh())->status->toBe(InquiryStatus::Received)->assigned_to->toBeNull();
+});
+
 it('checks the internal note in the action itself', function () {
     $inquiry = Inquiry::factory()->create();
 

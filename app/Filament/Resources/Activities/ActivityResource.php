@@ -59,7 +59,8 @@ class ActivityResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('log_name')->label(__('activity.fields.log_name'))
-                    ->options(collect(['default', 'security', 'users', 'content'])->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
+                    // السجلات من ملف الترجمة، فيظهر كل سجل جديد في التصفية متى سُمّي هناك
+                    ->options(collect(array_keys((array) trans('activity.logs')))->mapWithKeys(fn (string $log) => [$log => __('activity.logs.'.$log)])),
                 // الخيارات من التعداد، لا من استعلام DISTINCT على سجل يكبر بلا حد
                 SelectFilter::make('event')->label(__('activity.fields.event'))
                     ->options(ActivityEvent::class),

@@ -23,6 +23,7 @@ return [
         'security' => 'الأمن',
         'users' => 'المستخدمون',
         'content' => 'المحتوى',
+        'requests' => 'الطلبات',
     ],
 
     'events' => [
@@ -56,6 +57,11 @@ return [
         'Initiative' => 'مبادرة',
         'BoardMember' => 'عضو مجلس الإدارة',
         'Document' => 'وثيقة',
+        'LibraryItem' => 'عنصر في المكتبة',
+        'NewsArticle' => 'خبر',
+        'Album' => 'ألبوم',
+        'Partner' => 'شريك',
+        'Inquiry' => 'استفسار',
     ],
 
 ];

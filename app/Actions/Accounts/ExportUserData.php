@@ -33,7 +33,14 @@ class ExportUserData
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
             ],
-            'inquiries' => Inquiry::withTrashed()->whereBelongsTo($user)->orderBy('id')->get()
+            // رسائل حسابه، ورسائل بريده الموثّق قبل أن يسجّل
+            'inquiries' => Inquiry::withTrashed()
+                ->where(fn ($query) => $query->whereBelongsTo($user)->when(
+                    $user->email_verified_at !== null,
+                    fn ($query) => $query->orWhereRaw('lower(email) = ?', [mb_strtolower($user->email)]),
+                ))
+                ->orderBy('id')
+                ->get()
                 ->map(fn (Inquiry $inquiry): array => [
                     'reference' => $inquiry->reference,
                     'type' => $inquiry->type->value,

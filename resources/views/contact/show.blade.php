@@ -11,13 +11,16 @@
     $address = is_string($contact['address'] ?? null) ? $contact['address'] : null;
     $map = is_string($contact['map_url'] ?? null) && SafeUrl::isSafe($contact['map_url'], allowInternal: false) ? $contact['map_url'] : null;
     $hasInfo = filled($email) || filled($phone) || filled($address) || $map !== null;
+    // بلا بيانات تبقى البطاقة بعلامة 【ناقص】 في التطوير، ولا تظهر فارغة للزوار في الإنتاج
+    $showInfo = $hasInfo || ! app()->isProduction();
 @endphp
 
 <x-layouts.app :title="__('contact.title')">
     <x-page-hero :title="__('contact.title')" />
 
     <section class="py-10 sm:py-14">
-        <div class="container-page grid gap-8 lg:grid-cols-[1fr_2fr] lg:items-start">
+        <div @class(['container-page grid gap-8 lg:items-start', 'lg:grid-cols-[1fr_2fr]' => $showInfo])>
+            @if ($showInfo)
             <aside class="rounded-2xl border border-line/70 bg-sand p-6" aria-labelledby="contact-info">
                 <h2 id="contact-info" class="text-xl font-bold text-primary">{{ __('contact.info.title') }}</h2>
 
@@ -55,6 +58,7 @@
                     <p class="mt-4"><x-missing :what="__('contact.info.missing')" /></p>
                 @endif
             </aside>
+            @endif
 
             <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs sm:p-8">
                 <h2 class="text-xl font-bold text-primary">{{ __('contact.form.title') }}</h2>
@@ -68,8 +72,8 @@
 
                     {{-- فخ للروبوتات: مخفي عن العين (sr-only)، وعن القارئات الصوتية (aria-hidden) ولوحة المفاتيح --}}
                     <div class="sr-only" aria-hidden="true">
-                        <label for="website">{{ __('contact.form.website') }}</label>
-                        <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+                        <label for="contact-extra">{{ __('contact.form.website') }}</label>
+                        <input id="contact-extra" name="{{ \App\Http\Requests\ContactRequest::TRAP }}" type="text" tabindex="-1" autocomplete="off">
                     </div>
 
                     @error('form_token')

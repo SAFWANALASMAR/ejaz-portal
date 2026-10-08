@@ -14,8 +14,8 @@ use Illuminate\Support\Str;
 
 /**
  * «تواصل معنا»: بيانات التواصل ونموذج «الاستفسارات والاقتراحات». والحماية من الرسائل الآلية بلا
- * مكتبة: فخ مخفي وختم وقت مربوط بالجلسة (ContactRequest)، والختم لمرة واحدة، وحد لكل عنوان
- * (المسار)، وحد يومي لكل صندوق بريد (هنا).
+ * مكتبة: فخ مخفي وختم وقت مربوط بالجلسة (ContactRequest)، والختم لمرة واحدة، وحدود لكل مشترك
+ * وللبوابة (المحدِّد contact)، وحد يومي لكل صندوق بريد (هنا).
  */
 class ContactController extends Controller
 {
@@ -23,10 +23,20 @@ class ContactController extends Controller
 
     public function show(Request $request): View
     {
+        $session = $request->session()->getId();
+        $old = $request->old('form_token');
+        $elapsed = FormTimer::secondsSince($old, $session);
+
+        // بعد خطأ تحقق يبقى ختم الفتح الأول ما دام صالحاً ولم يُستهلك، فلا يُحسب التصحيح السريع
+        // إرسالاً آلياً
+        $token = is_string($old) && $elapsed !== null && $elapsed <= ContactRequest::MAX_SECONDS && ! FormTimer::isConsumed($old)
+            ? $old
+            : FormTimer::token($session);
+
         return view('contact.show', [
             'contact' => Setting::group('contact'),
             'user' => $request->user(),
-            'token' => FormTimer::token($request->session()->getId()),
+            'token' => $token,
         ]);
     }
 
@@ -39,9 +49,10 @@ class ContactController extends Controller
             return back()->withInput()->withErrors(['email' => __('contact.form.daily_limit')]);
         }
 
-        // والختم لمرة واحدة: ضغطتان على الزر أو إعادة الإرسال لا تنشئان رسالتين
-        if (! FormTimer::consume((string) $request->validated('form_token'), ContactRequest::MAX_SECONDS)) {
-            return back()->withInput()->withErrors(['form_token' => __('contact.form.already_sent')]);
+        // والختم لمرة واحدة: ضغطتان على الزر أو إعادة الإرسال لا تنشئان رسالتين. والختم المستهلك لا
+        // يعود إلى الصفحة
+        if (! FormTimer::consume((string) $request->input('form_token'), ContactRequest::MAX_SECONDS)) {
+            return back()->withInput($request->except('form_token'))->withErrors(['form_token' => __('contact.form.already_sent')]);
         }
 
         RateLimiter::hit($key, 86400);
