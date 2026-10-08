@@ -31,6 +31,8 @@ const guestScreens = [
     // المتجر والتبرع يظهران بعد تفعيلهما من اللوحة
     { name: 'store', path: '/store', heading: 'h1', whenPublished: true },
     { name: 'donate', path: '/donate', heading: 'h1', whenPublished: true },
+    // الجمعية العمومية للزائر: البلاطات الأربع (الصورة 05)
+    { name: 'assembly', path: '/assembly', heading: 'h1' },
 ];
 
 const accountScreens = [
@@ -42,6 +44,11 @@ const accountScreens = [
     { name: 'my-payments', path: '/account/payments', heading: 'h1' },
     // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، لا بفتح النموذج
     { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true, startFrom: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}` },
+    // منطقة الجمعية العمومية: لعضو فعّال وحده (README)، ولغيره تُتخطى. واجتماع بمعرّفه في MEETING_UUID
+    { name: 'assembly-member', path: '/assembly', heading: 'h1' },
+    { name: 'assembly-meetings', path: '/assembly/meetings', heading: 'h1', whenMember: true },
+    { name: 'assembly-meeting', path: `/assembly/meetings/${process.env.MEETING_UUID ?? '00000000-0000-0000-0000-000000000000'}`, heading: 'h1', whenMember: true, whenPublished: true },
+    { name: 'assembly-files', path: '/assembly/files', heading: 'h1', whenMember: true },
 ];
 
 async function checkScreen(page, testInfo, screen) {
@@ -57,6 +64,7 @@ async function checkScreen(page, testInfo, screen) {
 
     const response = await page.goto(screen.path);
     test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
+    test.skip(screen.whenMember === true && response?.status() === 403, `${screen.path} لأعضاء الجمعية العمومية`);
 
     expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
 

@@ -4,7 +4,10 @@
 <x-layouts.app :title="__('assembly.meetings.title')" noindex>
     <section class="bg-sand/60 py-12 sm:py-16">
         <div class="container-page">
-            <x-section-heading>{{ __('assembly.meetings.upcoming') }}</x-section-heading>
+            <span class="block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+            <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.meetings.title') }}</h1>
+
+            <h2 class="mt-10 text-xl font-bold text-ink">{{ __('assembly.meetings.upcoming') }}</h2>
 
             @if ($upcoming->isEmpty())
                 <p class="mt-6 text-muted">{{ __('assembly.meetings.empty') }}</p>
@@ -16,7 +19,7 @@
                 </ul>
             @endif
 
-            <x-section-heading class="mt-14">{{ __('assembly.meetings.past') }}</x-section-heading>
+            <h2 class="mt-14 text-xl font-bold text-ink">{{ __('assembly.meetings.past') }}</h2>
 
             @if ($past->isEmpty())
                 <p class="mt-6 text-muted">{{ __('assembly.meetings.past_empty') }}</p>

@@ -11,7 +11,8 @@
 <x-layouts.app :title="__('assembly.files.title')" noindex>
     <section class="bg-sand/60 py-12 sm:py-16">
         <div class="container-page max-w-5xl">
-            <x-section-heading>{{ __('assembly.files.title') }}</x-section-heading>
+            <span class="block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+            <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.files.title') }}</h1>
 
             <ul class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <li>

@@ -18,5 +18,7 @@
             <span class="rounded-full px-3 py-1 font-semibold {{ $meeting->status === MeetingStatus::Held ? 'bg-primary text-white' : 'bg-gray-500/90 text-white' }}">{{ $meeting->status->getLabel() }}</span>
         @endif
     </p>
-    <x-button class="mt-auto w-full" size="sm" :href="route('assembly.meetings.show', $meeting)">{{ __('assembly.meetings.details') }}</x-button>
+    <div class="mt-auto pt-5">
+        <x-button class="w-full" size="sm" :href="route('assembly.meetings.show', $meeting)">{{ __('assembly.meetings.details') }}</x-button>
+    </div>
 </article>

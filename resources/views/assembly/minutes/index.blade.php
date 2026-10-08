@@ -8,7 +8,8 @@
 <x-layouts.app :title="__('assembly.minutes.title')" noindex>
     <section class="bg-sand/60 py-12 sm:py-16">
         <div class="container-page max-w-4xl">
-            <x-section-heading>{{ __('assembly.minutes.title') }}</x-section-heading>
+            <span class="block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+            <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.minutes.title') }}</h1>
 
             @if ($meetings->isEmpty())
                 <p class="mt-6 text-muted">{{ __('assembly.minutes.empty') }}</p>
