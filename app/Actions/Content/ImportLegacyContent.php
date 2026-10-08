@@ -76,7 +76,7 @@ class ImportLegacyContent
     public function handle(User $actor, string $path, bool $dryRun = false): array
     {
         $data = self::read($path);
-        $base = dirname((string) realpath($path));
+        $base = rtrim(dirname((string) realpath($path)), DIRECTORY_SEPARATOR);
 
         self::authorize($actor, $data);
 
@@ -137,7 +137,7 @@ class ImportLegacyContent
     private function importRecord(User $actor, string $section, int $index, mixed $record, string $base): void
     {
         $record = is_array($record) ? $record : [];
-        $key = is_string($record['slug'] ?? null) && $record['slug'] !== '' ? Str::limit($record['slug'], 80) : '#'.($index + 1);
+        $key = is_string($record['slug'] ?? null) && preg_match('/^[a-z0-9-]{1,80}$/', $record['slug']) === 1 ? $record['slug'] : '#'.($index + 1);
         $validator = Validator::make($record, self::rules($section));
 
         if ($validator->fails()) {
@@ -300,6 +300,9 @@ class ImportLegacyContent
      */
     private function add(string $section, string $key, string $outcome, array $replace = []): void
     {
+        // ما يُطبع في الطرفية من الملف بلا محارف تحكم ولا قلب اتجاه، فلا يعبث بها نص مُعد
+        $replace = array_map(fn (string $value): string => (string) preg_replace('/[\p{Cc}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u', '', $value), $replace);
+
         $this->report[] = ['section' => $section, 'key' => $key, 'outcome' => $outcome, 'detail' => __('import.outcomes.'.$outcome, $replace)];
     }
 
@@ -337,7 +340,7 @@ class ImportLegacyContent
     }
 
     /**
-     * يُفحص الإنشاء في كل نوع موجود في الملف قبل أي حفظ، فلا يتوقف الاستيراد في منتصفه.
+     * يُفحص الإنشاء والتعديل في كل نوع موجود في الملف قبل أي حفظ، فلا يتوقف الاستيراد في منتصفه.
      *
      * @param  array<string, list<mixed>>  $data
      *
@@ -347,8 +350,9 @@ class ImportLegacyContent
     {
         $missing = [];
 
+        // والتعديل أيضاً، لأن المسودة الموجودة تُملأ
         foreach (self::MODELS as $section => $class) {
-            if (($data[$section] ?? []) !== [] && ! $actor->can('create', $class)) {
+            if (($data[$section] ?? []) !== [] && (! $actor->can('create', $class) || ! $actor->can('update', new $class))) {
                 $missing[] = __('import.sections.'.$section);
             }
         }

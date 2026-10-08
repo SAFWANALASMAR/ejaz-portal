@@ -256,3 +256,16 @@ it('refuses a file that does not exist', function () {
         ->expectsOutputToContain(__('import.errors.file'))
         ->assertFailed();
 });
+
+it('prints nothing from the file that could tamper with the terminal', function () {
+    $file = writeImportFile($this->dir, [
+        'documents' => [['slug' => "x\e[2J", 'title' => 'وثيقة', 'category' => 'official', 'file' => 'files/license.pdf']],
+        'redirects' => [['from' => "/old\e]0;title\x07", 'to' => '/about']],
+    ]);
+
+    $this->artisan('import:legacy-site', ['file' => $file, '--actor' => $this->editor->email])
+        ->expectsOutputToContain('#1')
+        ->doesntExpectOutputToContain("\e[2J")
+        ->doesntExpectOutputToContain("\e]0;")
+        ->assertFailed();
+});

@@ -101,5 +101,6 @@ it('never redirects to another site, even if such a target reached the database'
 it('redirects only reads, not forms sent to an old path', function () {
     Redirect::factory()->create(['source' => 'old-form', 'target' => '/contact']);
 
-    $this->post('/old-form')->assertStatus(405);
+    // ويُرد بالصفحة العربية ولو لم يمر الطلب بمجموعة web
+    $this->post('/old-form')->assertStatus(405)->assertSee('dir="rtl"', false)->assertSee(__('errors.client.title'));
 });
