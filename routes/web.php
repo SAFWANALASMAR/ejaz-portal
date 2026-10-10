@@ -17,6 +17,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\LiveStreamController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,6 +65,12 @@ Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slu
 // التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحدود لكل مشترك وللبوابة (FortifyServiceProvider)
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:contact')->name('contact.store');
+
+// لمحركات البحث: الخريطة من المنشور، وrobots بمفتاح الفهرسة
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+    Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+});
 
 // كل طلب GET لا يطابق مساراً: تحويل رابط قديم مسجل، وإلا 404 العربية. ولارافيل يطابقه آخراً أينما سُجّل
 Route::fallback(FallbackController::class);
