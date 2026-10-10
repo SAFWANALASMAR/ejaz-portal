@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * منح الأدوار وسحبها. للمشرف العام وحده (UserPolicy::assignRoles)، ويُسجَّل كل تغيير
- * بالأدوار قبل وبعد (docs/roles-permissions.md). ولا يسحب المشرف العام دوره من نفسه.
+ * منح الأدوار وسحبها (UserPolicy::assignRoles): المشرف العام كلها، والمدير التنفيذي أدوار الموظفين
+ * وحدها (RoleName::assignableBy). ويُسجَّل كل تغيير بالأدوار قبل وبعد (docs/roles-permissions.md).
+ * ولا يسحب المشرف العام دوره من نفسه.
  *
  * منح دور المشرف العام أو سحبه يُبلَّغ به كل من كان مشرفاً عاماً قبل التغيير أو بعده،
  * ومنهم من سُحب دوره، فلا يخفى السحب على صاحبه ولو نفّذه حساب مخترَق.
@@ -37,12 +38,20 @@ class ChangeUserRoles
         $super = RoleName::SuperAdmin->value;
         $assemblyMember = RoleName::AssemblyMember->value;
         $before = $user->getRoleNames()->sort()->values()->all();
-        $valid = array_values(array_diff(array_intersect($roles, RoleName::values(RoleName::cases())), [$assemblyMember]));
+        $assignable = RoleName::values(RoleName::assignableBy($actor));
+        $requested = array_values(array_unique(array_diff(array_intersect($roles, RoleName::values(RoleName::cases())), [$assemblyMember])));
+
+        // دور لا يمنحه المنفّذ (المشرف العام أو عضو المجلس للمدير التنفيذي مثلاً) مرفوض صراحة،
+        // إلا ما يحمله الحساب أصلاً فيبقى كما هو
+        if (array_diff($requested, $assignable, $before) !== []) {
+            throw new AuthorizationException;
+        }
+
+        $valid = array_values(array_intersect($requested, $assignable));
         $valid = $valid === [] ? [RoleName::Member->value] : $valid;
 
-        if (in_array($assemblyMember, $before, true)) {
-            $valid[] = $assemblyMember;
-        }
+        // ما لا يمنحه المنفّذ ولا يسحبه يبقى كما هو، ومنه عضوية الجمعية العمومية
+        $valid = array_values(array_unique([...$valid, ...array_diff($before, $assignable)]));
 
         if ($actor->is($user) && in_array($super, $before, true) && ! in_array($super, $valid, true)) {
             throw new AuthorizationException(__('users.cannot_demote_self'));

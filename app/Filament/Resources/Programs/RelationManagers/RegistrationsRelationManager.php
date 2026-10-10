@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
- * المسجلون في البرنامج: الاطلاع بصلاحية البرنامج، وتسجيل الحضور (programs.update)، والتصدير إلى
+ * المسجلون في البرنامج: الاطلاع بصلاحية البرنامج، وتسجيل الحضور (programs.attend)، والتصدير إلى
  * Excel (programs.export). ولا تُعدَّل بيانات المسجل من هنا.
  */
 class RegistrationsRelationManager extends RelationManager
@@ -72,7 +72,7 @@ class RegistrationsRelationManager extends RelationManager
         return BulkAction::make($name)
             ->label(__('programs.registrations.actions.'.($attended ? 'mark_attended' : 'unmark_attended')))
             ->icon($icon)
-            ->authorize(fn (): bool => auth()->user()?->can('update', $this->getOwnerRecord()) ?? false)
+            ->authorize(fn (): bool => auth()->user()?->can('recordAttendance', $this->getOwnerRecord()) ?? false)
             ->action(function (Collection $records, RecordProgramAttendance $attendance) use ($attended): void {
                 /** @var User $actor */
                 $actor = auth()->user();

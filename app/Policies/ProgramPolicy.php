@@ -2,11 +2,12 @@
 
 namespace App\Policies;
 
+use App\Models\Program;
 use App\Models\User;
 
 /**
  * البرامج ومسجلوها (صلاحيات programs.*): الاطلاع على المسجلين مع البرنامج، وتسجيل حضورهم
- * بالتحديث، وتصديرهم بصلاحية مستقلة. الحذف ناعم.
+ * وتصديرهم بصلاحيتين مستقلتين. الحذف ناعم.
  */
 class ProgramPolicy extends ModulePolicy
 {
@@ -18,5 +19,13 @@ class ProgramPolicy extends ModulePolicy
     public function export(User $user): bool
     {
         return $this->allows($user, 'export');
+    }
+
+    /**
+     * تسجيل حضور المسجلين بصلاحية مستقلة (programs.attend)، فيسجله الموظف دون أن يعدّل البرنامج.
+     */
+    public function recordAttendance(User $user, Program $program): bool
+    {
+        return $this->allows($user, 'attend');
     }
 }

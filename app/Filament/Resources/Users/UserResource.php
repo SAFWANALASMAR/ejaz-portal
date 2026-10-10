@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Enums\RoleName;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
@@ -36,7 +37,20 @@ class UserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('roles');
+        $query = parent::getEloquentQuery()->with('roles');
+        $actor = auth()->user();
+
+        // المدير التنفيذي يرى حسابات الموظفين وحدها، كما في UserPolicy: لها دور إداري مما يمنحه،
+        // ولا دور إدارياً غيره. فلا يرى المستفيدين ولا المشرف العام ولا المجلس ولا حسابه
+        if ($actor instanceof User && ! $actor->hasRole(RoleName::SuperAdmin->value) && $actor->hasRole(RoleName::ExecutiveDirector->value)) {
+            $panel = RoleName::values(RoleName::panelRoles());
+            $managed = array_values(array_intersect($panel, RoleName::values(RoleName::assignableBy($actor))));
+
+            $query->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', $managed))
+                ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', array_values(array_diff($panel, $managed))));
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

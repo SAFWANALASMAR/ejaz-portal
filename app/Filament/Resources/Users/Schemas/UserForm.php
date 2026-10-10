@@ -53,8 +53,9 @@ class UserForm
                         CheckboxList::make('roles')
                             ->label(__('users.fields.roles'))
                             ->helperText(__('users.fields.roles_hint'))
-                            // عضوية الجمعية العمومية من سجل الأعضاء وحده (ChangeUserRoles يبقيها كما هي)
-                            ->options(collect(RoleName::cases())->reject(fn (RoleName $role) => $role === RoleName::AssemblyMember)->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()]))
+                            // ما يمنحه المنفّذ وحده (RoleName::assignableBy): المشرف العام كلها عدا عضوية الجمعية
+                            // العمومية (من سجل الأعضاء وحده)، والمدير التنفيذي أدوار الموظفين
+                            ->options(fn () => collect(auth()->user() instanceof User ? RoleName::assignableBy(auth()->user()) : [])->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()])->all())
                             ->columns(2)
                             ->columnSpanFull()
                             ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false)
