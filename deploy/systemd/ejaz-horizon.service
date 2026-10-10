@@ -1,0 +1,25 @@
+# عمال الطوابير بـ Horizon — بوابة جمعية إعجاز (docs/deploy.md)
+# على كل خادم يشغّل العمال: /etc/systemd/system/ejaz-horizon.service ثم
+#   systemctl daemon-reload && systemctl enable --now ejaz-horizon
+# سكربت النشر يرسل horizon:terminate فيُنهي العمال بعد مهامهم الجارية، ويعيد systemd تشغيلهم.
+[Unit]
+Description=Ejaz portal queue workers (Laravel Horizon)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/ejaz
+ExecStart=/usr/bin/php artisan horizon
+Restart=always
+RestartSec=5
+# Horizon ينهي مهامه الجارية عند SIGTERM. والمهلة تتسع لأطول مهمة (معالجة مقطع مسابقة)
+KillSignal=SIGTERM
+TimeoutStopSec=600
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# المجدول — بوابة جمعية إعجاز (docs/deploy.md). على خادم واحد فقط، ويشغّله ejaz-scheduler.timer كل دقيقة.
+# يعتمد عليه: مسح سجل العمليات، وتنظيف التصدير والمقاطع، والإحصائيات، ونبض المجدول لفحص الصحة.
+[Unit]
+Description=Ejaz portal scheduler (php artisan schedule:run)
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/ejaz
+ExecStart=/usr/bin/php artisan schedule:run --no-interaction
+NoNewPrivileges=true
+PrivateTmp=true

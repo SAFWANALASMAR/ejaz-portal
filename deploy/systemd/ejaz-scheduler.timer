@@ -1,0 +1,13 @@
+# كل دقيقة: systemctl enable --now ejaz-scheduler.timer
+# البديل بلا systemd، سطر في crontab مستخدم التطبيق:
+#   * * * * * cd /var/www/ejaz && php artisan schedule:run >> /dev/null 2>&1
+[Unit]
+Description=Run the Ejaz portal scheduler every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
