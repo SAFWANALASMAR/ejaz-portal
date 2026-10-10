@@ -56,7 +56,12 @@ class ExportFormEntries
                 ...array_column($fields, 'label'),
             ]), escape: '');
 
+            // كل معبأ بتعريف حقوله في إصداره هو (قد يتغير نوع الحقل أو أعمدة الجدول بين الإصدارات)
+            $byVersion = [];
+
             foreach ($query->lazyById(500) as $entry) {
+                $own = $byVersion[$entry->form_template_version_id] ??= collect($entry->version->typedFields())->keyBy('key')->all();
+
                 fputcsv($out, self::safe([
                     $entry->reference,
                     (string) $entry->version->version,
@@ -65,7 +70,7 @@ class ExportFormEntries
                     $entry->creator->name ?? '',
                     self::time($entry->created_at),
                     self::time($entry->approved_at),
-                    ...array_map(fn (array $field): string => self::value($entry, $field), $fields),
+                    ...array_map(fn (array $field): string => isset($own[$field['key']]) ? self::value($entry, $own[$field['key']]) : '', $fields),
                 ]), escape: '');
             }
 
@@ -74,18 +79,19 @@ class ExportFormEntries
     }
 
     /**
-     * حقول الإجابة في كل الإصدارات بمفاتيحها، واسم الحقل وتعريفه من أحدث إصدار ذُكر فيه.
+     * أعمدة الإجابة: حقول كل الإصدارات بمفاتيحها، واسم العمود من أحدث إصدار ذُكر فيه الحقل.
      *
-     * @return list<array{key: string, label: string, type: DocumentFieldType, columns: list<string>}>
+     * @return list<array{key: string, label: string}>
      */
     private static function fields(FormTemplate $template): array
     {
         $fields = [];
 
+        // versions() مرتبة بالإصدار، فالأحدث يكتب الاسم أخيراً
         foreach ($template->versions()->get() as $version) {
             foreach ($version->typedFields() as $field) {
                 if (! $field['type']->isLayout()) {
-                    $fields[$field['key']] = ['key' => $field['key'], 'label' => $field['label'], 'type' => $field['type'], 'columns' => $field['columns']];
+                    $fields[$field['key']] = ['key' => $field['key'], 'label' => $field['label']];
                 }
             }
         }
@@ -94,7 +100,7 @@ class ExportFormEntries
     }
 
     /**
-     * @param  array{key: string, label: string, type: DocumentFieldType, columns: list<string>}  $field
+     * @param  array{key: string, type: DocumentFieldType, columns: list<string>}  $field  تعريف الحقل في إصدار المعبأ
      */
     private static function value(FormEntry $entry, array $field): string
     {
@@ -106,7 +112,7 @@ class ExportFormEntries
             DocumentFieldType::Table => collect((array) ($entry->answers[$key] ?? []))
                 ->map(fn (mixed $row): string => implode(' — ', array_map(fn (string $column): string => (string) (((array) $row)[$column] ?? ''), DocumentFields::columnKeys($field))))
                 ->implode("\n"),
-            default => (string) ($entry->answers[$key] ?? ''),
+            default => is_scalar($entry->answers[$key] ?? null) ? (string) $entry->answers[$key] : '',
         };
     }
 

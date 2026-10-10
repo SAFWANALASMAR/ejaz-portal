@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FormEntry;
 use App\Models\User;
 use App\Support\FormEntryLayout;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -22,7 +23,7 @@ class FormEntryPrintController extends Controller
 {
     public function show(Request $request, FormEntry $entry, LogDocumentAccess $log): View
     {
-        abort_unless($request->user()?->can('view', $entry), 403);
+        self::authorizeStaff($request, $entry);
 
         /** @var User $actor */
         $actor = $request->user();
@@ -37,7 +38,7 @@ class FormEntryPrintController extends Controller
 
     public function pdf(Request $request, FormEntry $entry, PrintFormEntry $print): Response
     {
-        abort_unless($request->user()?->can('view', $entry), 403);
+        self::authorizeStaff($request, $entry);
 
         /** @var User $actor */
         $actor = $request->user();
@@ -51,5 +52,15 @@ class FormEntryPrintController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$entry->reference.'.pdf"',
         ]);
+    }
+
+    /**
+     * من يدخل اللوحة نفسها ويطّلع على المعبأ: المسار خارج /admin، فلا يُمنح دور خارجها اطلاعاً بلا شروطها.
+     */
+    private static function authorizeStaff(Request $request, FormEntry $entry): void
+    {
+        $user = $request->user();
+
+        abort_unless($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && $user->can('view', $entry), 403);
     }
 }

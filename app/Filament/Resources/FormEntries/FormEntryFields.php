@@ -4,7 +4,6 @@ namespace App\Filament\Resources\FormEntries;
 
 use App\Enums\DocumentFieldType;
 use App\Enums\FormAudience;
-use App\Enums\RoleName;
 use App\Filament\Forms\SignaturePad;
 use App\Models\FormEntry;
 use App\Models\FormTemplateVersion;
@@ -23,7 +22,6 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Text;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * حقول المعبأ في اللوحة من إصدار النموذج، بترتيبه وشكله الورقي: عناوين الأقسام والنصوص الثابتة، وحقلا
@@ -100,26 +98,16 @@ final class FormEntryFields
             ->label(__('documents.fields.person'))
             ->helperText(__('documents.fields.person_hint'))
             ->searchable()
-            ->getSearchResultsUsing(fn (string $search): array => self::people($audience)
-                ->where('name', 'ilike', '%'.addcslashes($search, '%_\\').'%')
+            // ثلاثة أحرف على الأقل، فلا تُسرد أسماء الحسابات لمن لا يطّلع على المستخدمين
+            ->searchPrompt(__('documents.fields.person_search_min'))
+            ->getSearchResultsUsing(fn (string $search): array => mb_strlen(trim($search)) < 3 ? [] : $audience->people()
+                ->where('name', 'ilike', '%'.addcslashes(trim($search), '%_\\').'%')
                 ->orderBy('name')
-                ->limit(50)
+                ->limit(20)
                 ->pluck('name', 'id')
                 ->all())
-            ->getOptionLabelUsing(fn (mixed $value): ?string => self::people($audience)->whereKey($value)->value('name'))
+            ->getOptionLabelUsing(fn (mixed $value): ?string => User::query()->whereKey($value)->value('name'))
             ->columnSpanFull();
-    }
-
-    /**
-     * @return Builder<User>
-     */
-    private static function people(FormAudience $audience): Builder
-    {
-        $staff = fn (Builder $roles) => $roles->whereIn('name', RoleName::values(RoleName::staff()));
-
-        return $audience === FormAudience::Staff
-            ? User::query()->whereHas('roles', $staff)
-            : User::query()->whereDoesntHave('roles', $staff);
     }
 
     /**

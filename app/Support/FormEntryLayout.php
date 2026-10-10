@@ -121,7 +121,7 @@ final class FormEntryLayout
             'value' => match ($type) {
                 DocumentFieldType::File => collect($entry->files ?? [])->firstWhere('key', $key)['name'] ?? null,
                 DocumentFieldType::Signature => null,
-                default => isset($entry->answers[$key]) ? (string) $entry->answers[$key] : null,
+                default => is_scalar($entry->answers[$key] ?? null) ? (string) $entry->answers[$key] : null,
             },
             'signature' => $signature === null ? null : SignatureImage::dataUrl(FormEntry::disk(), $signature['path']),
         ];

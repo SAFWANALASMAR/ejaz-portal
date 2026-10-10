@@ -94,7 +94,7 @@ class FormEntryResource extends Resource
             ->filters([
                 SelectFilter::make('status')->label(__('documents.fields.status'))->options(FormEntryStatus::class),
                 // ملف الشخص: معبآته كلها
-                SelectFilter::make('person')->label(__('documents.fields.person'))->relationship('person', 'name')->searchable(),
+                SelectFilter::make('person')->label(__('documents.fields.person'))->relationship('person', 'name', fn (Builder $query) => $query->whereHas('formEntries'))->searchable(),
                 SelectFilter::make('template')
                     ->label(__('documents.fields.template'))
                     ->options(fn (): array => FormTemplate::withTrashed()->orderBy('title')->pluck('title', 'id')->all())

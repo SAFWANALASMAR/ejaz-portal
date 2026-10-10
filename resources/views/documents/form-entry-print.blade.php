@@ -31,7 +31,7 @@
         .page > thead > tr > td, .page > tbody > tr > td { padding: 0; }
         .letterhead { width: 100%; border-bottom: 2px solid #2E6898; padding-bottom: 6px; margin-bottom: 14px; border-collapse: collapse; }
         .letterhead td { vertical-align: middle; }
-        .letterhead-logo { text-align: left; width: 40%; }
+        .letterhead-logo { text-align: end; width: 40%; }
         .logo { height: 16mm; width: auto; }
         .org-name { color: #2E6898; font-size: 15pt; font-weight: 700; }
         .org-contact { color: #444; font-size: 9.5pt; }

@@ -55,6 +55,8 @@ class PrintFormEntry
             'autoLangToFont' => true,
             'whitelistStreamWrappers' => [],
             'exposeVersion' => false,
+            // الترويسة تطول إن انكسرت بيانات التواصل على سطرين، فيتسع الهامش العلوي لها
+            'setAutoTopMargin' => 'stretch',
         ]);
         $pdf->SetTitle($entry->version->template->title);
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Documents\ExportFormEntries;
 use App\Actions\Documents\PrintFormEntry;
 use App\Actions\Documents\SaveFormEntry;
@@ -15,6 +16,7 @@ use App\Models\FormEntry;
 use App\Models\FormTemplate;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\FormEntryLayout;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -339,4 +341,95 @@ it('offers the export in the forms table to those allowed only', function () {
 
     $this->actingAs($this->board);
     Livewire::test(ListFormTemplates::class)->assertTableActionHidden('export', $template);
+});
+
+// ── ما أضافته المراجعتان ──
+
+it('lays half-width fields out in pairs and keeps a lone one on its own row', function () {
+    $template = paperLikeTemplate($this->secretary);
+    $entry = app(SaveFormEntry::class)->handle($this->secretary, new FormEntry, ['answers' => ['name' => 'اسم', 'items' => [['c0' => 'بند', 'c1' => '1']]]], $template);
+
+    $blocks = FormEntryLayout::blocks($entry);
+
+    expect(array_column($blocks, 'type'))->toBe(['heading', 'paragraph', 'row', 'table', 'row'])
+        ->and(array_column($blocks[2]['cells'], 'label'))->toBe(['الاسم', 'التاريخ'])
+        ->and($blocks[3]['rows'])->toBe([['بند', '1']])
+        ->and(array_column($blocks[4]['cells'], 'label'))->toBe(['التوقيع']);
+});
+
+it('prints an entry of an older version that has no layout keys', function () {
+    $entry = FormEntry::factory()->create(['answers' => ['name' => 'اسم قديم']]);
+
+    expect(array_column(FormEntryLayout::blocks($entry), 'type'))->toBe(['row', 'row', 'row', 'row', 'row']);
+    $this->actingAs($this->secretary)->get(route('documents.entries.print', $entry))->assertOk()->assertSee('اسم قديم');
+});
+
+it('refuses a required table sent with empty rows only', function () {
+    $template = app(SaveFormTemplate::class)->handle($this->secretary, new FormTemplate, ['title' => 'نموذج', 'fields' => [
+        ['key' => 'items', 'label' => 'البنود', 'type' => 'table', 'required' => true, 'columns' => ['البند']],
+    ]]);
+
+    expect(fn () => app(SaveFormEntry::class)->handle($this->secretary, new FormEntry, ['answers' => ['items' => [['c0' => ' ']]]], $template))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('answers.items'));
+});
+
+it('keeps the person when an edit does not send one, or sends the same one after the account changed', function () {
+    $employee = userWithRole(RoleName::Secretary);
+    $template = paperLikeTemplate($this->secretary);
+    $entry = app(SaveFormEntry::class)->handle($this->secretary, new FormEntry, ['person_id' => $employee->id, 'answers' => ['name' => 'اسم']], $template);
+
+    app(SaveFormEntry::class)->handle($this->secretary, $entry, ['answers' => ['name' => 'تعديل']]);
+    expect($entry->fresh()->person_id)->toBe($employee->id);
+
+    $employee->forceFill(['is_active' => false])->save();
+    app(SaveFormEntry::class)->handle($this->secretary, $entry->fresh(), ['person_id' => $employee->id, 'answers' => ['name' => 'تعديل ثان']]);
+    expect($entry->fresh()->person_id)->toBe($employee->id);
+});
+
+it('refuses inactive, anonymized or admin accounts as the person of a participants form', function () {
+    $form = paperLikeTemplate($this->secretary, FormAudience::Participants);
+
+    foreach ([User::factory()->create(['is_active' => false]), User::factory()->create(['anonymized_at' => now()]), $this->board] as $person) {
+        expect(fn () => app(SaveFormEntry::class)->handle($this->secretary, new FormEntry, ['person_id' => $person->id, 'answers' => ['name' => 'اسم']], $form))
+            ->toThrow(ValidationException::class);
+    }
+});
+
+it('downloads the PDF from the print view for the allowed only', function () {
+    $entry = FormEntry::factory()->create();
+
+    $this->actingAs($this->board)->get(route('documents.entries.pdf', $entry))
+        ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    $this->actingAs(userWithRole(RoleName::ContentEditor))->get(route('documents.entries.pdf', $entry))->assertForbidden();
+});
+
+it('keeps the staff print view from a role outside the panel even with the permission', function () {
+    $director = userWithRole(RoleName::ExecutiveDirector);
+    $director->givePermissionTo('form_entries.view');
+    $entry = FormEntry::factory()->create();
+
+    $this->actingAs($director)->get(route('documents.entries.print', $entry))->assertForbidden();
+});
+
+it('lets a participant download the PDF of their approved entry only, and shows «my forms» only to those who have one', function () {
+    $participant = User::factory()->create();
+    $form = paperLikeTemplate($this->secretary, FormAudience::Participants);
+    $draft = FormEntry::factory()->create(['form_template_version_id' => $form->current_version_id, 'person_id' => $participant->id]);
+
+    expect($participant->can('viewOwnFormEntries'))->toBeFalse();
+
+    $approved = FormEntry::factory()->approved()->create(['form_template_version_id' => $form->current_version_id, 'person_id' => $participant->id]);
+
+    expect($participant->fresh()->can('viewOwnFormEntries'))->toBeTrue();
+
+    $this->actingAs($participant)->get(route('account.forms.pdf', $approved))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    $this->get(route('account.forms.pdf', $draft))->assertForbidden();
+    $this->actingAs(User::factory()->create())->get(route('account.forms.pdf', $approved))->assertForbidden();
+});
+
+it('includes the entries in the person file in their personal data copy', function () {
+    $participant = User::factory()->create();
+    $entry = FormEntry::factory()->create(['person_id' => $participant->id]);
+
+    expect(app(ExportUserData::class)->handle($participant)['form_entries'][0]['reference'])->toBe($entry->reference);
 });

@@ -18,6 +18,7 @@ return new class extends Migration
 
         Schema::table('form_entries', function (Blueprint $table) {
             $table->foreignId('person_id')->nullable()->after('form_template_version_id')->constrained('users')->nullOnDelete();
+            $table->index(['person_id', 'status']);
         });
     }
 

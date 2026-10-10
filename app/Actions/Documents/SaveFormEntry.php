@@ -5,7 +5,6 @@ namespace App\Actions\Documents;
 use App\Enums\DocumentFieldType;
 use App\Enums\FormAudience;
 use App\Enums\FormEntryStatus;
-use App\Enums\RoleName;
 use App\Models\FormEntry;
 use App\Models\FormTemplate;
 use App\Models\FormTemplateVersion;
@@ -45,7 +44,7 @@ class SaveFormEntry
         ], [], [...DocumentFields::attributes($fields), 'person_id' => __('documents.fields.person')])->validate();
 
         // صاحب المعبأ من جمهور النموذج. ومن لا يُرسَل صاحبه في التعديل يبقى على صاحبه
-        $personId = array_key_exists('person_id', $data) ? self::person($version, $validated['person_id'] ?? null) : $entry->person_id;
+        $personId = array_key_exists('person_id', $data) ? self::person($version, $validated['person_id'] ?? null, $entry->person_id) : $entry->person_id;
 
         $answers = [];
         $before = collect($entry->files ?? [])->keyBy('key');
@@ -148,24 +147,21 @@ class SaveFormEntry
     }
 
     /**
-     * صاحب المعبأ: في نموذج الموظفين من له دور موظف، وفي نموذج المشاركين صاحب حساب بلا دور موظف.
+     * صاحب المعبأ من جمهور النموذج (FormAudience::people). وصاحبه الحالي يبقى ولو تغيّر حسابه بعد الربط.
      *
      * @throws ValidationException
      */
-    private static function person(FormTemplateVersion $version, mixed $id): ?int
+    private static function person(FormTemplateVersion $version, mixed $id, ?int $current): ?int
     {
-        if ($id === null) {
-            return null;
+        if ($id === null || (int) $id === $current) {
+            return $id === null ? null : $current;
         }
 
-        $person = User::query()->find((int) $id);
-        $isStaff = $person?->hasAnyRole(RoleName::values(RoleName::staff())) ?? false;
-
-        if ($person === null || $isStaff !== ($version->template->audience === FormAudience::Staff)) {
+        if (! $version->template->audience->people()->whereKey((int) $id)->exists()) {
             throw ValidationException::withMessages(['person_id' => __('documents.validation.invalid_person')]);
         }
 
-        return $person->id;
+        return (int) $id;
     }
 
     /**
