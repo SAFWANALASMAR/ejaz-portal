@@ -3,8 +3,11 @@
 use App\Http\Controllers\Account\CompetitionsController;
 use App\Http\Controllers\Competitions\CompetitionController;
 use App\Http\Controllers\Competitions\EntryController;
+use App\Http\Controllers\Competitions\ExamController;
 use App\Http\Controllers\Competitions\ReviewVideoController;
+use App\Http\Controllers\Competitions\ReviewWorkController;
 use App\Http\Controllers\Competitions\VideoUploadController;
+use App\Http\Controllers\Competitions\WorkController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,4 +41,24 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
 
     // مقطع المشاركة للمحكّم المسند إليه: يُفحص الإسناد عند كل طلب. والمشغّل يطلب أجزاءً عند التقديم
     Route::get('/competition-reviews/{review}/videos/{video}', ReviewVideoController::class)->middleware('throttle:240,1,competition-review-video')->name('competitions.reviews.video');
+
+    // رحلة الاختبار الإلكتروني (docs/plans/competition-exam.md): كل مرحلة تُفحص في الإجراءات، والانتقال
+    // بين الأسئلة يحفظ الإجابة فحده أعلى
+    Route::get('/competitions/{slug}/exam', [ExamController::class, 'show'])->middleware('throttle:120,1,competition-exam')->name('competitions.exam');
+    Route::post('/competitions/{slug}/exam/register', [ExamController::class, 'register'])->middleware('throttle:20,1,competition-exam-register')->name('competitions.exam.register');
+    Route::post('/competitions/{slug}/exam/intro/start', [ExamController::class, 'introStart'])->middleware('throttle:30,1,competition-exam-intro')->name('competitions.exam.intro.start');
+    Route::post('/competitions/{slug}/exam/intro/finish', [ExamController::class, 'introFinish'])->middleware('throttle:30,1,competition-exam-intro-finish')->name('competitions.exam.intro.finish');
+    Route::get('/competitions/{slug}/exam/intro/video', [ExamController::class, 'introVideo'])->middleware('throttle:240,1,competition-exam-intro-video')->name('competitions.exam.intro.video');
+    Route::post('/competitions/{slug}/exam/instructions', [ExamController::class, 'instructions'])->middleware('throttle:20,1,competition-exam-instructions')->name('competitions.exam.instructions');
+    Route::get('/competitions/{slug}/exam/questions/{number}', [ExamController::class, 'question'])->whereNumber('number')->middleware('throttle:240,1,competition-exam-question')->name('competitions.exam.question');
+    Route::get('/competitions/{slug}/exam/questions/{number}/media', [ExamController::class, 'questionMedia'])->whereNumber('number')->middleware('throttle:480,1,competition-exam-media')->name('competitions.exam.media');
+    Route::post('/competitions/{slug}/exam/answer', [ExamController::class, 'answer'])->middleware('throttle:240,1,competition-exam-answer')->name('competitions.exam.answer');
+    Route::get('/competitions/{slug}/exam/review', [ExamController::class, 'review'])->middleware('throttle:120,1,competition-exam-review')->name('competitions.exam.review');
+    Route::post('/competitions/{slug}/exam/submit', [ExamController::class, 'submit'])->middleware('throttle:10,1,competition-exam-submit')->name('competitions.exam.submit');
+
+    // الأعمال المرفوعة: «رفع الأعمال (صور – PDF – روابط)»
+    Route::post('/competitions/{slug}/entry/works', [WorkController::class, 'store'])->middleware('throttle:20,1,competition-work-store')->name('competitions.works.store');
+    Route::get('/competition-works/{work}', [WorkController::class, 'show'])->middleware('throttle:120,1,competition-work-show')->name('competitions.works.show');
+    Route::delete('/competition-works/{work}', [WorkController::class, 'destroy'])->middleware('throttle:30,1,competition-work-destroy')->name('competitions.works.destroy');
+    Route::get('/competition-reviews/{review}/works/{work}', ReviewWorkController::class)->middleware('throttle:240,1,competition-review-work')->name('competitions.reviews.work');
 });

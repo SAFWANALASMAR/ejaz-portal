@@ -2,14 +2,19 @@
 
 namespace App\Filament\Resources\Competitions\Schemas;
 
+use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
 use App\Enums\RoleName;
+use App\Enums\WorkType;
 use App\Filament\Forms\ContentFields;
 use App\Models\Competition;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
 use App\Models\User;
+use App\Support\CompetitionMedia;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -52,6 +57,28 @@ class CompetitionForm
                     Toggle::make('shuffle_options')->label(__('competitions.fields.shuffle_options')),
                     Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('competitions.fields.publish_hint'))
                         ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false)->dehydrated(),
+                ]),
+
+                // الاختبار الإلكتروني ورفع الأعمال (docs/plans/competition-exam.md). والفحص كله في SaveCompetition
+                Tab::make(__('competitions.exam_admin.tab'))->schema([
+                    Toggle::make('exam_mode')->label(__('competitions.exam_admin.exam_mode'))->helperText(__('competitions.exam_admin.exam_mode_hint'))->live(),
+                    // في القرص الخاص، ويُقدَّم للمشارك في مرحلته وحدها (ExamController)
+                    FileUpload::make('intro_video_path')
+                        ->label(__('competitions.exam_admin.intro_video'))
+                        ->helperText(__('competitions.exam_admin.intro_video_hint'))
+                        ->visible(fn (Get $get): bool => (bool) $get('exam_mode'))
+                        ->disk(CompetitionMedia::disk())
+                        ->directory(CompetitionMedia::DIRECTORY)
+                        ->visibility('private')
+                        ->acceptedFileTypes(QuestionMedia::Video->mimeTypes())
+                        ->maxSize((int) config('competitions.exam.media_max_mb') * 1024)
+                        ->previewable(false),
+                    CheckboxList::make('work_types')
+                        ->label(__('competitions.exam_admin.work_types'))
+                        ->helperText(__('competitions.exam_admin.work_types_hint'))
+                        ->options(WorkType::class)
+                        ->hidden(fn (Get $get): bool => (bool) $get('exam_mode'))
+                        ->columns(3),
                 ]),
 
                 Tab::make(__('competitions.tabs.criteria'))->schema([
@@ -102,7 +129,20 @@ class CompetitionForm
                             Hidden::make('id'),
                             Select::make('type')->label(__('competitions.fields.type'))->options(QuestionType::class)->required()->live(),
                             Toggle::make('is_required')->label(__('competitions.fields.is_required'))->default(true)->inline(false),
+                            Textarea::make('context_text')->label(__('competitions.exam_admin.context_text'))->rows(2)->maxLength(3000)->columnSpanFull(),
                             Textarea::make('prompt')->label(__('competitions.fields.prompt'))->required()->rows(2)->maxLength(2000)->columnSpanFull(),
+                            Select::make('media_type')->label(__('competitions.exam_admin.media_type'))->options(QuestionMedia::class)->live(),
+                            FileUpload::make('media_path')
+                                ->label(__('competitions.exam_admin.media_file'))
+                                ->helperText(__('competitions.exam_admin.media_file_hint'))
+                                ->visible(fn (Get $get): bool => filled($get('media_type')))
+                                ->required(fn (Get $get): bool => filled($get('media_type')))
+                                ->disk(CompetitionMedia::disk())
+                                ->directory(CompetitionMedia::DIRECTORY)
+                                ->visibility('private')
+                                ->acceptedFileTypes(array_merge(...array_map(fn (QuestionMedia $media): array => $media->mimeTypes(), QuestionMedia::cases())))
+                                ->maxSize((int) config('competitions.exam.media_max_mb') * 1024)
+                                ->previewable(false),
                             Repeater::make('options')
                                 ->label(__('competitions.fields.options'))
                                 ->visible(fn (Get $get): bool => self::type($get) === QuestionType::MultipleChoice)
@@ -165,6 +205,9 @@ class CompetitionForm
                 'points' => $question->points,
                 'max_video_seconds' => $question->max_video_seconds,
                 'max_video_mb' => $question->max_video_mb,
+                'context_text' => $question->context_text,
+                'media_type' => $question->media_type?->value,
+                'media_path' => $question->media_path,
             ])->values()->all(),
         ];
     }

@@ -77,6 +77,13 @@ class ReviewResource extends Resource
                         ->label(__('competitions.entry.question', ['number' => $index + 1]).': '.$question->prompt)
                         ->state(self::answerText($record, $question))
                         ->placeholder(__('competitions.entry.no_answer')))->all(),
+                // الأعمال المرفوعة: الملفات عبر مسار يفحص الإسناد عند كل طلب (ReviewWorkController)
+                ...($record->submission->competition->workTypeList() !== [] || $record->submission->works()->exists() ? [
+                    View::make('filament.reviews.works')->viewData([
+                        'works' => $record->submission->works()->get(),
+                        'review' => $record,
+                    ]),
+                ] : []),
             ]),
             Section::make(__('competitions.reviews.scores'))->columnSpanFull()->columns(2)->schema(fn (?SubmissionReview $record): array => $record === null ? [] : [
                 ...$record->submission->competition->criteria->map(fn (CompetitionCriterion $criterion) => TextInput::make('scores.'.$criterion->id)

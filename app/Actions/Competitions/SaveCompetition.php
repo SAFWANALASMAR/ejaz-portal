@@ -2,16 +2,23 @@
 
 namespace App\Actions\Competitions;
 
+use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
 use App\Enums\RoleName;
+use App\Enums\WorkType;
 use App\Models\Competition;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
 use App\Models\User;
+use App\Support\CompetitionMedia;
+use App\Support\ExamQuestions;
+use App\Support\ImageSanitizer;
+use App\Support\VideoProbe;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -65,6 +72,10 @@ class SaveCompetition
 
         $data['categories'] = array_values(array_unique(array_filter(array_map('trim', $data['categories'] ?? []), fn (string $category): bool => $category !== '')));
 
+        $media = $this->prepareMedia($competition, ['questions' => $questions ?? [], ...$data]);
+        $data = array_diff_key($media, ['questions' => true]);
+        $mediaBefore = $this->mediaPaths($competition);
+
         DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
@@ -92,6 +103,15 @@ class SaveCompetition
             }
         });
 
+        // بعد الاعتماد: الوسائط التي خرجت من المسابقة تُحذف، وأسئلة الاختبار في الذاكرة المؤقتة تُمسح
+        $removed = array_values(array_diff($mediaBefore, $this->mediaPaths($competition)));
+
+        if ($removed !== []) {
+            Storage::disk(CompetitionMedia::disk())->delete($removed);
+        }
+
+        ExamQuestions::forget($competition->id);
+
         return $competition->refresh();
     }
 
@@ -116,6 +136,12 @@ class SaveCompetition
         if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
             throw ValidationException::withMessages(['criteria' => __('competitions.validation.criteria_locked')]);
         }
+
+        // نوع المسابقة لا يتغير بعد أول مشاركة، لأن مراحل المشارك وإجاباته مربوطة به
+        if (array_key_exists('exam_mode', $data) && $competition->exists && (bool) $data['exam_mode'] !== $competition->exam_mode
+            && $competition->submissions()->withTrashed()->exists()) {
+            throw ValidationException::withMessages(['exam_mode' => __('competitions.exam_validation.exam_mode_locked')]);
+        }
     }
 
     /**
@@ -139,6 +165,10 @@ class SaveCompetition
             'shuffle_questions' => ['boolean'],
             'shuffle_options' => ['boolean'],
             'is_published' => ['boolean'],
+            'exam_mode' => ['boolean'],
+            'intro_video_path' => ['nullable', 'string', 'max:255'],
+            'work_types' => ['nullable', 'array', 'max:'.count(WorkType::cases())],
+            'work_types.*' => ['distinct', Rule::enum(WorkType::class)],
 
             'reviewers' => ['nullable', 'array', 'max:200'],
             'reviewers.*' => ['integer', 'distinct'],
@@ -160,6 +190,9 @@ class SaveCompetition
             'questions.*.points' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'questions.*.max_video_seconds' => ['nullable', 'integer', 'min:1', 'max:'.config('competitions.video.max_seconds')],
             'questions.*.max_video_mb' => ['nullable', 'integer', 'min:1', 'max:'.config('competitions.video.max_mb')],
+            'questions.*.context_text' => ['nullable', 'string', 'max:3000'],
+            'questions.*.media_type' => ['nullable', Rule::enum(QuestionMedia::class)],
+            'questions.*.media_path' => ['nullable', 'string', 'max:255'],
         ], attributes: __('competitions.attributes'));
 
         // الفحوص المركبة بعد سلامة كل حقل، فلا يتكرر الخطأ نفسه
@@ -210,11 +243,166 @@ class SaveCompetition
             }
         }
 
+        $this->checkExam($validator, $competition, $data, $questions);
+
         $hasQuestions = array_key_exists('questions', $data) ? $questions !== [] : $competition->exists && $competition->questions()->exists();
 
         if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));
         }
+    }
+
+    /**
+     * الاختبار الإلكتروني (docs/plans/competition-exam.md): أسئلته اختيار من متعدد بأربعة خيارات بالضبط،
+     * وبلا أعمال مرفوعة، ولا يُنشر بلا فيديو تعريفي. ولكل سؤال وسيطه ونوعه معاً، والمسارات من مجلد الوسائط.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<mixed>  $questions
+     */
+    private function checkExam(ValidatorInstance $validator, Competition $competition, array $data, array $questions): void
+    {
+        $exam = (bool) ($data['exam_mode'] ?? $competition->exam_mode);
+        $intro = array_key_exists('intro_video_path', $data) ? $data['intro_video_path'] : $competition->intro_video_path;
+        $published = (bool) ($data['is_published'] ?? $competition->is_published);
+
+        if (filled($intro) && ! CompetitionMedia::inDirectory((string) $intro)) {
+            $validator->errors()->add('intro_video_path', __('competitions.exam_validation.media_path'));
+        }
+
+        foreach (array_values($questions) as $index => $question) {
+            $number = $index + 1;
+            $hasType = filled($question['media_type'] ?? null);
+            $path = $question['media_path'] ?? null;
+
+            if ($hasType !== filled($path)) {
+                $validator->errors()->add('questions', __('competitions.exam_validation.media_missing', ['number' => $number]));
+            } elseif (filled($path) && ! CompetitionMedia::inDirectory((string) $path)) {
+                $validator->errors()->add('questions', __('competitions.exam_validation.media_path'));
+            }
+
+            $options = is_array($question['options'] ?? null) ? $question['options'] : [];
+
+            if ($exam && (self::type($question['type'] ?? null) !== QuestionType::MultipleChoice || count($options) !== 4)) {
+                $validator->errors()->add('questions', __('competitions.exam_validation.four_options', ['number' => $number]));
+            }
+        }
+
+        if (! $exam) {
+            return;
+        }
+
+        $workTypes = array_key_exists('work_types', $data) ? (array) $data['work_types'] : (array) $competition->work_types;
+
+        if ($workTypes !== []) {
+            $validator->errors()->add('work_types', __('competitions.exam_validation.no_works'));
+        }
+
+        // بنك محفوظ من قبل لم يصل في هذا الطلب: يُفحص المحفوظ نفسه
+        if (! array_key_exists('questions', $data) && $competition->exists) {
+            foreach ($competition->questions as $index => $question) {
+                if ($question->type !== QuestionType::MultipleChoice || count($question->optionList()) !== 4) {
+                    $validator->errors()->add('questions', __('competitions.exam_validation.four_options', ['number' => $index + 1]));
+                }
+            }
+        }
+
+        if ($published && blank($intro)) {
+            $validator->errors()->add('intro_video_path', __('competitions.exam_validation.needs_intro'));
+        }
+    }
+
+    /**
+     * الملفات الجديدة بعد التحقق: الفيديو التعريفي MP4 تُقرأ مدته الحقيقية، ووسيط السؤال نوعه من محتواه
+     * مطابق لنوعه المختار، والصورة يُعاد ترميزها. والمخالف يُرفض.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    private function prepareMedia(Competition $competition, array $data): array
+    {
+        $disk = CompetitionMedia::disk();
+
+        if (filled($data['intro_video_path'] ?? null) && $data['intro_video_path'] !== $competition->intro_video_path) {
+            $seconds = CompetitionMedia::mime((string) $data['intro_video_path']) === 'video/mp4' ? $this->videoSeconds((string) $data['intro_video_path']) : null;
+
+            if ($seconds === null) {
+                throw ValidationException::withMessages(['intro_video_path' => __('competitions.exam_validation.intro_unreadable')]);
+            }
+
+            $data['intro_video_seconds'] = $seconds;
+        } elseif (array_key_exists('intro_video_path', $data) && blank($data['intro_video_path'])) {
+            $data['intro_video_seconds'] = null;
+        }
+
+        $existing = $competition->exists ? $competition->questions()->pluck('media_path')->filter()->all() : [];
+
+        foreach (array_values((array) ($data['questions'] ?? [])) as $index => $question) {
+            $path = $question['media_path'] ?? null;
+
+            if (blank($path) || in_array($path, $existing, true)) {
+                continue;
+            }
+
+            $raw = $question['media_type'] ?? null;
+            $type = $raw instanceof QuestionMedia ? $raw : QuestionMedia::tryFrom(is_string($raw) ? $raw : '');
+
+            if ($type === null || ! in_array(CompetitionMedia::mime((string) $path), $type->mimeTypes(), true)) {
+                throw ValidationException::withMessages(['questions' => __('competitions.exam_validation.media_type', ['number' => $index + 1])]);
+            }
+
+            if ($type === QuestionMedia::Image) {
+                try {
+                    ImageSanitizer::strip($disk, (string) $path);
+                } catch (\Throwable) {
+                    throw ValidationException::withMessages(['questions' => __('competitions.exam_validation.media_type', ['number' => $index + 1])]);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * مدة المقطع الحقيقية بالثواني (VideoProbe)، من نسخة محلية مؤقتة فيصلح القرص السحابي أيضاً.
+     */
+    private function videoSeconds(string $path): ?int
+    {
+        $source = Storage::disk(CompetitionMedia::disk())->readStream($path);
+        $local = tmpfile();
+
+        if ($source === null || $local === false) {
+            return null;
+        }
+
+        try {
+            stream_copy_to_stream($source, $local);
+            rewind($local);
+            $seconds = VideoProbe::seconds($local);
+        } finally {
+            fclose($source);
+            fclose($local);
+        }
+
+        return $seconds === null || $seconds <= 0 ? null : (int) ceil($seconds);
+    }
+
+    /**
+     * مسارات الوسائط في المسابقة (الفيديو التعريفي ووسائط الأسئلة)، لحذف ما خرج منها بعد الحفظ.
+     *
+     * @return list<string>
+     */
+    private function mediaPaths(Competition $competition): array
+    {
+        if (! $competition->exists) {
+            return [];
+        }
+
+        return array_values(array_filter([
+            $competition->intro_video_path,
+            ...$competition->questions()->pluck('media_path')->all(),
+        ], fn ($path): bool => is_string($path) && CompetitionMedia::inDirectory($path)));
     }
 
     /**
@@ -303,6 +491,9 @@ class SaveCompetition
                 'max_video_seconds' => $type === QuestionType::Video ? $row['max_video_seconds'] : null,
                 'max_video_mb' => $type === QuestionType::Video ? $row['max_video_mb'] : null,
                 'sort_order' => $index + 1,
+                'context_text' => filled($row['context_text'] ?? null) ? trim((string) $row['context_text']) : null,
+                'media_type' => filled($row['media_path'] ?? null) ? ($row['media_type'] ?? null) : null,
+                'media_path' => filled($row['media_path'] ?? null) ? $row['media_path'] : null,
             ]);
             $competition->questions()->save($question);
             $kept[] = $question->id;

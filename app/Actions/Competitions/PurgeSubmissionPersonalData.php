@@ -6,6 +6,7 @@ use App\Contracts\VideoUploads;
 use App\Enums\ActivityEvent;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
+use App\Models\SubmissionWork;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -34,7 +35,16 @@ class PurgeSubmissionPersonalData
             }
         }
 
-        DB::transaction(function () use ($submission, $videos): void {
+        // الأعمال المرفوعة كذلك: الملفات أولاً، ثم السجلات في المعاملة (صاحب الحساب المخفى لا يضيف عملاً)
+        $works = SubmissionWork::query()->where('submission_id', $submission->id)->get();
+
+        foreach ($works as $work) {
+            if (filled($work->path) && ! Storage::disk(SubmissionWork::disk())->delete((string) $work->path)) {
+                throw new RuntimeException("Cannot delete the work of submission {$submission->id}.");
+            }
+        }
+
+        DB::transaction(function () use ($submission, $videos, $works): void {
             /** @var CompetitionSubmission $locked */
             $locked = CompetitionSubmission::query()->withTrashed()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
 
@@ -49,11 +59,21 @@ class PurgeSubmissionPersonalData
             SubmissionVideo::query()->whereKey(array_keys($current))->delete();
 
             // الإجابات والمنطقة لا تدخل في سجل النموذج (LogsActivity)، فالحفظ لا يكتبها في السجل
-            $locked->forceFill(['answers' => null, 'region' => null])->save();
+            SubmissionWork::query()->whereKey($works->modelKeys())->delete();
+
+            // وبيانات تسجيل الاختبار (الاسم والبريد ورقم الهوية وبصمته)، ولا تدخل سجل النموذج كذلك
+            $locked->forceFill([
+                'answers' => null,
+                'region' => null,
+                'full_name' => null,
+                'contact_email' => null,
+                'national_id' => null,
+                'national_id_hash' => null,
+            ])->save();
 
             activity('competitions')->performedOn($locked)
                 ->event(ActivityEvent::PersonalDataPurged->value)
-                ->withProperties(['competition_id' => $locked->competition_id, 'videos' => $videos->count()])
+                ->withProperties(['competition_id' => $locked->competition_id, 'videos' => $videos->count(), 'works' => $works->count()])
                 ->log(ActivityEvent::PersonalDataPurged->value);
         });
     }

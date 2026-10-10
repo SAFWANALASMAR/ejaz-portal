@@ -55,7 +55,12 @@ class EntryController extends Controller
             return redirect()->route('competitions.show', $competition->slug);
         }
 
-        $submission->load(['competition.questions', 'videos']);
+        // الاختبار الإلكتروني برحلته المتتابعة (ExamController)
+        if ($competition->exam_mode) {
+            return redirect()->route('competitions.exam', $competition->slug);
+        }
+
+        $submission->load(['competition.questions', 'videos', 'works']);
 
         return view('competitions.entry', [
             'competition' => $competition,
