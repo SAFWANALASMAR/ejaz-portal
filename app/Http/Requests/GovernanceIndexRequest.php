@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DocumentCategory;
+use App\Rules\PlainText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,7 @@ class GovernanceIndexRequest extends FormRequest
         return [
             'category' => ['nullable', Rule::enum(DocumentCategory::class)],
             'year' => ['nullable', 'integer', 'between:1990,'.(now()->year + 1)],
-            'q' => ['nullable', 'string', 'max:100'],
+            'q' => ['nullable', 'string', 'max:100', new PlainText],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ];
     }

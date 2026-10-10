@@ -67,7 +67,7 @@ it('searches by title or author and filters by tag, taking % and _ as plain lett
 
 it('sends an invalid filter back to the section', function (string $query) {
     $this->get('/library/audio?'.$query)->assertRedirect(route('library.section', 'audio'));
-})->with(['q='.str_repeat('x', 101), 'tag='.str_repeat('x', 41), 'q[]=x', 'page=0', 'page=abc']);
+})->with(['q='.str_repeat('x', 101), 'tag='.str_repeat('x', 41), 'q[]=x', 'page=0', 'page=abc', 'q=%FF', 'tag=x%00y']);
 
 it('answers 404 for an unknown section and for a page after the last one', function () {
     storedLibraryItem(['title' => 'الكتاب الوحيد']);

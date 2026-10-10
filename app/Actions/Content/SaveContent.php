@@ -2,6 +2,7 @@
 
 namespace App\Actions\Content;
 
+use App\Models\Album;
 use App\Models\Contracts\HasPublicImages;
 use App\Models\Page;
 use App\Models\User;
@@ -45,6 +46,11 @@ class SaveContent
         $record->fill($data);
         $after = $record->publicImages();
 
+        // ألبوم منشور بلا صور لا معنى له: شرط النموذج يُعاد هنا لكل مستدعٍ
+        if ($record instanceof Album && $record->is_published && $record->photoList() === []) {
+            throw ValidationException::withMessages(['photos' => __('albums.validation.needs_photos')]);
+        }
+
         // الجديد في آخر الترتيب
         if (! $record->exists && in_array('sort', $record->getFillable(), true) && ! array_key_exists('sort', $data)) {
             $record->setAttribute('sort', (int) $record->newQuery()->max('sort') + 1);
@@ -74,9 +80,12 @@ class SaveContent
      */
     private static function imagesOfOtherRecords(Model&HasPublicImages $record): array
     {
+        // أعمدة الصور وحدها: مفاتيح publicImages أسماء أعمدتها
+        $columns = [$record->getKeyName(), ...array_keys($record->publicImages())];
+
         return $record->newQuery()
             ->when($record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
-            ->get()
+            ->get($columns)
             ->flatMap(fn (Model&HasPublicImages $other): array => self::flatten($other->publicImages()))
             ->values()
             ->all();

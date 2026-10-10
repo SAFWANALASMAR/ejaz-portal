@@ -6,10 +6,15 @@ use App\Http\Controllers\Account\DataRightsController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
+use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\MediaController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +52,20 @@ Route::where(['section' => implode('|', LibrarySection::values()), 'slug' => '[a
         Route::get('/library/{section}/{slug}/download', [LibraryController::class, 'download'])->name('library.download');
     });
 });
+// المركز الإعلامي: الأخبار، ومكتبة الصور، والشركاء. ومكتبة الفيديو هي المكتبة المرئية
+Route::get('/media', [MediaController::class, 'index'])->name('media.index');
+Route::get('/media/partners', [MediaController::class, 'partners'])->name('media.partners');
+Route::get('/media/news', [NewsController::class, 'index'])->name('media.news.index');
+Route::get('/media/news/{slug}', [NewsController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.news.show');
+Route::get('/media/albums', [AlbumController::class, 'index'])->name('media.albums.index');
+Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.albums.show');
+
+// التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحدود لكل مشترك وللبوابة (FortifyServiceProvider)
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:contact')->name('contact.store');
+
+// كل طلب GET لا يطابق مساراً: تحويل رابط قديم مسجل، وإلا 404 العربية. ولارافيل يطابقه آخراً أينما سُجّل
+Route::fallback(FallbackController::class);
 
 // لوحة المستخدم. صفحاتها شخصية، فلا تحفظها ذاكرة المتصفح (كصفحات الطلبات والبرامج والمسابقات)
 Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function () {

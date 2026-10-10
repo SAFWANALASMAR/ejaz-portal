@@ -52,7 +52,7 @@ it('filters by category, year and title, taking % and _ as plain letters', funct
 
 it('sends an invalid filter back to the full list', function (string $query) {
     $this->get('/governance?'.$query)->assertRedirect(route('governance.index'));
-})->with(['category=evil', 'year=abc', 'year=1200', 'q='.str_repeat('x', 101), 'page=0']);
+})->with(['category=evil', 'year=abc', 'year=1200', 'q='.str_repeat('x', 101), 'page=0', 'q=%FF']);
 
 it('keeps only the validated filters in the page links of the cached list', function () {
     Document::factory()->count(13)->create(['category' => DocumentCategory::Policies]);

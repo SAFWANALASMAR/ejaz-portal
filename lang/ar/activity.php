@@ -67,6 +67,7 @@ return [
         'file_downloaded' => 'تنزيل ملف',
         'viewed' => 'اطلاع',
         'form_entry_approved' => 'اعتماد نموذج معبأ',
+        'inquiry_note_updated' => 'تعديل الملاحظة الداخلية لاستفسار',
     ],
 
     // نوع السجل المتأثر (اسم الصنف)
@@ -100,6 +101,12 @@ return [
         'FormEntry' => 'نموذج معبأ',
         'ArchiveCategory' => 'تصنيف أرشيف',
         'ArchiveItem' => 'عنصر أرشيف',
+        'LibraryItem' => 'عنصر في المكتبة',
+        'NewsArticle' => 'خبر',
+        'Album' => 'ألبوم',
+        'Partner' => 'شريك',
+        'Inquiry' => 'استفسار',
+        'Redirect' => 'تحويل رابط',
     ],
 
 ];

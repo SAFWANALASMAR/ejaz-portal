@@ -9,6 +9,8 @@ use App\Support\ContentCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,8 +19,16 @@ use Symfony\Component\HttpFoundation\Response;
  * المكتبة: صفحتها بأقسامها وأحدث العناصر، وصفحة كل قسم بالبحث والتصفية، وصفحة كل عنصر بمشغّله
  * أو عارضه. والملفات في القرص الخاص، فلا يُقدَّم إلا ملف عنصر منشور (decisions.md).
  */
-class LibraryController extends Controller
+class LibraryController extends Controller implements HasMiddleware
 {
+    /**
+     * البحث والتصفية والصفحات التالية تُقرأ من القاعدة في كل طلب، فحد لكل عنوان.
+     */
+    public static function middleware(): array
+    {
+        return [new Middleware('throttle:120,1', only: ['section'])];
+    }
+
     private const PER_PAGE = 12;
 
     private const LATEST = 6;

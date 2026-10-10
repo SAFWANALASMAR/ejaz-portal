@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Filament\Resources\Inquiries\Pages;
+
+use App\Filament\Resources\Inquiries\InquiryResource;
+use Filament\Resources\Pages\ListRecords;
+
+/**
+ * الرسائل تصل من الموقع العام، فلا زر إنشاء.
+ */
+class ListInquiries extends ListRecords
+{
+    protected static string $resource = InquiryResource::class;
+}

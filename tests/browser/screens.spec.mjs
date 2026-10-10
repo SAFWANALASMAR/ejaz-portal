@@ -17,6 +17,14 @@ const guestScreens = [
     // لا عنصر منشور بعد، فيُصوَّر من المجموعة التجريبية وحدها (README)
     { name: 'library-item', path: '/library/books/demo-book', heading: 'h1', whenPublished: true },
     { name: 'library-video', path: '/library/videos/demo-video', heading: 'h1', whenPublished: true },
+    { name: 'media', path: '/media', heading: 'h1' },
+    { name: 'news', path: '/media/news', heading: 'h1' },
+    // الخبر والألبوم من المجموعة التجريبية وحدها (README)
+    { name: 'news-article', path: '/media/news/demo-news', heading: 'h1', whenPublished: true },
+    { name: 'albums', path: '/media/albums', heading: 'h1' },
+    { name: 'album', path: '/media/albums/demo-album', heading: 'h1', whenPublished: true },
+    { name: 'partners', path: '/media/partners', heading: 'h1' },
+    { name: 'contact', path: '/contact', heading: 'h1' },
     { name: 'login', path: '/login', heading: 'h1' },
     { name: 'register', path: '/register', heading: 'h1' },
     { name: 'forgot-password', path: '/forgot-password', heading: 'h1' },
@@ -33,6 +41,8 @@ const guestScreens = [
     { name: 'donate', path: '/donate', heading: 'h1', whenPublished: true },
     // الجمعية العمومية للزائر: البلاطات الأربع (الصورة 05)
     { name: 'assembly', path: '/assembly', heading: 'h1' },
+    // صفحة الخطأ العربية لمسار لا صفحة له ولا تحويل
+    { name: 'not-found', path: '/no-such-page', heading: 'h1', status: 404 },
 ];
 
 const accountScreens = [
@@ -66,7 +76,11 @@ async function checkScreen(page, testInfo, screen) {
     test.skip(screen.whenPublished === true && response?.status() === 404, `${screen.path} لم تُنشر بعد`);
     test.skip(screen.whenMember === true && response?.status() === 403, `${screen.path} لأعضاء الجمعية العمومية`);
 
-    expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
+    if (screen.status) {
+        expect(response?.status(), `${screen.path} status`).toBe(screen.status);
+    } else {
+        expect(response?.status(), `${screen.path} status`).toBeLessThan(400);
+    }
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');

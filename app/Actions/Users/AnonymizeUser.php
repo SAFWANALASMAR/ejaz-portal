@@ -8,6 +8,7 @@ use App\Enums\MembershipStatus;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\AssemblyMembership;
 use App\Models\ProgramRegistration;
+use App\Models\Inquiry;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -37,8 +38,9 @@ class AnonymizeUser
 
         $oldEmail = $user->email;
         $oldPhone = $user->phone;
+        $emailVerified = $user->email_verified_at !== null;
 
-        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone): void {
+        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone, $emailVerified): void {
             // الحفظ دون التسجيل الآلي، وإلا كتب السجل القيم القديمة من جديد
             activity()->withoutLogging(function () use ($user): void {
                 $user->syncRoles([]);
@@ -60,6 +62,17 @@ class AnonymizeUser
             });
 
             $this->scrubActivityLog($user, $oldEmail, $oldPhone);
+
+            // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله،
+            // بلا تسجيل. ونص الرسالة سؤال مدة الاحتفاظ (open-questions.md)
+            Inquiry::withTrashed()->where(fn ($query) => $query->where('user_id', $user->id)->when(
+                $emailVerified,
+                fn ($query) => $query->orWhereRaw('lower(email) = ?', [mb_strtolower($oldEmail)]),
+            ))->update([
+                'name' => __('users.anonymized_name'),
+                'email' => $user->email,
+                'phone' => null,
+            ]);
 
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
             $user->notifications()->delete();

@@ -12,6 +12,7 @@ use App\Models\ServiceRequest;
 use App\Models\SubmissionVideo;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
+use App\Models\Inquiry;
 use App\Models\User;
 use Closure;
 
@@ -102,6 +103,22 @@ class ExportUserData
                     'receipt_number' => $payment->receipt_number,
                     'paid_at' => $date($payment->paid_at),
                     'created_at' => $date($payment->created_at),
+                ])->all(),
+            // رسائل حسابه، ورسائل بريده الموثّق قبل أن يسجّل
+            'inquiries' => Inquiry::withTrashed()
+                ->where(fn ($query) => $query->whereBelongsTo($user)->when(
+                    $user->email_verified_at !== null,
+                    fn ($query) => $query->orWhereRaw('lower(email) = ?', [mb_strtolower($user->email)]),
+                ))
+                ->orderBy('id')
+                ->get()
+                ->map(fn (Inquiry $inquiry): array => [
+                    'reference' => $inquiry->reference,
+                    'type' => $inquiry->type->value,
+                    'subject' => $inquiry->subject,
+                    'message' => $inquiry->message,
+                    'status' => $inquiry->status->value,
+                    'sent_at' => $date($inquiry->created_at),
                 ])->all(),
         ];
     }

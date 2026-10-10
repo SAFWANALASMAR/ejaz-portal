@@ -61,6 +61,8 @@ enum ActivityEvent: string implements HasLabel
     // النماذج والأرشيف: كل اطلاع وتنزيل يُسجَّل (requirements/05)
     case Viewed = 'viewed';
     case FormEntryApproved = 'form_entry_approved';
+    // الطلبات
+    case InquiryNoteUpdated = 'inquiry_note_updated';
 
     public function getLabel(): string
     {
