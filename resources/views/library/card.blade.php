@@ -16,7 +16,7 @@
         </span>
     @endif
     <span class="flex flex-1 flex-col p-5">
-        <span class="text-sm font-semibold text-gold-dark">{{ $item->section->getLabel() }}</span>
+        <span class="text-sm font-semibold text-accent-dark">{{ $item->section->getLabel() }}</span>
         <span class="mt-1 text-lg font-bold text-ink">{{ $item->title }}</span>
         @if (filled($item->author) || $item->published_on)
             <span class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">

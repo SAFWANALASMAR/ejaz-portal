@@ -21,7 +21,7 @@
     <section class="py-10 sm:py-14">
         <div @class(['container-page grid gap-8 lg:items-start', 'lg:grid-cols-[1fr_2fr]' => $showInfo])>
             @if ($showInfo)
-            <aside class="rounded-2xl border border-line/70 bg-sand p-6" aria-labelledby="contact-info">
+            <aside class="rounded-2xl border border-line/70 bg-surface p-6" aria-labelledby="contact-info">
                 <h2 id="contact-info" class="text-xl font-bold text-primary">{{ __('contact.info.title') }}</h2>
 
                 @if ($hasInfo)
@@ -47,7 +47,7 @@
                         @if ($map !== null)
                             <div>
                                 <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                                    {{ svg('heroicon-o-map-pin', 'size-5 text-gold', ['aria-hidden' => 'true']) }}
+                                    {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
                                     {{ __('contact.info.map') }}
                                     <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                                 </a>
@@ -99,7 +99,7 @@
                         {{ __('contact.form.privacy') }}
                         @if (Route::has('privacy'))
                             {{ __('contact.form.privacy_more') }}
-                            <a href="{{ route('privacy') }}" class="text-primary underline decoration-gold underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
+                            <a href="{{ route('privacy') }}" class="text-primary underline decoration-accent underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
                         @endif
                     </p>
 

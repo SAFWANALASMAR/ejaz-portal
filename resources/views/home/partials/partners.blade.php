@@ -1,5 +1,5 @@
 {{-- مقطع الشركاء: شعاراتهم بترتيبهم في اللوحة --}}
-<section class="bg-sand py-12 lg:py-16" aria-labelledby="home-partners">
+<section class="bg-surface py-12 lg:py-16" aria-labelledby="home-partners">
     <div class="container-page">
         <div class="flex items-end justify-between gap-4">
             <x-section-heading id="home-partners">{{ __('partners.title') }}</x-section-heading>

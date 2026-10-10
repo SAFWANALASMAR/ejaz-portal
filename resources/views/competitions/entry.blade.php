@@ -64,7 +64,7 @@
             <fieldset class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs" @disabled(! $editable)
                 @if ($error) aria-describedby="answer-{{ $question->id }}-error" @endif>
                 <legend class="sr-only">{{ __('competitions.entry.question', ['number' => $loop->iteration]) }}</legend>
-                <p class="text-sm font-semibold text-gold-dark">
+                <p class="text-sm font-semibold text-accent-dark">
                     {{ __('competitions.entry.question', ['number' => $loop->iteration]) }}
                     @unless ($question->is_required)
                         <span class="text-muted">— {{ __('competitions.entry.optional') }}</span>
@@ -88,7 +88,7 @@
                     </div>
                 @else
                     @php($video = $videos->get($question->id))
-                    <div class="mt-4 space-y-3 rounded-xl bg-sand p-4"
+                    <div class="mt-4 space-y-3 rounded-xl bg-surface p-4"
                         data-video-upload="{{ route('competitions.videos.start', [$competition->slug, $question->id]) }}"
                         data-status-url="{{ route('competitions.videos.status', ['video' => '__VIDEO__']) }}"
                         data-complete-url="{{ route('competitions.videos.complete', ['video' => '__VIDEO__']) }}"

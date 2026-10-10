@@ -16,7 +16,7 @@
                     <dt class="order-2 text-sm text-muted">{{ $stat['label'] }}</dt>
                     <dd class="order-1 flex flex-col items-center gap-2">
                         @if ($stat['icon'])
-                            <span class="text-gold" aria-hidden="true">{{ svg('heroicon-o-'.$stat['icon'], 'size-7') }}</span>
+                            <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$stat['icon'], 'size-7') }}</span>
                         @endif
                         <span class="text-3xl font-bold text-primary sm:text-4xl">{{ number_format($stat['value']) }}{{ $stat['suffix'] }}</span>
                     </dd>

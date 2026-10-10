@@ -40,7 +40,7 @@
                         <dd class="mt-1 whitespace-pre-line text-ink">
                             @if ($field['type'] === FormFieldType::Pdf)
                                 @isset($serviceRequest->files[$field['key']])
-                                    <a href="{{ route('account.requests.file', [$serviceRequest, $field['key']]) }}" class="inline-flex items-center gap-2 text-primary underline decoration-gold underline-offset-4">
+                                    <a href="{{ route('account.requests.file', [$serviceRequest, $field['key']]) }}" class="inline-flex items-center gap-2 text-primary underline decoration-accent underline-offset-4">
                                         {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}
                                         {{ __('services.requests.download') }}: {{ $serviceRequest->files[$field['key']]['name'] }}
                                     </a>
@@ -68,7 +68,7 @@
                             <span class="text-sm text-muted">{{ Dates::display($event->created_at, withTime: true) }}</span>
                         </p>
                         @if (filled($event->message))
-                            <div class="mt-2 rounded-xl bg-sand p-4 text-ink">
+                            <div class="mt-2 rounded-xl bg-surface p-4 text-ink">
                                 <p class="text-sm font-semibold text-primary">{{ __('services.requests.reply') }}</p>
                                 <p class="mt-1 whitespace-pre-line">{{ $event->message }}</p>
                             </div>

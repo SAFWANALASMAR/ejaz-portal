@@ -93,7 +93,7 @@
                 @foreach ($item->tagList() as $tag)
                     <li>
                         <a href="{{ route('library.section', [$item->section->value, 'tag' => $tag]) }}"
-                            class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-gold">{{ $tag }}</a>
+                            class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-accent">{{ $tag }}</a>
                     </li>
                 @endforeach
             </ul>
@@ -102,14 +102,14 @@
         {{-- متصفحات الجوال لا تعرض PDF داخل الصفحة، فعليها زرا الفتح والتنزيل وحدهما --}}
         @if (filled($item->file) && $item->section->takesPdf())
             <iframe src="{{ route('library.file', $route) }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"
-                loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-sand lg:block"></iframe>
+                loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
             <p class="mt-6 text-sm text-muted lg:hidden">{{ __('library.item.mobile_hint') }}</p>
         @endif
     </div>
 </section>
 
 @if ($related->isNotEmpty())
-    <section class="bg-sand py-12 sm:py-16" aria-labelledby="related">
+    <section class="bg-surface py-12 sm:py-16" aria-labelledby="related">
         <div class="container-page">
             <x-section-heading id="related">{{ __('library.item.related') }}</x-section-heading>
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

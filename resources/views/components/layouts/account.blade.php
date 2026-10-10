@@ -13,7 +13,7 @@
 @endphp
 
 <x-layouts.app :title="$title" noindex>
-    <div class="bg-sand/60 pb-14">
+    <div class="bg-surface/60 pb-14">
         @if ($welcome)
             <div class="container-page pt-8">
                 <div class="relative overflow-hidden rounded-3xl border border-line/60">
@@ -39,7 +39,7 @@
                     <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 font-semibold">
                         <span class="flex items-center gap-3">
                             @if ($current)
-                                {{ svg('heroicon-o-'.$current['icon'], 'size-5 text-gold') }}
+                                {{ svg('heroicon-o-'.$current['icon'], 'size-5 text-accent') }}
                                 {{ __($current['label']) }}
                             @else
                                 {{ __('site.my_account') }}

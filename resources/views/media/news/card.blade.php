@@ -18,7 +18,7 @@
     <span class="flex flex-1 flex-col p-5">
         <span class="flex flex-wrap gap-x-3 gap-y-1 text-sm">
             @if (filled($article->category))
-                <span class="font-semibold text-gold-dark">{{ $article->category }}</span>
+                <span class="font-semibold text-accent-dark">{{ $article->category }}</span>
             @endif
             <time datetime="{{ $article->published_on->toDateString() }}" class="text-muted">{{ Dates::display($article->published_on) }}</time>
         </span>

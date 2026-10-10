@@ -8,21 +8,31 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 /*
-| هوية مؤقتة حتى اعتماد دليل هوية الجمعية — docs/design-system.md
+| الهوية الرسمية من دليل الهوية — docs/design-system.md. والتباين مختبر في tests/Unit/BrandContrastTest.php
 */
 @theme {
-    --font-sans: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Zain', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
 
-    --color-primary: #1f4f4b;
-    --color-primary-dark: #163b38;
-    --color-primary-soft: #e6eeec;
-    --color-gold: #b8955a;
-    --color-gold-dark: #8a6a35;
-    --color-sand: #f5f1ea;
-    --color-ink: #1c2b2a;
-    --color-muted: #5f6b69;
-    --color-line: #e2dccf;
+    /* الأساسي (أزرق): الرسمي للمساحات والأيقونات والنص الكبير، ودرجته الأعمق للنص والأزرار */
+    --color-brand: #3E8ACA;
+    --color-primary: #2E6898;
+    --color-primary-dark: #1F4565;
+    --color-primary-soft: #EAF3FB;
+    /* الثانوي (أخضر) */
+    --color-secondary: #287A37;
+    --color-secondary-soft: #E8F3EA;
+    /* الداعم (أبيض) */
+    --color-white: #FFFFFF;
+    /* المميز (بنفسجي): البارز والعبارات المميزة. وعلى الخلفيات الداكنة درجته الفاتحة */
+    --color-accent: #5D2A92;
+    --color-accent-dark: #4A2175;
+    --color-accent-light: #D9CCF0;
+
+    --color-surface: #F3F7FB;
+    --color-ink: #17202E;
+    --color-muted: #556170;
+    --color-line: #D8E3EE;
 }
 
 @layer base {
@@ -33,10 +43,12 @@
 
     body {
         @apply bg-white text-ink antialiased;
+        /* Zain أعرض قليلاً من خطوط النظام، فالسطر أريح بهذا الارتفاع */
+        line-height: 1.75;
     }
 
     :focus-visible {
-        @apply outline-2 outline-offset-2 outline-gold;
+        @apply outline-2 outline-offset-2 outline-accent;
     }
 
     [x-cloak] {
@@ -51,7 +63,43 @@
 
     /* زخرفة هندسية خفيفة للخلفيات المميزة */
     .bg-pattern {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b8955a' stroke-opacity='0.18' stroke-width='1'%3E%3Cpath d='M28 4 52 28 28 52 4 28Z'/%3E%3Cpath d='M28 14 42 28 28 42 14 28Z'/%3E%3C/g%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%233E8ACA' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M28 4 52 28 28 52 4 28Z'/%3E%3Cpath d='M28 14 42 28 28 42 14 28Z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* رمز الشهب السبعة من دليل الهوية، زخرفةً في زاوية الأقسام */
+    .brand-emblem {
+        @apply pointer-events-none absolute select-none;
+        background: url('/images/brand/emblem.svg') no-repeat center / contain;
+    }
+
+    /*
+    | تنويع أشكال الأقسام (ملاحظة المدير التنفيذي): خلفية فاتحة، وشريط داكن بالرمز، وحافة مائلة.
+    */
+    .section-tint {
+        @apply bg-surface;
+    }
+
+    .section-band {
+        @apply relative overflow-hidden bg-primary-dark text-white;
+    }
+
+    .section-slant {
+        clip-path: polygon(0 2.5rem, 100% 0, 100% calc(100% - 2.5rem), 0 100%);
+        @apply py-20;
+    }
+
+    /* شبكة المعرض: مربعات متناسقة، والأولى أكبر على الحاسوب */
+    .gallery-grid {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4;
+    }
+
+    .gallery-grid > :first-child {
+        @apply lg:col-span-2 lg:row-span-2;
+    }
+
+    /* بطاقة الملف: أيقونة بنوعه، والبيانات، وزرا المعاينة والتنزيل */
+    .file-card {
+        @apply flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:border-brand hover:shadow-md;
     }
 
     .prose-ar {
@@ -63,7 +111,7 @@
     }
 
     .prose-ar h3 {
-        @apply mt-6 mb-2 text-xl font-semibold text-primary;
+        @apply mt-6 mb-2 text-xl font-bold text-primary;
     }
 
     .prose-ar p {
@@ -79,10 +127,10 @@
     }
 
     .prose-ar a {
-        @apply text-primary underline decoration-gold underline-offset-4;
+        @apply text-primary underline decoration-accent underline-offset-4;
     }
 
     .prose-ar blockquote {
-        @apply my-4 border-s-4 border-gold bg-sand px-4 py-3;
+        @apply my-4 border-s-4 border-accent bg-surface px-4 py-3;
     }
 }

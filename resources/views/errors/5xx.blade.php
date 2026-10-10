@@ -14,7 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{{ __($key.'.title') }} | {{ __('site.short_name') }}</title>
-    <meta name="theme-color" content="#1F4F4B">
+    <meta name="theme-color" content="#2E6898">
     @fonts
     @vite(['resources/css/app.css'])
 </head>
@@ -27,8 +27,8 @@
 
     <main id="main" class="flex flex-1 items-center py-16 sm:py-24">
         <div class="container-page flex flex-col items-center text-center">
-            <p class="text-6xl font-bold text-gold sm:text-7xl" dir="ltr">{{ $code }}</p>
-            <span class="mt-6 block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+            <p class="text-6xl font-bold text-accent sm:text-7xl" dir="ltr">{{ $code }}</p>
+            <span class="mt-6 block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
             <h1 class="mt-4 text-2xl font-bold text-primary sm:text-3xl">{{ __($key.'.title') }}</h1>
             <p class="mt-4 max-w-xl text-lg leading-8 text-muted">{{ __($key.'.message') }}</p>
 

@@ -29,7 +29,7 @@
 
         <p class="mt-auto flex items-center justify-between gap-3 pt-4 text-sm text-muted">
             <span class="flex items-center gap-1.5">{{ svg('heroicon-o-calendar', 'size-4') }} {{ Dates::display($program->starts_at) }}</span>
-            <span class="flex items-center gap-1.5">{{ svg('heroicon-o-academic-cap', 'size-4 text-gold') }} {{ $program->type->name }}</span>
+            <span class="flex items-center gap-1.5">{{ svg('heroicon-o-academic-cap', 'size-4 text-accent') }} {{ $program->type->name }}</span>
         </p>
 
         <x-button class="mt-4 w-full" :href="route('programs.show', $program->slug)">

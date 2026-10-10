@@ -10,7 +10,7 @@
     <x-card>
         <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.upcoming') }}</h2>
-            <a href="{{ route('account.programs.index') }}" class="text-sm text-primary underline decoration-gold underline-offset-4">{{ __('account.summary.view_all') }}</a>
+            <a href="{{ route('account.programs.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
         </div>
 
         @if ($summary['upcoming']->isEmpty())
@@ -26,7 +26,7 @@
                                 <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
                             @endif
                             <span class="mt-1 flex items-center gap-1.5 text-sm text-muted">
-                                {{ svg('heroicon-o-calendar', 'size-4 text-gold') }}
+                                {{ svg('heroicon-o-calendar', 'size-4 text-accent') }}
                                 {{ Dates::display($registration->program->starts_at, withTime: true) }}
                             </span>
                         </span>
@@ -40,7 +40,7 @@
     <x-card>
         <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.latest_requests') }}</h2>
-            <a href="{{ route('account.requests.index') }}" class="text-sm text-primary underline decoration-gold underline-offset-4">{{ __('account.summary.view_all') }}</a>
+            <a href="{{ route('account.requests.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
         </div>
 
         @if ($summary['latest_requests']->isEmpty())

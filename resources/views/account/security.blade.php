@@ -29,7 +29,7 @@
             <p class="mt-4 font-semibold text-emerald-800">{{ __('account.security.enabled') }}</p>
 
             @if ($showCodes)
-                <div class="mt-5 rounded-xl border border-line bg-sand p-5">
+                <div class="mt-5 rounded-xl border border-line bg-surface p-5">
                     <h3 class="font-semibold text-ink">{{ __('account.security.recovery_codes') }}</h3>
                     <p class="mt-1 text-sm text-muted">{{ __('account.security.recovery_intro') }}</p>
                     <ul class="mt-4 grid grid-cols-1 gap-2 font-mono text-sm sm:grid-cols-2" dir="ltr">

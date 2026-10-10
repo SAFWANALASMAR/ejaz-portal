@@ -56,7 +56,7 @@
         @endif
 
         <iframe src="{{ route('governance.file', $document->slug) }}" title="{{ __('governance.document.viewer', ['title' => $document->title]) }}"
-            loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-sand lg:block"></iframe>
+            loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
         <p class="mt-6 text-sm text-muted lg:hidden">{{ __('governance.document.mobile_hint') }}</p>
     </div>
 </section>

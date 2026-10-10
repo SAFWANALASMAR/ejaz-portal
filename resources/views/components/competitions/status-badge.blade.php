@@ -6,7 +6,7 @@
 
     $classes = match ($status) {
         CompetitionStatus::Open => 'bg-emerald-600 text-white',
-        CompetitionStatus::Upcoming => 'bg-gold text-ink',
+        CompetitionStatus::Upcoming => 'bg-accent text-ink',
         default => 'bg-gray-500 text-white',
     };
 @endphp

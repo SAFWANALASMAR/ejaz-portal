@@ -13,12 +13,12 @@
         <ul class="grid gap-px overflow-hidden rounded-2xl border border-line/70 bg-line/70 shadow-sm {{ $columns }}">
             @foreach ($shortcuts as $shortcut)
                 <li class="bg-white">
-                    <a href="{{ $shortcut['url'] }}" class="group flex h-full flex-col items-center gap-2 px-4 py-8 text-center transition hover:bg-sand/60">
+                    <a href="{{ $shortcut['url'] }}" class="group flex h-full flex-col items-center gap-2 px-4 py-8 text-center transition hover:bg-surface/60">
                         <span class="text-primary" aria-hidden="true">{{ svg('heroicon-o-'.$shortcut['icon'], 'size-8') }}</span>
                         <span class="mt-1 font-bold text-ink">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
                         <span class="text-sm leading-6 text-muted">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
                         {{-- السهم «للأمام» إلى اليسار في الموقع العربي، كما في x-button --}}
-                        <span class="mt-3 inline-flex size-8 items-center justify-center rounded-full bg-gold text-white transition group-hover:bg-gold-dark" aria-hidden="true">
+                        <span class="mt-3 inline-flex size-8 items-center justify-center rounded-full bg-accent text-white transition group-hover:bg-accent-dark" aria-hidden="true">
                             {{ svg('heroicon-o-arrow-left', 'size-4') }}
                         </span>
                     </a>

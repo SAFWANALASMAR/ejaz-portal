@@ -24,7 +24,7 @@
                 @php($error = $errors->first('answers.'.$question->id))
                 <fieldset class="space-y-3" @if ($error) aria-describedby="answer-{{ $question->id }}-error" @endif>
                     <legend class="font-semibold text-ink">
-                        <span class="block text-sm text-gold-dark">
+                        <span class="block text-sm text-accent-dark">
                             {{ __('surveys.public.question', ['number' => $loop->iteration]) }}
                             @unless ($question->is_required)
                                 <span class="text-muted">— {{ __('surveys.public.optional') }}</span>

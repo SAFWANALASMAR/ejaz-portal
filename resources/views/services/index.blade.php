@@ -4,10 +4,10 @@
     ولا تظهر بطاقة خدمة لم تُبنَ وحدتها (config/eservices.php).
 --}}
 <x-layouts.app :title="__('services.title')" :description="__('services.intro')">
-    <section class="bg-sand/60 py-12 sm:py-16">
+    <section class="bg-surface/60 py-12 sm:py-16">
         <div class="container-page max-w-4xl">
             <div class="text-center">
-                <span class="mx-auto block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+                <span class="mx-auto block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
                 <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('services.title') }}</h1>
                 <p class="mt-3 text-lg text-muted">{{ __('services.intro') }}</p>
             </div>

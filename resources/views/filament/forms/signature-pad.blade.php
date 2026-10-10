@@ -14,7 +14,7 @@
                 this.ctx = canvas.getContext('2d');
                 this.ctx.lineWidth = 2.5;
                 this.ctx.lineCap = 'round';
-                this.ctx.strokeStyle = '#1C2B2A';
+                this.ctx.strokeStyle = '#17202E';
 
                 if (this.state) {
                     const image = new Image();

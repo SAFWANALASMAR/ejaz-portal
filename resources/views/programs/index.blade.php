@@ -4,10 +4,10 @@
     الفرعي والوصف من الجمعية (التصحيحات ٣).
 --}}
 <x-layouts.app :title="__('programs.title')">
-    <section class="bg-sand/60 py-12 sm:py-16">
+    <section class="bg-surface/60 py-12 sm:py-16">
         <div class="container-page">
             <div class="text-center">
-                <span class="mx-auto block h-1 w-12 rounded-full bg-gold" aria-hidden="true"></span>
+                <span class="mx-auto block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
                 <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('programs.title') }}</h1>
                 <x-missing :what="__('programs.intro_missing')" class="mt-4" />
             </div>

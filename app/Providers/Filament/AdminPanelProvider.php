@@ -48,13 +48,14 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName(fn (): string => __('admin.brand'))
+            ->brandLogo(fn (): string => asset('images/brand/logo-horizontal.svg'))
+            ->brandLogoHeight('2.75rem')
             ->colors([
-                // مؤقت حتى اعتماد دليل الهوية — docs/design-system.md
-                'primary' => Color::hex('#1F4F4B'),
-                'warning' => Color::hex('#B8955A'),
+                // الأزرق الرسمي بدرجته المقروءة للنص الأبيض (دليل الهوية — docs/design-system.md)
+                'primary' => Color::hex('#2E6898'),
             ])
             // الخط يُخدَم من خادم البوابة نفسه (Vite) لا من مزود خارجي
-            ->font('IBM Plex Sans Arabic', provider: LocalFontProvider::class)
+            ->font('Zain', provider: LocalFontProvider::class)
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): Htmlable => Vite::fonts())
             ->sidebarCollapsibleOnDesktop()
             ->unsavedChangesAlerts()

@@ -9,7 +9,7 @@
                     'bg-white/15 text-white' => $active,
                     'text-white/80 hover:bg-white/10 hover:text-white' => ! $active,
                 ])>
-                {{ svg('heroicon-o-'.$link['icon'], 'size-5 shrink-0 '.($active ? 'text-gold' : 'text-white/70')) }}
+                {{ svg('heroicon-o-'.$link['icon'], 'size-5 shrink-0 '.($active ? 'text-accent' : 'text-white/70')) }}
                 {{ __($link['label']) }}
             </a>
         </li>

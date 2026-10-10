@@ -26,7 +26,7 @@
                         @if (filled($item['text'] ?? null))
                             <p class="mt-2 leading-7 text-muted">{{ $item['text'] }}</p>
                         @endif
-                        <span class="mt-5 block h-1 w-10 rounded-full bg-gold" aria-hidden="true"></span>
+                        <span class="mt-5 block h-1 w-10 rounded-full bg-accent" aria-hidden="true"></span>
                     </li>
                 @endforeach
             </ul>

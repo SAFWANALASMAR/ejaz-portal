@@ -12,7 +12,7 @@
 <section class="py-10 sm:py-14">
     <div class="container-page">
         <form method="GET" action="{{ route('media.news.index') }}" role="search" aria-label="{{ __('news.filters.label') }}"
-            class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-sand p-4 sm:flex-row sm:items-end">
+            class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-surface p-4 sm:flex-row sm:items-end">
             <label class="block flex-1">
                 <span class="text-sm font-medium text-ink">{{ __('news.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('news.filters.q_placeholder') }}"
@@ -31,7 +31,7 @@
                     @foreach ($categories as $category)
                         <li>
                             <a href="{{ route('media.news.index', ['category' => $category, ...$search]) }}" @if ($activeCategory === $category) aria-current="true" @endif
-                                class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-gold aria-[current=true]:border-gold aria-[current=true]:bg-gold/15 aria-[current=true]:font-semibold">
+                                class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-accent aria-[current=true]:border-accent aria-[current=true]:bg-accent/15 aria-[current=true]:font-semibold">
                                 {{ $category }}
                             </a>
                         </li>
@@ -41,7 +41,7 @@
         @endif
 
         @if ($filters !== [])
-            <p class="mt-4"><a href="{{ route('media.news.index') }}" class="text-sm text-primary underline decoration-gold underline-offset-4">{{ __('news.filters.reset') }}</a></p>
+            <p class="mt-4"><a href="{{ route('media.news.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('news.filters.reset') }}</a></p>
         @endif
 
         <h2 class="sr-only">{{ __('news.list.items') }}</h2>

@@ -18,8 +18,8 @@
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @class([
-                                    'relative flex items-center gap-1 px-3 py-2 text-[15px] font-medium transition hover:text-gold-dark',
-                                    'text-gold-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-gold' => $current,
+                                    'relative flex items-center gap-1 px-3 py-2 text-[15px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
@@ -30,7 +30,7 @@
                                     <li>
                                         <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif
                                             @if ($child->isCurrent()) aria-current="page" @endif
-                                            class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sand hover:text-primary aria-[current=page]:text-gold-dark">{{ $child->label }}</a>
+                                            class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface hover:text-primary aria-[current=page]:text-accent-dark">{{ $child->label }}</a>
                                     </li>
                                 @endforeach
                             </ul>
@@ -38,8 +38,8 @@
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif
                                 @if ($current) aria-current="page" @endif
                                 @class([
-                                    'relative block px-3 py-2 text-[15px] font-medium transition hover:text-gold-dark',
-                                    'text-gold-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-gold' => $current,
+                                    'relative block px-3 py-2 text-[15px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
@@ -60,7 +60,7 @@
             @endif
 
             @if (Route::has('search'))
-                <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-sand hover:text-primary" aria-label="{{ __('site.search') }}">
+                <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-surface hover:text-primary" aria-label="{{ __('site.search') }}">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </a>
             @else
@@ -81,7 +81,7 @@
             </div>
 
             <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
-                class="rounded-full p-2.5 text-ink hover:bg-sand xl:hidden">
+                class="rounded-full p-2.5 text-ink hover:bg-surface xl:hidden">
                 <span class="sr-only">{{ __('site.open_menu') }}</span>
                 {{ svg('heroicon-o-bars-3', 'size-6') }}
             </button>
@@ -96,18 +96,18 @@
                     <li>
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="mobile-menu-{{ $item->id }}"
-                                class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-ink hover:bg-sand">
+                                class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-ink hover:bg-surface">
                                 {{ $item->label }}
                                 {{ svg('heroicon-o-chevron-down', 'size-4') }}
                             </button>
-                            <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-gold/40 ps-3">
+                            <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-accent/40 ps-3">
                                 @foreach ($item->children as $child)
-                                    <li><a href="{{ $child->href() }}" class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sand">{{ $child->label }}</a></li>
+                                    <li><a href="{{ $child->href() }}" class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>
                         @else
                             <a href="{{ $item->href() }}" @if ($item->isCurrent()) aria-current="page" @endif
-                                class="block rounded-xl px-4 py-3 font-medium text-ink hover:bg-sand aria-[current=page]:text-gold-dark">{{ $item->label }}</a>
+                                class="block rounded-xl px-4 py-3 font-medium text-ink hover:bg-surface aria-[current=page]:text-accent-dark">{{ $item->label }}</a>
                         @endif
                     </li>
                 @endforeach

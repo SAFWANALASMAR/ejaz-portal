@@ -29,12 +29,12 @@
             <a href="{{ route($link['route']) }}"
                 class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <span class="flex items-start gap-4">
-                    <span class="text-gold">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>
+                    <span class="text-accent">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>
                     <span>
                         <span class="flex items-center gap-2 text-lg font-bold text-ink">
                             {{ __($link['label']) }}
                             @if (($counts[$link['route']] ?? 0) > 0)
-                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-gold px-2 text-sm font-semibold text-white">{{ number_format($counts[$link['route']]) }}</span>
+                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-accent px-2 text-sm font-semibold text-white">{{ number_format($counts[$link['route']]) }}</span>
                             @endif
                         </span>
                         <span class="mt-1 block text-sm leading-6 text-muted">{{ __($link['description']) }}</span>

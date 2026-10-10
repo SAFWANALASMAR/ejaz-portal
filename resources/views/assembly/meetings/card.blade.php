@@ -10,10 +10,10 @@
     <span class="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
         {{ svg('heroicon-o-calendar-days', 'size-6') }}
     </span>
-    <p class="mt-3 text-sm font-semibold text-gold-dark">{{ Dates::display($meeting->starts_at, withTime: true) }}</p>
+    <p class="mt-3 text-sm font-semibold text-accent-dark">{{ Dates::display($meeting->starts_at, withTime: true) }}</p>
     <h3 class="mt-2 text-lg font-bold text-ink">{{ $meeting->title }}</h3>
     <p class="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span class="rounded-full bg-sand px-3 py-1 font-semibold text-muted">{{ __('assembly.meeting.model') }} {{ $meeting->type->getLabel() }}</span>
+        <span class="rounded-full bg-surface px-3 py-1 font-semibold text-muted">{{ __('assembly.meeting.model') }} {{ $meeting->type->getLabel() }}</span>
         @if ($meeting->status !== MeetingStatus::Scheduled)
             <span class="rounded-full px-3 py-1 font-semibold {{ $meeting->status === MeetingStatus::Held ? 'bg-primary text-white' : 'bg-gray-500/90 text-white' }}">{{ $meeting->status->getLabel() }}</span>
         @endif

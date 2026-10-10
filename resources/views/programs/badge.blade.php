@@ -2,7 +2,7 @@
 @php
     $colors = [
         'success' => 'bg-primary text-white',
-        'warning' => 'bg-gold text-white',
+        'warning' => 'bg-accent text-white',
         'gray' => 'bg-gray-500/90 text-white',
     ];
 @endphp

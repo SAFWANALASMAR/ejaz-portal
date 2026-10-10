@@ -34,7 +34,7 @@
         <meta property="og:image" content="{{ $image }}">
     @endif
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="theme-color" content="#1F4F4B">
+    <meta name="theme-color" content="#2E6898">
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{ $head ?? '' }}

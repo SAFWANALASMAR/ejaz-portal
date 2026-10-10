@@ -19,10 +19,10 @@
     $variants = [
         'primary' => 'bg-primary text-white shadow-sm hover:bg-primary-dark',
         'outline' => 'border border-primary bg-white text-primary hover:bg-primary-soft',
-        'gold' => 'bg-gold text-ink hover:bg-gold-dark hover:text-white',
+        'gold' => 'bg-accent text-ink hover:bg-accent-dark hover:text-white',
         'secondary' => 'border border-line bg-white text-primary hover:border-primary',
         'danger' => 'bg-red-700 text-white hover:bg-red-800',
-        'link' => 'rounded-none px-0 py-0 text-primary underline decoration-gold underline-offset-4 hover:text-primary-dark',
+        'link' => 'rounded-none px-0 py-0 text-primary underline decoration-accent underline-offset-4 hover:text-primary-dark',
     ];
 
     $classes = $base.' '.($variant === 'link' ? '' : $sizes[$size]).' '.$variants[$variant];

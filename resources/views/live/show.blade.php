@@ -32,7 +32,7 @@
                 @endif
             @else
                 <div class="rounded-2xl border border-line/70 bg-white p-8 text-center shadow-xs sm:p-12">
-                    <p class="text-sm font-semibold text-gold-dark">{{ __('livestream.show.starts_at') }}</p>
+                    <p class="text-sm font-semibold text-accent-dark">{{ __('livestream.show.starts_at') }}</p>
                     <p class="mt-2 text-2xl font-bold text-primary sm:text-3xl">{{ Dates::display($stream->starts_at, withTime: true) }}</p>
                     <p data-countdown="{{ $stream->starts_at->toIso8601String() }}" data-countdown-labels="{{ json_encode($labels, JSON_UNESCAPED_UNICODE) }}"
                         class="mt-6 text-3xl font-bold tabular-nums text-ink sm:text-4xl" aria-live="polite"></p>

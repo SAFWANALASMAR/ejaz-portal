@@ -5,7 +5,7 @@
 @props(['what'])
 
 @unless (app()->isProduction())
-    <span {{ $attributes->merge(['class' => 'inline-block rounded border border-dashed border-gold bg-sand px-2 py-1 text-sm text-gold-dark']) }}>
+    <span {{ $attributes->merge(['class' => 'inline-block rounded border border-dashed border-accent bg-surface px-2 py-1 text-sm text-accent-dark']) }}>
         【{{ __('site.missing') }}: {{ $what }}】
     </span>
 @endunless

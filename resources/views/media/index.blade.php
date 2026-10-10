@@ -24,7 +24,7 @@
                 <li>
                     <a href="{{ $tile['url'] }}"
                         class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-                        <span class="text-gold" aria-hidden="true">{{ svg('heroicon-o-'.$tile['icon'], 'size-9') }}</span>
+                        <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$tile['icon'], 'size-9') }}</span>
                         <span class="font-semibold text-ink">{{ __('media.tiles.'.$tile['key']) }}</span>
                     </a>
                 </li>
@@ -35,14 +35,14 @@
         @if (Route::has('surveys.index'))
             <a href="{{ route('surveys.index') }}"
                 class="mt-4 flex items-center justify-center gap-3 rounded-2xl border border-line/70 bg-white p-5 font-semibold text-ink shadow-xs transition hover:border-primary/40 hover:shadow-md">
-                <span class="text-gold" aria-hidden="true">{{ svg('heroicon-o-chart-bar', 'size-7') }}</span>
+                <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-chart-bar', 'size-7') }}</span>
                 {{ __('media.tiles.surveys') }}
             </a>
         @endif
     </div>
 </section>
 
-<section class="bg-sand py-12 sm:py-16" aria-labelledby="latest-news">
+<section class="bg-surface py-12 sm:py-16" aria-labelledby="latest-news">
     <div class="container-page">
         <div class="flex items-end justify-between gap-4">
             <x-section-heading id="latest-news">{{ __('media.latest_news') }}</x-section-heading>

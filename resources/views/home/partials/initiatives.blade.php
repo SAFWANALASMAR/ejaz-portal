@@ -1,5 +1,5 @@
 {{-- مقطع المبادرات (الصورة 07 — أحدث البرامج والمبادرات): العنوان يميناً و«عرض الكل» يساراً، ثم البطاقات --}}
-<section class="bg-sand py-12 lg:py-16" aria-labelledby="home-initiatives">
+<section class="bg-surface py-12 lg:py-16" aria-labelledby="home-initiatives">
     <div class="container-page">
         <div class="flex items-end justify-between gap-4">
             <x-section-heading id="home-initiatives">{{ __('content.initiatives.title') }}</x-section-heading>

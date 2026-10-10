@@ -9,7 +9,7 @@
     $icon = match ($payment->status) {
         PaymentStatus::Paid => ['check-circle', 'text-emerald-700 bg-emerald-50'],
         PaymentStatus::Failed => ['x-circle', 'text-red-700 bg-red-50'],
-        PaymentStatus::Refunded => ['arrow-uturn-left', 'text-muted bg-sand'],
+        PaymentStatus::Refunded => ['arrow-uturn-left', 'text-muted bg-surface'],
         PaymentStatus::Pending => ['clock', 'text-amber-700 bg-amber-50'],
     };
 @endphp

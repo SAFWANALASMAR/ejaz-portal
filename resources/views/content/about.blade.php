@@ -4,7 +4,7 @@
 <x-content-blocks :blocks="$page->blocks" />
 
 @if ($members->isNotEmpty())
-    <section class="bg-sand py-12 sm:py-16" aria-labelledby="board">
+    <section class="bg-surface py-12 sm:py-16" aria-labelledby="board">
         <div class="container-page">
             <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
 

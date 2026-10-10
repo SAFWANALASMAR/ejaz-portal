@@ -10,13 +10,13 @@
 <x-content-blocks :blocks="$initiative->blocks" />
 
 @if ($goals !== [])
-    <section class="bg-sand py-12 sm:py-16" aria-labelledby="goals">
+    <section class="bg-surface py-12 sm:py-16" aria-labelledby="goals">
         <div class="container-page">
             <x-section-heading id="goals">{{ __('content.initiatives.goals') }}</x-section-heading>
             <ol class="mt-8 grid gap-4 sm:grid-cols-2">
                 @foreach ($goals as $goal)
                     <li class="flex items-start gap-4 rounded-2xl bg-white p-5 shadow-xs">
-                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-gold font-bold text-white" aria-hidden="true">{{ $loop->iteration }}</span>
+                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-accent font-bold text-white" aria-hidden="true">{{ $loop->iteration }}</span>
                         <span class="pt-1 leading-7 text-ink">{{ $goal }}</span>
                     </li>
                 @endforeach

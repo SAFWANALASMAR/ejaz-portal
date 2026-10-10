@@ -21,7 +21,7 @@
                 <x-card>
                     <p class="text-sm text-muted">{{ $opening->kind->getLabel() }}</p>
                     <p class="mt-2 flex items-center gap-2 text-ink">
-                        {{ svg('heroicon-o-calendar', 'size-5 text-gold') }}
+                        {{ svg('heroicon-o-calendar', 'size-5 text-accent') }}
                         @if ($opening->closes_at)
                             {{ __('services.listing.closes_at') }}: {{ Dates::display($opening->closes_at, withTime: true) }}
                         @else
@@ -43,7 +43,7 @@
                     </div>
                 </x-card>
 
-                <a href="{{ route($opening->kind->route()) }}" class="inline-block text-sm text-primary underline decoration-gold underline-offset-4">
+                <a href="{{ route($opening->kind->route()) }}" class="inline-block text-sm text-primary underline decoration-accent underline-offset-4">
                     {{ __('services.opening.back', ['kind' => $opening->kind->getLabel()]) }}
                 </a>
             </aside>

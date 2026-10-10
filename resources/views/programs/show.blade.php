@@ -43,35 +43,35 @@
 
                     <dl class="mt-5 space-y-3 text-sm">
                         <div class="flex gap-2">
-                            <dt class="text-muted">{{ svg('heroicon-o-calendar', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.starts_at') }}</span></dt>
+                            <dt class="text-muted">{{ svg('heroicon-o-calendar', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.starts_at') }}</span></dt>
                             <dd class="text-ink">{{ Dates::display($program->starts_at, withTime: true) }}</dd>
                         </div>
                         <div class="flex gap-2">
-                            <dt class="text-muted">{{ svg('heroicon-o-computer-desktop', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.delivery') }}</span></dt>
+                            <dt class="text-muted">{{ svg('heroicon-o-computer-desktop', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.delivery') }}</span></dt>
                             <dd class="text-ink">{{ $program->delivery->getLabel() }}</dd>
                         </div>
                         @if (filled($program->location))
                             <div class="flex gap-2">
-                                <dt class="text-muted">{{ svg('heroicon-o-map-pin', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.location') }}</span></dt>
+                                <dt class="text-muted">{{ svg('heroicon-o-map-pin', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.location') }}</span></dt>
                                 <dd class="text-ink">{{ $program->location }}</dd>
                             </div>
                         @endif
                         <div class="flex gap-2">
-                            <dt class="text-muted">{{ svg('heroicon-o-user-group', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.seats') }}</span></dt>
+                            <dt class="text-muted">{{ svg('heroicon-o-user-group', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.seats') }}</span></dt>
                             <dd class="text-ink">
                                 {{ $program->seats === null ? __('programs.show.unlimited') : __('programs.show.seats_left', ['count' => number_format(max(0, $program->seats - $confirmed)), 'total' => number_format($program->seats)]) }}
                             </dd>
                         </div>
                         @if (filled($program->audience))
                             <div class="flex gap-2">
-                                <dt class="text-muted">{{ svg('heroicon-o-users', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.audience') }}</span></dt>
+                                <dt class="text-muted">{{ svg('heroicon-o-users', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.audience') }}</span></dt>
                                 <dd class="text-ink">{{ $program->audience }}</dd>
                             </div>
                         @endif
                         @if ($program->initiative)
                             <div class="flex gap-2">
-                                <dt class="text-muted">{{ svg('heroicon-o-sparkles', 'size-5 text-gold') }}<span class="sr-only">{{ __('programs.show.initiative') }}</span></dt>
-                                <dd><a href="{{ route('initiatives.show', $program->initiative->slug) }}" class="text-primary underline decoration-gold underline-offset-4">{{ $program->initiative->name }}</a></dd>
+                                <dt class="text-muted">{{ svg('heroicon-o-sparkles', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.initiative') }}</span></dt>
+                                <dd><a href="{{ route('initiatives.show', $program->initiative->slug) }}" class="text-primary underline decoration-accent underline-offset-4">{{ $program->initiative->name }}</a></dd>
                             </div>
                         @endif
                     </dl>
@@ -100,7 +100,7 @@
                     <x-card>
                         <h2 class="font-semibold text-ink">{{ __('programs.show.meeting') }}</h2>
                         @if (filled($program->meeting_url))
-                            <a href="{{ $program->meeting_url }}" rel="noopener noreferrer" target="_blank" dir="ltr" class="mt-2 block break-all text-primary underline decoration-gold underline-offset-4">{{ $program->meeting_url }}</a>
+                            <a href="{{ $program->meeting_url }}" rel="noopener noreferrer" target="_blank" dir="ltr" class="mt-2 block break-all text-primary underline decoration-accent underline-offset-4">{{ $program->meeting_url }}</a>
                             <p class="mt-2 text-sm text-muted">{{ __('programs.show.meeting_hint') }}</p>
                         @else
                             <p class="mt-2 text-sm text-muted">{{ __('programs.show.meeting_pending') }}</p>

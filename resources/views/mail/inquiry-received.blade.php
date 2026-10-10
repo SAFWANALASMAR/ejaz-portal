@@ -9,26 +9,26 @@
     <meta charset="utf-8">
     <title>{{ __('inquiries.mail.received.subject', ['reference' => $inquiry->reference]) }}</title>
 </head>
-<body style="margin: 0; padding: 24px; background: #f6f3ee; font-family: Tahoma, Arial, sans-serif; color: #1f2a2a; line-height: 1.8;">
+<body style="margin: 0; padding: 24px; background: #F3F7FB; font-family: Tahoma, Arial, sans-serif; color: #17202E; line-height: 1.8;">
     <div style="max-width: 640px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px;">
         <p style="margin-top: 0;">{{ __('inquiries.mail.received.line') }}</p>
 
         <table cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse;">
             @foreach (['reference' => $inquiry->reference, 'type' => $inquiry->type->getLabel()] as $field => $value)
                 <tr>
-                    <th style="width: 30%; text-align: start; color: #5b6b6b; font-weight: normal; vertical-align: top;">{{ __('inquiries.fields.'.$field) }}</th>
+                    <th style="width: 30%; text-align: start; color: #556170; font-weight: normal; vertical-align: top;">{{ __('inquiries.fields.'.$field) }}</th>
                     <td style="text-align: start;">{{ $value }}</td>
                 </tr>
             @endforeach
         </table>
 
-        <p style="color: #5b6b6b;">{{ __('inquiries.mail.received.panel') }}</p>
+        <p style="color: #556170;">{{ __('inquiries.mail.received.panel') }}</p>
 
         <p style="margin-top: 24px;">
-            <a href="{{ $url }}" style="display: inline-block; padding: 10px 20px; border-radius: 999px; background: #1f4d4a; color: #ffffff; text-decoration: none;">{{ __('inquiries.mail.received.action') }}</a>
+            <a href="{{ $url }}" style="display: inline-block; padding: 10px 20px; border-radius: 999px; background: #2E6898; color: #ffffff; text-decoration: none;">{{ __('inquiries.mail.received.action') }}</a>
         </p>
 
-        <p style="margin-bottom: 0; color: #5b6b6b;">{{ __('account.mail.salutation') }}</p>
+        <p style="margin-bottom: 0; color: #556170;">{{ __('account.mail.salutation') }}</p>
     </div>
 </body>
 </html>
