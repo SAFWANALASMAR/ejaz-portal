@@ -10,7 +10,6 @@ use App\Models\FormTemplate;
 use App\Models\User;
 use App\Support\DocumentFields;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -57,7 +56,6 @@ class ExportFormEntries
                 ...array_column($fields, 'label'),
             ]), escape: '');
 
-            /** @var Builder<FormEntry> $query */
             foreach ($query->lazyById(500) as $entry) {
                 fputcsv($out, self::safe([
                     $entry->reference,
