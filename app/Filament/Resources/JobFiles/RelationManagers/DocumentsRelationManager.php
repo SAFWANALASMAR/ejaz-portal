@@ -80,7 +80,7 @@ class DocumentsRelationManager extends RelationManager
             ->modelLabel(__('job_files.documents.model'))
             ->pluralModelLabel(__('job_files.documents.plural'))
             ->emptyStateHeading(__('job_files.documents.empty'))
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('creator'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['creator', 'jobFile']))
             ->defaultSort('updated_at', 'desc')
             ->columns([
                 TextColumn::make('title')->label(__('job_files.fields.document_title'))->searchable()->wrap(),

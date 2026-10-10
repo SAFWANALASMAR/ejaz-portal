@@ -70,7 +70,7 @@ class JobFileDocument extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->useLogName('job_files')
-            ->logOnly(['job_file_id', 'title', 'description', 'original_name'])
+            ->logOnly(['job_file_id', 'title', 'description', 'original_name', 'path', 'size', 'updated_by'])
             ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

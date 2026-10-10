@@ -32,7 +32,7 @@ return new class extends Migration
             $table->foreignId('job_file_id')->constrained()->restrictOnDelete();
             $table->string('title', 250);
             $table->text('description')->nullable();
-            $table->string('path', 255);
+            $table->string('path', 255)->unique();
             $table->string('original_name', 200);
             $table->unsignedBigInteger('size');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
