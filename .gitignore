@@ -28,3 +28,7 @@ Thumbs.db
 
 # كلود كود: الإعدادات الشخصية لا تُحفظ
 /.claude/settings.local.json
+
+# مدخلات لا تُحفظ في المستودع: نموذجا جمعية أخرى (decisions.md)، وملف المصدر التالف
+/docs/inputs/**/*.xlsx
+/docs/inputs/**/*.ai
