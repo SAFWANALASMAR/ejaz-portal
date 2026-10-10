@@ -53,7 +53,15 @@ it('never grants the super admin, board or executive director roles', function (
     expect(fn () => app(ChangeUserRoles::class)->handle($this->director, $employee, [RoleName::FinancialManager->value, $role->value]))
         ->toThrow(AuthorizationException::class)
         ->and($employee->fresh()->getRoleNames()->all())->toBe([RoleName::FinancialManager->value]);
-})->with([RoleName::SuperAdmin, RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::Reviewer, RoleName::AssemblyMember]);
+})->with([RoleName::SuperAdmin, RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::Reviewer]);
+
+it('ignores the general assembly role, which only the members register grants', function () {
+    $employee = userWithRole(RoleName::Accountant);
+
+    app(ChangeUserRoles::class)->handle($this->director, $employee, [RoleName::Accountant->value, RoleName::AssemblyMember->value]);
+
+    expect($employee->fresh()->getRoleNames()->all())->toBe([RoleName::Accountant->value]);
+});
 
 it('refuses the super admin role sent through the edit form', function () {
     $employee = userWithRole(RoleName::Accountant);
@@ -105,7 +113,8 @@ it('cannot reach the accounts of the super admin, the board, another director, r
         ->and(fn () => app(UpdateUserAccount::class)->handle($this->director, $target, ['name' => 'تغيير', 'email' => $target->email]))->toThrow(AuthorizationException::class)
         ->and(fn () => app(ChangeUserRoles::class)->handle($this->director, $target, [RoleName::Accountant->value]))->toThrow(AuthorizationException::class);
 
-    $this->actingAs($this->director)->get(UserResource::getUrl('edit', ['record' => $target]))->assertForbidden();
+    // خارج قائمته أصلاً (404)، والسياسة ترفض لو وصل (403)
+    expect($this->actingAs($this->director)->get(UserResource::getUrl('edit', ['record' => $target]))->status())->toBeIn([403, 404]);
 })->with([
     'super admin' => fn () => userWithRole(RoleName::SuperAdmin),
     'board member' => fn () => userWithRole(RoleName::BoardMember),
