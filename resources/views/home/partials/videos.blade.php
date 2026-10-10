@@ -22,7 +22,7 @@
                             class="group flex size-full items-center justify-center bg-primary-dark text-white"
                             aria-label="{{ __('home.videos.play', ['title' => $item->title]) }}">
                             <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 transition group-hover:scale-110 group-hover:bg-accent" aria-hidden="true">
-                                {{ svg('heroicon-s-play', 'size-8 rtl:-scale-x-100') }}
+                                {{ svg('heroicon-s-play', 'size-8') }}
                             </span>
                         </a>
                     </div>
