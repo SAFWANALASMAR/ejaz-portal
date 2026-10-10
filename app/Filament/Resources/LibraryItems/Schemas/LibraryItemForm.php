@@ -70,6 +70,9 @@ class LibraryItemForm
                     ->previewable(false)
                     ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('library.fields.publish_hint'))->live(),
+                // نماذج الفيديو في الرئيسية (ملاحظة المدير التنفيذي): للمرئية برابط يوتيوب
+                Toggle::make('on_home')->label(__('library.fields.on_home'))->helperText(__('library.fields.on_home_hint'))
+                    ->visible(fn (Get $get): bool => self::section($get)?->takesVideoUrl() ?? false),
             ]),
         ]);
     }

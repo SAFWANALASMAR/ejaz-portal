@@ -10,8 +10,14 @@ return [
     'plural' => 'الشركاء',
     'title' => 'شركاؤنا',
 
+    'kinds' => [
+        'partner' => 'شريك',
+        'sponsor' => 'راعٍ',
+    ],
+
     'fields' => [
         'name' => 'الاسم',
+        'kind' => 'النوع',
         'logo' => 'الشعار',
         'logo_hint' => 'صورة PNG أو JPG أو WebP، والأفضل بخلفية شفافة. لا تُقبل SVG.',
         'url' => 'الرابط',

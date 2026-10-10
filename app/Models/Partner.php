@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PartnerKind;
 use App\Models\Concerns\FlushesContentCache;
 use App\Models\Contracts\HasPublicImages;
 use Database\Factories\PartnerFactory;
@@ -15,7 +16,7 @@ use Spatie\Activitylog\Support\LogOptions;
 /**
  * شريك للجمعية: اسمه وشعاره ورابطه، بترتيبه في اللوحة. يظهر في المركز الإعلامي والرئيسية.
  */
-#[Fillable(['name', 'logo', 'url', 'sort', 'is_published'])]
+#[Fillable(['name', 'kind', 'logo', 'url', 'sort', 'is_published'])]
 class Partner extends Model implements HasPublicImages
 {
     /** @use HasFactory<PartnerFactory> */
@@ -29,6 +30,7 @@ class Partner extends Model implements HasPublicImages
     protected function casts(): array
     {
         return [
+            'kind' => PartnerKind::class,
             'sort' => 'integer',
             'is_published' => 'boolean',
         ];

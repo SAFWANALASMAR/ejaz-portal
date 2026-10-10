@@ -80,6 +80,8 @@ class SiteSettings extends Page
                 'show_initiatives' => true,
                 'show_stats' => true,
                 'show_partners' => true,
+                'show_videos' => true,
+                'show_accounts' => true,
                 ...Setting::group('home'),
             ],
             'store' => Setting::group('store'),
@@ -144,6 +146,8 @@ class SiteSettings extends Page
                             Toggle::make('home.show_initiatives')->label(__('settings.home.show_initiatives')),
                             Toggle::make('home.show_stats')->label(__('settings.home.show_stats')),
                             Toggle::make('home.show_partners')->label(__('settings.home.show_partners')),
+                            Toggle::make('home.show_videos')->label(__('settings.home.show_videos')),
+                            Toggle::make('home.show_accounts')->label(__('settings.home.show_accounts')),
                         ]),
                         Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
                             Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(5)->defaultItems(0)->schema([

@@ -1,7 +1,7 @@
 {{--
     مقاطع الرئيسية بالترتيب (docs/design/ui-reference.md — الرئيسية): البطل، ثم الإحصائيات، ثم الاختصارات.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
-    ثم المبادرات (البند ٣)، ثم أحدث الأخبار والشركاء (البند ٦). والبرامج تُضاف مع وحدتها في المرحلة 3.
+    ثم المبادرات، ثم أحدث الأخبار، ثم نماذج الفيديو والحسابات الرسمية والشركاء والرعاة (ملاحظات المدير التنفيذي).
 --}}
 @include('home.partials.hero', ['hero' => $hero])
 
@@ -19,6 +19,14 @@
 
 @if ($news->isNotEmpty())
     @include('home.partials.news', ['news' => $news])
+@endif
+
+@if ($videos->isNotEmpty())
+    @include('home.partials.videos', ['videos' => $videos])
+@endif
+
+@if ($accounts !== [])
+    @include('home.partials.accounts', ['accounts' => $accounts])
 @endif
 
 @if ($partners->isNotEmpty())

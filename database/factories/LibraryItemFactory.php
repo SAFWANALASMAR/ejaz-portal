@@ -31,6 +31,7 @@ class LibraryItemFactory extends Factory
             'file' => LibraryItem::FILE_DIRECTORY.'/'.fake()->uuid().'.pdf',
             'file_size' => 1024,
             'is_published' => true,
+            'on_home' => false,
         ];
     }
 

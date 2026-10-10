@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PartnerKind;
 use App\Models\Partner;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,6 +21,7 @@ class PartnerFactory extends Factory
             'logo' => null,
             'url' => 'https://'.fake()->domainName(),
             'sort' => 0,
+            'kind' => PartnerKind::Partner,
             'is_published' => true,
         ];
     }
