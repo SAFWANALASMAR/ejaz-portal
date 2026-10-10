@@ -1,0 +1,16 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:38:"v3-6.73.0.5-dev-master@e4f5f6c-8.4.26-";s:4:"data";a:17:{s:4:"name";s:9:"imagewebp";s:10:"parameters";a:3:{s:5:"image";a:13:{s:4:"name";s:5:"image";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:7:"GdImage";s:12:"isIdentifier";b:0;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:20;s:7:"endLine";i:20;s:11:"startColumn";i:24;s:9:"endColumn";i:38;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:4:"file";a:13:{s:4:"name";s:4:"file";s:7:"default";a:2:{s:4:"code";s:5:"\null";s:10:"attributes";a:6:{s:9:"startLine";i:20;s:7:"endLine";i:20;s:13:"startTokenPos";i:21;s:12:"startFilePos";i:893;s:11:"endTokenPos";i:21;s:10:"endFilePos";i:896;}}s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:20;s:7:"endLine";i:20;s:11:"startColumn";i:41;s:9:"endColumn";i:52;s:14:"parameterIndex";i:1;s:10:"isOptional";b:1;}s:7:"quality";a:13:{s:4:"name";s:7:"quality";s:7:"default";a:2:{s:4:"code";s:2:"-1";s:10:"attributes";a:6:{s:9:"startLine";i:20;s:7:"endLine";i:20;s:13:"startTokenPos";i:30;s:12:"startFilePos";i:914;s:11:"endTokenPos";i:31;s:10:"endFilePos";i:915;}}s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:3:"int";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:20;s:7:"endLine";i:20;s:11:"startColumn";i:55;s:9:"endColumn";i:71;s:14:"parameterIndex";i:2;s:10:"isOptional";b:1;}}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:4:"bool";s:12:"isIdentifier";b:1;}}s:10:"attributes";a:0:{}s:10:"docComment";s:761:"/**
+ * Output a WebP image to browser or file
+ * @link https://php.net/manual/en/function.imagewebp.php
+ * @param resource|GdImage $image A GdImage object, returned by one of the image creation functions,
+ * such as imagecreatetruecolor.
+ * @param resource|string|null $file [optional] <p>
+ * The path or an open stream resource (which is automatically closed after this function returns)
+ * to save the file to. If not set or null, the raw image stream will be output directly.
+ * </p>
+ * @param int $quality [optional] <p>
+ * quality ranges from 0 (worst quality, smaller file) to 100 (best quality, biggest file).
+ * </p>
+ * @return bool true on success or false on failure.
+ * @since 5.4
+ * @throws \ValueError Throws a ValueError if quality is invalid.
+ */";s:9:"startLine";i:20;s:7:"endLine";i:22;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:8:"isStatic";b:0;s:9:"namespace";N;s:13:"locatedSource";a:2:{s:5:"class";s:68:"PHPStan\BetterReflection\SourceLocator\Located\InternalLocatedSource";s:4:"data";a:4:{s:4:"name";s:9:"imagewebp";s:8:"filename";s:25:"phpstorm-stubs:gd/gd.stub";s:13:"extensionName";s:2:"gd";s:9:"aliasName";N;}}}}

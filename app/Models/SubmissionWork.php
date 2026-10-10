@@ -9,9 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * عمل مرفوع في مشاركة: صورة (أُعيد ترميزها) أو PDF حقيقي في القرص الخاص بمسار عشوائي، أو رابط https.
- * ولا يُقدَّم الملف إلا بعد فحص الصلاحية (WorkFileController).
+ * ولا يُقدَّم الملف إلا بعد فحص الصلاحية (WorkController وReviewWorkController).
  *
+ * @property string $uuid
  * @property WorkType $type
+ * @property string|null $path
+ * @property string|null $url
+ * @property string|null $mime
+ * @property int|null $size
  */
 class SubmissionWork extends Model
 {

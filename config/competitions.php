@@ -34,6 +34,9 @@ return [
         // رقم الهوية أو الإقامة في التسجيل: ينتظر قرار صفوان (نظام حماية البيانات الشخصية)، فمعطّل افتراضياً
         'national_id' => (bool) env('COMPETITION_EXAM_NATIONAL_ID', false),
 
+        // مفتاح بصمة الرقم (HMAC) لمنع التكرار، مستقل عن APP_KEY. يلزم قبل التفعيل
+        'national_id_key' => (string) env('COMPETITION_NATIONAL_ID_HMAC_KEY', ''),
+
         // إشعار واتساب بعد إرسال الاختبار: ينتظر قرار صفوان (المزوّد)، فمعطّل افتراضياً
         'whatsapp' => (bool) env('COMPETITION_EXAM_WHATSAPP', false),
 
@@ -47,7 +50,7 @@ return [
         'cache_minutes' => (int) env('COMPETITION_EXAM_CACHE_MINUTES', 60),
 
         // مدة رابط التخزين الموقّع للفيديو التعريفي ووسائط الأسئلة بالدقائق (في الإنتاج على S3)
-        'media_url_minutes' => (int) env('COMPETITION_EXAM_MEDIA_URL_MINUTES', 30),
+        'media_url_minutes' => (int) env('COMPETITION_EXAM_MEDIA_URL_MINUTES', 5),
     ],
 
     // رفع الأعمال: سقوف تقنية لا محتوى للجمعية، تُضبط من .env بطلبها

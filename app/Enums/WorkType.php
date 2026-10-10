@@ -17,9 +17,4 @@ enum WorkType: string implements HasLabel
     {
         return __('competitions.work_types.'.$this->value);
     }
-
-    public function isFile(): bool
-    {
-        return $this !== self::Link;
-    }
 }

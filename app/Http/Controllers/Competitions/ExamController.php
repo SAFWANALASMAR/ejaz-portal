@@ -19,6 +19,7 @@ use App\Support\ExamQuestions;
 use App\Support\PrivateFileResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,9 +55,22 @@ class ExamController extends Controller
             ]),
             ExamStage::Intro => view('competitions.exam.intro', compact('competition', 'submission')),
             ExamStage::Instructions => view('competitions.exam.instructions', compact('competition', 'submission')),
-            ExamStage::Questions => redirect()->route('competitions.exam.question', [$competition->slug, 1]),
+            ExamStage::Questions => $this->resume($submission),
             ExamStage::Submitted => view('competitions.exam.finished', compact('competition', 'submission')),
         };
+    }
+
+    /**
+     * العائد إلى الاختبار: أول سؤال لم يُجب، أو المراجعة إن أجاب الكل.
+     */
+    private function resume(CompetitionSubmission $submission): RedirectResponse
+    {
+        $slug = $submission->competition->slug;
+        $position = $this->questions($submission)->search(fn (CompetitionQuestion $question): bool => $submission->answer($question) === null);
+
+        return $position === false
+            ? redirect()->route('competitions.exam.review', $slug)
+            : redirect()->route('competitions.exam.question', [$slug, $position + 1]);
     }
 
     public function register(Request $request, string $slug, RegisterForExam $register): RedirectResponse
@@ -215,9 +229,9 @@ class ExamController extends Controller
     /**
      * أسئلة الاختبار بترتيب المتقدم، من الذاكرة المؤقتة بلا الخيار الصحيح.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, CompetitionQuestion>
+     * @return Collection<int, CompetitionQuestion>
      */
-    private function questions(CompetitionSubmission $submission): \Illuminate\Database\Eloquent\Collection
+    private function questions(CompetitionSubmission $submission): Collection
     {
         ExamQuestions::load($submission->competition);
 

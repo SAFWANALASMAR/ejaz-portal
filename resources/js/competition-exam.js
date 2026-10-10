@@ -32,14 +32,25 @@ function intro(video) {
             return;
         }
 
+        // فشل التسجيل (انقطاع، أو رد 419 أو 429) يُعاد عند التشغيل التالي، والمشاهدة تبدأ من أولها
+        // فلا يُرفض الانتهاء بعدها لبدء غير مسجل
         started = true;
         fetch(video.dataset.examIntro, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf() },
-        }).catch(() => {
-            started = false;
-        });
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(String(response.status));
+                }
+            })
+            .catch(() => {
+                started = false;
+                watched = 0;
+                video.pause();
+                video.currentTime = 0;
+            });
     });
 
     video.addEventListener('timeupdate', () => {

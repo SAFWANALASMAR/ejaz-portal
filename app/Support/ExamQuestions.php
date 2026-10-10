@@ -28,13 +28,27 @@ final class ExamQuestions
         $competition->setRelation('questions', CompetitionQuestion::hydrate($rows));
     }
 
+    /**
+     * يرفع رقم إصدار المسابقة فيتغير المفتاح: طلب قرأ الأسئلة القديمة قبل اعتماد الحفظ ثم كتبها بعد
+     * المسح يكتبها بالمفتاح القديم، فلا تُقرأ بعده.
+     */
     public static function forget(int $competitionId): void
     {
-        Cache::forget(self::key($competitionId));
+        Cache::forever(self::versionKey($competitionId), self::version($competitionId) + 1);
     }
 
-    private static function key(int $competitionId): string
+    public static function key(int $competitionId): string
     {
-        return 'competition-exam-questions:'.$competitionId;
+        return 'competition-exam-questions:'.$competitionId.':v'.self::version($competitionId);
+    }
+
+    private static function version(int $competitionId): int
+    {
+        return (int) Cache::get(self::versionKey($competitionId), 0);
+    }
+
+    private static function versionKey(int $competitionId): string
+    {
+        return 'competition-exam-questions-version:'.$competitionId;
     }
 }

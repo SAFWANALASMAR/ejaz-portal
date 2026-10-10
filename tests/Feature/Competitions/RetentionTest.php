@@ -118,7 +118,7 @@ it('purges the videos and answers of deleted accounts after the period, and keep
         ->and($waiting->videos()->count())->toBe(1)->and($waiting->fresh()->answers)->not->toBeNull();
 
     expect(Activity::where('event', 'personal_data_purged')->where('subject_id', $entry->id)->sole()->properties->all())
-        ->toBe(['competition_id' => $this->competition->id, 'videos' => 1]);
+        ->toBe(['competition_id' => $this->competition->id, 'videos' => 1, 'works' => 0]);
 
     // مرة ثانية لا تمس شيئاً ولا تسجل من جديد
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();

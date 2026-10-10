@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\AssignReviewers;
 use App\Actions\Competitions\PurgeSubmissionPersonalData;
 use App\Enums\RoleName;
@@ -10,6 +11,7 @@ use App\Models\SubmissionReview;
 use App\Models\SubmissionWork;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
@@ -142,12 +144,49 @@ it('shows the works files to the assigned reviewer with two-factor only', functi
 it('deletes the works and the exam registration data with the personal data purge', function () {
     $this->post('/competitions/works/entry/works', ['type' => 'image', 'file' => pngUpload()]);
     $work = SubmissionWork::sole();
-    $this->submission->forceFill(['full_name' => 'اسم', 'contact_email' => 'a@example.com'])->save();
+    $this->submission->forceFill(['full_name' => 'اسم', 'contact_email' => 'a@example.com', 'national_id' => '1000000008', 'national_id_hash' => str_repeat('a', 64)])->save();
 
     app(PurgeSubmissionPersonalData::class)->handle($this->submission);
 
+    $raw = DB::table('competition_submissions')->where('id', $this->submission->id)->first();
     expect(SubmissionWork::count())->toBe(0)
-        ->and($this->submission->fresh()->full_name)->toBeNull()
-        ->and($this->submission->fresh()->contact_email)->toBeNull();
+        ->and($raw->full_name)->toBeNull()
+        ->and($raw->contact_email)->toBeNull()
+        ->and($raw->national_id)->toBeNull()
+        ->and($raw->national_id_hash)->toBeNull();
     Storage::disk('local')->assertMissing($work->path);
+});
+
+it('serves a PDF work as a download, never inline', function () {
+    $this->post('/competitions/works/entry/works', ['type' => 'pdf', 'file' => UploadedFile::fake()->createWithContent('work.pdf', pdfContents())]);
+    $work = SubmissionWork::sole();
+
+    $response = $this->get(route('competitions.works.show', $work))->assertOk();
+    expect($response->headers->get('Content-Disposition'))->toStartWith('attachment');
+
+    $this->get('/competitions/works/entry')->assertSee(__('competitions.works.download'));
+});
+
+it('refuses works in an exam competition and after the competition closes', function () {
+    $this->competition->forceFill(['closes_at' => now()->subMinute()])->save();
+    $this->post('/competitions/works/entry/works', ['type' => 'link', 'url' => 'https://example.com'])->assertSessionHas('error');
+
+    $exam = Competition::factory()->exam()->create(['slug' => 'exam-works', 'work_types' => ['link']]);
+    Storage::disk('local')->put('competition-media/intro.mp4', mp4Contents(30));
+    $this->post('/competitions/exam-works/entry/start');
+    $this->post('/competitions/exam-works/entry/works', ['type' => 'link', 'url' => 'https://example.com'])->assertSessionHasErrors('type');
+
+    expect(SubmissionWork::count())->toBe(0);
+});
+
+it('includes the exam registration and the works in the user data copy', function () {
+    $this->post('/competitions/works/entry/works', ['type' => 'link', 'url' => 'https://example.com/w']);
+    $this->submission->forceFill(['full_name' => 'اسم المشارك', 'education_stage' => 'university'])->save();
+
+    $copy = app(ExportUserData::class)->handle($this->applicant);
+    $entry = $copy['competition_submissions'][0];
+
+    expect($entry['exam_registration']['full_name'])->toBe('اسم المشارك')
+        ->and($entry['exam_registration']['education_stage'])->toBe('university')
+        ->and($entry['works'][0]['url'])->toBe('https://example.com/w');
 });

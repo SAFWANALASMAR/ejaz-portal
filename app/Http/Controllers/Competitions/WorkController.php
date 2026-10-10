@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Competitions;
 
 use App\Actions\Competitions\AddSubmissionWork;
 use App\Actions\Competitions\RemoveSubmissionWork;
+use App\Enums\WorkType;
 use App\Http\Controllers\Controller;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
@@ -57,7 +58,7 @@ class WorkController extends Controller
 
         abort_if(blank($work->path), 404);
 
-        return PrivateFileResponse::make(SubmissionWork::disk(), (string) $work->path, (string) $work->mime, $work->uuid, (int) config('competitions.works.url_minutes'));
+        return PrivateFileResponse::make(SubmissionWork::disk(), (string) $work->path, (string) $work->mime, $work->uuid.($work->type === WorkType::Pdf ? '.pdf' : ''), (int) config('competitions.works.url_minutes'), download: $work->type === WorkType::Pdf);
     }
 
     /**

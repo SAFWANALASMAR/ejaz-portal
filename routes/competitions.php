@@ -45,7 +45,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
     // رحلة الاختبار الإلكتروني (docs/plans/competition-exam.md): كل مرحلة تُفحص في الإجراءات، والانتقال
     // بين الأسئلة يحفظ الإجابة فحده أعلى
     Route::get('/competitions/{slug}/exam', [ExamController::class, 'show'])->middleware('throttle:120,1,competition-exam')->name('competitions.exam');
-    Route::post('/competitions/{slug}/exam/register', [ExamController::class, 'register'])->middleware('throttle:20,1,competition-exam-register')->name('competitions.exam.register');
+    Route::post('/competitions/{slug}/exam/register', [ExamController::class, 'register'])->middleware('throttle:10,60,competition-exam-register')->name('competitions.exam.register');
     Route::post('/competitions/{slug}/exam/intro/start', [ExamController::class, 'introStart'])->middleware('throttle:30,1,competition-exam-intro')->name('competitions.exam.intro.start');
     Route::post('/competitions/{slug}/exam/intro/finish', [ExamController::class, 'introFinish'])->middleware('throttle:30,1,competition-exam-intro-finish')->name('competitions.exam.intro.finish');
     Route::get('/competitions/{slug}/exam/intro/video', [ExamController::class, 'introVideo'])->middleware('throttle:240,1,competition-exam-intro-video')->name('competitions.exam.intro.video');

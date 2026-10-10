@@ -61,7 +61,9 @@ class CompetitionForm
 
                 // الاختبار الإلكتروني ورفع الأعمال (docs/plans/competition-exam.md). والفحص كله في SaveCompetition
                 Tab::make(__('competitions.exam_admin.tab'))->schema([
-                    Toggle::make('exam_mode')->label(__('competitions.exam_admin.exam_mode'))->helperText(__('competitions.exam_admin.exam_mode_hint'))->live(),
+                    // لا يتغير بعد أول مشاركة: معطّل ويُرسل كما هو، والإجراء يرفض تغييره (SaveCompetition)
+                    Toggle::make('exam_mode')->label(__('competitions.exam_admin.exam_mode'))->helperText(__('competitions.exam_admin.exam_mode_hint'))->live()
+                        ->disabled(fn (?Competition $record): bool => $record?->submissions()->withTrashed()->exists() ?? false)->dehydrated(),
                     // في القرص الخاص، ويُقدَّم للمشارك في مرحلته وحدها (ExamController)
                     FileUpload::make('intro_video_path')
                         ->label(__('competitions.exam_admin.intro_video'))

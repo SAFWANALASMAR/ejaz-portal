@@ -26,6 +26,8 @@
                         <span class="text-sm font-semibold text-ink">{{ $work->type->getLabel() }}</span>
                         @if ($work->type === WorkType::Link)
                             <a href="{{ $work->url }}" target="_blank" rel="noopener noreferrer nofollow" dir="ltr" class="min-w-0 flex-1 truncate text-sm text-primary underline">{{ $work->url }}</a>
+                        @elseif ($work->type === WorkType::Pdf)
+                            <a href="{{ route('competitions.works.show', $work) }}" download class="text-sm text-primary underline">{{ __('competitions.works.download') }}</a>
                         @else
                             <a href="{{ route('competitions.works.show', $work) }}" target="_blank" rel="noopener" class="text-sm text-primary underline">{{ __('competitions.works.open') }}</a>
                         @endif

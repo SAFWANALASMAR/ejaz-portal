@@ -36,7 +36,8 @@ class SubmitExam
         $competition = $submission->competition;
         ExamQuestions::load($competition);
 
-        [$locked, $fresh] = DB::transaction(function () use ($submission, $competition): array {
+        /** @var array{0: CompetitionSubmission, 1: bool} $result */
+        $result = DB::transaction(function () use ($submission, $competition): array {
             /** @var CompetitionSubmission $locked */
             $locked = CompetitionSubmission::query()->withTrashed()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
 
@@ -70,6 +71,8 @@ class SubmitExam
 
             return [$locked, true];
         });
+
+        [$locked, $fresh] = $result;
 
         if ($fresh) {
             GradeSubmission::dispatch($locked->id)->afterCommit();

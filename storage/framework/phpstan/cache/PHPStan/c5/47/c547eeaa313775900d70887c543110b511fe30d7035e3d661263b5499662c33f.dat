@@ -1,0 +1,20 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:38:"v3-6.73.0.5-dev-master@e4f5f6c-8.4.26-";s:4:"data";a:17:{s:4:"name";s:22:"getimagesizefromstring";s:10:"parameters";a:2:{s:6:"string";a:13:{s:4:"name";s:6:"string";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:6:"string";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:25;s:7:"endLine";i:25;s:11:"startColumn";i:37;s:9:"endColumn";i:50;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:10:"image_info";a:13:{s:4:"name";s:10:"image_info";s:7:"default";a:2:{s:4:"code";s:5:"\null";s:10:"attributes";a:6:{s:9:"startLine";i:25;s:7:"endLine";i:25;s:13:"startTokenPos";i:77;s:12:"startFilePos";i:1491;s:11:"endTokenPos";i:77;s:10:"endFilePos";i:1494;}}s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:1;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:25;s:7:"endLine";i:25;s:11:"startColumn";i:53;s:9:"endColumn";i:71;s:14:"parameterIndex";i:1;s:10:"isOptional";b:1;}}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionUnionType";s:4:"data";a:1:{s:5:"types";a:2:{i:0;a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"array";s:12:"isIdentifier";b:1;}}i:1;a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"false";s:12:"isIdentifier";b:1;}}}}}s:10:"attributes";a:1:{i:0;a:3:{s:4:"name";s:29:"JetBrains\PhpStorm\ArrayShape";s:10:"isRepeated";b:0;s:9:"arguments";a:1:{i:0;a:2:{s:4:"code";s:109:"[0 => 'int', 1 => 'int', 2 => 'int', 3 => 'string', 'bits' => 'int', 'channels' => 'int', 'mime' => 'string']";s:10:"attributes";a:6:{s:9:"startLine";i:24;s:7:"endLine";i:24;s:13:"startTokenPos";i:11;s:12:"startFilePos";i:1312;s:11:"endTokenPos";i:59;s:10:"endFilePos";i:1420;}}}}}s:10:"docComment";s:1175:"/**
+ * Get the size of an image from a string.
+ * @param string $string The image data, as a string.
+ * @param array &$image_info [optional] This optional parameter allows you to extract<br>
+ * some extended information from the image file. Currently, this will <br>
+ * return the different JPG APP markers as an associative array. <br>
+ * Some programs use these APP markers to embed text information in images. <br>
+ * A very common one is to embed » IPTC information in the APP13 marker. <br>
+ * You can use the iptcparse() function to parse the binary APP13 marker into something readable.
+ * @return array|false Returns an array with 7 elements.<br>
+ * Index 0 and 1 contains respectively the width and the height of the image.<br>
+ * Index 2 is one of the <b>IMAGETYPE_XXX</b> constants indicating the type of the image.<br>
+ * Index 3 is a text string with the correct <b>height="yyy" width="xxx"</b> string<br>
+ * that can be used directly in an IMG tag.<br>
+ * On failure, FALSE is returned.
+ * @link https://php.net/manual/en/function.getimagesizefromstring.php
+ * @since 5.4
+ * @link https://php.net/manual/en/function.getimagesizefromstring.php
+ * @since 5.4
+ */";s:9:"startLine";i:24;s:7:"endLine";i:27;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:8:"isStatic";b:0;s:9:"namespace";N;s:13:"locatedSource";a:2:{s:5:"class";s:68:"PHPStan\BetterReflection\SourceLocator\Located\InternalLocatedSource";s:4:"data";a:4:{s:4:"name";s:22:"getimagesizefromstring";s:8:"filename";s:39:"phpstorm-stubs:standard/standard_8.stub";s:13:"extensionName";s:8:"standard";s:9:"aliasName";N;}}}}

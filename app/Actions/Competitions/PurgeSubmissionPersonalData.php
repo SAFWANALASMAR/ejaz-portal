@@ -58,10 +58,10 @@ class PurgeSubmissionPersonalData
 
             SubmissionVideo::query()->whereKey(array_keys($current))->delete();
 
-            // الإجابات والمنطقة لا تدخل في سجل النموذج (LogsActivity)، فالحفظ لا يكتبها في السجل
             SubmissionWork::query()->whereKey($works->modelKeys())->delete();
 
-            // وبيانات تسجيل الاختبار (الاسم والبريد ورقم الهوية وبصمته)، ولا تدخل سجل النموذج كذلك
+            // الإجابات والمنطقة وبيانات تسجيل الاختبار (الاسم والبريد ورقم الهوية وبصمته) لا تدخل في سجل
+            // النموذج (LogsActivity)، فالحفظ لا يكتبها في السجل
             $locked->forceFill([
                 'answers' => null,
                 'region' => null,

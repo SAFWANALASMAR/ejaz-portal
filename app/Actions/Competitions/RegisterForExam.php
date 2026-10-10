@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * المرحلة الأولى من الاختبار: التسجيل والتحقق من البيانات. الاسم الكامل، والبريد اختياري، والمرحلة
@@ -69,10 +70,17 @@ class RegisterForExam
     }
 
     /**
-     * بصمة الرقم بمفتاح التطبيق: تُقارن لمنع التكرار، ولا يُستخرج منها الرقم بلا المفتاح.
+     * بصمة الرقم بمفتاح مستقل (لا مفتاح التشفير، فلا يُبطل تدويرُه منع التكرار): تُقارن لمنع التكرار، ولا
+     * يُستخرج منها الرقم بلا المفتاح. وبلا مفتاح لا يُجمع الرقم أصلاً.
      */
     public static function hash(string $nationalId): string
     {
-        return hash_hmac('sha256', $nationalId, (string) config('app.key'));
+        $key = (string) config('competitions.exam.national_id_key');
+
+        if ($key === '') {
+            throw new RuntimeException('COMPETITION_NATIONAL_ID_HMAC_KEY must be set before collecting national IDs.');
+        }
+
+        return hash_hmac('sha256', $nationalId, $key);
     }
 }

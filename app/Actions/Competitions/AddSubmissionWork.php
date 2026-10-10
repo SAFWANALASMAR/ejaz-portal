@@ -50,12 +50,18 @@ class AddSubmissionWork
         $validated = Validator::make($data, [
             'type' => ['required', Rule::in($allowed)],
             'file' => match ($type) {
-                WorkType::Image => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:'.config('competitions.works.image_max_kb')],
+                // الأبعاد من رأس الملف قبل فكّه: صورة مضغوطة بأبعاد ضخمة تستنزف ذاكرة GD عند إعادة الترميز
+                WorkType::Image => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:'.config('competitions.works.image_max_kb'), 'dimensions:max_width=8000,max_height=8000'],
                 WorkType::Pdf => ['required', 'file', 'mimetypes:application/pdf', 'max:'.config('competitions.works.pdf_max_kb'), new RealPdf],
                 default => ['prohibited'],
             },
             'url' => $type === WorkType::Link ? ['required', 'string', 'max:2048', new SafeUrl(allowInternal: false)] : ['prohibited'],
         ], attributes: __('competitions.works.attributes'))->validate();
+
+        // فحص أولي رخيص قبل تخزين الملف، ويُعاد تحت القفل
+        if ($submission->works()->count() >= (int) config('competitions.works.max_items')) {
+            throw ValidationException::withMessages(['type' => __('competitions.works.too_many', ['max' => config('competitions.works.max_items')])]);
+        }
 
         /** @var WorkType $type */
         $path = null;

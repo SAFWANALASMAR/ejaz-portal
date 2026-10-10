@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\SubmissionLock;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -34,8 +35,8 @@ class RemoveSubmissionWork
             $work->delete();
         });
 
-        if (filled($work->path)) {
-            Storage::disk(SubmissionWork::disk())->delete((string) $work->path);
+        if (filled($work->path) && ! Storage::disk(SubmissionWork::disk())->delete((string) $work->path)) {
+            Log::warning('Could not delete a removed competition work file.', ['work' => $work->uuid]);
         }
     }
 }

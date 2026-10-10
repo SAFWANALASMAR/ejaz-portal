@@ -54,9 +54,10 @@
                 @endforeach
             </fieldset>
 
+            {{-- «التالي» أول زر في الشيفرة فيكون زر Enter، وموضعه بصرياً بعد «السابق» (order-last) --}}
             <div class="flex flex-wrap justify-between gap-3">
+                <x-button name="go" value="next" class="order-last" arrow>{{ $number === $total ? __('competitions.exam.to_review') : __('competitions.exam.next') }}</x-button>
                 <x-button variant="outline" name="go" value="prev" :disabled="$number === 1">{{ __('competitions.exam.previous') }}</x-button>
-                <x-button name="go" value="next" arrow>{{ $number === $total ? __('competitions.exam.to_review') : __('competitions.exam.next') }}</x-button>
             </div>
         </section>
 

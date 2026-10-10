@@ -63,7 +63,7 @@ it('saves an exam with its intro video duration read from the file, and question
         ->assertSee(__('competitions.exam_admin.exam_mode'));
 });
 
-it('requires exactly four options per exam question, an intro video to publish, and no works', function (array $overrides, string $field) {
+it('requires exactly four options per exam question and an intro video to publish', function (array $overrides, string $field) {
     expect(fn () => app(SaveCompetition::class)->handle($this->manager, new Competition, examForm($overrides)))
         ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey($field));
 })->with([
@@ -72,9 +72,25 @@ it('requires exactly four options per exam question, an intro video to publish, 
     ]]]], 'questions'],
     'a text question' => [['questions' => [['type' => 'text', 'prompt' => 'س']]], 'questions'],
     'no intro video' => [['intro_video_path' => null], 'intro_video_path'],
-    'works on an exam' => [['work_types' => ['image']], 'work_types'],
     'an intro outside its folder' => [['intro_video_path' => '../secret.mp4'], 'intro_video_path'],
 ]);
+
+it('drops work types from an exam, since its hidden field is not sent', function () {
+    $competition = app(SaveCompetition::class)->handle($this->manager, new Competition, examForm(['work_types' => ['image']]));
+
+    expect($competition->work_types)->toBeNull()
+        ->and($competition->workTypeList())->toBe([]);
+});
+
+it('refuses a media path that belongs to another competition, and keeps that file', function () {
+    $first = app(SaveCompetition::class)->handle($this->manager, new Competition, examForm());
+
+    expect(fn () => app(SaveCompetition::class)->handle($this->manager, new Competition, examForm(['slug' => 'second'])))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('intro_video_path'));
+
+    Storage::disk('local')->assertExists('competition-media/intro.mp4');
+    expect($first->fresh()->intro_video_path)->toBe('competition-media/intro.mp4');
+});
 
 it('refuses an intro video that is not a readable MP4, and question media not matching its type', function () {
     Storage::disk('local')->put('competition-media/fake.mp4', 'not a video');
@@ -112,11 +128,11 @@ it('saves question media, and deletes media removed from the competition', funct
 it('clears the cached exam questions when the competition is saved', function () {
     $competition = app(SaveCompetition::class)->handle($this->manager, new Competition, examForm());
     ExamQuestions::load($competition);
-    expect(Cache::has('competition-exam-questions:'.$competition->id))->toBeTrue();
+    expect(Cache::has(ExamQuestions::key($competition->id)))->toBeTrue();
 
     app(SaveCompetition::class)->handle($this->manager, $competition, examForm(['title' => 'عنوان جديد']));
 
-    expect(Cache::has('competition-exam-questions:'.$competition->id))->toBeFalse();
+    expect(Cache::has(ExamQuestions::key($competition->id)))->toBeFalse();
 });
 
 it('locks the competition type after the first entry, and lets only managers save', function () {

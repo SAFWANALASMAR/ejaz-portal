@@ -10,6 +10,7 @@ use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Notifications\SubmissionReceived;
+use App\Support\ExamQuestions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -213,7 +214,7 @@ it('shows one question per page with its number, progress, four options and the 
     $this->get('/competitions/exam/exam/questions/4')->assertNotFound();
 
     // السؤال المخزَّن في الذاكرة المؤقتة بلا عمود الإجابة الصحيحة
-    expect(serialize(Cache::get('competition-exam-questions:'.$this->competition->id)))->not->toContain('correct_option');
+    expect(serialize(Cache::get(ExamQuestions::key($this->competition->id))))->not->toContain('correct_option');
 });
 
 it('saves each answer on the server while moving between questions, and allows changing it before submitting', function () {
@@ -284,7 +285,7 @@ it('submits once, shows the exact finish message without answers or score, and a
     expect(examSubmission()->answers[(string) $this->questions[0]->id])->toBe('c');
 });
 
-it('handles two concurrent submits as one, under the row lock', function () {
+it('treats a repeated submit as the same submission (idempotent)', function () {
     examReachQuestions();
     examAnswerAll();
 
@@ -326,7 +327,7 @@ it('sends no WhatsApp message by default, and when enabled sends receipt, date a
 });
 
 it('collects the national ID only when enabled, validates its format, encrypts it and refuses a duplicate', function () {
-    config(['competitions.exam.national_id' => true]);
+    config(['competitions.exam.national_id' => true, 'competitions.exam.national_id_key' => 'test-hmac-key']);
 
     $this->get('/competitions/exam/exam')->assertSee(__('competitions.exam.national_id'));
 

@@ -76,6 +76,11 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
 
+        // الاختبار الإلكتروني بلا أعمال: حقلها مخفي في اللوحة فلا يصل، فتُفرَّغ هنا
+        if ((bool) ($data['exam_mode'] ?? $competition->exam_mode)) {
+            $data['work_types'] = null;
+        }
+
         DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
@@ -104,7 +109,11 @@ class SaveCompetition
         });
 
         // بعد الاعتماد: الوسائط التي خرجت من المسابقة تُحذف، وأسئلة الاختبار في الذاكرة المؤقتة تُمسح
-        $removed = array_values(array_diff($mediaBefore, $this->mediaPaths($competition)));
+        // وما زال مستعملاً في مسابقة أخرى لا يُحذف
+        $removed = array_values(array_filter(
+            array_diff($mediaBefore, $this->mediaPaths($competition)),
+            fn (string $path): bool => ! $this->usedElsewhere($competition, $path),
+        ));
 
         if ($removed !== []) {
             Storage::disk(CompetitionMedia::disk())->delete($removed);
@@ -265,7 +274,8 @@ class SaveCompetition
         $intro = array_key_exists('intro_video_path', $data) ? $data['intro_video_path'] : $competition->intro_video_path;
         $published = (bool) ($data['is_published'] ?? $competition->is_published);
 
-        if (filled($intro) && ! CompetitionMedia::inDirectory((string) $intro)) {
+        // في مجلد الوسائط، ولا يشير إلى ملف مسابقة أخرى (فيُعاد ترميزه أو يُحذف معها)
+        if (filled($intro) && (! CompetitionMedia::inDirectory((string) $intro) || $this->usedElsewhere($competition, (string) $intro))) {
             $validator->errors()->add('intro_video_path', __('competitions.exam_validation.media_path'));
         }
 
@@ -276,7 +286,7 @@ class SaveCompetition
 
             if ($hasType !== filled($path)) {
                 $validator->errors()->add('questions', __('competitions.exam_validation.media_missing', ['number' => $number]));
-            } elseif (filled($path) && ! CompetitionMedia::inDirectory((string) $path)) {
+            } elseif (filled($path) && (! CompetitionMedia::inDirectory((string) $path) || $this->usedElsewhere($competition, (string) $path))) {
                 $validator->errors()->add('questions', __('competitions.exam_validation.media_path'));
             }
 
@@ -289,12 +299,6 @@ class SaveCompetition
 
         if (! $exam) {
             return;
-        }
-
-        $workTypes = array_key_exists('work_types', $data) ? (array) $data['work_types'] : (array) $competition->work_types;
-
-        if ($workTypes !== []) {
-            $validator->errors()->add('work_types', __('competitions.exam_validation.no_works'));
         }
 
         // بنك محفوظ من قبل لم يصل في هذا الطلب: يُفحص المحفوظ نفسه
@@ -386,6 +390,15 @@ class SaveCompetition
         }
 
         return $seconds === null || $seconds <= 0 ? null : (int) ceil($seconds);
+    }
+
+    /**
+     * المسار مستعمل في مسابقة أخرى (فيديو تعريفي أو وسيط سؤال)، ولو محذوفة حذفاً ناعماً.
+     */
+    private function usedElsewhere(Competition $competition, string $path): bool
+    {
+        return Competition::query()->withTrashed()->whereKeyNot($competition->id ?? 0)->where('intro_video_path', $path)->exists()
+            || CompetitionQuestion::query()->where('media_path', $path)->where('competition_id', '!=', $competition->id ?? 0)->exists();
     }
 
     /**

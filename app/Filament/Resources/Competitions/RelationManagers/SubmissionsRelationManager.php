@@ -58,6 +58,9 @@ class SubmissionsRelationManager extends RelationManager
                 TextColumn::make('status')->label(__('competitions.fields.status'))->badge(),
                 TextColumn::make('category')->label(__('competitions.entry.category'))->toggleable(),
                 TextColumn::make('region')->label(__('competitions.entry.region'))->toggleable(),
+                // بيانات تسجيل الاختبار الإلكتروني، بلا رقم الهوية
+                TextColumn::make('full_name')->label(__('competitions.exam.full_name'))->placeholder('—')->toggleable(),
+                TextColumn::make('education_stage')->label(__('competitions.exam.education_stage'))->placeholder('—')->toggleable(),
                 TextColumn::make('submitted_at')->label(__('competitions.entry.submitted_at'))->dateTime('Y-m-d H:i')->sortable(),
                 TextColumn::make('auto_score')->label(__('competitions.submissions.auto_score'))->numeric(2)->sortable(),
                 TextColumn::make('reviews_count')->label(__('competitions.submissions.reviewers')),

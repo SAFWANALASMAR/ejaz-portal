@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Competitions;
 
+use App\Enums\WorkType;
 use App\Http\Controllers\Controller;
 use App\Models\SubmissionReview;
 use App\Models\SubmissionWork;
@@ -24,6 +25,6 @@ class ReviewWorkController extends Controller
         abort_unless($user->can('view', $review) && $work->submission_id === $review->submission_id && filled($work->path), 404);
         abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
 
-        return PrivateFileResponse::make(SubmissionWork::disk(), (string) $work->path, (string) $work->mime, $work->uuid, (int) config('competitions.works.url_minutes'));
+        return PrivateFileResponse::make(SubmissionWork::disk(), (string) $work->path, (string) $work->mime, $work->uuid.($work->type === WorkType::Pdf ? '.pdf' : ''), (int) config('competitions.works.url_minutes'), download: $work->type === WorkType::Pdf);
     }
 }
