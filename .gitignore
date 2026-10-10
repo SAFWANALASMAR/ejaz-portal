@@ -32,3 +32,6 @@ Thumbs.db
 
 # كلود كود: الإعدادات الشخصية لا تُحفظ
 /.claude/settings.local.json
+
+# ملفات الاستيراد المنزّلة من الموقع الحالي (docs/legacy-import/README.md)
+/docs/legacy-import/files/
