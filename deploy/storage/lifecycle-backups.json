@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-db-dumps",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "db/" },
+      "Expiration": { "Days": 35 }
+    }
+  ]
+}
