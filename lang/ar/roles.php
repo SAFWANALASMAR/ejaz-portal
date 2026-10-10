@@ -10,5 +10,7 @@ return [
     'reviewer' => 'المحكّم',
     'assembly_member' => 'عضو الجمعية العمومية',
     'member' => 'المستفيد',
+    'executive_director' => 'المدير التنفيذي',
+    'projects_manager' => 'مدير المشاريع',
 
 ];

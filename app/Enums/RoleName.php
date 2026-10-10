@@ -18,6 +18,8 @@ enum RoleName: string implements HasLabel
     case Reviewer = 'reviewer';
     case AssemblyMember = 'assembly_member';
     case Member = 'member';
+    case ExecutiveDirector = 'executive_director';
+    case ProjectsManager = 'projects_manager';
 
     public function getLabel(): string
     {
@@ -38,6 +40,8 @@ enum RoleName: string implements HasLabel
             self::ContentEditor,
             self::ProgramManager,
             self::Reviewer,
+            self::ExecutiveDirector,
+            self::ProjectsManager,
         ];
     }
 
@@ -55,6 +59,8 @@ enum RoleName: string implements HasLabel
             self::ContentEditor,
             self::ProgramManager,
             self::Reviewer,
+            self::ExecutiveDirector,
+            self::ProjectsManager,
         ];
     }
 

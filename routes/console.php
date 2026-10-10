@@ -27,3 +27,6 @@ Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 
 // المعلّق القديم من عمليات الدفع: يُستعلم عن فاتورته أو يُعلَّم فاشلاً (docs/plans/store-payments.md)
 Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer();
+
+// تنبيه المسؤولين بالمستندات القريبة من الانتهاء والمنتهية، مرة لكل عتبة (docs/plans/registers.md)
+Schedule::command('registers:send-alerts')->dailyAt('07:00')->timezone(config('app.display_timezone'))->withoutOverlapping()->onOneServer();

@@ -23,8 +23,8 @@ class MeetingController extends Controller
 
     public function index(Request $request): View
     {
-        $upcoming = Meeting::query()->where('status', MeetingStatus::Scheduled)->where('starts_at', '>=', now())->orderBy('starts_at')->get();
-        $past = Meeting::query()->whereKeyNot($upcoming->modelKeys())->orderByDesc('starts_at')->orderByDesc('id')->paginate(self::PER_PAGE);
+        $upcoming = Meeting::query()->generalAssembly()->where('status', MeetingStatus::Scheduled)->where('starts_at', '>=', now())->orderBy('starts_at')->get();
+        $past = Meeting::query()->generalAssembly()->whereKeyNot($upcoming->modelKeys())->orderByDesc('starts_at')->orderByDesc('id')->paginate(self::PER_PAGE);
 
         abort_if($past->currentPage() > max(1, $past->lastPage()), 404);
 
@@ -40,7 +40,7 @@ class MeetingController extends Controller
 
     public function minutes(Request $request): View
     {
-        $meetings = Meeting::query()->whereNotNull('minutes_file')->whereNotNull('minutes_approved_at')->orderByDesc('starts_at')->paginate(self::PER_PAGE);
+        $meetings = Meeting::query()->generalAssembly()->whereNotNull('minutes_file')->whereNotNull('minutes_approved_at')->orderByDesc('starts_at')->paginate(self::PER_PAGE);
 
         abort_if($meetings->currentPage() > max(1, $meetings->lastPage()), 404);
 

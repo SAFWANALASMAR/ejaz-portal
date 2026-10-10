@@ -3,6 +3,7 @@
 namespace App\Actions\Assembly;
 
 use App\Contracts\OnlineMeetings;
+use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\MeetingType;
 use App\Jobs\SyncOnlineMeeting;
@@ -46,11 +47,22 @@ class SaveMeeting
             throw new AuthorizationException;
         }
 
+        // الجهة (requirements/13 §2): بلا قيمة تبقى جهة الاجتماع، والجديد اجتماعُ جمعية عمومية كما كان
+        $data['body'] ??= $meeting->body?->value ?? MeetingBody::GeneralAssembly->value;
+        $data['body'] = $data['body'] instanceof MeetingBody ? $data['body']->value : $data['body'];
+        $committee = $data['body'] === MeetingBody::Committee->value;
+
         $online = filter_var($data['is_online'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         $validated = Validator::make($data, [
             'title' => ['required', 'string', 'max:200'],
             'type' => ['required', Rule::enum(MeetingType::class)],
+            'body' => ['required', Rule::enum(MeetingBody::class)],
+            'committee_id' => [
+                Rule::requiredIf($committee),
+                Rule::prohibitedIf(! $committee),
+                'nullable', 'integer', Rule::exists('committees', 'id')->whereNull('deleted_at'),
+            ],
             'starts_at' => ['required', 'date'],
             'ends_at' => [Rule::requiredIf($online), 'nullable', 'date', 'after:starts_at'],
             'location' => [Rule::requiredIf(! $online), 'nullable', 'string', 'max:300'],
@@ -80,6 +92,8 @@ class SaveMeeting
             $meeting->fill([
                 'title' => $validated['title'],
                 'type' => $validated['type'],
+                'body' => $validated['body'],
+                'committee_id' => $validated['committee_id'] ?? null,
                 'starts_at' => $validated['starts_at'],
                 'ends_at' => $validated['ends_at'] ?? null,
                 'location' => $validated['location'] ?? null,
@@ -122,6 +136,11 @@ class SaveMeeting
      */
     public static function notifyMembers(MeetingNotice $notice): void
     {
+        // الدعوات لاجتماع الجمعية العمومية وحده: رابطها منطقة الأعضاء، ولا يُدعى أعضاؤها لاجتماع المجلس أو اللجان
+        if ($notice->meeting->body !== MeetingBody::GeneralAssembly) {
+            return;
+        }
+
         AssemblyMembership::activeUsers()->chunkById(200, fn ($users) => Notification::send($users, $notice));
     }
 

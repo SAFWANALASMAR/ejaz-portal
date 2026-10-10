@@ -61,7 +61,8 @@ return [
         // الجمعية العمومية (المرحلة 4)
         // السجل يمنح دور عضو الجمعية العمومية، فالإنشاء والتعديل لا يُربطان بدور (المشرف العام وحده، قرار صفوان)
         'assembly_members' => ['view', 'create', 'update'],
-        'meetings' => $crud,
+        // view_all: كل الجهات (الجمعية العمومية والمجلس واللجان)، وبدونها يرى عضو المجلس الجمعية والمجلس ولجانه وحدها
+        'meetings' => [...$crud, 'view_all'],
         // المحضر يرفعه السكرتير ويعتمده المجلس، فالعمليتان منفصلتان
         'minutes' => ['create', 'approve'],
         'assembly_files' => $crud,
@@ -73,6 +74,12 @@ return [
         'archive' => $crud,
         // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
         'archive_categories' => $crud,
+
+        // السجلات والمستندات ذات الصلاحية، واللجان وعضويتها، والخطة السنوية، وحسابات المنصات بلا كلمات مرور (requirements/13)
+        'registers' => $crud,
+        'committees' => $crud,
+        'annual_plan' => $crud,
+        'platform_accounts' => $crud,
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -86,12 +93,14 @@ return [
             'payments.view',
             'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
             'forms.view', 'form_entries.view', 'form_entries.approve', 'archive.view',
+            'registers.view', 'committees.view', 'annual_plan.view',
         ],
         'secretary' => [
             'requests.*',
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'archive.*',
+            'registers.*', 'committees.*', 'platform_accounts.*',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
@@ -108,6 +117,12 @@ return [
         ],
         'assembly_member' => [],
         'member' => [],
+        'executive_director' => [
+            'registers.*', 'committees.view', 'meetings.view', 'meetings.view_all', 'annual_plan.*', 'platform_accounts.*',
+        ],
+        'projects_manager' => [
+            'annual_plan.*',
+        ],
     ],
 
 ];
