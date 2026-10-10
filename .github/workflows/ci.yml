@@ -3,9 +3,11 @@
 name: CI
 
 on:
+  # كل دفع إلى أي فرع، وكل طلب دمج
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -38,6 +40,8 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
 
     env:
+      # قبل نسخ .env يقلع لارافيل (package:discover) بالإنتاج افتراضاً، فترفض حراسات الإنتاج المشغّلات الوهمية
+      APP_ENV: testing
       DB_HOST: 127.0.0.1
       DB_USERNAME: ejaz
       DB_PASSWORD: secret
