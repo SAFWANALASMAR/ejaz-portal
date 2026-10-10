@@ -3,6 +3,7 @@
 use App\Enums\RoleName;
 use App\Filament\Resources\JobFiles\JobFileResource;
 use App\Filament\Resources\JobFiles\Pages\CreateJobFile;
+use App\Filament\Resources\JobFiles\Pages\EditJobFile;
 use App\Filament\Resources\JobFiles\Pages\ListJobFiles;
 use App\Filament\Resources\JobFiles\Pages\ViewJobFile;
 use App\Filament\Resources\JobFiles\RelationManagers\DocumentsRelationManager;
@@ -155,4 +156,40 @@ it('lets the responsible set participants from the file page', function () {
 
     $this->actingAs(userWithRole(RoleName::MarketingManager));
     Livewire::test(ViewJobFile::class, ['record' => $this->file->uuid])->assertNotFound();
+});
+
+it('lists several documents, letting an allowed participant edit only their own', function () {
+    $marketing = userWithRole(RoleName::MarketingManager);
+    $this->file->update(['participants_contribute' => true]);
+    $theirs = storedDocument($this->file, $this->projects);
+    $own = storedDocument($this->file, $marketing);
+    $this->actingAs($marketing);
+
+    Livewire::test(DocumentsRelationManager::class, ['ownerRecord' => $this->file, 'pageClass' => ViewJobFile::class])
+        ->assertCanSeeTableRecords([$theirs, $own])
+        ->assertActionVisible(TestAction::make(CreateAction::class)->table())
+        ->assertActionVisible(TestAction::make('download')->table($theirs))
+        ->assertActionVisible(TestAction::make(EditAction::class)->table($own))
+        ->assertActionHidden(TestAction::make(EditAction::class)->table($theirs))
+        ->assertActionHidden(TestAction::make(DeleteAction::class)->table($theirs));
+});
+
+it('lets the executive director delete an empty file from the panel, but not one with documents', function () {
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector));
+
+    Livewire::test(EditJobFile::class, ['record' => $this->hidden->uuid])->callAction('delete');
+    expect($this->hidden->fresh()->trashed())->toBeTrue();
+
+    storedDocument($this->file, $this->projects);
+    Livewire::test(EditJobFile::class, ['record' => $this->file->uuid])->assertActionHidden('delete');
+});
+
+it('sends a job holder without two-factor to set it up before downloading', function () {
+    $document = storedDocument($this->file, $this->projects);
+    $withoutTwoFactor = User::factory()->create();
+    $withoutTwoFactor->assignRole(RoleName::ProjectsManager->value);
+    $url = URL::temporarySignedRoute('job-files.documents.download', now()->addMinutes(5), ['document' => $document]);
+
+    $this->actingAs($withoutTwoFactor)->get($url)->assertRedirect(route('account.security'));
+    expect(Activity::query()->where('event', 'file_downloaded')->exists())->toBeFalse();
 });

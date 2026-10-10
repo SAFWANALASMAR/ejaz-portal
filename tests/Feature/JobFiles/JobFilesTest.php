@@ -107,7 +107,12 @@ it('lets the responsible add, edit and delete documents, with real files only', 
     saveDocument($accountant, $file, [...$png, 'title' => 'عنوان معدل'], $document);
     expect($document->fresh()->title)->toBe('عنوان معدل')
         ->and($document->fresh()->path)->toBe($png['path'])
-        ->and(Storage::disk('local')->exists($old))->toBeFalse();
+        // والمستبدَل يبقى في القرص، ومساره القديم والجديد في سجل التعديل، والامتداد من نوع الملف
+        ->and(Storage::disk('local')->exists($old))->toBeTrue()
+        ->and($document->fresh()->original_name)->toBe('مستند.png');
+    $replacement = Activity::query()->where('log_name', 'job_files')->where('event', 'updated')->where('subject_id', $document->id)->sole();
+    expect($replacement->attribute_changes['old']['path'] ?? null)->toBe($old)
+        ->and($replacement->attribute_changes['attributes']['path'] ?? null)->toBe($png['path']);
 
     app(DeleteJobFileDocument::class)->handle($accountant, $document);
     expect($document->fresh()->trashed())->toBeTrue();
@@ -152,12 +157,20 @@ it('keeps participants to reading unless allowed to add, and then to their own d
         // ولا يُحفظ مستند ملف آخر عبر هذا الملف
         ->and(fn () => saveDocument($manager, JobFile::factory()->responsible(RoleName::FinancialManager)->create(), jobFileUpload(pdfContents()), $own))->toThrow(AuthorizationException::class);
 
+    // والمشرف العام يطّلع ولا يضيف ولا يعدّل (منع صريح لا يغيّره Gate::after)، ورفض المرفوع يحذفه
+    $superAdmin = userWithRole(RoleName::SuperAdmin);
+    $rejected = jobFileUpload(pdfContents());
+    expect($superAdmin->can('view', $managerDocument))->toBeTrue()
+        ->and($superAdmin->can('update', $managerDocument))->toBeFalse()
+        ->and(fn () => saveDocument($superAdmin, $file, $rejected))->toThrow(AuthorizationException::class)
+        ->and(Storage::disk('local')->exists($rejected['path']))->toBeFalse();
+
     // ولا يطّلع غير المشارك ولا غير الموظف
     expect(userWithRole(RoleName::MarketingManager)->can('view', $managerDocument))->toBeFalse()
         ->and(userWithRole(RoleName::Member)->can('view', $managerDocument))->toBeFalse();
 });
 
-it('lets the responsible alone set the participants of a file, from the six jobs', function () {
+it('lets the responsible and the executive director alone set the participants of a file, from the six jobs', function () {
     $file = JobFile::factory()->responsible(RoleName::ExecutiveDirector)->create();
     $executive = userWithRole(RoleName::ExecutiveDirector);
 
@@ -169,7 +182,9 @@ it('lets the responsible alone set the participants of a file, from the six jobs
 
     $marketingFile = JobFile::factory()->responsible(RoleName::MarketingManager)->create();
     expect(userWithRole(RoleName::MarketingManager)->can('manageParticipants', $marketingFile))->toBeTrue()
-        ->and(userWithRole(RoleName::ProjectsManager)->can('manageParticipants', $marketingFile))->toBeFalse();
+        ->and(userWithRole(RoleName::ProjectsManager)->can('manageParticipants', $marketingFile))->toBeFalse()
+        // المدير التنفيذي (job_files.update) يحددهم في كل ملف
+        ->and($executive->can('manageParticipants', $marketingFile))->toBeTrue();
 });
 
 it('lets the executive director manage the files themselves, and nobody else', function () {
