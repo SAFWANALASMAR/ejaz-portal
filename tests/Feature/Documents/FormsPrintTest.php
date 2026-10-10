@@ -90,6 +90,20 @@ it('refuses an unknown audience', function () {
         ->toThrow(ValidationException::class);
 });
 
+it('keeps the audience once a form has entries', function () {
+    $template = paperLikeTemplate($this->secretary);
+    $data = ['title' => $template->title, 'audience' => FormAudience::Participants->value, 'fields' => paperLikeFields()];
+
+    // قبل أول معبأ يتغير
+    app(SaveFormTemplate::class)->handle($this->secretary, $template, $data);
+    expect($template->fresh()->audience)->toBe(FormAudience::Participants);
+
+    FormEntry::factory()->create(['form_template_version_id' => $template->current_version_id]);
+
+    expect(fn () => app(SaveFormTemplate::class)->handle($this->secretary, $template->fresh(), [...$data, 'audience' => FormAudience::Staff->value]))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('audience'));
+});
+
 it('builds the new layout from the panel', function () {
     $this->actingAs($this->secretary);
 
@@ -278,7 +292,7 @@ it('prints the new layout to a real PDF with the letterhead', function () {
     $pdf = app(PrintFormEntry::class)->handle($this->board, $entry);
 
     expect($pdf)->toStartWith('%PDF-')
-        ->and(strlen($pdf))->toBeGreaterThan(5000)
+        ->and($pdf)->toContain('/Subtype /Form') // الشعار الرسمي في الترويسة
         ->and(fn () => app(PrintFormEntry::class)->handle(userWithRole(RoleName::ContentEditor), $entry))->toThrow(AuthorizationException::class);
 });
 

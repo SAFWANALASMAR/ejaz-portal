@@ -10,6 +10,7 @@ use App\Contracts\SmsGateway;
 use App\Contracts\StoreCatalog;
 use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
+use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
@@ -168,6 +169,9 @@ class AppServiceProvider extends ServiceProvider
         // منطقة الجمعية العمومية في الموقع: لعضوها والمجلس والسكرتير والمشرف العام (AssemblyArea). وفيها المشرف
         // العام صراحة، فالنتيجة الصريحة لا يغيّرها Gate::after
         Gate::define('accessAssemblyArea', fn (User $user): bool => AssemblyArea::allows($user));
+
+        // «نماذجي» في لوحة المستخدم لمن في ملفه نموذج مشاركين معتمد (FormEntry::scopeVisibleToPerson)
+        Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
     }

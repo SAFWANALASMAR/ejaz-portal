@@ -18,6 +18,12 @@ enum RoleName: string implements HasLabel
     case Reviewer = 'reviewer';
     case AssemblyMember = 'assembly_member';
     case Member = 'member';
+    // أدوار الوظائف (دليل ملفات الوظائف — requirements/11)، بأسماء ثابتة بين الفروع
+    case ExecutiveDirector = 'executive_director';
+    case FinancialManager = 'financial_manager';
+    case Accountant = 'accountant';
+    case ProjectsManager = 'projects_manager';
+    case MarketingManager = 'marketing_manager';
 
     public function getLabel(): string
     {
@@ -55,6 +61,23 @@ enum RoleName: string implements HasLabel
             self::ContentEditor,
             self::ProgramManager,
             self::Reviewer,
+        ];
+    }
+
+    /**
+     * فئة «الموظفون»: أدوار الوظائف الست (requirements/11 و12).
+     *
+     * @return list<self>
+     */
+    public static function staff(): array
+    {
+        return [
+            self::ExecutiveDirector,
+            self::FinancialManager,
+            self::Accountant,
+            self::ProjectsManager,
+            self::MarketingManager,
+            self::Secretary,
         ];
     }
 

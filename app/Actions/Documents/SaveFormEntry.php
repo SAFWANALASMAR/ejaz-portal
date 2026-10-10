@@ -3,7 +3,9 @@
 namespace App\Actions\Documents;
 
 use App\Enums\DocumentFieldType;
+use App\Enums\FormAudience;
 use App\Enums\FormEntryStatus;
+use App\Enums\RoleName;
 use App\Models\FormEntry;
 use App\Models\FormTemplate;
 use App\Models\FormTemplateVersion;
@@ -21,12 +23,13 @@ use Throwable;
 /**
  * تعبئة نموذج إلكتروني أو تعديل المعبأ ما دام مسودة (السكرتير — FormEntryPolicy). المعبأ الجديد على
  * الإصدار الحالي للنموذج المفعّل، والمعدَّل على إصداره. الإجابات بأنواع حقولها، والمرفق PDF حقيقي في مجلده،
- * والتوقيع صورة PNG يُعاد ترميزها. والملف المستبدل يُحذف بعد اعتماد الحفظ.
+ * والتوقيع صورة PNG يُعاد ترميزها. والملف المستبدل يُحذف بعد اعتماد الحفظ. ويُربط المعبأ بصاحبه من جمهور
+ * النموذج فيُحفظ في ملفه (requirements/12 البند 10).
  */
 class SaveFormEntry
 {
     /**
-     * @param  array<string, mixed>  $data  answers، وfiles ({key: {path, name}})، وsignatures ({key: صورة base64})
+     * @param  array<string, mixed>  $data  answers، وfiles ({key: {path, name}})، وsignatures ({key: صورة base64})، وperson_id
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -36,7 +39,13 @@ class SaveFormEntry
         $version = $this->version($actor, $entry, $template);
         $fields = $version->typedFields();
 
-        $validated = Validator::make($data, DocumentFields::rules($fields), [], DocumentFields::attributes($fields))->validate();
+        $validated = Validator::make($data, [
+            ...DocumentFields::rules($fields),
+            'person_id' => ['nullable', 'integer'],
+        ], [], [...DocumentFields::attributes($fields), 'person_id' => __('documents.fields.person')])->validate();
+
+        // صاحب المعبأ من جمهور النموذج. ومن لا يُرسَل صاحبه في التعديل يبقى على صاحبه
+        $personId = array_key_exists('person_id', $data) ? self::person($version, $validated['person_id'] ?? null) : $entry->person_id;
 
         $answers = [];
         $before = collect($entry->files ?? [])->keyBy('key');
@@ -45,7 +54,19 @@ class SaveFormEntry
         foreach ($fields as $field) {
             $key = $field['key'];
 
-            if ($field['type'] === DocumentFieldType::File) {
+            if ($field['type']->isLayout()) {
+                continue;
+            }
+
+            if ($field['type'] === DocumentFieldType::Table) {
+                $rows = self::tableRows($field, (array) ($validated['answers'][$key] ?? []));
+
+                if ($rows !== []) {
+                    $answers[$key] = $rows;
+                } elseif ($field['required']) {
+                    throw ValidationException::withMessages(['answers.'.$key => __('validation.required', ['attribute' => $field['label']])]);
+                }
+            } elseif ($field['type'] === DocumentFieldType::File) {
                 $given = $validated['files'][$key] ?? null;
 
                 if (is_array($given)) {
@@ -70,7 +91,7 @@ class SaveFormEntry
                 }
             }
 
-            DB::transaction(function () use ($actor, $entry, $version, $answers, $files, $signatures): void {
+            DB::transaction(function () use ($actor, $entry, $version, $answers, $files, $signatures, $personId): void {
                 if ($entry->exists) {
                     /** @var FormEntry $locked */
                     $locked = FormEntry::query()->whereKey($entry->id)->lockForUpdate()->firstOrFail();
@@ -86,6 +107,7 @@ class SaveFormEntry
                 }
 
                 $entry->forceFill([
+                    'person_id' => $personId,
                     'answers' => $answers === [] ? null : $answers,
                     'files' => $files === [] ? null : $files,
                     'signatures' => $signatures === [] ? null : $signatures,
@@ -123,6 +145,53 @@ class SaveFormEntry
         }
 
         return $template->currentVersion ?? throw new AuthorizationException;
+    }
+
+    /**
+     * صاحب المعبأ: في نموذج الموظفين من له دور موظف، وفي نموذج المشاركين صاحب حساب بلا دور موظف.
+     *
+     * @throws ValidationException
+     */
+    private static function person(FormTemplateVersion $version, mixed $id): ?int
+    {
+        if ($id === null) {
+            return null;
+        }
+
+        $person = User::query()->find((int) $id);
+        $isStaff = $person?->hasAnyRole(RoleName::values(RoleName::staff())) ?? false;
+
+        if ($person === null || $isStaff !== ($version->template->audience === FormAudience::Staff)) {
+            throw ValidationException::withMessages(['person_id' => __('documents.validation.invalid_person')]);
+        }
+
+        return $person->id;
+    }
+
+    /**
+     * صفوف الجدول بأعمدته، والصف الفارغ كله يُسقط.
+     *
+     * @param  array{columns: list<string>}  $field
+     * @param  array<mixed>  $given
+     * @return list<array<string, string>>
+     */
+    private static function tableRows(array $field, array $given): array
+    {
+        $rows = [];
+
+        foreach ($given as $row) {
+            $cells = [];
+
+            foreach (DocumentFields::columnKeys($field) as $column) {
+                $cells[$column] = trim((string) (((array) $row)[$column] ?? ''));
+            }
+
+            if (implode('', $cells) !== '') {
+                $rows[] = $cells;
+            }
+        }
+
+        return $rows;
     }
 
     /**

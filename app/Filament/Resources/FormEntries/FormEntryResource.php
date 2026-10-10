@@ -16,6 +16,7 @@ use App\Filament\Resources\FormEntries\Pages\ViewFormEntry;
 use App\Models\FormEntry;
 use App\Models\FormTemplate;
 use App\Models\User;
+use App\Support\DocumentFields;
 use App\Support\SignatureImage;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -58,7 +59,7 @@ class FormEntryResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['version.template', 'creator']);
+        return parent::getEloquentQuery()->with(['version.template', 'creator', 'person']);
     }
 
     public static function infolist(Schema $schema): Schema
@@ -70,6 +71,7 @@ class FormEntryResource extends Resource
                 TextEntry::make('version.version')->label(__('documents.fields.version')),
                 TextEntry::make('status')->label(__('documents.fields.status'))->badge(),
                 TextEntry::make('creator.name')->label(__('documents.fields.created_by'))->placeholder('—'),
+                TextEntry::make('person.name')->label(__('documents.fields.person'))->placeholder('—'),
                 TextEntry::make('approver.name')->label(__('documents.fields.approved_by'))->placeholder('—'),
             ]),
             Section::make(__('documents.fields.answers'))->columns(2)->columnSpanFull()
@@ -85,11 +87,14 @@ class FormEntryResource extends Resource
                 TextColumn::make('reference')->label(__('documents.fields.reference'))->searchable(),
                 TextColumn::make('version.template.title')->label(__('documents.fields.template'))->wrap(),
                 TextColumn::make('status')->label(__('documents.fields.status'))->badge(),
+                TextColumn::make('person.name')->label(__('documents.fields.person'))->placeholder('—'),
                 TextColumn::make('creator.name')->label(__('documents.fields.created_by'))->placeholder('—'),
                 TextColumn::make('created_at')->label(__('documents.fields.created_at'))->dateTime('Y-m-d H:i')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')->label(__('documents.fields.status'))->options(FormEntryStatus::class),
+                // ملف الشخص: معبآته كلها
+                SelectFilter::make('person')->label(__('documents.fields.person'))->relationship('person', 'name')->searchable(),
                 SelectFilter::make('template')
                     ->label(__('documents.fields.template'))
                     ->options(fn (): array => FormTemplate::withTrashed()->orderBy('title')->pluck('title', 'id')->all())
@@ -144,6 +149,19 @@ class FormEntryResource extends Resource
     }
 
     /**
+     * المعبأ كورقة وورد في المتصفح، يُطبع منه (documents/form-entry-print).
+     */
+    public static function printViewAction(): Action
+    {
+        return Action::make('print_view')
+            ->label(__('documents.actions.print_view'))
+            ->icon(Heroicon::OutlinedDocumentText)
+            ->color('gray')
+            ->authorize(fn (FormEntry $record): bool => self::actor()->can('view', $record))
+            ->url(fn (FormEntry $record): string => route('documents.entries.print', $record), shouldOpenInNewTab: true);
+    }
+
+    /**
      * زر تنزيل لكل مرفق، لمن يطّلع على المعبأ، ويُسجَّل.
      *
      * @return list<Action>
@@ -181,7 +199,21 @@ class FormEntryResource extends Resource
         foreach ($entry->version->typedFields() as $field) {
             $key = $field['key'];
 
+            // عناوين الأقسام والنصوص الثابتة في عرض الطباعة، لا في الإجابات
+            if ($field['type']->isLayout()) {
+                continue;
+            }
+
             $entries[] = match ($field['type']) {
+                DocumentFieldType::Table => TextEntry::make('table_'.$key)
+                    ->label($field['label'])
+                    ->state(fn (): array => array_map(
+                        fn (array $row): string => implode(' — ', array_map(fn (string $column): string => (string) ($row[$column] ?? ''), DocumentFields::columnKeys($field))),
+                        (array) ($entry->answers[$key] ?? []),
+                    ))
+                    ->listWithLineBreaks()
+                    ->placeholder('—')
+                    ->columnSpanFull(),
                 DocumentFieldType::Signature => ImageEntry::make('signature_'.$key)
                     ->label($field['label'])
                     ->state(fn (): ?string => ($signature = collect($entry->signatures ?? [])->firstWhere('key', $key)) === null ? null : SignatureImage::dataUrl(FormEntry::disk(), $signature['path']))

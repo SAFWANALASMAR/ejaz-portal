@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * إصدار من حقول النموذج الإلكتروني. لا يُعدَّل بعد إنشائه، فالمعبأ عليه يبقى بحقوله.
  *
- * @property list<array{key: string, label: string, type: string, required: bool, options?: list<string>}> $fields
+ * @property list<array{key: string, label: string, type: string, required: bool, options?: list<string>, columns?: list<string>, text?: string, width?: string}> $fields
  */
 class FormTemplateVersion extends Model
 {
@@ -37,7 +37,7 @@ class FormTemplateVersion extends Model
     /**
      * الحقول بأنواعها.
      *
-     * @return list<array{key: string, label: string, type: DocumentFieldType, required: bool, options: list<string>}>
+     * @return list<array{key: string, label: string, type: DocumentFieldType, required: bool, options: list<string>, columns: list<string>, text: string, half: bool}>
      */
     public function typedFields(): array
     {
@@ -47,6 +47,9 @@ class FormTemplateVersion extends Model
             'type' => DocumentFieldType::from($field['type']),
             'required' => (bool) $field['required'],
             'options' => $field['options'] ?? [],
+            'columns' => $field['columns'] ?? [],
+            'text' => $field['text'] ?? '',
+            'half' => ($field['width'] ?? 'full') === 'half',
         ], $this->fields);
     }
 }
