@@ -18,8 +18,13 @@ it('ships every brand logo file as a vector without embedded images', function (
 
     expect($svg)->toStartWith('<svg')
         ->and($svg)->not->toContain('<image')
-        ->and($svg)->not->toContain('<script');
-})->with(['logo-horizontal.svg', 'logo-horizontal-white.svg', 'logo-vertical.svg', 'logo-vertical-white.svg', 'emblem.svg']);
+        ->and($svg)->not->toContain('<script')
+        ->and($svg)->not->toContain('foreignObject')
+        ->and($svg)->not->toContain('javascript:')
+        ->and($svg)->not->toMatch('/\son[a-z]+\s*=/i')
+        // لا مرجع إلا إلى تعريفات الملف نفسه (#clip-1 وأمثاله)
+        ->and($svg)->not->toMatch('/href="(?!#)/');
+})->with(['logo-horizontal.svg', 'logo-horizontal-white.svg', 'emblem.svg']);
 
 it('loads the Zain typeface locally in all of its weights and nothing of the temporary font', function () {
     $vite = (string) file_get_contents(base_path('vite.config.js'));

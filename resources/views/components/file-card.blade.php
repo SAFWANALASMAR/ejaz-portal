@@ -1,8 +1,9 @@
 {{--
     بطاقة ملف حديثة: أيقونة بنوعه، والعنوان، وسطر البيانات، والحجم، وزرا العرض والتنزيل.
     $href صفحة الملف أو معاينته، و$download رابط التنزيل (اختياري)، و$bytes حجمه.
+    الرابطان من route() أو رابط مؤقت موقّع بعد فحص الصلاحية، لا رابط يكتبه مستخدم.
 --}}
-@props(['title', 'href', 'download' => null, 'bytes' => null, 'type' => 'PDF', 'meta' => []])
+@props(['title', 'href', 'type', 'download' => null, 'bytes' => null, 'meta' => []])
 
 @php
     $size = \App\Support\FileSize::display($bytes);
@@ -30,11 +31,11 @@
 
     <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
         <a href="{{ $href }}" class="inline-flex items-center gap-1 rounded-full border border-primary px-3 py-1.5 text-sm font-bold text-primary hover:bg-primary-soft">
-            {{ svg('heroicon-o-eye', 'size-4') }}<span>{{ __('site.file.preview') }}</span>
+            {{ svg('heroicon-o-eye', 'size-4') }}<span>{{ __('site.file.preview') }}<span class="sr-only">: {{ $title }}</span></span>
         </a>
         @if ($download)
             <a href="{{ $download }}" class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-bold text-white hover:bg-primary-dark">
-                {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}<span>{{ __('site.file.download') }}</span>
+                {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}<span>{{ __('site.file.download') }}<span class="sr-only">: {{ $title }}</span></span>
             </a>
         @endif
     </div>

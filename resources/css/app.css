@@ -72,28 +72,13 @@
         background: url('/images/brand/emblem.svg') no-repeat center / contain;
     }
 
-    /*
-    | تنويع أشكال الأقسام (ملاحظة المدير التنفيذي): خلفية فاتحة، وشريط داكن بالرمز، وحافة مائلة.
-    */
-    .section-tint {
-        @apply bg-surface;
-    }
 
-    .section-band {
-        @apply relative overflow-hidden bg-primary-dark text-white;
-    }
-
-    .section-slant {
-        clip-path: polygon(0 2.5rem, 100% 0, 100% calc(100% - 2.5rem), 0 100%);
-        @apply py-20;
-    }
-
-    /* شبكة المعرض: مربعات متناسقة، والأولى أكبر على الحاسوب */
+    /* شبكة المعرض: مربعات متناسقة، والأولى أكبر على الحاسوب متى كانت الصور خمساً فأكثر (فلا تبقى خانات فارغة) */
     .gallery-grid {
         @apply grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4;
     }
 
-    .gallery-grid > :first-child {
+    .gallery-grid-featured > :first-child {
         @apply lg:col-span-2 lg:row-span-2;
     }
 

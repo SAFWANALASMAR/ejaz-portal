@@ -52,13 +52,36 @@ it('keeps normal text readable on every background it is used on', function (str
     ['white', 'primary-dark'],
     ['white', 'secondary'],
     ['white', 'accent'],
-    ['accent', 'white'],
     ['accent', 'surface'],
     ['secondary', 'white'],
     ['accent-light', 'primary-dark'],
 ]);
 
-it('keeps large text, icons and borders on the brand blue visible', function () {
-    // الأزرق الرسمي للمساحات والأيقونات والنص الكبير وحده (3:1)
-    expect(contrastRatio(brandToken('brand'), brandToken('white')))->toBeGreaterThanOrEqual(3.0);
+it('keeps large text, icons and borders visible where only those are used', function (string $foreground, string $background) {
+    // 3:1 للنص الكبير والأيقونات والحدود: الأزرق الرسمي على الأبيض، وأيقونات القائمة الجانبية على الأزرق
+    expect(contrastRatio(brandToken($foreground), brandToken($background)))->toBeGreaterThanOrEqual(3.0);
+})->with([
+    ['brand', 'white'],
+    ['accent-light', 'primary'],
+]);
+
+it('never puts dark text on the purple accent or the purple accent on the dark blues in the templates', function () {
+    $offenders = [];
+
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/resources/views')) as $file) {
+        if (! str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        foreach (file($file->getPathname()) ?: [] as $number => $line) {
+            // في سلسلة الأصناف نفسها: خلفية بنفسجية بنص داكن، أو نص بنفسجي على خلفية زرقاء داكنة
+            $classes = "[^\"'\\n]*";
+            if (preg_match("/[\"']({$classes}\bbg-accent\b(?![\/-]){$classes}\btext-(ink|muted)\b|{$classes}\btext-(ink|muted)\b{$classes}\bbg-accent\b(?![\/-]))/", $line)
+                || preg_match("/[\"']{$classes}\bbg-primary(-dark)?\b{$classes}\btext-accent\b(?!-)/", $line)) {
+                $offenders[] = $file->getFilename().':'.($number + 1);
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
 });

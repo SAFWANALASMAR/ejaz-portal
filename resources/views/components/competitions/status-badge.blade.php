@@ -1,4 +1,4 @@
-{{-- شارة حالة المسابقة (الصورة 06): مفتوحة أخضر، وقريباً ذهبي، ومكتملة رمادي --}}
+{{-- شارة حالة المسابقة (الصورة 06): مفتوحة أخضر، وقريباً بنفسجي، ومكتملة رمادي --}}
 @props(['status'])
 
 @php
@@ -6,7 +6,7 @@
 
     $classes = match ($status) {
         CompetitionStatus::Open => 'bg-emerald-600 text-white',
-        CompetitionStatus::Upcoming => 'bg-accent text-ink',
+        CompetitionStatus::Upcoming => 'bg-accent text-white',
         default => 'bg-gray-500 text-white',
     };
 @endphp

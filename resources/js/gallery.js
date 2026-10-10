@@ -1,5 +1,6 @@
 // معرض الصور: كل [data-gallery] شبكة صور وعارض <dialog>. يفتح العارض على الصورة المضغوطة، وينتقل
-// بالزرين وبالأسهم (في الاتجاه من اليمين: السهم الأيسر للتالية)، وEsc يغلقه (سلوك <dialog> نفسه).
+// بالزرين وبالأسهم، وEsc يغلقه (سلوك <dialog> نفسه). الموقع عربي من اليمين وحده، فالسهم الأيسر للتالية.
+// والصفحة خلفه لا تتمرر ما دام مفتوحاً.
 
 function setupGallery(root) {
     const dialog = root.querySelector('[data-gallery-dialog]');
@@ -26,9 +27,11 @@ function setupGallery(root) {
         button.addEventListener('click', () => {
             show(Number(button.dataset.galleryOpen));
             dialog.showModal();
+            document.documentElement.classList.add('overflow-hidden');
         });
     });
 
+    dialog.addEventListener('close', () => document.documentElement.classList.remove('overflow-hidden'));
     dialog.querySelector('[data-gallery-close]')?.addEventListener('click', () => dialog.close());
     dialog.querySelector('[data-gallery-next]')?.addEventListener('click', () => show(current + 1));
     dialog.querySelector('[data-gallery-prev]')?.addEventListener('click', () => show(current - 1));

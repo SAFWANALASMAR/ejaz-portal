@@ -1,13 +1,13 @@
 {{--
     معرض الصور: شبكة متناسقة (الأولى أكبر على الحاسوب)، وكل صورة تفتح في عارض مكبَّر بـ <dialog>
     (التالي والسابق ولوحة المفاتيح، وEsc يغلقه). التفاعل في resources/js/gallery.js بلا مكتبة.
-    $images: [['src' => رابط, 'alt' => نص بديل]]
+    $images: [['src' => رابط, 'alt' => نص بديل]] — صور القرص العام وحدها؛ والخاصة برابط مؤقت موقّع بعد فحص الصلاحية.
 --}}
 @props(['images' => []])
 
 @if ($images !== [])
     <div data-gallery>
-        <ul class="gallery-grid">
+        <ul @class(['gallery-grid', 'gallery-grid-featured' => count($images) >= 5])>
             @foreach ($images as $image)
                 <li>
                     <button type="button" data-gallery-open="{{ $loop->index }}"

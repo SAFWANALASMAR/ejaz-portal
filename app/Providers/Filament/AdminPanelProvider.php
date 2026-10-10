@@ -49,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brandName(fn (): string => __('admin.brand'))
             ->brandLogo(fn (): string => asset('images/brand/logo-horizontal.svg'))
+            ->darkModeBrandLogo(fn (): string => asset('images/brand/logo-horizontal-white.svg'))
             ->brandLogoHeight('2.75rem')
             ->colors([
                 // الأزرق الرسمي بدرجته المقروءة للنص الأبيض (دليل الهوية — docs/design-system.md)
