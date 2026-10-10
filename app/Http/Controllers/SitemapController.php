@@ -24,6 +24,7 @@ class SitemapController extends Controller
     private const STATIC_ROUTES = [
         'home', 'initiatives.index', 'governance.index', 'library.index',
         'media.index', 'media.news.index', 'media.albums.index', 'media.partners', 'contact',
+        'programs.index', 'competitions.index', 'services.index',
     ];
 
     public function sitemap(): Response
