@@ -58,6 +58,11 @@ class SaveLibraryItem
             $item->video_url = null;
         }
 
+        // الرئيسية تعرض مقاطع يوتيوب وحدها، فلا تبقى العلامة على غيرها (ولو تغيّر القسم أو الرابط)
+        if ($item->youtubeId() === null) {
+            $item->on_home = false;
+        }
+
         if (filled($item->video_url) && ! VideoUrl::isValid($item->video_url)) {
             throw ValidationException::withMessages(['video_url' => __('validation.video_url')]);
         }

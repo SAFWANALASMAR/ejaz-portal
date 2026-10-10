@@ -21,8 +21,8 @@ class MenuSeeder extends Seeder
         $menu = [
             ['label' => 'الرئيسية', 'url' => '/'],
             ['label' => 'عن الجمعية', 'url' => '/about'],
-            ['label' => 'البرامج', 'url' => '/programs', 'children' => [
-                ['label' => 'برامجنا', 'url' => '/programs'],
+            ['label' => 'الدورات والبرامج', 'url' => '/programs', 'children' => [
+                ['label' => 'الدورات والبرامج', 'url' => '/programs'],
                 ['label' => 'المسابقات', 'url' => '/competitions'],
                 ['label' => 'خدماتنا الإلكترونية', 'url' => '/services'],
             ]],

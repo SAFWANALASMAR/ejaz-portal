@@ -12,19 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('partners', function (Blueprint $table) {
-            $table->string('kind', 20)->default('partner')->after('name');
+            $table->string('kind', 20)->default('partner');
         });
 
         Schema::table('library_items', function (Blueprint $table) {
-            $table->boolean('on_home')->default(false)->after('is_published');
-            $table->index(['on_home', 'is_published']);
+            $table->boolean('on_home')->default(false);
         });
     }
 
     public function down(): void
     {
         Schema::table('library_items', function (Blueprint $table) {
-            $table->dropIndex(['on_home', 'is_published']);
             $table->dropColumn('on_home');
         });
 

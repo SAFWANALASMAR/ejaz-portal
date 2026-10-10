@@ -13,17 +13,6 @@
             </div>
 
             {{-- محور «الدورات والبرامج» (ملاحظة المدير التنفيذي): الدورات التدريبية، والمجالس العلمية، والمسابقات --}}
-            @php
-                $hub = collect(\Database\Seeders\ProgramTypesSeeder::TYPES)
-                    ->filter(fn (string $name, string $slug): bool => $types->contains('slug', $slug))
-                    ->map(fn (string $name, string $slug): array => [
-                        'label' => __('programs.hub.'.$slug),
-                        'url' => route('programs.index', ['type' => $slug]),
-                        'icon' => $slug === 'training-courses' ? 'academic-cap' : 'building-library',
-                    ])
-                    ->values()
-                    ->push(['label' => __('programs.hub.competitions'), 'url' => route('competitions.index'), 'icon' => 'trophy']);
-            @endphp
             <nav aria-label="{{ __('programs.hub.label') }}" class="mt-10">
                 <ul class="grid gap-4 sm:grid-cols-3">
                     @foreach ($hub as $entry)

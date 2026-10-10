@@ -7,7 +7,8 @@ use Illuminate\Database\Seeder;
 
 /**
  * نوعا البرامج في محور «الدورات والبرامج» بنص المدير التنفيذي: «الدورات التدريبية — المجالس العلمية»
- * (requirements/12، القسم 4). يُنشآن مرة إن لم يوجدا، ثم يُداران من اللوحة، فلا يعود تعديل المحرر.
+ * (requirements/12، القسم 4). يُنشآن إن لم يوجدا، ثم يُداران من اللوحة، فلا يعود تعديل الاسم.
+ * والنوع المحذوف يعود عند إعادة البذر عمداً (خطوة النشر الأولى وحدها).
  * والمسابقات بطاقة في المحور برابط صفحتها لا نوع برنامج.
  */
 class ProgramTypesSeeder extends Seeder
@@ -16,7 +17,7 @@ class ProgramTypesSeeder extends Seeder
 
     public function run(): void
     {
-        foreach (array_keys(self::TYPES) as $sort => $slug) {
+        foreach (array_keys(ProgramType::HUB) as $sort => $slug) {
             ProgramType::query()->firstOrCreate(['slug' => $slug], ['name' => self::TYPES[$slug], 'sort' => $sort + 1]);
         }
     }

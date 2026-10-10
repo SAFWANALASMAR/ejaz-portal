@@ -8,12 +8,13 @@ use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * «برامجنا» (الصورة 06): تبويبات بالأنواع وبطاقات البرامج المنشورة القادمة أولاً، ثم صفحة
+ * «الدورات والبرامج» (الصورة 06): تبويبات بالأنواع وبطاقات البرامج المنشورة القادمة أولاً، ثم صفحة
  * البرنامج. وحالة كل برنامج (قريباً، مفتوح، مكتمل، منتهٍ) تُحسب بعدد المؤكدين في الاستعلام نفسه.
  */
 class ProgramController extends Controller
@@ -44,7 +45,7 @@ class ProgramController extends Controller
 
         abort_if($programs->currentPage() > max($programs->lastPage(), 1), 404);
 
-        return view('programs.index', ['types' => $types, 'active' => $active, 'programs' => $programs]);
+        return view('programs.index', ['types' => $types, 'active' => $active, 'programs' => $programs, 'hub' => self::hub($types)]);
     }
 
     public function show(Request $request, string $slug): Response
@@ -61,5 +62,28 @@ class ProgramController extends Controller
 
         // الصفحة لصاحب الحساب قد تحمل رابط اجتماعه، فلا تُحفظ في ذاكرة متصفح ولا وسيط
         return $request->user() === null ? $response : $response->header('Cache-Control', 'private, no-store');
+    }
+
+    /**
+     * بطاقات محور «الدورات والبرامج»: نوعا المحور بأسمائهما من اللوحة متى وُجدا، ثم المسابقات.
+     *
+     * @param  Collection<int, ProgramType>  $types
+     * @return list<array{label: string, url: string, icon: string}>
+     */
+    private static function hub(Collection $types): array
+    {
+        $hub = [];
+
+        foreach (ProgramType::HUB as $slug => $icon) {
+            $type = $types->firstWhere('slug', $slug);
+
+            if ($type !== null) {
+                $hub[] = ['label' => $type->name, 'url' => route('programs.index', ['type' => $slug]), 'icon' => $icon];
+            }
+        }
+
+        $hub[] = ['label' => __('programs.hub.competitions'), 'url' => route('competitions.index'), 'icon' => 'trophy'];
+
+        return $hub;
     }
 }

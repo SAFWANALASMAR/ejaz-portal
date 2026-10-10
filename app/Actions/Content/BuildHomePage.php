@@ -3,6 +3,7 @@
 namespace App\Actions\Content;
 
 use App\Enums\LibrarySection;
+use App\Enums\PartnerKind;
 use App\Enums\SiteIcon;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Initiative;
@@ -51,6 +52,7 @@ class BuildHomePage
      *     videos: Collection<int, LibraryItem>,
      *     accounts: list<array{network: string, url: string}>,
      *     partners: Collection<int, Partner>,
+     *     sponsors: Collection<int, Partner>,
      * }
      */
     public function handle(): array
@@ -67,8 +69,9 @@ class BuildHomePage
             'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(3)->get() : new Collection,
             'videos' => self::shows($home, 'videos') ? self::videos() : new Collection,
             'accounts' => self::shows($home, 'accounts') ? self::accounts() : [],
-            // اثنا عشر شريكاً وراعياً، والبقية في صفحة الشركاء
-            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->limit(12)->get() : new Collection,
+            // اثنا عشر شريكاً واثنا عشر راعياً كلٌّ باستعلامه، فلا يحجب أحدهما الآخر، والبقية في صفحة الشركاء
+            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
+            'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
     }
 

@@ -29,6 +29,6 @@
     @include('home.partials.accounts', ['accounts' => $accounts])
 @endif
 
-@if ($partners->isNotEmpty())
-    @include('home.partials.partners', ['partners' => $partners])
+@if ($partners->isNotEmpty() || $sponsors->isNotEmpty())
+    @include('home.partials.partners', ['partners' => $partners, 'sponsors' => $sponsors])
 @endif
