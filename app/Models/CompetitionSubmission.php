@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\EducationStage;
+use App\Enums\ExamStage;
 use App\Enums\QuestionType;
 use App\Enums\SaudiRegion;
 use App\Enums\SubmissionStatus;
 use Database\Factories\CompetitionSubmissionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,8 +29,14 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property SaudiRegion|null $region
  * @property array<mixed>|null $answers
  * @property Carbon|null $submitted_at
+ * @property EducationStage|null $education_stage
+ * @property Carbon|null $registered_at
+ * @property Carbon|null $intro_started_at
+ * @property Carbon|null $intro_watched_at
+ * @property Carbon|null $instructions_accepted_at
  */
 #[Fillable(['category', 'region', 'answers'])]
+#[Hidden(['national_id', 'national_id_hash'])]
 class CompetitionSubmission extends Model
 {
     /** @use HasFactory<CompetitionSubmissionFactory> */
@@ -54,6 +63,12 @@ class CompetitionSubmission extends Model
             'submitted_at' => 'datetime',
             'auto_score' => 'decimal:2',
             'final_score' => 'decimal:2',
+            'education_stage' => EducationStage::class,
+            'national_id' => 'encrypted',
+            'registered_at' => 'datetime',
+            'intro_started_at' => 'datetime',
+            'intro_watched_at' => 'datetime',
+            'instructions_accepted_at' => 'datetime',
         ];
     }
 
@@ -99,9 +114,31 @@ class CompetitionSubmission extends Model
         return $this->hasMany(SubmissionReview::class, 'submission_id');
     }
 
+    /**
+     * @return HasMany<SubmissionWork, $this>
+     */
+    public function works(): HasMany
+    {
+        return $this->hasMany(SubmissionWork::class, 'submission_id')->orderBy('id');
+    }
+
     public function isDraft(): bool
     {
         return $this->status === SubmissionStatus::Draft;
+    }
+
+    /**
+     * مرحلة المتقدم في رحلة الاختبار: أول مرحلة لم يكملها. والخادم يرفض كل طلب لمرحلة بعدها.
+     */
+    public function examStage(): ExamStage
+    {
+        return match (true) {
+            ! $this->isDraft() => ExamStage::Submitted,
+            $this->registered_at === null => ExamStage::Registration,
+            $this->intro_watched_at === null => ExamStage::Intro,
+            $this->instructions_accepted_at === null => ExamStage::Instructions,
+            default => ExamStage::Questions,
+        };
     }
 
     public function answer(CompetitionQuestion $question): ?string

@@ -29,4 +29,33 @@ return [
         'ffprobe' => (string) env('COMPETITION_VIDEO_FFPROBE', 'ffprobe'),
     ],
 
+    // الاختبار الإلكتروني (docs/plans/competition-exam.md)
+    'exam' => [
+        // رقم الهوية أو الإقامة في التسجيل: ينتظر قرار صفوان (نظام حماية البيانات الشخصية)، فمعطّل افتراضياً
+        'national_id' => (bool) env('COMPETITION_EXAM_NATIONAL_ID', false),
+
+        // إشعار واتساب بعد إرسال الاختبار: ينتظر قرار صفوان (المزوّد)، فمعطّل افتراضياً
+        'whatsapp' => (bool) env('COMPETITION_EXAM_WHATSAPP', false),
+
+        // هامش بالثواني بين مدة الفيديو التعريفي ووقت المشاهدة المسجل في الخادم (تأخر الشبكة وبدء التشغيل)
+        'intro_tolerance_seconds' => (int) env('COMPETITION_EXAM_INTRO_TOLERANCE', 3),
+
+        // سقف حجم الفيديو التعريفي ووسائط الأسئلة التي يرفعها المسؤول، بالميجابايت
+        'media_max_mb' => (int) env('COMPETITION_EXAM_MEDIA_MAX_MB', 500),
+
+        // مدة بقاء أسئلة الاختبار في الذاكرة المؤقتة بالدقائق، وتُمسح عند كل حفظ للمسابقة
+        'cache_minutes' => (int) env('COMPETITION_EXAM_CACHE_MINUTES', 60),
+
+        // مدة رابط التخزين الموقّع للفيديو التعريفي ووسائط الأسئلة بالدقائق (في الإنتاج على S3)
+        'media_url_minutes' => (int) env('COMPETITION_EXAM_MEDIA_URL_MINUTES', 30),
+    ],
+
+    // رفع الأعمال: سقوف تقنية لا محتوى للجمعية، تُضبط من .env بطلبها
+    'works' => [
+        'max_items' => (int) env('COMPETITION_WORKS_MAX_ITEMS', 10),
+        'image_max_kb' => (int) env('COMPETITION_WORKS_IMAGE_MAX_KB', 10240),
+        'pdf_max_kb' => (int) env('COMPETITION_WORKS_PDF_MAX_KB', 20480),
+        'url_minutes' => (int) env('COMPETITION_WORKS_URL_MINUTES', 10),
+    ],
+
 ];

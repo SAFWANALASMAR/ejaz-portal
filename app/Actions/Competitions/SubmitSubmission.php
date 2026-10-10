@@ -11,8 +11,8 @@ use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Notifications\SubmissionReceived;
+use App\Support\SubmissionReference;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,11 +22,6 @@ use Illuminate\Validation\ValidationException;
  */
 class SubmitSubmission
 {
-    /**
-     * حروف الرقم المرجعي: بلا ما يلتبس بعضه ببعض (O و0، وI و1).
-     */
-    private const REFERENCE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
     public function __construct(private SaveSubmissionDraft $saveDraft) {}
 
     /**
@@ -53,7 +48,7 @@ class SubmitSubmission
 
             $submission->status = SubmissionStatus::Submitted;
             $submission->submitted_at = now();
-            $this->assignReference($submission);
+            SubmissionReference::assign($submission);
         });
 
         GradeSubmission::dispatch($submission->id)->afterCommit();
@@ -105,31 +100,5 @@ class SubmitSubmission
             $question->is_required && $video?->status !== VideoStatus::Ready => __('competitions.entry.required_video'),
             default => null,
         };
-    }
-
-    /**
-     * رقم عشوائي من عشرة حروف بالمولّد الآمن، ويُعاد توليده في التصادم النادر (القيد الفريد).
-     */
-    private function assignReference(CompetitionSubmission $submission): void
-    {
-        for ($attempt = 1; ; $attempt++) {
-            $reference = '';
-
-            for ($i = 0; $i < 10; $i++) {
-                $reference .= self::REFERENCE_ALPHABET[random_int(0, strlen(self::REFERENCE_ALPHABET) - 1)];
-            }
-
-            $submission->reference = $reference;
-
-            try {
-                DB::transaction(fn () => $submission->save());
-
-                return;
-            } catch (UniqueConstraintViolationException $exception) {
-                if ($attempt >= 5) {
-                    throw $exception;
-                }
-            }
-        }
     }
 }
