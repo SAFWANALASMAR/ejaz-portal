@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Meetings;
 
+use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\MeetingType;
 use App\Filament\Concerns\HasTranslatedLabels;
@@ -9,8 +10,10 @@ use App\Filament\Resources\Meetings\Pages\CreateMeeting;
 use App\Filament\Resources\Meetings\Pages\EditMeeting;
 use App\Filament\Resources\Meetings\Pages\ListMeetings;
 use App\Filament\Resources\Meetings\Pages\ViewMeeting;
+use App\Filament\Resources\Meetings\RelationManagers\AgendaItemsRelationManager;
 use App\Filament\Resources\Meetings\Schemas\MeetingForm;
 use App\Models\Meeting;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -60,6 +63,8 @@ class MeetingResource extends Resource
             Section::make()->columns(3)->columnSpanFull()->schema([
                 TextEntry::make('title')->label(__('assembly.fields.title'))->columnSpanFull(),
                 TextEntry::make('type')->label(__('assembly.fields.type'))->badge(),
+                TextEntry::make('body')->label(__('registers.fields.body'))->badge(),
+                TextEntry::make('committee.name')->label(__('registers.fields.committee'))->visible(fn (Meeting $record): bool => $record->body === MeetingBody::Committee),
                 TextEntry::make('status')->label(__('assembly.fields.status'))->badge(),
                 TextEntry::make('quorum_percent')->label(__('assembly.fields.quorum_percent'))->placeholder('—'),
                 TextEntry::make('starts_at')->label(__('assembly.fields.starts_at'))->dateTime('Y-m-d H:i'),
@@ -93,6 +98,7 @@ class MeetingResource extends Resource
             ->columns([
                 TextColumn::make('title')->label(__('assembly.fields.title'))->searchable()->wrap(),
                 TextColumn::make('type')->label(__('assembly.fields.type'))->badge(),
+                TextColumn::make('body')->label(__('registers.fields.body'))->badge()->description(fn (Meeting $record): ?string => $record->committee?->name),
                 TextColumn::make('starts_at')->label(__('assembly.fields.starts_at'))->dateTime('Y-m-d H:i')->sortable(),
                 TextColumn::make('status')->label(__('assembly.fields.status'))->badge(),
                 IconColumn::make('is_online')->label(__('assembly.fields.is_online'))->boolean(),
@@ -101,6 +107,7 @@ class MeetingResource extends Resource
             ->filters([
                 SelectFilter::make('status')->label(__('assembly.fields.status'))->options(MeetingStatus::class),
                 SelectFilter::make('type')->label(__('assembly.fields.type'))->options(MeetingType::class),
+                SelectFilter::make('body')->label(__('registers.fields.body'))->options(MeetingBody::class),
                 TrashedFilter::make(),
             ])
             ->recordActions([
@@ -127,6 +134,28 @@ class MeetingResource extends Resource
         $quorum = $meeting->quorumMet($present);
 
         return $quorum === null ? $text : $text.' — '.__($quorum ? 'assembly.meetings.quorum_met' : 'assembly.meetings.quorum_not_met');
+    }
+
+    /**
+     * ما يطّلع عليه الحساب وحده: كل جهة لأعضائها، والكل لمن يملك meetings.view_all (requirements/13 §2).
+     *
+     * @return Builder<Model>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var User $user */
+        $user = auth()->user();
+        /** @var Builder<Meeting> $query */
+        $query = parent::getEloquentQuery()->with('committee');
+
+        return $query->visibleTo($user);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            AgendaItemsRelationManager::class,
+        ];
     }
 
     /**

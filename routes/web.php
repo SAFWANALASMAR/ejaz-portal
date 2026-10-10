@@ -108,5 +108,8 @@ require __DIR__.'/assembly.php';
 // المتجر والدفع والتبرعات (المرحلة 5)
 require __DIR__.'/payments.php';
 
+// السجلات والمستندات ذات الصلاحية: تنزيل المرفقات من اللوحة برابط موقّع (docs/plans/registers.md)
+require __DIR__.'/registers.php';
+
 // البث المباشر (المرحلة 5): يظهر ويختفي بالموعد (docs/plans/livestream.md)
 Route::get('/live', LiveStreamController::class)->middleware('throttle:60,1')->name('live');

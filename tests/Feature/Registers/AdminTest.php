@@ -130,7 +130,7 @@ it('shows the body on meetings and hides committee meetings from board members o
 
     $this->actingAs($this->board);
     Livewire::test(ListMeetings::class)->assertCanSeeTableRecords([$assembly])->assertCanNotSeeTableRecords([$committeeMeeting]);
-    $this->get(MeetingResource::getUrl('view', ['record' => $committeeMeeting]))->assertForbidden();
+    $this->get(MeetingResource::getUrl('view', ['record' => $committeeMeeting]))->assertNotFound();
 
     $this->actingAs($this->director);
     Livewire::test(ListMeetings::class)->assertCanSeeTableRecords([$assembly, $committeeMeeting]);
