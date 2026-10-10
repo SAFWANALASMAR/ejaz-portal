@@ -51,6 +51,14 @@
         </nav>
 
         <div class="flex items-center gap-2">
+            {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
+            @if ($liveStream ?? null)
+                <a href="{{ route('live') }}" class="hidden items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 sm:inline-flex">
+                    <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
+                    {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
+                </a>
+            @endif
+
             @if (Route::has('search'))
                 <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-sand hover:text-primary" aria-label="{{ __('site.search') }}">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}

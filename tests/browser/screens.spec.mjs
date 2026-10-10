@@ -43,6 +43,8 @@ const guestScreens = [
     { name: 'assembly', path: '/assembly', heading: 'h1' },
     // صفحة الخطأ العربية لمسار لا صفحة له ولا تحويل
     { name: 'not-found', path: '/no-such-page', heading: 'h1', status: 404 },
+    // البث المباشر يظهر ببث منشور جارٍ أو قادم
+    { name: 'live', path: '/live', heading: 'h1', whenPublished: true },
 ];
 
 const accountScreens = [

@@ -63,6 +63,8 @@ enum ActivityEvent: string implements HasLabel
     case FormEntryApproved = 'form_entry_approved';
     // الطلبات
     case InquiryNoteUpdated = 'inquiry_note_updated';
+    // البث المباشر
+    case LiveStreamArchived = 'live_stream_archived';
 
     public function getLabel(): string
     {

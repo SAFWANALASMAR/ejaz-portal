@@ -2,6 +2,7 @@
 
 namespace App\View\Composers;
 
+use App\Models\LiveStream;
 use App\Models\MenuItem;
 use App\Models\Setting;
 use App\Support\MenuLink;
@@ -19,6 +20,8 @@ class SiteChromeComposer
     {
         $view->with('siteMenu', $this->menu());
         $view->with('siteContact', Setting::group('contact'));
+        // شارة البث الجاري أو القادم في الرأس (docs/plans/livestream.md)
+        $view->with('liveStream', LiveStream::announced());
     }
 
     /**
