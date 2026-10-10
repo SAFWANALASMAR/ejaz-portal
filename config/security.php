@@ -53,10 +53,9 @@ return [
 
     // مصادر خارجية مسموحة في سياسة أمان المحتوى (CSP)
     'csp' => [
-        // تضمين مقاطع المكتبة والبث
+        // تضمين مقاطع المكتبة والبث، من youtube-nocookie.com وحده (www.youtube.com رابط خارجي لا يُضمَّن)
         'frame_src' => [
             'https://www.youtube-nocookie.com',
-            'https://www.youtube.com',
         ],
         // عنصر التحدي (Turnstile): يُضاف إلى script-src وframe-src في صفحة الاستبيان وحدها، ومتى كان
         // مشغّل التحدي turnstile (SecurityHeaders)
@@ -64,6 +63,8 @@ return [
         // التخزين السحابي للرفع المباشر يضاف هنا عند تفعيله
         'connect_src' => array_filter(explode(',', (string) env('CSP_CONNECT_SRC', ''))),
         'media_src' => array_filter(explode(',', (string) env('CSP_MEDIA_SRC', ''))),
+        // نطاقات الصور الخارجية (التخزين السحابي وشبكة التوصيل عند اختيارها)، مفصولة بفاصلة
+        'img_src' => array_filter(explode(',', (string) env('CSP_IMG_SRC', ''))),
         'form_action' => array_filter(explode(',', (string) env('CSP_FORM_ACTION', ''))),
     ],
 

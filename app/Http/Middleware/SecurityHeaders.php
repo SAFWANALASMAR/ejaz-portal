@@ -56,7 +56,8 @@ class SecurityHeaders
             'default-src' => ["'self'"],
             'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
-            'img-src' => ["'self'", 'data:', 'blob:', 'https:'],
+            // الصور من الموقع نفسه، ونطاقات التخزين وشبكة التوصيل صراحةً من CSP_IMG_SRC
+            'img-src' => ["'self'", 'data:', 'blob:', ...config('security.csp.img_src')],
             'font-src' => ["'self'", 'data:', $dev],
             'connect-src' => ["'self'", $dev, $devSocket, ...config('security.csp.connect_src')],
             'media-src' => ["'self'", 'blob:', ...config('security.csp.media_src')],

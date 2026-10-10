@@ -1,5 +1,7 @@
 <?php
 
+use App\Console\Commands\CheckHealth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 /*
@@ -27,3 +29,8 @@ Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 
 // المعلّق القديم من عمليات الدفع: يُستعلم عن فاتورته أو يُعلَّم فاشلاً (docs/plans/store-payments.md)
 Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer();
+
+// نبض المجدول كل دقيقة، يقرؤه فحص الصحة ejaz:health فينبّه إن توقفت مهمة cron (docs/monitoring.md)
+Schedule::call(fn () => Cache::put(CheckHealth::HEARTBEAT_KEY, now()->getTimestamp(), now()->addDay()))
+    ->everyMinute()
+    ->name('schedule-heartbeat');
