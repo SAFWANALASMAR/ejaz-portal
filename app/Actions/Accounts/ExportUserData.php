@@ -5,6 +5,7 @@ namespace App\Actions\Accounts;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\CompetitionSubmission;
+use App\Models\Inquiry;
 use App\Models\Meeting;
 use App\Models\Payment;
 use App\Models\ProgramRegistration;
@@ -12,7 +13,6 @@ use App\Models\ServiceRequest;
 use App\Models\SubmissionVideo;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
-use App\Models\Inquiry;
 use App\Models\User;
 use Closure;
 
