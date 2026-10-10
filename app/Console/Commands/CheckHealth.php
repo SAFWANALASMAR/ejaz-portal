@@ -63,7 +63,7 @@ class CheckHealth extends Command
         return self::SUCCESS;
     }
 
-    private function database(): ?string
+    private function database(): null
     {
         DB::select('select 1');
 
