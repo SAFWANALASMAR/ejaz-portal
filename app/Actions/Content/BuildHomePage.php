@@ -2,8 +2,12 @@
 
 namespace App\Actions\Content;
 
+use App\Enums\LibrarySection;
+use App\Enums\PartnerKind;
 use App\Enums\SiteIcon;
+use App\Filament\Pages\SiteSettings;
 use App\Models\Initiative;
+use App\Models\LibraryItem;
 use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Setting;
@@ -28,8 +32,15 @@ class BuildHomePage
         'governance' => ['icon' => 'shield-check', 'route' => 'governance.index'],
         'membership' => ['icon' => 'user-group', 'route' => 'services.assembly-membership'],
         'services' => ['icon' => 'squares-2x2', 'route' => 'programs.index'],
+        // أيقونة مستقلة للمسابقات (ملاحظة المدير التنفيذي)
+        'competitions' => ['icon' => 'trophy', 'route' => 'competitions.index'],
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
     ];
+
+    /**
+     * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.
+     */
+    public const VIDEOS = 3;
 
     /**
      * @return array{
@@ -38,7 +49,10 @@ class BuildHomePage
      *     shortcuts: list<array{key: string, icon: string, url: string}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
+     *     videos: Collection<int, LibraryItem>,
+     *     accounts: list<array{network: string, url: string}>,
      *     partners: Collection<int, Partner>,
+     *     sponsors: Collection<int, Partner>,
      * }
      */
     public function handle(): array
@@ -53,9 +67,53 @@ class BuildHomePage
             'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->limit(3)->get() : new Collection,
             // مفتاح «أحدث البرامج والأخبار»: الأخبار الآن، والبرامج مع وحدتها في المرحلة 3
             'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(3)->get() : new Collection,
-            // اثنا عشر شريكاً، والبقية في صفحة الشركاء
-            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->limit(12)->get() : new Collection,
+            'videos' => self::shows($home, 'videos') ? self::videos() : new Collection,
+            'accounts' => self::shows($home, 'accounts') ? self::accounts() : [],
+            // اثنا عشر شريكاً واثنا عشر راعياً كلٌّ باستعلامه، فلا يحجب أحدهما الآخر، والبقية في صفحة الشركاء
+            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
+            'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
+    }
+
+    /**
+     * يوتيوب وحده (ملاحظة المدير التنفيذي: «ربط الفيديوهات بيوتيوب حتى لا تأخذ سعة كبيرة»).
+     *
+     * @return Collection<int, LibraryItem>
+     */
+    private static function videos(): Collection
+    {
+        return LibraryItem::query()
+            ->published()
+            ->where('section', LibrarySection::Videos)
+            ->where('on_home', true)
+            ->whereNotNull('video_url')
+            ->newestFirst()
+            ->limit(self::VIDEOS * 4)
+            ->get()
+            ->filter(fn (LibraryItem $item): bool => $item->youtubeId() !== null)
+            ->take(self::VIDEOS)
+            ->values();
+    }
+
+    /**
+     * حسابات الجمعية الرسمية من إعدادات الموقع، بترتيب المنصات فيها، والرابط الآمن وحده.
+     *
+     * @return list<array{network: string, url: string}>
+     */
+    private static function accounts(): array
+    {
+        $social = (array) (Setting::group('contact')['social'] ?? []);
+        $accounts = [];
+
+        foreach (SiteSettings::SOCIAL as $network) {
+            $url = $social[$network] ?? null;
+
+            if (is_string($url) && $url !== '' && SafeUrl::isSafe($url) && str_starts_with($url, 'https://')) {
+                $accounts[] = ['network' => $network, 'url' => $url];
+            }
+        }
+
+        return $accounts;
     }
 
     /**

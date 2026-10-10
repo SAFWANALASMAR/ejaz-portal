@@ -3,7 +3,7 @@
     وعنوان، وسطر وصف، ودائرة بنفسجية بسهم. بطاقة لكل قسم مبني فقط (BuildHomePage::SHORTCUTS).
 --}}
 @php
-    $columns = [1 => 'grid-cols-1', 2 => 'grid-cols-2', 3 => 'grid-cols-2 lg:grid-cols-3', 4 => 'grid-cols-2 lg:grid-cols-4'][count($shortcuts)] ?? 'grid-cols-2 lg:grid-cols-4';
+    $columns = [1 => 'grid-cols-1', 2 => 'grid-cols-2', 3 => 'grid-cols-2 lg:grid-cols-3', 4 => 'grid-cols-2 lg:grid-cols-4', 5 => 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'][count($shortcuts)] ?? 'grid-cols-2 lg:grid-cols-5';
 @endphp
 
 <section class="bg-white py-12 lg:py-16" aria-labelledby="home-shortcuts">
@@ -12,7 +12,8 @@
 
         <ul class="grid gap-px overflow-hidden rounded-2xl border border-line/70 bg-line/70 shadow-sm {{ $columns }}">
             @foreach ($shortcuts as $shortcut)
-                <li class="bg-white">
+                {{-- خمس بطاقات في عمودين: الأخيرة بعرض الصف فلا تبقى يتيمة --}}
+                <li @class(['bg-white', 'col-span-2 sm:col-span-1' => $loop->last && count($shortcuts) % 2 === 1])>
                     <a href="{{ $shortcut['url'] }}" class="group flex h-full flex-col items-center gap-2 px-4 py-8 text-center transition hover:bg-surface/60">
                         <span class="text-primary" aria-hidden="true">{{ svg('heroicon-o-'.$shortcut['icon'], 'size-8') }}</span>
                         <span class="mt-1 font-bold text-ink">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>

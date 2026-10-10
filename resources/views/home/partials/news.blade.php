@@ -1,5 +1,5 @@
 {{-- مقطع أحدث الأخبار (الصورة 07): العنوان يميناً و«عرض الكل» يساراً، ثم البطاقات --}}
-<section class="py-12 lg:py-16" aria-labelledby="home-news">
+<section class="section-tint py-12 lg:py-16" aria-labelledby="home-news">
     <div class="container-page">
         <div class="flex items-end justify-between gap-4">
             <x-section-heading id="home-news">{{ __('media.latest_news') }}</x-section-heading>

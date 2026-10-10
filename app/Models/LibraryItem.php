@@ -24,7 +24,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $published_on
  * @property array<mixed>|null $tags
  */
-#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published'])]
+#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home'])]
 class LibraryItem extends Model implements HasPublicImages
 {
     /** @use HasFactory<LibraryItemFactory> */
@@ -55,6 +55,7 @@ class LibraryItem extends Model implements HasPublicImages
             'tags' => 'array',
             'file_size' => 'integer',
             'is_published' => 'boolean',
+            'on_home' => 'boolean',
         ];
     }
 

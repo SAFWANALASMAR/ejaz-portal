@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Partners\Schemas;
 
+use App\Enums\PartnerKind;
 use App\Filament\Forms\ContentFields;
 use App\Models\Partner;
 use App\Rules\SafeUrl;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -20,6 +22,7 @@ class PartnerForm
         return $schema->components([
             Section::make()->columns(2)->columnSpanFull()->schema([
                 TextInput::make('name')->label(__('partners.fields.name'))->required()->maxLength(150),
+                Select::make('kind')->label(__('partners.fields.kind'))->options(PartnerKind::class)->default(PartnerKind::Partner)->required()->native(false),
                 TextInput::make('url')
                     ->label(__('partners.fields.url'))
                     ->helperText(__('partners.fields.url_hint'))

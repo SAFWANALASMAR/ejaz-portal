@@ -13,12 +13,18 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
- * نوع برامج (بحثية، تدريبية، علمية...) يُدار من اللوحة، ويظهر تبويباً في «برامجنا».
+ * نوع برامج يُدار من اللوحة، ويظهر تبويباً في «الدورات والبرامج».
  * لا يُحذف نوع له برامج (قاعدة البيانات ترفضه).
  */
 #[Fillable(['name', 'slug', 'sort'])]
 class ProgramType extends Model
 {
+    /**
+     * أنواع محور «الدورات والبرامج» بمعرّفاتها وأيقوناتها (ملاحظة المدير التنفيذي — requirements/12).
+     * تُبذر مرة (ProgramTypesSeeder)، والاسم من اللوحة.
+     */
+    public const HUB = ['training-courses' => 'academic-cap', 'scientific-councils' => 'building-library'];
+
     /** @use HasFactory<ProgramTypeFactory> */
     use FlushesContentCache, HasFactory, LogsActivity;
 
