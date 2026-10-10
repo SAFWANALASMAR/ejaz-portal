@@ -9,7 +9,7 @@ COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /u
 RUN install-php-extensions \
         pdo_pgsql pgsql redis intl gd zip bcmath pcntl exif opcache sockets \
     && apt-get update \
-    && apt-get install -y --no-install-recommends git unzip postgresql-client \
+    && apt-get install -y --no-install-recommends git unzip postgresql-client ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

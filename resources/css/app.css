@@ -1,9 +1,88 @@
-@import 'tailwindcss';
+/*
+| مصادر الأصناف محددة صراحةً بدل فحص المشروع كله، لأن الفحص عبر قرص ويندوز المشترك بطيء جداً.
+*/
+@import 'tailwindcss' source(none);
 
+@source '../views';
+@source '../js';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
 
+/*
+| هوية مؤقتة حتى اعتماد دليل هوية الجمعية — docs/design-system.md
+*/
 @theme {
     --font-sans: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-primary: #1f4f4b;
+    --color-primary-dark: #163b38;
+    --color-primary-soft: #e6eeec;
+    --color-gold: #b8955a;
+    --color-gold-dark: #8a6a35;
+    --color-sand: #f5f1ea;
+    --color-ink: #1c2b2a;
+    --color-muted: #5f6b69;
+    --color-line: #e2dccf;
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-white text-ink antialiased;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-gold;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .container-page {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    /* زخرفة هندسية خفيفة للخلفيات المميزة */
+    .bg-pattern {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b8955a' stroke-opacity='0.18' stroke-width='1'%3E%3Cpath d='M28 4 52 28 28 52 4 28Z'/%3E%3Cpath d='M28 14 42 28 28 42 14 28Z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .prose-ar {
+        @apply leading-8 text-ink;
+    }
+
+    .prose-ar h2 {
+        @apply mt-8 mb-3 text-2xl font-bold text-primary;
+    }
+
+    .prose-ar h3 {
+        @apply mt-6 mb-2 text-xl font-semibold text-primary;
+    }
+
+    .prose-ar p {
+        @apply mb-4;
+    }
+
+    .prose-ar ul {
+        @apply mb-4 list-disc ps-6;
+    }
+
+    .prose-ar ol {
+        @apply mb-4 list-decimal ps-6;
+    }
+
+    .prose-ar a {
+        @apply text-primary underline decoration-gold underline-offset-4;
+    }
+
+    .prose-ar blockquote {
+        @apply my-4 border-s-4 border-gold bg-sand px-4 py-3;
+    }
 }

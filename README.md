@@ -6,6 +6,7 @@
 - **دستور المشروع (لكلود كود):** [CLAUDE.md](CLAUDE.md)
 - **المراحل والحالة:** [docs/roadmap.md](docs/roadmap.md)
 - **المعلومات الناقصة من الجمعية:** [docs/open-questions.md](docs/open-questions.md)
+- **سير العمل لمطور يتسلم المشروع:** [docs/workflow.md](docs/workflow.md)
 
 ## التقنيات
 
