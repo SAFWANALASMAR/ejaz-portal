@@ -1,0 +1,24 @@
+# ما لا يدخل صورة الإنتاج (deploy/docker/Dockerfile): الأسرار، والمكتبات المحلية، والملفات المولّدة
+.git
+.github
+.env
+.env.*
+!.env.example
+!.env.production.example
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+storage/app/private/*
+storage/app/public/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing/*
+storage/logs/*
+storage/playwright
+storage/pail
+bootstrap/cache/*.php
+tests/browser/node_modules
+docs

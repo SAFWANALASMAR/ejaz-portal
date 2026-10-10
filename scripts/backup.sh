@@ -15,6 +15,7 @@
 #   BACKUP_S3_ENDPOINT       عنوان واجهة S3 للمزود في المنطقة (مثل https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com)
 #   AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION   مفاتيح كتابة على حاوية النسخ وحدها
 #   BACKUP_GPG_RECIPIENT     معرّف المفتاح العام للتشفير (المفتاح الخاص خارج الخادم عند المسؤول)
+#   BACKUP_GPG_PUBLIC_KEY_FILE  (اختياري) ملف المفتاح العام يُستورد في حلقة مفاتيح مؤقتة (حاوية النسخ في compose)
 #   BACKUP_RETENTION_DAYS    افتراضياً 30
 #   BACKUP_SYNC_FILES        true|false (افتراضياً true)
 #   APP_ROOT                 جذر المشروع (افتراضياً مجلد هذا السكربت الأب)
@@ -39,6 +40,13 @@ S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 umask 077
+
+if [ -n "${BACKUP_GPG_PUBLIC_KEY_FILE:-}" ]; then
+  [ -s "$BACKUP_GPG_PUBLIC_KEY_FILE" ] || fail "ملف المفتاح العام $BACKUP_GPG_PUBLIC_KEY_FILE غير موجود"
+  export GNUPGHOME="$WORK/gnupg"
+  mkdir -p "$GNUPGHOME"
+  gpg --batch --quiet --import "$BACKUP_GPG_PUBLIC_KEY_FILE"
+fi
 
 # ١. قاعدة البيانات
 DUMP="$WORK/ejaz-$STAMP.dump.gpg"

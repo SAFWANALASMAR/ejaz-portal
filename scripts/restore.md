@@ -58,3 +58,17 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
 6. تشغيل العمال والمجدول، ثم `php artisan up`، ثم `php artisan ejaz:health`.
 7. **لا `cache:clear`.** وإن لزم مسح ذاكرة المحتوى: `php artisan ejaz:refresh-content`.
 8. توثيق الحادث: ما فُقد بين آخر نسخة والحادث، وإبلاغ من يلزم وفق نظام حماية البيانات الشخصية إن مس الحادث بيانات شخصية.
+
+## ٣. بحزمة الحاويات (`deploy/compose.production.yaml`)
+
+القاعدة في الحاوية `pgsql`، فتُنفَّذ أوامر PostgreSQL فيها. على جهاز التجربة (أو الخادم التجريبي) بعد فك التشفير:
+
+```bash
+DC="docker compose --env-file .env -f deploy/compose.production.yaml"
+$DC exec -T pgsql createdb -U ejaz ejaz_restore_test
+$DC exec -T pgsql pg_restore -U ejaz --no-owner --no-privileges --exit-on-error -d ejaz_restore_test < ejaz.dump
+$DC exec -T pgsql psql -U ejaz -d ejaz_restore_test -c "select count(*) from users"
+$DC exec -T pgsql dropdb -U ejaz ejaz_restore_test      # الإتلاف بعد التجربة
+```
+
+وفي الاستعادة الفعلية: الاستعادة في قاعدة جديدة (`ejaz_restored`)، ثم `DB_DATABASE=ejaz_restored` في `.env`، ثم `$DC up -d app horizon scheduler` (تُبنى ذاكرة الإعدادات عند بدء الحاويات)، ثم `ejaz:health`.
