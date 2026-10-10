@@ -18,7 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * المستخدمون وأدوارهم. بيانات شخصية: users.* للمشرف العام وحده افتراضياً — UserPolicy.
+ * المستخدمون وأدوارهم. بيانات شخصية: users.* للمشرف العام، وللمدير التنفيذي في حسابات الموظفين وحدها — UserPolicy.
  * الإنشاء والتعديل وإخفاء البيانات عبر Actions في App\Actions\Users.
  */
 class UserResource extends Resource
