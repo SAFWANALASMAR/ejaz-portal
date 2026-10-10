@@ -85,7 +85,8 @@ class SiteSettings extends Page
                 'show_accounts' => true,
                 ...Setting::group('home'),
             ],
-            'store' => Setting::group('store'),
+            // رابط مخزّن لا يصح (من قبل قاعدة النطاق) لا يمنع حفظ بقية التبويبات: يظهر فارغاً فيعمل المعتمد
+            'store' => [...Setting::group('store'), 'url' => StoreUrl::isAllowed(Setting::group('store')['url'] ?? null) ? Setting::group('store')['url'] : null],
             'donations' => [
                 ...Setting::group('donations'),
                 // المبالغ تُحفظ قائمة أرقام، والمكرر يعرضها صفوفاً
@@ -241,8 +242,14 @@ class SiteSettings extends Page
 
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);
         $state['home']['stats'] = array_values($state['home']['stats'] ?? []);
-        $state['store']['products'] = array_values($state['store']['products'] ?? []);
-        $state['donations']['amounts'] = array_values(array_map(fn (array $row): int => (int) $row['amount'], $state['donations']['amounts'] ?? []));
+        if (config('payments.enabled')) {
+            $state['store']['products'] = array_values($state['store']['products'] ?? []);
+            $state['donations']['amounts'] = array_values(array_map(fn (array $row): int => (int) $row['amount'], $state['donations']['amounts'] ?? []));
+        } else {
+            // الحقول المؤرشفة مخفية فلا تعود في الحالة: تبقى قيمها المحفوظة كما هي، ويُحفظ رابط المتجر وحده
+            $state['store'] = [...Setting::group('store'), 'url' => $state['store']['url'] ?? null];
+            unset($state['donations']);
+        }
 
         try {
             $action->handle($user, $state);

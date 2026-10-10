@@ -6,7 +6,8 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * رابط متجر الجمعية: https خارجي آمن، ومضيفه أحد النطاقات المسموحة في config/store.php أو نطاق فرعي منها.
+ * رابط متجر الجمعية: https خارجي آمن، ومضيفه أحد النطاقات المسموحة في config/store.php مطابقةً تامة،
+ * والنطاقات الفرعية بنمط صريح وحده (*.ejaz.org.sa). والمضيف حروف النطاق اللاتينية وحدها (punycode).
  */
 class StoreUrl implements ValidationRule
 {
@@ -18,10 +19,15 @@ class StoreUrl implements ValidationRule
 
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
+        // لا ترميز نسبة ولا حروف خارج النطاق، فلا يُلتف على المقارنة (مثل evil.com%2F.ejaz.org.sa)
+        if (preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $host) !== 1) {
+            return false;
+        }
+
         foreach ((array) config('store.allowed_hosts') as $allowed) {
             $allowed = strtolower((string) $allowed);
 
-            if ($allowed !== '' && ($host === $allowed || str_ends_with($host, '.'.$allowed))) {
+            if (str_starts_with($allowed, '*.') ? str_ends_with($host, substr($allowed, 1)) : $host === $allowed) {
                 return true;
             }
         }

@@ -36,7 +36,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('menu_items')->whereNull('parent_id')->where('url', '/store')->delete();
+        // ما أضافه هذا الترحيل وحده (العنوان والرابط معاً)
+        DB::table('menu_items')->whereNull('parent_id')->where('url', '/store')->where('label', 'المتجر')->delete();
         Cache::forget(MenuItem::CACHE_KEY);
     }
 };

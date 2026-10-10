@@ -13,7 +13,7 @@ return [
 
     'url' => env('STORE_URL', 'https://ejaz.org.sa'),
 
-    // النطاقات المسموحة لرابط المتجر، وتشمل نطاقاتها الفرعية. مفصولة بفواصل في .env
+    // النطاقات المسموحة لرابط المتجر مطابقةً تامة، والفرعية بنمط صريح (*.ejaz.org.sa). مفصولة بفواصل في .env
     'allowed_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('STORE_ALLOWED_HOSTS', 'ejaz.org.sa'))))),
 
 ];

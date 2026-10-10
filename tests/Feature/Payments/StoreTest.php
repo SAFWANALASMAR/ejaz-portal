@@ -15,7 +15,7 @@ it('hides the archived internal store page until it is enabled from the panel', 
 it('shows the store link and the product cards entered from the panel', function () {
     Setting::put('store', [
         'enabled' => true,
-        'url' => 'https://example.salla.sa',
+        'url' => 'https://ejaz.org.sa',
         'intro' => 'وصف تجريبي',
         'products' => [['name' => 'منتج تجريبي', 'description' => 'وصف المنتج', 'url' => 'https://example.salla.sa/p/1']],
     ]);
@@ -25,7 +25,7 @@ it('shows the store link and the product cards entered from the panel', function
         ->assertSee('وصف تجريبي')
         ->assertSee('منتج تجريبي')
         ->assertSee('https://example.salla.sa/p/1')
-        ->assertSee('https://example.salla.sa')
+        ->assertSee('https://ejaz.org.sa')
         ->assertSee(__('store.shop'));
 });
 

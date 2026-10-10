@@ -12,7 +12,7 @@
 
         <ul class="grid gap-px overflow-hidden rounded-2xl border border-line/70 bg-line/70 shadow-sm {{ $columns }}">
             @foreach ($shortcuts as $shortcut)
-                {{-- خمس بطاقات في عمودين: الأخيرة بعرض الصف فلا تبقى يتيمة --}}
+                {{-- عدد فردي من البطاقات في عمودين: الأخيرة بعرض الصف فلا تبقى يتيمة --}}
                 <li @class(['bg-white', 'col-span-2 sm:col-span-1' => $loop->last && count($shortcuts) % 2 === 1])>
                     <a href="{{ $shortcut['url'] }}" @if ($shortcut['external']) target="_blank" rel="noopener noreferrer" @endif class="group flex h-full flex-col items-center gap-2 px-4 py-8 text-center transition hover:bg-surface/60">
                         <span class="text-primary" aria-hidden="true">{{ svg('heroicon-o-'.$shortcut['icon'], 'size-8') }}</span>
