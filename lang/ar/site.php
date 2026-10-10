@@ -51,4 +51,22 @@ return [
 
     'missing' => 'ناقص',
 
+    // معرض الصور وعارضه المكبَّر
+    'gallery' => [
+        'viewer' => 'عارض الصور',
+        'open' => 'عرض الصورة :number مكبَّرة',
+        'close' => 'إغلاق',
+        'next' => 'الصورة التالية',
+        'previous' => 'الصورة السابقة',
+        'counter' => ':current من :total',
+    ],
+
+    // بطاقة الملف
+    'file' => [
+        'size_kb' => ':size كيلوبايت',
+        'size_mb' => ':size ميجابايت',
+        'preview' => 'عرض',
+        'download' => 'تنزيل',
+    ],
+
 ];

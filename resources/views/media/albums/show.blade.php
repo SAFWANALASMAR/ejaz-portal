@@ -1,5 +1,5 @@
 {{--
-    صفحة الألبوم: رأس بغلافه وتاريخه، ثم الوصف، ثم شبكة الصور، وكل صورة رابط لحجمها الكامل.
+    صفحة الألبوم: رأس بغلافه وتاريخه، ثم الوصف، ثم معرض الصور بعارضه المكبَّر.
     (تُخزَّن نصاً — AlbumController)
 --}}
 @php
@@ -18,16 +18,10 @@
         @if ($photos === [])
             <p class="text-muted">{{ __('albums.album.empty') }}</p>
         @else
-            <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                @foreach ($photos as $path)
-                    <li>
-                        <a href="{{ Storage::disk('public')->url($path) }}" class="block overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                            <img src="{{ Storage::disk('public')->url($path) }}" loading="lazy" class="aspect-square w-full object-cover transition hover:scale-105"
-                                alt="{{ __('albums.album.photo_alt', ['number' => $loop->iteration, 'title' => $album->title]) }}">
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+            <x-gallery :images="collect($photos)->values()->map(fn (string $path, int $i): array => [
+                'src' => Storage::disk('public')->url($path),
+                'alt' => __('albums.album.photo_alt', ['number' => $i + 1, 'title' => $album->title]),
+            ])->all()" />
         @endif
     </div>
 </section>

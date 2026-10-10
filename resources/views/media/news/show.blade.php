@@ -30,14 +30,12 @@
     <section class="py-10 sm:py-12" aria-labelledby="gallery">
         <div class="container-page">
             <x-section-heading id="gallery">{{ __('news.fields.gallery') }}</x-section-heading>
-            <ul class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                @foreach ($gallery as $path)
-                    <li>
-                        <img src="{{ Storage::disk('public')->url($path) }}" loading="lazy" class="aspect-square w-full rounded-2xl object-cover"
-                            alt="{{ __('news.article.gallery_alt', ['number' => $loop->iteration, 'title' => $article->title]) }}">
-                    </li>
-                @endforeach
-            </ul>
+            <div class="mt-8">
+                <x-gallery :images="collect($gallery)->values()->map(fn (string $path, int $i): array => [
+                    'src' => Storage::disk('public')->url($path),
+                    'alt' => __('news.article.gallery_alt', ['number' => $i + 1, 'title' => $article->title]),
+                ])->all()" />
+            </div>
         </div>
     </section>
 @endif

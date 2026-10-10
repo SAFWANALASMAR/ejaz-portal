@@ -148,3 +148,4 @@ document.addEventListener('submit', (event) => {
 
 import './competition-entry';
 import './live-countdown';
+import './gallery';

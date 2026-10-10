@@ -39,7 +39,7 @@
                     <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 font-semibold">
                         <span class="flex items-center gap-3">
                             @if ($current)
-                                {{ svg('heroicon-o-'.$current['icon'], 'size-5 text-accent') }}
+                                {{ svg('heroicon-o-'.$current['icon'], 'size-5 text-accent-light') }}
                                 {{ __($current['label']) }}
                             @else
                                 {{ __('site.my_account') }}

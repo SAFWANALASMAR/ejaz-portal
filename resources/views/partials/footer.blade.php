@@ -11,7 +11,7 @@
     $hasContact = filled($contact['email'] ?? null) || filled($contact['phone'] ?? null) || filled($contact['address'] ?? null) || $social !== [];
 @endphp
 
-<footer class="relative overflow-hidden bg-primary text-white">
+<footer class="relative overflow-hidden bg-primary-dark text-white">
     <img src="{{ asset('images/decor/palms-line.svg') }}" alt="" aria-hidden="true"
         class="pointer-events-none absolute bottom-0 end-0 w-[420px] max-w-[70%] opacity-25">
 
@@ -19,11 +19,11 @@
         <div class="space-y-4">
             <x-brand light />
             <p class="max-w-sm text-sm leading-7 text-white/75">{{ __('site.tagline') }}</p>
-            <p class="text-sm text-accent">{{ __('site.footer.supervision') }}</p>
+            <p class="text-sm text-accent-light">{{ __('site.footer.supervision') }}</p>
         </div>
 
         <nav aria-label="{{ __('site.footer.quick_links') }}">
-            <p class="mb-4 font-semibold text-accent">{{ __('site.footer.quick_links') }}</p>
+            <p class="mb-4 font-semibold text-accent-light">{{ __('site.footer.quick_links') }}</p>
             <ul class="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
                 @foreach ($menu as $item)
                     <li><a href="{{ $item->href() }}" class="text-white/80 hover:text-white">{{ $item->label }}</a></li>
@@ -33,22 +33,22 @@
 
         @if ($hasContact)
         <div class="space-y-3 text-sm">
-            <p class="mb-4 font-semibold text-accent">{{ __('site.footer.contact') }}</p>
+            <p class="mb-4 font-semibold text-accent-light">{{ __('site.footer.contact') }}</p>
             @if (! empty($contact['email']))
                 <p class="flex items-center gap-2">
-                    {{ svg('heroicon-o-envelope', 'size-4 shrink-0 text-accent') }}
+                    {{ svg('heroicon-o-envelope', 'size-4 shrink-0 text-accent-light') }}
                     <a href="mailto:{{ $contact['email'] }}" class="text-white/80 hover:text-white" dir="ltr">{{ $contact['email'] }}</a>
                 </p>
             @endif
             @if (! empty($contact['phone']))
                 <p class="flex items-center gap-2">
-                    {{ svg('heroicon-o-phone', 'size-4 shrink-0 text-accent') }}
+                    {{ svg('heroicon-o-phone', 'size-4 shrink-0 text-accent-light') }}
                     <a href="tel:{{ $contact['phone'] }}" class="text-white/80 hover:text-white" dir="ltr">{{ $contact['phone'] }}</a>
                 </p>
             @endif
             @if (! empty($contact['address']))
                 <p class="flex items-start gap-2">
-                    {{ svg('heroicon-o-map-pin', 'mt-1 size-4 shrink-0 text-accent') }}
+                    {{ svg('heroicon-o-map-pin', 'mt-1 size-4 shrink-0 text-accent-light') }}
                     <span class="leading-7 text-white/80">{{ $contact['address'] }}</span>
                 </p>
             @endif
@@ -57,7 +57,7 @@
                     @foreach ($social as $network => $url)
                         <li>
                             <a href="{{ $url }}" target="_blank" rel="noopener"
-                                class="inline-flex rounded-full border border-white/25 px-3 py-1 text-white/85 hover:border-accent hover:text-white">
+                                class="inline-flex rounded-full border border-white/25 px-3 py-1 text-white/85 hover:border-accent-light hover:text-white">
                                 {{ __('settings.social.'.$network) }}
                             </a>
                         </li>

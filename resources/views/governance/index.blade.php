@@ -64,27 +64,17 @@
         @if ($documents->isEmpty())
             <p class="mt-10 text-muted">{{ $filters === [] ? __('governance.list.empty') : __('governance.list.no_results') }}</p>
         @else
-            <ul class="mt-8 divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
+            <ul class="mt-8 grid gap-4 lg:grid-cols-2">
                 @foreach ($documents as $document)
                     <li>
-                        <a href="{{ route('governance.show', $document->slug) }}" class="flex items-start gap-4 p-4 transition hover:bg-surface/60 sm:p-5">
-                            <span class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft text-primary" aria-hidden="true">
-                                {{ svg('heroicon-o-document-text', 'size-6') }}
-                                <span class="text-[10px] font-bold">{{ __('governance.list.pdf') }}</span>
-                            </span>
-                            <span class="min-w-0 flex-1">
-                                <span class="block font-semibold text-ink">{{ $document->title }}</span>
-                                <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-                                    <span>{{ $document->category->getLabel() }}</span>
-                                    @if ($document->issued_at)
-                                        <span>{{ Dates::display($document->issued_at) }}</span>
-                                    @endif
-                                    @if (filled($document->version))
-                                        <span>{{ __('governance.fields.version') }}: {{ $document->version }}</span>
-                                    @endif
-                                </span>
-                            </span>
-                        </a>
+                        <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"
+                            :download="route('governance.download', $document->slug)" :bytes="$document->file_size"
+                            :type="__('governance.list.pdf')" class="h-full"
+                            :meta="[
+                                $document->category->getLabel(),
+                                $document->issued_at ? Dates::display($document->issued_at) : null,
+                                filled($document->version) ? __('governance.fields.version').': '.$document->version : null,
+                            ]" />
                     </li>
                 @endforeach
             </ul>

@@ -10,6 +10,6 @@
         alt="{{ __('site.name') }}"
         width="214"
         height="100"
-        class="h-12 w-auto sm:h-14"
+        class="h-14 w-auto sm:h-16"
     >
 </a>
