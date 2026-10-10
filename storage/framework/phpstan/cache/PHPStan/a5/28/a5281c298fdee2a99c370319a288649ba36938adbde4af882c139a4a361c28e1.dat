@@ -1,1 +1,0 @@
-O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-abfe8c455dee5936ea4f001083f61dd3a98477b04e90e9260a0223d20a01c9b5-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:86:"symfony\component\htmlsanitizer\visitor\attributesanitizer\attributesanitizerinterface";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}
