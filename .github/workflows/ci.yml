@@ -3,9 +3,11 @@
 name: CI
 
 on:
+  # كل دفع إلى أي فرع، وكل طلب دمج
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
