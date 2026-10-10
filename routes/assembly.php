@@ -3,6 +3,7 @@
 use App\Http\Controllers\Assembly\AssemblyController;
 use App\Http\Controllers\Assembly\AssemblyFileController;
 use App\Http\Controllers\Assembly\MeetingController;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,7 +14,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/assembly', AssemblyController::class)->name('assembly.index');
 
-Route::middleware(['auth', 'can:accessAssemblyArea', 'cache.headers:private;no_store'])->prefix('assembly')->name('assembly.')->group(function () {
+// والأدوار الإدارية (المجلس والسكرتير والمشرف العام) لا تصل إلى ملفات المجلس ومحاضره قبل تفعيل التحقق الثنائي، كما في اللوحة
+// (docs/security/2026-10-10-security-audit.md)
+Route::middleware(['auth', EnsureTwoFactorIsEnabled::class, 'can:accessAssemblyArea', 'cache.headers:private;no_store'])->prefix('assembly')->name('assembly.')->group(function () {
     Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
     Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show');
     Route::get('/minutes', [MeetingController::class, 'minutes'])->name('minutes.index');

@@ -77,7 +77,8 @@ class SecurityHeaders
         }
 
         // لوحة Horizon (للمشرف العام فقط) تضمّن سكربتاتها وخطوطها دون رمز
-        if ($request->is(trim(config('horizon.path'), '/').'*')) {
+        $horizon = trim(config('horizon.path'), '/');
+        if ($request->is($horizon, $horizon.'/*')) {
             $directives['script-src'] = ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
             $directives['style-src'] = ["'self'", "'unsafe-inline'", 'https://fonts.bunny.net'];
             $directives['font-src'] = ["'self'", 'data:', 'https://fonts.bunny.net'];
