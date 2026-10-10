@@ -7,6 +7,7 @@ use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\SafeUrl;
+use App\Rules\StoreUrl;
 use App\Support\PortalStats;
 use App\Support\Retention;
 use BackedEnum;
@@ -169,16 +170,17 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
-                    // المتجر والتبرعات (docs/plans/store-payments.md): الروابط خارجية آمنة فقط
+                    // المتجر المعتمد على سلة (قرار صفوان): رابطه https من نطاق مسموح. وخيارات المتجر الداخلي
+                    // والتبرعات مؤرشفة خلف PAYMENTS_ENABLED (docs/plans/store-salla.md)
                     Tab::make(__('settings.tabs.store'))->schema([
-                        Toggle::make('store.enabled')->label(__('settings.store.enabled')),
                         TextInput::make('store.url')->label(__('settings.store.url'))
-                            ->helperText(__('settings.store.url_hint'))
+                            ->helperText(__('settings.store.url_hint', ['default' => config('store.url')]))
                             ->maxLength(500)
                             ->extraInputAttributes(['dir' => 'ltr'])
-                            ->rule(new SafeUrl(allowInternal: false)),
-                        Textarea::make('store.intro')->label(__('settings.store.intro'))->rows(3)->maxLength(400),
-                        Section::make(__('settings.store.products'))->description(__('settings.store.products_hint'))->schema([
+                            ->rule(new StoreUrl),
+                        Toggle::make('store.enabled')->label(__('settings.store.enabled'))->visible(fn (): bool => (bool) config('payments.enabled')),
+                        Textarea::make('store.intro')->label(__('settings.store.intro'))->rows(3)->maxLength(400)->visible(fn (): bool => (bool) config('payments.enabled')),
+                        Section::make(__('settings.store.products'))->description(__('settings.store.products_hint'))->visible(fn (): bool => (bool) config('payments.enabled'))->schema([
                             Repeater::make('store.products')->hiddenLabel()->maxItems(24)->columns(2)->defaultItems(0)->schema([
                                 TextInput::make('name')->label(__('settings.store.product_name'))->required()->maxLength(100),
                                 TextInput::make('url')->label(__('settings.store.product_url'))->required()->maxLength(500)
@@ -188,7 +190,7 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
-                    Tab::make(__('settings.tabs.donations'))->schema([
+                    Tab::make(__('settings.tabs.donations'))->visible(fn (): bool => (bool) config('payments.enabled'))->schema([
                         Toggle::make('donations.enabled')->label(__('settings.donations.enabled')),
                         Textarea::make('donations.intro')->label(__('settings.donations.intro'))->rows(3)->maxLength(400),
                         Section::make(__('settings.donations.amounts'))->description(__('settings.donations.amounts_hint'))->schema([

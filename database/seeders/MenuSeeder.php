@@ -35,11 +35,13 @@ class MenuSeeder extends Seeder
                 ['label' => 'الشركاء', 'url' => '/partners'],
             ]],
             ['label' => 'الحوكمة', 'url' => '/governance'],
+            // المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه، ويفتح في تبويب جديد
+            ['label' => 'المتجر', 'url' => '/store', 'new_tab' => true],
             ['label' => 'تواصل معنا', 'url' => '/contact'],
         ];
 
         foreach ($menu as $sort => $item) {
-            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort]);
+            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => $item['new_tab'] ?? false]);
 
             foreach ($item['children'] ?? [] as $childSort => $child) {
                 MenuItem::create(['parent_id' => $parent->id, 'label' => $child['label'], 'url' => $child['url'], 'sort' => $childSort]);

@@ -35,6 +35,8 @@ class BuildHomePage
         // أيقونة مستقلة للمسابقات (ملاحظة المدير التنفيذي)
         'competitions' => ['icon' => 'trophy', 'route' => 'competitions.index'],
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
+        // المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه، ويفتح في تبويب جديد
+        'store' => ['icon' => 'shopping-bag', 'route' => 'store.index', 'external' => true],
     ];
 
     /**
@@ -46,7 +48,7 @@ class BuildHomePage
      * @return array{
      *     hero: array{title: string, text: string, image: string, button: array{label: string, url: string}|null},
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
-     *     shortcuts: list<array{key: string, icon: string, url: string}>,
+     *     shortcuts: list<array{key: string, icon: string, url: string, external: bool}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
      *     videos: Collection<int, LibraryItem>,
@@ -183,7 +185,7 @@ class BuildHomePage
     }
 
     /**
-     * @return list<array{key: string, icon: string, url: string}>
+     * @return list<array{key: string, icon: string, url: string, external: bool}>
      */
     private static function shortcuts(): array
     {
@@ -191,7 +193,7 @@ class BuildHomePage
 
         foreach (self::SHORTCUTS as $key => $shortcut) {
             if (Route::has($shortcut['route'])) {
-                $shortcuts[] = ['key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route'])];
+                $shortcuts[] = ['key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route']), 'external' => $shortcut['external'] ?? false];
             }
         }
 

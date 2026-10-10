@@ -12,15 +12,17 @@ use Illuminate\Support\Facades\Route;
 final class AccountNavigation
 {
     /**
-     * @return Collection<int, array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string}>
+     * @return Collection<int, array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string, enabled?: string}>
      */
     public static function for(User $user): Collection
     {
-        /** @var list<array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string}> $links */
+        /** @var list<array{route: string, label: string, icon: string, active: list<string>, description?: string, can?: string, enabled?: string}> $links */
         $links = config('account.navigation', []);
 
         return collect($links)
             ->filter(fn (array $link): bool => Route::has($link['route']))
+            // وحدة مؤرشفة خلف مفتاح (مثل الدفع) لا تظهر ما دام معطّلاً
+            ->filter(fn (array $link): bool => ! isset($link['enabled']) || (bool) config($link['enabled']))
             ->filter(fn (array $link): bool => ! isset($link['can']) || $user->can($link['can']))
             ->values();
     }

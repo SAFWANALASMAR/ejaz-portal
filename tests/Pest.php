@@ -22,6 +22,11 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// الدفع مؤرشف خلف PAYMENTS_ENABLED (معطّل افتراضياً — docs/plans/store-salla.md)، واختباراته تختبره مفعّلاً
+pest()->beforeEach(function () {
+    config(['payments.enabled' => true]);
+})->in('Feature/Payments');
+
 /**
  * مستخدم بدور محدد. الأدوار التي تشترط التحقق الثنائي يُفعَّل لها
  * حتى تمر من بوابة لوحة الإدارة في الاختبارات.

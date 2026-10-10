@@ -36,6 +36,14 @@ class PaymentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
+    /**
+     * الدفع مؤرشف خلف PAYMENTS_ENABLED (docs/plans/store-salla.md): لا يظهر المورد ولا يُفتح ما دام معطّلاً.
+     */
+    public static function canAccess(): bool
+    {
+        return (bool) config('payments.enabled') && parent::canAccess();
+    }
+
     public static function table(Table $table): Table
     {
         return $table

@@ -111,6 +111,9 @@ it('leaves out deleted programs and drafts of unpublished openings', function ()
 });
 
 it('orders the cards as in the reference (programs, my info, requests, then my competitions) and the sidebar as home, my info, programs, requests, my competitions, my payments', function () {
+    // «مدفوعاتي» مؤرشفة خلف PAYMENTS_ENABLED، فالترتيب يُختبر والمفتاح مفعّل
+    config(['payments.enabled' => true]);
+
     // «مسابقاتي» ثم «مدفوعاتي» بعد عناصر الصورة 04، بقرار المشرف في التكامل (القضية #6)
     $this->actingAs($this->user)->get('/account')->assertOk()
         ->assertSeeInOrder([__('programs.nav.programs_description'), __('account.nav.profile_description'), __('services.nav.requests_description'), __('competitions.account.nav_description')]);

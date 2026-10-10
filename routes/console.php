@@ -26,4 +26,4 @@ Schedule::command('ejaz:purge-anonymized-data')->daily()->withoutOverlapping()->
 Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 
 // المعلّق القديم من عمليات الدفع: يُستعلم عن فاتورته أو يُعلَّم فاشلاً (docs/plans/store-payments.md)
-Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer();
+Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer()->when(fn (): bool => (bool) config('payments.enabled'));
