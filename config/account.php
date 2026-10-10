@@ -60,6 +60,8 @@ return [
         ],
         [
             'route' => 'account.payments',
+            // مؤرشفة خلف PAYMENTS_ENABLED
+            'enabled' => 'payments.enabled',
             'label' => 'payments.account.nav',
             'description' => 'payments.account.nav_description',
             'icon' => 'banknotes',

@@ -39,8 +39,13 @@ class SyncPendingPayments extends Command
         $closed = 0;
         $receipts = 0;
 
+        // الدفع مؤرشف (PAYMENTS_ENABLED=false): لا استعلام من البوابة ولا إيصالات، ويبقى إغلاق ما لم يبدأ
+        // ومسح هوية المتبرع من الفاشلة (تقليل الاحتفاظ)
+        $enabled = (bool) config('payments.enabled');
+
         // معلّقة بمرجع، أو فاشلة في عمر فاتورتها
         Payment::query()
+            ->when(! $enabled, fn (Builder $query) => $query->whereRaw('false'))
             ->where('gateway', $driver)
             ->whereNotNull('gateway_reference')
             ->where('updated_at', '<', $syncedAgo)
@@ -87,6 +92,7 @@ class SyncPendingPayments extends Command
             });
 
         Payment::query()
+            ->when(! $enabled, fn (Builder $query) => $query->whereRaw('false'))
             ->where('status', PaymentStatus::Paid)
             ->whereNotNull('donor_email')
             ->whereNull('receipt_sent_at')

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\StoreCatalog;
 use App\Models\Setting;
-use App\Rules\SafeUrl;
+use App\Rules\StoreUrl;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -23,7 +23,7 @@ class StoreController extends Controller
 
         return view('store.index', [
             'intro' => is_string($store['intro'] ?? null) ? $store['intro'] : null,
-            'storeUrl' => is_string($url) && SafeUrl::isSafe($url, allowInternal: false) ? $url : null,
+            'storeUrl' => StoreUrl::isAllowed($url) ? $url : null,
             'products' => $catalog->products(),
         ]);
     }
