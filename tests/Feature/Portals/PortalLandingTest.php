@@ -76,7 +76,7 @@ it('shows each portal its capabilities in the requirement wording', function (Ro
     'board' => [RoleName::BoardMember, 'board', ['الاطلاع على الاجتماعات', 'الاطلاع على التقارير', 'الاطلاع على الملفات المخصصة لهم']],
     'executive director' => [RoleName::ExecutiveDirector, 'executive', ['إدارة الموظفين', 'إدارة البرامج', 'إدارة المسابقات', 'إدارة الملفات', 'الإحصائيات العامة']],
     'employees' => [RoleName::Accountant, 'employees', ['رفع الملفات', 'تسجيل الحضور', 'إدارة النماذج', 'متابعة البرامج']],
-    'reviewers' => [RoleName::Reviewer, 'reviewers', ['تحكيم المشاركات المسندة إليك']],
+    'reviewers' => [RoleName::Reviewer, 'reviewers', ['التحكيم']],
 ]);
 
 it('links each capability to the screen the role may open, and nothing else', function () {
@@ -108,7 +108,7 @@ it('shows each role only its navigation', function (RoleName $role, array $visib
     }
 })->with([
     'board' => [RoleName::BoardMember, [MeetingResource::class, DocumentResource::class, AssemblyFileResource::class], [UserResource::class, ProgramResource::class]],
-    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class, AssemblyFileResource::class], [MeetingResource::class, DocumentResource::class]],
+    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class], [MeetingResource::class, DocumentResource::class, AssemblyFileResource::class]],
     'employee' => [RoleName::MarketingManager, [ArchiveItemResource::class, ProgramResource::class, FormTemplateResource::class], [UserResource::class, CompetitionResource::class, MeetingResource::class, DocumentResource::class]],
     'reviewer' => [RoleName::Reviewer, [ReviewResource::class], [UserResource::class, ProgramResource::class, ArchiveItemResource::class]],
 ]);

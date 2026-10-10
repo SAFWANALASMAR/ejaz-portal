@@ -81,9 +81,9 @@ class UserPolicy extends ModulePolicy
 
     /**
      * حساب له دور إداري لا يعدّله إلا المشرف العام. والمدير التنفيذي يصل إلى حسابات الموظفين وحدها
-     * (والقائمة محصورة مثلها في UserResource): أدوارها الإدارية كلها مما يمنحه، أو حساب بلا أي دور
-     * (يُنشأ الآن في CreateStaffUser ولم يأخذ دوره؛ وكل حساب غيره يحمل دوراً، أقله المستفيد).
-     * فلا يصل إلى حساب مستفيد، ولا إلى حسابه، ولا إلى المشرف العام أو المجلس أو مدير تنفيذي آخر.
+     * (والقائمة محصورة مثلها في UserResource): أدوارها الإدارية كلها مما يمنحه. فلا يصل إلى حساب
+     * مستفيد، ولا حساب بلا أدوار، ولا حسابه، ولا المشرف العام أو المجلس أو مدير تنفيذي آخر. والحساب الذي
+     * ينشئه يأخذ دوره في الإنشاء نفسه (ChangeUserRoles بـ newAccount).
      */
     private function protectsAdministrator(User $user, Model $record): bool
     {
@@ -91,12 +91,10 @@ class UserPolicy extends ModulePolicy
             return false;
         }
 
-        $roles = $record->getRoleNames()->all();
-        $administrative = array_values(array_intersect($roles, RoleName::values(RoleName::panelRoles())));
+        $administrative = array_values(array_intersect($record->getRoleNames()->all(), RoleName::values(RoleName::panelRoles())));
 
         if ($user->hasRole(RoleName::ExecutiveDirector->value)) {
-            return $roles !== []
-                && ($administrative === [] || array_diff($administrative, RoleName::values(RoleName::assignableBy($user))) !== []);
+            return $administrative === [] || array_diff($administrative, RoleName::values(RoleName::assignableBy($user))) !== [];
         }
 
         return $administrative !== [];

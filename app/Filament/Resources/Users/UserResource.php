@@ -40,9 +40,10 @@ class UserResource extends Resource
         $query = parent::getEloquentQuery()->with('roles');
         $actor = auth()->user();
 
-        // المدير التنفيذي يرى حسابات الموظفين وحدها، كما في UserPolicy: لها دور إداري مما يمنحه،
-        // ولا دور إدارياً غيره. فلا يرى المستفيدين ولا المشرف العام ولا المجلس ولا حسابه
-        if ($actor instanceof User && ! $actor->hasRole(RoleName::SuperAdmin->value) && $actor->hasRole(RoleName::ExecutiveDirector->value)) {
+        // من يملك users.view غير المشرف العام (المدير التنفيذي اليوم) يرى حسابات الموظفين التي يمنح أدوارها وحدها، كما في
+        // UserPolicy: لها دور إداري مما يمنحه، ولا دور إدارياً غيره. فلا يرى المستفيدين ولا المشرف العام ولا
+        // المجلس ولا حسابه. ومن لا يمنح شيئاً قائمته فارغة
+        if ($actor instanceof User && ! $actor->hasRole(RoleName::SuperAdmin->value) && $actor->can('users.view')) {
             $panel = RoleName::values(RoleName::panelRoles());
             $managed = array_values(array_intersect($panel, RoleName::values(RoleName::assignableBy($actor))));
 

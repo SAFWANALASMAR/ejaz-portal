@@ -11,8 +11,10 @@ use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role;
 
 /**
  * «إدارة الموظفين» للمدير التنفيذي (requirements/12 §12 ب) دون تصعيد: يمنح أدوار الموظفين وحدها،
@@ -42,8 +44,8 @@ it('creates an employee from the admin screen with only the roles it may grant o
     expect(User::where('email', 'new.staff@example.test')->sole()->hasRole(RoleName::MarketingManager->value))->toBeTrue();
 });
 
-it('never grants the super admin, board or executive director roles', function (RoleName $role) {
-    expect(fn () => app(CreateStaffUser::class)->handle($this->director, ['name' => 'محاولة', 'email' => 'escalate@example.test'], [$role->value]))
+it('never grants a role beyond the four jobs, even alongside one of them', function (RoleName $role) {
+    expect(fn () => app(CreateStaffUser::class)->handle($this->director, ['name' => 'محاولة', 'email' => 'escalate@example.test'], [RoleName::Accountant->value, $role->value]))
         ->toThrow(AuthorizationException::class);
 
     expect(User::where('email', 'escalate@example.test')->exists())->toBeFalse();
@@ -53,7 +55,25 @@ it('never grants the super admin, board or executive director roles', function (
     expect(fn () => app(ChangeUserRoles::class)->handle($this->director, $employee, [RoleName::FinancialManager->value, $role->value]))
         ->toThrow(AuthorizationException::class)
         ->and($employee->fresh()->getRoleNames()->all())->toBe([RoleName::FinancialManager->value]);
-})->with([RoleName::SuperAdmin, RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::Reviewer]);
+})->with([RoleName::SuperAdmin, RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::Reviewer, RoleName::Secretary, RoleName::ContentEditor, RoleName::ProgramManager]);
+
+it('grants only roles whose permissions it already holds', function () {
+    $own = $this->director->getAllPermissions()->pluck('name');
+
+    foreach (RoleName::assignableBy($this->director) as $role) {
+        expect(Role::findByName($role->value)->permissions->pluck('name')->diff($own)->all())->toBe([], $role->value);
+    }
+});
+
+it('requires a job role on every account it creates, before saving anything', function (array $roles) {
+    expect(fn () => app(CreateStaffUser::class)->handle($this->director, ['name' => 'بلا وظيفة', 'email' => 'nojob@example.test'], $roles))
+        ->toThrow(ValidationException::class);
+
+    expect(User::where('email', 'nojob@example.test')->exists())->toBeFalse();
+})->with([
+    'no role' => [[]],
+    'member only' => [[RoleName::Member->value]],
+]);
 
 it('ignores the general assembly role, which only the members register grants', function () {
     $employee = userWithRole(RoleName::Accountant);
@@ -120,6 +140,8 @@ it('cannot reach the accounts of the super admin, the board, another director, r
     'board member' => fn () => userWithRole(RoleName::BoardMember),
     'another director' => fn () => userWithRole(RoleName::ExecutiveDirector),
     'reviewer' => fn () => userWithRole(RoleName::Reviewer),
+    'secretary' => fn () => userWithRole(RoleName::Secretary),
+    'content editor' => fn () => userWithRole(RoleName::ContentEditor),
     'employee who is also on the board' => function () {
         $user = userWithRole(RoleName::Accountant);
         $user->assignRole(RoleName::BoardMember->value);
@@ -144,8 +166,8 @@ it('lists only the employee accounts it manages', function () {
     $this->actingAs($this->director);
 
     Livewire::test(ListUsers::class)
-        ->assertCanSeeTableRecords([$employee, $editor])
-        ->assertCanNotSeeTableRecords([$member, $admin, $board, $this->director]);
+        ->assertCanSeeTableRecords([$employee])
+        ->assertCanNotSeeTableRecords([$editor, $member, $admin, $board, $this->director]);
 });
 
 it('keeps the full list for the super admin', function () {

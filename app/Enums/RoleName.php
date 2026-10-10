@@ -96,8 +96,10 @@ enum RoleName: string implements HasLabel
     /**
      * الأدوار التي يمنحها الحساب ويسحبها (ChangeUserRoles). قاعدة في الشيفرة لا في ملف الصلاحيات:
      * - المشرف العام: كل الأدوار عدا عضو الجمعية العمومية (من سجل الأعضاء وحده).
-     * - المدير التنفيذي («إدارة الموظفين»): أدوار الموظفين عداه، ومحرر المحتوى، ومسؤول البرامج، والمستفيد.
-     *   فلا يمنح أبداً المشرف العام ولا عضو المجلس ولا المدير التنفيذي ولا المحكّم.
+     * - المدير التنفيذي («إدارة الموظفين»): الوظائف الأربع (المدير المالي، والمحاسب، ومدير المشاريع،
+     *   ومدير التسويق) والمستفيد، وكلها صلاحياتها ضمن صلاحياته فلا يكسب بها ما لا يملك. فلا يمنح المشرف
+     *   العام ولا عضو المجلس ولا المدير التنفيذي ولا المحكّم، ولا السكرتير ولا محرر المحتوى ولا مسؤول
+     *   البرامج (فيها صلاحيات خارج صلاحياته: الطلبات والإعدادات والاستبيانات).
      * - غيرهما: لا شيء.
      *
      * @return list<self>
@@ -109,7 +111,7 @@ enum RoleName: string implements HasLabel
         }
 
         if ($actor->hasRole(self::ExecutiveDirector->value)) {
-            return [...array_values(array_filter(self::staff(), fn (self $role): bool => $role !== self::ExecutiveDirector)), self::ContentEditor, self::ProgramManager, self::Member];
+            return [self::FinancialManager, self::Accountant, self::ProjectsManager, self::MarketingManager, self::Member];
         }
 
         return [];

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * إحصائيات المشترك في لوحته (requirements/12 §12 د: «عرض الاحصائيات للبرامج المسجل فيها، أو المنجزة»)
  * من البيانات القائمة، لصاحب الحساب وحده، وبثلاثة استعلامات مهما كثرت سجلاته:
- * - المسجل فيها: تسجيلاته غير الملغاة في برامج غير محذوفة.
+ * - المسجل فيها: تسجيلاته المؤكدة (لا قائمة الانتظار ولا الملغاة) في برامج غير محذوفة.
  * - المنجزة: ما سُجّل حضوره منها.
  * - مشاركات المسابقات المرسلة.
  */
@@ -25,7 +25,7 @@ class BuildParticipationStats
     {
         $registrations = fn (): Builder => ProgramRegistration::query()
             ->whereBelongsTo($user)
-            ->where('status', '!=', RegistrationStatus::Cancelled->value)
+            ->where('status', RegistrationStatus::Confirmed->value)
             ->whereHas('program', fn (Builder $program) => $program->whereNull('deleted_at'));
 
         return [

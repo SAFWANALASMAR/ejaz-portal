@@ -31,8 +31,8 @@ function portalMatrix(): array
         'create meetings' => [['create', Meeting::class], [RoleName::Secretary]],
         'view reports (governance)' => [['viewAny', Document::class], [RoleName::BoardMember, RoleName::ContentEditor]],
         'create reports (governance)' => [['create', Document::class], [RoleName::ContentEditor]],
-        'view member and board files' => [['viewAny', AssemblyFile::class], [RoleName::BoardMember, RoleName::Secretary, RoleName::ExecutiveDirector]],
-        'create member and board files' => [['create', AssemblyFile::class], [RoleName::Secretary, RoleName::ExecutiveDirector]],
+        'view member and board files' => [['viewAny', AssemblyFile::class], [RoleName::BoardMember, RoleName::Secretary]],
+        'create member and board files' => [['create', AssemblyFile::class], [RoleName::Secretary]],
         'view statistics' => [['stats.view'], [RoleName::BoardMember, RoleName::ExecutiveDirector]],
 
         // ب. المدير التنفيذي

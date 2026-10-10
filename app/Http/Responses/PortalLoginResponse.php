@@ -23,7 +23,8 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
     public function toResponse($request): Response
     {
         if ($request->wantsJson()) {
-            return new JsonResponse(['two_factor' => false]);
+            // كاستجابتي Fortify: الدخول يخبر أن لا تحقق ثنائياً معلقاً، وإتمام التحقق الثنائي بلا محتوى
+            return $request->hasAny(['code', 'recovery_code']) ? new JsonResponse('', 204) : new JsonResponse(['two_factor' => false]);
         }
 
         $user = $request->user();

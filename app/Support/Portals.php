@@ -13,7 +13,7 @@ use App\Filament\Resources\Programs\ProgramResource;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
-use Filament\Resources\Resource;
+use Filament\Resources\Resource as FilamentResource;
 
 /**
  * بوابات اللوحة (requirements/12 §12): لكل فئة أدوارها وقدراتها بنصوص المتطلبات (lang/ar/portals.php)،
@@ -23,7 +23,7 @@ use Filament\Resources\Resource;
 final class Portals
 {
     /**
-     * @return array<string, array{roles: list<RoleName>, items: array<string, class-string<Resource>|null>}>
+     * @return array<string, array{roles: list<RoleName>, items: array<string, class-string<FilamentResource>|null>}>
      */
     public static function definitions(): array
     {

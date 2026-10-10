@@ -58,6 +58,8 @@ class UserForm
                             ->options(fn () => collect(auth()->user() instanceof User ? RoleName::assignableBy(auth()->user()) : [])->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()])->all())
                             ->columns(2)
                             ->columnSpanFull()
+                            // حساب الموظف عند غير المشرف العام يحمل وظيفة (CreateStaffUser يفرضه أيضاً)
+                            ->required(fn () => ! (auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false))
                             ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false)
                             // ChangeUserRoles يمنع ذلك أيضاً؛ وهنا رسالة واضحة بدل خطأ 403
                             ->rule(fn (?User $record) => function (string $attribute, mixed $value, Closure $fail) use ($record): void {

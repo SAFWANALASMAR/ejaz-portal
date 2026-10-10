@@ -26,12 +26,18 @@ class ChangeUserRoles
 {
     /**
      * @param  list<string>  $roles
+     * @param  bool  $newAccount  حساب أنشأه المنفّذ للتو في CreateStaffUser ولم يأخذ دوراً بعد: يكفي فيه أن
+     *                            ينشئ الحسابات ويمنح أدواراً، فلا تحتاج السياسة استثناءً للحساب بلا أدوار
      *
      * @throws AuthorizationException
      */
-    public function handle(User $actor, User $user, array $roles): void
+    public function handle(User $actor, User $user, array $roles, bool $newAccount = false): void
     {
-        if (! $actor->can('assignRoles', $user)) {
+        $allowed = $newAccount
+            ? $user->wasRecentlyCreated && $user->roles()->doesntExist() && $actor->can('create', User::class) && $actor->can('assignRoles', User::class)
+            : $actor->can('assignRoles', $user);
+
+        if (! $allowed) {
             throw new AuthorizationException;
         }
 

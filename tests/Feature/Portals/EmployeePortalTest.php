@@ -1,9 +1,11 @@
 <?php
 
 use App\Actions\Programs\RecordProgramAttendance;
+use App\Enums\ProgramDelivery;
 use App\Enums\RoleName;
 use App\Filament\Resources\ArchiveItems\ArchiveItemResource;
 use App\Filament\Resources\FormTemplates\FormTemplateResource;
+use App\Filament\Resources\Programs\Pages\CreateProgram;
 use App\Filament\Resources\Programs\Pages\ViewProgram;
 use App\Filament\Resources\Programs\ProgramResource;
 use App\Filament\Resources\Programs\RelationManagers\RegistrationsRelationManager;
@@ -11,6 +13,7 @@ use App\Models\ArchiveCategory;
 use App\Models\ArchiveItem;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
+use App\Models\ProgramType;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Livewire\Livewire;
@@ -82,4 +85,53 @@ it('manages the electronic forms', function () {
     $this->get(FormTemplateResource::getUrl('index'))->assertOk();
     $this->get(FormTemplateResource::getUrl('create'))->assertOk();
     expect($this->employee->can('form_entries.approve'))->toBeFalse();
+});
+
+it('shows employees the registrant names only, and their contact details to the program managers', function () {
+    $program = Program::factory()->create();
+    $registration = ProgramRegistration::factory()->for($program)->create();
+    $this->actingAs($this->employee);
+
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $program, 'pageClass' => ViewProgram::class])
+        ->assertTableColumnVisible('user.name')
+        ->assertTableColumnHidden('user.email')
+        ->assertTableColumnHidden('user.phone')
+        ->assertDontSee($registration->user->email);
+
+    $this->actingAs(userWithRole(RoleName::ProgramManager));
+
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $program, 'pageClass' => ViewProgram::class])
+        ->assertTableColumnVisible('user.email')
+        ->assertTableColumnVisible('user.phone');
+});
+
+it('refuses attendance on a deleted program for everyone, and its page to employees', function () {
+    $program = Program::factory()->create(['starts_at' => now()->subHour()]);
+    $registration = ProgramRegistration::factory()->for($program)->create();
+    $program->delete();
+
+    foreach ([$this->employee, userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin)] as $actor) {
+        expect(fn () => app(RecordProgramAttendance::class)->handle($actor, $program, collect([$registration]), true))
+            ->toThrow(AuthorizationException::class);
+    }
+
+    expect($registration->fresh()->attended_at)->toBeNull()
+        ->and($this->employee->can('view', $program))->toBeFalse()
+        ->and(userWithRole(RoleName::ProgramManager)->can('view', $program))->toBeTrue();
+
+    $this->actingAs($this->employee)->get(ProgramResource::getUrl('view', ['record' => $program]))->assertForbidden();
+});
+
+it('still takes the program manager to the edit page after creating a program', function () {
+    $type = ProgramType::factory()->create();
+    $this->actingAs(userWithRole(RoleName::ProgramManager));
+
+    Livewire::test(CreateProgram::class)
+        ->fillForm([
+            'title' => 'برنامج', 'slug' => 'new-program', 'program_type_id' => $type->id,
+            'starts_at' => now()->addWeek()->format('Y-m-d H:i'), 'delivery' => ProgramDelivery::Remote->value,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(ProgramResource::getUrl('edit', ['record' => Program::where('slug', 'new-program')->sole()]));
 });

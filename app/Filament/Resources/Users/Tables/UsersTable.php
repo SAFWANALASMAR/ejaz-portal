@@ -33,6 +33,11 @@ class UsersTable
         return preg_match('/^[\s+\-()]*\d[\d\s+\-()]*$/', Digits::latin((string) $search)) === 1;
     }
 
+    private static function superAdmin(): bool
+    {
+        return auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -64,12 +69,13 @@ class UsersTable
                 IconColumn::make('is_active')
                     ->label(__('users.fields.is_active'))
                     ->boolean(),
-                // يكشف أي الحسابات الإدارية بلا تحقق ثنائي لمن يملك users.view (المشرف العام وحده
-                // اليوم). يُراجع إن مُنحت users.view لدور آخر
+                // يكشف أي الحسابات الإدارية بلا تحقق ثنائي: للمشرف العام وحده، ولو مُنحت users.view لغيره
+                // (المدير التنفيذي في حسابات الموظفين)
                 IconColumn::make('two_factor')
                     ->label(__('users.fields.two_factor'))
                     ->state(fn (User $record): bool => $record->two_factor_confirmed_at !== null)
                     ->boolean()
+                    ->visible(fn (): bool => self::superAdmin())
                     ->toggleable(),
                 TextColumn::make('last_login_at')
                     ->label(__('users.fields.last_login_at'))
@@ -80,6 +86,8 @@ class UsersTable
                     ->dateTime('Y-m-d')
                     ->badge()
                     ->color('danger')
+                    // طلبات الحذف يعالجها المشرف العام وحده
+                    ->visible(fn (): bool => self::superAdmin())
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('users.fields.created_at'))
@@ -96,6 +104,7 @@ class UsersTable
                     ->label(__('users.fields.is_active')),
                 Filter::make('deletion_requested')
                     ->label(__('users.filters.deletion_requested'))
+                    ->visible(fn (): bool => self::superAdmin())
                     ->query(fn (Builder $query) => $query->whereNotNull('deletion_requested_at')->whereNull('anonymized_at')),
             ])
             ->recordActions([

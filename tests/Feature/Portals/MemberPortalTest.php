@@ -30,7 +30,7 @@ it('counts the programs registered, the completed ones and the competition entri
     CompetitionSubmission::factory()->submitted()->create();
 
     expect(app(BuildParticipationStats::class)->handle($this->member))->toBe([
-        'registered' => 3,
+        'registered' => 2,
         'completed' => 1,
         'entries' => 1,
     ]);

@@ -115,12 +115,12 @@ return [
         // بوابات الدخول الخمس (requirements/12 §12، docs/plans/five-portals.md)
         // ب. المدير التنفيذي: ما للموظفين، و«إدارة الموظفين» (المستخدمون محصورون في حسابات الموظفين،
         // والأدوار التي يمنحها في RoleName::assignableBy)، و«إدارة البرامج»، و«إدارة المسابقات»،
-        // و«إدارة الملفات»، و«الإحصائيات العامة»
+        // و«إدارة الملفات» (الأرشيف؛ وملفات المجلس للمجلس — open-questions)، و«الإحصائيات العامة»
         'executive_director' => [
             'users.view', 'users.create', 'users.update',
             'program_types.*', 'programs.*',
             'competitions.*', 'submissions.*',
-            'archive.*', 'assembly_files.*',
+            'archive.*',
             'stats.view', 'surveys.view',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
         ],
