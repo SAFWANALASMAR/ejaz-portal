@@ -45,6 +45,11 @@ class PageController extends Controller
             return redirect()->route('about', status: 301);
         }
 
+        // وصفحة المقدمة تُعرض في قالبها، فلا تتكرر برابطين
+        if (($intro = Page::introUrl($slug)) !== null) {
+            return redirect($intro, 301);
+        }
+
         /** @var list<string> $published */
         $published = ContentCache::remember('pages.slugs', fn (): array => Page::query()->published()->pluck('slug')->all());
 

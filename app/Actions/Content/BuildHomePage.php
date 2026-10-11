@@ -12,6 +12,7 @@ use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
+use App\Rules\VideoUrl;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Route;
@@ -46,7 +47,8 @@ class BuildHomePage
 
     /**
      * @return array{
-     *     hero: array{title: string, text: string, image: string, button: array{label: string, url: string}|null},
+     *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
+     *     video: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
      *     shortcuts: list<array{key: string, icon: string, url: string, external: bool}>,
      *     initiatives: Collection<int, Initiative>,
@@ -63,6 +65,8 @@ class BuildHomePage
 
         return [
             'hero' => self::hero($home),
+            // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
+            'video' => VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null),
             'stats' => self::shows($home, 'stats') ? self::stats($home) : [],
             'shortcuts' => self::shows($home, 'shortcuts') ? self::shortcuts() : [],
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
@@ -130,7 +134,7 @@ class BuildHomePage
 
     /**
      * @param  array<string, mixed>  $home
-     * @return array{title: string, text: string, image: string, button: array{label: string, url: string}|null}
+     * @return array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null}
      */
     private static function hero(array $home): array
     {
@@ -144,6 +148,8 @@ class BuildHomePage
             'title' => $text('hero_title') ?? __('site.name'),
             'text' => $text('hero_text') ?? __('site.tagline'),
             'image' => $image !== null ? Storage::disk('public')->url($image) : asset('images/placeholders/architecture.svg'),
+            // الصورة المؤقتة زخرفية، والمرفوعة نصها البديل من الإعدادات
+            'alt' => $image !== null ? (string) $text('hero_image_alt') : '',
             // يُفحص الرابط مرة أخرى عند العرض، فلا يظهر رابط ضار ولو وصل إلى القاعدة
             'button' => $label !== null && $url !== null && SafeUrl::isSafe($url) ? ['label' => $label, 'url' => $url] : null,
         ];

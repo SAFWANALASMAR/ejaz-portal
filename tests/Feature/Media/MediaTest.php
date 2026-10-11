@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\SurveyAudience;
 use App\Models\Album;
 use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Setting;
+use App\Models\Survey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -21,10 +23,15 @@ it('shows the media center tiles, with the video library opening the library vid
         ->assertSee('خبر منشور')
         ->assertDontSee('خبر غير منشور');
 
-    // «قياس الرضا» يظهر متى بُنيت وحدته، ولا رابط معطل قبل ذلك
-    Route::has('surveys.index')
-        ? $response->assertSee('href="'.route('surveys.index').'"', false)
-        : $response->assertDontSee(__('media.tiles.surveys'));
+    // «قياس الرضا» لا يظهر بلا استبيان عام مفتوح، فلا رابط إلى 404
+    $response->assertDontSee(__('media.tiles.surveys'));
+});
+
+it('shows the satisfaction survey tile while a general survey is open', function () {
+    Survey::factory()->create(['audience' => SurveyAudience::General]);
+
+    $this->get('/media')->assertOk()->assertSee('href="'.route('surveys.index').'"', false);
+    $this->get(route('surveys.index'))->assertRedirect();
 });
 
 it('lists the published news newest first, filters by category and searches titles, taking % and _ as plain letters', function () {

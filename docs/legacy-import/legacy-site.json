@@ -1,8 +1,911 @@
 {
+  "media": [
+    {
+      "slug": "icon-ic-3-svg",
+      "file": "files/icons/ic-3.svg",
+      "title": "ic-3",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/ic-3.svg"
+      ]
+    },
+    {
+      "slug": "icon-ic-2-svg",
+      "file": "files/icons/ic-2.svg",
+      "title": "ic-2",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/ic-2.svg"
+      ]
+    },
+    {
+      "slug": "icon-lines-svg",
+      "file": "files/icons/lines.svg",
+      "title": "lines",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/lines.svg"
+      ]
+    },
+    {
+      "slug": "icon-ic-svg",
+      "file": "files/icons/ic.svg",
+      "title": "ic",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/ic.svg"
+      ]
+    },
+    {
+      "slug": "icon-ic-1-svg",
+      "file": "files/icons/ic-1.svg",
+      "title": "ic-1",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/ic-1.svg"
+      ]
+    },
+    {
+      "slug": "icon-ic-4-svg",
+      "file": "files/icons/ic-4.svg",
+      "title": "ic-4",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/ic-4.svg"
+      ]
+    },
+    {
+      "slug": "icon-logo-light-svg",
+      "file": "files/icons/logo-light.svg",
+      "title": "logo-light",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/logo-light.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35895-svg",
+      "file": "files/icons/Path-35895.svg",
+      "title": "Path-35895",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35895.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35897-svg",
+      "file": "files/icons/Path-35897.svg",
+      "title": "Path-35897",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35897.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35898-svg",
+      "file": "files/icons/Path-35898.svg",
+      "title": "Path-35898",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35898.svg"
+      ]
+    },
+    {
+      "slug": "icon-logitech-2-1-svg",
+      "file": "files/icons/logitech-2-1.svg",
+      "title": "logitech-2-1.svg",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/logitech-2-1.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35896-svg",
+      "file": "files/icons/Path-35896.svg",
+      "title": "Path-35896",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35896.svg"
+      ]
+    },
+    {
+      "slug": "1-png",
+      "file": "files/images/1.png",
+      "title": "1",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/1.png"
+      ]
+    },
+    {
+      "slug": "world-map1x-png",
+      "file": "files/images/world-map1x.png",
+      "title": "world-map1x",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/world-map1x.png"
+      ]
+    },
+    {
+      "slug": "icon-path-14184-svg",
+      "file": "files/icons/Path-14184.svg",
+      "title": "Path-14184",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-14184.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35894-svg",
+      "file": "files/icons/Path-35894.svg",
+      "title": "Path-35894",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35894.svg"
+      ]
+    },
+    {
+      "slug": "icon-path-35806-svg",
+      "file": "files/icons/Path-35806.svg",
+      "title": "Path-35806.svg",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Path-35806.svg"
+      ]
+    },
+    {
+      "slug": "icon-group-svg",
+      "file": "files/icons/Group_.svg",
+      "title": "Group_.svg",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Group_.svg"
+      ]
+    },
+    {
+      "slug": "img-2-png",
+      "file": "files/images/img-2.png",
+      "title": "img-2.png",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/img-2.png"
+      ]
+    },
+    {
+      "slug": "icon-amazon-2-svg",
+      "file": "files/icons/amazon-2.svg",
+      "title": "amazon-2.svg",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/amazon-2.svg"
+      ]
+    },
+    {
+      "slug": "icon-paypal-logo-svg",
+      "file": "files/icons/paypal-logo.svg",
+      "title": "paypal-logo.svg",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/paypal-logo.svg"
+      ]
+    },
+    {
+      "slug": "sticker-png",
+      "file": "files/images/sticker.png",
+      "title": "sticker.png",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/sticker.png"
+      ]
+    },
+    {
+      "slug": "kacst-png",
+      "file": "files/images/kacst.png",
+      "title": "kacst",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/kacst.png"
+      ]
+    },
+    {
+      "slug": "cultural-1-png",
+      "file": "files/images/cultural-1.png",
+      "title": "cultural (1)",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/cultural-1.png"
+      ]
+    },
+    {
+      "slug": "image-901-png",
+      "file": "files/images/Image-901.png",
+      "title": "Image-901.png",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/services/assembly-membership",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/Image-901.png"
+      ]
+    },
+    {
+      "slug": "civic-png",
+      "file": "files/images/civic.png",
+      "title": "civic",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/civic.png"
+      ]
+    },
+    {
+      "slug": "education-technology-png",
+      "file": "files/images/education-technology.png",
+      "title": "education-technology",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/education-technology.png"
+      ]
+    },
+    {
+      "slug": "group-1321314800-png",
+      "file": "files/images/Group-1321314800.png",
+      "title": "Group-1321314800.png",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/Group-1321314800.png"
+      ]
+    },
+    {
+      "slug": "occupational-therapy-png",
+      "file": "files/images/occupational-therapy.png",
+      "title": "occupational-therapy",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/occupational-therapy.png"
+      ]
+    },
+    {
+      "slug": "quality-control-png",
+      "file": "files/images/quality-control.png",
+      "title": "quality-control",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/about",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/quality-control.png"
+      ]
+    },
+    {
+      "slug": "mask-4-2x-jpg",
+      "file": "files/images/Mask-4@2x.jpg",
+      "title": "Mask-4@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-4@2x.jpg"
+      ]
+    },
+    {
+      "slug": "mask-5-2x-jpg",
+      "file": "files/images/Mask-5@2x.jpg",
+      "title": "Mask-5@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-5@2x.jpg"
+      ]
+    },
+    {
+      "slug": "img-asas1-2x-jpg",
+      "file": "files/images/img-asas1@2x.jpg",
+      "title": "img-asas1@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/img-asas1@2x.jpg"
+      ]
+    },
+    {
+      "slug": "cultural-png",
+      "file": "files/images/cultural.png",
+      "title": "cultural",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/cultural.png"
+      ]
+    },
+    {
+      "slug": "mask-6-2x-jpg",
+      "file": "files/images/Mask-6@2x.jpg",
+      "title": "Mask-6@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-6@2x.jpg"
+      ]
+    },
+    {
+      "slug": "ejaz-emblem-cropped-jpeg",
+      "file": "files/images/cropped-شعار-الجمعية.jpeg",
+      "title": "cropped-شعار-الجمعية.jpeg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/cropped-شعار-الجمعية.jpeg"
+      ]
+    },
+    {
+      "slug": "img-ss2-2x-jpg",
+      "file": "files/images/img-ss2@2x.jpg",
+      "title": "img-ss2@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/img-ss2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "carous-img-2-2x-jpg",
+      "file": "files/images/carous-img-2@2x.jpg",
+      "title": "carous-img-2@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/carous-img-2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "group-61552-png",
+      "file": "files/images/Group-61552.png",
+      "title": "Group-61552.png",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/services/assembly-membership",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/Group-61552.png"
+      ]
+    },
+    {
+      "slug": "bg-1-2x-jpg",
+      "file": "files/images/bg-1@2x.jpg",
+      "title": "bg-1@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-1@2x.jpg"
+      ]
+    },
+    {
+      "slug": "bg-4-2x-jpg",
+      "file": "files/images/bg-4@2x.jpg",
+      "title": "bg-4@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-4@2x.jpg"
+      ]
+    },
+    {
+      "slug": "1-2x-jpg",
+      "file": "files/images/1@2x.jpg",
+      "title": "1@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/1@2x.jpg"
+      ]
+    },
+    {
+      "slug": "cta-bg-2x-1024x284-1-jpg",
+      "file": "files/images/cta-bg@2x-1024x284-1.jpg",
+      "title": "cta-bg@2x-1024×284",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/cta-bg@2x-1024x284-1.jpg"
+      ]
+    },
+    {
+      "slug": "mask-2x-6-jpg",
+      "file": "files/images/Mask@2x-6.jpg",
+      "title": "Mask@2x-6.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask@2x-6.jpg"
+      ]
+    },
+    {
+      "slug": "bg-3-2x-jpg",
+      "file": "files/images/bg-3@2x.jpg",
+      "title": "bg-3@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-3@2x.jpg"
+      ]
+    },
+    {
+      "slug": "bg-2-2x-1-jpg",
+      "file": "files/images/bg-2@2x-1.jpg",
+      "title": "bg-2@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-2@2x-1.jpg"
+      ]
+    },
+    {
+      "slug": "bg-2-2x-jpg",
+      "file": "files/images/bg-2@2x.jpg",
+      "title": "bg-2@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "bg-2-2x-scaled-1-jpeg",
+      "file": "files/images/bg-2@2x-scaled-1.jpeg",
+      "title": "bg-2@2x-scaled-1.jpeg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/bg-2@2x-scaled-1.jpeg"
+      ]
+    },
+    {
+      "slug": "img-1-2x-1-jpg",
+      "file": "files/images/img-1@2x-1.jpg",
+      "title": "img-1@2x-1.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/img-1@2x-1.jpg"
+      ]
+    },
+    {
+      "slug": "2-2x-jpg",
+      "file": "files/images/2@2x.jpg",
+      "title": "2@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "image-2-2x-jpg",
+      "file": "files/images/Image-2@2x.jpg",
+      "title": "Image-2@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Image-2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "mask-2-2x-jpg",
+      "file": "files/images/Mask-2@2x.jpg",
+      "title": "Mask-2@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-2@2x.jpg"
+      ]
+    },
+    {
+      "slug": "mask-1-2x-3-jpg",
+      "file": "files/images/Mask-1@2x-3.jpg",
+      "title": "Mask-1@2x-3.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-1@2x-3.jpg"
+      ]
+    },
+    {
+      "slug": "img-6-2x-jpg",
+      "file": "files/images/img-6@2x.jpg",
+      "title": "img-6@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/img-6@2x.jpg"
+      ]
+    },
+    {
+      "slug": "mask-1-2x-1-jpg",
+      "file": "files/images/Mask-1@2x-1.jpg",
+      "title": "Mask-1@2x-1.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-1@2x-1.jpg"
+      ]
+    },
+    {
+      "slug": "bg-1-2x-scaled-1-760x520-1-jpeg",
+      "file": "files/images/bg-1@2x-scaled-1-760x520-1.jpeg",
+      "title": "bg-1@2x-scaled-1-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/07/bg-1@2x-scaled-1-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "img-2-2x-1-760x520-1-jpeg",
+      "file": "files/images/img-2@2x-1-760x520-1.jpeg",
+      "title": "img-2@2x-1-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/07/img-2@2x-1-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "companybanner-2x-scaled-1-760x520-1-jpeg",
+      "file": "files/images/companybanner@2x-scaled-1-760x520-1.jpeg",
+      "title": "companybanner@2x-scaled-1-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/07/companybanner@2x-scaled-1-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "testimonials-bg-2x-scaled-1-760x520-1-jpeg",
+      "file": "files/images/testimonials-bg@2x-scaled-1-760x520-1.jpeg",
+      "title": "testimonials-bg@2x-scaled-1-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/07/testimonials-bg@2x-scaled-1-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "mask-group-1-png",
+      "file": "files/images/Mask-group-1.png",
+      "title": "Mask-group-1.png",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/Mask-group-1.png"
+      ]
+    },
+    {
+      "slug": "mask-3-2x-jpg",
+      "file": "files/images/Mask-3@2x.jpg",
+      "title": "Mask-3@2x.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask-3@2x.jpg"
+      ]
+    },
+    {
+      "slug": "caro-img-2x-jpg",
+      "file": "files/images/caro-img@2x.jpg",
+      "title": "caro-img@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/caro-img@2x.jpg"
+      ]
+    },
+    {
+      "slug": "ejaz-emblem-jpeg",
+      "file": "files/images/شعار-الجمعية.jpeg",
+      "title": "شعار الجمعية",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/شعار-الجمعية.jpeg"
+      ]
+    },
+    {
+      "slug": "company-blog2-760x520-1-jpeg",
+      "file": "files/images/company-blog2-760x520-1.jpeg",
+      "title": "company-blog2-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2020/12/company-blog2-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "banner-company-optimized-2x-scaled-1-760x520-1-jpeg",
+      "file": "files/images/banner-company-optimized@2x-scaled-1-760x520-1.jpeg",
+      "title": "banner-company-optimized@2x-scaled-1-760×520",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/07/banner-company-optimized@2x-scaled-1-760x520-1.jpeg"
+      ]
+    },
+    {
+      "slug": "mask-2x-5-jpg",
+      "file": "files/images/Mask@2x-5.jpg",
+      "title": "Mask@2x-5.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/Mask@2x-5.jpg"
+      ]
+    },
+    {
+      "slug": "img-4-2x-1024x1006-1-jpg",
+      "file": "files/images/img-4@2x-1024x1006-1.jpg",
+      "title": "img-4@2x-1024×1006",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/img-4@2x-1024x1006-1.jpg"
+      ]
+    },
+    {
+      "slug": "iphone-14-pro-1-1-png",
+      "file": "files/images/iPhone-14-Pro-1-1.png",
+      "title": "iPhone-14-Pro-1-1.png",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/iPhone-14-Pro-1-1.png"
+      ]
+    },
+    {
+      "slug": "site-icon-png",
+      "file": "files/images/cropped-جمعية-إعجاز.png",
+      "title": "cropped-جمعية-إعجاز.png",
+      "alt": null,
+      "is_decorative": true,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/cropped-جمعية-إعجاز.png"
+      ]
+    },
+    {
+      "slug": "2-webp",
+      "file": "files/images/2.webp",
+      "title": "2",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/2.webp"
+      ]
+    },
+    {
+      "slug": "iphone-14-pro-1-png",
+      "file": "files/images/iPhone-14-Pro-1.png",
+      "title": "iPhone-14-Pro-1.png",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/iPhone-14-Pro-1.png"
+      ]
+    },
+    {
+      "slug": "portfoliodetail1-jpg",
+      "file": "files/images/portfoliodetail1.jpg",
+      "title": "portfoliodetail1.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/portfoliodetail1.jpg"
+      ]
+    },
+    {
+      "slug": "ejaz-logo-png",
+      "file": "files/images/جمعية-إعجاز.png",
+      "title": "جمعية إعجاز",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": false,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/جمعية-إعجاز.png"
+      ]
+    },
+    {
+      "slug": "testimonials-bg-2x-scaled-1-jpg",
+      "file": "files/images/testimonials-bg@2x-scaled-1.jpg",
+      "title": "testimonials-bg@2x-scaled-1.jpg",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/testimonials-bg@2x-scaled-1.jpg"
+      ]
+    },
+    {
+      "slug": "mp-banner-2x-jpg",
+      "file": "files/images/mp-banner@2x.jpg",
+      "title": "mp-banner@2x",
+      "alt": "【ناقص: نص بديل】",
+      "is_decorative": false,
+      "from_template": true,
+      "target": "/",
+      "legacy_paths": [
+        "/wp-content/uploads/2021/10/mp-banner@2x.jpg"
+      ]
+    }
+  ],
   "pages": [
     {
       "slug": "about",
       "title": "عن الجمعية",
+      "summary": "جمعية إعجاز للدراسات والبحوث العلمية هي منصة علمية متخصصة تُعنى برعاية ودعم الإعجاز العلمي في القرآن الكريم والسنة النبوية الصحيحة، وتسعى إلى تأصيل هذا التخصص وفق منهجية علمية رصينة تجمع بين العلوم الشرعية والعلوم الكونية.",
       "blocks": [
         {
           "type": "text",
@@ -26,6 +929,13 @@
           }
         },
         {
+          "type": "text",
+          "data": {
+            "heading": "التوجه الاستراتيجي",
+            "body": "<p>【ناقص: محتوى التوجه الاستراتيجي】</p>"
+          }
+        },
+        {
           "type": "cards",
           "data": {
             "heading": "الأهداف الاستراتيجية",
@@ -33,29 +943,40 @@
               {
                 "icon": null,
                 "title": "تعزيز القيم والانتماء الوطني",
-                "text": null
+                "text": null,
+                "media": "cultural-1-png"
               },
               {
                 "icon": null,
                 "title": "تنمية وتطوير قُدرات الكوادر التعليمية",
-                "text": null
+                "text": null,
+                "media": "occupational-therapy-png"
               },
               {
                 "icon": null,
                 "title": "تعزيز مشاركة المُجتمع في التعليم والتعلم",
-                "text": null
+                "text": null,
+                "media": "civic-png"
               },
               {
                 "icon": null,
                 "title": "تطوير منظومة الجامعات والمؤسسات التعليمية والتدريبية",
-                "text": null
+                "text": null,
+                "media": "education-technology-png"
               },
               {
                 "icon": null,
                 "title": "تجويد نواتج التعلم وتحسين موقع النظام التعليمي عالميا",
-                "text": null
+                "text": null,
+                "media": "quality-control-png"
               }
             ]
+          }
+        },
+        {
+          "type": "image",
+          "data": {
+            "media": "img-2-png"
           }
         },
         {
@@ -84,6 +1005,98 @@
                 "text": "التشاركية والتواصل مع الجهات ذات العلاقة والاستثمار الأمثل للإمكانات وتكامل الطاقات."
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "تواصل معنا",
+      "summary": "نرحب بتواصلكم مع جمعية إعجاز للدراسات والبحوث العلمية، ويسعدنا استقبال استفساراتكم، ومقترحاتكم، ومبادرات التعاون والشراكات العلمية والتعليمية.",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>نرحب بتواصلكم مع جمعية إعجاز للدراسات والبحوث العلمية، ويسعدنا استقبال استفساراتكم، ومقترحاتكم، ومبادرات التعاون والشراكات العلمية والتعليمية.</p>"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "inquiries",
+      "title": "الاستفسارات والاقتراحات",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>【ناقص: نص الصفحة】</p>"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "assembly-membership",
+      "title": "طلب الانضمام للجمعية العمومية",
+      "summary": "لطلب الانضمام للجمعية العمومية فضلاً إرسال الطلب على البريد الإلكتروني",
+      "blocks": [
+        {
+          "type": "image",
+          "data": {
+            "media": "image-901-png"
+          }
+        },
+        {
+          "type": "image",
+          "data": {
+            "media": "group-61552-png"
+          }
+        },
+        {
+          "type": "text",
+          "data": {
+            "heading": "طلب الانضمام للجمعية العمومية",
+            "body": "<p>لطلب الانضمام للجمعية العمومية فضلاً إرسال الطلب على البريد الإلكتروني<br><strong><a href=\"mailto:info@ejaz.sa\">info@ejaz.sa</a></strong></p>"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "jobs",
+      "title": "التوظيف",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>【ناقص: نص الصفحة】</p>"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "volunteering",
+      "title": "التطوع",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>【ناقص: نص الصفحة】</p>"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "reports",
+      "title": "التقارير",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>【ناقص: نص الصفحة】</p>"
           }
         }
       ]
@@ -167,7 +1180,7 @@
     },
     {
       "slug": "no-branches-statement",
-      "title": "إفادة بعدم وجود فروع أو مكاتب للجمعية",
+      "title": "افادة بعدم وجود فروع أو مكاتب للجمعية",
       "category": "official",
       "issued_at": null,
       "version": null,
@@ -277,7 +1290,7 @@
     },
     {
       "slug": "disclosure-document",
-      "title": "وثيقة الإفصاح",
+      "title": "وثيقة الافصاح",
       "category": "official",
       "issued_at": null,
       "version": null,
@@ -300,7 +1313,7 @@
     {
       "slug": "audio-02",
       "section": "audio",
-      "title": "الإيمان فطرة والعبادة شفاء",
+      "title": "【ناقص: عنوان】",
       "file": "files/audio/E3jaz-2.mp3",
       "legacy_paths": [
         "/wp-content/uploads/2026/08/E3jaz-2.mp3"
@@ -559,130 +1572,169 @@
       ]
     },
     {
-      "slug": "audio-oceans",
-      "section": "audio",
-      "title": "أعماق المحيطات",
-      "file": null
-    },
-    {
       "slug": "video-01",
       "section": "videos",
       "title": "الناصية",
-      "video_url": null
+      "video_url": "https://youtu.be/7YYsS0_hoqM"
     },
     {
       "slug": "video-02",
       "section": "videos",
       "title": "تداعى الجسد بالسهر والحمى",
-      "video_url": null
+      "video_url": "https://youtu.be/7k9MiDiT9YE"
     },
     {
       "slug": "video-03",
       "section": "videos",
       "title": "مراحل خلق الجنين في القرآن الكريم",
-      "video_url": null
+      "video_url": "https://youtu.be/9IvvpaTi7Vo"
     },
     {
       "slug": "video-04",
       "section": "videos",
       "title": "عدد مفاصل الإنسان",
-      "video_url": null
+      "video_url": "https://youtu.be/VgbnTRXfD-E"
     },
     {
       "slug": "video-05",
       "section": "videos",
       "title": "خلق الإنسان | إعجازٌ وبيان",
-      "video_url": null
+      "video_url": "https://youtu.be/hown-LnVzFA"
     },
     {
       "slug": "video-06",
       "section": "videos",
       "title": "الرتق والفتق",
-      "video_url": null
+      "video_url": "https://youtu.be/-n0IE9iwyHI"
     },
     {
       "slug": "video-07",
       "section": "videos",
       "title": "القلب يعقل ويفكر",
-      "video_url": null
+      "video_url": "https://youtu.be/v_CaQkrMd5U"
     },
     {
       "slug": "video-08",
       "section": "videos",
       "title": "والسماء ذات الحبك",
-      "video_url": null
+      "video_url": "https://youtu.be/VszW0nkr3pY"
     },
     {
       "slug": "video-09",
       "section": "videos",
       "title": "ولو فتحنا عليهم باباً من السماء",
-      "video_url": null
+      "video_url": "https://youtu.be/cRYPDbfHAd0"
     },
     {
       "slug": "video-10",
       "section": "videos",
       "title": "وكل في فلك يسبحون",
-      "video_url": null
+      "video_url": "https://www.youtube.com/watch?v=Fwe3vidxS5o&t=4s"
     },
     {
       "slug": "video-11",
       "section": "videos",
       "title": "التصعد في السماء",
-      "video_url": null
+      "video_url": "https://youtu.be/Tn_akRis4RM"
     },
     {
       "slug": "video-12",
       "section": "videos",
       "title": "وإنا لموسعون",
-      "video_url": null
+      "video_url": "https://www.youtube.com/watch?v=TczPLjiL1AE&t=6s"
     },
     {
       "slug": "video-13",
       "section": "videos",
       "title": "فكانت وردة كالدهان",
-      "video_url": null
+      "video_url": "https://www.youtube.com/watch?v=deO_HKID0a4"
     },
     {
       "slug": "video-14",
       "section": "videos",
       "title": "تشريع الرضاعة حولين كاملين",
-      "video_url": null
+      "video_url": "https://www.youtube.com/watch?v=eTiMgwORUUM"
     },
     {
       "slug": "video-15",
       "section": "videos",
       "title": "فمحونا آية الليل وجعلنا آية النهار مبصرة",
-      "video_url": null
+      "video_url": "https://www.youtube.com/watch?v=MlLSYhysdus"
     },
     {
       "slug": "video-16",
       "section": "videos",
       "title": "أحكام الطهارة حكمة ومعجزة علمية",
-      "video_url": null
+      "video_url": "https://youtu.be/xJ4eyOGnnJU?si=3Kzy3OseYl6VuIga"
     },
     {
       "slug": "video-17",
       "section": "videos",
       "title": "وجعلنا السماء سقفاً محفوظاً",
-      "video_url": null
+      "video_url": "https://youtu.be/2e_Erwm1xMw?si=uAPlWjIu28dKOKuh"
     },
     {
       "slug": "video-18",
       "section": "videos",
       "title": "عَجب الذنب معجزة علمية للحديث النبوي",
-      "video_url": null
+      "video_url": "https://youtu.be/_OeJbQg4Zh0?si=VcI7ynQOLj9w3ufy"
     },
     {
       "slug": "video-19",
       "section": "videos",
       "title": "بلى قادرين على أن نسوي بنانه",
-      "video_url": null
+      "video_url": "https://youtu.be/c40ECdC_grc?si=FC_VCcVq7NUJjJUm"
     },
     {
       "slug": "video-20",
       "section": "videos",
       "title": "مرج البحرين يلتقيان بينهما برزخٌ لا يبغيان",
-      "video_url": null
+      "video_url": "https://youtu.be/pTr_GAI_xJs?si=T0rbB0BHFE1thLB2"
+    }
+  ],
+  "settings": {
+    "home": {
+      "hero_title": "جمعية إعجاز للدراسات والبحوث العلمية",
+      "hero_text": "منصة علمية رائدة تُعنى بالإعجاز العلمي في القرآن الكريم والسنة النبوية، بمنهجية بحثية رصينة تجمع بين العلوم الشرعية والعلوم الكونية، وتعزز المعرفة والابتكار.",
+      "hero_button_label": "تعرف على الجمعية",
+      "hero_button_url": "/about",
+      "hero_media": "2-webp",
+      "video_url": "https://youtube.com/watch?v=WaSvMAl4zPw"
+    },
+    "contact": {
+      "email": "info@ejaz.sa",
+      "address": "شارع ثوبان النبوي, Batha Quraish, Makkah 24352, Saudi Arabia",
+      "map_url": "https://maps.app.goo.gl/kYLnBrC7bKCu9WxJ6"
+    }
+  },
+  "redirects": [
+    {
+      "from": "/5-reasons-to-purchase-desktop-computers/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/utilizing-mobile-technology-in-the-field/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/success-story-businessman-in-harlem/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/working-from-home-here-is-what-you-need-know-to-get-started/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/theres-an-actual-science-to-create-good-music/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/the-ultimate-success-formula/",
+      "to": "/media/news"
+    },
+    {
+      "from": "/building-intelligent-transportation-systems/",
+      "to": "/media/news"
     }
   ]
 }

@@ -57,6 +57,11 @@ final class ContentFields
                                 Select::make('icon')->label(__('content.blocks.icon'))->options(SiteIcon::class),
                                 TextInput::make('title')->label(__('content.blocks.card_title'))->required()->maxLength(120),
                                 Textarea::make('text')->label(__('content.blocks.card_text'))->rows(3)->maxLength(600),
+                                // صورة بدل الأيقونة، من صور مقاطع السجل نفسه (BlockPictureUpload)
+                                self::image('picture', $directory, BlockPictureUpload::class)
+                                    ->label(__('content.blocks.card_picture'))
+                                    ->helperText(__('content.blocks.card_picture_hint'))
+                                    ->columnSpanFull(),
                             ])
                             ->columns(3)
                             ->minItems(1)
@@ -71,6 +76,7 @@ final class ContentFields
                             ->label(__('content.blocks.image'))
                             ->helperText(__('content.image_hint'))
                             ->required(),
+                        TextInput::make('alt')->label(__('content.blocks.alt'))->helperText(__('content.blocks.alt_hint'))->maxLength(300),
                         TextInput::make('caption')->label(__('content.blocks.caption'))->maxLength(200),
                     ]),
             ])

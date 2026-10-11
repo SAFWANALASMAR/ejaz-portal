@@ -9,7 +9,7 @@
 @php
     $siteName = __('site.name');
     $pageTitle = $title ? $title.' | '.__('site.short_name') : $siteName;
-    $pageDescription = $description ?: __('site.tagline');
+    $pageDescription = $description ?: __('site.description');
 @endphp
 
 <!DOCTYPE html>
@@ -35,6 +35,7 @@
     @endif
     <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#2E6898">
+    @include('partials.favicons')
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{ $head ?? '' }}
