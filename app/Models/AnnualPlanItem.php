@@ -71,13 +71,13 @@ class AnnualPlanItem extends Model
     }
 
     /**
-     * منفّذ: مربوط ببرنامج غير محذوف انتهى موعده.
+     * منفّذ: مربوط ببرنامج منشور غير محذوف انتهى موعده.
      */
     public function isExecuted(): bool
     {
         $program = $this->program;
 
-        return $program !== null && ! $program->trashed() && $program->status() === ProgramStatus::Ended;
+        return $program !== null && ! $program->trashed() && $program->is_published && $program->status() === ProgramStatus::Ended;
     }
 
     /**
@@ -91,7 +91,7 @@ class AnnualPlanItem extends Model
             return 0;
         }
 
-        $attended = $program->getAttribute('attended_count') ?? $program->registrations()->whereNotNull('attended_at')->count();
+        $attended = $program->getAttributes()['attended_count'] ?? $program->registrations()->whereNotNull('attended_at')->count();
 
         return (int) $attended > 0 ? (int) $attended : $program->confirmedCount();
     }

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Registers;
 
+use App\Enums\ActivityEvent;
 use App\Enums\RegisterEntryType;
 use App\Models\RegisterEntry;
 use App\Models\User;
@@ -57,7 +58,7 @@ class SaveRegisterEntry
         if (isset($validated['responsible_id'])) {
             $responsible = User::query()->find($validated['responsible_id']);
 
-            if ($responsible === null || ! $responsible->is_active || ! $responsible->can('registers.view')) {
+            if ($responsible === null || ! $responsible->is_active || $responsible->anonymized_at !== null || ! $responsible->can('registers.view')) {
                 throw ValidationException::withMessages(['responsible_id' => __('registers.validation.responsible')]);
             }
         }
@@ -85,6 +86,20 @@ class SaveRegisterEntry
 
             $entry->save();
         });
+
+        // المرفقات لا تدخل سجل النموذج (مسارات)، فيُسجَّل تغيّرها بأسماء الملفات المضافة والمحذوفة
+        $added = array_values(array_diff(array_column($files, 'path'), $before->keys()->all()));
+        $dropped = $before->keys()->diff(array_column($files, 'path'))->values()->all();
+
+        if ($added !== [] || $dropped !== []) {
+            activity('registers')->causedBy($actor)->performedOn($entry)
+                ->event(ActivityEvent::Updated->value)
+                ->withProperties([
+                    'attachments_added' => collect($files)->whereIn('path', $added)->pluck('name')->values()->all(),
+                    'attachments_removed' => $before->only($dropped)->pluck('name')->values()->all(),
+                ])
+                ->log(ActivityEvent::Updated->value);
+        }
 
         $kept = array_column($files, 'path');
         $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! PrivatePdf::inDirectory($path, RegisterEntry::DIRECTORY));

@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 /**
  * إنجاز الخطة السنوية (requirements/13 §3): عدد البنود والمنفذ منها ونسبته، والمستفيدون الفعليون مقابل
- * المستهدف، للسنة كلها ولكل إدارة ونوع. يُحسب من البرامج المربوطة عند الطلب، فيتغير بتنفيذها.
+ * المستهدف (من البنود المنفذة)، للسنة كلها ولكل إدارة ونوع. يُحسب من البرامج المربوطة عند الطلب، فيتغير بتنفيذها.
  */
 final class AnnualPlanProgress
 {
@@ -21,7 +21,8 @@ final class AnnualPlanProgress
             'type' => (string) ($item->type ?? __('registers.plan.unspecified')),
             'executed' => $item->isExecuted(),
             'target' => (int) $item->target_beneficiaries,
-            'actual' => $item->actualBeneficiaries(),
+            // المستفيدون الفعليون من البنود المنفذة وحدها
+            'actual' => $item->isExecuted() ? $item->actualBeneficiaries() : 0,
         ]);
 
         return [

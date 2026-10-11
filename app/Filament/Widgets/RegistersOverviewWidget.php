@@ -28,9 +28,17 @@ class RegistersOverviewWidget extends Widget
     }
 
     /**
+     * @return array{data: array{counts: array<string, array{label: string, expired: int, expiring: int}>, nearest: Collection<int, RegisterEntry>}}
+     */
+    protected function getViewData(): array
+    {
+        return ['data' => $this->summary()];
+    }
+
+    /**
      * @return array{counts: array<string, array{label: string, expired: int, expiring: int}>, nearest: Collection<int, RegisterEntry>}
      */
-    public function data(): array
+    private function summary(): array
     {
         $counts = [];
 

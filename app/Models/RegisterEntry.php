@@ -133,7 +133,7 @@ class RegisterEntry extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->useLogName('registers')
-            ->logOnly(['type', 'title', 'issuer', 'document_number', 'issued_on', 'expires_on', 'alert_days', 'responsible_id'])
+            ->logOnly(['type', 'title', 'issuer', 'document_number', 'issued_on', 'expires_on', 'alert_days', 'responsible_id', 'notes'])
             ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

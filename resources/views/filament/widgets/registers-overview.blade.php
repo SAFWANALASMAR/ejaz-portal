@@ -1,6 +1,4 @@
 {{-- المستندات ذات الصلاحية: لكل نوع عدد المنتهي والقريب من الانتهاء، وأقربها انتهاءً (RegistersOverviewWidget) --}}
-@php($data = $this->data())
-
 <x-filament-widgets::widget>
     <x-filament::section :heading="__('registers.widget.heading')">
         @if ($data['counts'] === [])

@@ -32,11 +32,14 @@ class MeetingForm
                     ->label(__('registers.fields.body'))
                     ->options(MeetingBody::class)
                     ->default(MeetingBody::GeneralAssembly->value)
+                    ->helperText(__('registers.fields.body_hint'))
                     ->required()
+                    ->disabledOn('edit')
                     ->live(),
                 Select::make('committee_id')
                     ->label(__('registers.fields.committee'))
                     ->options(fn (): array => Committee::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->disabledOn('edit')
                     ->visible(fn (Get $get): bool => self::bodyValue($get('body')) === MeetingBody::Committee->value)
                     ->required(fn (Get $get): bool => self::bodyValue($get('body')) === MeetingBody::Committee->value),
                 TextInput::make('quorum_percent')
@@ -91,10 +94,15 @@ class MeetingForm
         $paths = array_values(array_filter((array) ($data['attachments'] ?? []), 'is_string'));
 
         unset($data['attachment_names']);
-        // اللجنة للجنة وحدها: الحقل المخفي قد يبقى بقيمته
+        // الجهة تُختار عند الإنشاء وحده (الحقل معطّل في التعديل فلا يُرسل)، واللجنة للجنة وحدها
         $body = self::bodyValue($data['body'] ?? null);
-        $data['body'] = $body;
-        $data['committee_id'] = $body === MeetingBody::Committee->value ? ($data['committee_id'] ?? null) : null;
+        $committee = $data['committee_id'] ?? null;
+        unset($data['body'], $data['committee_id']);
+
+        if ($body !== null) {
+            $data['body'] = $body;
+            $data['committee_id'] = $body === MeetingBody::Committee->value ? $committee : null;
+        }
         $data['attachments'] = array_map(fn (string $path): array => ['path' => $path, 'name' => $names[$path] ?? basename($path)], $paths);
 
         return $data;

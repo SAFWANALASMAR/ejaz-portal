@@ -76,8 +76,12 @@ class BodyMembershipResource extends Resource
                     ->required($isCommittee),
                 Select::make('user_id')
                     ->label(__('registers.fields.user'))
-                    ->options(fn (): array => User::query()->where('is_active', true)->whereNull('anonymized_at')->orderBy('name')->limit(500)->pluck('name', 'id')->all())
+                    // بحث في الخادم بالاسم أو البريد: الحسابات كثيرة فلا تُحمَّل كلها
                     ->searchable()
+                    ->getSearchResultsUsing(fn (string $search): array => User::query()->where('is_active', true)->whereNull('anonymized_at')
+                        ->where(fn ($query) => $query->whereLike('name', '%'.$search.'%')->orWhereLike('email', '%'.$search.'%'))
+                        ->orderBy('name')->limit(50)->pluck('name', 'id')->all())
+                    ->getOptionLabelUsing(fn ($value): ?string => User::query()->whereKey($value)->value('name'))
                     ->required(),
                 Select::make('role')->label(__('registers.fields.role'))->options(BodyRole::class)->default(BodyRole::Member->value)->required(),
                 DatePicker::make('starts_on')->label(__('registers.fields.starts_on'))->required(),

@@ -52,7 +52,7 @@ class AgendaItemsRelationManager extends RelationManager
     {
         return $schema->components([
             TextInput::make('position')->label(__('registers.fields.position'))->integer()->minValue(1)->maxValue(999)->required()
-                ->default(fn (): int => (int) $this->getOwnerRecord()->agendaItems()->max('position') + 1),
+                ->default(fn (): int => (int) MeetingAgendaItem::query()->where('meeting_id', $this->getOwnerRecord()->getKey())->max('position') + 1),
             Select::make('status')->label(__('registers.fields.execution_status'))->options(AgendaItemStatus::class)->default(AgendaItemStatus::NotStarted->value)->required(),
             TextInput::make('title')->label(__('registers.fields.item'))->required()->maxLength(300)->columnSpanFull(),
             Textarea::make('decision')->label(__('registers.fields.decision'))->rows(3)->maxLength(5000)->columnSpanFull(),

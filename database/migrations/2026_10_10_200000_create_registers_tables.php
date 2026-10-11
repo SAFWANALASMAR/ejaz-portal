@@ -25,7 +25,7 @@ return new class extends Migration
             // آخر يوم صالح، وnull لما لا ينتهي
             $table->date('expires_on')->nullable()->index();
             $table->unsignedSmallInteger('alert_days');
-            $table->foreignId('responsible_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('responsible_id')->nullable()->index()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->jsonb('attachments')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -56,7 +56,7 @@ return new class extends Migration
             $table->id();
             $table->string('body', 20);
             $table->foreignId('committee_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->index()->constrained()->cascadeOnDelete();
             $table->string('role', 20);
             $table->date('starts_on');
             $table->date('ends_on')->nullable();
@@ -70,14 +70,14 @@ return new class extends Migration
 
         Schema::table('meetings', function (Blueprint $table) {
             $table->string('body', 20)->default('general_assembly')->index();
-            $table->foreignId('committee_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('committee_id')->nullable()->index()->constrained()->restrictOnDelete();
         });
 
         DB::statement("alter table meetings add constraint meetings_committee_check check ((body = 'committee') = (committee_id is not null))");
 
         Schema::create('meeting_agenda_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('meeting_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('meeting_id')->index()->constrained()->cascadeOnDelete();
             $table->unsignedSmallInteger('position')->default(1);
             $table->string('title', 300);
             $table->text('decision')->nullable();
@@ -85,6 +85,7 @@ return new class extends Migration
             $table->date('due_on')->nullable();
             $table->string('status', 20)->default('not_started');
             $table->timestamps();
+            $table->softDeletes();
             $table->index(['assignee_id', 'status']);
         });
 

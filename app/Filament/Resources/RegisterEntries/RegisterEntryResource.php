@@ -182,6 +182,7 @@ class RegisterEntryResource extends Resource
                 ->label(__('registers.actions.download', ['name' => $file['name']]))
                 ->icon(Heroicon::OutlinedPaperClip)
                 ->color('gray')
+                ->visible(fn (RegisterEntry $record): bool => ! $record->trashed())
                 ->authorize(fn (RegisterEntry $record): bool => self::actor()->can('view', $record))
                 ->url(fn (RegisterEntry $record): string => $record->attachmentUrl($index));
         }

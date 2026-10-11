@@ -28,12 +28,12 @@ class MeetingAgendaItemPolicy
 
     public function update(User $user, MeetingAgendaItem $item): bool
     {
-        return $user->can('meetings.update');
+        return $user->can('meetings.update') && $this->view($user, $item);
     }
 
     public function delete(User $user, MeetingAgendaItem $item): bool
     {
-        return $user->can('meetings.update');
+        return $user->can('meetings.update') && $this->view($user, $item);
     }
 
     public function deleteAny(User $user): bool

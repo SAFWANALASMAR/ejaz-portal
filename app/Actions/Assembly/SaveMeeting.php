@@ -52,6 +52,15 @@ class SaveMeeting
         $data['body'] = $data['body'] instanceof MeetingBody ? $data['body']->value : $data['body'];
         $committee = $data['body'] === MeetingBody::Committee->value;
 
+        // الجهة لا تتغير بعد الإنشاء: دعواتها أُرسلت لأعضائها، وحضورها ونصابها منهم
+        if (! $creating) {
+            $data['committee_id'] = isset($data['committee_id']) ? (int) $data['committee_id'] : $meeting->committee_id;
+
+            if ($data['body'] !== $meeting->body->value || $data['committee_id'] !== $meeting->committee_id) {
+                throw ValidationException::withMessages(['body' => __('registers.validation.body_locked')]);
+            }
+        }
+
         $online = filter_var($data['is_online'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         $validated = Validator::make($data, [

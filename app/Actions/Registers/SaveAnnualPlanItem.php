@@ -42,8 +42,9 @@ class SaveAnnualPlanItem
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
             'approvals' => ['nullable', 'string', 'max:2000'],
             'program_id' => [
-                'nullable', 'integer', Rule::exists('programs', 'id'),
-                Rule::unique('annual_plan_items', 'program_id')->ignore($item->id)->withoutTrashed(),
+                'nullable', 'integer', Rule::exists('programs', 'id')->whereNull('deleted_at'),
+                // والمحذوف ناعماً يحجز برنامجه أيضاً كقيد القاعدة، فيُستعاد بربطه
+                Rule::unique('annual_plan_items', 'program_id')->ignore($item->id),
             ],
             'notes' => ['nullable', 'string', 'max:5000'],
         ])->validate();

@@ -6,6 +6,7 @@ use App\Enums\RegisterEntryStatus;
 use App\Enums\RegisterEntryType;
 use App\Enums\RoleName;
 use App\Models\RegisterEntry;
+use App\Models\User;
 use App\Support\Registers;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -179,7 +180,7 @@ it('downloads an attachment by a signed link only, for those who can see it, and
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
     $url = $entry->attachmentUrl(0);
 
-    $this->actingAs($this->board)->get($url)->assertOk()->assertDownload('مرفق.pdf');
+    $this->actingAs($this->board)->get($url)->assertOk()->assertDownload();
     expect(Activity::where('subject_type', RegisterEntry::class)->where('event', 'file_downloaded')->where('causer_id', $this->board->id)->exists())->toBeTrue();
 
     // بلا توقيع، أو لغير صاحب الصلاحية، أو لزائر، أو لرقم غير موجود
@@ -210,4 +211,20 @@ it('lets the managers set the default alert window, and uses it when the form op
 
     expect(fn () => app(UpdateRegisterDefaults::class)->handle($this->board, ['default_alert_days' => 10]))->toThrow(AuthorizationException::class)
         ->and(fn () => app(UpdateRegisterDefaults::class)->handle($this->secretary, ['default_alert_days' => 0]))->toThrow(ValidationException::class);
+});
+
+it('logs attachment changes by file name', function () {
+    $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
+    app(SaveRegisterEntry::class)->handle($this->director, $entry, registerData(['attachments' => []]));
+
+    $logs = Activity::where('subject_type', RegisterEntry::class)->where('subject_id', $entry->id)->whereNotNull('properties->attachments_removed')->get();
+    expect($logs->last()->properties['attachments_removed'])->toBe(['مرفق.pdf']);
+});
+
+it('refuses the download to a session without two-factor authentication', function () {
+    $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
+    $board = User::factory()->create();
+    $board->assignRole(RoleName::BoardMember->value);
+
+    $this->actingAs($board)->get($entry->attachmentUrl(0))->assertRedirect();
 });

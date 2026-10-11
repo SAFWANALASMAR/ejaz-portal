@@ -68,7 +68,7 @@ class MeetingPolicy extends ModulePolicy
      */
     public function uploadMinutes(User $user, Meeting $meeting): bool
     {
-        return $meeting->status === MeetingStatus::Held && ! $meeting->hasApprovedMinutes() && $user->can('minutes.create');
+        return $meeting->status === MeetingStatus::Held && ! $meeting->hasApprovedMinutes() && $user->can('minutes.create') && $meeting->isVisibleTo($user);
     }
 
     /**
@@ -76,7 +76,7 @@ class MeetingPolicy extends ModulePolicy
      */
     public function approveMinutes(User $user, Meeting $meeting): bool
     {
-        return $meeting->hasDraftMinutes() && $meeting->minutes_uploaded_by !== $user->id && $user->can('minutes.approve');
+        return $meeting->hasDraftMinutes() && $meeting->minutes_uploaded_by !== $user->id && $user->can('minutes.approve') && $meeting->isVisibleTo($user);
     }
 
     /**

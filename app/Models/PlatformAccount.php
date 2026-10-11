@@ -31,6 +31,6 @@ class PlatformAccount extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('registers')->logOnly(['platform', 'responsible_id', 'username', 'login_url'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('registers')->logOnly(['platform', 'responsible_id', 'username', 'login_url', 'notes'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

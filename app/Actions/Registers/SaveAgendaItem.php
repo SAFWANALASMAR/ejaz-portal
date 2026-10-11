@@ -42,6 +42,15 @@ class SaveAgendaItem
             'status' => ['nullable', Rule::enum(AgendaItemStatus::class)],
         ])->validate();
 
+        // المكلَّف حساب فعّال يطّلع على الاجتماعات، كقائمة الاختيار في اللوحة
+        if (isset($validated['assignee_id'])) {
+            $assignee = User::query()->find($validated['assignee_id']);
+
+            if ($assignee === null || ! $assignee->is_active || $assignee->anonymized_at !== null || ! $assignee->can('meetings.view')) {
+                throw ValidationException::withMessages(['assignee_id' => __('registers.validation.assignee')]);
+            }
+        }
+
         $item->fill([
             'position' => (int) $validated['position'],
             'title' => $validated['title'],

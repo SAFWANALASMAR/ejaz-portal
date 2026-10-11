@@ -106,8 +106,8 @@ it('enforces the committee rule in the database too', function () {
 
 it('counts a membership active within its term only', function () {
     $current = bodyMember(MeetingBody::Board, null, ['starts_on' => now()->subYear(), 'ends_on' => now()->addYear()]);
-    bodyMember(MeetingBody::Board, null, ['starts_on' => now()->subYears(4), 'ends_on' => now()->subDay()]);
-    bodyMember(MeetingBody::Board, null, ['starts_on' => now()->addDay(), 'ends_on' => null]);
+    bodyMember(MeetingBody::Board, null, ['starts_on' => now()->subYears(4), 'ends_on' => now()->subDays(2)]);
+    bodyMember(MeetingBody::Board, null, ['starts_on' => now()->addDays(2), 'ends_on' => null]);
     $open = bodyMember(MeetingBody::Board, null, ['starts_on' => now()->subYear(), 'ends_on' => null]);
 
     expect(BodyMembership::activeUsers(MeetingBody::Board)->pluck('id')->sort()->values()->all())->toBe(collect([$current->id, $open->id])->sort()->values()->all());
@@ -224,4 +224,38 @@ it('hides the agenda items of a committee meeting from those who cannot see it',
 
     expect(userWithRole(RoleName::BoardMember)->can('view', $item))->toBeFalse()
         ->and($this->director->can('view', $item))->toBeTrue();
+});
+
+it('keeps the body of a meeting fixed after it is created', function () {
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, bodyMeetingData(['body' => 'board']));
+
+    expect(fn () => app(SaveMeeting::class)->handle($this->secretary, $meeting, bodyMeetingData(['body' => 'general_assembly'])))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('body'));
+
+    // وبلا جهة في البيانات تبقى جهته، كتعديل النموذج والحقل معطّل
+    $data = bodyMeetingData(['title' => 'عنوان معدّل']);
+    unset($data['body'], $data['committee_id']);
+    app(SaveMeeting::class)->handle($this->secretary, $meeting, $data);
+    expect($meeting->fresh()->body)->toBe(MeetingBody::Board)->and($meeting->fresh()->title)->toBe('عنوان معدّل');
+
+    $committeeMeeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, bodyMeetingData(['body' => 'committee', 'committee_id' => $this->committee->id]));
+    expect(fn () => app(SaveMeeting::class)->handle($this->secretary, $committeeMeeting, bodyMeetingData(['body' => 'committee', 'committee_id' => Committee::factory()->create()->id])))->toThrow(ValidationException::class);
+});
+
+it('only assigns decisions to active accounts that see the meetings, and only adds active members', function () {
+    $meeting = Meeting::factory()->held()->create(['body' => MeetingBody::Board]);
+
+    expect(fn () => app(SaveAgendaItem::class)->handle($this->secretary, $meeting, new MeetingAgendaItem, ['position' => 1, 'title' => 'بند', 'assignee_id' => userWithRole(RoleName::Member)->id]))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('assignee_id'));
+
+    expect(fn () => app(SaveBodyMembership::class)->handle($this->secretary, new BodyMembership, [
+        'body' => 'board', 'user_id' => User::factory()->create(['is_active' => false])->id, 'role' => 'member', 'starts_on' => '2026-01-01',
+    ]))->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('user_id'));
+});
+
+it('keeps a deleted agenda item restorable rather than gone', function () {
+    $item = MeetingAgendaItem::factory()->create();
+    $item->delete();
+
+    expect(MeetingAgendaItem::withTrashed()->find($item->id))->not->toBeNull();
 });

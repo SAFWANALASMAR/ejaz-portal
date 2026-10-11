@@ -7,6 +7,8 @@ use App\Enums\ActivityEvent;
 use App\Http\Controllers\Controller;
 use App\Models\RegisterEntry;
 use App\Models\User;
+use App\Support\PrivatePdf;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,9 +23,10 @@ class RegisterAttachmentController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($user->can('view', $entry), 403);
+        abort_unless($user->canAccessPanel(Filament::getPanel('admin')) && $user->can('view', $entry), 403);
 
         $file = ($entry->attachments ?? [])[$index] ?? abort(404);
+        abort_unless(PrivatePdf::inDirectory($file['path'], RegisterEntry::DIRECTORY), 404);
         $log->handle($user, $entry, ActivityEvent::FileDownloaded, ['file' => $file['name']]);
 
         return Storage::disk(RegisterEntry::disk())->download($file['path'], $file['name']);

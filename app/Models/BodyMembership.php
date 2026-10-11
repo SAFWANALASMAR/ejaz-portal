@@ -76,7 +76,7 @@ class BodyMembership extends Model
      */
     public function scopeOfBody(Builder $query, MeetingBody $body, ?int $committeeId = null): void
     {
-        $query->where('body', $body->value)->when($body === MeetingBody::Committee, fn (Builder $query) => $query->where('committee_id', $committeeId));
+        $query->where('body', $body->value)->when($body === MeetingBody::Committee && $committeeId !== null, fn (Builder $query) => $query->where('committee_id', $committeeId));
     }
 
     public function isActive(): bool
@@ -101,6 +101,6 @@ class BodyMembership extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('registers')->logOnly(['body', 'committee_id', 'user_id', 'role', 'starts_on', 'ends_on'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('registers')->logOnly(['body', 'committee_id', 'user_id', 'role', 'starts_on', 'ends_on', 'notes'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

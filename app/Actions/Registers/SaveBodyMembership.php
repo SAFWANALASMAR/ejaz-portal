@@ -42,6 +42,12 @@ class SaveBodyMembership
             'notes' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
+        $member = User::query()->find($validated['user_id']);
+
+        if ($member === null || ! $member->is_active || $member->anonymized_at !== null) {
+            throw ValidationException::withMessages(['user_id' => __('registers.validation.member')]);
+        }
+
         $membership->fill([
             'body' => $validated['body'],
             'committee_id' => $committee ? $validated['committee_id'] : null,

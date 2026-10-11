@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\RegisterEntries\Pages;
 
+use App\Actions\Registers\LogRegisterAccess;
 use App\Actions\Registers\SaveRegisterEntry;
+use App\Enums\ActivityEvent;
 use App\Filament\Concerns\SavesThroughAction;
 use App\Filament\Resources\RegisterEntries\RegisterEntryResource;
 use App\Models\RegisterEntry;
@@ -18,6 +20,18 @@ class EditRegisterEntry extends EditRecord
     use SavesThroughAction;
 
     protected static string $resource = RegisterEntryResource::class;
+
+    /**
+     * صفحة التعديل تعرض السجل كاملاً، فيُسجَّل فتحها اطلاعاً.
+     */
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        /** @var User $actor */
+        $actor = auth()->user();
+        app(LogRegisterAccess::class)->handle($actor, $this->getRecord(), ActivityEvent::Viewed);
+    }
 
     protected function getHeaderActions(): array
     {

@@ -9,7 +9,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 /**
  * إنجاز الخطة السنوية للسنة الجارية (requirements/13 §3) لمن يطّلع على الخطة: البنود المنفذة ونسبتها،
- * والمستفيدون الفعليون مقابل المستهدف، ثم نسبة كل إدارة.
+ * والمستفيدون الفعليون مقابل المستهدف، ثم نسبة كل إدارة وكل نوع. ويظهر في رئيسية اللوحة وفوق شاشة الخطة.
  */
 class AnnualPlanWidget extends StatsOverviewWidget
 {
@@ -44,9 +44,12 @@ class AnnualPlanWidget extends StatsOverviewWidget
                 ->description(__('registers.plan.beneficiaries_of', ['actual' => number_format($overall['actual']), 'target' => number_format($overall['target'])])),
         ];
 
-        foreach ($progress['departments'] as $department => $row) {
-            $stats[] = Stat::make($department, $row['percent'].'٪')
-                ->description(__('registers.plan.executed_of', ['executed' => number_format($row['executed']), 'items' => number_format($row['items']), 'percent' => $row['percent']]));
+        // الإنجاز لكل إدارة ثم لكل نوع
+        foreach (['departments' => 'by_department', 'types' => 'by_type'] as $group => $label) {
+            foreach ($progress[$group] as $name => $row) {
+                $stats[] = Stat::make(__('registers.plan.'.$label, ['name' => $name]), $row['percent'].'٪')
+                    ->description(__('registers.plan.executed_of', ['executed' => number_format($row['executed']), 'items' => number_format($row['items']), 'percent' => $row['percent']]));
+            }
         }
 
         return $stats;

@@ -35,6 +35,14 @@ class SavePlatformAccount
             'notes' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
+        if (isset($validated['responsible_id'])) {
+            $responsible = User::query()->find($validated['responsible_id']);
+
+            if ($responsible === null || ! $responsible->is_active || ! $responsible->can('platform_accounts.view')) {
+                throw ValidationException::withMessages(['responsible_id' => __('registers.validation.platform_responsible')]);
+            }
+        }
+
         $account->fill([
             'platform' => $validated['platform'],
             'responsible_id' => $validated['responsible_id'] ?? null,

@@ -124,3 +124,11 @@ it('changes the achievement rate per department and type as the linked program i
 
     expect(AnnualPlanProgress::for(2030)['overall'])->toMatchArray(['items' => 0, 'percent' => 0]);
 });
+
+it('refuses a program still held by a deleted plan item with a validation error', function () {
+    $program = Program::factory()->create();
+    app(SaveAnnualPlanItem::class)->handle($this->director, new AnnualPlanItem, planData(['program_id' => $program->id]))->delete();
+
+    expect(fn () => app(SaveAnnualPlanItem::class)->handle($this->director, new AnnualPlanItem, planData(['program_id' => $program->id])))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('program_id'));
+});

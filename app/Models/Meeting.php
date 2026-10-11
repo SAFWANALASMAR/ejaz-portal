@@ -44,6 +44,13 @@ class Meeting extends Model
 
     public const ATTACHMENTS_DIRECTORY = 'meeting-attachments';
 
+    /**
+     * الجهة الافتراضية كما في القاعدة، فتصح للنموذج قبل قراءته منها.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = ['body' => 'general_assembly'];
+
     public const MINUTES_DIRECTORY = 'meeting-minutes';
 
     /**

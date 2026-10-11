@@ -1,14 +1,17 @@
 <?php
 
 use App\Http\Controllers\Admin\RegisterAttachmentController;
+use App\Http\Middleware\AdminIdleTimeout;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Illuminate\Support\Facades\Route;
 
 /*
 | السجلات الداخلية (docs/plans/registers.md). تُحمَّل من routes/web.php.
 | تنزيل مرفق المستند برابط مؤقت موقّع يصدره إجراء اللوحة، ويُفحص الدخول والصلاحية عند الطلب ويُسجَّل.
+| وبحماية اللوحة نفسها: التحقق الثنائي، وانتهاء الجلسة بعد الخمول، والدخول إلى اللوحة (في المتحكم).
 */
 
-Route::middleware(['auth', 'signed', 'throttle:60,1,registers-download', 'cache.headers:private;no_store'])
+Route::middleware(['auth', EnsureTwoFactorIsEnabled::class, AdminIdleTimeout::class, 'signed', 'throttle:60,1,registers-download', 'cache.headers:private;no_store'])
     ->get('/admin-files/registers/{entry}/{index}', RegisterAttachmentController::class)
     ->whereNumber('index')
     ->name('registers.attachment');
