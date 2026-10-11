@@ -18,7 +18,7 @@
         <x-field name="full_name" :label="__('competitions.exam.full_name')" required maxlength="150" autocomplete="name" />
 
         @if (config('competitions.exam.national_id'))
-            <x-field name="national_id" :label="__('competitions.exam.national_id')" required inputmode="numeric" pattern="[0-9٠-٩]{10}" maxlength="10" dir="ltr" autocomplete="off" />
+            <x-field name="national_id" :label="__('competitions.exam.national_id')" required inputmode="numeric" pattern="[0-9\u0660-\u0669]{10}" maxlength="10" dir="ltr" autocomplete="off" />
         @endif
 
         <x-field name="phone" :label="__('competitions.exam.phone')" :value="SaudiPhone::display($phone)" :hint="__('competitions.exam.phone_hint')" required readonly dir="ltr" />
