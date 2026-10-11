@@ -7,6 +7,7 @@ use App\Models\ProgramType;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -36,6 +37,8 @@ class ProgramsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                // لمن يتابع البرامج ولا يعدّلها (فئة الموظفين)
+                ViewAction::make()->hidden(fn (Program $record): bool => auth()->user()?->can('update', $record) ?? false),
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),

@@ -20,4 +20,14 @@ class CreateProgram extends CreateRecord
     {
         return $this->saveProgram(new Program, $data);
     }
+
+    /**
+     * بعد الإنشاء إلى التعديل كما كان، لا إلى صفحة الاطلاع (ViewProgram) التي أُضيفت للموظفين.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return ProgramResource::canEdit($this->getRecord())
+            ? ProgramResource::getUrl('edit', ['record' => $this->getRecord()])
+            : parent::getRedirectUrl();
+    }
 }
