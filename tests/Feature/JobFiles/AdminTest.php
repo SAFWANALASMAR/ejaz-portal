@@ -32,7 +32,7 @@ beforeEach(function () {
     $this->projects = userWithRole(RoleName::ProjectsManager);
 });
 
-function storedDocument(JobFile $file, User $creator): JobFileDocument
+function storedJobFileDocument(JobFile $file, User $creator): JobFileDocument
 {
     $document = JobFileDocument::factory()->create(['job_file_id' => $file->id, 'created_by' => $creator->id, 'original_name' => 'خطة.pdf']);
     Storage::disk('local')->put($document->path, pdfContents());
@@ -100,7 +100,7 @@ it('lets the responsible add, edit and delete documents from the file page', fun
 
 it('keeps a reading participant from adding, editing or deleting from the file page', function () {
     $marketing = userWithRole(RoleName::MarketingManager);
-    $document = storedDocument($this->file, $this->projects);
+    $document = storedJobFileDocument($this->file, $this->projects);
     $this->actingAs($marketing);
 
     Livewire::test(DocumentsRelationManager::class, ['ownerRecord' => $this->file, 'pageClass' => ViewJobFile::class])
@@ -112,7 +112,7 @@ it('keeps a reading participant from adding, editing or deleting from the file p
 });
 
 it('downloads a document by a temporary signed link, checked and logged', function () {
-    $document = storedDocument($this->file, $this->projects);
+    $document = storedJobFileDocument($this->file, $this->projects);
     $url = URL::temporarySignedRoute('job-files.documents.download', now()->addMinutes(5), ['document' => $document]);
 
     $this->actingAs($this->projects)->get($url)->assertOk()->assertDownload();
@@ -161,8 +161,8 @@ it('lets the responsible set participants from the file page', function () {
 it('lists several documents, letting an allowed participant edit only their own', function () {
     $marketing = userWithRole(RoleName::MarketingManager);
     $this->file->update(['participants_contribute' => true]);
-    $theirs = storedDocument($this->file, $this->projects);
-    $own = storedDocument($this->file, $marketing);
+    $theirs = storedJobFileDocument($this->file, $this->projects);
+    $own = storedJobFileDocument($this->file, $marketing);
     $this->actingAs($marketing);
 
     Livewire::test(DocumentsRelationManager::class, ['ownerRecord' => $this->file, 'pageClass' => ViewJobFile::class])
@@ -180,12 +180,12 @@ it('lets the executive director delete an empty file from the panel, but not one
     Livewire::test(EditJobFile::class, ['record' => $this->hidden->uuid])->callAction('delete');
     expect($this->hidden->fresh()->trashed())->toBeTrue();
 
-    storedDocument($this->file, $this->projects);
+    storedJobFileDocument($this->file, $this->projects);
     Livewire::test(EditJobFile::class, ['record' => $this->file->uuid])->assertActionHidden('delete');
 });
 
 it('sends a job holder without two-factor to set it up before downloading', function () {
-    $document = storedDocument($this->file, $this->projects);
+    $document = storedJobFileDocument($this->file, $this->projects);
     $withoutTwoFactor = User::factory()->create();
     $withoutTwoFactor->assignRole(RoleName::ProjectsManager->value);
     $url = URL::temporarySignedRoute('job-files.documents.download', now()->addMinutes(5), ['document' => $document]);
