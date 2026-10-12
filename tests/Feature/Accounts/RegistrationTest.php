@@ -2,6 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\SaudiPhone;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Notification;
@@ -100,6 +101,18 @@ it('still caps registrations per address at the configured limit', function () {
     registerNumber(2)->assertSessionHasNoErrors();
     registerNumber(3)->assertSessionHasErrors('email');
 
+    expect(User::count())->toBe(2);
+});
+
+it('counts probes of taken emails and phones toward the cap, so accounts cannot be enumerated without limit', function () {
+    config(['security.registration_per_ip_per_hour' => 2]);
+    User::factory()->create(['email' => 'user1@example.test']);
+    User::factory()->create(['phone' => SaudiPhone::normalize('0500000002')]);
+
+    registerNumber(1)->assertSessionHasErrors('email');
+    registerNumber(2)->assertSessionHasErrors('phone');
+
+    registerNumber(3)->assertSessionHasErrors(['email' => __('account.register.too_many')]);
     expect(User::count())->toBe(2);
 });
 

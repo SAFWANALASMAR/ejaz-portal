@@ -39,13 +39,21 @@ class CreateNewUser implements CreatesNewUsers
         $input['email'] = mb_strtolower(trim((string) ($input['email'] ?? '')));
         $input['phone'] = SaudiPhone::normalize(is_string($input['phone'] ?? null) ? $input['phone'] : null) ?? ($input['phone'] ?? null);
 
-        Validator::make($input, [
+        $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique(User::class)],
             'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)],
             'password' => $this->passwordRules(),
             'privacy' => ['accepted'],
-        ])->validate();
+        ]);
+
+        // رسالة «مستخدم من قبل» تكشف وجود الحساب (decisions.md — 7 أكتوبر)، فتُحسب محاولتها من الحد
+        // نفسه، ولا يُعدّد بها الحسابات بلا سقف
+        if ($validator->fails() && $validator->errors()->hasAny(['email', 'phone'])) {
+            RateLimiter::hit($throttleKey, 3600);
+        }
+
+        $validator->validate();
 
         RateLimiter::hit($throttleKey, 3600);
 
