@@ -23,7 +23,8 @@
 
 ```bash
 # في مجلد المشروع، وقاعدة محلية فيها محتوى منشور
-APP_URL=http://host.docker.internal:8182 php artisan serve --host=0.0.0.0 --port=8182
+# على 127.0.0.1 وحده، فلا تنكشف القاعدة المحلية للشبكة. وDocker Desktop يصل إليه عبر host.docker.internal
+APP_URL=http://host.docker.internal:8182 php artisan serve --host=127.0.0.1 --port=8182
 
 # في طرفية أخرى، والتقارير في مجلد مؤقت خارج المستودع
 docker run --rm --add-host=host.docker.internal:host-gateway -v "<مجلد مؤقت>:/zap/wrk:rw" \
@@ -53,7 +54,7 @@ docker run --rm --add-host=host.docker.internal:host-gateway -v "<مجلد مؤ�
 - **`X-Powered-By`، و`X-Content-Type-Options` وPermissions-Policy غائبة عن ملفات `build/` والخطوط والأيقونة:**
   - مصدرها `php artisan serve`، فهو يقدّم الملفات الثابتة بنفسه.
   - وفي الإنتاج يقدّمها nginx بـ `nosniff` في كتل `/build/` و`/fonts/` و`/storage/` وملفات الجذر، ويخفي `X-Powered-By` (`fastcgi_hide_header`، و`expose_php = Off` في `deploy/php/production.ini`).
-  - وتتحقق منها بعد النشر أداة `scripts/verify-server.sh`.
+  - ويُتحقق منها على الخادم التجريبي بعد تجهيزه بإعادة هذا الفحص نفسه (`scripts/verify-server.sh` يفحص رؤوس الرئيسية وحدها، لا رؤوس الملفات الثابتة).
 
 ### مقبولة بقرار موثق
 
@@ -70,5 +71,5 @@ docker run --rm --add-host=host.docker.internal:host-gateway -v "<مجلد مؤ�
 
 ## الخلاصة لما قبل الإطلاق
 
-- يُعاد الفحص نفسه على **الخادم التجريبي** بعد تجهيزه (`deploy/staging-plan.md`)، لا على الإنتاج، فتظهر رؤوس nginx الفعلية.
+- يُعاد الفحص نفسه على **الخادم التجريبي** بعد تجهيزه (`docs/deploy/staging-plan.md`)، لا على الإنتاج، فتظهر رؤوس nginx الفعلية.
 - والفحص بعد الدخول (اللوحة والحساب) يُضاف هناك بسياق مصادقة في ZAP، بحساب تجريبي على التجريبية وحدها.
