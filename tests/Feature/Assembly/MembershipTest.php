@@ -115,8 +115,12 @@ it('backfills the registry from the member role held before it', function () {
     $holder = userWithRole(RoleName::AssemblyMember);
     AssemblyMembership::query()->delete();
 
+    // ترحيل السجلات يبني فوق جدول الاجتماعات، فيُرجَع قبله ويُعاد بعده
+    $registers = require database_path('migrations/2026_10_10_200000_create_registers_tables.php');
+    $registers->down();
     $migration->down();
     $migration->up();
+    $registers->up();
 
     expect(AssemblyMembership::where('user_id', $holder->id)->sole())
         ->status->toBe(MembershipStatus::Active)

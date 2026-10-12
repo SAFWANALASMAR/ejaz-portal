@@ -30,6 +30,9 @@ class SubmissionExporter extends Exporter
             ExportColumn::make('status')->label(__('competitions.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('category')->preventFormulaInjection()->label(__('competitions.entry.category')),
             ExportColumn::make('region')->label(__('competitions.entry.region'))->formatStateUsing(fn ($state) => $state?->getLabel()),
+            // بيانات تسجيل الاختبار الإلكتروني، بلا رقم الهوية. والاسم غير مفعّل افتراضياً كالبريد والجوال
+            ExportColumn::make('full_name')->preventFormulaInjection()->label(__('competitions.exam.full_name'))->enabledByDefault(false),
+            ExportColumn::make('education_stage')->label(__('competitions.exam.education_stage'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('submitted_at')->label(__('competitions.entry.submitted_at'))
                 ->formatStateUsing(fn ($state) => $state?->timezone(config('app.display_timezone'))->format('Y-m-d H:i')),
             ExportColumn::make('auto_score')->label(__('competitions.submissions.auto_score')),

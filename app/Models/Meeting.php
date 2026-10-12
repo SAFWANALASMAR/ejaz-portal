@@ -2,17 +2,20 @@
 
 namespace App\Models;
 
+use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\MeetingType;
 use App\Jobs\SyncOnlineMeeting;
 use App\Support\AssemblyArea;
 use Database\Factories\MeetingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
@@ -26,18 +29,27 @@ use Spatie\Activitylog\Support\LogOptions;
  *
  * @property MeetingType $type
  * @property MeetingStatus $status
+ * @property MeetingBody $body
+ * @property int|null $committee_id
  * @property Carbon $starts_at
  * @property Carbon|null $ends_at
  * @property list<array{path: string, name: string, size: int}>|null $attachments
  * @property Carbon|null $minutes_approved_at
  */
-#[Fillable(['title', 'type', 'starts_at', 'ends_at', 'location', 'is_online', 'agenda', 'attachments', 'quorum_percent'])]
+#[Fillable(['title', 'type', 'starts_at', 'ends_at', 'location', 'is_online', 'agenda', 'attachments', 'quorum_percent', 'body', 'committee_id'])]
 class Meeting extends Model
 {
     /** @use HasFactory<MeetingFactory> */
     use HasFactory, HasUuids, LogsActivity, SoftDeletes;
 
     public const ATTACHMENTS_DIRECTORY = 'meeting-attachments';
+
+    /**
+     * الجهة الافتراضية كما في القاعدة، فتصح للنموذج قبل قراءته منها.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = ['body' => 'general_assembly'];
 
     public const MINUTES_DIRECTORY = 'meeting-minutes';
 
@@ -49,6 +61,7 @@ class Meeting extends Model
         return [
             'type' => MeetingType::class,
             'status' => MeetingStatus::class,
+            'body' => MeetingBody::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'is_online' => 'boolean',
@@ -100,6 +113,78 @@ class Meeting extends Model
     public function attendees(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'meeting_attendances')->withPivot('recorded_by', 'created_at');
+    }
+
+    /**
+     * @return BelongsTo<Committee, $this>
+     */
+    public function committee(): BelongsTo
+    {
+        return $this->belongsTo(Committee::class)->withTrashed();
+    }
+
+    /**
+     * @return HasMany<MeetingAgendaItem, $this>
+     */
+    public function agendaItems(): HasMany
+    {
+        return $this->hasMany(MeetingAgendaItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * اجتماعات الجمعية العمومية وحدها (منطقة الأعضاء في الموقع ودعواتها).
+     *
+     * @param  Builder<Meeting>  $query
+     */
+    public function scopeGeneralAssembly(Builder $query): void
+    {
+        $query->where('body', MeetingBody::GeneralAssembly->value);
+    }
+
+    /**
+     * ما يطّلع عليه الحساب في اللوحة (requirements/13 §2): الكل لمن يملك meetings.view_all، ولغيره ممن يملك
+     * meetings.view اجتماعات الجمعية العمومية والمجلس ولجانه التي هو عضو فعّال فيها.
+     *
+     * @param  Builder<Meeting>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if (! $user->can('meetings.view')) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        if ($user->can('meetings.view_all')) {
+            return;
+        }
+
+        $query->where(fn (Builder $query) => $query
+            ->whereIn('body', [MeetingBody::GeneralAssembly->value, MeetingBody::Board->value])
+            ->orWhereIn('committee_id', BodyMembership::query()->active()->where('user_id', $user->id)->ofBody(MeetingBody::Committee)->select('committee_id')));
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        if (! $user->can('meetings.view')) {
+            return false;
+        }
+
+        return $user->can('meetings.view_all')
+            || $this->body !== MeetingBody::Committee
+            || BodyMembership::query()->active()->where('user_id', $user->id)->ofBody(MeetingBody::Committee, $this->committee_id)->exists();
+    }
+
+    /**
+     * من يُسجَّل حضوره ويُحسب منه النصاب: الأعضاء الفعّالون في جهة الاجتماع.
+     *
+     * @return Builder<User>
+     */
+    public function eligibleAttendees(): Builder
+    {
+        return $this->body === MeetingBody::GeneralAssembly
+            ? AssemblyMembership::activeUsers()
+            : BodyMembership::activeUsers($this->body, $this->committee_id);
     }
 
     /**
@@ -158,7 +243,7 @@ class Meeting extends Model
     {
         // جدول الأعمال والمرفقات والرابط لا تدخل السجل: نص طويل وملفات ورابط سري
         return LogOptions::defaults()->useLogName('assembly')
-            ->logOnly(['title', 'type', 'starts_at', 'ends_at', 'location', 'is_online', 'quorum_percent', 'status'])
+            ->logOnly(['title', 'type', 'body', 'committee_id', 'starts_at', 'ends_at', 'location', 'is_online', 'quorum_percent', 'status'])
             ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

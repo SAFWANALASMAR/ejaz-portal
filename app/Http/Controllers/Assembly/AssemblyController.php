@@ -23,7 +23,7 @@ class AssemblyController extends Controller
         $response = response()->view('assembly.index', [
             'user' => $user,
             'member' => $member,
-            'next' => $member ? Meeting::query()->where('status', MeetingStatus::Scheduled)->where('starts_at', '>=', now())->orderBy('starts_at')->first() : null,
+            'next' => $member ? Meeting::query()->generalAssembly()->where('status', MeetingStatus::Scheduled)->where('starts_at', '>=', now())->orderBy('starts_at')->first() : null,
         ]);
 
         // لصاحب الحساب حالته واجتماع قادم، فلا تُحفظ في ذاكرة متصفح ولا وسيط

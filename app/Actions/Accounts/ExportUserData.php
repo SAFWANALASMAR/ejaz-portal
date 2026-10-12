@@ -2,16 +2,20 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\MeetingBody;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
+use App\Models\BodyMembership;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
 use App\Models\Meeting;
+use App\Models\MeetingAgendaItem;
 use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SubmissionVideo;
+use App\Models\SubmissionWork;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -64,7 +68,7 @@ class ExportUserData
                     'cancelled_at' => $date($registration->cancelled_at),
                     'registered_at' => $date($registration->created_at),
                 ])->all(),
-            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question'])->get()
+            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question', 'works'])->get()
                 ->map(fn (CompetitionSubmission $submission): array => [
                     'competition' => $submission->competition->title,
                     'status' => $submission->status->value,
@@ -81,6 +85,20 @@ class ExportUserData
                         'size_bytes' => $video->size,
                         'uploaded_at' => $date($video->created_at),
                     ])->all(),
+                    // بيانات تسجيل الاختبار الإلكتروني، والأعمال المرفوعة (نوعها ورابطها، لا الملف نفسه)
+                    'exam_registration' => [
+                        'full_name' => $submission->full_name,
+                        'contact_email' => $submission->contact_email,
+                        'education_stage' => $submission->education_stage?->value,
+                        'national_id' => $submission->national_id,
+                        'registered_at' => $date($submission->registered_at),
+                    ],
+                    'works' => $submission->works->map(fn (SubmissionWork $work): array => [
+                        'type' => $work->type->value,
+                        'url' => $work->url,
+                        'size_bytes' => $work->size,
+                        'uploaded_at' => $date($work->created_at),
+                    ])->all(),
                 ])->all(),
             'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey.questions')->get()
                 ->map(fn (SurveyResponse $response): array => [
@@ -95,6 +113,29 @@ class ExportUserData
                     'submitted_at' => $date($response->submitted_at),
                 ])->all(),
             'assembly_membership' => self::membership($user, $date),
+            // عضوية مجلس الإدارة واللجان، والمكلَّف به من قرارات الاجتماعات (requirements/13 §2)
+            'body_memberships' => BodyMembership::query()->withTrashed()->whereBelongsTo($user)->orderBy('starts_on')->get()
+                ->map(fn (BodyMembership $membership): array => [
+                    'body' => $membership->body->value,
+                    'committee' => $membership->committee()->withTrashed()->value('name'),
+                    'role' => $membership->role->value,
+                    'starts_on' => $membership->starts_on->toDateString(),
+                    'ends_on' => $membership->ends_on?->toDateString(),
+                ])->all(),
+            // حضور اجتماعات المجلس واللجان (وحضور الجمعية العمومية تحت عضويتها)
+            'body_meetings_attended' => Meeting::query()->withTrashed()->where('body', '!=', MeetingBody::GeneralAssembly->value)
+                ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
+                ->orderBy('starts_at')->get()
+                ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'body' => $meeting->body->value, 'starts_at' => $date($meeting->starts_at)])
+                ->all(),
+            // البند وموعده وحالته، لا نص القرار (قد يمس غيره، والحد الأدنى من البيانات)، ولا المحذوف
+            'assigned_decisions' => MeetingAgendaItem::query()->where('assignee_id', $user->id)->orderBy('id')->get()
+                ->map(fn (MeetingAgendaItem $item): array => [
+                    'meeting' => $item->meeting()->withTrashed()->value('title'),
+                    'item' => $item->title,
+                    'due_on' => $item->due_on?->toDateString(),
+                    'status' => $item->status->value,
+                ])->all(),
             'payments' => Payment::query()->where('user_id', $user->id)->orderBy('id')->get()
                 ->map(fn (Payment $payment): array => [
                     'purpose' => $payment->purpose->value,
@@ -154,7 +195,7 @@ class ExportUserData
         return [
             'status' => $membership->status->value,
             'joined_on' => $membership->joined_on?->toDateString(),
-            'meetings_attended' => Meeting::query()->withTrashed()
+            'meetings_attended' => Meeting::query()->withTrashed()->generalAssembly()
                 ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
                 ->orderBy('starts_at')->get()
                 ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'starts_at' => $date($meeting->starts_at)])

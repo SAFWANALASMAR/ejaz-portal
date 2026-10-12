@@ -9,7 +9,6 @@ use App\Actions\Assembly\MarkMeetingHeld;
 use App\Actions\Assembly\RecordMeetingAttendance;
 use App\Actions\Assembly\UploadMeetingMinutes;
 use App\Jobs\SyncOnlineMeeting;
-use App\Models\AssemblyMembership;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Rules\RealPdf;
@@ -58,7 +57,7 @@ final class MeetingActions
             ->schema([
                 CheckboxList::make('attendees')
                     ->label(__('assembly.fields.attendees'))
-                    ->options(fn (): array => AssemblyMembership::activeUsers()->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(fn (Meeting $record): array => $record->eligibleAttendees()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     ->bulkToggleable()
                     ->columns(2),

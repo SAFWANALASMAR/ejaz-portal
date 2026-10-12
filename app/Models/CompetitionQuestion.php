@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -15,9 +16,10 @@ use Spatie\Activitylog\Support\LogOptions;
  * الخيار لا بموضعه، فلا يغيّرها الخلط. والخيار الصحيح مخفي، ولا يصل إلى المتقدم.
  *
  * @property QuestionType $type
+ * @property QuestionMedia|null $media_type
  * @property array<mixed>|null $options
  */
-#[Fillable(['type', 'prompt', 'options', 'correct_option', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order'])]
+#[Fillable(['type', 'prompt', 'options', 'correct_option', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order', 'context_text', 'media_type', 'media_path'])]
 #[Hidden(['correct_option'])]
 class CompetitionQuestion extends Model
 {
@@ -30,6 +32,7 @@ class CompetitionQuestion extends Model
     {
         return [
             'type' => QuestionType::class,
+            'media_type' => QuestionMedia::class,
             'options' => 'array',
             'points' => 'integer',
             'is_required' => 'boolean',
@@ -68,6 +71,6 @@ class CompetitionQuestion extends Model
      */
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('competitions')->logOnly(['competition_id', 'type', 'prompt', 'options', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('competitions')->logOnly(['competition_id', 'type', 'prompt', 'options', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order', 'context_text', 'media_type', 'media_path'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

@@ -64,7 +64,8 @@ return [
         // الجمعية العمومية (المرحلة 4)
         // السجل يمنح دور عضو الجمعية العمومية، فالإنشاء والتعديل لا يُربطان بدور (المشرف العام وحده، قرار صفوان)
         'assembly_members' => ['view', 'create', 'update'],
-        'meetings' => $crud,
+        // view_all: كل الجهات (الجمعية العمومية والمجلس واللجان)، وبدونها يرى عضو المجلس الجمعية والمجلس ولجانه وحدها
+        'meetings' => [...$crud, 'view_all'],
         // المحضر يرفعه السكرتير ويعتمده المجلس، فالعمليتان منفصلتان
         'minutes' => ['create', 'approve'],
         'assembly_files' => $crud,
@@ -77,6 +78,11 @@ return [
         // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
         'archive_categories' => $crud,
 
+        // السجلات والمستندات ذات الصلاحية، واللجان وعضويتها، والخطة السنوية، وحسابات المنصات بلا كلمات مرور (requirements/13)
+        'registers' => $crud,
+        'committees' => $crud,
+        'annual_plan' => $crud,
+        'platform_accounts' => $crud,
         // ملفات الوظائف (requirements/11): الاطلاع على كل الملفات وإدارة سجلاتها. وما سواه بالسياسة: المسؤول
         // عن الملف والمشاركون فيه بأدوارهم
         'job_files' => $crud,
@@ -93,12 +99,14 @@ return [
             'payments.view',
             'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
             'forms.view', 'form_entries.view', 'form_entries.approve', 'archive.view',
+            'registers.view', 'committees.view', 'annual_plan.view',
         ],
         'secretary' => [
             'requests.*',
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'form_entries.export', 'archive.*',
+            'registers.*', 'committees.*', 'platform_accounts.*',
             // من فئة الموظفين: «متابعة البرامج» و«تسجيل الحضور»
             'programs.view', 'programs.attend',
         ],
@@ -130,6 +138,8 @@ return [
             'archive.*',
             'stats.view', 'surveys.view',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+            // السجلات والخطة السنوية (requirements/13)
+            'registers.*', 'committees.view', 'meetings.view', 'meetings.view_all', 'annual_plan.*', 'platform_accounts.*',
         ],
         // ج. الموظفون: «رفع الملفات» (وفوقها أدوار التصنيف)، و«تسجيل الحضور»، و«إدارة النماذج»، و«متابعة البرامج»
         'financial_manager' => [
@@ -146,6 +156,7 @@ return [
             'archive.view', 'archive.create',
             'programs.view', 'programs.attend',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+            'annual_plan.*',
         ],
         'marketing_manager' => [
             'archive.view', 'archive.create',

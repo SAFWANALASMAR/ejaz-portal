@@ -16,14 +16,16 @@
 - `feature/five-portals`: مدموج.
 - `feature/job-files`: مدموج (e030698).
 - `feature/forms-print`: مدموج (fff53f6). المراجعتان في `plans/forms-print.md`. وأُصلح اختبار افترض المدير التنفيذي خارج اللوحة، ودخلها بعد البوابات الخمس.
-- `feature/registers`: عند جلسة الاستئناف. آخر ما رُفع d37ccaf (إصلاح PHPStan). لم يُدمج.
-- `feature/competition-exam`: عند جلسة الاستئناف. 4876fee وفحصه الآلي ناجح. لم يُدمج.
-- `feature/legacy-content`: عند جلسة النقل. لم يُدمج.
+- `feature/legacy-content`: مدموج (661d566). بعده على أي قاعدة: `migrate` ثم `PermissionsSeeder` (`media_assets.*`).
+- `feature/registers`: مدموج (8fa68e4). المدير التنفيذي يرى الاجتماعات، وجهة الاجتماع تُختار ولا تُفترض.
+- `feature/competition-exam`: مدموج بنسخة 424ebee. **تليها نسخة نهائية** بحدود رفع أعلى (200 ميغابايت، وقرص الرفع المؤقت لـ Livewire من البيئة)، تُدمج حين يصل ملف ready الجديد. وبعدها `npm run build` لتغيّر `resources/js/competition-exam.js`.
 - `chore/launch-readiness`: عند جلسة النقل. لم يُدمج. حزمة النشر المستقلة عن المزود «جاهز بانتظار الخادم».
+
+نتائج الاختبار المحلية بعد كل دمج: كلها ناجحة عدا اختبار الرابط الرمزي المعروف على ويندوز.
 
 ## ما بقي بالترتيب
 
-1. دمج الفروع الأربعة الباقية حين يظهر عليها ملف ready.
+1. دمج النسخة النهائية لرحلة الاختبار، ثم `chore/launch-readiness`، حين يظهر ملف ready على كل منهما.
 2. `/security-audit` الشامل وتقريره في `docs/security/`، بلا ثغرة حرجة أو عالية.
 3. مراجعة نهائية وتنظيف المكرر.
 4. `docs/README.md` فهرساً شاملاً، و`CHANGELOG.md`، ووسم إصدار على `preview/local`.
@@ -32,9 +34,8 @@
 
 ```bash
 git fetch origin
-for b in feature/registers feature/competition-exam feature/legacy-content chore/launch-readiness; do
-  git ls-tree -r --name-only origin/$b docs/reviews | grep ready-
-done
+git log --oneline preview/local..origin/feature/competition-exam   # نسخة الاختبار النهائية إن وصلت
+git ls-tree -r --name-only origin/chore/launch-readiness docs/reviews | grep ready-chore-launch-readiness
 ```
 
 ## ملاحظات البيئة المحلية (ويندوز بلا Docker)

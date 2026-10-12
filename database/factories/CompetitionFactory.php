@@ -49,6 +49,38 @@ class CompetitionFactory extends Factory
     }
 
     /**
+     * اختبار إلكتروني (docs/plans/competition-exam.md): بلا فئات، وفيديو تعريفي مدته 30 ثانية (ملفه يضعه
+     * الاختبار على القرص)، وثلاثة أسئلة اختيار بأربعة خيارات، الصحيح فيها c. والأول معه نص علمي.
+     */
+    public function exam(): static
+    {
+        return $this->state([
+            'exam_mode' => true,
+            'categories' => [],
+            'intro_video_path' => 'competition-media/intro.mp4',
+            'intro_video_seconds' => 30,
+        ])->afterCreating(function (Competition $competition): void {
+            foreach (range(1, 3) as $number) {
+                $competition->questions()->create([
+                    'type' => QuestionType::MultipleChoice,
+                    'prompt' => 'سؤال الاختبار التجريبي '.$number,
+                    'context_text' => $number === 1 ? 'نص علمي تجريبي' : null,
+                    'options' => [
+                        ['key' => 'a', 'label' => 'خيار أ'.$number],
+                        ['key' => 'b', 'label' => 'خيار ب'.$number],
+                        ['key' => 'c', 'label' => 'خيار ج'.$number],
+                        ['key' => 'd', 'label' => 'خيار د'.$number],
+                    ],
+                    'correct_option' => 'c',
+                    'points' => 1,
+                    'is_required' => true,
+                    'sort_order' => $number,
+                ]);
+            }
+        });
+    }
+
+    /**
      * سؤال نصي، وسؤال اختيار (الصحيح b بدرجتين)، وسؤال فيديو اختياري، ومعياران.
      */
     public function withQuestions(): static

@@ -34,3 +34,6 @@ Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()-
 Schedule::call(fn () => Cache::put(CheckHealth::HEARTBEAT_KEY, now()->getTimestamp(), now()->addDay()))
     ->everyMinute()
     ->name('schedule-heartbeat');
+
+// تنبيه المسؤولين بالمستندات القريبة من الانتهاء والمنتهية، مرة لكل عتبة (docs/plans/registers.md)
+Schedule::command('registers:send-alerts')->dailyAt('07:00')->timezone(config('app.display_timezone'))->withoutOverlapping()->onOneServer();

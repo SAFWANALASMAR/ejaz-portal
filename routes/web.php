@@ -108,6 +108,9 @@ require __DIR__.'/assembly.php';
 // المتجر والدفع والتبرعات (المرحلة 5)
 require __DIR__.'/payments.php';
 
+// السجلات والمستندات ذات الصلاحية: تنزيل المرفقات من اللوحة برابط موقّع (docs/plans/registers.md)
+require __DIR__.'/registers.php';
+
 // النماذج الإلكترونية: عرض الطباعة و«نماذجي» (المرحلة 4)
 require __DIR__.'/documents.php';
 

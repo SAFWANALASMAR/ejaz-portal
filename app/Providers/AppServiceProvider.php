@@ -9,6 +9,7 @@ use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
 use App\Contracts\StoreCatalog;
 use App\Contracts\VideoUploads;
+use App\Contracts\WhatsAppNotifier;
 use App\Enums\RoleName;
 use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
@@ -24,6 +25,8 @@ use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\Store\SettingsStoreCatalog;
 use App\Services\VideoUploads\S3VideoUploads;
+use App\Services\WhatsApp\FakeWhatsAppNotifier;
+use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
 use App\View\Composers\SiteChromeComposer;
@@ -55,6 +58,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
             'log' => new LogSmsGateway,
             default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
+        });
+
+        // واتساب: ينتظر قرار صفوان في المزوّد، فالسجل للتطوير والوهمي للاختبارات (docs/plans/competition-exam.md)
+        $this->app->singleton(WhatsAppNotifier::class, fn () => match (config('services.whatsapp.driver')) {
+            'log' => new LogWhatsAppNotifier,
+            'fake' => new FakeWhatsAppNotifier,
+            default => throw new InvalidArgumentException('Unsupported WhatsApp driver: '.config('services.whatsapp.driver')),
         });
 
         // بوابة الدفع: وهمية في التطوير والاختبارات، وميسر بمفاتيح من .env (docs/plans/store-payments.md)
