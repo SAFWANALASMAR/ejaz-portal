@@ -20,6 +20,26 @@
 - **redirects:** المقالات التجريبية السبع إلى الأخبار.
 - **لا يُنقل:** محتوى القالب الإنجليزي، و`07` (lenis-init.min.js شيفرة، وMask-3@2x.jpeg مفقود أصلاً)، و`09` للرجوع فقط، و`10` إطلاقاً.
 
+## الأرشيف الكامل على GitHub (مرفق إصدار)
+
+الملفات الثنائية لا تدخل git، فالأرشيف الكامل محفوظ مرفقاً لإصدار في المستودع الخاص، مرجعاً للنقل لا للنشر:
+
+- الإصدار: [`legacy-site-archive`](https://github.com/SAFWANALASMAR/ejaz-portal/releases/tag/legacy-site-archive) — «أرشيف الموقع القديم».
+- المرفق: `legacy-site-archive.zip`، وحجمه 143 ميجابايت، وفيه 155 ملفاً. منها 57 صورة، و18 أيقونة SVG، و14 PDF، و30 MP3، وفهارس البيانات والصفحات وروابط المرئيات العشرين.
+- البصمة (SHA-256): `2f59bfa44fd57c7b94e2c05464e6ab315aece22179348c51bc840a41f29e53ff`
+- في الملف المضغوط مجلد واحد هو `أرشيف-موقع-جمعية-إعجاز/`، وأسماء الملفات بترميز UTF-8.
+
+**الاستعادة** (تحتاج حساباً له الوصول إلى المستودع الخاص، وتسجيل الدخول بـ `gh auth login`):
+
+```bash
+gh release download legacy-site-archive --repo SAFWANALASMAR/ejaz-portal --pattern legacy-site-archive.zip --dir /tmp/ejaz-archive
+sha256sum /tmp/ejaz-archive/legacy-site-archive.zip   # يطابق البصمة أعلاه
+unzip -q /tmp/ejaz-archive/legacy-site-archive.zip -d /tmp/ejaz-archive
+# مسار الأرشيف للخطوات التالية: /tmp/ejaz-archive/أرشيف-موقع-جمعية-إعجاز
+```
+
+وفي ويندوز: نزّله من صفحة الإصدار، ثم «استخراج الكل»، ثم مرّر مسار المجلد `أرشيف-موقع-جمعية-إعجاز` إلى أوامر «التشغيل».
+
 ## التشغيل
 
 ```bash
