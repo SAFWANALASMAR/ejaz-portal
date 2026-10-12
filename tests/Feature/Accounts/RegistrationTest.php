@@ -2,8 +2,8 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
-use App\Support\SaudiPhone;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\SaudiPhone;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
