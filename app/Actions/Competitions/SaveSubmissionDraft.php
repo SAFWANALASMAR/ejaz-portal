@@ -39,6 +39,11 @@ class SaveSubmissionDraft
             throw new AuthorizationException(__('competitions.entry.closed'));
         }
 
+        // الاختبار الإلكتروني برحلته وحدها (ExamController)، فلا يُتجاوز ترتيب مراحله بنموذج المشاركة
+        if ($competition->exam_mode) {
+            throw new AuthorizationException;
+        }
+
         $questions = $competition->questions->reject(fn (CompetitionQuestion $question): bool => $question->type === QuestionType::Video)->keyBy('id');
 
         $rules = [

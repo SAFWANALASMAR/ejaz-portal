@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CompetitionStatus;
 use App\Enums\SubmissionStatus;
+use App\Enums\WorkType;
 use Database\Factories\CompetitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,8 +27,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon $closes_at
  * @property Carbon|null $results_approved_at
  * @property array<mixed>|null $categories
+ * @property array<mixed>|null $work_types
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -46,6 +48,9 @@ class Competition extends Model
             'shuffle_options' => 'boolean',
             'is_published' => 'boolean',
             'results_approved_at' => 'datetime',
+            'exam_mode' => 'boolean',
+            'intro_video_seconds' => 'integer',
+            'work_types' => 'array',
         ];
     }
 
@@ -177,6 +182,20 @@ class Competition extends Model
     public function categoryList(): array
     {
         return array_values(array_filter((array) $this->categories, fn ($category): bool => is_string($category) && $category !== ''));
+    }
+
+    /**
+     * أنواع الأعمال المسموح رفعها في المسابقة. والاختبار الإلكتروني بلا أعمال.
+     *
+     * @return list<WorkType>
+     */
+    public function workTypeList(): array
+    {
+        if ($this->exam_mode) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(fn ($type): ?WorkType => is_string($type) ? WorkType::tryFrom($type) : null, (array) $this->work_types)));
     }
 
     public function getActivitylogOptions(): LogOptions

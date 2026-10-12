@@ -141,4 +141,6 @@
             </div>
         @endif
     </form>
+
+    @include('competitions._works', ['editable' => $editable])
 </x-layouts.account>

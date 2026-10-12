@@ -15,6 +15,7 @@ use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SubmissionVideo;
+use App\Models\SubmissionWork;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
@@ -67,7 +68,7 @@ class ExportUserData
                     'cancelled_at' => $date($registration->cancelled_at),
                     'registered_at' => $date($registration->created_at),
                 ])->all(),
-            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question'])->get()
+            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question', 'works'])->get()
                 ->map(fn (CompetitionSubmission $submission): array => [
                     'competition' => $submission->competition->title,
                     'status' => $submission->status->value,
@@ -83,6 +84,20 @@ class ExportUserData
                         'duration_seconds' => $video->duration_seconds,
                         'size_bytes' => $video->size,
                         'uploaded_at' => $date($video->created_at),
+                    ])->all(),
+                    // بيانات تسجيل الاختبار الإلكتروني، والأعمال المرفوعة (نوعها ورابطها، لا الملف نفسه)
+                    'exam_registration' => [
+                        'full_name' => $submission->full_name,
+                        'contact_email' => $submission->contact_email,
+                        'education_stage' => $submission->education_stage?->value,
+                        'national_id' => $submission->national_id,
+                        'registered_at' => $date($submission->registered_at),
+                    ],
+                    'works' => $submission->works->map(fn (SubmissionWork $work): array => [
+                        'type' => $work->type->value,
+                        'url' => $work->url,
+                        'size_bytes' => $work->size,
+                        'uploaded_at' => $date($work->created_at),
                     ])->all(),
                 ])->all(),
             'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey.questions')->get()

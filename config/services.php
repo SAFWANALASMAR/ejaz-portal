@@ -43,6 +43,11 @@ return [
         'request_updates' => (bool) env('SMS_REQUEST_UPDATES', false),
     ],
 
+    // مزود واتساب: ينتظر قرار صفوان. log يكتب في السجل (يرفض الإنتاج)، وfake للاختبارات
+    'whatsapp' => [
+        'driver' => env('WHATSAPP_DRIVER', 'log'),
+    ],
+
     // التحدي ضد الآليات على إرسال غير المسجلين: fake في التطوير والاختبارات، وturnstile (Cloudflare)
     // بمفتاحيه في الإنتاج (docs/decisions.md)
     'bot_challenge' => [
