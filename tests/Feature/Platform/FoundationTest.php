@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\RoleName;
 use App\Models\MenuItem;
 use App\Models\Setting;
 
@@ -24,6 +25,23 @@ it('sends the security headers on every web response', function () {
     $response->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+});
+
+it('sends the security headers on the admin panel too, so its screens cannot be framed', function () {
+    $this->get('/admin')->assertRedirect()->assertHeader('X-Frame-Options', 'DENY');
+
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+
+    foreach (['/admin', '/admin/users'] as $path) {
+        $response = $this->get($path)->assertOk();
+
+        expect((string) $response->headers->get('Content-Security-Policy'))
+            ->toContain("frame-ancestors 'none'")
+            ->toContain("'nonce-");
+
+        $response->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+    }
 });
 
 it('sends HSTS only over https', function () {
