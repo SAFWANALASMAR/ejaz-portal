@@ -6,8 +6,10 @@ use App\Actions\Settings\UpdateSiteSettings;
 use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
+use App\Rules\PlainText;
 use App\Rules\SafeUrl;
 use App\Rules\StoreUrl;
+use App\Rules\VideoUrl;
 use App\Support\PortalStats;
 use App\Support\Retention;
 use BackedEnum;
@@ -140,6 +142,17 @@ class SiteSettings extends Page
                                 ->disk('public')
                                 ->directory(UpdateSiteSettings::IMAGE_DIRECTORY)
                                 ->visibility('public')
+                                ->columnSpanFull(),
+                            TextInput::make('home.hero_image_alt')->label(__('settings.home.hero_image_alt'))
+                                ->helperText(__('settings.home.hero_image_alt_hint'))
+                                ->maxLength(300)
+                                ->rule(new PlainText)
+                                ->columnSpanFull(),
+                            TextInput::make('home.video_url')->label(__('settings.home.video_url'))
+                                ->helperText(__('settings.home.video_url_hint'))
+                                ->maxLength(VideoUrl::MAX_LENGTH)
+                                ->extraInputAttributes(['dir' => 'ltr'])
+                                ->rule(new VideoUrl(youtubeOnly: true))
                                 ->columnSpanFull(),
                         ]),
                         Section::make(__('settings.home.sections'))->columns(3)->schema([

@@ -7,10 +7,12 @@
 return [
 
     'sections' => [
+        'media' => 'مكتبة الوسائط',
         'pages' => 'الصفحات',
         'initiatives' => 'المبادرات',
         'documents' => 'الوثائق',
         'library' => 'المكتبة',
+        'settings' => 'الإعدادات',
         'redirects' => 'التحويلات',
     ],
 
@@ -36,6 +38,8 @@ return [
         'file_missing' => 'الملف :file غير موجود داخل مجلد ملف الاستيراد.',
         'file_size' => 'الملف :file أكبر من الحد المسموح.',
         'video_file' => 'المقطع المرئي برابط في video_url، لا بملف.',
+        'media_type' => 'الملف :file ليس صورة JPG أو PNG أو WebP، ولا أيقونة SVG سليمة.',
+        'media_missing' => 'لا عنصر في مكتبة الوسائط بالمعرّف :media.',
     ],
 
 ];

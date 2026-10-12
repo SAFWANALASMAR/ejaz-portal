@@ -27,6 +27,8 @@ return [
         'partners' => $crud,
         'livestreams' => $crud,
         'redirects' => $crud,
+        // مكتبة الوسائط: الإضافة بأمر الاستيراد، ولا حذف (MediaAssetPolicy)
+        'media_assets' => ['view', 'create', 'update'],
 
         // الطلبات والتواصل
         'requests' => ['view', 'update', 'assign', 'export', 'delete'],
@@ -102,7 +104,7 @@ return [
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
-            'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*',
+            'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*', 'media_assets.*',
             'livestreams.*',
         ],
         'program_manager' => [

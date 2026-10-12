@@ -17,6 +17,8 @@
 
 <x-layouts.app :title="__('contact.title')">
     <x-page-hero :title="__('contact.title')" />
+    <x-page-intro slug="contact" />
+    <x-page-intro slug="inquiries" />
 
     <section class="py-10 sm:py-14">
         <div @class(['container-page grid gap-8 lg:items-start', 'lg:grid-cols-[1fr_2fr]' => $showInfo])>
