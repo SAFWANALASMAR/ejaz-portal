@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CompetitionStatus;
 use App\Enums\SubmissionStatus;
 use App\Enums\WorkType;
+use App\Models\Concerns\Publishable;
 use Database\Factories\CompetitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,7 +34,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
-    use HasFactory, HasUuids, LogsActivity, SoftDeletes;
+    use HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -140,14 +141,6 @@ class Competition extends Model
                 ->orWhere(fn (Builder $query) => $query->whereNotNull('answers')->where('answers', '!=', '[]'))
                 ->orWhereHas('videos'))
             ->exists();
-    }
-
-    /**
-     * @param  Builder<Competition>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     public function status(?Carbon $now = null): CompetitionStatus

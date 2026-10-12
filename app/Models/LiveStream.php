@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LiveStreamProvider;
 use App\Enums\LiveStreamStatus;
+use App\Models\Concerns\Publishable;
 use App\Rules\SafeUrl;
 use App\Rules\VideoUrl;
 use Database\Factories\LiveStreamFactory;
@@ -33,7 +34,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class LiveStream extends Model
 {
     /** @use HasFactory<LiveStreamFactory> */
-    use HasFactory, LogsActivity, SoftDeletes;
+    use HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * شارة الرأس تُقرأ من ذاكرة قصيرة تُمسح عند أي حفظ.
@@ -70,14 +71,6 @@ class LiveStream extends Model
     public function libraryItem(): BelongsTo
     {
         return $this->belongsTo(LibraryItem::class)->withTrashed();
-    }
-
-    /**
-     * @param  Builder<LiveStream>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**

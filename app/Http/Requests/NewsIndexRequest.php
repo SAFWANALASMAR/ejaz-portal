@@ -26,7 +26,7 @@ class NewsIndexRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:100', new PlainText],
             'category' => ['nullable', 'string', 'max:60', new PlainText],
-            'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'page' => ListPage::RULES,
         ];
     }
 }

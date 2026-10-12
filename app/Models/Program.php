@@ -7,6 +7,7 @@ use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
 use App\Models\Concerns\DefinesFormFields;
 use App\Models\Concerns\FlushesContentCache;
+use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasFormFields;
 use App\Models\Contracts\HasPublicImages;
 use Database\Factories\ProgramFactory;
@@ -41,7 +42,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Program extends Model implements HasFormFields, HasPublicImages
 {
     /** @use HasFactory<ProgramFactory> */
-    use DefinesFormFields, FlushesContentCache, HasFactory, LogsActivity, SoftDeletes;
+    use DefinesFormFields, FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     public const IMAGE_DIRECTORY = 'programs';
 
@@ -85,14 +86,6 @@ class Program extends Model implements HasFormFields, HasPublicImages
     public function registrations(): HasMany
     {
         return $this->hasMany(ProgramRegistration::class);
-    }
-
-    /**
-     * @param  Builder<Program>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**

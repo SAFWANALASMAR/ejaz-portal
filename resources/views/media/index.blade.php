@@ -21,13 +21,7 @@
         <h2 class="sr-only">{{ __('media.tiles.label') }}</h2>
         <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             @foreach ($tiles as $tile)
-                <li>
-                    <a href="{{ $tile['url'] }}"
-                        class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-                        <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$tile['icon'], 'size-9') }}</span>
-                        <span class="font-semibold text-ink">{{ __('media.tiles.'.$tile['key']) }}</span>
-                    </a>
-                </li>
+                <li><x-section-tile :href="$tile['url']" :icon="$tile['icon']" :label="__('media.tiles.'.$tile['key'])" /></li>
             @endforeach
         </ul>
 
@@ -38,15 +32,7 @@
 
 <section class="bg-surface py-12 sm:py-16" aria-labelledby="latest-news">
     <div class="container-page">
-        <div class="flex items-end justify-between gap-4">
-            <x-section-heading id="latest-news">{{ __('media.latest_news') }}</x-section-heading>
-            @if ($latest->isNotEmpty())
-                <a href="{{ route('media.news.index') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
-                    {{ __('site.view_all') }}
-                    {{ svg('heroicon-o-arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-                </a>
-            @endif
-        </div>
+        <x-section-header id="latest-news" :title="__('media.latest_news')" :href="$latest->isNotEmpty() ? route('media.news.index') : null" />
 
         @if ($latest->isEmpty())
             <p class="mt-6 text-muted">{{ __('news.list.empty') }}</p>

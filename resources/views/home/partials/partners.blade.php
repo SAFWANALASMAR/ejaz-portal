@@ -9,13 +9,7 @@
 
 <section class="bg-white py-12 lg:py-16" aria-labelledby="home-partners">
     <div class="container-page">
-        <div class="flex items-end justify-between gap-4">
-            <x-section-heading id="home-partners">{{ __('home.partners.title') }}</x-section-heading>
-            <a href="{{ route('media.partners') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
-                {{ __('site.view_all') }}
-                {{ svg('heroicon-o-arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-            </a>
-        </div>
+        <x-section-header id="home-partners" :title="__('home.partners.title')" :href="route('media.partners')" />
 
         @foreach ($groups as $key => $group)
             @if ($grouped)

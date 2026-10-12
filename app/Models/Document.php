@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DocumentCategory;
 use App\Models\Concerns\FlushesContentCache;
+use App\Models\Concerns\Publishable;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +22,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use FlushesContentCache, HasFactory, LogsActivity, SoftDeletes;
+    use FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     public const DIRECTORY = 'documents';
 
@@ -36,14 +37,6 @@ class Document extends Model
             'file_size' => 'integer',
             'is_published' => 'boolean',
         ];
-    }
-
-    /**
-     * @param  Builder<Document>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**

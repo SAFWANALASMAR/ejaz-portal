@@ -4,10 +4,10 @@ namespace App\Models;
 
 use App\Enums\OpeningKind;
 use App\Models\Concerns\DefinesFormFields;
+use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasFormFields;
 use Database\Factories\OpeningFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,7 +28,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Opening extends Model implements HasFormFields
 {
     /** @use HasFactory<OpeningFactory> */
-    use DefinesFormFields, HasFactory, LogsActivity, SoftDeletes;
+    use DefinesFormFields, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -49,14 +49,6 @@ class Opening extends Model implements HasFormFields
     public function requests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class);
-    }
-
-    /**
-     * @param  Builder<Opening>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**

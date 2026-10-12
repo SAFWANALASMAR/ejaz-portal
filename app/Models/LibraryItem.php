@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LibrarySection;
 use App\Models\Concerns\FlushesContentCache;
+use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasPublicImages;
 use App\Rules\VideoUrl;
 use Database\Factories\LibraryItemFactory;
@@ -28,7 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class LibraryItem extends Model implements HasPublicImages
 {
     /** @use HasFactory<LibraryItemFactory> */
-    use FlushesContentCache, HasFactory, LogsActivity, SoftDeletes;
+    use FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     public const IMAGE_DIRECTORY = 'library';
 
@@ -57,14 +58,6 @@ class LibraryItem extends Model implements HasPublicImages
             'is_published' => 'boolean',
             'on_home' => 'boolean',
         ];
-    }
-
-    /**
-     * @param  Builder<LibraryItem>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**
