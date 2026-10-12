@@ -20,7 +20,8 @@ class MenuSeeder extends Seeder
 
         $menu = [
             ['label' => 'الرئيسية', 'url' => '/'],
-            // «عن الجمعية» بقائمتها في الموقع السابق (أرشيف الموقع — القائمة الرئيسية)
+            // «عن الجمعية» بقائمتها في الموقع السابق (أرشيف الموقع — القائمة الرئيسية). وعناصر الوثائق
+            // مخفية حتى تُنشر الوثائق المستوردة مسودات
             ['label' => 'عن الجمعية', 'url' => '/about', 'children' => [
                 ['label' => 'عن الجمعية', 'url' => '/about'],
                 ['label' => 'شهادة ترخيص الجمعية', 'url' => '/governance/license-certificate'],
@@ -56,7 +57,8 @@ class MenuSeeder extends Seeder
             $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => $item['new_tab'] ?? false]);
 
             foreach ($item['children'] ?? [] as $childSort => $child) {
-                MenuItem::create(['parent_id' => $parent->id, 'label' => $child['label'], 'url' => $child['url'], 'sort' => $childSort]);
+                MenuItem::create(['parent_id' => $parent->id, 'label' => $child['label'], 'url' => $child['url'], 'sort' => $childSort,
+                    'is_visible' => ! str_starts_with($child['url'], '/governance/')]);
             }
         }
     }

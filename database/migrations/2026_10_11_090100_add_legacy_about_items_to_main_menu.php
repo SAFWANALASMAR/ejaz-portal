@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * قائمة «عن الجمعية» كما في الموقع السابق (أرشيف الموقع — القائمة الرئيسية): الوثائق الرسمية
  * والآليات بمسمياتها في القائمة، و«اللوائح والسياسات» إلى قسمها في الحوكمة (الرأس بمستويين). تُضاف
- * مرة واحدة إن لم يكن لـ«عن الجمعية» عناصر فرعية.
+ * مرة واحدة إن لم يكن لـ«عن الجمعية» عناصر فرعية. وعناصر الوثائق مخفية، لأن الوثائق تُستورد مسودات:
+ * يُظهرها المحرر من «القائمة» بعد نشرها، فلا يظهر رابط إلى 404.
  *
  * ويُصحَّح رابط كل عنصر بقي على مسار لا وجود له في البوابة (من القائمة الافتراضية) إلى مساره المبني،
  * إن بقي كما كان. وتعديلها بعد ذلك من اللوحة.
@@ -28,16 +29,19 @@ return new class extends Migration
         ['وثيقة الافصاح', '/governance/disclosure-document'],
     ];
 
+    /**
+     * الرابط القديم ← [الصحيح، وعنوان العنصر في القائمة الافتراضية].
+     */
     private const FIXED_URLS = [
-        '/news' => '/media/news',
-        '/media/photos' => '/media/albums',
-        '/media/videos' => '/library/videos',
-        '/partners' => '/media/partners',
+        '/news' => ['/media/news', 'الأخبار'],
+        '/media/photos' => ['/media/albums', 'مكتبة الصور'],
+        '/media/videos' => ['/library/videos', 'مكتبة الفيديو'],
+        '/partners' => ['/media/partners', 'الشركاء'],
     ];
 
     public function up(): void
     {
-        foreach (self::FIXED_URLS as $from => $to) {
+        foreach (self::FIXED_URLS as $from => [$to]) {
             DB::table('menu_items')->where('url', $from)->update(['url' => $to, 'updated_at' => now()]);
         }
 
@@ -50,7 +54,7 @@ return new class extends Migration
                     'label' => $label,
                     'url' => $url,
                     'opens_in_new_tab' => false,
-                    'is_visible' => true,
+                    'is_visible' => ! str_starts_with($url, '/governance/'),
                     'sort' => $sort + 1,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -71,8 +75,9 @@ return new class extends Migration
             }
         }
 
-        foreach (self::FIXED_URLS as $from => $to) {
-            DB::table('menu_items')->where('url', $to)->update(['url' => $from, 'updated_at' => now()]);
+        // ما غيّره up() وحده: العنصر الافتراضي بعنوانه، لا عنصر أضافه المحرر إلى المسار نفسه
+        foreach (self::FIXED_URLS as $from => [$to, $label]) {
+            DB::table('menu_items')->where('url', $to)->where('label', $label)->update(['url' => $from, 'updated_at' => now()]);
         }
 
         Cache::forget(MenuItem::CACHE_KEY);

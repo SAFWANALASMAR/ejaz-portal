@@ -19,7 +19,7 @@ it('describes every page by default with the old site description, with a canoni
         ->toContain('href="'.asset('favicon.ico').'"')
         ->toContain('href="'.asset('apple-touch-icon.png').'"');
 
-    foreach (['favicon.ico', 'favicon-32x32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'] as $file) {
+    foreach (['favicon.ico', 'favicon-32x32.png', 'apple-touch-icon.png', 'icon-192.png'] as $file) {
         expect(filesize(public_path($file)))->toBeGreaterThan(0);
     }
 

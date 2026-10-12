@@ -91,7 +91,12 @@ class ImportLegacyContent
     public function handle(User $actor, string $path, bool $dryRun = false): array
     {
         $data = self::read($path);
-        $base = rtrim(dirname((string) realpath($path)), DIRECTORY_SEPARATOR);
+        $base = rtrim(dirname((string) realpath($path)), '\/');
+
+        // ملف في جذر القرص يجعل فحص «داخل المجلد» يقبل أي مسار مطلق
+        if ($base === '' || preg_match('/^[A-Za-z]:$/', $base) === 1) {
+            throw ValidationException::withMessages(['file' => __('import.errors.file')]);
+        }
 
         self::authorize($actor, $data);
 
@@ -379,7 +384,7 @@ class ImportLegacyContent
             'hero_button_label' => ['nullable', 'string', 'max:40', new PlainText],
             'hero_button_url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'hero_media' => ['nullable', 'string', 'max:80'],
-            'video_url' => ['nullable', 'string', 'max:'.VideoUrl::MAX_LENGTH, new VideoUrl],
+            'video_url' => ['nullable', 'string', 'max:'.VideoUrl::MAX_LENGTH, new VideoUrl(youtubeOnly: true)],
         ] : [
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:300', new PlainText(multiline: true)],

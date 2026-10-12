@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\SurveyAudience;
-use App\Models\Concerns\FlushesContentCache;
 use Database\Factories\SurveyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,8 +31,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Survey extends Model
 {
     /** @use HasFactory<SurveyFactory> */
-    // فتحه وإغلاقه يظهران في المركز الإعلامي المخزّن
-    use FlushesContentCache, HasFactory, HasUuids, LogsActivity, SoftDeletes;
+    use HasFactory, HasUuids, LogsActivity, SoftDeletes;
 
     /**
      * @return array<string, string>

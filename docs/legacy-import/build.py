@@ -85,7 +85,8 @@ DECORATIVE = {
     'cultural-1.png', 'occupational-therapy.png', 'civic.png', 'education-technology.png', 'quality-control.png',
     'cultural.png', 'img-2.png', 'Image-901.png', 'Group-61552.png', '1.png', 'world-map1x.png', 'cropped-جمعية-إعجاز.png',
 }
-# Where each placed image lives in the portal (its old URL redirects there). The rest stay in the library.
+# Where each placed image lives in the portal (its old URL redirects there). The rest stay in the library, and their old
+# URLs reach the home page through LegacyPaths (wp-content/uploads), with no registered redirect.
 PLACED = {
     '2.webp': '/',
     'cropped-جمعية-إعجاز.png': '/',
@@ -112,7 +113,7 @@ for entry in index:
         'alt': None if decorative else missing('نص بديل'),
         'is_decorative': decorative,
         'from_template': not any(ARABIC.search(p) for p in entry['مستخدم_في']),
-        'target': PLACED.get(name, '/'),
+        'target': PLACED.get(name),
         'legacy_paths': [path_of(entry['الرابط_الأصلي'])],
     })
 
@@ -265,7 +266,7 @@ rows = []
 rows += [(d['legacy_paths'][0], '/governance/' + d['slug'], 'record') for d in documents]
 rows += [(a['legacy_paths'][0], '/library/audio/' + a['slug'], 'record') for a in audio]
 rows += [(i['legacy_paths'][0], '/initiatives/' + i['slug'], 'record') for i in initiatives]
-rows += [(m['legacy_paths'][0], m['target'], 'media') for m in media]
+rows += [(m['legacy_paths'][0], m['target'] or '/', 'media' if m['target'] else 'pattern') for m in media]
 rows += [(source, target, 'seeded') for source, target in SEEDED.items()]
 rows += [(p, '/media/news', 'news') for p in news]
 rows += [('/', '/', 'served'), ('/contact/', '/contact', 'served')]

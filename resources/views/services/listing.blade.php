@@ -9,7 +9,7 @@
 
 <x-layouts.app :title="$kind->getLabel()">
     <x-page-hero :title="$kind->getLabel()" />
-    <x-page-intro :slug="match ($kind) { OpeningKind::Membership => 'assembly-membership', OpeningKind::Employment => 'jobs', OpeningKind::Volunteering => 'volunteering' }" />
+    <x-page-intro :slug="$kind->introSlug()" />
 
     <section class="py-10 sm:py-14">
         <div class="container-page">

@@ -262,3 +262,41 @@ it('answers every internal link of the published site without a 404', function (
     expect(count($seen))->toBeGreaterThan(100)
         ->and(array_filter($seen, fn (int $status): bool => $status >= 400))->toBe([]);
 });
+
+it('rejects a media file outside the folder, a missing media item, an unknown setting and a non-YouTube home video, leaving no copies behind', function () {
+    File::put($this->dir.'/files/pic.png', tinyImage('png'));
+    File::put(dirname($this->dir).'/outside-'.basename($this->dir).'.png', tinyImage('png'));
+    File::put($this->dir.'/broken.json', json_encode([
+        'media' => [
+            ['slug' => 'pic', 'file' => 'files/pic.png', 'title' => 'صورة تجريبية'],
+            ['slug' => 'outside', 'file' => '../outside-'.basename($this->dir).'.png', 'title' => 'صورة تجريبية'],
+        ],
+        // الصورة الأولى توضع ثم يُرفض السجل بالثانية، فلا تبقى نسختها
+        'pages' => [['slug' => 'with-ghost', 'title' => 'صفحة تجريبية', 'blocks' => [
+            ['type' => 'image', 'data' => ['media' => 'pic']],
+            ['type' => 'image', 'data' => ['media' => 'ghost']],
+        ]]],
+        'settings' => [
+            'home' => ['video_url' => 'https://cdn.example.com/clip.mp4'],
+            'contact' => ['email' => 'info@example.com', 'phone' => '0500000000'],
+        ],
+    ], JSON_UNESCAPED_UNICODE));
+
+    $before = Setting::group('home');
+
+    $this->artisan('import:legacy-site', ['file' => $this->dir.'/broken.json', '--actor' => $this->admin->email])
+        ->expectsOutputToContain(__('import.errors.file_missing', ['file' => '../outside-'.basename($this->dir).'.png']))
+        ->expectsOutputToContain(__('import.errors.media_missing', ['media' => 'ghost']))
+        ->expectsOutputToContain('phone')
+        ->assertFailed();
+
+    $asset = MediaAsset::query()->sole();
+
+    expect($asset->slug)->toBe('pic')
+        ->and(Page::count())->toBe(0)
+        ->and(Storage::disk('public')->allFiles())->toBe([$asset->web_path])
+        ->and(Setting::group('home'))->toBe($before)
+        ->and(Setting::group('contact')['email'] ?? null)->not->toBe('info@example.com');
+
+    File::delete(dirname($this->dir).'/outside-'.basename($this->dir).'.png');
+});

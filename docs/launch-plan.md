@@ -18,6 +18,7 @@
 4. على الإنتاج:
    - `php artisan migrate --force`، ثم `php artisan db:seed --class=PermissionsSeeder --force`، ثم `php artisan db:seed --class=LegacyRedirectsSeeder --force`.
    - نسخ الملفات من الأرشيف (`docs/legacy-import/README.md`)، ثم `import:legacy-site` بالخيار `--dry-run`، ثم بدونه.
+   - تنبيه: الصفحات والوثائق والمكتبة تُستورد مسودات، أما إعدادات الرئيسية والتواصل فتُستورد **حيّة** (يُملأ الفارغ منها وحده)، فتظهر فور الاستيراد. تُراجع من «إعدادات الموقع» قبل التحويل.
    - مراجعة المسودات ونشرها من اللوحة بعد اعتماد الجمعية، وإكمال ما في `open-questions.md` أو قبول بقائه.
    - `SEO_INDEXABLE=true` في الإنتاج وحده، ثم `php artisan ejaz:refresh-content`.
 5. **شهادة SSL قبل التحويل:** تُصدر شهادة ejaz.sa و`www.ejaz.sa` على الخادم الجديد قبل تغيير DNS، بالتحقق عبر DNS (سجل TXT `_acme-challenge`) لأن النطاق ما زال يشير إلى الخادم القديم. **يحتاج صفوان** لإضافة سجل التحقق إن لم يكن الوصول إلى DNS متاحاً للمطور.

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -28,6 +29,16 @@ class AddMediaAsset
     public const WEB_MAX_SIDE = 1920;
 
     public const WEB_QUALITY = 82;
+
+    /**
+     * أقصى ضلع للصورة الأصلية قبل فك ترميزها، فلا يستنفد ملف صغير بأبعاد ضخمة الذاكرة.
+     */
+    public const MAX_SIDE = 6000;
+
+    /**
+     * أقصى عدد للبكسلات (قرابة 4900×4900)، فلا تحجز صورة مربعة بأقصى ضلعها ذاكرة الأمر كلها.
+     */
+    public const MAX_PIXELS = 24_000_000;
 
     private const RASTER_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
@@ -91,8 +102,10 @@ class AddMediaAsset
             Storage::disk(MediaAsset::disk())->delete($attributes['original_path'] ?? '');
             Storage::disk('public')->delete($attributes['web_path'] ?? '');
 
-            throw $exception instanceof ValidationException ? $exception
-                : ValidationException::withMessages(['file' => __('import.errors.media_type', ['file' => basename($file)])]);
+            // الملف الذي لا يُقرأ صورةً أو أيقونةً سليمة وحده «ليس صورة»، وغيره (القاعدة مثلاً) يُرمى كما هو
+            throw $exception instanceof RuntimeException
+                ? ValidationException::withMessages(['file' => __('import.errors.media_type', ['file' => basename($file)])])
+                : $exception;
         }
     }
 
@@ -119,10 +132,16 @@ class AddMediaAsset
      */
     private static function webVersion(string $contents): array
     {
+        $size = @getimagesizefromstring($contents);
+
+        if ($size === false || $size[0] < 1 || $size[1] < 1 || max($size[0], $size[1]) > self::MAX_SIDE || $size[0] * $size[1] > self::MAX_PIXELS) {
+            throw new RuntimeException('Unreadable or oversized image');
+        }
+
         $image = @imagecreatefromstring($contents);
 
         if ($image === false) {
-            throw new \RuntimeException('Unreadable image');
+            throw new RuntimeException('Unreadable image');
         }
 
         $width = imagesx($image);
