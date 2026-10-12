@@ -404,11 +404,11 @@ it('downloads the PDF from the print view for the allowed only', function () {
 });
 
 it('keeps the staff print view from a role outside the panel even with the permission', function () {
-    $director = userWithRole(RoleName::ExecutiveDirector);
-    $director->givePermissionTo('form_entries.view');
+    $member = userWithRole(RoleName::AssemblyMember);
+    $member->givePermissionTo('form_entries.view');
     $entry = FormEntry::factory()->create();
 
-    $this->actingAs($director)->get(route('documents.entries.print', $entry))->assertForbidden();
+    $this->actingAs($member)->get(route('documents.entries.print', $entry))->assertForbidden();
 });
 
 it('lets a participant download the PDF of their approved entry only, and shows «my forms» only to those who have one', function () {
