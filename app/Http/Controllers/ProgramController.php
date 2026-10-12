@@ -33,7 +33,6 @@ class ProgramController extends Controller
         $programs = Program::query()
             ->published()
             ->withConfirmedCount()
-            ->with('type')
             ->when($active, fn (Builder $query) => $query->where('program_type_id', $active->id))
             // القادمة بأقربها موعداً، ثم المنتهية بأحدثها
             ->orderByRaw('case when coalesce(ends_at, starts_at) > now() then 0 else 1 end')
@@ -44,6 +43,9 @@ class ProgramController extends Controller
             ->withQueryString();
 
         abort_if($programs->currentPage() > max($programs->lastPage(), 1), 404);
+
+        // نوع كل برنامج من الأنواع المحمّلة للتبويبات، لا باستعلام ثانٍ عنها
+        $programs->each(fn (Program $program) => $program->setRelation('type', $types->find($program->program_type_id)));
 
         return view('programs.index', ['types' => $types, 'active' => $active, 'programs' => $programs, 'hub' => self::hub($types)]);
     }

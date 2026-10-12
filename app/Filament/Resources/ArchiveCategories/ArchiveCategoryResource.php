@@ -18,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -55,6 +56,8 @@ class ArchiveCategoryResource extends Resource
     {
         return $table
             ->defaultSort('name')
+            // وجود العناصر ولو محذوفة لصلاحية الحذف (ArchiveCategoryPolicy)، باستعلام الجدول نفسه
+            ->modifyQueryUsing(fn (Builder $query) => $query->withExists(['items as has_any_items' => fn ($items) => $items->withTrashed()]))
             ->columns([
                 TextColumn::make('name')->label(__('documents.fields.name'))->searchable(),
                 TextColumn::make('roles')

@@ -20,6 +20,9 @@ class ArchiveCategoryPolicy extends ModulePolicy
     public function delete(User $user, Model $record): bool
     {
         /** @var ArchiveCategory $record */
-        return ! $record->items()->withTrashed()->exists() && $this->allows($user, 'delete');
+        // جدول التصنيفات يحمّل وجود العناصر مسبقاً (withExists)، فلا استعلام لكل صف
+        $hasItems = $record->hasAttribute('has_any_items') ? (bool) $record->getAttribute('has_any_items') : $record->items()->withTrashed()->exists();
+
+        return ! $hasItems && $this->allows($user, 'delete');
     }
 }
