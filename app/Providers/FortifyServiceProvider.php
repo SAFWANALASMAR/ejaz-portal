@@ -8,6 +8,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Auth\LoginRateLimiter;
+use App\Enums\RoleName;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
@@ -81,6 +82,12 @@ class FortifyServiceProvider extends ServiceProvider
 
         if (! $user->is_active || ! Hash::check($password, $user->password)) {
             return null;
+        }
+
+        // لا «تذكّرني» للأدوار الإدارية: كعكة التذكّر تعيد الدخول بلا كلمة مرور ولا تحقق ثنائي بعد انتهاء
+        // الجلسة، فتتجاوز مهلة خمول اللوحة (docs/security/2026-10-10-security-audit.md)
+        if ($user->requiresTwoFactor() || $user->hasAnyRole(RoleName::values(RoleName::panelRoles()))) {
+            $request->merge(['remember' => false]);
         }
 
         return $user;

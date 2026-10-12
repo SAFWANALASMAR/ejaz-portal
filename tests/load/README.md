@@ -1,10 +1,84 @@
-# اختبار التحمل والتزامن — المسابقات
+# اختبار التحمل والتزامن
 
-المرجع: `docs/performance.md` و`docs/plans/competitions.md` (البند ٧). الأداة k6، ولا تُضاف إلى المشروع مكتبةً: تُثبَّت على جهاز التشغيل وحده.
+المرجع: `docs/performance.md` و`docs/plans/competitions.md` (البند ٧) و`docs/plans/launch-readiness.md`. الأداة k6، ولا تُضاف إلى المشروع مكتبةً: تُثبَّت على جهاز التشغيل وحده.
 
 ## أين يُجرى
 
 على **البيئة التجريبية** بمواصفات الإنتاج، لا على جهاز التطوير. وقبل فتح أي تسجيل كبير.
+
+**لا تشغيل على الإنتاج أبداً:** كل سكربت يتوقف إن كان `BASE_URL` هو `ejaz.sa` أو `www.ejaz.sa` (`lib.js`).
+
+## السكربتات
+
+- `browse.js` — زائر بلا حساب: الرئيسية، ثم ثلاثة أقسام عشوائية، ثم صفحة عنصر. أغلب الحركة وقت الذروة.
+- `login.js` — صفحة الدخول، والدخول، ولوحة الحساب، والخروج. يقيس bcrypt والجلسات في Redis.
+- `program-registration.js` — التسجيل في برنامج (`PROGRAM`): قفل المقاعد وقائمة الانتظار تحت التزامن.
+- `competition-exam.js` — رحلة المتقدم في المسابقة على امتداد وقت الإجابة (`EXAM_MINUTES`): حفظ تلقائي كل 30–60 ثانية من آلاف الجلسات المفتوحة معاً، ثم الإرسال. على مسارات المشاركة القائمة، وتُضاف مسارات الاختبار المؤقت إن دُمج فرعه.
+- `competition-entry.js` — دفعة التقديم: كل حساب يقدّم مرة بأسرع ما يمكن، مع رفع مقطع مجزأ اختيارياً (`VIDEO`).
+- `lib.js` — المشترك: حارس الإنتاج، وملفات التصاعد، والدخول، ورمز CSRF.
+
+## ملفات التصاعد (`PROFILE`) والتزامن في الذروة (`PEAK`)
+
+السكربتات الأربعة الأولى بمنفّذ `ramping-vus`، و`PEAK` عدد المستخدمين الافتراضيين المتزامنين في الذروة:
+
+- `smoke` — مستخدمان لدقيقة: تجربة السكربت نفسه قبل أي تشغيل كبير.
+- `average` — ربع الذروة 15 دقيقة: الحمل العادي، ومعياره p95 أقل من 300 ملي ثانية للصفحات العامة (`performance.md`).
+- `peak` — تصاعد 10 دقائق إلى `PEAK` ثم ثبات 20 دقيقة: الذروة المتوقعة.
+- `spike` — قفزة في دقيقة إلى `PEAK`: لحظة فتح التسجيل أو الإعلان.
+- `stress` — إلى مثلي `PEAK`: لمعرفة نقطة الانكسار، ولا يدخل في معايير القبول.
+
+### من 30,000 مستخدم إلى `PEAK`
+
+التزامن لا يساوي عدد المستخدمين، بل:
+
+```
+PEAK ≈ عدد من يصلون في نافذة الذروة × مدة الجلسة بالدقائق ÷ مدة النافذة بالدقائق
+```
+
+- العدد: **30,000** هامشاً فوق المتوقع مبدئياً للمسابقة (**17,500** — صفوان، 6 أكتوبر 2026).
+- مدة النافذة وتوزيع الدخول 【ناقص: من الجمعية حسب تجارب التسجيل السابقة】، فلا قيمة معتمدة لـ `PEAK` بعد.
+- **مثال حسابي للتوضيح فقط، لا تقدير:** لو وصل الثلاثون ألفاً كلهم في ساعتين، والجلسة 20 دقيقة، فالتزامن نحو 30,000 × 20 ÷ 120 = 5,000. ولو في يوم كامل فنحو 420.
+- يُشغَّل `peak` بالقيمة المحسوبة، ثم `spike` بها، ثم `stress` لمعرفة الهامش. و`competition-entry.js` بـ `ACCOUNTS=30000` يتحقق أن كل الحسابات قدّمت فعلاً.
+- مولّد k6 واحد يحمل بضعة آلاف من المستخدمين الافتراضيين بحسب جهازه، وما فوقها بعدة مولّدات (يُقسم `PEAK` و`ACCOUNTS` بينها، ولكل مولّد مدى حسابات منفصل).
+
+### العتبات في السكربتات
+
+- `http_req_failed` أقل من 1%، و`checks` أعلى من 99%، ولا رد 5xx.
+- الصفحات والدخول والتسجيل: p95 أقل من 1.5 ثانية تحت الذروة.
+- الحفظ التلقائي في المسابقة: p95 أقل من ثانية، والإرسال أقل من ثانيتين.
+- يفشل k6 بعتبة مكسورة (رمز خروج غير صفري)، ويُذكر ذلك في التقرير.
+
+### أمثلة
+
+```bash
+export LOAD_PASSWORD=...   # من مخرجات ejaz:load-accounts
+k6 run -e BASE_URL=https://staging.example -e PROFILE=smoke tests/load/browse.js
+k6 run -e BASE_URL=https://staging.example -e PROFILE=peak -e PEAK=2000 tests/load/browse.js
+k6 run -e BASE_URL=https://staging.example -e PASSWORD="$LOAD_PASSWORD" -e PROFILE=spike -e PEAK=1000 tests/load/login.js
+k6 run -e BASE_URL=https://staging.example -e PASSWORD="$LOAD_PASSWORD" -e PROGRAM=<slug> -e PROFILE=spike -e PEAK=1000 tests/load/program-registration.js
+k6 run -e BASE_URL=https://staging.example -e PASSWORD="$LOAD_PASSWORD" -e COMPETITION=<slug> -e EXAM_MINUTES=20 -e PROFILE=peak -e PEAK=3000 tests/load/competition-exam.js
+```
+
+### فحوص ما بعد التسجيل في البرنامج
+
+لا مؤكد فوق المقاعد، ولا تسجيل مكرر لحساب واحد (الناتجان صفر):
+
+```sql
+select count(*) from programs p
+where p.seats is not null
+  and (select count(*) from program_registrations r where r.program_id = p.id and r.status = 'confirmed') > p.seats;
+
+select count(*) from (
+  select program_id, user_id from program_registrations
+  where status <> 'cancelled' group by program_id, user_id having count(*) > 1
+) duplicates;
+```
+
+وأثناء كل تشغيل تُراقب لوحة Horizon، و`php artisan ejaz:health`، والمعالج والذاكرة واتصالات القاعدة وذاكرة Redis (`docs/monitoring.md`).
+
+---
+
+## المسابقات: التقديم (`competition-entry.js`)
 
 ## التجهيز على البيئة التجريبية
 

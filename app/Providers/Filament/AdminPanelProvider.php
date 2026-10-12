@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\AvatarProviders\InitialsAvatarProvider;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
@@ -60,6 +61,8 @@ class AdminPanelProvider extends PanelProvider
             // الخط يُخدَم من خادم البوابة نفسه (Vite) لا من مزود خارجي
             ->font('Zain', provider: LocalFontProvider::class)
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): Htmlable => Vite::fonts())
+            // صورة الحساب تُولَّد محلياً، لا من مزود خارجي
+            ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->sidebarCollapsibleOnDesktop()
             ->unsavedChangesAlerts()
             ->databaseNotifications()

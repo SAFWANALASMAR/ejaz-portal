@@ -169,7 +169,8 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // آمنة افتراضياً في الإنتاج، فلا تُرسل كعكة الجلسة على http ولو نُسي المفتاح (docs/security/2026-10-10-security-audit.md)
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

@@ -98,6 +98,8 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        // مقاطع المسابقات: المهمة حتى 15 دقيقة، فالانتظار الطويل وحده إنذار
+        'redis:videos' => 1800,
     ],
 
     /*
@@ -210,6 +212,20 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // مقاطع المسابقات: طابور مستقل بعمال قليلين ومهلة المهمة نفسها (ProcessSubmissionVideo)، فلا يقتلها
+        // حد العمال العام، ولا تحجب المقاطعُ البريدَ ولا التصدير. وretry_after للاتصال فوق المهلة (.env.production.example)
+        'supervisor-videos' => [
+            'connection' => 'redis',
+            'queue' => ['videos'],
+            'balance' => 'simple',
+            'maxProcesses' => (int) env('COMPETITION_VIDEO_WORKERS', 2),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 3,
+            'timeout' => 900,
+            'nice' => 10,
+        ],
     ],
 
     'environments' => [
@@ -219,11 +235,25 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-videos' => [],
+        ],
+
+        // التجريبية مطابقة للإنتاج، وإلا لم يُشغّل Horizon فيها عاملاً واحداً
+        'staging' => [
+            'supervisor-1' => [
+                'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-videos' => [],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-videos' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

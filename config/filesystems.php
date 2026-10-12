@@ -62,6 +62,10 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            // تخزين متوافق مع S3 لدى مزود غير AWS قد يرفض مجاميع التحقق الإضافية في الإصدارات الحديثة من
+            // مكتبة AWS، فتُضبط when_required عنده (docs/deploy/provider-checklist.md)
+            'request_checksum_calculation' => env('AWS_REQUEST_CHECKSUM_CALCULATION', 'when_supported'),
+            'response_checksum_validation' => env('AWS_RESPONSE_CHECKSUM_VALIDATION', 'when_supported'),
             'throw' => false,
             'report' => false,
         ],

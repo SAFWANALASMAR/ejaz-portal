@@ -1,0 +1,15 @@
+# النسخ الاحتياطي اليومي (scripts/backup.sh). المتغيرات في /etc/ejaz/backup.env (صلاحية 600، خارج قيت).
+[Unit]
+Description=Ejaz portal daily backup
+After=network-online.target
+Wants=network-online.target
+# OnFailure=ejaz-alert@%n.service
+
+[Service]
+Type=oneshot
+User=ejaz-backup
+WorkingDirectory=/var/www/ejaz
+EnvironmentFile=/etc/ejaz/backup.env
+ExecStart=/bin/bash /var/www/ejaz/scripts/backup.sh
+PrivateTmp=true
+NoNewPrivileges=true

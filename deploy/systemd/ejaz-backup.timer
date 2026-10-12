@@ -1,0 +1,11 @@
+# يومياً الساعة 02:30 بتوقيت الخادم (UTC = 05:30 الرياض): systemctl enable --now ejaz-backup.timer
+[Unit]
+Description=Daily Ejaz portal backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

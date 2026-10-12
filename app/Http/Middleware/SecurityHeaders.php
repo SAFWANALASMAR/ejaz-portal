@@ -56,15 +56,16 @@ class SecurityHeaders
             'default-src' => ["'self'"],
             'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
-            'img-src' => ["'self'", 'data:', 'blob:', 'https:'],
+            // الصور من الموقع نفسه، ونطاقات التخزين وشبكة التوصيل صراحةً من CSP_IMG_SRC
+            'img-src' => ["'self'", 'data:', 'blob:', ...self::origins('img_src')],
             'font-src' => ["'self'", 'data:', $dev],
-            'connect-src' => ["'self'", $dev, $devSocket, ...config('security.csp.connect_src')],
-            'media-src' => ["'self'", 'blob:', ...config('security.csp.media_src')],
+            'connect-src' => ["'self'", $dev, $devSocket, ...self::origins('connect_src')],
+            'media-src' => ["'self'", 'blob:', ...self::origins('media_src')],
             // 'self' لعرض ملف الوثيقة داخل صفحتها
             'frame-src' => ["'self'", ...config('security.csp.frame_src')],
             'object-src' => ["'none'"],
             'base-uri' => ["'self'"],
-            'form-action' => ["'self'", ...config('security.csp.form_action')],
+            'form-action' => ["'self'", ...self::origins('form_action')],
             'frame-ancestors' => ["'none'"],
         ];
 
@@ -76,7 +77,8 @@ class SecurityHeaders
         }
 
         // لوحة Horizon (للمشرف العام فقط) تضمّن سكربتاتها وخطوطها دون رمز
-        if ($request->is(trim(config('horizon.path'), '/').'*')) {
+        $horizon = trim(config('horizon.path'), '/');
+        if ($request->is($horizon, $horizon.'/*')) {
             $directives['script-src'] = ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
             $directives['style-src'] = ["'self'", "'unsafe-inline'", 'https://fonts.bunny.net'];
             $directives['font-src'] = ["'self'", 'data:', 'https://fonts.bunny.net'];
@@ -85,6 +87,27 @@ class SecurityHeaders
         return collect($directives)
             ->map(fn (array $sources, string $name): string => trim($name.' '.implode(' ', array_filter($sources))))
             ->implode('; ');
+    }
+
+    /**
+     * نطاقات من متغيرات البيئة (CSP_IMG_SRC وأخواتها): أصل https صريح وحده (نطاق، ومنفذ اختياري)، بلا مسار،
+     * والشرطة الأخيرة المنسوخة من لوحة المزود تُحذف. فلا يوسّع خطأ في الإعداد السياسة كلها: «*» و«https:»
+     * و«'unsafe-inline'» وما شابهها تُهمل. ورابط wss للاتصال وحده.
+     *
+     * وبادئة *. للنطاقات الفرعية في الصور والوسائط وحدها: في الاتصال والنماذج تفتح حاويات كل عملاء المزود
+     * قناةً لتسريب البيانات بعد أي حقن، فيُضبط نطاق الحاوية بعينه.
+     *
+     * @return list<string>
+     */
+    private static function origins(string $key): array
+    {
+        $scheme = $key === 'connect_src' ? '(https|wss)' : 'https';
+        $wildcard = in_array($key, ['img_src', 'media_src'], true) ? '(\*\.)?' : '';
+
+        return array_values(array_filter(
+            array_map(fn (mixed $origin): string => rtrim(strtolower(trim((string) $origin)), '/'), (array) config('security.csp.'.$key)),
+            fn (string $origin): bool => preg_match('#^'.$scheme.'://'.$wildcard.'[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{1,5})?$#', $origin) === 1,
+        ));
     }
 
     /**

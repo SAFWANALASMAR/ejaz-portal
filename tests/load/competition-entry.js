@@ -10,11 +10,12 @@ import http from 'k6/http';
 import { check, fail } from 'k6';
 import exec from 'k6/execution';
 import { Counter } from 'k6/metrics';
+import { guard } from './lib.js';
 
 // المشاركات التي أُرسلت فعلاً برقم مرجعي، لتُقارن بعدد الحسابات
 const confirmed = new Counter('entries_confirmed');
 
-const BASE = __ENV.BASE_URL;
+const BASE = String(__ENV.BASE_URL || '').replace(/\/+$/, '');
 const SLUG = __ENV.COMPETITION;
 const PASSWORD = __ENV.PASSWORD;
 const ACCOUNTS = Number(__ENV.ACCOUNTS || 30000);
@@ -46,6 +47,11 @@ function token(body) {
 
 function serverOk(response) {
     return response.status < 500;
+}
+
+// لا تشغيل على الإنتاج، والمتغيرات المطلوبة موجودة (lib.js)
+export function setup() {
+    guard('COMPETITION', 'PASSWORD');
 }
 
 export default function () {
