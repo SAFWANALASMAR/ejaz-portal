@@ -108,7 +108,7 @@
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" @if ($item->isCurrent()) aria-current="page" @endif
+                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->isCurrent()) aria-current="page" @endif
                                 class="block rounded-xl px-4 py-3 font-medium text-ink hover:bg-surface aria-[current=page]:text-accent-dark">{{ $item->label }}</a>
                         @endif
                     </li>

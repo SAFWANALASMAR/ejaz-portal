@@ -33,7 +33,7 @@
         @endif
 
         <div class="container-page grid gap-6 pt-6 lg:grid-cols-[17rem_1fr]">
-            <aside aria-label="{{ __('site.my_account') }}">
+            <aside>
                 {{-- الجوال واللوحي: قائمة منسدلة --}}
                 <details class="group rounded-2xl bg-primary text-white lg:hidden">
                     <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 font-semibold">

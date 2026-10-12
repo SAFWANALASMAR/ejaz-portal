@@ -74,7 +74,7 @@
 
                 @if ($question->type === QuestionType::Text)
                     <label for="answer-{{ $question->id }}" class="sr-only">{{ __('competitions.entry.answer') }}</label>
-                    <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="5" maxlength="5000"
+                    <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="5" maxlength="5000" aria-describedby="answer-{{ $question->id }}-prompt"
                         class="mt-4 block w-full rounded-xl border border-muted/70 bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id, $submission->answer($question)) }}</textarea>
                 @elseif ($question->type === QuestionType::MultipleChoice)
                     <div class="mt-4 space-y-2">
