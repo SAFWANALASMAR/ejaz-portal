@@ -35,7 +35,7 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
 - **الملفات:**
   - `scripts/backup.sh`: `pg_dump` مضغوط مشفّر بمفتاح GPG عام إلى حاوية S3 منفصلة.
   - `.env.backup.example`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `ejaz-backup.timer`.
-  - `deploy/storage/lifecycle-backups.json`: هي وحدها تحذف النسخ بعد 30 يوماً. ومفتاح الخادم كتابة بلا حذف، فمن يخترق الخادم لا يمحو النسخ.
+  - `deploy/storage/lifecycle-backups.json`: هي وحدها تحذف النسخ بعد 30 يوماً. ومفتاح الخادم كتابة وسرد بلا حذف، ومعه الإصدارات أو قفل الكائنات على حاوية النسخ (شرط)، فمن يخترق الخادم لا يمحو النسخ ولا يكتب فوقها.
   - دور قاعدة للقراءة وحدها للنسخ (`ejaz_backup`، في `.env.backup.example`).
 - **الدليل:** `scripts/restore.md` (التجربة الشهرية والاستعادة الفعلية)، و`docs/deploy.md` (الخطوة 8 والوحدات).
 - **التحقق:**
@@ -79,6 +79,7 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
 - **التحقق:**
   - `verify-server.sh --server` يقرأ القيم الثلاث من PHP داخل الحاوية، و`client_max_body_size` من `nginx -T`.
   - ورفع ملف صوت بحجم 24 ميجابايت من اللوحة على الخادم التجريبي.
+  - **رفع اللوحة الكبير (حتى 200 ميجابايت: الفيديو التعريفي ووسائط الأسئلة):** من المتصفح إلى التخزين مباشرة (`LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=s3`)، فلا تُرفع حدود nginx وPHP العامة. يلزمه CORS الحاوية و`CSP_CONNECT_SRC` (اللازمان لمقاطع المسابقات)، وقاعدة حذف `livewire-tmp/` بعد يوم (`lifecycle-private.json`). وإن بقي القرص المؤقت محلياً فـ 210M على `/livewire/upload-file` وحده. والتحقق: رفع فيديو تعريفي بحجم 150 ميجابايت على الخادم التجريبي.
 
 ## ٦. قرص الملفات الخاصة على S3 القياسي
 

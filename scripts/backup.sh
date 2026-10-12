@@ -7,15 +7,15 @@
 #      وإن كان القرص الخاص نفسه على S3 في الإنتاج، فحمايته بإصدارات الحاوية (versioning) ونسخها إلى حاوية
 #      ثانية في منطقة أخرى داخل المملكة (docs/deploy.md)، ويُضبط BACKUP_SYNC_FILES=false.
 #   ٣. مدة الاحتفاظ: بقاعدة دورة الحياة في حاوية النسخ وحدها (deploy/storage/lifecycle-backups.json)، لا من الخادم.
-#      فمفتاح الخادم كتابة بلا حذف، ومن يخترق الخادم لا يمحو النسخ قبل أن يعبث بالقاعدة. ويُستحسن قفل الكائنات
-#      أو الإصدارات على حاوية النسخ (deploy/storage/README.md).
+#      فمفتاح الخادم كتابة وسرد بلا حذف، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط —
+#      deploy/storage/README.md) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 #
 # الأدوات على الخادم: pg_dump (إصدار القاعدة نفسه 17)، وgpg، وaws (CLI يعمل مع أي تخزين متوافق مع S3).
 # المتغيرات من /etc/ejaz/backup.env (صلاحية 600، خارج قيت)، ولا سر في هذا الملف:
 #   PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD   اتصال القاعدة (مستخدم قراءة يكفي)
 #   BACKUP_BUCKET            اسم الحاوية (منفصلة عن حاوية الملفات الحية)
 #   BACKUP_S3_ENDPOINT       عنوان واجهة S3 للمزود في المنطقة (مثل https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com)
-#   AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION   مفاتيح كتابة بلا حذف (PutObject وحدها) على حاوية النسخ وحدها
+#   AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION   مفاتيح كتابة بلا حذف (PutObject وListBucket بلا DeleteObject) على حاوية النسخ وحدها
 #   BACKUP_GPG_RECIPIENT     معرّف المفتاح العام للتشفير (المفتاح الخاص خارج الخادم عند المسؤول)
 #   BACKUP_GPG_PUBLIC_KEY_FILE  (اختياري) ملف المفتاح العام يُستورد في حلقة مفاتيح مؤقتة (حاوية النسخ في compose)
 #   BACKUP_SYNC_FILES        true|false (افتراضياً true)

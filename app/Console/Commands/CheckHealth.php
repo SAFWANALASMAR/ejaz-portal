@@ -30,6 +30,7 @@ class CheckHealth extends Command
             'database' => fn (): ?string => $this->database(),
             'cache' => fn (): ?string => $this->cache(),
             'queue' => fn (): ?string => $this->queue(),
+            'video_queue' => fn (): ?string => $this->videoQueue(),
             'failed_jobs' => fn (): ?string => $this->failedJobs(),
             'disk' => fn (): ?string => $this->disk(),
             'private_storage' => fn (): ?string => $this->privateStorage(),
@@ -87,6 +88,17 @@ class CheckHealth extends Command
     {
         $size = Queue::size();
         $max = (int) config('health.queue_max_backlog');
+
+        return $size > $max ? __('health.failed.queue', ['size' => $size, 'max' => $max]) : null;
+    }
+
+    /**
+     * طابور مقاطع المسابقات المستقل (supervisor-videos): تراكمه يعني عمالاً متوقفين، فلا تُعالج المقاطع.
+     */
+    private function videoQueue(): ?string
+    {
+        $size = Queue::size('videos');
+        $max = (int) config('health.video_queue_max_backlog');
 
         return $size > $max ? __('health.failed.queue', ['size' => $size, 'max' => $max]) : null;
     }

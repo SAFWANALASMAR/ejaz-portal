@@ -113,6 +113,19 @@ it('fails when the queue backlog is above the limit', function () {
         ->assertFailed();
 });
 
+it('fails when the competition video queue piles up, apart from the default queue limit', function () {
+    config(['health.video_queue_max_backlog' => 2]);
+    beat();
+    Queue::fake();
+    Queue::pushOn('videos', 'video-one');
+    Queue::pushOn('videos', 'video-two');
+    Queue::pushOn('videos', 'video-three');
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain('✗ '.__('health.checks.video_queue').': '.__('health.failed.queue', ['size' => 3, 'max' => 2]))
+        ->assertFailed();
+});
+
 it('fails when free disk space is below the limit', function () {
     config(['health.disk_min_free_percent' => 101]);
     beat();

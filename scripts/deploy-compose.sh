@@ -16,6 +16,8 @@ fail() { printf '\n\033[1;31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 
 TAG="${1:-}"
 [ -n "$TAG" ] || fail "حدّد الوسم: bash scripts/deploy-compose.sh v1.2.0"
+# الوسم يدخل .env وأوامر git وأسماء الصور، فبحروف الوسوم المعتادة وحدها
+printf '%s' "$TAG" | grep -Ex '[A-Za-z0-9._-]+' >/dev/null || fail "وسم غير صالح: $TAG"
 
 cd "$(dirname "$0")/.."
 export EJAZ_TAG="$TAG"

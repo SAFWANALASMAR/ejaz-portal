@@ -9,6 +9,9 @@ return [
     // أقصى عدد للمهام المنتظرة في الطابور قبل التنبيه (العمال متوقفون أو لا يلحقون)
     'queue_max_backlog' => (int) env('HEALTH_QUEUE_MAX_BACKLOG', 1000),
 
+    // طابور مقاطع المسابقات: المهمة الواحدة حتى 15 دقيقة، فالحد أصغر بكثير
+    'video_queue_max_backlog' => (int) env('HEALTH_VIDEO_QUEUE_MAX_BACKLOG', 100),
+
     // أقصى عدد للمهام الفاشلة في آخر 24 ساعة قبل التنبيه
     'failed_jobs_max' => (int) env('HEALTH_FAILED_JOBS_MAX', 0),
 

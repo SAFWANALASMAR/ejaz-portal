@@ -65,7 +65,7 @@
 - ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`).
 - ما يلزمه قرار أو حساب: Turnstile، وMicrosoft Graph، والدفع (`PAYMENTS_ENABLED=false`). انظر «عند كل نشر» في `security.md`.
 
-ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها، و`BACKUP_GPG_RECIPIENT`. ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` وحدها)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، فلا يمحو من يخترق الخادم النسخ.
+ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها، و`BACKUP_GPG_RECIPIENT`. ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` و`ListBucket` بلا `DeleteObject`)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 
 ## ثالثاً: أول نشر
 
