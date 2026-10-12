@@ -166,6 +166,13 @@ it('takes real PDFs and re-encoded images as attachments, and refuses other file
         ->and(fn () => app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [['path' => 'meeting-minutes/x.pdf', 'name' => 'x.pdf']]])))->toThrow(ValidationException::class);
 });
 
+it('refuses an attachment over the upload limit before reading it, and deletes it', function () {
+    $large = registerFile(pdfContents().str_repeat(' ', 20 * 1024 * 1024));
+
+    expect(fn () => app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [$large]])))->toThrow(ValidationException::class)
+        ->and(Storage::disk('local')->exists($large['path']))->toBeFalse();
+});
+
 it('deletes the file of a removed attachment after saving', function () {
     $file = registerFile(pdfContents());
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [$file]]));

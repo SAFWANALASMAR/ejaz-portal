@@ -114,6 +114,13 @@ it('takes real PDFs and re-encoded images, and refuses other files', function ()
         ->and(fn () => app(SaveArchiveItem::class)->handle($this->secretary, new ArchiveItem, archiveData($this->category, ['files' => [['path' => $jpeg['path'], 'name' => 'x.jpg']]])))->toThrow(ValidationException::class);
 });
 
+it('refuses a file over the upload limit before reading it, and deletes it', function () {
+    $large = archiveFile(pdfContents().str_repeat(' ', 20 * 1024 * 1024));
+
+    expect(fn () => app(SaveArchiveItem::class)->handle($this->secretary, new ArchiveItem, archiveData($this->category, ['files' => [$large]])))->toThrow(ValidationException::class)
+        ->and(Storage::disk('local')->exists($large['path']))->toBeFalse();
+});
+
 it('keeps the board to reading the archive', function () {
     $board = userWithRole(RoleName::BoardMember);
 

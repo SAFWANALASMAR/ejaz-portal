@@ -28,6 +28,9 @@ class SaveArchiveItem
 
     private const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+    // حد حقل الرفع (20 ميجابايت)، يُفحص قبل قراءة الملف كاملاً في الذاكرة كملفات الوظائف
+    private const MAX_BYTES = 20 * 1024 * 1024;
+
     /**
      * @param  array<string, mixed>  $data
      *
@@ -140,7 +143,7 @@ class SaveArchiveItem
         }
 
         $disk = Storage::disk(ArchiveItem::disk());
-        $type = PrivatePdf::inDirectory($path, ArchiveItem::DIRECTORY) && $disk->exists($path)
+        $type = PrivatePdf::inDirectory($path, ArchiveItem::DIRECTORY) && $disk->exists($path) && $disk->size($path) <= self::MAX_BYTES
             ? (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $disk->get($path))
             : '';
 
