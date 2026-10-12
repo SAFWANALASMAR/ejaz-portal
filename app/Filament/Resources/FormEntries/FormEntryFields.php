@@ -3,36 +3,50 @@
 namespace App\Filament\Resources\FormEntries;
 
 use App\Enums\DocumentFieldType;
+use App\Enums\FormAudience;
 use App\Filament\Forms\SignaturePad;
 use App\Models\FormEntry;
 use App\Models\FormTemplateVersion;
+use App\Models\User;
 use App\Rules\RealPdf;
 use App\Support\DocumentFields;
 use App\Support\SignatureImage;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Text;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 
 /**
- * حقول المعبأ في اللوحة من إصدار النموذج: الإجابات في answers، والمرفقات في files (بأسمائها في
- * file_names)، والتواقيع في signatures. وتحويلها من المعبأ وإليه كما يأخذها SaveFormEntry.
+ * حقول المعبأ في اللوحة من إصدار النموذج، بترتيبه وشكله الورقي: عناوين الأقسام والنصوص الثابتة، وحقلا
+ * نصف العرض صف من عمودين، والجدول صفوف يضيفها المعبّئ. الإجابات في answers، والمرفقات في files (بأسمائها
+ * في file_names)، والتواقيع في signatures، وصاحب النموذج في person_id. وتحويلها من المعبأ وإليه كما
+ * يأخذها SaveFormEntry.
  */
 final class FormEntryFields
 {
     /**
-     * @return list<Field>
+     * @return list<Component>
      */
     public static function schema(FormTemplateVersion $version, ?FormEntry $entry = null): array
     {
-        return array_map(fn (array $field): Field => self::component($field, $entry), $version->typedFields());
+        return [
+            self::personSelect($version->template->audience),
+            Grid::make(['default' => 1, 'md' => 2])
+                ->schema(array_map(fn (array $field): Component => self::component($field, $entry), $version->typedFields()))
+                ->columnSpanFull(),
+        ];
     }
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{answers: array<string, mixed>, files: array<string, array{path: string, name: string}>, signatures: array<string, mixed>}
+     * @return array{person_id: ?int, answers: array<string, mixed>, files: array<string, array{path: string, name: string}>, signatures: array<string, mixed>}
      */
     public static function toAction(array $data): array
     {
@@ -46,6 +60,7 @@ final class FormEntryFields
         }
 
         return [
+            'person_id' => filled($data['person_id'] ?? null) ? (int) $data['person_id'] : null,
             'answers' => (array) ($data['answers'] ?? []),
             'files' => $files,
             'signatures' => array_filter((array) ($data['signatures'] ?? []), fn (mixed $value): bool => filled($value)),
@@ -71,18 +86,46 @@ final class FormEntryFields
             $signatures[$signature['key']] = SignatureImage::dataUrl(FormEntry::disk(), $signature['path']);
         }
 
-        return ['answers' => $entry->answers ?? [], 'files' => $files, 'file_names' => $names, 'signatures' => $signatures];
+        return ['person_id' => $entry->person_id, 'answers' => $entry->answers ?? [], 'files' => $files, 'file_names' => $names, 'signatures' => $signatures];
     }
 
     /**
-     * @param  array{key: string, label: string, type: DocumentFieldType, required: bool, options: list<string>}  $field
+     * صاحب النموذج من جمهوره، بالبحث بالاسم (لا قائمة بكل الحسابات)، ويتحقق منه SaveFormEntry.
      */
-    private static function component(array $field, ?FormEntry $entry): Field
+    private static function personSelect(FormAudience $audience): Select
+    {
+        return Select::make('person_id')
+            ->label(__('documents.fields.person'))
+            ->helperText(__('documents.fields.person_hint'))
+            ->searchable()
+            // ثلاثة أحرف على الأقل، فلا تُسرد أسماء الحسابات لمن لا يطّلع على المستخدمين
+            ->searchPrompt(__('documents.fields.person_search_min'))
+            ->getSearchResultsUsing(fn (string $search): array => mb_strlen(trim($search)) < 3 ? [] : $audience->people()
+                ->where('name', 'ilike', '%'.addcslashes(trim($search), '%_\\').'%')
+                ->orderBy('name')
+                ->limit(20)
+                ->pluck('name', 'id')
+                ->all())
+            ->getOptionLabelUsing(fn (mixed $value): ?string => User::query()->whereKey($value)->value('name'))
+            ->columnSpanFull();
+    }
+
+    /**
+     * @param  array{key: string, label: string, type: DocumentFieldType, required: bool, options: list<string>, columns: list<string>, text: string, half: bool}  $field
+     */
+    private static function component(array $field, ?FormEntry $entry): Component
     {
         $key = $field['key'];
 
+        if ($field['type'] === DocumentFieldType::Heading) {
+            return Text::make($field['label'])->size(TextSize::Large)->weight(FontWeight::Bold)->columnSpanFull();
+        }
+
+        if ($field['type'] === DocumentFieldType::Paragraph) {
+            return Text::make($field['text'])->columnSpanFull();
+        }
+
         $component = match ($field['type']) {
-            DocumentFieldType::Text => TextInput::make('answers.'.$key)->maxLength(255),
             DocumentFieldType::LongText => Textarea::make('answers.'.$key)->rows(4)->maxLength(5000),
             DocumentFieldType::Number => TextInput::make('answers.'.$key)->numeric(),
             DocumentFieldType::Date => DatePicker::make('answers.'.$key),
@@ -99,8 +142,20 @@ final class FormEntryFields
                 // المحفوظة مساراتٌ داخل [key, path]، فيُجاز منها ما يخص هذا المعبأ وحده
                 ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => $entry !== null && in_array($file, array_column($entry->files ?? [], 'path'), true)),
             DocumentFieldType::Signature => SignaturePad::make('signatures.'.$key),
+            DocumentFieldType::Table => Repeater::make('answers.'.$key)
+                ->schema(array_map(
+                    fn (string $column, string $label): TextInput => TextInput::make($column)->label($label)->maxLength(255),
+                    DocumentFields::columnKeys($field),
+                    $field['columns'],
+                ))
+                ->columns(count($field['columns']))
+                ->defaultItems($field['required'] ? 1 : 0)
+                ->maxItems(DocumentFields::MAX_TABLE_ROWS)
+                ->addActionLabel(__('documents.fields.table_add_row'))
+                ->reorderable(false),
+            default => TextInput::make('answers.'.$key)->maxLength(255),
         };
 
-        return $component->label($field['label'])->required($field['required'])->columnSpanFull();
+        return $component->label($field['label'])->required($field['required'])->columnSpan($field['half'] ? 1 : 'full');
     }
 }

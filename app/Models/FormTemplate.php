@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FormAudience;
 use Database\Factories\FormTemplateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,13 +15,22 @@ use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * نموذج إلكتروني يحوّل نموذجاً ورقياً (requirements/05). حقوله في إصداراته: تعديلها ينشئ إصداراً
- * جديداً، والمعبأ قبله يبقى على إصداره (SaveFormTemplate).
+ * جديداً، والمعبأ قبله يبقى على إصداره (SaveFormTemplate). وجمهوره يحدد ملف من يُحفظ فيه المعبأ.
+ *
+ * @property FormAudience $audience
  */
-#[Fillable(['title', 'description', 'is_active'])]
+#[Fillable(['title', 'description', 'is_active', 'audience'])]
 class FormTemplate extends Model
 {
     /** @use HasFactory<FormTemplateFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'audience' => 'staff',
+    ];
 
     /**
      * @return array<string, string>
@@ -29,6 +39,7 @@ class FormTemplate extends Model
     {
         return [
             'is_active' => 'boolean',
+            'audience' => FormAudience::class,
         ];
     }
 
@@ -50,6 +61,6 @@ class FormTemplate extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('documents')->logOnly(['title', 'description', 'is_active', 'current_version_id'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('documents')->logOnly(['title', 'description', 'is_active', 'audience', 'current_version_id'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

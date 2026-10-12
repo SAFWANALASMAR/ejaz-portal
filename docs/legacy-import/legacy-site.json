@@ -1,0 +1,688 @@
+{
+  "pages": [
+    {
+      "slug": "about",
+      "title": "عن الجمعية",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": "من نحن",
+            "body": "<p>جمعية إعجاز للدراسات والبحوث العلمية هي منصة علمية متخصصة تُعنى برعاية ودعم الإعجاز العلمي في القرآن الكريم والسنة النبوية الصحيحة، وتسعى إلى تأصيل هذا التخصص وفق منهجية علمية رصينة تجمع بين العلوم الشرعية والعلوم الكونية.</p><p>تعمل الجمعية تحت إشراف وزارة التعليم – قطاع التعليم العالي، وتهدف إلى تمكين الباحثين، ودعم الدراسات والبحوث العلمية، وبناء شراكات معرفية تسهم في تعزيز الابتكار العلمي، وترسيخ القيم العلمية، وخدمة المجتمع الأكاديمي بما يواكب تطلعات رؤية المملكة 2030.</p>"
+          }
+        },
+        {
+          "type": "text",
+          "data": {
+            "heading": "الرســــالة",
+            "body": "<p>تقديم الخدمات العلمية والتعليمية والثقافية التي تمكن الباحثين في التخصصات العلمية والنظرية من الوصول إلى الابتكار والتميز العلمي الإبداعي باستخدام بحوث الإعجاز العلمي في القرآن والسنة، وذلك عن طريق مبادرات نوعية، وبرامج وأنشطة متخصصة بطرق مبتكرة وشراكات متميزة، لتحقيق الأهداف العلمية، والتعليمية، والتنموية لوزارة التعليم، ولرؤية 2030، في قطاع التعليم العالي.</p>"
+          }
+        },
+        {
+          "type": "text",
+          "data": {
+            "heading": "الرؤيــــة",
+            "body": "<p>أن تكون (جمعية إعجاز) هي الأولى والرائدة في رعاية بحوث ودراسات الإعجاز العلمي في القرآن العظيم والسنة النبوية الصحيحة: علميا وتنمويا.</p>"
+          }
+        },
+        {
+          "type": "cards",
+          "data": {
+            "heading": "الأهداف الاستراتيجية",
+            "items": [
+              {
+                "icon": null,
+                "title": "تعزيز القيم والانتماء الوطني",
+                "text": null
+              },
+              {
+                "icon": null,
+                "title": "تنمية وتطوير قُدرات الكوادر التعليمية",
+                "text": null
+              },
+              {
+                "icon": null,
+                "title": "تعزيز مشاركة المُجتمع في التعليم والتعلم",
+                "text": null
+              },
+              {
+                "icon": null,
+                "title": "تطوير منظومة الجامعات والمؤسسات التعليمية والتدريبية",
+                "text": null
+              },
+              {
+                "icon": null,
+                "title": "تجويد نواتج التعلم وتحسين موقع النظام التعليمي عالميا",
+                "text": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "cards",
+          "data": {
+            "heading": "قيمنا",
+            "items": [
+              {
+                "icon": null,
+                "title": "الإحسان والمهنية",
+                "text": "نسعى إلى التمسك بأعلى معايير المهنية العلمية، والتعليمية، والقيمية."
+              },
+              {
+                "icon": null,
+                "title": "الابتـــكار",
+                "text": "تبني الابتكار المؤدي إلى التميز لإيجاد بيئة جاذبة ومحفزة للإبداع العلمي والتعليمي والتنموي."
+              },
+              {
+                "icon": null,
+                "title": "التمكين",
+                "text": "الإسهام في تمكين الباحثين والكوادر العلمية والتعليمية يعتبر قيمة وركيزة أساسية نعتز بها."
+              },
+              {
+                "icon": null,
+                "title": "التكـــامل",
+                "text": "التشاركية والتواصل مع الجهات ذات العلاقة والاستثمار الأمثل للإمكانات وتكامل الطاقات."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "initiatives": [
+    {
+      "slug": "qiyam",
+      "name": "قيم",
+      "summary": "المشاركة في تعزيز القيم الوطنية من خلال البحوث العلمية والتعليمية التي تعود بالنفع على الوطن.",
+      "legacy_paths": [
+        "/مبادرة-قيـم/"
+      ]
+    },
+    {
+      "slug": "tatweer",
+      "name": "تطوير",
+      "summary": "الإسهام في تطوير وتنمية قدرات ومهارات الباحثين والطلاب والكوادر العلمية والتعليمية.",
+      "legacy_paths": [
+        "/مبادرة-تطوير/"
+      ]
+    },
+    {
+      "slug": "kunooz",
+      "name": "كنوز",
+      "summary": "تعزيز قيمة العلم والتعلم في المجتمع، من خلال الأنشطة العلمية والتعليمية حسب فئات المجتمع.",
+      "legacy_paths": [
+        "/مبادرة-كنوز/"
+      ]
+    },
+    {
+      "slug": "ibtikar",
+      "name": "ابتكار",
+      "summary": "المشاركة في تعزيز قيمة الابتكار والابداع والتميز العلمي في تخصصات الإعجاز العلمي في القرآن والسنة المتنوعة، للإسهام في تجويد نواتج التعلم وتحسين موقع النظام التعليمي عالميا.",
+      "legacy_paths": [
+        "/مبادرة-ابتكــــار/"
+      ]
+    },
+    {
+      "slug": "irtiqa",
+      "name": "ارتقاء",
+      "summary": "تعزيز الابداع المعرفي لدى الكوادر العلمية والتعليمية للإسهام في تطوير منظومة الجامعات والمؤسسات التعليمية والتدريبية بمجموعة من الأنشطة والبرامج المتخصصة.",
+      "legacy_paths": [
+        "/مبادرة-ارتقاء/"
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "slug": "license-certificate",
+      "title": "شهادة ترخيص الجمعية",
+      "category": "official",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/شهادة-ترخيص-الجمعية.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/شهادة-ترخيص-الجمعية.pdf"
+      ]
+    },
+    {
+      "slug": "registration-decision",
+      "title": "قرار تسجيل الجمعية",
+      "category": "official",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/قرار-تسجيل-الجمعية.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/قرار-تسجيل-الجمعية.pdf"
+      ]
+    },
+    {
+      "slug": "board-formation-decision",
+      "title": "قرار تشكيل مجلس الإدارة",
+      "category": "official",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/قرار-تشكيل-مجلس-الإدارة.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/قرار-تشكيل-مجلس-الإدارة.pdf"
+      ]
+    },
+    {
+      "slug": "no-branches-statement",
+      "title": "إفادة بعدم وجود فروع أو مكاتب للجمعية",
+      "category": "official",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/افادة-بعدم-وجود-فروع-أو-مكاتب-للجمعية.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/افادة-بعدم-وجود-فروع-أو-مكاتب-للجمعية.pdf"
+      ]
+    },
+    {
+      "slug": "data-privacy-policy",
+      "title": "سياسة خصوصية البيانات",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-خصوصية-البيانات.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-خصوصية-البيانات.pdf"
+      ]
+    },
+    {
+      "slug": "fundraising-policy",
+      "title": "سياسة جمع التبرعات",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-جمع-التبرعات.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-جمع-التبرعات.pdf"
+      ]
+    },
+    {
+      "slug": "conflict-of-interest-policy",
+      "title": "سياسة تعارض المصالح",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-تعارض-المصالح.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-تعارض-المصالح.pdf"
+      ]
+    },
+    {
+      "slug": "document-retention-policy",
+      "title": "سياسة الاحتفاظ بالوثائق وإتلافها",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-الاحتفاظ-بالوثائق-وإتلافها.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-الاحتفاظ-بالوثائق-وإتلافها.pdf"
+      ]
+    },
+    {
+      "slug": "whistleblowing-policy",
+      "title": "سياسة الإبلاغ عن المخالفات وحماية مقدمي البلاغات",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-الإبلاغ-عن-المخالفات-وحماية-مقدمي-البلاغات.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-الإبلاغ-عن-المخالفات-وحماية-مقدمي-البلاغات.pdf"
+      ]
+    },
+    {
+      "slug": "donation-redirection-policy",
+      "title": "سياسة إعادة توجيه مبلغ التبرع لمشروع آخر",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-إعادة-توجيه-مبلغ-التبرع-لمشروع-آخر.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-إعادة-توجيه-مبلغ-التبرع-لمشروع-آخر.pdf"
+      ]
+    },
+    {
+      "slug": "volunteer-management-policy",
+      "title": "سياسة إدارة المتطوعين",
+      "category": "policies",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/سياسة-إدارة-المتطوعين.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/سياسة-إدارة-المتطوعين.pdf"
+      ]
+    },
+    {
+      "slug": "beneficiary-eligibility-mechanism",
+      "title": "آلية التحقق من استحقاق المستفيد للخدمة",
+      "category": "procedures",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/آلية-التحقق-من-استحقاق-المستفيد-للخدمة.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/آلية-التحقق-من-استحقاق-المستفيد-للخدمة.pdf"
+      ]
+    },
+    {
+      "slug": "donation-refund-mechanism",
+      "title": "آلية استرداد التبرع للمتبرع",
+      "category": "procedures",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/آلية-استرداد-التبرع-للمتبرع.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/آلية-استرداد-التبرع-للمتبرع.pdf"
+      ]
+    },
+    {
+      "slug": "disclosure-document",
+      "title": "وثيقة الإفصاح",
+      "category": "official",
+      "issued_at": null,
+      "version": null,
+      "file": "files/documents/وثيقة-الافصاح.pdf",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/01/وثيقة-الافصاح.pdf"
+      ]
+    }
+  ],
+  "library": [
+    {
+      "slug": "audio-01",
+      "section": "audio",
+      "title": "الإيمان فطرة والعبادة شفاء",
+      "file": "files/audio/E3jaz-1.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-1.mp3"
+      ]
+    },
+    {
+      "slug": "audio-02",
+      "section": "audio",
+      "title": "الإيمان فطرة والعبادة شفاء",
+      "file": "files/audio/E3jaz-2.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-2.mp3"
+      ]
+    },
+    {
+      "slug": "audio-03",
+      "section": "audio",
+      "title": "الإعجاز العلمي",
+      "file": "files/audio/E3jaz-3.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-3.mp3"
+      ]
+    },
+    {
+      "slug": "audio-04",
+      "section": "audio",
+      "title": "البحر المسجور",
+      "file": "files/audio/E3jaz-4.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-4.mp3"
+      ]
+    },
+    {
+      "slug": "audio-05",
+      "section": "audio",
+      "title": "الثقوب السوداء",
+      "file": "files/audio/E3jaz-5.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-5.mp3"
+      ]
+    },
+    {
+      "slug": "audio-06",
+      "section": "audio",
+      "title": "مراحل تكون السحاب الانبساطي",
+      "file": "files/audio/E3jaz-6.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-6.mp3"
+      ]
+    },
+    {
+      "slug": "audio-07",
+      "section": "audio",
+      "title": "السقف المحفوظ",
+      "file": "files/audio/E3jaz-7.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-7.mp3"
+      ]
+    },
+    {
+      "slug": "audio-08",
+      "section": "audio",
+      "title": "الصلب والترائب",
+      "file": "files/audio/E3jaz-8.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-8.mp3"
+      ]
+    },
+    {
+      "slug": "audio-09",
+      "section": "audio",
+      "title": "الكتل البحرية",
+      "file": "files/audio/E3jaz-9.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-9.mp3"
+      ]
+    },
+    {
+      "slug": "audio-10",
+      "section": "audio",
+      "title": "أنهار الربع الخالي",
+      "file": "files/audio/E3jaz-10.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-10.mp3"
+      ]
+    },
+    {
+      "slug": "audio-11",
+      "section": "audio",
+      "title": "الرجع خصيصة جوية",
+      "file": "files/audio/E3jaz-11.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-11.mp3"
+      ]
+    },
+    {
+      "slug": "audio-12",
+      "section": "audio",
+      "title": "الضغط الجوي",
+      "file": "files/audio/E3jaz-12.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-12.mp3"
+      ]
+    },
+    {
+      "slug": "audio-13",
+      "section": "audio",
+      "title": "عواقب الإباحية",
+      "file": "files/audio/E3jaz-13.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-13.mp3"
+      ]
+    },
+    {
+      "slug": "audio-14",
+      "section": "audio",
+      "title": "تمام الرضاعة حولين",
+      "file": "files/audio/E3jaz-14.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-14.mp3"
+      ]
+    },
+    {
+      "slug": "audio-15",
+      "section": "audio",
+      "title": "تداعي الجسد بالسهر والحمى",
+      "file": "files/audio/E3jaz-15.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-15.mp3"
+      ]
+    },
+    {
+      "slug": "audio-16",
+      "section": "audio",
+      "title": "الناصية",
+      "file": "files/audio/E3jaz-16.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-16.mp3"
+      ]
+    },
+    {
+      "slug": "audio-17",
+      "section": "audio",
+      "title": "خلق الجنين في أطوار",
+      "file": "files/audio/E3jaz-17.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-17.mp3"
+      ]
+    },
+    {
+      "slug": "audio-18",
+      "section": "audio",
+      "title": "الرضاعة الطبيعية",
+      "file": "files/audio/E3jaz-18.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-18.mp3"
+      ]
+    },
+    {
+      "slug": "audio-19",
+      "section": "audio",
+      "title": "بصمات الأصابع",
+      "file": "files/audio/E3jaz-19.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-19.mp3"
+      ]
+    },
+    {
+      "slug": "audio-20",
+      "section": "audio",
+      "title": "النهايات العصبية في الجلد",
+      "file": "files/audio/E3jaz-20.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-20.mp3"
+      ]
+    },
+    {
+      "slug": "audio-21",
+      "section": "audio",
+      "title": "ألم الأمعاء",
+      "file": "files/audio/E3jaz-21.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-21.mp3"
+      ]
+    },
+    {
+      "slug": "audio-22",
+      "section": "audio",
+      "title": "الحجرالصحي",
+      "file": "files/audio/E3jaz-22.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-22.mp3"
+      ]
+    },
+    {
+      "slug": "audio-23",
+      "section": "audio",
+      "title": "مدارالشمس",
+      "file": "files/audio/E3jaz-23.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-23.mp3"
+      ]
+    },
+    {
+      "slug": "audio-24",
+      "section": "audio",
+      "title": "مواقع النجوم",
+      "file": "files/audio/E3jaz-24.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-24.mp3"
+      ]
+    },
+    {
+      "slug": "audio-25",
+      "section": "audio",
+      "title": "الحبة السوداء",
+      "file": "files/audio/E3jaz-25.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-25.mp3"
+      ]
+    },
+    {
+      "slug": "audio-26",
+      "section": "audio",
+      "title": "اليخضور",
+      "file": "files/audio/E3jaz-26.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-26.mp3"
+      ]
+    },
+    {
+      "slug": "audio-27",
+      "section": "audio",
+      "title": "اهتزاز التربة",
+      "file": "files/audio/E3jaz-27.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-27.mp3"
+      ]
+    },
+    {
+      "slug": "audio-28",
+      "section": "audio",
+      "title": "ظلمة الفضاء",
+      "file": "files/audio/E3jaz-28.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-28.mp3"
+      ]
+    },
+    {
+      "slug": "audio-29",
+      "section": "audio",
+      "title": "مراحل تكوين اللبن",
+      "file": "files/audio/E3jaz-29.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-29.mp3"
+      ]
+    },
+    {
+      "slug": "audio-30",
+      "section": "audio",
+      "title": "أخفض منطقة في البسيطة",
+      "file": "files/audio/E3jaz-30.mp3",
+      "legacy_paths": [
+        "/wp-content/uploads/2026/08/E3jaz-30.mp3"
+      ]
+    },
+    {
+      "slug": "audio-oceans",
+      "section": "audio",
+      "title": "أعماق المحيطات",
+      "file": null
+    },
+    {
+      "slug": "video-01",
+      "section": "videos",
+      "title": "الناصية",
+      "video_url": null
+    },
+    {
+      "slug": "video-02",
+      "section": "videos",
+      "title": "تداعى الجسد بالسهر والحمى",
+      "video_url": null
+    },
+    {
+      "slug": "video-03",
+      "section": "videos",
+      "title": "مراحل خلق الجنين في القرآن الكريم",
+      "video_url": null
+    },
+    {
+      "slug": "video-04",
+      "section": "videos",
+      "title": "عدد مفاصل الإنسان",
+      "video_url": null
+    },
+    {
+      "slug": "video-05",
+      "section": "videos",
+      "title": "خلق الإنسان | إعجازٌ وبيان",
+      "video_url": null
+    },
+    {
+      "slug": "video-06",
+      "section": "videos",
+      "title": "الرتق والفتق",
+      "video_url": null
+    },
+    {
+      "slug": "video-07",
+      "section": "videos",
+      "title": "القلب يعقل ويفكر",
+      "video_url": null
+    },
+    {
+      "slug": "video-08",
+      "section": "videos",
+      "title": "والسماء ذات الحبك",
+      "video_url": null
+    },
+    {
+      "slug": "video-09",
+      "section": "videos",
+      "title": "ولو فتحنا عليهم باباً من السماء",
+      "video_url": null
+    },
+    {
+      "slug": "video-10",
+      "section": "videos",
+      "title": "وكل في فلك يسبحون",
+      "video_url": null
+    },
+    {
+      "slug": "video-11",
+      "section": "videos",
+      "title": "التصعد في السماء",
+      "video_url": null
+    },
+    {
+      "slug": "video-12",
+      "section": "videos",
+      "title": "وإنا لموسعون",
+      "video_url": null
+    },
+    {
+      "slug": "video-13",
+      "section": "videos",
+      "title": "فكانت وردة كالدهان",
+      "video_url": null
+    },
+    {
+      "slug": "video-14",
+      "section": "videos",
+      "title": "تشريع الرضاعة حولين كاملين",
+      "video_url": null
+    },
+    {
+      "slug": "video-15",
+      "section": "videos",
+      "title": "فمحونا آية الليل وجعلنا آية النهار مبصرة",
+      "video_url": null
+    },
+    {
+      "slug": "video-16",
+      "section": "videos",
+      "title": "أحكام الطهارة حكمة ومعجزة علمية",
+      "video_url": null
+    },
+    {
+      "slug": "video-17",
+      "section": "videos",
+      "title": "وجعلنا السماء سقفاً محفوظاً",
+      "video_url": null
+    },
+    {
+      "slug": "video-18",
+      "section": "videos",
+      "title": "عَجب الذنب معجزة علمية للحديث النبوي",
+      "video_url": null
+    },
+    {
+      "slug": "video-19",
+      "section": "videos",
+      "title": "بلى قادرين على أن نسوي بنانه",
+      "video_url": null
+    },
+    {
+      "slug": "video-20",
+      "section": "videos",
+      "title": "مرج البحرين يلتقيان بينهما برزخٌ لا يبغيان",
+      "video_url": null
+    }
+  ]
+}

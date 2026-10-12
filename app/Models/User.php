@@ -14,6 +14,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -129,5 +130,15 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             ->logOnly(['email_verified_at', 'phone_verified_at', 'is_active', 'deletion_requested_at', 'anonymized_at'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /**
+     * النماذج المعبأة المحفوظة في ملف صاحب الحساب (FormEntry::person).
+     *
+     * @return HasMany<FormEntry, $this>
+     */
+    public function formEntries(): HasMany
+    {
+        return $this->hasMany(FormEntry::class, 'person_id');
     }
 }

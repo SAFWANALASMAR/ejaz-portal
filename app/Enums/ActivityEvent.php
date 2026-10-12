@@ -61,6 +61,7 @@ enum ActivityEvent: string implements HasLabel
     // النماذج والأرشيف: كل اطلاع وتنزيل يُسجَّل (requirements/05)
     case Viewed = 'viewed';
     case FormEntryApproved = 'form_entry_approved';
+    case FormEntriesExported = 'form_entries_exported';
     // الطلبات
     case InquiryNoteUpdated = 'inquiry_note_updated';
     // البث المباشر
