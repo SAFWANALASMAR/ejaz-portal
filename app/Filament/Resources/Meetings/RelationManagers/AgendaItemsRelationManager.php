@@ -68,7 +68,7 @@ class AgendaItemsRelationManager extends RelationManager
     {
         return $table
             ->defaultSort('position')
-            ->modifyQueryUsing(fn ($query) => $query->with('assignee'))
+            ->modifyQueryUsing(fn ($query) => $query->with(['assignee', 'meeting']))
             ->columns([
                 TextColumn::make('position')->label(__('registers.fields.position')),
                 TextColumn::make('title')->label(__('registers.fields.item'))->wrap(),

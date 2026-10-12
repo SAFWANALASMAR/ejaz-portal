@@ -38,7 +38,7 @@ class SavePlatformAccount
         if (isset($validated['responsible_id'])) {
             $responsible = User::query()->find($validated['responsible_id']);
 
-            if ($responsible === null || ! $responsible->is_active || ! $responsible->can('platform_accounts.view')) {
+            if ($responsible === null || ! $responsible->is_active || $responsible->anonymized_at !== null || ! $responsible->can('platform_accounts.view')) {
                 throw ValidationException::withMessages(['responsible_id' => __('registers.validation.platform_responsible')]);
             }
         }

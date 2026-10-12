@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\MeetingBody;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\BodyMembership;
@@ -106,11 +107,17 @@ class ExportUserData
                     'starts_on' => $membership->starts_on->toDateString(),
                     'ends_on' => $membership->ends_on?->toDateString(),
                 ])->all(),
-            'assigned_decisions' => MeetingAgendaItem::query()->withTrashed()->where('assignee_id', $user->id)->orderBy('id')->get()
+            // حضور اجتماعات المجلس واللجان (وحضور الجمعية العمومية تحت عضويتها)
+            'body_meetings_attended' => Meeting::query()->withTrashed()->where('body', '!=', MeetingBody::GeneralAssembly->value)
+                ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
+                ->orderBy('starts_at')->get()
+                ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'body' => $meeting->body->value, 'starts_at' => $date($meeting->starts_at)])
+                ->all(),
+            // البند وموعده وحالته، لا نص القرار (قد يمس غيره، والحد الأدنى من البيانات)، ولا المحذوف
+            'assigned_decisions' => MeetingAgendaItem::query()->where('assignee_id', $user->id)->orderBy('id')->get()
                 ->map(fn (MeetingAgendaItem $item): array => [
                     'meeting' => $item->meeting()->withTrashed()->value('title'),
                     'item' => $item->title,
-                    'decision' => $item->decision,
                     'due_on' => $item->due_on?->toDateString(),
                     'status' => $item->status->value,
                 ])->all(),
@@ -173,7 +180,7 @@ class ExportUserData
         return [
             'status' => $membership->status->value,
             'joined_on' => $membership->joined_on?->toDateString(),
-            'meetings_attended' => Meeting::query()->withTrashed()
+            'meetings_attended' => Meeting::query()->withTrashed()->generalAssembly()
                 ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
                 ->orderBy('starts_at')->get()
                 ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'starts_at' => $date($meeting->starts_at)])

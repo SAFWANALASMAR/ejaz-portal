@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 | وبحماية اللوحة نفسها: التحقق الثنائي، وانتهاء الجلسة بعد الخمول، والدخول إلى اللوحة (في المتحكم).
 */
 
-Route::middleware(['auth', EnsureTwoFactorIsEnabled::class, AdminIdleTimeout::class, 'signed', 'throttle:60,1,registers-download', 'cache.headers:private;no_store'])
+Route::middleware(['auth', 'auth.session', EnsureTwoFactorIsEnabled::class, AdminIdleTimeout::class, 'signed', 'throttle:60,1,registers-download', 'cache.headers:private;no_store'])
     ->get('/admin-files/registers/{entry}/{index}', RegisterAttachmentController::class)
     ->whereNumber('index')
     ->name('registers.attachment');

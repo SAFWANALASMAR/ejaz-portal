@@ -50,3 +50,10 @@ it('has no password-like column in any table of this module', function (string $
     expect(Schema::hasTable($table))->toBeTrue()
         ->and($suspicious->all())->toBe([]);
 })->with(['register_entries', 'register_entry_alerts', 'committees', 'body_memberships', 'meeting_agenda_items', 'annual_plan_items', 'platform_accounts']);
+
+it('refuses an anonymized account as the responsible person', function () {
+    $gone = userWithRole(RoleName::Secretary);
+    $gone->forceFill(['anonymized_at' => now()])->save();
+
+    expect(fn () => app(SavePlatformAccount::class)->handle($this->director, new PlatformAccount, platformData(['responsible_id' => $gone->id])))->toThrow(ValidationException::class);
+});

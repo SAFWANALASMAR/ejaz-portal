@@ -27,6 +27,7 @@ class RegisterAttachmentController extends Controller
 
         $file = ($entry->attachments ?? [])[$index] ?? abort(404);
         abort_unless(PrivatePdf::inDirectory($file['path'], RegisterEntry::DIRECTORY), 404);
+        abort_unless(Storage::disk(RegisterEntry::disk())->exists($file['path']), 404);
         $log->handle($user, $entry, ActivityEvent::FileDownloaded, ['file' => $file['name']]);
 
         return Storage::disk(RegisterEntry::disk())->download($file['path'], $file['name']);

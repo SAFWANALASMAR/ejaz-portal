@@ -7,6 +7,7 @@ use App\Filament\Resources\AnnualPlanItems\Pages\CreateAnnualPlanItem;
 use App\Filament\Resources\BodyMemberships\BodyMembershipResource;
 use App\Filament\Resources\Committees\CommitteeResource;
 use App\Filament\Resources\Meetings\MeetingResource;
+use App\Filament\Resources\Meetings\Pages\CreateMeeting;
 use App\Filament\Resources\Meetings\Pages\ListMeetings;
 use App\Filament\Resources\Meetings\Pages\ViewMeeting;
 use App\Filament\Resources\Meetings\RelationManagers\AgendaItemsRelationManager;
@@ -162,4 +163,14 @@ it('logs opening a platform account page', function () {
     Livewire::test(ViewPlatformAccount::class, ['record' => $account->getKey()])->assertOk()->assertSee('منصة الاختبار');
 
     expect(Activity::where('event', 'viewed')->whereMorphedTo('subject', $account)->sole()->causer_id)->toBe($this->secretary->id);
+});
+
+it('makes the secretary choose the body of a new meeting, with no preselected general assembly', function () {
+    $this->actingAs($this->secretary);
+
+    Livewire::test(CreateMeeting::class)
+        ->assertSchemaStateSet(['body' => null])
+        ->fillForm(['title' => 'اجتماع تجريبي'])
+        ->call('create')
+        ->assertHasFormErrors(['body' => 'required']);
 });

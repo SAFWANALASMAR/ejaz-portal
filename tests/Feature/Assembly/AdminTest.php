@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyFiles\AssemblyFileResource;
@@ -63,6 +64,7 @@ it('lets the secretary schedule a meeting with a PDF attachment from the panel, 
     Livewire::test(CreateMeeting::class)
         ->fillForm([
             'title' => 'الاجتماع العادي التجريبي',
+            'body' => MeetingBody::GeneralAssembly->value,
             'type' => 'ordinary',
             'starts_at' => now()->addWeek()->format('Y-m-d H:i'),
             'ends_at' => now()->addWeek()->addHours(2)->format('Y-m-d H:i'),

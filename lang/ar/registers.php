@@ -26,6 +26,7 @@ return [
         'widget_heading' => 'إنجاز الخطة السنوية :year',
         'executed_items' => 'البنود المنفذة',
         'executed_of' => ':executed من :items (:percent٪)',
+        'percent' => ':value٪',
         'beneficiaries' => 'المستفيدون الفعليون',
         'beneficiaries_of' => ':actual من :target مستهدف',
         'by_department' => 'الإدارة: :name',

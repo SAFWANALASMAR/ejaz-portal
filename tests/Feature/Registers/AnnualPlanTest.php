@@ -132,3 +132,14 @@ it('refuses a program still held by a deleted plan item with a validation error'
     expect(fn () => app(SaveAnnualPlanItem::class)->handle($this->director, new AnnualPlanItem, planData(['program_id' => $program->id])))
         ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('program_id'));
 });
+
+it('keeps editing an item whose linked program was deleted later, yet refuses linking a deleted program anew', function () {
+    $program = Program::factory()->create();
+    $item = app(SaveAnnualPlanItem::class)->handle($this->director, new AnnualPlanItem, planData(['program_id' => $program->id]));
+    $program->delete();
+
+    app(SaveAnnualPlanItem::class)->handle($this->director, $item, planData(['program_id' => $program->id, 'notes' => 'ملاحظة تجريبية']));
+
+    expect($item->fresh()->notes)->toBe('ملاحظة تجريبية')
+        ->and(fn () => app(SaveAnnualPlanItem::class)->handle($this->director, new AnnualPlanItem, planData(['program_id' => $program->id])))->toThrow(ValidationException::class);
+});

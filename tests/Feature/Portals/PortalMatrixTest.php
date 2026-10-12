@@ -27,7 +27,8 @@ function portalMatrix(): array
         'panel access' => ['panel', $panel],
 
         // أ. مجلس الإدارة: اطلاع فقط
-        'view meetings' => [['viewAny', Meeting::class], [RoleName::BoardMember, RoleName::Secretary]],
+        // والمدير التنفيذي يطّلع على كل الاجتماعات (requirements/13 §2)
+        'view meetings' => [['viewAny', Meeting::class], [RoleName::BoardMember, RoleName::Secretary, RoleName::ExecutiveDirector]],
         'create meetings' => [['create', Meeting::class], [RoleName::Secretary]],
         'view reports (governance)' => [['viewAny', Document::class], [RoleName::BoardMember, RoleName::ContentEditor]],
         'create reports (governance)' => [['create', Document::class], [RoleName::ContentEditor]],

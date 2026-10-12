@@ -36,13 +36,13 @@ class MeetingPolicy extends ModulePolicy
     public function update(User $user, Model $record): bool
     {
         /** @var Meeting $record */
-        return $record->status === MeetingStatus::Scheduled && $this->allows($user, 'update');
+        return $record->status === MeetingStatus::Scheduled && $this->allows($user, 'update') && $record->isVisibleTo($user);
     }
 
     public function delete(User $user, Model $record): bool
     {
         /** @var Meeting $record */
-        return $record->status !== MeetingStatus::Held && $this->allows($user, 'delete');
+        return $record->status !== MeetingStatus::Held && $this->allows($user, 'delete') && $record->isVisibleTo($user);
     }
 
     public function cancel(User $user, Meeting $meeting): bool
@@ -60,7 +60,7 @@ class MeetingPolicy extends ModulePolicy
 
     public function recordAttendance(User $user, Meeting $meeting): bool
     {
-        return $meeting->status !== MeetingStatus::Cancelled && $meeting->starts_at->isPast() && $this->allows($user, 'update');
+        return $meeting->status !== MeetingStatus::Cancelled && $meeting->starts_at->isPast() && $this->allows($user, 'update') && $meeting->isVisibleTo($user);
     }
 
     /**

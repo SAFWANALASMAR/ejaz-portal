@@ -31,7 +31,6 @@ class MeetingForm
                 Select::make('body')
                     ->label(__('registers.fields.body'))
                     ->options(MeetingBody::class)
-                    ->default(MeetingBody::GeneralAssembly->value)
                     ->helperText(__('registers.fields.body_hint'))
                     ->required()
                     ->disabledOn('edit')

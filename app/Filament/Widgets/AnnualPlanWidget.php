@@ -38,7 +38,7 @@ class AnnualPlanWidget extends StatsOverviewWidget
         }
 
         $stats = [
-            Stat::make(__('registers.plan.executed_items'), $overall['percent'].'٪')
+            Stat::make(__('registers.plan.executed_items'), __('registers.plan.percent', ['value' => $overall['percent']]))
                 ->description(__('registers.plan.executed_of', ['executed' => number_format($overall['executed']), 'items' => number_format($overall['items']), 'percent' => $overall['percent']])),
             Stat::make(__('registers.plan.beneficiaries'), number_format($overall['actual']))
                 ->description(__('registers.plan.beneficiaries_of', ['actual' => number_format($overall['actual']), 'target' => number_format($overall['target'])])),
@@ -47,7 +47,7 @@ class AnnualPlanWidget extends StatsOverviewWidget
         // الإنجاز لكل إدارة ثم لكل نوع
         foreach (['departments' => 'by_department', 'types' => 'by_type'] as $group => $label) {
             foreach ($progress[$group] as $name => $row) {
-                $stats[] = Stat::make(__('registers.plan.'.$label, ['name' => $name]), $row['percent'].'٪')
+                $stats[] = Stat::make(__('registers.plan.'.$label, ['name' => $name]), __('registers.plan.percent', ['value' => $row['percent']]))
                     ->description(__('registers.plan.executed_of', ['executed' => number_format($row['executed']), 'items' => number_format($row['items']), 'percent' => $row['percent']]));
             }
         }

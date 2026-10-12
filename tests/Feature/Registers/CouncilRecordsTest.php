@@ -276,6 +276,17 @@ it('includes the council and committee memberships and the assigned decisions in
         ['body' => 'board', 'committee' => null, 'role' => 'member', 'starts_on' => '2026-01-01', 'ends_on' => null],
         ['body' => 'committee', 'committee' => 'لجنة تجريبية', 'role' => 'member', 'starts_on' => '2026-02-01', 'ends_on' => '2026-12-31'],
     ])->and($copy['assigned_decisions'])->toBe([
-        ['meeting' => $item->meeting->title, 'item' => 'بند تجريبي', 'decision' => 'قرار تجريبي', 'due_on' => '2026-11-01', 'status' => 'not_started'],
+        ['meeting' => $item->meeting->title, 'item' => 'بند تجريبي', 'due_on' => '2026-11-01', 'status' => 'not_started'],
     ]);
+
+    // البند المحذوف لا يُصدَّر، وحضور المجلس في قسمه لا تحت عضوية الجمعية العمومية
+    $item->delete();
+    $board = Meeting::factory()->create(['body' => MeetingBody::Board]);
+    $board->attendees()->attach($user->id);
+
+    $copy = app(ExportUserData::class)->handle($user);
+
+    expect($copy['assigned_decisions'])->toBe([])
+        ->and($copy['body_meetings_attended'])->toHaveCount(1)
+        ->and($copy['body_meetings_attended'][0]['body'])->toBe('board');
 });
