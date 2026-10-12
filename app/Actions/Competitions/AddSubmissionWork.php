@@ -51,7 +51,7 @@ class AddSubmissionWork
             'type' => ['required', Rule::in($allowed)],
             'file' => match ($type) {
                 // الأبعاد من رأس الملف قبل فكّه: صورة مضغوطة بأبعاد ضخمة تستنزف ذاكرة GD عند إعادة الترميز
-                WorkType::Image => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:'.config('competitions.works.image_max_kb'), 'dimensions:max_width=8000,max_height=8000'],
+                WorkType::Image => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:'.config('competitions.works.image_max_kb'), 'dimensions:max_width=6000,max_height=6000'],
                 WorkType::Pdf => ['required', 'file', 'mimetypes:application/pdf', 'max:'.config('competitions.works.pdf_max_kb'), new RealPdf],
                 default => ['prohibited'],
             },

@@ -59,6 +59,13 @@ function intro(video) {
         }
     });
 
+    // التسريع من قائمة المتصفح (noplaybackrate في Chrome وحده) ينهي المقطع قبل مدته فيرفضه الخادم
+    video.addEventListener('ratechange', () => {
+        if (video.playbackRate !== 1) {
+            video.playbackRate = 1;
+        }
+    });
+
     video.addEventListener('seeking', () => {
         if (video.currentTime > watched + 1) {
             video.currentTime = watched;

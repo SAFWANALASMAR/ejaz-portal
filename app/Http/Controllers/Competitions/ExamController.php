@@ -97,7 +97,10 @@ class ExamController extends Controller
 
         abort_unless($submission->examStage() === ExamStage::Intro && $competition->isOpen() && filled($competition->intro_video_path), 404);
 
-        return PrivateFileResponse::make(CompetitionMedia::disk(), (string) $competition->intro_video_path, 'video/mp4', 'intro.mp4', (int) config('competitions.exam.media_url_minutes'));
+        // الرابط يبقى ضعف مدة المقطع وزيادة، فلا ينقطع التشغيل بتوقف أو تقطيع قبل حدث النهاية
+        $minutes = max((int) config('competitions.exam.media_url_minutes'), (int) ceil((int) $competition->intro_video_seconds / 60) * 2 + 5);
+
+        return PrivateFileResponse::make(CompetitionMedia::disk(), (string) $competition->intro_video_path, 'video/mp4', 'intro.mp4', $minutes);
     }
 
     public function instructions(Request $request, string $slug, AcceptExamInstructions $accept): RedirectResponse

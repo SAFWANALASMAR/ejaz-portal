@@ -2,14 +2,17 @@
 
 use App\Actions\Accounts\ExportUserData;
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Actions\Users\AnonymizeUser;
 use App\Contracts\VideoUploads;
 use App\Enums\RoleName;
 use App\Enums\VideoStatus;
+use App\Enums\WorkType;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\Setting;
 use App\Models\SubmissionVideo;
+use App\Models\SubmissionWork;
 use App\Models\User;
 use App\Support\Retention;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -272,4 +275,33 @@ it('does not let two purge runs overlap', function () {
     $event = collect(app(Schedule::class)->events())->first(fn (Event $event): bool => str_contains((string) $event->command, 'ejaz:purge-anonymized-data'));
 
     expect($event?->withoutOverlapping)->toBeTrue();
+});
+
+it('purges an exam registration without answers and a works draft without answers, through the command', function () {
+    Setting::put('retention', ['days' => 30]);
+    $registered = CompetitionSubmission::factory()->create(['competition_id' => $this->competition->id, 'user_id' => $this->deleted->id, 'answers' => null, 'region' => null]);
+    $registered->forceFill(['full_name' => 'اسم تجريبي', 'contact_email' => 'test@example.test'])->save();
+
+    $works = CompetitionSubmission::factory()->create(['competition_id' => $this->competition->id, 'user_id' => User::factory()->create(['anonymized_at' => now()])->id, 'answers' => null, 'region' => null]);
+    (new SubmissionWork)->forceFill(['submission_id' => $works->id, 'type' => WorkType::Link, 'url' => 'https://example.test/work'])->save();
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($registered->fresh()->full_name)->toBeNull()
+        ->and($registered->fresh()->contact_email)->toBeNull()
+        ->and(SubmissionWork::count())->toBe(0);
+});
+
+it('clears the exam registration details at once when the account is anonymized, and keeps the reference', function () {
+    $user = User::factory()->create(['deletion_requested_at' => now()]);
+    $entry = CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id, 'user_id' => $user->id]);
+    $entry->forceFill(['full_name' => 'اسم تجريبي', 'contact_email' => 'test@example.test'])->save();
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+
+    $entry->refresh();
+    expect($entry->full_name)->toBeNull()
+        ->and($entry->contact_email)->toBeNull()
+        ->and($entry->national_id_hash)->toBeNull()
+        ->and($entry->reference)->not->toBeNull();
 });

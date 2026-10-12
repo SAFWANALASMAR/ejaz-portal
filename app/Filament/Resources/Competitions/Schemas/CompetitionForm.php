@@ -131,14 +131,16 @@ class CompetitionForm
                             Hidden::make('id'),
                             Select::make('type')->label(__('competitions.fields.type'))->options(QuestionType::class)->required()->live(),
                             Toggle::make('is_required')->label(__('competitions.fields.is_required'))->default(true)->inline(false),
-                            Textarea::make('context_text')->label(__('competitions.exam_admin.context_text'))->rows(2)->maxLength(3000)->columnSpanFull(),
+                            Textarea::make('context_text')->label(__('competitions.exam_admin.context_text'))->rows(2)->maxLength(3000)->columnSpanFull()
+                                ->visible(fn (Get $get): bool => (bool) $get('../../exam_mode')),
                             Textarea::make('prompt')->label(__('competitions.fields.prompt'))->required()->rows(2)->maxLength(2000)->columnSpanFull(),
-                            Select::make('media_type')->label(__('competitions.exam_admin.media_type'))->options(QuestionMedia::class)->live(),
+                            Select::make('media_type')->label(__('competitions.exam_admin.media_type'))->options(QuestionMedia::class)->live()
+                                ->visible(fn (Get $get): bool => (bool) $get('../../exam_mode')),
                             FileUpload::make('media_path')
                                 ->label(__('competitions.exam_admin.media_file'))
                                 ->helperText(__('competitions.exam_admin.media_file_hint'))
-                                ->visible(fn (Get $get): bool => filled($get('media_type')))
-                                ->required(fn (Get $get): bool => filled($get('media_type')))
+                                ->visible(fn (Get $get): bool => (bool) $get('../../exam_mode') && filled($get('media_type')))
+                                ->required(fn (Get $get): bool => (bool) $get('../../exam_mode') && filled($get('media_type')))
                                 ->disk(CompetitionMedia::disk())
                                 ->directory(CompetitionMedia::DIRECTORY)
                                 ->visibility('private')

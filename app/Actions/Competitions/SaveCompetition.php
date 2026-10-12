@@ -72,6 +72,11 @@ class SaveCompetition
 
         $data['categories'] = array_values(array_unique(array_filter(array_map('trim', $data['categories'] ?? []), fn (string $category): bool => $category !== '')));
 
+        // النص العلمي والوسيط للاختبار وحده (مسابقة الأعمال لا تعرضهما): حقولهما مخفية فيها، وتُفرَّغ هنا
+        if (! (bool) ($data['exam_mode'] ?? $competition->exam_mode) && is_array($questions)) {
+            $questions = array_map(fn (mixed $question): mixed => is_array($question) ? [...$question, 'context_text' => null, 'media_type' => null, 'media_path' => null] : $question, $questions);
+        }
+
         $media = $this->prepareMedia($competition, ['questions' => $questions ?? [], ...$data]);
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
