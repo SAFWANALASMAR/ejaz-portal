@@ -1,45 +1,52 @@
 # التسليم والاستئناف — `preview/local`
 
-آخر تحديث: 12 أكتوبر 2026. يحدّثه «الدامج» بعد كل دمج.
+آخر تحديث: 12 أكتوبر 2026، بعد دمج الفروع كلها والفحص الأمني الشامل والمراجعة النهائية. الإصدار `v0.9.0-preview` (`../CHANGELOG.md`)، والفهرس `README.md`.
 
-## تقسيم العمل (مهمة صفوان 12/10)
+## تقسيم العمل (مهمة صفوان 12/10) — اكتمل
 
 - **الدامج** (جلسة «ejaz-portal مستودع وفروعه»): `feature/forms-print`، ووحده يدمج في `preview/local`، ثم الفحص الأمني الشامل والمراجعة النهائية والفهرس والإصدار.
 - **جلسة الاستئناف:** `feature/registers` ثم `feature/competition-exam`.
 - **جلسة النقل:** `feature/legacy-content` ثم `chore/launch-readiness`.
-- الفرع الجاهز يحمل `docs/reviews/ready-<اسم-الفرع>.md`. الدامج يدمج `preview/local` فيه أولاً، ثم يدمجه في `preview/local`، ثم يشغّل `composer check`، ويحدّث هذا الملف و`roadmap.md`، ويرفع. فرعاً واحداً في كل مرة.
 - ممنوع: الدمج في `main`، والرفع القسري، وحذف الفروع، وتعديل ترحيل مدموج، والأسرار في git، واختراع المحتوى.
 
 ## حالة الفروع
 
-- `feature/brand-identity`، `feature/home-ed`: مدموجان.
-- `feature/five-portals`: مدموج.
+كل فروع `origin` مدموجة في `preview/local`، ولم يُدمج شيء في `main`. والفروع باقية لم تُحذف.
+
+- `feature/brand-identity`، و`feature/home-ed`، و`feature/five-portals`: مدموجة.
 - `feature/job-files`: مدموج (e030698).
-- `feature/forms-print`: مدموج (fff53f6). المراجعتان في `plans/forms-print.md`. وأُصلح اختبار افترض المدير التنفيذي خارج اللوحة، ودخلها بعد البوابات الخمس.
+- `feature/forms-print`: مدموج (fff53f6). وأُصلح اختبار افترض المدير التنفيذي خارج اللوحة، ودخلها بعد البوابات الخمس.
 - `feature/legacy-content`: مدموج (661d566). بعده على أي قاعدة: `migrate` ثم `PermissionsSeeder` (`media_assets.*`).
 - `feature/registers`: مدموج (8fa68e4). المدير التنفيذي يرى الاجتماعات، وجهة الاجتماع تُختار ولا تُفترض.
-- `feature/competition-exam`: مدموج بنسخة 424ebee. **تليها نسخة نهائية** بحدود رفع أعلى (200 ميغابايت، وقرص الرفع المؤقت لـ Livewire من البيئة)، تُدمج حين يصل ملف ready الجديد. وبعدها `npm run build` لتغيّر `resources/js/competition-exam.js`.
-- `chore/launch-readiness`: عند جلسة النقل. لم يُدمج. حزمة النشر المستقلة عن المزود «جاهز بانتظار الخادم».
+- `feature/competition-exam`: مدموج بنسخته النهائية (2dd63f5): الفيديو التعريفي ووسائط الأسئلة حتى 200 ميجابايت، ورفع اللوحة في الإنتاج إلى التخزين مباشرة (`LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=s3`). وبعده `npm run build`.
+- `chore/launch-readiness`: مدموج (9ba3d68). حزمة النشر «جاهز بانتظار الخادم» (`deploy/readiness.md`).
 
-نتائج الاختبار المحلية بعد كل دمج: كلها ناجحة عدا اختبار الرابط الرمزي المعروف على ويندوز.
+## ما اكتمل بعد الدمج
 
-## ما بقي بالترتيب
+- **الفحص الأمني الشامل:** `security/2026-10-12-security-audit.md`. لا حرجة ولا عالية ولا متوسطة باقية، وكل إصلاح في حفظ `fix(security)` مع اختبار مانع.
+- **المراجعة النهائية:** حُذف مكرر الوثائق من دمج «الجانبين»، وصُححت الحالات القديمة، ووُحّد عرض حجم الملف، وقائمة أدوار التحقق الثنائي صارت قائمة اللوحة نفسها، وحد الحجم قبل القراءة في رفع الأرشيف والسجلات.
+- **الفهرس وسجل التغييرات والإصدار:** `README.md`، و`../CHANGELOG.md`، والوسم `v0.9.0-preview` على `preview/local`.
 
-1. دمج النسخة النهائية لرحلة الاختبار، ثم `chore/launch-readiness`، حين يظهر ملف ready على كل منهما.
-2. `/security-audit` الشامل وتقريره في `docs/security/`، بلا ثغرة حرجة أو عالية.
-3. مراجعة نهائية وتنظيف المكرر.
-4. `docs/README.md` فهرساً شاملاً، و`CHANGELOG.md`، ووسم إصدار على `preview/local`.
+## ما بقي
+
+- **ينتظر الخادم:** تنفيذ حزمة النشر، وفحص ZAP واختبار التحمل على التجريبي (`deploy/staging-plan.md`، والتكلفة تنتظر موافقة صفوان).
+- **ينتظر الجمعية:** اعتماد النصوص المنقولة ونشرها، وتواريخ الوثائق، والنماذج الورقية، وقالب الشهادة، وما في `open-questions.md`.
+- **ينتظر قرار صفوان:** مزود الرسائل، وواتساب، ومزود الذكاء الاصطناعي، ورقم الهوية أو الإقامة، وحساب Microsoft 365، والدمج في `main`.
+- **تنظيف بلا تغيير سلوك** (بند في `roadmap.md`): توحيد إجراءات سجل الاطلاع الأربعة، وحارس المسار المكرر، ومساعدات الاختبار المكررة.
+- **منخفضة من الفحص:** F8 (تدوير سر التحقق الثنائي)، وتنبيه تتابع الرموز الخاطئة، وحد معدل لرفع Livewire.
 
 ## أول خطوة للاستئناف
 
 ```bash
-git fetch origin
-git log --oneline preview/local..origin/feature/competition-exam   # نسخة الاختبار النهائية إن وصلت
-git ls-tree -r --name-only origin/chore/launch-readiness docs/reviews | grep ready-chore-launch-readiness
+git fetch origin && git switch preview/local && git pull --ff-only
+php artisan migrate --force && php artisan db:seed --class=PermissionsSeeder --force
 ```
+
+ثم أول بند ناقص في `roadmap.md`، أو ما يقرره صفوان (الدمج في `main`، أو الخادم التجريبي).
 
 ## ملاحظات البيئة المحلية (ويندوز بلا Docker)
 
 - PHP 8.4 وPostgreSQL 17 من scoop. لكل جلسة قاعدة اختبار خاصة (`DB_DATABASE=ejaz_testing_N php artisan test`).
-- مجلدات `storage` قد تصير للقراءة فقط بعد النسخ: `attrib -R storage\* /S /D` (وإلا فشلت اختبارات mPDF).
+- مجلدات `storage` و`bootstrap/cache` قد تصير للقراءة فقط بعد النسخ: `attrib -R storage\* /S /D` (وإلا فشلت اختبارات mPDF، أو أعاد الموقع 500).
 - اختبار الرابط الرمزي في `LegacyImportTest` يفشل على ويندوز وحده، وينجح في الفحص الآلي.
+- PHPStan الكامل يحتاج ذاكرة: `php -d memory_limit=3G vendor/bin/phpstan analyse`.
