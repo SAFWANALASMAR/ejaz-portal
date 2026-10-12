@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use League\Flysystem\FilesystemException;
 use RuntimeException;
 use Throwable;
 
@@ -103,7 +104,8 @@ class AddMediaAsset
             Storage::disk('public')->delete($attributes['web_path'] ?? '');
 
             // الملف الذي لا يُقرأ صورةً أو أيقونةً سليمة وحده «ليس صورة»، وغيره (القاعدة مثلاً) يُرمى كما هو
-            throw $exception instanceof RuntimeException
+            // وأعطال التخزين (Flysystem) ترث RuntimeException أيضاً، فتُستثنى ليظهر سببها
+            throw $exception instanceof RuntimeException && ! $exception instanceof FilesystemException
                 ? ValidationException::withMessages(['file' => __('import.errors.media_type', ['file' => basename($file)])])
                 : $exception;
         }
