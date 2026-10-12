@@ -27,7 +27,7 @@ class RecordProgramAttendance
      */
     public function handle(User $actor, Program $program, Collection $registrations, bool $attended): int
     {
-        if (! $actor->can('update', $program)) {
+        if (! $actor->can('recordAttendance', $program)) {
             throw new AuthorizationException;
         }
 

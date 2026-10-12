@@ -36,7 +36,8 @@ return [
 
         // البرامج والدورات
         'program_types' => $crud,
-        'programs' => [...$crud, 'export'],
+        // attend: تسجيل حضور المسجلين دون تعديل البرنامج (فئة الموظفين — requirements/12 §12)
+        'programs' => [...$crud, 'export', 'attend'],
 
         // الإدارة
         // منح الأدوار ليس صلاحية تُمنح: للمشرف العام وحده (UserPolicy::assignRoles)
@@ -94,6 +95,8 @@ return [
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'archive.*',
+            // من فئة الموظفين: «متابعة البرامج» و«تسجيل الحضور»
+            'programs.view', 'programs.attend',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
@@ -110,6 +113,40 @@ return [
         ],
         'assembly_member' => [],
         'member' => [],
+
+        // بوابات الدخول الخمس (requirements/12 §12، docs/plans/five-portals.md)
+        // ب. المدير التنفيذي: ما للموظفين، و«إدارة الموظفين» (المستخدمون محصورون في حسابات الموظفين،
+        // والأدوار التي يمنحها في RoleName::assignableBy)، و«إدارة البرامج»، و«إدارة المسابقات»،
+        // و«إدارة الملفات» (الأرشيف؛ وملفات المجلس للمجلس — open-questions)، و«الإحصائيات العامة»
+        'executive_director' => [
+            'users.view', 'users.create', 'users.update',
+            'program_types.*', 'programs.*',
+            'competitions.*', 'submissions.*',
+            'archive.*',
+            'stats.view', 'surveys.view',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+        ],
+        // ج. الموظفون: «رفع الملفات» (وفوقها أدوار التصنيف)، و«تسجيل الحضور»، و«إدارة النماذج»، و«متابعة البرامج»
+        'financial_manager' => [
+            'archive.view', 'archive.create',
+            'programs.view', 'programs.attend',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+        ],
+        'accountant' => [
+            'archive.view', 'archive.create',
+            'programs.view', 'programs.attend',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+        ],
+        'projects_manager' => [
+            'archive.view', 'archive.create',
+            'programs.view', 'programs.attend',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+        ],
+        'marketing_manager' => [
+            'archive.view', 'archive.create',
+            'programs.view', 'programs.attend',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+        ],
     ],
 
 ];

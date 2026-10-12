@@ -47,5 +47,7 @@
         @endforeach
     </div>
 
+    @include('account.partials.stats', ['stats' => $stats])
+
     @include('account.partials.summary', ['summary' => $summary])
 </x-layouts.account>

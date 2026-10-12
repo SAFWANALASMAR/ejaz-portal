@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Enums\RoleName;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
@@ -17,7 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * المستخدمون وأدوارهم. بيانات شخصية: users.* للمشرف العام وحده افتراضياً — UserPolicy.
+ * المستخدمون وأدوارهم. بيانات شخصية: users.* للمشرف العام، وللمدير التنفيذي في حسابات الموظفين وحدها — UserPolicy.
  * الإنشاء والتعديل وإخفاء البيانات عبر Actions في App\Actions\Users.
  */
 class UserResource extends Resource
@@ -36,7 +37,21 @@ class UserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('roles');
+        $query = parent::getEloquentQuery()->with('roles');
+        $actor = auth()->user();
+
+        // من يملك users.view غير المشرف العام (المدير التنفيذي اليوم) يرى حسابات الموظفين التي يمنح أدوارها وحدها، كما في
+        // UserPolicy: لها دور إداري مما يمنحه، ولا دور إدارياً غيره. فلا يرى المستفيدين ولا المشرف العام ولا
+        // المجلس ولا حسابه. ومن لا يمنح شيئاً قائمته فارغة
+        if ($actor instanceof User && ! $actor->hasRole(RoleName::SuperAdmin->value) && $actor->can('users.view')) {
+            $panel = RoleName::values(RoleName::panelRoles());
+            $managed = array_values(array_intersect($panel, RoleName::values(RoleName::assignableBy($actor))));
+
+            $query->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', $managed))
+                ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', array_values(array_diff($panel, $managed))));
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

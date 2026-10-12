@@ -39,10 +39,16 @@ it('opens the programs screens to the program manager only', function () {
     $this->actingAs($this->manager)->get(ProgramResource::getUrl('edit', ['record' => $program]))->assertOk();
     $this->actingAs($this->manager)->get(ProgramTypeResource::getUrl('index'))->assertOk();
 
-    foreach ([RoleName::ContentEditor, RoleName::Secretary, RoleName::BoardMember, RoleName::Reviewer] as $role) {
+    foreach ([RoleName::ContentEditor, RoleName::BoardMember, RoleName::Reviewer] as $role) {
         $this->actingAs(userWithRole($role))->get(ProgramResource::getUrl('index'))->assertForbidden();
         $this->actingAs(userWithRole($role))->get(ProgramTypeResource::getUrl('index'))->assertForbidden();
     }
+
+    // السكرتير من فئة الموظفين: يتابع البرامج ولا يعدّلها (requirements/12 §12 — tests/Feature/Portals)
+    $secretary = userWithRole(RoleName::Secretary);
+    $this->actingAs($secretary)->get(ProgramResource::getUrl('index'))->assertOk();
+    $this->actingAs($secretary)->get(ProgramResource::getUrl('edit', ['record' => $program]))->assertForbidden();
+    $this->actingAs($secretary)->get(ProgramTypeResource::getUrl('index'))->assertForbidden();
 });
 
 it('creates a program with extra registration fields and logs it', function () {
