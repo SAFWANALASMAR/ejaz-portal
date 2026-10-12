@@ -62,7 +62,7 @@
         @foreach ($submission->orderedQuestions() as $question)
             @php($error = $errors->first('answers.'.$question->id))
             <fieldset class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs" @disabled(! $editable)
-                @if ($error) aria-describedby="answer-{{ $question->id }}-error" @endif>
+                aria-describedby="answer-{{ $question->id }}-prompt{{ $error ? ' answer-'.$question->id.'-error' : '' }}">
                 <legend class="sr-only">{{ __('competitions.entry.question', ['number' => $loop->iteration]) }}</legend>
                 <p class="text-sm font-semibold text-accent-dark">
                     {{ __('competitions.entry.question', ['number' => $loop->iteration]) }}
@@ -70,12 +70,12 @@
                         <span class="text-muted">— {{ __('competitions.entry.optional') }}</span>
                     @endunless
                 </p>
-                <p class="mt-2 leading-8 font-medium whitespace-pre-line text-ink">{{ $question->prompt }}</p>
+                <p id="answer-{{ $question->id }}-prompt" class="mt-2 leading-8 font-medium whitespace-pre-line text-ink">{{ $question->prompt }}</p>
 
                 @if ($question->type === QuestionType::Text)
                     <label for="answer-{{ $question->id }}" class="sr-only">{{ __('competitions.entry.answer') }}</label>
-                    <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="5" maxlength="5000"
-                        class="mt-4 block w-full rounded-xl border border-line bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id, $submission->answer($question)) }}</textarea>
+                    <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="5" maxlength="5000" aria-describedby="answer-{{ $question->id }}-prompt"
+                        class="mt-4 block w-full rounded-xl border border-muted/70 bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id, $submission->answer($question)) }}</textarea>
                 @elseif ($question->type === QuestionType::MultipleChoice)
                     <div class="mt-4 space-y-2">
                         @foreach ($submission->orderedOptions($question) as $option)

@@ -35,11 +35,11 @@
             <label class="block">
                 <span class="text-sm font-medium text-ink">{{ __('governance.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('governance.filters.q_placeholder') }}"
-                    class="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
+                    class="mt-1 w-full rounded-xl border border-muted/70 bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-ink">{{ __('governance.filters.category') }}</span>
-                <select name="category" class="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
+                <select name="category" class="mt-1 w-full rounded-xl border border-muted/70 bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
                     <option value="">{{ __('governance.filters.all_categories') }}</option>
                     @foreach (DocumentCategory::cases() as $category)
                         <option value="{{ $category->value }}" @selected($active === $category->value)>{{ $category->getLabel() }}</option>
@@ -48,7 +48,7 @@
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-ink">{{ __('governance.filters.year') }}</span>
-                <select name="year" class="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
+                <select name="year" class="mt-1 w-full rounded-xl border border-muted/70 bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
                     <option value="">{{ __('governance.filters.all_years') }}</option>
                     @foreach ($years as $year)
                         <option value="{{ $year }}" @selected((int) ($filters['year'] ?? 0) === $year)>{{ $year }}</option>

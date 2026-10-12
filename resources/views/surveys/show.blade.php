@@ -36,7 +36,7 @@
                     @if ($question->type === SurveyQuestionType::Scale)
                         <div class="flex items-center justify-between gap-2">
                             @foreach (range(1, 5) as $value)
-                                <label class="flex size-11 cursor-pointer items-center justify-center rounded-full border border-line font-semibold text-ink has-checked:border-primary has-checked:bg-primary has-checked:text-white">
+                                <label class="flex size-11 cursor-pointer items-center justify-center rounded-full border border-line font-semibold text-ink has-checked:border-primary has-checked:bg-primary has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent">
                                     <input type="radio" name="answers[{{ $question->id }}]" value="{{ $value }}" class="sr-only" @checked((string) old('answers.'.$question->id) === (string) $value)>
                                     {{ $value }}
                                 </label>
@@ -56,7 +56,7 @@
                     @else
                         <label for="answer-{{ $question->id }}" class="sr-only">{{ $question->prompt }}</label>
                         <textarea id="answer-{{ $question->id }}" name="answers[{{ $question->id }}]" rows="4" maxlength="{{ SubmitSurveyResponse::maxText($survey) }}"
-                            class="block w-full rounded-xl border border-line bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id) }}</textarea>
+                            class="block w-full rounded-xl border border-muted/70 bg-white px-4 py-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none">{{ old('answers.'.$question->id) }}</textarea>
                     @endif
 
                     @if ($error)

@@ -59,7 +59,7 @@
                             <span class="text-sm font-semibold text-ink">{{ __('competitions.works.'.$type->value) }}</span>
                             @if ($type === WorkType::Link)
                                 <input type="url" name="url" required maxlength="2048" pattern="https://.*" dir="ltr"
-                                    class="mt-2 block w-full rounded-xl border border-line bg-white px-4 py-2 text-ink focus:border-primary focus:outline-none">
+                                    class="mt-2 block w-full rounded-xl border border-muted/70 bg-white px-4 py-2 text-ink focus:border-primary focus:outline-none">
                             @else
                                 <input type="file" name="file" required accept="{{ $type === WorkType::Image ? 'image/jpeg,image/png,image/webp' : 'application/pdf' }}"
                                     class="mt-2 block w-full text-sm text-ink file:me-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white">

@@ -23,7 +23,7 @@
                         <div class="flex items-start gap-3">
                             <span class="mt-1 text-primary">{{ svg('heroicon-o-user', 'size-8') }}</span>
                             <div>
-                                <p class="text-2xl font-bold text-primary sm:text-3xl">{{ __('account.dashboard.welcome', ['name' => $user->name]) }}</p>
+                                <h1 class="text-2xl font-bold text-primary sm:text-3xl">{{ __('account.dashboard.welcome', ['name' => $user->name]) }}</h1>
                                 <p class="mt-1 text-muted">{{ __('account.dashboard.intro') }}</p>
                             </div>
                         </div>
@@ -33,7 +33,7 @@
         @endif
 
         <div class="container-page grid gap-6 pt-6 lg:grid-cols-[17rem_1fr]">
-            <aside aria-label="{{ __('site.my_account') }}">
+            <aside>
                 {{-- الجوال واللوحي: قائمة منسدلة --}}
                 <details class="group rounded-2xl bg-primary text-white lg:hidden">
                     <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 font-semibold">
@@ -47,13 +47,13 @@
                         </span>
                         {{ svg('heroicon-o-chevron-down', 'size-5 transition group-open:rotate-180') }}
                     </summary>
-                    <div class="border-t border-white/10 p-2">
+                    <nav class="border-t border-white/10 p-2" aria-label="{{ __('site.my_account') }}">
                         @include('account.partials.navigation', ['links' => $links, 'canAdmin' => $canAdmin])
-                    </div>
+                    </nav>
                 </details>
 
                 {{-- الحاسوب: شريط جانبي ثابت --}}
-                <nav class="hidden rounded-3xl bg-primary p-3 text-white shadow-sm lg:sticky lg:top-24 lg:block">
+                <nav aria-label="{{ __('site.my_account') }}" class="hidden rounded-3xl bg-primary p-3 text-white shadow-sm lg:sticky lg:top-24 lg:block">
                     @include('account.partials.navigation', ['links' => $links, 'canAdmin' => $canAdmin])
                 </nav>
             </aside>

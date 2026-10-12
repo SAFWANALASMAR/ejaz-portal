@@ -47,7 +47,8 @@ class ProgramTypeResource extends Resource
     {
         return $table
             ->defaultSort('sort')
-            ->modifyQueryUsing(fn ($query) => $query->withCount('programs'))
+            // ومعه وجود برامج ولو محذوفة، فلا يُسأل عنه لكل صف عند إظهار زر الحذف
+            ->modifyQueryUsing(fn ($query) => $query->withCount('programs')->withExists(['programs as has_any_programs' => fn ($programs) => $programs->withTrashed()]))
             ->columns([
                 TextColumn::make('name')->label(__('programs.types.fields.name')),
                 TextColumn::make('slug')->label(__('content.slug')),
@@ -56,7 +57,7 @@ class ProgramTypeResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make()->hidden(fn (ProgramType $record): bool => $record->programs()->withTrashed()->exists()),
+                DeleteAction::make()->hidden(fn (ProgramType $record): bool => $record->hasAttribute('has_any_programs') ? (bool) $record->getAttribute('has_any_programs') : $record->programs()->withTrashed()->exists()),
             ]);
     }
 

@@ -11,7 +11,7 @@
                 <legend class="mb-2 block text-sm font-semibold text-ink">{{ __('payments.donate.presets') }}</legend>
                 <div class="grid grid-cols-3 gap-2">
                     @foreach ($presets as $preset)
-                        <label class="cursor-pointer rounded-full border border-line px-3 py-2 text-center font-semibold text-ink has-checked:border-primary has-checked:bg-primary has-checked:text-white">
+                        <label class="cursor-pointer rounded-full border border-line px-3 py-2 text-center font-semibold text-ink has-checked:border-primary has-checked:bg-primary has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent">
                             <input type="radio" name="preset" value="{{ $preset }}" class="sr-only" @checked((string) old('preset') === (string) $preset)>
                             {{ number_format($preset) }} <span class="text-xs">{{ __('payments.currencies.SAR') }}</span>
                         </label>

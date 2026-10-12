@@ -24,7 +24,9 @@ it('sends the security headers on every web response', function () {
 
     $response->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('X-Content-Type-Options', 'nosniff')
-        ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+        ->assertHeader('Cross-Origin-Opener-Policy', 'same-origin')
+        ->assertHeader('Cross-Origin-Resource-Policy', 'same-origin');
 });
 
 it('sends the security headers on the admin panel too, so its screens cannot be framed', function () {

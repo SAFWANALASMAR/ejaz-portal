@@ -35,6 +35,10 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+        // عزل النافذة عن صفحات المواقع الأخرى التي تفتحها، ومنع تضمين ردودنا في مواقع أخرى (فحص ZAP،
+        // docs/security/). ولا Cross-Origin-Embedder-Policy: يمنع تضمين مقاطع يوتيوب
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
 
         if ($request->isSecure()) {
             $response->headers->set(

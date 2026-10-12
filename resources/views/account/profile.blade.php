@@ -18,7 +18,7 @@
             <x-field name="email" type="email" :label="__('account.register.email')" :value="$user->email" bag="updateProfileInformation" autocomplete="email" dir="ltr" required />
             <x-field name="phone" type="tel" :label="__('account.register.phone')" :value="\App\Support\SaudiPhone::display($user->phone)" bag="updateProfileInformation"
                 autocomplete="tel" inputmode="tel" dir="ltr" required />
-            <x-field name="current_password" type="password" :label="__('account.profile.confirm_password')" :hint="__('account.profile.confirm_password_hint')"
+            <x-field name="current_password" id="profile-current-password" type="password" :label="__('account.profile.confirm_password')" :hint="__('account.profile.confirm_password_hint')"
                 bag="updateProfileInformation" autocomplete="current-password" dir="ltr" class="md:col-span-2" />
 
             <div class="md:col-span-2">

@@ -48,7 +48,7 @@ const guestScreens = [
 ];
 
 const accountScreens = [
-    { name: 'dashboard', path: '/account', heading: 'main p.text-2xl' },
+    { name: 'dashboard', path: '/account', heading: 'h1' },
     { name: 'profile', path: '/account/profile', heading: 'h1' },
     { name: 'requests', path: '/account/requests', heading: 'h1' },
     { name: 'my-programs', path: '/account/programs', heading: 'h1' },
