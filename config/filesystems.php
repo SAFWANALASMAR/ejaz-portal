@@ -21,6 +21,9 @@ return [
     */
     'private_disk' => env('FILESYSTEM_PRIVATE_DISK', 'local'),
 
+    // صورة على القرص العام لا يشير إليها سجل تُحذف بعد هذه الأيام (ejaz:prune-public-files)
+    'public_orphan_days' => (int) env('PUBLIC_ORPHAN_DAYS', 7),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
