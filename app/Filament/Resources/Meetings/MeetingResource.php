@@ -145,10 +145,8 @@ class MeetingResource extends Resource
     {
         /** @var User $user */
         $user = auth()->user();
-        /** @var Builder<Meeting> $query */
-        $query = parent::getEloquentQuery()->with('committee');
 
-        return $query->visibleTo($user);
+        return parent::getEloquentQuery()->with('committee')->scopes(['visibleTo' => [$user]]);
     }
 
     public static function getRelations(): array

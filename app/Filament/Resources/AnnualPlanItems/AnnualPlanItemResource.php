@@ -52,10 +52,7 @@ class AnnualPlanItemResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        /** @var Builder<AnnualPlanItem> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query->withOutcome();
+        return parent::getEloquentQuery()->scopes(['withOutcome']);
     }
 
     public static function form(Schema $schema): Schema

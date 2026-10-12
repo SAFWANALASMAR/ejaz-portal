@@ -48,7 +48,7 @@ class SaveMeeting
         }
 
         // الجهة (requirements/13 §2): بلا قيمة تبقى جهة الاجتماع، والجديد اجتماعُ جمعية عمومية كما كان
-        $data['body'] ??= $meeting->body?->value ?? MeetingBody::GeneralAssembly->value;
+        $data['body'] ??= $meeting->body->value;
         $data['body'] = $data['body'] instanceof MeetingBody ? $data['body']->value : $data['body'];
         $committee = $data['body'] === MeetingBody::Committee->value;
 
