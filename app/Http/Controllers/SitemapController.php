@@ -60,7 +60,8 @@ class SitemapController extends Controller
         }
 
         // «عن الجمعية» برابطها الخاص وحده، ومتى نُشرت (PageController)
-        foreach (Page::query()->published()->orderBy('id')->get(['slug', 'updated_at']) as $page) {
+        // وصفحات المقدمة تظهر في روابط قوالبها، فلا تُذكر برابط يحوّل
+        foreach (Page::query()->published()->whereNotIn('slug', array_keys(Page::INTROS))->orderBy('id')->get(['slug', 'updated_at']) as $page) {
             $urls[] = $page->slug === Page::ABOUT
                 ? self::entry('about', [], $page->updated_at)
                 : self::entry('pages.show', ['slug' => $page->slug], $page->updated_at);

@@ -30,6 +30,18 @@ enum OpeningKind: string implements HasLabel
         };
     }
 
+    /**
+     * معرّف صفحة المقدمة التي تُعرض أعلى قائمة النوع (Page::INTROS).
+     */
+    public function introSlug(): string
+    {
+        return match ($this) {
+            self::Membership => 'assembly-membership',
+            self::Employment => 'jobs',
+            self::Volunteering => 'volunteering',
+        };
+    }
+
     public function icon(): string
     {
         return match ($this) {

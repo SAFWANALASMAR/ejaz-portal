@@ -10,6 +10,9 @@
 @endphp
 
 <x-page-hero :title="__('governance.title')" />
+@if (($filters['category'] ?? null) === \App\Enums\DocumentCategory::AnnualReports->value)
+    <x-page-intro slug="reports" />
+@endif
 
 <section class="py-10 sm:py-14">
     <div class="container-page">

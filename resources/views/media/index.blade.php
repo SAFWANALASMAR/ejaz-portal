@@ -31,14 +31,8 @@
             @endforeach
         </ul>
 
-        {{-- «قياس الرضا» بعرض كامل كما في الصورة 05، ولا يظهر حتى تُبنى وحدته (المرحلة 2) --}}
-        @if (Route::has('surveys.index'))
-            <a href="{{ route('surveys.index') }}"
-                class="mt-4 flex items-center justify-center gap-3 rounded-2xl border border-line/70 bg-white p-5 font-semibold text-ink shadow-xs transition hover:border-primary/40 hover:shadow-md">
-                <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-chart-bar', 'size-7') }}</span>
-                {{ __('media.tiles.surveys') }}
-            </a>
-        @endif
+        {{-- مكان بطاقة «قياس الرضا»: يملؤه المتحكم في كل طلب خارج الذاكرة المؤقتة (MediaController::SURVEY_SLOT) --}}
+        {{ new \Illuminate\Support\HtmlString(\App\Http\Controllers\MediaController::SURVEY_SLOT) }}
     </div>
 </section>
 

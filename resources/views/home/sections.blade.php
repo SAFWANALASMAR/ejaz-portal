@@ -13,6 +13,10 @@
     @include('home.partials.shortcuts', ['shortcuts' => $shortcuts])
 @endif
 
+@if ($video !== null)
+    @include('home.partials.video', ['youtube' => $video])
+@endif
+
 @if ($initiatives->isNotEmpty())
     @include('home.partials.initiatives', ['initiatives' => $initiatives])
 @endif

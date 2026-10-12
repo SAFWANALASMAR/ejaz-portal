@@ -3,8 +3,8 @@
 namespace App\Support;
 
 /**
- * مقاطع المحتوى المرنة (Filament Builder): نص، وبطاقات، وصورة. تُخزَّن JSON في الصفحات
- * والمبادرات، وهذه الدوال تقرؤها بأمان لأي شكل وصل إلى القاعدة.
+ * مقاطع المحتوى المرنة (Filament Builder): نص، وبطاقات (لكل بطاقة أيقونة أو صورة)، وصورة.
+ * تُخزَّن JSON في الصفحات والمبادرات، وهذه الدوال تقرؤها بأمان لأي شكل وصل إلى القاعدة.
  */
 final class ContentBlocks
 {
@@ -29,7 +29,7 @@ final class ContentBlocks
     }
 
     /**
-     * مسارات صور المقاطع، لتنظيف الجديدة وحذف المحذوفة.
+     * مسارات صور المقاطع وصور البطاقات، لتنظيف الجديدة وحذف المحذوفة.
      *
      * @return list<string>
      */
@@ -42,6 +42,14 @@ final class ContentBlocks
 
             if ($block['type'] === 'image' && is_string($path) && $path !== '') {
                 $images[] = $path;
+            }
+
+            foreach ($block['type'] === 'cards' ? (array) ($block['data']['items'] ?? []) : [] as $item) {
+                $picture = is_array($item) ? ($item['picture'] ?? null) : null;
+
+                if (is_string($picture) && $picture !== '') {
+                    $images[] = $picture;
+                }
             }
         }
 

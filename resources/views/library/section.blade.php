@@ -62,7 +62,8 @@
         <h2 class="sr-only">{{ __('library.list.items') }}</h2>
 
         @if ($items->isEmpty())
-            <p class="mt-10 text-muted">{{ $filters === [] ? __('library.list.empty') : __('library.list.no_results') }}</p>
+            {{-- قسم بلا عناصر منشورة بعد (كالكتب والأبحاث من الموقع السابق) بحالة «قريباً» --}}
+            <p class="mt-10 text-muted">{{ $filters === [] ? __('library.list.soon') : __('library.list.no_results') }}</p>
         @else
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($items as $item)
