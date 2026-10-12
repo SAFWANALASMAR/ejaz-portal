@@ -7,6 +7,7 @@ use App\Filament\Resources\JobFiles\Pages\EditJobFile;
 use App\Filament\Resources\JobFiles\Pages\ListJobFiles;
 use App\Filament\Resources\JobFiles\Pages\ViewJobFile;
 use App\Filament\Resources\JobFiles\RelationManagers\DocumentsRelationManager;
+use App\Http\Middleware\AdminIdleTimeout;
 use App\Models\JobFile;
 use App\Models\JobFileDocument;
 use App\Models\User;
@@ -109,6 +110,18 @@ it('keeps a reading participant from adding, editing or deleting from the file p
         ->assertActionHidden(TestAction::make(EditAction::class)->table($document))
         ->assertActionHidden(TestAction::make(DeleteAction::class)->table($document))
         ->assertActionVisible(TestAction::make('download')->table($document));
+});
+
+it('ends an idle staff session on the download link, like the panel', function () {
+    $document = storedJobFileDocument($this->file, $this->projects);
+    $url = URL::temporarySignedRoute('job-files.documents.download', now()->addMinutes(5), ['document' => $document]);
+
+    $this->actingAs($this->projects)
+        ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes((int) config('security.admin_idle_minutes') + 1)->getTimestamp()])
+        ->get($url)
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
 });
 
 it('downloads a document by a temporary signed link, checked and logged', function () {

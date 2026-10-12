@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SubmissionReview;
 use App\Models\SubmissionVideo;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,7 @@ class ReviewVideoController extends Controller
         abort_unless($user->can('view', $review) && $video->submission_id === $review->submission_id && $video->status === VideoStatus::Ready, 404);
 
         // المسار خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا كما في ExportPolicy (قرار صفوان)
-        abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
+        abort_unless($user->hasEnabledTwoFactorAuthentication() && $user->canAccessPanel(Filament::getPanel('admin')), 403);
 
         $disk = Storage::disk(SubmissionVideo::disk());
         $headers = ['Content-Type' => 'video/mp4', 'Cache-Control' => 'private, no-store'];

@@ -8,6 +8,7 @@ use App\Models\SubmissionReview;
 use App\Models\SubmissionWork;
 use App\Models\User;
 use App\Support\PrivateFileResponse;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,7 +24,7 @@ class ReviewWorkController extends Controller
         $user = $request->user();
 
         abort_unless($user->can('view', $review) && $work->submission_id === $review->submission_id && filled($work->path), 404);
-        abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
+        abort_unless($user->hasEnabledTwoFactorAuthentication() && $user->canAccessPanel(Filament::getPanel('admin')), 403);
 
         return PrivateFileResponse::make(SubmissionWork::disk(), (string) $work->path, (string) $work->mime, $work->uuid.($work->type === WorkType::Pdf ? '.pdf' : ''), (int) config('competitions.works.url_minutes'), download: $work->type === WorkType::Pdf);
     }

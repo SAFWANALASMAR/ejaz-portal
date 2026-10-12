@@ -8,6 +8,7 @@ use App\Http\Controllers\Competitions\ReviewVideoController;
 use App\Http\Controllers\Competitions\ReviewWorkController;
 use App\Http\Controllers\Competitions\VideoUploadController;
 use App\Http\Controllers\Competitions\WorkController;
+use App\Http\Middleware\AdminIdleTimeout;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,7 +41,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
     Route::get('/account/competitions', CompetitionsController::class)->name('account.competitions');
 
     // مقطع المشاركة للمحكّم المسند إليه: يُفحص الإسناد عند كل طلب. والمشغّل يطلب أجزاءً عند التقديم
-    Route::get('/competition-reviews/{review}/videos/{video}', ReviewVideoController::class)->middleware('throttle:240,1,competition-review-video')->name('competitions.reviews.video');
+    Route::get('/competition-reviews/{review}/videos/{video}', ReviewVideoController::class)->middleware([AdminIdleTimeout::class, 'throttle:240,1,competition-review-video'])->name('competitions.reviews.video');
 
     // رحلة الاختبار الإلكتروني (docs/plans/competition-exam.md): كل مرحلة تُفحص في الإجراءات، والانتقال
     // بين الأسئلة يحفظ الإجابة فحده أعلى
@@ -60,5 +61,5 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
     Route::post('/competitions/{slug}/entry/works', [WorkController::class, 'store'])->middleware('throttle:20,1,competition-work-store')->name('competitions.works.store');
     Route::get('/competition-works/{work}', [WorkController::class, 'show'])->middleware('throttle:120,1,competition-work-show')->name('competitions.works.show');
     Route::delete('/competition-works/{work}', [WorkController::class, 'destroy'])->middleware('throttle:30,1,competition-work-destroy')->name('competitions.works.destroy');
-    Route::get('/competition-reviews/{review}/works/{work}', ReviewWorkController::class)->middleware('throttle:240,1,competition-review-work')->name('competitions.reviews.work');
+    Route::get('/competition-reviews/{review}/works/{work}', ReviewWorkController::class)->middleware([AdminIdleTimeout::class, 'throttle:240,1,competition-review-work'])->name('competitions.reviews.work');
 });

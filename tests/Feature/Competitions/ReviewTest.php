@@ -13,6 +13,7 @@ use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\SubmissionsRelationManager;
 use App\Filament\Resources\Reviews\Pages\EditReview;
 use App\Filament\Resources\Reviews\ReviewResource;
+use App\Http\Middleware\AdminIdleTimeout;
 use App\Jobs\GradeSubmission;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
@@ -206,6 +207,28 @@ it('streams a video only to whoever may see the review', function () {
     $this->actingAs($this->manager)->get($url)->assertOk();
     $this->actingAs($this->reviewerB)->get($url)->assertNotFound();
     $this->actingAs($entry->user)->get($url)->assertNotFound();
+});
+
+it('ends an idle reviewer session on the review video, like the panel', function () {
+    $entry = submittedEntry();
+    Storage::disk('local')->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+
+    $this->actingAs($this->reviewerA)
+        ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes((int) config('security.admin_idle_minutes') + 1)->getTimestamp()])
+        ->get(route('competitions.reviews.video', [SubmissionReview::sole(), $video]))
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
 });
 
 it('refuses the review video to a reviewer or manager without two-factor, since the route is outside the panel', function () {

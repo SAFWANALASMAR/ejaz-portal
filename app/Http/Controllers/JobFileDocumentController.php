@@ -6,6 +6,7 @@ use App\Actions\JobFiles\LogJobFileAccess;
 use App\Enums\ActivityEvent;
 use App\Models\JobFileDocument;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +21,7 @@ class JobFileDocumentController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($user->is_active && $user->can('view', $document), 403);
+        abort_unless($user->is_active && $user->canAccessPanel(Filament::getPanel('admin')) && $user->can('view', $document), 403);
 
         $log->handle($user, $document, ActivityEvent::FileDownloaded, ['file' => $document->original_name]);
 
