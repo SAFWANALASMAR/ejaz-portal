@@ -2,6 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Notifications\ContactDetailsChanged;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -48,6 +49,7 @@ it('updates the profile and resets verification of a changed email or phone', fu
         'name' => 'سارة أحمد علي',
         'email' => 'sara.new@example.test',
         'phone' => '0598765432',
+        'current_password' => 'password',
     ])->assertSessionHasNoErrors();
 
     $user = $this->user->fresh();
@@ -58,6 +60,38 @@ it('updates the profile and resets verification of a changed email or phone', fu
         ->and($user->phone_verified_at)->toBeNull();
 
     Notification::assertSentTo($user, VerifyEmailNotification::class);
+});
+
+it('changes the email or phone only with the current password, and tells the old email', function () {
+    Notification::fake();
+
+    $this->actingAs($this->user)->put('/user/profile-information', [
+        'name' => 'سارة أحمد',
+        'email' => 'thief@example.test',
+        'phone' => '0512345678',
+    ])->assertSessionHasErrorsIn('updateProfileInformation', 'current_password');
+
+    $this->put('/user/profile-information', [
+        'name' => 'سارة أحمد',
+        'email' => 'sara@example.test',
+        'phone' => '0598765432',
+        'current_password' => 'wrong-password',
+    ])->assertSessionHasErrorsIn('updateProfileInformation', 'current_password');
+
+    expect($this->user->fresh()->email)->toBe('sara@example.test')
+        ->and($this->user->fresh()->phone)->toBe('+966512345678');
+    Notification::assertNothingSent();
+
+    $this->put('/user/profile-information', [
+        'name' => 'سارة أحمد',
+        'email' => 'sara.new@example.test',
+        'phone' => '0512345678',
+        'current_password' => 'password',
+    ])->assertSessionHasNoErrors();
+
+    Notification::assertSentOnDemand(ContactDetailsChanged::class,
+        fn (ContactDetailsChanged $notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'sara@example.test'
+            && $notification->emailChanged && ! $notification->phoneChanged);
 });
 
 it('keeps verification when the contact details do not change', function () {
