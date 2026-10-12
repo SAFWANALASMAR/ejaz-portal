@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Assembly\RecordMeetingAttendance;
 use App\Actions\Assembly\SaveMeeting;
 use App\Actions\Registers\SaveAgendaItem;
@@ -258,4 +259,23 @@ it('keeps a deleted agenda item restorable rather than gone', function () {
     $item->delete();
 
     expect(MeetingAgendaItem::withTrashed()->find($item->id))->not->toBeNull();
+});
+
+it('includes the council and committee memberships and the assigned decisions in the personal data copy, and not those of others', function () {
+    $user = User::factory()->create();
+    $committee = Committee::factory()->create(['name' => 'لجنة تجريبية']);
+    BodyMembership::factory()->for($user)->create(['starts_on' => '2026-01-01']);
+    BodyMembership::factory()->for($user)->create(['body' => MeetingBody::Committee, 'committee_id' => $committee->id, 'starts_on' => '2026-02-01', 'ends_on' => '2026-12-31']);
+    BodyMembership::factory()->create();
+    $item = MeetingAgendaItem::factory()->create(['title' => 'بند تجريبي', 'decision' => 'قرار تجريبي', 'assignee_id' => $user->id, 'due_on' => '2026-11-01']);
+    MeetingAgendaItem::factory()->create(['assignee_id' => User::factory()]);
+
+    $copy = app(ExportUserData::class)->handle($user);
+
+    expect($copy['body_memberships'])->toBe([
+        ['body' => 'board', 'committee' => null, 'role' => 'member', 'starts_on' => '2026-01-01', 'ends_on' => null],
+        ['body' => 'committee', 'committee' => 'لجنة تجريبية', 'role' => 'member', 'starts_on' => '2026-02-01', 'ends_on' => '2026-12-31'],
+    ])->and($copy['assigned_decisions'])->toBe([
+        ['meeting' => $item->meeting->title, 'item' => 'بند تجريبي', 'decision' => 'قرار تجريبي', 'due_on' => '2026-11-01', 'status' => 'not_started'],
+    ]);
 });

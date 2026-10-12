@@ -4,9 +4,11 @@ namespace App\Actions\Accounts;
 
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
+use App\Models\BodyMembership;
 use App\Models\CompetitionSubmission;
 use App\Models\Inquiry;
 use App\Models\Meeting;
+use App\Models\MeetingAgendaItem;
 use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
@@ -15,6 +17,7 @@ use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
 use Closure;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * نسخة من بيانات المستخدم بصيغة قابلة للقراءة (حق الاطلاع في نظام حماية البيانات).
@@ -94,6 +97,23 @@ class ExportUserData
                     'submitted_at' => $date($response->submitted_at),
                 ])->all(),
             'assembly_membership' => self::membership($user, $date),
+            // عضوية مجلس الإدارة واللجان، والمكلَّف به من قرارات الاجتماعات (requirements/13 §2)
+            'body_memberships' => BodyMembership::query()->withTrashed()->whereBelongsTo($user)->with(['committee' => fn (BelongsTo $query) => $query->withTrashed()])->orderBy('starts_on')->get()
+                ->map(fn (BodyMembership $membership): array => [
+                    'body' => $membership->body->value,
+                    'committee' => $membership->committee?->name,
+                    'role' => $membership->role->value,
+                    'starts_on' => $membership->starts_on->toDateString(),
+                    'ends_on' => $membership->ends_on?->toDateString(),
+                ])->all(),
+            'assigned_decisions' => MeetingAgendaItem::query()->withTrashed()->where('assignee_id', $user->id)->with(['meeting' => fn (BelongsTo $query) => $query->withTrashed()])->orderBy('id')->get()
+                ->map(fn (MeetingAgendaItem $item): array => [
+                    'meeting' => $item->meeting->title,
+                    'item' => $item->title,
+                    'decision' => $item->decision,
+                    'due_on' => $item->due_on?->toDateString(),
+                    'status' => $item->status->value,
+                ])->all(),
             'payments' => Payment::query()->where('user_id', $user->id)->orderBy('id')->get()
                 ->map(fn (Payment $payment): array => [
                     'purpose' => $payment->purpose->value,
