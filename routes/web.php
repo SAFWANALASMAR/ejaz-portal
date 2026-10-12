@@ -19,10 +19,17 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 
 /*
 | مسارات الدخول والتسجيل والاستعادة والتحقق الثنائي يسجلها Fortify (config/fortify.php).
+| وطلب رابط الاستعادة يُعاد تسجيله هنا بالاسم والمسار نفسيهما ليأخذ حداً لكل شبكة، فمسارات التطبيق
+| تُحمَّل بعد Fortify فتحل محل مساره.
 */
+
+Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+    ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-reset'])
+    ->name('password.email');
 
 Route::get('/', HomeController::class)->name('home');
 

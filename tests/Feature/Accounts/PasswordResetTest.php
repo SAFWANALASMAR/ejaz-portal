@@ -22,6 +22,18 @@ it('shows the same message whether or not the email is registered', function () 
     Notification::assertCount(1);
 });
 
+it('caps reset-link requests per network, so one source cannot mail every account', function () {
+    config(['security.password_reset_per_subscriber_per_hour' => 2]);
+
+    foreach (['a', 'b'] as $name) {
+        $this->from('/forgot-password')->post('/forgot-password', ['email' => "{$name}@example.test"])->assertRedirect('/forgot-password');
+    }
+
+    $this->post('/forgot-password', ['email' => 'c@example.test'])->assertTooManyRequests();
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])->from('/forgot-password')
+        ->post('/forgot-password', ['email' => 'c@example.test'])->assertRedirect('/forgot-password');
+});
+
 it('resets the password with a valid token only once', function () {
     $user = User::factory()->create(['email' => 'member@example.test']);
     $token = Password::broker()->createToken($user);

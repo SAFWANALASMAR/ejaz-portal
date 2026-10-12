@@ -28,6 +28,10 @@ return [
     'contact_per_ipv6_site_per_hour' => (int) env('CONTACT_PER_IPV6_SITE_PER_HOUR', 60),
     'contact_per_hour' => (int) env('CONTACT_PER_HOUR', 300),
 
+    // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
+    // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
+    'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),
+
     // حدان لكل شبكة في الساعة، حتى لا يستنزف مصدر واحد السقف العام:
     // - المعلّق (pending): رموز أُرسلت ولم يُتحقق منها. الرمز الجديد للمستخدم نفسه يحل محل
     //   السابق، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة كالمدارس والجوال.
