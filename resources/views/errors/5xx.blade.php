@@ -15,6 +15,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>{{ __($key.'.title') }} | {{ __('site.short_name') }}</title>
     <meta name="theme-color" content="#2E6898">
+    @include('partials.favicons')
     @fonts
     @vite(['resources/css/app.css'])
 </head>

@@ -23,6 +23,11 @@ class VideoUrl implements ValidationRule
      */
     public const MAX_LENGTH = 500;
 
+    /**
+     * @param  bool  $youtubeOnly  يوتيوب وحده، لموضع لا يعرض إلا مقاطع يوتيوب (مقطع الرئيسية)
+     */
+    public function __construct(private bool $youtubeOnly = false) {}
+
     public static function isValid(?string $url): bool
     {
         return mb_strlen((string) $url) <= self::MAX_LENGTH && (self::youtubeId($url) !== null || self::isHostedFile($url));
@@ -77,6 +82,12 @@ class VideoUrl implements ValidationRule
     {
         if (! is_string($value) || ! self::isValid($value)) {
             $fail('validation.video_url')->translate();
+
+            return;
+        }
+
+        if ($this->youtubeOnly && self::youtubeId($value) === null) {
+            $fail('validation.youtube_url')->translate();
         }
     }
 }
