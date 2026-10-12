@@ -15,7 +15,7 @@ import { guard } from './lib.js';
 // المشاركات التي أُرسلت فعلاً برقم مرجعي، لتُقارن بعدد الحسابات
 const confirmed = new Counter('entries_confirmed');
 
-const BASE = __ENV.BASE_URL;
+const BASE = String(__ENV.BASE_URL || '').replace(/\/+$/, '');
 const SLUG = __ENV.COMPETITION;
 const PASSWORD = __ENV.PASSWORD;
 const ACCOUNTS = Number(__ENV.ACCOUNTS || 30000);

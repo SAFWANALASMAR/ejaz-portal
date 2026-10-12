@@ -6,17 +6,18 @@
 #   ٢. الملفات: القرص الخاص والقرص العام، متى كانا محليين، بمزامنة إلى حاوية متوافقة مع S3 داخل المملكة.
 #      وإن كان القرص الخاص نفسه على S3 في الإنتاج، فحمايته بإصدارات الحاوية (versioning) ونسخها إلى حاوية
 #      ثانية في منطقة أخرى داخل المملكة (docs/deploy.md)، ويُضبط BACKUP_SYNC_FILES=false.
-#   ٣. مدة الاحتفاظ: تُحذف نسخ القاعدة الأقدم من BACKUP_RETENTION_DAYS. ويُستحسن معها قاعدة دورة حياة في الحاوية.
+#   ٣. مدة الاحتفاظ: بقاعدة دورة الحياة في حاوية النسخ وحدها (deploy/storage/lifecycle-backups.json)، لا من الخادم.
+#      فمفتاح الخادم كتابة بلا حذف، ومن يخترق الخادم لا يمحو النسخ قبل أن يعبث بالقاعدة. ويُستحسن قفل الكائنات
+#      أو الإصدارات على حاوية النسخ (deploy/storage/README.md).
 #
 # الأدوات على الخادم: pg_dump (إصدار القاعدة نفسه 17)، وgpg، وaws (CLI يعمل مع أي تخزين متوافق مع S3).
 # المتغيرات من /etc/ejaz/backup.env (صلاحية 600، خارج قيت)، ولا سر في هذا الملف:
 #   PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD   اتصال القاعدة (مستخدم قراءة يكفي)
 #   BACKUP_BUCKET            اسم الحاوية (منفصلة عن حاوية الملفات الحية)
 #   BACKUP_S3_ENDPOINT       عنوان واجهة S3 للمزود في المنطقة (مثل https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com)
-#   AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION   مفاتيح كتابة على حاوية النسخ وحدها
+#   AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION   مفاتيح كتابة بلا حذف (PutObject وحدها) على حاوية النسخ وحدها
 #   BACKUP_GPG_RECIPIENT     معرّف المفتاح العام للتشفير (المفتاح الخاص خارج الخادم عند المسؤول)
 #   BACKUP_GPG_PUBLIC_KEY_FILE  (اختياري) ملف المفتاح العام يُستورد في حلقة مفاتيح مؤقتة (حاوية النسخ في compose)
-#   BACKUP_RETENTION_DAYS    افتراضياً 30
 #   BACKUP_SYNC_FILES        true|false (افتراضياً true)
 #   APP_ROOT                 جذر المشروع (افتراضياً مجلد هذا السكربت الأب)
 set -euo pipefail
@@ -32,7 +33,6 @@ for tool in pg_dump gpg aws; do
 done
 
 APP_ROOT="${APP_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 SYNC_FILES="${BACKUP_SYNC_FILES:-true}"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
@@ -71,15 +71,5 @@ if [ "$SYNC_FILES" = "true" ]; then
   done
   log "✓ زُومنت الملفات"
 fi
-
-# ٣. الاحتفاظ: حذف نسخ القاعدة الأقدم من المدة. الاسم يحمل تاريخه، فالمقارنة نصية
-CUTOFF="$(date -u -d "-$RETENTION_DAYS days" +%Y-%m-%d)"
-"${S3[@]}" ls "s3://$BACKUP_BUCKET/db/" | awk '{print $4}' | while read -r key; do
-  day="$(printf '%s' "$key" | sed -nE 's/^ejaz-([0-9]{4}-[0-9]{2}-[0-9]{2})T.*/\1/p')"
-  if [ -n "$day" ] && [[ "$day" < "$CUTOFF" ]]; then
-    "${S3[@]}" rm "s3://$BACKUP_BUCKET/db/$key"
-    log "حُذفت db/$key (أقدم من $RETENTION_DAYS يوماً)"
-  fi
-done
 
 log "✓ اكتمل النسخ الاحتياطي $STAMP"

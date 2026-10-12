@@ -69,4 +69,6 @@
 3. إن تضمن ترحيلاً: `php artisan migrate:status`، ثم `php artisan migrate:rollback --step=<عدد ترحيلات النشر> --force` إن كانت قابلة للتراجع بلا فقد بيانات، ثم نشر الوسم السابق. وإن تعذر: الاستعادة من النسخة (`scripts/restore.md`) بقرار صفوان.
 4. `php artisan ejaz:health`، ثم توثيق ما حدث.
 
+**بحزمة الحاويات:** `scripts/deploy-compose.sh` يكتب الوسم العامل في `EJAZ_TAG` في `.env`. فالتراجع بتعديل `EJAZ_TAG` في `.env` إلى الوسم السابق (صوره باقية على الخادم)، ثم `docker compose --env-file .env -f deploy/compose.production.yaml up -d app horizon scheduler web`. لا بمتغير في سطر الأمر وحده، وإلا عادت الحاويات إلى الوسم المكتوب في `.env` عند أول إعادة تشغيل للخادم.
+
 **ممنوع في أي تراجع:** `cache:clear` و`optimize:clear` و`migrate:fresh`.

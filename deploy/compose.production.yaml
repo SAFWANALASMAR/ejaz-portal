@@ -69,6 +69,9 @@ services:
       context: ..
       dockerfile: deploy/docker/Dockerfile
       target: web
+    environment:
+      # النطاق في server_name والتحويل إلى https (ejaz.sa في الإنتاج، ونطاق التجريبية فيها)
+      SITE_HOST: ${SITE_HOST:-ejaz.sa}
     ports:
       - "80:80"
       - "443:443"
@@ -137,7 +140,7 @@ services:
       - -c
       - >-
         umask 077 &&
-        printf 'requirepass %s\nmaxmemory %s\nmaxmemory-policy volatile-lru\nappendonly yes\nappendfsync everysec\nrename-command FLUSHALL ""\nrename-command FLUSHDB ""\nrename-command DEBUG ""\n'
+        printf 'requirepass %s\nmaxmemory %s\nmaxmemory-policy volatile-lru\nappendonly yes\nappendfsync everysec\nrename-command FLUSHALL ""\nrename-command FLUSHDB ""\nrename-command DEBUG ""\nrename-command CONFIG ""\n'
         "$$REDIS_PASSWORD" "$$REDIS_MAXMEMORY" > /tmp/redis.conf &&
         unset REDIS_PASSWORD &&
         exec redis-server /tmp/redis.conf

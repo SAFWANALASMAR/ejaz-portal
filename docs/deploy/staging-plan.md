@@ -31,7 +31,7 @@
 
 ### الأسبوع الأول (قبل الإطلاق بأسبوع)
 
-1. **اليوم ١:** إنشاء الخادم والحاويتين، وتثبيت Docker، واستنساخ المستودع، و`.env` من `.env.production.example` بـ `APP_ENV=staging` و`APP_URL=https://staging.ejaz.sa` و`SESSION_SECURE_COOKIE=true` و`SMS_DRIVER=log` وبريد وهمي.
+1. **اليوم ١:** إنشاء الخادم والحاويتين، وتثبيت Docker، واستنساخ المستودع، و`.env` من `.env.production.example` بـ `APP_ENV=staging` و`APP_URL=https://staging.ejaz.sa` و`SITE_HOST=staging.ejaz.sa` (نطاق nginx) و`SEO_INDEXABLE=false` و`SESSION_SECURE_COOKIE=true` و`SMS_DRIVER=log` وبريد وهمي.
 2. **اليوم ١:** أول نشر بـ `scripts/deploy-compose.sh <وسم>`، ثم المشرف بـ `ejaz:create-admin`، ثم بذور المحتوى والتحويلات (`deploy.md`).
 3. **اليوم ٢:** التخزين: رفع وثيقة PDF وملف صوت من اللوحة، وتنزيلهما من الموقع. ورفع مقطع مسابقة مباشرة من المتصفح (`COMPETITION_VIDEO_UPLOAD=s3`) حتى «جاهز». وإن رفض المزود الأجزاء: `AWS_REQUEST_CHECKSUM_CALCULATION=when_required` وإعادة التجربة.
 4. **اليوم ٢:** النسخ: `ejaz-backup.service` يدوياً، ثم تجربة الاستعادة كاملة (`scripts/restore.md`) وتسجيل زمنها.

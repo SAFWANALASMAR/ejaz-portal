@@ -56,6 +56,12 @@ say "٦/٩ ترحيل القاعدة والأدوار والصلاحيات با�
 "${DC[@]}" run --rm --no-deps app php artisan db:seed --class=AccessSeeder --force
 
 say "٧/٩ تبديل الحاويات (Horizon ينهي مهامه الجارية أولاً)"
+# الوسم في .env، فتبقى الحاويات على هذا الإصدار بعد إعادة تشغيل الخادم (ejaz-stack.service) لا على latest
+if grep -q '^EJAZ_TAG=' .env; then
+  sed -i "s/^EJAZ_TAG=.*/EJAZ_TAG=$TAG/" .env
+else
+  printf '\nEJAZ_TAG=%s\n' "$TAG" >> .env
+fi
 "${DC[@]}" up -d --wait --remove-orphans app horizon scheduler web
 
 say "٨/٩ ذاكرة المحتوى العام ورفع الصيانة"
@@ -68,4 +74,4 @@ APP_URL="$(grep -E '^APP_URL=' .env | cut -d= -f2-)"
 curl -fsS -o /dev/null "$APP_URL/up" && echo "✓ $APP_URL/up" || echo "✗ $APP_URL/up لا يرد 200 — راجع: ${DC[*]} logs app"
 "${DC[@]}" exec -T app php artisan ejaz:health || echo "تنبيه: فشل فحص من فحوص الصحة أعلاه. نبض المجدول يحتاج دقيقة بعد أول نشر."
 
-printf '\n\033[1;32m✓ نُشر %s. التراجع: EJAZ_TAG=<الوسم السابق> %s up -d app horizon scheduler web\033[0m\n' "$TAG" "${DC[*]}"
+printf '\n\033[1;32m✓ نُشر %s. التراجع: EJAZ_TAG=<الوسم السابق> في .env ثم %s up -d app horizon scheduler web\033[0m\n' "$TAG" "${DC[*]}"

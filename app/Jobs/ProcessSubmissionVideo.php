@@ -27,7 +27,11 @@ class ProcessSubmissionVideo implements ShouldQueue
     // جمع مقطع كبير وكتابته مرتين يستغرق وقتاً (حتى COMPETITION_VIDEO_MAX_MB)
     public int $timeout = 900;
 
-    public function __construct(public int $videoId) {}
+    public function __construct(public int $videoId)
+    {
+        // طابور المقاطع المستقل بمهلته (config/horizon.php — supervisor-videos)
+        $this->onQueue('videos');
+    }
 
     public function handle(VideoUploads $uploads): void
     {

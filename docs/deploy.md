@@ -65,7 +65,7 @@
 - ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`).
 - ما يلزمه قرار أو حساب: Turnstile، وMicrosoft Graph، والدفع (`PAYMENTS_ENABLED=false`). انظر «عند كل نشر» في `security.md`.
 
-ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`)، وحاوية النسخ ومفتاحاها، و`BACKUP_GPG_RECIPIENT`.
+ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها، و`BACKUP_GPG_RECIPIENT`. ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` وحدها)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، فلا يمحو من يخترق الخادم النسخ.
 
 ## ثالثاً: أول نشر
 
@@ -158,9 +158,15 @@ $DC ps                                         # كل الخدمات healthy
 
 - PHP 8.4-FPM بإضافاتها، وnginx (`deploy/nginx/ejaz.conf`)، وPostgreSQL 17، وRedis 7 (`deploy/redis/redis.conf`)، و`ffmpeg`، و`postgresql-client-17` و`gnupg` و`awscli`.
 - `deploy/php/production.ini` إلى `/etc/php/8.4/{fpm,cli}/conf.d/99-ejaz.ini`.
-- المشروع في `/var/www/ejaz` بمستخدم التطبيق، و`storage` و`bootstrap/cache` قابلان للكتابة له وحده، و`.env` بصلاحية 600، و`sudo` لإعادة تحميل PHP-FPM وحدها:
-  ```
-  www-data ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm
+- المشروع في `/var/www/ejaz` **يملكه مستخدم نشر مستقل** (`ejaz-deploy`) يشغّل `scripts/deploy.sh`، لا مستخدم PHP. و`www-data` يقرأ الشيفرة ولا يكتب إلا في `storage` و`bootstrap/cache`، فلا يكتب تنفيذٌ عن بعد عبر PHP باباً خلفياً في `app/` أو `vendor/`. و`.env` بصلاحية 640 لمستخدم النشر ومجموعة `www-data`، و`sudo` لإعادة تحميل PHP-FPM وحدها لمستخدم النشر:
+  ```bash
+  sudo useradd --system --create-home ejaz-deploy
+  sudo chown -R ejaz-deploy:www-data /var/www/ejaz && sudo chmod -R g-w /var/www/ejaz
+  # الكتابة فيهما لـ PHP ولمستخدم النشر (ذاكرة الإعدادات والمسارات عند النشر)
+  sudo chown -R www-data:ejaz-deploy /var/www/ejaz/storage /var/www/ejaz/bootstrap/cache
+  sudo chmod -R g+w /var/www/ejaz/storage /var/www/ejaz/bootstrap/cache
+  # في /etc/sudoers.d/ejaz:
+  ejaz-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm
   ```
 - الوحدات: `deploy/systemd/ejaz-horizon.service`، و`ejaz-scheduler.service` مع مؤقته (خادم واحد)، و`ejaz-health.service` مع مؤقته، و`ejaz-backup.service` مع مؤقته (بـ `/etc/ejaz/backup.env`).
 - النشر: `bash scripts/deploy.sh v1.2.0` (الخطوات نفسها، ومعها `composer install --no-dev` و`npm ci && npm run build` على الخادم و`horizon:terminate` وإعادة تحميل PHP-FPM). ومتعدد الخوادم: الترحيل على خادم واحد، والبقية `RUN_MIGRATIONS=false`.

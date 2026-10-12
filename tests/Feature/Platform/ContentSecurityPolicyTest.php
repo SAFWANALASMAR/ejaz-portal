@@ -36,9 +36,9 @@ it('adds the configured storage and CDN origins to img-src', function () {
 it('keeps a mistaken environment value from widening img-src, connect-src and the other configured lists', function () {
     config([
         'security.csp.img_src' => ['*', 'https:', "'unsafe-inline'", ' HTTPS://Files.Ejaz.Example ', 'http://plain.example', 'https://cdn.example/path', 'https://*.cdn.example'],
-        'security.csp.connect_src' => ['https://bucket.s3.example:443', 'wss://live.example', 'data:', 'https://*'],
+        'security.csp.connect_src' => ['https://bucket.s3.example:443/', 'wss://live.example', 'data:', 'https://*', 'https://*.objectstorage.example'],
         'security.csp.media_src' => ['blob:', 'https://media.example'],
-        'security.csp.form_action' => ['javascript:alert(1)', 'https://pay.example'],
+        'security.csp.form_action' => ['javascript:alert(1)', 'https://pay.example', 'https://*.pay.example'],
     ]);
 
     $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');

@@ -90,19 +90,23 @@ class SecurityHeaders
     }
 
     /**
-     * نطاقات من متغيرات البيئة (CSP_IMG_SRC وأخواتها): أصل https صريح وحده (نطاق، ومنفذ اختياري، وبادئة
-     * *. للنطاقات الفرعية)، بلا مسار. فلا يوسّع خطأ في الإعداد السياسة كلها: «*» و«https:» و«'unsafe-inline'»
-     * وما شابهها تُهمل. ورابط wss للاتصال وحده.
+     * نطاقات من متغيرات البيئة (CSP_IMG_SRC وأخواتها): أصل https صريح وحده (نطاق، ومنفذ اختياري)، بلا مسار،
+     * والشرطة الأخيرة المنسوخة من لوحة المزود تُحذف. فلا يوسّع خطأ في الإعداد السياسة كلها: «*» و«https:»
+     * و«'unsafe-inline'» وما شابهها تُهمل. ورابط wss للاتصال وحده.
+     *
+     * وبادئة *. للنطاقات الفرعية في الصور والوسائط وحدها: في الاتصال والنماذج تفتح حاويات كل عملاء المزود
+     * قناةً لتسريب البيانات بعد أي حقن، فيُضبط نطاق الحاوية بعينه.
      *
      * @return list<string>
      */
     private static function origins(string $key): array
     {
         $scheme = $key === 'connect_src' ? '(https|wss)' : 'https';
+        $wildcard = in_array($key, ['img_src', 'media_src'], true) ? '(\*\.)?' : '';
 
         return array_values(array_filter(
-            array_map(fn (mixed $origin): string => strtolower(trim((string) $origin)), (array) config('security.csp.'.$key)),
-            fn (string $origin): bool => preg_match('#^'.$scheme.'://(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{1,5})?$#', $origin) === 1,
+            array_map(fn (mixed $origin): string => rtrim(strtolower(trim((string) $origin)), '/'), (array) config('security.csp.'.$key)),
+            fn (string $origin): bool => preg_match('#^'.$scheme.'://'.$wildcard.'[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{1,5})?$#', $origin) === 1,
         ));
     }
 

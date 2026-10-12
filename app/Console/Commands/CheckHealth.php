@@ -139,11 +139,12 @@ class CheckHealth extends Command
     {
         $beat = Cache::get(self::HEARTBEAT_KEY);
 
-        if (! is_int($beat)) {
+        // Redis يعيد الرقم المخزَّن نصاً، فالنبض رقم بأي من الصيغتين
+        if (! is_int($beat) && ! (is_string($beat) && ctype_digit($beat))) {
             return __('health.failed.schedule_missing');
         }
 
-        $minutes = intdiv(now()->getTimestamp() - $beat, 60);
+        $minutes = intdiv(now()->getTimestamp() - (int) $beat, 60);
 
         return $minutes > (int) config('health.schedule_max_silence_minutes')
             ? __('health.failed.schedule_stale', ['minutes' => $minutes])

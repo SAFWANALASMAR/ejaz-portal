@@ -52,6 +52,20 @@ it('writes, reads and deletes a file on the private disk, and fails when it cann
         ->assertFailed();
 });
 
+it('reads the heartbeat when the cache returns it as text, as Redis does', function () {
+    Cache::put(CheckHealth::HEARTBEAT_KEY, (string) now()->getTimestamp(), now()->addDay());
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain(__('health.checks.schedule').': '.__('health.ok'))
+        ->assertSuccessful();
+
+    Cache::put(CheckHealth::HEARTBEAT_KEY, 'not-a-number', now()->addDay());
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain(__('health.failed.schedule_missing'))
+        ->assertFailed();
+});
+
 it('fails when the scheduler has never beaten', function () {
     $this->artisan('ejaz:health')
         ->expectsOutputToContain(__('health.failed.schedule_missing'))

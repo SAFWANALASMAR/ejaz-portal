@@ -22,7 +22,8 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
 
 - **الملفات:**
   - `deploy/compose.production.yaml`: التطبيق، وnginx، وHorizon، والمجدول، وPostgreSQL 17، وRedis 7، والنسخ.
-  - `deploy/docker/`، و`scripts/deploy-compose.sh` (النشر بوسم)، و`.env.production.example`.
+  - `deploy/docker/`، و`scripts/deploy-compose.sh` (النشر بوسم، ويكتب الوسم العامل في `EJAZ_TAG` بـ `.env`، فيبقى بعد إعادة تشغيل الخادم)، و`.env.production.example`.
+  - نطاق nginx من `SITE_HOST` (قالب في صورة الويب)، فالحزمة نفسها للإنتاج والتجريبية.
   - البديل بلا حاويات: `scripts/deploy.sh` و`deploy/nginx/ejaz.conf` و`deploy/systemd/`.
 - **الدليل:** `docs/deploy.md` («أولاً» إلى «رابعاً»، و«إن فشل النشر»، والملحق).
 - **التحقق:**
@@ -34,7 +35,8 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
 - **الملفات:**
   - `scripts/backup.sh`: `pg_dump` مضغوط مشفّر بمفتاح GPG عام إلى حاوية S3 منفصلة.
   - `.env.backup.example`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `ejaz-backup.timer`.
-  - `deploy/storage/lifecycle-backups.json`.
+  - `deploy/storage/lifecycle-backups.json`: هي وحدها تحذف النسخ بعد 30 يوماً. ومفتاح الخادم كتابة بلا حذف، فمن يخترق الخادم لا يمحو النسخ.
+  - دور قاعدة للقراءة وحدها للنسخ (`ejaz_backup`، في `.env.backup.example`).
 - **الدليل:** `scripts/restore.md` (التجربة الشهرية والاستعادة الفعلية)، و`docs/deploy.md` (الخطوة 8 والوحدات).
 - **التحقق:**
   - `systemctl start ejaz-backup.service`، ثم `systemctl show -p Result --value ejaz-backup.service` يرد `success`.
@@ -108,9 +110,11 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
   - `CSP_CONNECT_SRC` بعنوان واجهة S3.
   - `deploy/storage/cors.json`، وقاعدة إلغاء الرفع غير المكتمل بعد يوم في `lifecycle-private.json`.
   - `ffmpeg` في صورة التطبيق.
+  - **طابور `videos` مستقل** بعمال قليلين (`supervisor-videos` في `config/horizon.php`، و`COMPETITION_VIDEO_WORKERS`) بمهلة المهمة نفسها (900 ثانية). و`REDIS_QUEUE_RETRY_AFTER=960` فوقها، فلا يُعالج المقطع مرتين.
+  - وHorizon معرّف للتجريبية كالإنتاج، فيعمل فيها العمال.
 - **الدليل:** `docs/deploy.md` «حدود الرفع» (فقرة المقاطع)، و`deploy/storage/README.md`.
 - **التحقق:**
-  - `verify-server.sh --server` يتحقق أن `CSP_CONNECT_SRC` مضبوط متى كان الرفع مباشراً.
+  - `verify-server.sh --server` يتحقق أن نطاق `CSP_CONNECT_SRC` ظاهر فعلاً في رأس CSP متى كان الرفع مباشراً، ومن وجود عمال `supervisor-videos`.
   - وCSP يقبل الأصل الصريح وحده: اختبار `ContentSecurityPolicyTest`.
   - ورفع مقطع تجريبي في مسابقة على الخادم التجريبي.
 
