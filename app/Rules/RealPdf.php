@@ -22,9 +22,17 @@ class RealPdf implements ValidationRule
      */
     private const MAX_INFLATED_BYTES = 50 * 1024 * 1024;
 
+    /**
+     * لا يُقرأ ملف أكبر من هذا في الذاكرة: قواعد الحقل بلا bail فيُستدعى الفحص ولو تجاوز الملف حده، وحد
+     * الرفع المؤقت في اللوحة صار أكبر من حدود ملفات PDF (أكبرها 20 ميجابايت).
+     */
+    public const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $problem = $value instanceof UploadedFile ? self::problem((string) $value->get()) : 'validation.real_pdf';
+        $problem = $value instanceof UploadedFile && $value->getSize() <= self::MAX_FILE_BYTES
+            ? self::problem((string) $value->get())
+            : 'validation.real_pdf';
 
         if ($problem !== null) {
             $fail($problem)->translate();

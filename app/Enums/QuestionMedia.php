@@ -19,6 +19,19 @@ enum QuestionMedia: string implements HasLabel
     }
 
     /**
+     * أقصى حجم بالكيلوبايت: الفيديو بسقف الفيديو التعريفي، والصورة أصغر لأنها تُفك في الذاكرة لإعادة ترميزها،
+     * والصوت كملفات المكتبة الصوتية.
+     */
+    public function maxKb(): int
+    {
+        return match ($this) {
+            self::Image => 10240,
+            self::Audio => 25600,
+            self::Video => (int) config('competitions.exam.media_max_mb') * 1024,
+        };
+    }
+
+    /**
      * @return list<string>
      */
     public function mimeTypes(): array

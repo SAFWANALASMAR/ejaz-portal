@@ -73,3 +73,13 @@ it('refuses files that are not images', function () {
 
     expect(fn () => ImageSanitizer::strip('public', 'settings/fake.jpg'))->toThrow(RuntimeException::class);
 });
+
+it('refuses an image whose pixels would exhaust memory, before decoding it', function () {
+    Storage::fake('public');
+    // رأس PNG بأبعاد 10000×10000 وحجم ملف صغير: getimagesize يقرأ الرأس وحده
+    $ihdr = 'IHDR'.pack('NN', 10000, 10000)."\x08\x02\x00\x00\x00";
+    $png = "\x89PNG\r\n\x1a\n".pack('N', 13).$ihdr.pack('N', crc32($ihdr));
+    Storage::disk('public')->put('settings/huge.png', $png);
+
+    expect(fn () => ImageSanitizer::strip('public', 'settings/huge.png'))->toThrow(RuntimeException::class);
+});
