@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,7 +22,7 @@ class CheckHealth extends Command
 
     protected $signature = 'ejaz:health';
 
-    protected $description = 'فحص صحة البوابة: القاعدة والذاكرة والطابور والمهام الفاشلة والقرص والمجدول';
+    protected $description = 'فحص صحة البوابة: القاعدة والذاكرة والطابور والمهام الفاشلة والقرص والتخزين الخاص والمجدول';
 
     public function handle(): int
     {
@@ -31,6 +32,7 @@ class CheckHealth extends Command
             'queue' => fn (): ?string => $this->queue(),
             'failed_jobs' => fn (): ?string => $this->failedJobs(),
             'disk' => fn (): ?string => $this->disk(),
+            'private_storage' => fn (): ?string => $this->privateStorage(),
             'schedule' => fn (): ?string => $this->schedule(),
         ];
 
@@ -112,6 +114,25 @@ class CheckHealth extends Command
         $min = (int) config('health.disk_min_free_percent');
 
         return $percent < $min ? __('health.failed.disk', ['free' => $percent, 'min' => $min]) : null;
+    }
+
+    /**
+     * القرص الخاص (S3 في الإنتاج): ملف صغير يُكتب ويُقرأ ويُحذف، فيظهر خطأ الاتصال أو المفاتيح أو الصلاحيات
+     * قبل أن يظهر عند رفع زائر.
+     */
+    private function privateStorage(): ?string
+    {
+        $disk = Storage::disk((string) config('filesystems.private_disk', 'local'));
+        $path = 'health/'.Str::random(16).'.txt';
+
+        try {
+            $disk->put($path, 'ok');
+            $read = $disk->get($path);
+        } finally {
+            $disk->delete($path);
+        }
+
+        return $read === 'ok' ? null : __('health.failed.private_storage');
     }
 
     private function schedule(): ?string

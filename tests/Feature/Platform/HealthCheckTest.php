@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 function beat(?int $minutesAgo = 0): void
@@ -32,6 +33,23 @@ it('passes when every check is healthy', function () {
         ->expectsOutputToContain(__('health.checks.database'))
         ->expectsOutputToContain(__('health.checks.schedule'))
         ->assertSuccessful();
+});
+
+it('writes, reads and deletes a file on the private disk, and fails when it cannot', function () {
+    Storage::fake(config('filesystems.private_disk', 'local'));
+    beat();
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain(__('health.checks.private_storage').': '.__('health.ok'))
+        ->assertSuccessful();
+
+    expect(Storage::disk(config('filesystems.private_disk', 'local'))->allFiles())->toBe([]);
+
+    Storage::shouldReceive('disk')->andThrow(new RuntimeException('unreachable'));
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain('✗ '.__('health.checks.private_storage'))
+        ->assertFailed();
 });
 
 it('fails when the scheduler has never beaten', function () {
