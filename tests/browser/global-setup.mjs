@@ -25,14 +25,17 @@ function forward(localPort, host, port) {
 
 export default async function globalSetup(config) {
     // منفذ البوابة على الجهاز (APP_PORT في .env، وتمرره خدمة browser)، لأن روابط التطبيق تُبنى من APP_URL
-    const servers = [
-        await forward(Number(process.env.APP_PORT ?? 8000), process.env.APP_HOST ?? 'app', 8000),
-        await forward(5173, process.env.VITE_HOST ?? 'vite', 5173),
-    ];
+    // وخارج حاويات المشروع (فحص الوصول على خادم محلي): APP_HOST=host.docker.internal وAPP_UPSTREAM_PORT
+    // لمنفذه، وVITE_HOST=none مع الأصول المبنية (npm run build) فلا خادم Vite
+    const servers = [await forward(Number(process.env.APP_PORT ?? 8000), process.env.APP_HOST ?? 'app', Number(process.env.APP_UPSTREAM_PORT ?? 8000))];
 
-    // تسخين خادم Vite: أول تجميع للأنماط بطيء عبر قرص ويندوز المشترك
-    for (const asset of ['@vite/client', 'resources/css/app.css', 'resources/js/app.js']) {
-        await fetch(`http://localhost:5173/${asset}`, { signal: AbortSignal.timeout(180_000) });
+    if (process.env.VITE_HOST !== 'none') {
+        servers.push(await forward(5173, process.env.VITE_HOST ?? 'vite', 5173));
+
+        // تسخين خادم Vite: أول تجميع للأنماط بطيء عبر قرص ويندوز المشترك
+        for (const asset of ['@vite/client', 'resources/css/app.css', 'resources/js/app.js']) {
+            await fetch(`http://localhost:5173/${asset}`, { signal: AbortSignal.timeout(180_000) });
+        }
     }
 
     // البيانات كما طبعها ejaz:demo-user --json (كلمة المرور قد تحوي رموزاً يهربها JSON، فلا تُستخرج بـ sed)

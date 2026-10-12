@@ -127,6 +127,9 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// القائمة المنسدلة تُغلق متى خرج منها التركيز بلوحة المفاتيح، فلا تبقى مفتوحة تغطي ما بعدها
+document.addEventListener('focusin', (event) => closeAll(event.target));
+
 // ظل الرأس عند التمرير
 const header = document.querySelector('[data-site-header]');
 

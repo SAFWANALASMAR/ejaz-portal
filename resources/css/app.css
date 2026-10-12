@@ -51,6 +51,12 @@
         @apply outline-2 outline-offset-2 outline-accent;
     }
 
+    /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
+       فإطار التركيز فيها بدرجته الفاتحة */
+    :where(.bg-primary, .bg-primary-dark, .section-band, footer, [data-gallery-dialog]) :focus-visible {
+        @apply outline-accent-light;
+    }
+
     [x-cloak] {
         display: none !important;
     }

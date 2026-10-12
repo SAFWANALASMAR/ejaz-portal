@@ -18,6 +18,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Tables\Columns\TextColumn;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Contracts\Support\Htmlable;
@@ -42,6 +43,10 @@ class AdminPanelProvider extends PanelProvider
         // كل حقل رفع لا يقبل إلا ملفاً رُفع فعلاً أو كان محفوظاً من قبل، فلا يُستبدل
         // مساره بمسار ملف آخر (مهم خاصة للأقراص الخاصة لاحقاً)
         FileUpload::configureUsing(fn (FileUpload $upload) => $upload->preventFilePathTampering());
+
+        // خلية فارغة في صف قابل للنقر تصير رابطاً بلا نص (axe: link-name)، فلكل عمود نصي علامة الفراغ نفسها
+        // المستعملة في الجداول، ويغيّرها العمود متى شاء
+        TextColumn::configureUsing(fn (TextColumn $column) => $column->placeholder('—'));
     }
 
     public function panel(Panel $panel): Panel

@@ -31,7 +31,7 @@
             <label class="block flex-1">
                 <span class="text-sm font-medium text-ink">{{ __('library.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('library.filters.q_placeholder') }}"
-                    class="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
+                    class="mt-1 w-full rounded-xl border border-muted/70 bg-white px-4 py-2.5 focus:border-primary focus:outline-none">
             </label>
             @if ($activeTag !== null)
                 <input type="hidden" name="tag" value="{{ $activeTag }}">

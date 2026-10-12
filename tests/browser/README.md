@@ -37,3 +37,25 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
    - ثم أعد اللقطات الحقيقية.
 
 لا تُحفظ القيم ولا المسارات التجريبية في قيت ولا في أي بذرة (seeder).
+
+## فحص الوصول (WCAG 2.1 AA)
+
+`a11y.spec.mjs`: قواعد axe-core على صفحات الزائر ولوحة المستخدم ولوحة الإدارة، ثم التنقل بلوحة المفاتيح (رابط التخطي، وظهور إطار التركيز، وعدم حبس التركيز، والقوائم المنسدلة وقائمة الجوال). يعمل مع اللقطات في التشغيل أعلاه، ووحده:
+
+```bash
+docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
+```
+
+وعلى خادم محلي بلا حاويات المشروع (`php artisan serve`) والأصول مبنية (`npm run build`):
+
+```bash
+APP_URL=http://localhost:8181 php artisan serve --host=127.0.0.1 --port=8181
+
+docker run --rm --ipc=host -v "$PWD:/work" -w /work \
+  -e APP_PORT=8181 -e APP_HOST=host.docker.internal -e APP_UPSTREAM_PORT=8181 -e VITE_HOST=none \
+  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.63.0-noble \
+  npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
+```
+
+لوحة الإدارة تشترط التحقق الثنائي، فتُفحص بجلسة محفوظة لحساب إداري: ملف `storageState` من Playwright في `storage/playwright/` يُمرَّر بـ `-e ADMIN_STATE=storage/playwright/<الملف>.json`. وبدونه تُتخطى شاشاتها. والملف جلسة دخول حقيقية: في البيئة المحلية وحدها، ويُحذف بعد الفحص.

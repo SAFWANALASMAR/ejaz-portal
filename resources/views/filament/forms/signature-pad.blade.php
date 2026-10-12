@@ -55,6 +55,8 @@
     >
         <canvas
             x-ref="canvas"
+            role="img"
+            aria-label="{{ $getLabel() }}"
             width="600"
             height="200"
             dir="ltr"

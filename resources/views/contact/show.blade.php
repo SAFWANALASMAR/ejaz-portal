@@ -46,16 +46,17 @@
                                 <dd class="mt-1 leading-7 text-ink">{{ $address }}</dd>
                             </div>
                         @endif
-                        @if ($map !== null)
-                            <div>
-                                <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                                    {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
-                                    {{ __('contact.info.map') }}
-                                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
-                                </a>
-                            </div>
-                        @endif
                     </dl>
+                    {{-- رابط الخريطة خارج قائمة التعريف: لا تحوي إلا أزواج dt وdd (axe: definition-list) --}}
+                    @if ($map !== null)
+                        <p class="mt-4">
+                            <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
+                                {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
+                                {{ __('contact.info.map') }}
+                                <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                            </a>
+                        </p>
+                    @endif
                 @else
                     <p class="mt-4"><x-missing :what="__('contact.info.missing')" /></p>
                 @endif

@@ -66,7 +66,7 @@
             @else
                 {{-- البحث الشامل لم يُبنَ بعد (ملاحظة المشرف ٧): الأيقونة معطلة بتلميح على الشاشات
                      الأوسع، وعلى الجوال الشعار وزر القائمة فقط كما في المرجع --}}
-                <button type="button" aria-disabled="true" title="{{ __('site.search_soon') }}" class="hidden cursor-not-allowed rounded-full p-2.5 text-ink/35 sm:inline-flex">
+                <button type="button" aria-disabled="true" aria-label="{{ __('site.search_soon') }}" title="{{ __('site.search_soon') }}" class="hidden cursor-not-allowed rounded-full p-2.5 text-ink/35 sm:inline-flex">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </button>
             @endif
@@ -102,7 +102,9 @@
                             </button>
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-accent/40 ps-3">
                                 @foreach ($item->children as $child)
-                                    <li><a href="{{ $child->href() }}" class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface">{{ $child->label }}</a></li>
+                                    <li><a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif
+                                        @if ($child->isCurrent()) aria-current="page" @endif
+                                        class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface aria-[current=page]:text-accent-dark">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>
                         @else

@@ -37,7 +37,7 @@
                                 <span>{{ $row['question']->type === SurveyQuestionType::Choice ? ($row['question']->optionList()[$value] ?? '') : $value }}</span>
                                 <span>{{ number_format($count) }} ({{ $percent }}%)</span>
                             </div>
-                            <div class="mt-1 h-2 rounded-full bg-gray-100 dark:bg-white/10">
+                            <div class="mt-1 h-2 rounded-full bg-gray-100 dark:bg-white/10" aria-hidden="true">
                                 <div class="h-2 rounded-full bg-primary-600" style="width: {{ $percent }}%"></div>
                             </div>
                         </li>
