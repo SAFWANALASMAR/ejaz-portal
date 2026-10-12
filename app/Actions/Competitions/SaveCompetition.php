@@ -361,6 +361,10 @@ class SaveCompetition
                 throw ValidationException::withMessages(['questions' => __('competitions.exam_validation.media_type', ['number' => $index + 1])]);
             }
 
+            if (Storage::disk($disk)->size((string) $path) > $type->maxKb() * 1024) {
+                throw ValidationException::withMessages(['questions' => __('competitions.exam_validation.media_size', ['number' => $index + 1, 'max' => intdiv($type->maxKb(), 1024)])]);
+            }
+
             if ($type === QuestionMedia::Image) {
                 try {
                     ImageSanitizer::strip($disk, (string) $path);

@@ -236,3 +236,19 @@ it('refuses the file of another document, even a deleted one', function () {
         ->toThrow(ValidationException::class, __('validation.file_in_use'))
         ->and(Storage::disk('local')->exists('documents/shared.pdf'))->toBeTrue();
 });
+
+it('refuses a PDF larger than the reading cap without reading it', function () {
+    $file = UploadedFile::fake()->createWithContent('big.pdf', pdfContents().str_repeat(' ', RealPdf::MAX_FILE_BYTES));
+    $failed = false;
+
+    (new RealPdf)->validate('file', $file, function () use (&$failed) {
+        $failed = true;
+
+        return new class
+        {
+            public function translate(): void {}
+        };
+    });
+
+    expect($failed)->toBeTrue();
+});

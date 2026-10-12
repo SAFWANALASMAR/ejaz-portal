@@ -14,6 +14,11 @@ use RuntimeException;
 final class ImageSanitizer
 {
     /**
+     * أقصى عدد للبكسلات قبل فك الصورة: صورة صغيرة الحجم بأبعاد ضخمة تستنزف ذاكرة GD.
+     */
+    public const MAX_PIXELS = 40_000_000;
+
+    /**
      * @throws RuntimeException إن لم يكن الملف صورة تقرؤها GD
      */
     public static function strip(string $disk, string $path): void
@@ -21,7 +26,13 @@ final class ImageSanitizer
         $storage = Storage::disk($disk);
         $contents = $storage->get($path);
 
-        $image = $contents === null ? false : @imagecreatefromstring($contents);
+        $size = $contents === null ? false : @getimagesizefromstring($contents);
+
+        if ($size === false || $size[0] * $size[1] > self::MAX_PIXELS) {
+            throw new RuntimeException("Not a readable image, or too many pixels: {$path}");
+        }
+
+        $image = @imagecreatefromstring((string) $contents);
 
         if ($image === false) {
             throw new RuntimeException("Not a readable image: {$path}");

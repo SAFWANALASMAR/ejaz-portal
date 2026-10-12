@@ -155,7 +155,15 @@ it('saves the allowed work types of a works competition', function () {
         ->toThrow(ValidationException::class);
 });
 
-it('keeps the panel upload limit in step with the intro video cap', function () {
-    expect(config('livewire.temporary_file_upload.rules'))->toContain('max:'.((int) config('competitions.exam.media_max_mb') * 1024))
-        ->and((int) config('competitions.exam.media_max_mb'))->toBeGreaterThanOrEqual(100);
+it('caps question media by type, whatever the panel upload limit, and lets the panel upload reach the video cap', function () {
+    // صوت فوق 25 ميجابايت: الرأس صوت حقيقي، والحجم فوق حده
+    Storage::disk('local')->put('competition-media/long.mp3', mp3Contents().str_repeat("\0", 26 * 1024 * 1024));
+    $form = examForm();
+    $form['questions'][0] += ['media_type' => 'audio', 'media_path' => 'competition-media/long.mp3'];
+
+    expect(fn () => app(SaveCompetition::class)->handle($this->manager, new Competition, $form))
+        ->toThrow(ValidationException::class, __('competitions.exam_validation.media_size', ['number' => 1, 'max' => 25]))
+        ->and(QuestionMedia::Image->maxKb())->toBe(10240)
+        ->and(QuestionMedia::Video->maxKb())->toBe((int) config('competitions.exam.media_max_mb') * 1024)
+        ->and(config('livewire.temporary_file_upload.rules'))->toContain('max:'.max(25600, QuestionMedia::Video->maxKb()));
 });
