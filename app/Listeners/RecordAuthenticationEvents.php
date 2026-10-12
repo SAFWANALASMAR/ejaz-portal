@@ -14,6 +14,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 
 /**
  * سجل أمني لأحداث الدخول في سجل العمليات باسم 'security'.
@@ -55,6 +56,16 @@ class RecordAuthenticationEvents
         $this->log(ActivityEvent::LoginLockout, User::findByLoginIdentifier($identifier), [
             'identifier_hash' => LoginIdentifier::hash($identifier),
         ], byAccountOwner: false);
+    }
+
+    /**
+     * رمز خاطئ بعد كلمة مرور صحيحة: قد تكون كلمة المرور مسرّبة، فيُسجَّل على الحساب ولا يُنسب إلى صاحبه.
+     */
+    public function handleTwoFactorFailed(TwoFactorAuthenticationFailed $event): void
+    {
+        if ($event->user instanceof User) {
+            $this->log(ActivityEvent::TwoFactorFailed, $event->user, byAccountOwner: false);
+        }
     }
 
     public function handleLogout(Logout $event): void

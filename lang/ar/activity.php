@@ -42,6 +42,7 @@ return [
         'login' => 'دخول',
         'login_failed' => 'محاولة دخول فاشلة',
         'login_lockout' => 'قفل الدخول بعد محاولات خاطئة',
+        'two_factor_failed' => 'رمز تحقق ثنائي خاطئ',
         'logout' => 'خروج',
         'password_reset' => 'تعيين كلمة المرور',
         'registered' => 'تسجيل حساب جديد',

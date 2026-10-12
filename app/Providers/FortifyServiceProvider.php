@@ -136,7 +136,16 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function registerRateLimiters(): void
     {
-        RateLimiter::for('two-factor', fn (Request $request): Limit => Limit::perMinute(5)->by('two-factor:'.$request->session()->get('login.id')));
+        // خمس محاولات في الدقيقة، ومعها سقفان أطول حتى لا يُخمَّن الرمز على مدى أيام بكلمة مرور مسرّبة
+        RateLimiter::for('two-factor', function (Request $request): array {
+            $key = 'two-factor:'.$request->session()->get('login.id');
+
+            return [
+                Limit::perMinute(5)->by($key),
+                Limit::perMinutes(15, 10)->by($key.':quarter'),
+                Limit::perDay(30)->by($key.':day'),
+            ];
+        });
 
         // «تواصل معنا»: لكل مشترك (عنوان IPv4، أو /64 في IPv6 فلا يُلتف عليه بتدوير العناوين)، ولكل
         // موقع /48 في IPv6، وسقف عام للبوابة حارساً أخيراً. والأرقام تتسع للشبكات المشتركة (CGNAT)
