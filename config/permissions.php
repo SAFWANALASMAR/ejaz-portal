@@ -74,6 +74,10 @@ return [
         'archive' => $crud,
         // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
         'archive_categories' => $crud,
+
+        // ملفات الوظائف (requirements/11): الاطلاع على كل الملفات وإدارة سجلاتها. وما سواه بالسياسة: المسؤول
+        // عن الملف والمشاركون فيه بأدوارهم
+        'job_files' => $crud,
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -117,6 +121,7 @@ return [
         // والأدوار التي يمنحها في RoleName::assignableBy)، و«إدارة البرامج»، و«إدارة المسابقات»،
         // و«إدارة الملفات» (الأرشيف؛ وملفات المجلس للمجلس — open-questions)، و«الإحصائيات العامة»
         'executive_director' => [
+            'job_files.*',
             'users.view', 'users.create', 'users.update',
             'program_types.*', 'programs.*',
             'competitions.*', 'submissions.*',
