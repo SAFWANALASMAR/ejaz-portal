@@ -23,6 +23,7 @@ class UpdateSiteSettings
     /**
      * مجلد صور الإعدادات على القرص العام.
      */
+    // صورة جديدة في الإعدادات تُضاف إلى المرتبط في ejaz:prune-public-files، وإلا حذفها بعد مدة
     public const IMAGE_DIRECTORY = 'settings';
 
     /**

@@ -6,9 +6,12 @@ use App\Models\LibraryItem;
 use App\Models\MediaAsset;
 use App\Models\NewsArticle;
 use App\Models\Page;
+use App\Models\Program;
 use App\Models\Setting;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -31,13 +34,18 @@ function publicFile(string $path, int $daysOld): string
 
 it('deletes old files no record points to, and keeps every referenced, recent or foreign file', function () {
     $orphan = publicFile('news/orphan.jpg', 8);
+    $nested = publicFile('media/sub/orphan.webp', 8);
     $orphanSettings = publicFile('settings/old-hero.jpg', 30);
 
     NewsArticle::factory()->create([
         'image' => publicFile('news/cover.jpg', 30),
         'gallery' => [publicFile('news/gallery-1.jpg', 30)],
     ]);
-    Page::factory()->create(['blocks' => [['type' => 'image', 'data' => ['picture' => publicFile('pages/block.jpg', 30)]]]]);
+    Page::factory()->create(['blocks' => [
+        ['type' => 'image', 'data' => ['picture' => publicFile('pages/block.jpg', 30)]],
+        ['type' => 'cards', 'data' => ['items' => [['title' => 'بطاقة', 'picture' => publicFile('pages/card.jpg', 30)]]]],
+    ]]);
+    Program::factory()->create(['image' => publicFile('programs/cover.jpg', 30)])->delete();
     LibraryItem::factory()->create(['thumbnail' => publicFile('library/thumb.jpg', 30)])->delete();
     Setting::put('home', ['hero_image' => publicFile('settings/hero.jpg', 30)]);
     MediaAsset::query()->create([
@@ -53,9 +61,10 @@ it('deletes old files no record points to, and keeps every referenced, recent or
 
     $disk = Storage::disk('public');
     expect($disk->exists($orphan))->toBeFalse()
+        ->and($disk->exists($nested))->toBeFalse()
         ->and($disk->exists($orphanSettings))->toBeFalse();
 
-    foreach (['news/cover.jpg', 'news/gallery-1.jpg', 'pages/block.jpg', 'library/thumb.jpg', 'settings/hero.jpg', 'media/logo.webp', $recent, $foreign, $hidden] as $kept) {
+    foreach (['news/cover.jpg', 'news/gallery-1.jpg', 'pages/block.jpg', 'pages/card.jpg', 'programs/cover.jpg', 'library/thumb.jpg', 'settings/hero.jpg', 'media/logo.webp', $recent, $foreign, $hidden] as $kept) {
         expect($disk->exists($kept))->toBeTrue("{$kept} should be kept");
     }
 });
@@ -63,9 +72,42 @@ it('deletes old files no record points to, and keeps every referenced, recent or
 it('only counts in a dry run', function () {
     $orphan = publicFile('partners/orphan.png', 8);
 
-    $this->artisan('ejaz:prune-public-files', ['--dry-run' => true])->assertSuccessful();
+    $this->artisan('ejaz:prune-public-files', ['--dry-run' => true])
+        ->expectsOutputToContain('1')
+        ->expectsOutputToContain($orphan)
+        ->assertSuccessful();
 
     expect(Storage::disk('public')->exists($orphan))->toBeTrue();
+});
+
+it('stops before what looks like a mass delete, unless forced', function () {
+    $paths = array_map(fn (int $i): string => publicFile("news/old-{$i}.jpg", 30), range(1, PrunePublicFiles::MASS_DELETE_FLOOR + 1));
+
+    $this->artisan('ejaz:prune-public-files')->assertFailed();
+    expect(Storage::disk('public')->exists($paths[0]))->toBeTrue();
+
+    $this->artisan('ejaz:prune-public-files', ['--force' => true])->assertSuccessful();
+    expect(Storage::disk('public')->exists($paths[0]))->toBeFalse();
+});
+
+it('deletes nothing when the private disk shares the public location', function () {
+    $orphan = publicFile('library/orphan.pdf', 30);
+
+    config(['filesystems.private_disk' => 'public']);
+    $this->artisan('ejaz:prune-public-files')->assertFailed();
+
+    config(['filesystems.private_disk' => 'local', 'filesystems.disks.local' => config('filesystems.disks.public')]);
+    $this->artisan('ejaz:prune-public-files')->assertFailed();
+
+    expect(Storage::disk('public')->exists($orphan))->toBeTrue();
+});
+
+it('deletes nothing when the list of referenced files cannot be built', function () {
+    $orphan = publicFile('news/orphan.jpg', 30);
+    Schema::drop('media_assets');
+
+    expect(fn () => $this->artisan('ejaz:prune-public-files')->run())->toThrow(QueryException::class)
+        ->and(Storage::disk('public')->exists($orphan))->toBeTrue();
 });
 
 it('covers every model with public images', function () {
