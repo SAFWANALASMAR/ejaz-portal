@@ -6,6 +6,7 @@ use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Programs\Pages\CreateProgram;
 use App\Filament\Resources\Programs\Pages\EditProgram;
 use App\Filament\Resources\Programs\Pages\ListPrograms;
+use App\Filament\Resources\Programs\Pages\ViewProgram;
 use App\Filament\Resources\Programs\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\Programs\Schemas\ProgramForm;
 use App\Filament\Resources\Programs\Tables\ProgramsTable;
@@ -66,6 +67,7 @@ class ProgramResource extends Resource
         return [
             'index' => ListPrograms::route('/'),
             'create' => CreateProgram::route('/create'),
+            'view' => ViewProgram::route('/{record}'),
             'edit' => EditProgram::route('/{record}/edit'),
         ];
     }

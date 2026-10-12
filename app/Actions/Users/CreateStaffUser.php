@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * حساب موظف ينشئه المشرف من لوحة الإدارة. لا يكتب المشرف كلمة مرور:
@@ -30,6 +31,13 @@ class CreateStaffUser
             throw new AuthorizationException;
         }
 
+        // المدير التنفيذي ينشئ حسابات الموظفين وحدها: دور وظيفة واحد على الأقل مما يمنحه، وإلا صار الحساب
+        // مستفيداً خارج متناوله (requirements/12 §12 — «إدارة الموظفين»)
+        $jobs = array_diff(RoleName::values(RoleName::assignableBy($actor)), [RoleName::Member->value]);
+        if (! $actor->hasRole(RoleName::SuperAdmin->value) && $jobs !== [] && array_intersect($roles, $jobs) === []) {
+            throw ValidationException::withMessages(['roles' => __('portals.errors.staff_role_required')]);
+        }
+
         $user = DB::transaction(function () use ($actor, $data, $roles): User {
             $user = new User;
             $user->forceFill([
@@ -42,7 +50,7 @@ class CreateStaffUser
 
             // الأدوار يمنحها المشرف العام وحده؛ وبدونها يبدأ الحساب مستفيداً
             if ($roles !== []) {
-                $this->changeRoles->handle($actor, $user, $roles);
+                $this->changeRoles->handle($actor, $user, $roles, newAccount: true);
             } else {
                 $user->assignRole(RoleName::Member->value);
             }

@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
- * المسجلون في البرنامج: الاطلاع بصلاحية البرنامج، وتسجيل الحضور (programs.update)، والتصدير إلى
+ * المسجلون في البرنامج: الاطلاع بصلاحية البرنامج، وتسجيل الحضور (programs.attend)، والتصدير إلى
  * Excel (programs.export). ولا تُعدَّل بيانات المسجل من هنا.
  */
 class RegistrationsRelationManager extends RelationManager
@@ -45,8 +45,9 @@ class RegistrationsRelationManager extends RelationManager
             ->defaultSort('id')
             ->columns([
                 TextColumn::make('user.name')->label(__('programs.registrations.fields.name'))->searchable(),
-                TextColumn::make('user.email')->label(__('programs.registrations.fields.email')),
-                TextColumn::make('user.phone')->label(__('programs.registrations.fields.phone'))->formatStateUsing(fn (?string $state): string => SaudiPhone::display($state)),
+                // البريد والجوال لمن يدير البرنامج أو يصدّر مسجليه؛ ومن يسجل الحضور ويتابع (الموظفون) يكفيه الاسم
+                TextColumn::make('user.email')->label(__('programs.registrations.fields.email'))->visible(fn (): bool => $this->showsContact()),
+                TextColumn::make('user.phone')->label(__('programs.registrations.fields.phone'))->formatStateUsing(fn (?string $state): string => SaudiPhone::display($state))->visible(fn (): bool => $this->showsContact()),
                 TextColumn::make('status')->label(__('programs.registrations.fields.status'))->badge(),
                 TextColumn::make('attended_at')->label(__('programs.registrations.fields.attended_at'))->dateTime('Y-m-d H:i')->placeholder('—'),
                 IconColumn::make('certificate_issued_at')->label(__('programs.certificate.issued'))->boolean()->state(fn ($record): bool => $record->certificate_issued_at !== null),
@@ -67,12 +68,19 @@ class RegistrationsRelationManager extends RelationManager
             ]);
     }
 
+    private function showsContact(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null && ($user->can('update', $this->getOwnerRecord()) || $user->can('export', Program::class));
+    }
+
     private function attendanceAction(string $name, bool $attended, Heroicon $icon): BulkAction
     {
         return BulkAction::make($name)
             ->label(__('programs.registrations.actions.'.($attended ? 'mark_attended' : 'unmark_attended')))
             ->icon($icon)
-            ->authorize(fn (): bool => auth()->user()?->can('update', $this->getOwnerRecord()) ?? false)
+            ->authorize(fn (): bool => auth()->user()?->can('recordAttendance', $this->getOwnerRecord()) ?? false)
             ->action(function (Collection $records, RecordProgramAttendance $attendance) use ($attended): void {
                 /** @var User $actor */
                 $actor = auth()->user();
