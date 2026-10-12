@@ -63,9 +63,7 @@ class RecordAuthenticationEvents
      */
     public function handleTwoFactorFailed(TwoFactorAuthenticationFailed $event): void
     {
-        if ($event->user instanceof User) {
-            $this->log(ActivityEvent::TwoFactorFailed, $event->user, byAccountOwner: false);
-        }
+        $this->log(ActivityEvent::TwoFactorFailed, $event->user, byAccountOwner: false);
     }
 
     public function handleLogout(Logout $event): void
