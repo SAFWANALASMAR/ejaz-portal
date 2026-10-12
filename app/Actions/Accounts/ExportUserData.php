@@ -2,12 +2,15 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\MeetingBody;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
+use App\Models\BodyMembership;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
 use App\Models\Meeting;
+use App\Models\MeetingAgendaItem;
 use App\Models\Payment;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
@@ -95,6 +98,29 @@ class ExportUserData
                     'submitted_at' => $date($response->submitted_at),
                 ])->all(),
             'assembly_membership' => self::membership($user, $date),
+            // عضوية مجلس الإدارة واللجان، والمكلَّف به من قرارات الاجتماعات (requirements/13 §2)
+            'body_memberships' => BodyMembership::query()->withTrashed()->whereBelongsTo($user)->orderBy('starts_on')->get()
+                ->map(fn (BodyMembership $membership): array => [
+                    'body' => $membership->body->value,
+                    'committee' => $membership->committee()->withTrashed()->value('name'),
+                    'role' => $membership->role->value,
+                    'starts_on' => $membership->starts_on->toDateString(),
+                    'ends_on' => $membership->ends_on?->toDateString(),
+                ])->all(),
+            // حضور اجتماعات المجلس واللجان (وحضور الجمعية العمومية تحت عضويتها)
+            'body_meetings_attended' => Meeting::query()->withTrashed()->where('body', '!=', MeetingBody::GeneralAssembly->value)
+                ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
+                ->orderBy('starts_at')->get()
+                ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'body' => $meeting->body->value, 'starts_at' => $date($meeting->starts_at)])
+                ->all(),
+            // البند وموعده وحالته، لا نص القرار (قد يمس غيره، والحد الأدنى من البيانات)، ولا المحذوف
+            'assigned_decisions' => MeetingAgendaItem::query()->where('assignee_id', $user->id)->orderBy('id')->get()
+                ->map(fn (MeetingAgendaItem $item): array => [
+                    'meeting' => $item->meeting()->withTrashed()->value('title'),
+                    'item' => $item->title,
+                    'due_on' => $item->due_on?->toDateString(),
+                    'status' => $item->status->value,
+                ])->all(),
             'payments' => Payment::query()->where('user_id', $user->id)->orderBy('id')->get()
                 ->map(fn (Payment $payment): array => [
                     'purpose' => $payment->purpose->value,
@@ -154,7 +180,7 @@ class ExportUserData
         return [
             'status' => $membership->status->value,
             'joined_on' => $membership->joined_on?->toDateString(),
-            'meetings_attended' => Meeting::query()->withTrashed()
+            'meetings_attended' => Meeting::query()->withTrashed()->generalAssembly()
                 ->whereHas('attendees', fn ($query) => $query->whereKey($user->id))
                 ->orderBy('starts_at')->get()
                 ->map(fn (Meeting $meeting): array => ['meeting' => $meeting->title, 'starts_at' => $date($meeting->starts_at)])

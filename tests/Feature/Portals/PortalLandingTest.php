@@ -108,7 +108,7 @@ it('shows each role only its navigation', function (RoleName $role, array $visib
     }
 })->with([
     'board' => [RoleName::BoardMember, [MeetingResource::class, DocumentResource::class, AssemblyFileResource::class], [UserResource::class, ProgramResource::class]],
-    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class], [MeetingResource::class, DocumentResource::class, AssemblyFileResource::class]],
+    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class, MeetingResource::class], [DocumentResource::class, AssemblyFileResource::class]],
     'employee' => [RoleName::MarketingManager, [ArchiveItemResource::class, ProgramResource::class, FormTemplateResource::class], [UserResource::class, CompetitionResource::class, MeetingResource::class, DocumentResource::class]],
     'reviewer' => [RoleName::Reviewer, [ReviewResource::class], [UserResource::class, ProgramResource::class, ArchiveItemResource::class]],
 ]);

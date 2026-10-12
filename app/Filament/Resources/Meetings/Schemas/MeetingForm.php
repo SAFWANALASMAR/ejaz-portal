@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Meetings\Schemas;
 
+use App\Enums\MeetingBody;
 use App\Enums\MeetingType;
+use App\Models\Committee;
 use App\Models\Meeting;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -26,6 +28,19 @@ class MeetingForm
             Section::make()->columns(2)->columnSpanFull()->schema([
                 TextInput::make('title')->label(__('assembly.fields.title'))->required()->maxLength(200)->columnSpanFull(),
                 Select::make('type')->label(__('assembly.fields.type'))->options(MeetingType::class)->required(),
+                Select::make('body')
+                    ->label(__('registers.fields.body'))
+                    ->options(MeetingBody::class)
+                    ->helperText(__('registers.fields.body_hint'))
+                    ->required()
+                    ->disabledOn('edit')
+                    ->live(),
+                Select::make('committee_id')
+                    ->label(__('registers.fields.committee'))
+                    ->options(fn (): array => Committee::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->disabledOn('edit')
+                    ->visible(fn (Get $get): bool => self::bodyValue($get('body')) === MeetingBody::Committee->value)
+                    ->required(fn (Get $get): bool => self::bodyValue($get('body')) === MeetingBody::Committee->value),
                 TextInput::make('quorum_percent')
                     ->label(__('assembly.fields.quorum_percent'))
                     ->helperText(__('assembly.fields.quorum_percent_hint'))
@@ -60,6 +75,11 @@ class MeetingForm
         ]);
     }
 
+    private static function bodyValue(mixed $body): ?string
+    {
+        return $body instanceof MeetingBody ? $body->value : (is_string($body) ? $body : null);
+    }
+
     /**
      * بيانات النموذج كما يأخذها SaveMeeting: المرفقات مساراتٍ بأسمائها الأصلية.
      *
@@ -73,6 +93,15 @@ class MeetingForm
         $paths = array_values(array_filter((array) ($data['attachments'] ?? []), 'is_string'));
 
         unset($data['attachment_names']);
+        // الجهة تُختار عند الإنشاء وحده (الحقل معطّل في التعديل فلا يُرسل)، واللجنة للجنة وحدها
+        $body = self::bodyValue($data['body'] ?? null);
+        $committee = $data['committee_id'] ?? null;
+        unset($data['body'], $data['committee_id']);
+
+        if ($body !== null) {
+            $data['body'] = $body;
+            $data['committee_id'] = $body === MeetingBody::Committee->value ? $committee : null;
+        }
         $data['attachments'] = array_map(fn (string $path): array => ['path' => $path, 'name' => $names[$path] ?? basename($path)], $paths);
 
         return $data;

@@ -3,7 +3,6 @@
 namespace App\Actions\Assembly;
 
 use App\Enums\ActivityEvent;
-use App\Models\AssemblyMembership;
 use App\Models\Meeting;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -11,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * تسجيل حضور اجتماع بعد بدء موعده (السكرتير): الحاضرون من الأعضاء الفعّالين وحدهم، والتسجيل الجديد
+ * تسجيل حضور اجتماع بعد بدء موعده (السكرتير): الحاضرون من الأعضاء الفعّالين في جهة الاجتماع وحدهم
+ * (Meeting::eligibleAttendees)، والتسجيل الجديد
  * يستبدل السابق. ويُحفظ عدد الأعضاء الفعّالين عند التسجيل، فلا يتغير النصاب بتغيّر السجل بعده.
  */
 class RecordMeetingAttendance
@@ -30,7 +30,7 @@ class RecordMeetingAttendance
 
         $ids = array_values(array_unique(array_map('intval', $userIds)));
 
-        if (AssemblyMembership::activeUsers()->whereKey($ids)->count() !== count($ids)) {
+        if ($meeting->eligibleAttendees()->whereKey($ids)->count() !== count($ids)) {
             throw ValidationException::withMessages(['attendees' => __('assembly.validation.not_active_member')]);
         }
 
@@ -43,7 +43,7 @@ class RecordMeetingAttendance
             }
 
             $locked->attendees()->syncWithPivotValues($ids, ['recorded_by' => $actor->id, 'created_at' => now()]);
-            $locked->members_count = AssemblyMembership::activeUsers()->count();
+            $locked->members_count = $locked->eligibleAttendees()->count();
             $locked->save();
 
             activity('assembly')->causedBy($actor)->performedOn($locked)
