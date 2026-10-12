@@ -30,7 +30,7 @@
 
 ### الحماية
 
-- ✅ **الفحص الأمني الداخلي الشامل** (بند `roadmap.md`، و«قبل كل إطلاق» في `security.md`، و«مراجعة أمنية» في `requirements/01`) — `docs/security/2026-10-10-security-audit.md`: لا حرجة ولا عالية. ⬜ ويُعاد الجزء الفعلي (ZAP) على التجريبي (`deploy/staging-plan.md` اليوم ٤)، وتُعالج F1 وF5 قبل فتح الموقع للعموم.
+- ✅ **الفحص الأمني الداخلي الشامل** (بند `roadmap.md`، و«قبل كل إطلاق» في `security.md`، و«مراجعة أمنية» في `requirements/01`) — `docs/security/2026-10-10-security-audit.md` ثم الشامل بعد دمج كل الفروع `docs/security/2026-10-12-security-audit.md`: لا حرجة ولا عالية ولا متوسطة باقية (وعولجت فيه F1 وF5). ⬜ ويُعاد الجزء الفعلي (ZAP) على التجريبي (`deploy/staging-plan.md` اليوم ٤).
 - ✅ **تضييق `img-src`** (بند `roadmap.md`) — `app/Http/Middleware/SecurityHeaders.php` و`CSP_IMG_SRC`، واختبار `tests/Feature/Platform/ContentSecurityPolicyTest.php`. ⬜ يُضاف نطاق التخزين أو شبكة التوصيل إلى `CSP_IMG_SRC` متى قُدّمت منه الصور.
 - ✅ **رؤوس الحماية والتخزين المؤقت** — `SecurityHeaders`، و`ContentCache`، ورؤوس الملفات الثابتة في nginx.
 - ⬜ **تسجيل الخروج من كل حساب إداري بعد الإطلاق** (كعكات التذكّر القديمة — F3) — `docs/cutover.md` يوم النقل.
