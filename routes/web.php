@@ -111,5 +111,8 @@ require __DIR__.'/payments.php';
 // النماذج الإلكترونية: عرض الطباعة و«نماذجي» (المرحلة 4)
 require __DIR__.'/documents.php';
 
+// ملفات الوظائف: تنزيل مستنداتها، والشاشات في لوحة الإدارة
+require __DIR__.'/job-files.php';
+
 // البث المباشر (المرحلة 5): يظهر ويختفي بالموعد (docs/plans/livestream.md)
 Route::get('/live', LiveStreamController::class)->middleware('throttle:60,1')->name('live');

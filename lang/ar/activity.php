@@ -30,6 +30,7 @@ return [
         'payments' => 'المدفوعات',
         'assembly' => 'الجمعية العمومية',
         'documents' => 'النماذج والأرشيف',
+        'job_files' => 'ملفات الوظائف',
     ],
 
     'events' => [

@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Models\User;
 use Filament\Support\Contracts\HasLabel;
 
 /**
@@ -18,7 +19,8 @@ enum RoleName: string implements HasLabel
     case Reviewer = 'reviewer';
     case AssemblyMember = 'assembly_member';
     case Member = 'member';
-    // أدوار الوظائف (دليل ملفات الوظائف — requirements/11)، بأسماء ثابتة بين الفروع
+
+    // أدوار الوظائف (requirements/11 و12)
     case ExecutiveDirector = 'executive_director';
     case FinancialManager = 'financial_manager';
     case Accountant = 'accountant';
@@ -44,6 +46,11 @@ enum RoleName: string implements HasLabel
             self::ContentEditor,
             self::ProgramManager,
             self::Reviewer,
+            self::ExecutiveDirector,
+            self::FinancialManager,
+            self::Accountant,
+            self::ProjectsManager,
+            self::MarketingManager,
         ];
     }
 
@@ -61,11 +68,16 @@ enum RoleName: string implements HasLabel
             self::ContentEditor,
             self::ProgramManager,
             self::Reviewer,
+            self::ExecutiveDirector,
+            self::FinancialManager,
+            self::Accountant,
+            self::ProjectsManager,
+            self::MarketingManager,
         ];
     }
 
     /**
-     * فئة «الموظفون»: أدوار الوظائف الست (requirements/11 و12).
+     * فئة «الموظفون» في بوابات الدخول (requirements/12 §12).
      *
      * @return list<self>
      */
@@ -79,6 +91,30 @@ enum RoleName: string implements HasLabel
             self::MarketingManager,
             self::Secretary,
         ];
+    }
+
+    /**
+     * الأدوار التي يمنحها الحساب ويسحبها (ChangeUserRoles). قاعدة في الشيفرة لا في ملف الصلاحيات:
+     * - المشرف العام: كل الأدوار عدا عضو الجمعية العمومية (من سجل الأعضاء وحده).
+     * - المدير التنفيذي («إدارة الموظفين»): الوظائف الأربع (المدير المالي، والمحاسب، ومدير المشاريع،
+     *   ومدير التسويق) والمستفيد، وكلها صلاحياتها ضمن صلاحياته فلا يكسب بها ما لا يملك. فلا يمنح المشرف
+     *   العام ولا عضو المجلس ولا المدير التنفيذي ولا المحكّم، ولا السكرتير ولا محرر المحتوى ولا مسؤول
+     *   البرامج (فيها صلاحيات خارج صلاحياته: الطلبات والإعدادات والاستبيانات).
+     * - غيرهما: لا شيء.
+     *
+     * @return list<self>
+     */
+    public static function assignableBy(User $actor): array
+    {
+        if ($actor->hasRole(self::SuperAdmin->value)) {
+            return array_values(array_filter(self::cases(), fn (self $role): bool => $role !== self::AssemblyMember));
+        }
+
+        if ($actor->hasRole(self::ExecutiveDirector->value)) {
+            return [self::FinancialManager, self::Accountant, self::ProjectsManager, self::MarketingManager, self::Member];
+        }
+
+        return [];
     }
 
     /**
