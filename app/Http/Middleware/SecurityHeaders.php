@@ -57,15 +57,15 @@ class SecurityHeaders
             'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
             // الصور من الموقع نفسه، ونطاقات التخزين وشبكة التوصيل صراحةً من CSP_IMG_SRC
-            'img-src' => ["'self'", 'data:', 'blob:', ...config('security.csp.img_src')],
+            'img-src' => ["'self'", 'data:', 'blob:', ...self::origins('img_src')],
             'font-src' => ["'self'", 'data:', $dev],
-            'connect-src' => ["'self'", $dev, $devSocket, ...config('security.csp.connect_src')],
-            'media-src' => ["'self'", 'blob:', ...config('security.csp.media_src')],
+            'connect-src' => ["'self'", $dev, $devSocket, ...self::origins('connect_src')],
+            'media-src' => ["'self'", 'blob:', ...self::origins('media_src')],
             // 'self' لعرض ملف الوثيقة داخل صفحتها
             'frame-src' => ["'self'", ...config('security.csp.frame_src')],
             'object-src' => ["'none'"],
             'base-uri' => ["'self'"],
-            'form-action' => ["'self'", ...config('security.csp.form_action')],
+            'form-action' => ["'self'", ...self::origins('form_action')],
             'frame-ancestors' => ["'none'"],
         ];
 
@@ -87,6 +87,23 @@ class SecurityHeaders
         return collect($directives)
             ->map(fn (array $sources, string $name): string => trim($name.' '.implode(' ', array_filter($sources))))
             ->implode('; ');
+    }
+
+    /**
+     * نطاقات من متغيرات البيئة (CSP_IMG_SRC وأخواتها): أصل https صريح وحده (نطاق، ومنفذ اختياري، وبادئة
+     * *. للنطاقات الفرعية)، بلا مسار. فلا يوسّع خطأ في الإعداد السياسة كلها: «*» و«https:» و«'unsafe-inline'»
+     * وما شابهها تُهمل. ورابط wss للاتصال وحده.
+     *
+     * @return list<string>
+     */
+    private static function origins(string $key): array
+    {
+        $scheme = $key === 'connect_src' ? '(https|wss)' : 'https';
+
+        return array_values(array_filter(
+            array_map(fn (mixed $origin): string => strtolower(trim((string) $origin)), (array) config('security.csp.'.$key)),
+            fn (string $origin): bool => preg_match('#^'.$scheme.'://(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{1,5})?$#', $origin) === 1,
+        ));
     }
 
     /**
