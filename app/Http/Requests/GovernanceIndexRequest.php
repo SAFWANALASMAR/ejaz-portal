@@ -29,7 +29,7 @@ class GovernanceIndexRequest extends FormRequest
             'category' => ['nullable', Rule::enum(DocumentCategory::class)],
             'year' => ['nullable', 'integer', 'between:1990,'.(now()->year + 1)],
             'q' => ['nullable', 'string', 'max:100', new PlainText],
-            'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'page' => ListPage::RULES,
         ];
     }
 }

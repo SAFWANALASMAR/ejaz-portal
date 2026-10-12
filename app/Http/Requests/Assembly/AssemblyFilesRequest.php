@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Assembly;
 
 use App\Enums\AssemblyFileCategory;
+use App\Http\Requests\ListPage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,7 @@ class AssemblyFilesRequest extends FormRequest
     {
         return [
             'category' => ['nullable', Rule::enum(AssemblyFileCategory::class)],
-            'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'page' => ListPage::RULES,
         ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\FlushesContentCache;
+use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasPublicImages;
 use Database\Factories\AlbumFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,7 +24,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Album extends Model implements HasPublicImages
 {
     /** @use HasFactory<AlbumFactory> */
-    use FlushesContentCache, HasFactory, LogsActivity;
+    use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
     public const IMAGE_DIRECTORY = 'albums';
 
@@ -39,14 +40,6 @@ class Album extends Model implements HasPublicImages
             'published_on' => 'date',
             'is_published' => 'boolean',
         ];
-    }
-
-    /**
-     * @param  Builder<Album>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**

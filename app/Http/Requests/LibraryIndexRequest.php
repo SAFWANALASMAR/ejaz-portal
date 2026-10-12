@@ -24,7 +24,7 @@ class LibraryIndexRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:100', new PlainText],
             'tag' => ['nullable', 'string', 'max:40', new PlainText],
-            'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'page' => ListPage::RULES,
         ];
     }
 

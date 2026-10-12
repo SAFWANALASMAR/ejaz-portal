@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use App\Models\Concerns\FlushesContentCache;
+use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasPublicImages;
 use App\Support\ContentBlocks;
 use Database\Factories\PageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -24,7 +24,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Page extends Model implements HasPublicImages
 {
     /** @use HasFactory<PageFactory> */
-    use FlushesContentCache, HasFactory, LogsActivity;
+    use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
     public const ABOUT = 'about';
 
@@ -53,14 +53,6 @@ class Page extends Model implements HasPublicImages
             'blocks' => 'array',
             'is_published' => 'boolean',
         ];
-    }
-
-    /**
-     * @param  Builder<Page>  $query
-     */
-    public function scopePublished(Builder $query): void
-    {
-        $query->where('is_published', true);
     }
 
     /**
