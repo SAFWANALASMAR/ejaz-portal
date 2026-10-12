@@ -67,7 +67,7 @@ class CompetitionForm
                     // في القرص الخاص، ويُقدَّم للمشارك في مرحلته وحدها (ExamController)
                     FileUpload::make('intro_video_path')
                         ->label(__('competitions.exam_admin.intro_video'))
-                        ->helperText(__('competitions.exam_admin.intro_video_hint'))
+                        ->helperText(__('competitions.exam_admin.intro_video_hint', ['max' => (int) config('competitions.exam.media_max_mb')]))
                         ->visible(fn (Get $get): bool => (bool) $get('exam_mode'))
                         ->disk(CompetitionMedia::disk())
                         ->directory(CompetitionMedia::DIRECTORY)

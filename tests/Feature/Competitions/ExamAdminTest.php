@@ -154,3 +154,8 @@ it('saves the allowed work types of a works competition', function () {
     expect(fn () => app(SaveCompetition::class)->handle($this->manager, $competition, examForm(['exam_mode' => false, 'intro_video_path' => null, 'work_types' => ['video']])))
         ->toThrow(ValidationException::class);
 });
+
+it('keeps the panel upload limit in step with the intro video cap', function () {
+    expect(config('livewire.temporary_file_upload.rules'))->toContain('max:'.((int) config('competitions.exam.media_max_mb') * 1024))
+        ->and((int) config('competitions.exam.media_max_mb'))->toBeGreaterThanOrEqual(100);
+});

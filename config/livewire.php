@@ -130,8 +130,9 @@ return [
 
     'temporary_file_upload' => [
         'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK'), // Example: 'local', 's3'             | Default: 'default'
-        // فوق أكبر حد لحقول الرفع (وثائق الحوكمة 20 ميجابايت)، فيظهر حد كل حقل برسالته
-        'rules' => ['required', 'file', 'max:25600'],
+        // بقدر أكبر حد لحقول الرفع، فيظهر حد كل حقل برسالته. وأكبرها الفيديو التعريفي للمسابقة (config/competitions.php).
+        // ورفع Livewire في اللوحة وحدها (لا رفع به في الموقع العام)، خلف الدخول والتحقق الثنائي
+        'rules' => ['required', 'file', 'max:'.(max(25, (int) env('COMPETITION_EXAM_MEDIA_MAX_MB', 200)) * 1024)],
         'directory' => null,                                  // Example: 'tmp'                     | Default: 'livewire-tmp'
         'middleware' => null,                                 // Example: 'throttle:5,1'            | Default: 'throttle:60,1'
         'preview_mimes' => [                                  // Supported file types for temporary pre-signed file URLs...

@@ -43,9 +43,10 @@ return [
         // هامش بالثواني بين مدة الفيديو التعريفي ووقت المشاهدة المسجل في الخادم (تأخر الشبكة وبدء التشغيل)
         'intro_tolerance_seconds' => (int) env('COMPETITION_EXAM_INTRO_TOLERANCE', 3),
 
-        // سقف حجم الفيديو التعريفي ووسائط الأسئلة التي يرفعها المسؤول، بالميجابايت. لا يتجاوز حد الرفع المؤقت
-        // في Livewire (config/livewire.php، 25 ميجابايت) ولا حد PHP وnginx؛ ورفعه يرفعها معاً (decisions.md)
-        'media_max_mb' => (int) env('COMPETITION_EXAM_MEDIA_MAX_MB', 25),
+        // سقف حجم الفيديو التعريفي ووسائط الأسئلة التي يرفعها المسؤول من اللوحة، بالميجابايت. ومنه حد الرفع
+        // المؤقت في Livewire (config/livewire.php). وفي الإنتاج يذهب الرفع من المتصفح إلى التخزين مباشرة
+        // (LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=s3) فلا يمر بخادم التطبيق (decisions.md)
+        'media_max_mb' => (int) env('COMPETITION_EXAM_MEDIA_MAX_MB', 200),
 
         // مدة بقاء أسئلة الاختبار في الذاكرة المؤقتة بالدقائق، وتُمسح عند كل حفظ للمسابقة
         'cache_minutes' => (int) env('COMPETITION_EXAM_CACHE_MINUTES', 60),
