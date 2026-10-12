@@ -6,7 +6,7 @@ use App\Models\User;
 use Filament\Support\Contracts\HasLabel;
 
 /**
- * الأدوار الثمانية في docs/roles-permissions.md.
+ * الأدوار في docs/roles-permissions.md.
  * القيمة النصية هي اسم الدور المخزن في جدول roles.
  */
 enum RoleName: string implements HasLabel
@@ -55,25 +55,13 @@ enum RoleName: string implements HasLabel
     }
 
     /**
-     * الأدوار التي يُشترط لها التحقق الثنائي (docs/security.md).
+     * الأدوار التي يُشترط لها التحقق الثنائي (docs/security.md): كل دور يدخل اللوحة، فلا تختلف القائمتان.
      *
      * @return list<self>
      */
     public static function twoFactorRoles(): array
     {
-        return [
-            self::SuperAdmin,
-            self::BoardMember,
-            self::Secretary,
-            self::ContentEditor,
-            self::ProgramManager,
-            self::Reviewer,
-            self::ExecutiveDirector,
-            self::FinancialManager,
-            self::Accountant,
-            self::ProjectsManager,
-            self::MarketingManager,
-        ];
+        return self::panelRoles();
     }
 
     /**

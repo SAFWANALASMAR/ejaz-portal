@@ -4,13 +4,9 @@
 --}}
 @php
     use App\Support\Dates;
+    use App\Support\FileSize;
 
-    // بالميجابايت من 1 فما فوق، وبالكيلوبايت لما دونه
-    $size = match (true) {
-        ! $document->file_size => null,
-        $document->file_size >= 1048576 => __('governance.document.size_mb', ['size' => number_format($document->file_size / 1048576, 1)]),
-        default => __('governance.document.size_kb', ['size' => max(1, (int) round($document->file_size / 1024))]),
-    };
+    $size = FileSize::display($document->file_size);
 @endphp
 
 <x-page-hero :title="$document->title" :summary="$document->category->getLabel()" />

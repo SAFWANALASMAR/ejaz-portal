@@ -50,8 +50,6 @@ return [
     'document' => [
         'open' => 'فتح الملف',
         'download' => 'تنزيل الملف',
-        'size_mb' => ':size ميجابايت',
-        'size_kb' => ':size كيلوبايت',
         'viewer' => 'عرض الوثيقة: :title',
         'mobile_hint' => 'لقراءة الوثيقة افتح الملف أو نزّله.',
     ],

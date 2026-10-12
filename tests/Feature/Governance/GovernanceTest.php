@@ -148,6 +148,6 @@ it('shows the file size in kilobytes below a megabyte, and in megabytes above', 
     storedDocument(['slug' => 'small', 'file_size' => 300 * 1024]);
     storedDocument(['slug' => 'large', 'file_size' => 3 * 1048576]);
 
-    $this->get('/governance/small')->assertSee(__('governance.document.size_kb', ['size' => 300]));
-    $this->get('/governance/large')->assertSee(__('governance.document.size_mb', ['size' => '3.0']));
+    $this->get('/governance/small')->assertSee(__('site.file.size_kb', ['size' => 300]));
+    $this->get('/governance/large')->assertSee(__('site.file.size_mb', ['size' => '3.0']));
 });

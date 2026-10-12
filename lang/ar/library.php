@@ -58,8 +58,6 @@ return [
     'item' => [
         'download' => 'تنزيل الملف',
         'open' => 'فتح الملف',
-        'size_mb' => ':size ميجابايت',
-        'size_kb' => ':size كيلوبايت',
         'viewer' => 'عرض: :title',
         'player' => 'مشغّل: :title',
         'play' => 'تشغيل المقطع',

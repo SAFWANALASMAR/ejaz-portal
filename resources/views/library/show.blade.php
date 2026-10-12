@@ -9,12 +9,7 @@
     $route = [$item->section->value, $item->slug];
     $youtube = $item->section->takesVideoUrl() ? $item->youtubeId() : null;
 
-    // بالميجابايت من 1 فما فوق، وبالكيلوبايت لما دونه
-    $size = match (true) {
-        ! $item->file_size => null,
-        $item->file_size >= 1048576 => __('library.item.size_mb', ['size' => number_format($item->file_size / 1048576, 1)]),
-        default => __('library.item.size_kb', ['size' => max(1, (int) round($item->file_size / 1024))]),
-    };
+    $size = \App\Support\FileSize::display($item->file_size);
 @endphp
 
 <x-page-hero :title="$item->title" :summary="$item->section->getLabel()" />
