@@ -70,8 +70,8 @@ return [
 
         // النماذج الإلكترونية والأرشيف والشواهد (المرحلة 4)
         'forms' => $crud,
-        // المعبأ يعبّئه السكرتير ويعتمده المجلس
-        'form_entries' => [...$crud, 'approve'],
+        // المعبأ يعبّئه السكرتير ويعتمده المجلس، وتصديره منفصل (بيانات قد تكون شخصية تخرج من اللوحة)
+        'form_entries' => [...$crud, 'approve', 'export'],
         'archive' => $crud,
         // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
         'archive_categories' => $crud,
@@ -81,6 +81,9 @@ return [
         'committees' => $crud,
         'annual_plan' => $crud,
         'platform_accounts' => $crud,
+        // ملفات الوظائف (requirements/11): الاطلاع على كل الملفات وإدارة سجلاتها. وما سواه بالسياسة: المسؤول
+        // عن الملف والمشاركون فيه بأدوارهم
+        'job_files' => $crud,
     ],
 
     // الأدوار وصلاحياتها. '*' تعني كل عمليات الوحدة.
@@ -100,7 +103,7 @@ return [
             'requests.*',
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
-            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'archive.*',
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'form_entries.export', 'archive.*',
             'registers.*', 'committees.*', 'platform_accounts.*',
             // من فئة الموظفين: «متابعة البرامج» و«تسجيل الحضور»
             'programs.view', 'programs.attend',
@@ -126,6 +129,7 @@ return [
         // والأدوار التي يمنحها في RoleName::assignableBy)، و«إدارة البرامج»، و«إدارة المسابقات»،
         // و«إدارة الملفات» (الأرشيف؛ وملفات المجلس للمجلس — open-questions)، و«الإحصائيات العامة»
         'executive_director' => [
+            'job_files.*',
             'users.view', 'users.create', 'users.update',
             'program_types.*', 'programs.*',
             'competitions.*', 'submissions.*',

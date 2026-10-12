@@ -34,6 +34,7 @@ class ViewFormEntry extends ViewRecord
         return [
             EditAction::make(),
             FormEntryResource::approveAction(),
+            FormEntryResource::printViewAction(),
             FormEntryResource::printAction(),
             ...FormEntryResource::downloads($record),
         ];

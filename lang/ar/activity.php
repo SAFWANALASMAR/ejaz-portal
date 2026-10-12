@@ -30,6 +30,7 @@ return [
         'payments' => 'المدفوعات',
         'assembly' => 'الجمعية العمومية',
         'documents' => 'النماذج والأرشيف',
+        'job_files' => 'ملفات الوظائف',
     ],
 
     'events' => [
@@ -68,6 +69,7 @@ return [
         'file_downloaded' => 'تنزيل ملف',
         'viewed' => 'اطلاع',
         'form_entry_approved' => 'اعتماد نموذج معبأ',
+        'form_entries_exported' => 'تصدير النماذج المعبأة',
         'inquiry_note_updated' => 'تعديل الملاحظة الداخلية لاستفسار',
     ],
 

@@ -6,6 +6,7 @@ use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\BodyMembership;
 use App\Models\CompetitionSubmission;
+use App\Models\FormEntry;
 use App\Models\Inquiry;
 use App\Models\Meeting;
 use App\Models\MeetingAgendaItem;
@@ -123,6 +124,19 @@ class ExportUserData
                     'receipt_number' => $payment->receipt_number,
                     'paid_at' => $date($payment->paid_at),
                     'created_at' => $date($payment->created_at),
+                ])->all(),
+            // النماذج المعبأة المحفوظة في ملفه (موظفاً أو مشاركاً)، ومنها المحذوف ناعماً: الإجابات وأسماء المرفقات
+            // ووجود التوقيع، لا الملفات نفسها
+            'form_entries' => FormEntry::query()->withTrashed()->where('person_id', $user->id)->with('version.template')->orderBy('id')->get()
+                ->map(fn (FormEntry $entry): array => [
+                    'reference' => $entry->reference,
+                    'form' => $entry->version->template->title,
+                    'status' => $entry->status->value,
+                    'answers' => $entry->answers ?? [],
+                    'files' => array_map(fn (array $file): string => $file['name'], $entry->files ?? []),
+                    'signed' => ($entry->signatures ?? []) !== [],
+                    'created_at' => $date($entry->created_at),
+                    'approved_at' => $date($entry->approved_at),
                 ])->all(),
             // رسائل حسابه، ورسائل بريده الموثّق قبل أن يسجّل
             'inquiries' => Inquiry::withTrashed()

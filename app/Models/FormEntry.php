@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\FormAudience;
 use App\Enums\FormEntryStatus;
 use Database\Factories\FormEntryFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -93,6 +95,28 @@ class FormEntry extends Model
     }
 
     /**
+     * ما يراه صاحب الحساب في «نماذجي»: المعتمد من نماذج المشاركين المحفوظة في ملفه (كـ FormEntryPolicy::viewAsPerson).
+     *
+     * @param  Builder<FormEntry>  $query
+     */
+    public function scopeVisibleToPerson(Builder $query, User $user): void
+    {
+        $query->where('person_id', $user->id)
+            ->where('status', FormEntryStatus::Approved)
+            ->whereHas('version.template', fn (Builder $template) => $template->where('audience', FormAudience::Participants));
+    }
+
+    /**
+     * صاحب المعبأ: الموظف أو المشارك الذي يُحفظ في ملفه (بجمهور النموذج — SaveFormEntry).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function person(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'person_id');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -111,6 +135,6 @@ class FormEntry extends Model
     public function getActivitylogOptions(): LogOptions
     {
         // الإجابات والملفات لا تدخل السجل: قد تحمل بيانات شخصية، وتُرى في المعبأ نفسه
-        return LogOptions::defaults()->useLogName('documents')->logOnly(['status', 'approved_at'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('documents')->logOnly(['status', 'approved_at', 'person_id'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

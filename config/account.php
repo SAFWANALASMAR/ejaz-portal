@@ -67,6 +67,15 @@ return [
             'icon' => 'banknotes',
             'active' => ['account.payments'],
         ],
+        [
+            // المعتمد من نماذج المشاركين المحفوظة في ملفه (docs/plans/forms-print.md)، لمن له منها شيء.
+            // بلا بطاقة في الرئيسية
+            'route' => 'account.forms.index',
+            'label' => 'documents.account.nav',
+            'icon' => 'document-text',
+            'active' => ['account.forms.*'],
+            'can' => 'viewOwnFormEntries',
+        ],
     ],
 
     // ترتيب بطاقات الرئيسية (الصورة 04)، ويختلف عن ترتيب القائمة الجانبية أعلاه. وما لم يُذكر هنا
