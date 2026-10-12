@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ContentSeeder::class,
             LegacyRedirectsSeeder::class,
             ProgramTypesSeeder::class,
+            JobFilesSeeder::class,
         ]);
     }
 }

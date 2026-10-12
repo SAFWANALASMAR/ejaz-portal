@@ -10,6 +10,7 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
+use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\NetworkPrefix;
@@ -22,8 +23,10 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\TwoFactorLoginResponse as TwoFactorLoginResponseContract;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
@@ -40,6 +43,9 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
         $this->app->bind(BaseDisableTwoFactorAuthentication::class, DisableTwoFactorAuthentication::class);
         $this->app->bind(FortifyLoginRateLimiter::class, LoginRateLimiter::class);
+        // مدخل كل بوابة بعد الدخول: اللوحة لمن يدخلها، ولوحة المستخدم لغيره
+        $this->app->singleton(LoginResponseContract::class, PortalLoginResponse::class);
+        $this->app->singleton(TwoFactorLoginResponseContract::class, PortalLoginResponse::class);
     }
 
     public function boot(): void

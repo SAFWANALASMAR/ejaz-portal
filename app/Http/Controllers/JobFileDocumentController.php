@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Actions\JobFiles\LogJobFileAccess;
+use App\Enums\ActivityEvent;
+use App\Models\JobFileDocument;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+/**
+ * تنزيل مستند من ملف وظيفة برابط مؤقت موقّع: يُفحص عند الطلب الدخول والتحقق الثنائي (المسار)
+ * والصلاحية (JobFileDocumentPolicy::view)، ويُسجَّل.
+ */
+class JobFileDocumentController extends Controller
+{
+    public function download(Request $request, JobFileDocument $document, LogJobFileAccess $log): StreamedResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless($user->is_active && $user->can('view', $document), 403);
+
+        $log->handle($user, $document, ActivityEvent::FileDownloaded, ['file' => $document->original_name]);
+
+        return Storage::disk(JobFileDocument::disk())->download($document->path, $document->original_name);
+    }
+}
