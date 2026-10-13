@@ -21,7 +21,7 @@
                 <p class="text-sm font-semibold text-accent-dark">{{ __('competitions.exam.question_of', ['number' => $number, 'total' => $total]) }}</p>
                 <label class="block text-sm text-muted">
                     {{ __('competitions.exam.progress') }}
-                    <progress max="{{ $total }}" value="{{ $number }}" class="mt-1 block h-2 w-full accent-primary">{{ $number }} / {{ $total }}</progress>
+                    <progress max="{{ $total }}" value="{{ $number }}" class="mt-1 block h-2 w-full appearance-none overflow-hidden rounded-full bg-line forced-colors:appearance-auto [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-line [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary">{{ $number }} / {{ $total }}</progress>
                 </label>
             </div>
 

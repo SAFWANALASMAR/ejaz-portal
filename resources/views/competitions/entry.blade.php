@@ -115,7 +115,7 @@
                                 <span class="text-sm font-semibold text-ink">{{ $video ? __('competitions.video.replace') : __('competitions.video.choose') }}</span>
                                 <input type="file" accept="video/mp4" data-video-input class="mt-2 block w-full text-sm text-ink file:me-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white">
                             </label>
-                            <progress max="100" value="0" class="w-full accent-primary" data-video-progress hidden></progress>
+                            <progress max="100" value="0" class="h-2 w-full appearance-none overflow-hidden rounded-full bg-line forced-colors:appearance-auto [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-line [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary" data-video-progress hidden></progress>
                         @endif
                     </div>
                 @endif

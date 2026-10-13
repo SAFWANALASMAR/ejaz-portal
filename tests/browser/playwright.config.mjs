@@ -10,6 +10,8 @@ const widths = {
 
 export default defineConfig({
     testDir: '.',
+    // التجربة الشاملة لها إعدادها وبيئتها (full-site.config.mjs)
+    testIgnore: 'full-site.spec.mjs',
     outputDir: '../../storage/playwright/results',
     globalSetup: './global-setup.mjs',
     reporter: [['list']],
