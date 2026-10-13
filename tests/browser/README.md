@@ -108,3 +108,10 @@ delete from program_registrations where user_id = (select id from users where em
 delete from survey_responses where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
 delete from service_requests where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
 ```
+
+## الزحف النهائي وجولة العرض
+
+تُشغَّلان من جذر المستودع (المسارات نسبية له، والمخرجات في `storage/playwright/` المستثنى من git)، على نسخة محلية وحدها، وبالبيئة نفسها: `FULL_SITE_URL` و`DEMO_PASSWORD` و`DEMO_TOTP_SECRET` و`DEMO_DOMAIN`.
+
+- **الزحف** (`final-crawl.mjs`، يقرأ فقط): كل رابط داخلي للزائر والمستفيد بحالته ولغته واتجاهه وأخطاء وحدة التحكم، والتمرير الأفقي على الجوال، وكل صف في `docs/legacy-import/redirects.csv`، وكل ملف مرتبط. `node tests/browser/final-crawl.mjs`، والنتيجة في `storage/playwright/final-check/crawl.json`.
+- **جولة العرض** (`demo-tour.spec.mjs`، فيديو صامت بعناوين عربية تُحقن أثناء التسجيل وحده): `npx playwright test --config=tests/browser/demo-tour.config.mjs`، و`TOUR=full` أو `TOUR=short` لأحدهما. والفيديو WebM في `storage/playwright/demo-tour/`.

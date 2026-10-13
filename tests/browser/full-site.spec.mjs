@@ -378,18 +378,24 @@ test.describe('المستفيد', () => {
             return page.locator('main a[href*="/account/requests/"]').count();
         };
         const before = await requestCount();
+        let submitted = 0;
 
         for (const kind of ['membership', 'employment', 'volunteering']) {
             const response = await page.goto(`/services/openings/demo-${kind}/apply`);
             expect.soft(response.status(), kind).toBe(200);
             const form = page.locator('main form[enctype="multipart/form-data"]');
+            // طلب واحد لكل فرصة: من قدّم في تشغيل سابق لا يجد النموذج، أو يُرفض طلبه الثاني برسالة ظاهرة
             if (!(await form.count())) continue;
             await fillForm(form);
             await submit(page, form.locator('button[name=intent][value=submit]'));
-            await expect.soft(page, kind).toHaveURL(/\/account\/requests/);
+            if (/\/account\/requests/.test(page.url())) {
+                submitted++;
+            } else {
+                await expect.soft(page.locator('main'), kind).toContainText('لديك طلب');
+            }
         }
 
-        expect.soft(await requestCount(), 'ثلاثة طلبات جديدة').toBe(before + 3);
+        expect.soft(await requestCount(), 'كل طلب جديد في «طلباتي»').toBe(before + submitted);
         await shot(page, 'account-requests', testInfo);
         expect(errors, errors.join('\n')).toEqual([]);
     });
@@ -643,10 +649,17 @@ test.describe('لوحة الإدارة', () => {
             const [command, ...args] = ARTISAN.split(' ');
             const mails = async () => (await (await request.get(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"demo-director@${DOMAIN}"`)}`)).json()).messages_count ?? 0;
             const before = await mails();
-            execFileSync(command, [...args, 'registers:send-alerts', '--no-interaction'], { stdio: 'pipe', timeout: 120_000 });
-            // مرة لكل عتبة: يُرسل في أول تشغيل على البيانات، ولا يتكرر بعده (RegisterAlertsTest)
-            testInfo.annotations.push({ type: 'register-alerts', description: `رسائل جديدة: ${(await mails()) - before}` });
-            expect.soft(await mails(), 'بريد تنبيه السجلات').toBeGreaterThan(0);
+            const output = execFileSync(command, [...args, 'registers:send-alerts', '--no-interaction'], { stdio: 'pipe', timeout: 120_000 }).toString();
+            const sent = Number(/Sent (\d+)/.exec(output)?.[1] ?? 0);
+            // مرة لكل عتبة: يُرسل في أول تشغيل على البيانات، ولا يتكرر بعده (RegisterAlertsTest). فإن لم يُرسل
+            // جديد فلأن التنبيهات مسجّلة من تشغيل سابق (register_entry_alerts)، ولو أُفرغ صندوق Mailpit
+            testInfo.annotations.push({ type: 'register-alerts', description: `رسائل جديدة: ${sent}` });
+            if (sent > 0) {
+                expect.soft((await mails()) - before, 'بريد تنبيه السجلات').toBeGreaterThan(0);
+            } else {
+                const recorded = execFileSync(command, [...args, 'tinker', '--execute=echo DB::table("register_entry_alerts")->count();'], { stdio: 'pipe', timeout: 120_000 }).toString();
+                expect.soft(Number(recorded.trim().split(/\s+/).pop()), 'تنبيهات مسجّلة من تشغيل سابق').toBeGreaterThan(0);
+            }
         } else {
             testInfo.annotations.push({ type: 'skipped-step', description: 'تنبيهات السجلات: FULL_SITE_ARTISAN غير مضبوط' });
         }
