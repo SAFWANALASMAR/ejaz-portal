@@ -1,0 +1,15 @@
+# تشغيل الحزمة عند إقلاع الخادم (الحاويات بـ restart: unless-stopped، وهذه للإقلاع بعد إيقاف يدوي)
+[Unit]
+Description=Ejaz portal containers
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/ejaz
+ExecStart=/usr/bin/docker compose --env-file .env -f deploy/compose.production.yaml up -d
+ExecStop=/usr/bin/docker compose --env-file .env -f deploy/compose.production.yaml stop
+
+[Install]
+WantedBy=multi-user.target

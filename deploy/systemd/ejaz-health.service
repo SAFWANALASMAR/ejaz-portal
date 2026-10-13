@@ -1,0 +1,12 @@
+# فحص الصحة العميق (docs/monitoring.md). يفشل الوحدة إن فشل فحص، فيظهر في journalctl
+# وتلتقطه أداة المراقبة (OnFailure= إلى وحدة تنبيه حسب الأداة المعتمدة).
+[Unit]
+Description=Ejaz portal health check (php artisan ejaz:health)
+# OnFailure=ejaz-alert@%n.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/ejaz
+ExecStart=/usr/bin/php artisan ejaz:health --no-interaction

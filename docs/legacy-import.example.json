@@ -1,0 +1,68 @@
+{
+    "pages": [
+        {
+            "slug": "about",
+            "title": "عن الجمعية",
+            "summary": "ملخص تجريبي — يُستبدل بنص الجمعية المعتمد",
+            "blocks": [
+                {
+                    "type": "text",
+                    "data": {
+                        "heading": "عنوان تجريبي",
+                        "body": "<p>فقرة تجريبية. النص المعتمد من الجمعية يوضع هنا.</p>"
+                    }
+                },
+                {
+                    "type": "cards",
+                    "data": {
+                        "heading": "بطاقات تجريبية",
+                        "items": [
+                            { "icon": "star", "title": "بطاقة تجريبية", "text": "وصف تجريبي قصير." }
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "initiatives": [
+        {
+            "slug": "qiyam",
+            "name": "قيم",
+            "summary": "وصف تجريبي للمبادرة",
+            "goals": ["هدف تجريبي"],
+            "legacy_paths": ["/مبادرة-قيـم/"]
+        }
+    ],
+    "documents": [
+        {
+            "slug": "example-policy",
+            "title": "وثيقة تجريبية",
+            "category": "policies",
+            "issued_at": "2026-01-01",
+            "version": "1",
+            "description": "وصف تجريبي",
+            "file": "files/example-policy.pdf",
+            "legacy_paths": ["/wp-content/uploads/2026/01/example-policy.pdf"]
+        }
+    ],
+    "library": [
+        {
+            "slug": "example-video",
+            "section": "videos",
+            "title": "مقطع تجريبي",
+            "description": "وصف تجريبي",
+            "tags": ["تجريبي"],
+            "video_url": null
+        },
+        {
+            "slug": "example-book",
+            "section": "books",
+            "title": "كتاب تجريبي",
+            "author": "مؤلف تجريبي",
+            "file": "files/example-book.pdf"
+        }
+    ],
+    "redirects": [
+        { "from": "/example-old-page/", "to": "/about" }
+    ]
+}

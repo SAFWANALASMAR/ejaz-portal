@@ -15,11 +15,15 @@
 /auth.json
 /node_modules
 /public/build
+/public/css/filament
 /public/fonts-manifest.dev.json
+/public/fonts/filament
 /public/hot
+/public/js/filament
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/playwright
 /vendor
 _ide_helper.php
 Homestead.json
@@ -28,3 +32,9 @@ Thumbs.db
 
 # كلود كود: الإعدادات الشخصية لا تُحفظ
 /.claude/settings.local.json
+
+# مدخلات لا تُحفظ في المستودع: نموذجا جمعية أخرى (decisions.md)، وملف المصدر التالف
+/docs/inputs/**/*.xlsx
+/docs/inputs/**/*.ai
+# ملفات الاستيراد المنزّلة من الموقع الحالي (docs/legacy-import/README.md)
+/docs/legacy-import/files/

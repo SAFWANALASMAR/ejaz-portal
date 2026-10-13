@@ -35,4 +35,37 @@ return [
         ],
     ],
 
+    // مزود الرسائل النصية: log في التطوير، والمزود الفعلي بعد تعاقد الجمعية
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        'sender' => env('SMS_SENDER'),
+        // إشعار المتقدم برسالة نصية عند تغيّر حالة طلبه (requirements/02)، مع البريد. معطل افتراضياً
+        'request_updates' => (bool) env('SMS_REQUEST_UPDATES', false),
+    ],
+
+    // مزود واتساب: ينتظر قرار صفوان. log يكتب في السجل (يرفض الإنتاج)، وfake للاختبارات
+    'whatsapp' => [
+        'driver' => env('WHATSAPP_DRIVER', 'log'),
+    ],
+
+    // التحدي ضد الآليات على إرسال غير المسجلين: fake في التطوير والاختبارات، وturnstile (Cloudflare)
+    // بمفتاحيه في الإنتاج (docs/decisions.md)
+    'bot_challenge' => [
+        'driver' => env('BOT_CHALLENGE_DRIVER', 'fake'),
+        'turnstile_site_key' => env('TURNSTILE_SITE_KEY'),
+        'turnstile_secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
+    // اجتماعات تيمز للجمعية العمومية: fake في التطوير والاختبارات، وgraph (Microsoft Graph بمفتاح تطبيق
+    // الجمعية في Microsoft 365) في الإنتاج. والاجتماع حدث في تقويم حساب المنظِّم (docs/decisions.md)
+    'online_meetings' => [
+        'driver' => env('ONLINE_MEETINGS_DRIVER', 'fake'),
+        'graph' => [
+            'tenant_id' => env('MS_GRAPH_TENANT_ID'),
+            'client_id' => env('MS_GRAPH_CLIENT_ID'),
+            'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
+            'organizer' => env('MS_GRAPH_ORGANIZER'),
+        ],
+    ],
+
 ];

@@ -70,7 +70,9 @@ return [
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
             'block_for' => null,
-            'after_commit' => false,
+            // ما يُرسل إلى الطابور داخل معاملة ينتظر اعتمادها، فلا يلتقط العامل مهمة
+            // لسجل لم يُحفظ بعد، ولا يُرسل بريد لعملية أُلغيت
+            'after_commit' => true,
         ],
 
         'deferred' => [

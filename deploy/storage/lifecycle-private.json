@@ -1,0 +1,34 @@
+{
+  "Rules": [
+    {
+      "ID": "abort-incomplete-uploads",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "ID": "expire-old-versions",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      }
+    },
+    {
+      "ID": "expire-livewire-tmp",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "livewire-tmp/"
+      },
+      "Expiration": {
+        "Days": 1
+      }
+    }
+  ]
+}

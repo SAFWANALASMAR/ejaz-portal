@@ -1,0 +1,184 @@
+# حزمة الإنتاج على خادم لينكس واحد داخل المملكة — بوابة جمعية إعجاز (docs/deploy.md، decisions.md 11 أكتوبر 2026)
+#
+# بلا خدمة مُدارة: PostgreSQL 17 وRedis 7 على الخادم نفسه (ملف التعريف bundled)، ونسخ احتياطي مشفّر خارجه.
+# والانتقال لاحقاً إلى قاعدة أو ذاكرة مُدارة بمتغيرات البيئة وحدها: DB_HOST/DB_PORT/DB_* وREDIS_*، ثم حذف
+# bundled من COMPOSE_PROFILES. لا تغيير في الشيفرة.
+#
+# التشغيل من جذر المشروع، والأسرار في .env (من .env.production.example) لا في هذا الملف:
+#   docker compose --env-file .env -f deploy/compose.production.yaml up -d
+# والنشر بوسم: bash scripts/deploy-compose.sh v1.2.0
+
+name: ejaz
+
+x-app: &app
+  image: ejaz-app:${EJAZ_TAG:-latest}
+  build:
+    context: ..
+    dockerfile: deploy/docker/Dockerfile
+    target: app
+  env_file: ../.env
+  volumes:
+    - storage:/var/www/html/storage
+  depends_on:
+    pgsql:
+      condition: service_healthy
+      required: false
+    redis:
+      condition: service_healthy
+      required: false
+  restart: unless-stopped
+  networks: [internal]
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  # PHP-FPM: يخدم طلبات nginx
+  app:
+    <<: *app
+    healthcheck:
+      test: ["CMD-SHELL", "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # عمال الطوابير (Horizon). وعند الإيقاف ينهي مهامه الجارية، والمهلة تتسع لمعالجة مقطع مسابقة
+  horizon:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 10m
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  # المجدول: نسخة واحدة فقط على كل البيئة (onOneServer يحرس أيضاً بقفل Redis)
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  # nginx: الملفات العامة من الصورة، والقرص العام من مجلد التخزين المشترك للقراءة
+  web:
+    image: ejaz-web:${EJAZ_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      target: web
+    environment:
+      # النطاق في server_name والتحويل إلى https (ejaz.sa في الإنتاج، ونطاق التجريبية فيها)
+      SITE_HOST: ${SITE_HOST:-ejaz.sa}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - storage:/var/www/html/storage:ro
+      - ${TLS_DIR:-/etc/ejaz/tls}:/etc/nginx/tls:ro
+      - ${ACME_DIR:-/var/lib/ejaz/acme}:/var/www/acme:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  pgsql:
+    image: postgres:17-bookworm
+    profiles: [bundled]
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD}
+    # الضبط من .env بقيم افتراضية لخادم 16 جيجابايت (docs/deploy/provider-checklist.md)
+    command:
+      - postgres
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-200}
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-2GB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-6GB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-16MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - password_encryption=scram-sha-256
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 512mb
+    stop_grace_period: 2m
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # كلمة المرور تُكتب في ملف إعداد داخل الحاوية عند بدئها، لا في سطر الأمر. ولا allkeys-* (performance.md)
+  redis:
+    image: redis:7-bookworm
+    profiles: [bundled]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD}
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-1gb}
+    command:
+      - sh
+      - -c
+      - >-
+        umask 077 &&
+        printf 'requirepass %s\nmaxmemory %s\nmaxmemory-policy volatile-lru\nappendonly yes\nappendfsync everysec\nrename-command FLUSHALL ""\nrename-command FLUSHDB ""\nrename-command DEBUG ""\nrename-command CONFIG ""\n'
+        "$$REDIS_PASSWORD" "$$REDIS_MAXMEMORY" > /tmp/redis.conf &&
+        unset REDIS_PASSWORD &&
+        exec redis-server /tmp/redis.conf
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # النسخ الاحتياطي (scripts/backup.sh): لا يعمل دائماً، بل من مؤقت الخادم يومياً (deploy/systemd/compose/):
+  #   docker compose --env-file .env -f deploy/compose.production.yaml run --rm backup
+  backup:
+    image: ejaz-backup:${EJAZ_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      target: backup
+    profiles: [tools]
+    env_file:
+      - path: ../.env.backup
+        required: false
+    environment:
+      APP_ROOT: /app
+      BACKUP_GPG_PUBLIC_KEY_FILE: /run/secrets/backup-public.asc
+    volumes:
+      - storage:/app/storage:ro
+      - ${BACKUP_GPG_PUBLIC_KEY_FILE_HOST:-/etc/ejaz/backup-public.asc}:/run/secrets/backup-public.asc:ro
+    networks: [internal]
+
+volumes:
+  storage:
+  pgdata:
+  redisdata:
+
+networks:
+  internal:

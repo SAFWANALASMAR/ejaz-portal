@@ -1,0 +1,12 @@
+# النسخ الاحتياطي اليومي بحزمة الحاويات (deploy/compose.production.yaml، خدمة backup).
+# /etc/systemd/system/ejaz-backup.service مع ejaz-backup.timer في المجلد الأب.
+[Unit]
+Description=Ejaz portal daily backup (compose)
+After=docker.service network-online.target
+Requires=docker.service
+# OnFailure=ejaz-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ejaz
+ExecStart=/usr/bin/docker compose --env-file .env -f deploy/compose.production.yaml run --rm backup

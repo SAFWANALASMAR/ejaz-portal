@@ -68,6 +68,11 @@ return [
     'timezone' => 'UTC',
 
     // التخزين بتوقيت UTC، والعرض للمستخدم بتوقيت الرياض
+    /*
+    | فهرسة محركات البحث: true في الإنتاج وحده. وكل نسخة غيره (المحلية والتجريبية) تمنعها في robots.txt.
+    */
+    'indexable' => (bool) env('SEO_INDEXABLE', false),
+
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Riyadh'),
 
     /*
@@ -81,11 +86,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'ar'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'ar'),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env('APP_FAKER_LOCALE', 'ar_SA'),
 
     /*
     |--------------------------------------------------------------------------

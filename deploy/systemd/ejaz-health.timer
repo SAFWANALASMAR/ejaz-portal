@@ -1,0 +1,10 @@
+# كل خمس دقائق: systemctl enable --now ejaz-health.timer
+[Unit]
+Description=Run the Ejaz portal health check every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=false
+
+[Install]
+WantedBy=timers.target

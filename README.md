@@ -4,8 +4,11 @@
 
 - **البدء والتشغيل:** [دليل-التشغيل.md](دليل-التشغيل.md)
 - **دستور المشروع (لكلود كود):** [CLAUDE.md](CLAUDE.md)
+- **فهرس المشروع (الوثائق والوحدات وحالتها):** [docs/README.md](docs/README.md)
 - **المراحل والحالة:** [docs/roadmap.md](docs/roadmap.md)
+- **سجل التغييرات والإصدارات:** [CHANGELOG.md](CHANGELOG.md)
 - **المعلومات الناقصة من الجمعية:** [docs/open-questions.md](docs/open-questions.md)
+- **سير العمل لمطور يتسلم المشروع:** [docs/workflow.md](docs/workflow.md)
 
 ## التقنيات
 

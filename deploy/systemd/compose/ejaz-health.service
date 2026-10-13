@@ -1,0 +1,10 @@
+# فحص الصحة العميق بحزمة الحاويات (docs/monitoring.md)، مع ejaz-health.timer في المجلد الأب.
+[Unit]
+Description=Ejaz portal health check (compose)
+Requires=docker.service
+# OnFailure=ejaz-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ejaz
+ExecStart=/usr/bin/docker compose --env-file .env -f deploy/compose.production.yaml exec -T app php artisan ejaz:health

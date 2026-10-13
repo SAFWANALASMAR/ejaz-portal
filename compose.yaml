@@ -10,6 +10,11 @@ x-php: &php
   image: ejaz-php:dev
   volumes:
     - .:/var/www/html
+    # المكتبات والقوالب المترجمة على قرص لينكس داخل Docker لا على قرص ويندوز المشترك،
+    # فالقراءة منه أسرع بكثير (انظر docs/decisions.md)
+    - vendor:/var/www/html/vendor
+  environment:
+    VIEW_COMPILED_PATH: /tmp/ejaz-views
   depends_on:
     pgsql:
       condition: service_healthy
@@ -21,12 +26,22 @@ services:
   app:
     <<: *php
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      VIEW_COMPILED_PATH: /tmp/ejaz-views
+      # أكثر من طلب في الوقت نفسه (لوحة الإدارة واختبارات المتصفح)
+      PHP_CLI_SERVER_WORKERS: 4
     ports:
       - "${APP_PORT:-8000}:8000"
 
   queue:
     <<: *php
-    command: php artisan queue:work --tries=3 --sleep=1
+    # Horizon يدير عمال الطوابير ولوحة مراقبتها على /horizon (للمشرف العام فقط)
+    command: php artisan horizon
+
+  scheduler:
+    <<: *php
+    # المهام المجدولة في routes/console.php، ومنها مسح سجل العمليات بعد مدة الاحتفاظ
+    command: php artisan schedule:work
 
   vite:
     image: node:22-bookworm-slim
@@ -40,6 +55,23 @@ services:
     ports:
       - "${VITE_PORT:-5173}:5173"
     restart: unless-stopped
+
+  # اختبارات المتصفح ولقطات الشاشات (tests/browser/README.md). لا تعمل تلقائياً:
+  # docker compose run --rm browser
+  browser:
+    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    profiles: [tools]
+    working_dir: /work
+    volumes:
+      - .:/work
+      - node_modules:/work/node_modules
+    environment:
+      APP_PORT: ${APP_PORT:-8000}
+    ipc: host
+    depends_on:
+      - app
+      - vite
+    command: npx playwright test --config=tests/browser/playwright.config.mjs
 
   pgsql:
     image: postgres:17-alpine
@@ -80,3 +112,4 @@ services:
 volumes:
   pgdata:
   node_modules:
+  vendor:

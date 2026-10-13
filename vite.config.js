@@ -9,9 +9,11 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
             fonts: [
-                // خط مؤقت إلى أن تُعتمد هوية الجمعية — انظر docs/design-system.md
-                bunny('IBM Plex Sans Arabic', {
-                    weights: [400, 500, 600, 700],
+                // خط الهوية الرسمي (دليل الهوية) بكل أوزانه، يُنزَّل عند البناء ويُقدَّم من البوابة — docs/design-system.md
+                bunny('Zain', {
+                    weights: [200, 300, 400, 700, 800, 900],
+                    // الافتراضي latin فقط، فتسقط الحروف العربية إلى خط النظام
+                    subsets: ['arabic', 'latin'],
                 }),
             ],
         }),
