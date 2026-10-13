@@ -29,6 +29,7 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
+use App\Support\UploadLimits;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
@@ -42,8 +43,11 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use Livewire\Component;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
+
+use function Livewire\on;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -164,6 +168,14 @@ class AppServiceProvider extends ServiceProvider
 
         // التخزين بتوقيت UTC والعرض بتوقيت الرياض
         FilamentTimezone::set(config('app.display_timezone'));
+
+        // كل رفع ملف في اللوحة يبدأ بـ _startUpload، حتى المباشر إلى التخزين (s3) الذي لا يمر بمسار الرفع
+        // المحدود، فيُحدّ هنا لكل حساب (الفحص الأمني 12 أكتوبر)
+        on('call', function (Component $component, string $method): void {
+            if ($method === '_startUpload') {
+                UploadLimits::hitStart(request());
+            }
+        });
 
         // المشرف العام يملك كل ما لم تمنعه سياسة صراحة. Gate::after لا يغيّر نتيجة صريحة
         // (false أو Response::deny من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس

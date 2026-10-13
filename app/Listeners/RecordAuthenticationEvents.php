@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Actions\Accounts\SendPhoneVerificationCode;
+use App\Actions\Accounts\WarnRepeatedTwoFactorFailures;
 use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Support\LoginIdentifier;
@@ -64,6 +65,8 @@ class RecordAuthenticationEvents
     public function handleTwoFactorFailed(TwoFactorAuthenticationFailed $event): void
     {
         $this->log(ActivityEvent::TwoFactorFailed, $event->user, byAccountOwner: false);
+
+        app(WarnRepeatedTwoFactorFailures::class)->handle($event->user);
     }
 
     public function handleLogout(Logout $event): void

@@ -38,6 +38,10 @@
   - `Too many SMS codes from one network` — إن كانت شبكة جوال حقيقية يُرفع حدها (`performance.md`).
   - `SMS network limits are off ... Check TRUSTED_PROXIES` — الوكلاء الموثوقون غير مضبوطين، فحدود الشبكات معطلة.
   - `Could not read a payment from the gateway` (متى فُعّل الدفع).
+  - `Repeated wrong two-factor codes on one account` — رموز تحقق ثنائي خاطئة كثيرة على حساب في اليوم (بتوقيت الرياض) بعد كلمة مرور صحيحة، فقد تكون كلمة المرور مسرّبة.
+    - يصل المشرفَ العام بريد به مرة لكل حساب في اليوم عند `TWO_FACTOR_ALERT_THRESHOLD` (افتراضياً 5، و0 يوقفه).
+    - التفصيل في السجل الأمني (`two_factor_failed` و`two_factor_failures_alerted`).
+    - يُتواصل مع صاحب الحساب، وتُغيَّر كلمة المرور إن لم تكن المحاولات منه.
 - المعالج فوق 80% أو الذاكرة فوق 85% لخمس عشرة دقيقة على خادم تطبيق.
 - اتصالات PostgreSQL فوق 80% من الحد، أو استعلامات بطيئة فوق ثانية (`log_min_duration_statement = 1000`).
 - ذاكرة Redis فوق 75% من `maxmemory`، أو أي إخلاء لمفاتيح (`evicted_keys` يزيد) — المفاتيح بلا مدة تحمل قفل الدخول وحدود الرسائل.
