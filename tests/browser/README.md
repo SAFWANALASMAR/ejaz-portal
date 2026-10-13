@@ -59,3 +59,52 @@ docker run --rm --ipc=host -v "$PWD:/work" -w /work \
 ```
 
 لوحة الإدارة تشترط التحقق الثنائي، فتُفحص بجلسة محفوظة لحساب إداري: ملف `storageState` من Playwright في `storage/playwright/` يُمرَّر بـ `-e ADMIN_STATE=storage/playwright/<الملف>.json`. وبدونه تُتخطى شاشاتها. والملف جلسة دخول حقيقية: في البيئة المحلية وحدها، ويُحذف بعد الفحص.
+
+## التجربة الشاملة كمستخدم حقيقي
+
+`full-site.spec.mjs` بإعداده `full-site.config.mjs`، وهو مستثنى من التشغيل أعلاه. يمر على الموقع كما يمر الزائر والمستفيد وكل بوابة:
+
+- الزحف على كل رابط داخلي.
+- التحويلات القديمة كلها.
+- التسجيل، وتوثيق البريد، واستعادة كلمة المرور، والتحقق الثنائي.
+- الخدمات الإلكترونية، والبرامج، والاستبيان، والتواصل.
+- رحلة الاختبار الإلكتروني ومسابقة الأعمال.
+- البوابات الخمس بما يُسمح لها وما يُمنع عنها.
+- موارد لوحة الإدارة، والإنشاء والتعديل والحذف، والنماذج وطباعتها، وتنبيهات السجلات.
+- العرض على الجوال والحاسب.
+
+التقرير: `docs/reviews/2026-10-13-full-site-test.md`.
+
+**يكتب بيانات** (حسابات وطلبات ومشاركات ورسائل)، فلا يعمل إلا على `localhost` و`127.0.0.1` و`*.test`، إلا بـ `FULL_SITE_ALLOW_REMOTE=1`. ويحتاج:
+
+- نسخة تعمل ببيانات المعاينة:
+  - حسابات `demo-<الدور>@ejaz-demo.test`.
+  - مسابقتا `demo-exam` و`demo-works` بفيديو تعريفي.
+  - برنامج `demo-course`.
+  - فرص `demo-membership` و`demo-employment` و`demo-volunteering`.
+  - استبيان عام.
+  - نموذج معبأ معتمد.
+- `APP_URL` في تلك النسخة مطابقاً لـ `FULL_SITE_URL`، لأن روابط البريد تُبنى منه.
+- Mailpit على `MAILPIT_URL` (الافتراضي `http://localhost:8025`).
+- متصفح Google Chrome مثبتاً (`FULL_SITE_CHANNEL`، الافتراضي `chrome`)، لأن Chromium في Playwright لا يشغّل H.264.
+
+```bash
+FULL_SITE_URL=http://localhost:8090 \
+DEMO_PASSWORD='<كلمة مرور الحسابات التجريبية>' DEMO_TOTP_SECRET='<مفتاح التحقق الثنائي التجريبي>' \
+FULL_SITE_ARTISAN='php artisan' FULL_SITE_SHOTS=docs/reviews/screenshots \
+npx playwright test --config=tests/browser/full-site.config.mjs
+```
+
+- `FULL_SITE_ARTISAN`: أمر artisan للنسخة المختبرة نفسها، لتنبيهات السجلات. وبدونه تُتخطى تلك الخطوة.
+- `FULL_SITE_SHOTS`: مجلد اللقطات. الافتراضي `storage/playwright/full-site/screenshots`، وهو خارج git.
+- لا كلمة مرور ولا مفتاح في الملفات: كلها من البيئة.
+
+**إعادة التشغيل:** رحلتا المسابقة والاستبيان، وطلب كل فرصة، مرة واحدة لكل حساب. فقبل كل تشغيل تُحذف مشاركات المستفيد التجريبي في قاعدة المعاينة وحدها، وإلا فشل الاختباران برسالة تقول ذلك:
+
+```sql
+delete from submission_works;
+delete from competition_submissions where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
+delete from program_registrations where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
+delete from survey_responses where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
+delete from service_requests where user_id = (select id from users where email = 'demo-member@ejaz-demo.test');
+```

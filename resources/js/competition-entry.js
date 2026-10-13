@@ -39,15 +39,26 @@ async function putChunk(url, chunk) {
 function autosave(form) {
     const status = form.querySelector('[data-autosave-status]');
     let timer = null;
+    let submitted = false;
+    let inflight = null;
 
     const save = async () => {
+        if (submitted) {
+            return;
+        }
+
         status.textContent = status.dataset.saving;
         const data = new FormData(form);
+        inflight = new AbortController();
 
         try {
-            await request(form.dataset.autosave, { method: 'POST', body: data });
+            await request(form.dataset.autosave, { method: 'POST', body: data, signal: inflight.signal });
             status.textContent = status.dataset.saved;
         } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+
             // رسالة الخادم إن كانت (الإغلاق مثلاً)، وإلا الرسالة العامة
             status.textContent = /^\d+$/.test(error.message) ? status.dataset.failed : error.message;
         }
@@ -64,6 +75,21 @@ function autosave(form) {
 
     form.addEventListener('input', schedule);
     form.addEventListener('change', schedule);
+
+    // الحفظ أو الإرسال يحمل الحقول نفسها: لا حفظ تلقائي بعده، وإلا وصل إلى مشاركة أُرسلت فرُفض (403)
+    // والطلب الجاري يُلغى، فلا يصل بعد الحفظ الصريح بحقول أقدم
+    form.addEventListener('submit', () => {
+        submitted = true;
+        clearTimeout(timer);
+        inflight?.abort();
+    });
+
+    // الرجوع إلى الصفحة من ذاكرة المتصفح يعيد الحفظ التلقائي (والخادم يرفض حفظ مشاركة أُرسلت)
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            submitted = false;
+        }
+    });
 }
 
 // مدة المقطع من بياناته في المتصفح، قبل الرفع
