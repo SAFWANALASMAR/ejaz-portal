@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\AssemblyFiles;
 
-use App\Actions\Assembly\LogFileDownload;
+use App\Actions\Activity\LogAccess;
+use App\Enums\ActivityEvent;
 use App\Enums\AssemblyFileAudience;
 use App\Enums\AssemblyFileCategory;
 use App\Filament\Concerns\HasTranslatedLabels;
@@ -107,10 +108,10 @@ class AssemblyFileResource extends Resource
             ->label(__('assembly.actions.download'))
             ->icon(Heroicon::OutlinedArrowDownTray)
             ->authorize(fn (AssemblyFile $record): bool => auth()->user()?->can('view', $record) ?? false)
-            ->action(function (AssemblyFile $record, LogFileDownload $log): StreamedResponse {
+            ->action(function (AssemblyFile $record, LogAccess $log): StreamedResponse {
                 /** @var User $actor */
                 $actor = auth()->user();
-                $log->handle($actor, $record, 'file');
+                $log->handle($actor, $record, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'file']);
 
                 return Storage::disk(AssemblyFile::disk())->download($record->file, $record->downloadName(), ['Content-Type' => 'application/pdf']);
             });

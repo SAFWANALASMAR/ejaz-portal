@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\FormEntries\Pages;
 
-use App\Actions\Documents\LogDocumentAccess;
+use App\Actions\Activity\LogAccess;
 use App\Enums\ActivityEvent;
 use App\Filament\Resources\FormEntries\FormEntryResource;
 use App\Models\FormEntry;
@@ -23,7 +23,7 @@ class ViewFormEntry extends ViewRecord
 
         /** @var User $actor */
         $actor = auth()->user();
-        app(LogDocumentAccess::class)->handle($actor, $this->getRecord(), ActivityEvent::Viewed);
+        app(LogAccess::class)->handle($actor, $this->getRecord(), 'documents', ActivityEvent::Viewed);
     }
 
     protected function getHeaderActions(): array

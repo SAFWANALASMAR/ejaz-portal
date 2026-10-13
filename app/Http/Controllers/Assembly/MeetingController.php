@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Assembly;
 
-use App\Actions\Assembly\LogFileDownload;
+use App\Actions\Activity\LogAccess;
+use App\Enums\ActivityEvent;
 use App\Enums\MeetingStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Meeting;
@@ -47,23 +48,23 @@ class MeetingController extends Controller
         return view('assembly.minutes.index', ['meetings' => $meetings]);
     }
 
-    public function attachment(Request $request, Meeting $meeting, int $index, LogFileDownload $log): StreamedResponse
+    public function attachment(Request $request, Meeting $meeting, int $index, LogAccess $log): StreamedResponse
     {
         $user = $this->user($request);
         abort_unless($user->can('attend', $meeting), 403);
 
         $file = ($meeting->attachments ?? [])[$index] ?? abort(404);
-        $log->handle($user, $meeting, 'attachment:'.$index);
+        $log->handle($user, $meeting, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'attachment:'.$index]);
 
         return Storage::disk(Meeting::disk())->download($file['path'], $file['name'], ['Content-Type' => 'application/pdf']);
     }
 
-    public function minutesFile(Request $request, Meeting $meeting, LogFileDownload $log): StreamedResponse
+    public function minutesFile(Request $request, Meeting $meeting, LogAccess $log): StreamedResponse
     {
         $user = $this->user($request);
         abort_unless($user->can('readMinutes', $meeting), 403);
 
-        $log->handle($user, $meeting, 'minutes');
+        $log->handle($user, $meeting, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'minutes']);
 
         return Storage::disk(Meeting::disk())->download((string) $meeting->minutes_file, 'minutes-'.$meeting->starts_at->format('Y-m-d').'.pdf', ['Content-Type' => 'application/pdf']);
     }

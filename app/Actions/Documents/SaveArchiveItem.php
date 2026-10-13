@@ -6,8 +6,8 @@ use App\Enums\ArchiveItemType;
 use App\Models\ArchiveCategory;
 use App\Models\ArchiveItem;
 use App\Models\User;
-use App\Support\ImageSanitizer;
-use App\Support\PrivatePdf;
+use App\Support\PrivateUpload;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 /**
  * حفظ عنصر في الأرشيف (السكرتير — ArchiveItemPolicy): في تصنيف يطّلع عليه الحافظ، وملفاته PDF حقيقية
@@ -25,11 +24,6 @@ use RuntimeException;
 class SaveArchiveItem
 {
     private const MAX_FILES = 20;
-
-    private const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-    // حد حقل الرفع (20 ميجابايت)، يُفحص قبل قراءة الملف كاملاً في الذاكرة كملفات الوظائف
-    private const MAX_BYTES = 20 * 1024 * 1024;
 
     /**
      * @param  array<string, mixed>  $data
@@ -95,7 +89,7 @@ class SaveArchiveItem
         });
 
         $kept = array_column($files, 'path');
-        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! PrivatePdf::inDirectory($path, ArchiveItem::DIRECTORY));
+        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, ArchiveItem::DIRECTORY));
         Storage::disk(ArchiveItem::disk())->delete($removed->values()->all());
 
         return $item;
@@ -142,30 +136,7 @@ class SaveArchiveItem
             throw ValidationException::withMessages(['files' => __('validation.file_in_use')]);
         }
 
-        $disk = Storage::disk(ArchiveItem::disk());
-        $type = PrivatePdf::inDirectory($path, ArchiveItem::DIRECTORY) && $disk->exists($path) && $disk->size($path) <= self::MAX_BYTES
-            ? (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $disk->get($path))
-            : '';
-
-        if (in_array($type, self::IMAGE_TYPES, true)) {
-            try {
-                ImageSanitizer::strip(ArchiveItem::disk(), $path);
-            } catch (RuntimeException) {
-                $disk->delete($path);
-
-                throw ValidationException::withMessages(['files' => __('documents.validation.invalid_file')]);
-            }
-
-            $size = (int) $disk->size($path);
-        } elseif ($type === 'application/pdf') {
-            $size = PrivatePdf::check(ArchiveItem::disk(), ArchiveItem::DIRECTORY, $path, 'files');
-        } else {
-            if (PrivatePdf::inDirectory($path, ArchiveItem::DIRECTORY)) {
-                $disk->delete($path);
-            }
-
-            throw ValidationException::withMessages(['files' => __('documents.validation.invalid_file')]);
-        }
+        $size = PrivateUpload::check(ArchiveItem::disk(), ArchiveItem::DIRECTORY, $path, 'files', __('documents.validation.invalid_file'))['size'];
 
         return ['path' => $path, 'name' => str_replace(['/', '\\'], '-', $file['name']), 'size' => $size];
     }

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PlatformAccounts\Pages;
 
-use App\Actions\Registers\LogRegisterAccess;
+use App\Actions\Activity\LogAccess;
 use App\Enums\ActivityEvent;
 use App\Filament\Resources\PlatformAccounts\PlatformAccountResource;
 use App\Models\User;
@@ -22,7 +22,7 @@ class ViewPlatformAccount extends ViewRecord
 
         /** @var User $actor */
         $actor = auth()->user();
-        app(LogRegisterAccess::class)->handle($actor, $this->getRecord(), ActivityEvent::Viewed);
+        app(LogAccess::class)->handle($actor, $this->getRecord(), 'registers', ActivityEvent::Viewed);
     }
 
     protected function getHeaderActions(): array

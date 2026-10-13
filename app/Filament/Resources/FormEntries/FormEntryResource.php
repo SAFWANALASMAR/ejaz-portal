@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\FormEntries;
 
+use App\Actions\Activity\LogAccess;
 use App\Actions\Documents\ApproveFormEntry;
-use App\Actions\Documents\LogDocumentAccess;
 use App\Actions\Documents\PrintFormEntry;
 use App\Enums\ActivityEvent;
 use App\Enums\DocumentFieldType;
@@ -178,9 +178,9 @@ class FormEntryResource extends Resource
                 ->icon(Heroicon::OutlinedPaperClip)
                 ->color('gray')
                 ->authorize(fn (FormEntry $record): bool => self::actor()->can('view', $record))
-                ->action(function (FormEntry $record, LogDocumentAccess $log) use ($key): StreamedResponse {
+                ->action(function (FormEntry $record, LogAccess $log) use ($key): StreamedResponse {
                     $file = collect($record->files ?? [])->firstWhere('key', $key) ?? abort(404);
-                    $log->handle(self::actor(), $record, ActivityEvent::FileDownloaded, ['file' => $key]);
+                    $log->handle(self::actor(), $record, 'documents', ActivityEvent::FileDownloaded, ['file' => $key]);
 
                     return Storage::disk(FormEntry::disk())->download($file['path'], $file['name'], ['Content-Type' => 'application/pdf']);
                 });

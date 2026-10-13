@@ -33,24 +33,15 @@ function mediaFile(string $dir, string $name, string $contents): string
     return $dir.'/'.$name;
 }
 
-function pngOf(int $width, int $height): string
-{
-    $image = imagecreatetruecolor($width, $height);
-    ob_start();
-    imagepng($image);
-
-    return (string) ob_get_clean();
-}
-
 it('keeps the original privately and publishes a smaller WebP copy', function () {
-    $file = mediaFile($this->dir, 'wide.png', pngOf(2400, 1200));
+    $file = mediaFile($this->dir, 'wide.png', imageBytes('png', 2400, 1200));
 
     $asset = app(AddMediaAsset::class)->handle($this->editor, $file, ['slug' => 'wide', 'title' => 'wide', 'alt' => '【ناقص: نص بديل】']);
 
     $web = (string) Storage::disk('public')->get((string) $asset->web_path);
     [$width, $height] = getimagesizefromstring($web) ?: [0, 0];
 
-    expect(Storage::disk(MediaAsset::disk())->get($asset->original_path))->toBe(pngOf(2400, 1200))
+    expect(Storage::disk(MediaAsset::disk())->get($asset->original_path))->toBe(imageBytes('png', 2400, 1200))
         ->and(Storage::disk('public')->exists($asset->original_path))->toBeFalse()
         ->and((new finfo(FILEINFO_MIME_TYPE))->buffer($web))->toBe('image/webp')
         ->and([$width, $height])->toBe([AddMediaAsset::WEB_MAX_SIDE, 960])
@@ -60,7 +51,7 @@ it('keeps the original privately and publishes a smaller WebP copy', function ()
 
 it('refuses an image wider than the side cap before decoding it, though GD could read it', function () {
     // صورة سليمة تُفك بلا مشكلة دون الحد، فلا ينجح الاختبار إلا به
-    $file = mediaFile($this->dir, 'wide.png', pngOf(AddMediaAsset::MAX_SIDE + 1, 1));
+    $file = mediaFile($this->dir, 'wide.png', imageBytes('png', AddMediaAsset::MAX_SIDE + 1, 1));
 
     expect(fn () => app(AddMediaAsset::class)->handle($this->editor, $file, ['slug' => 'wide', 'title' => 'x']))
         ->toThrow(ValidationException::class);
@@ -95,7 +86,7 @@ it('rejects an SVG with a DOCTYPE, a file that is not an image, and a user witho
     expect(fn () => app(AddMediaAsset::class)->handle($this->editor, mediaFile($this->dir, 'fake.png', 'not an image'), ['slug' => 'fake', 'title' => 'x']))
         ->toThrow(ValidationException::class);
 
-    expect(fn () => app(AddMediaAsset::class)->handle(userWithRole(RoleName::Secretary), mediaFile($this->dir, 'ok.png', pngOf(4, 4)), ['slug' => 'ok', 'title' => 'x']))
+    expect(fn () => app(AddMediaAsset::class)->handle(userWithRole(RoleName::Secretary), mediaFile($this->dir, 'ok.png', imageBytes('png', 4, 4)), ['slug' => 'ok', 'title' => 'x']))
         ->toThrow(AuthorizationException::class);
 
     expect(MediaAsset::query()->count())->toBe(0)
@@ -104,7 +95,7 @@ it('rejects an SVG with a DOCTYPE, a file that is not an image, and a user witho
 });
 
 it('opens the media library to the editor only, and never offers deletion', function () {
-    $asset = app(AddMediaAsset::class)->handle($this->editor, mediaFile($this->dir, 'a.png', pngOf(4, 4)), ['slug' => 'a', 'title' => 'a']);
+    $asset = app(AddMediaAsset::class)->handle($this->editor, mediaFile($this->dir, 'a.png', imageBytes('png', 4, 4)), ['slug' => 'a', 'title' => 'a']);
 
     $this->actingAs($this->editor)->get(MediaAssetResource::getUrl('index'))->assertOk()->assertSee('a');
     $this->actingAs($this->editor)->get(MediaAssetResource::getUrl('edit', ['record' => $asset]))->assertOk();
@@ -118,7 +109,7 @@ it('opens the media library to the editor only, and never offers deletion', func
 });
 
 it('lets the editor complete the alt text from the panel, logged, and clears it for a decorative image', function () {
-    $asset = app(AddMediaAsset::class)->handle($this->editor, mediaFile($this->dir, 'a.png', pngOf(4, 4)), ['slug' => 'a', 'title' => 'a', 'alt' => '【ناقص: نص بديل】']);
+    $asset = app(AddMediaAsset::class)->handle($this->editor, mediaFile($this->dir, 'a.png', imageBytes('png', 4, 4)), ['slug' => 'a', 'title' => 'a', 'alt' => '【ناقص: نص بديل】']);
     $this->actingAs($this->editor);
 
     Livewire::test(EditMediaAsset::class, ['record' => $asset->getRouteKey()])

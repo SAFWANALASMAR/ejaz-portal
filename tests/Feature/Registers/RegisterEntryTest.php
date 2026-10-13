@@ -45,8 +45,7 @@ function registerData(array $overrides = []): array
 
 function registerFile(string $contents, string $extension = 'pdf'): array
 {
-    $path = RegisterEntry::DIRECTORY.'/'.fake()->uuid().'.'.$extension;
-    Storage::disk('local')->put($path, $contents);
+    $path = storedPrivateFile(RegisterEntry::DIRECTORY, $contents, $extension);
 
     return ['path' => $path, 'name' => 'مرفق.'.$extension];
 }
@@ -148,10 +147,7 @@ it('saves without an expiry date for what does not expire', function () {
 });
 
 it('takes real PDFs and re-encoded images as attachments, and refuses other files', function () {
-    $image = imagecreatetruecolor(40, 30);
-    ob_start();
-    imagepng($image);
-    $png = registerFile((string) ob_get_clean(), 'png');
+    $png = registerFile(imageBytes('png', 40, 30), 'png');
 
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents()), $png]]));
     expect($entry->attachments)->toHaveCount(2)

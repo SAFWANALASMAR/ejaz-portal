@@ -5,6 +5,7 @@ namespace App\Actions\Governance;
 use App\Models\Document;
 use App\Models\User;
 use App\Rules\RealPdf;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -41,7 +42,7 @@ class SaveDocument
 
         DB::transaction(fn () => $document->save());
 
-        if ($previous !== null && $previous !== $document->file && self::inDirectory($previous)) {
+        if ($previous !== null && $previous !== $document->file && StoragePath::inDirectory($previous, Document::DIRECTORY)) {
             Storage::disk(Document::disk())->delete($previous);
         }
 
@@ -65,21 +66,16 @@ class SaveDocument
         }
 
         $disk = Storage::disk(Document::disk());
-        $problem = self::inDirectory($path) && $disk->exists($path) ? RealPdf::problem((string) $disk->get($path)) : 'validation.real_pdf';
+        $problem = StoragePath::inDirectory($path, Document::DIRECTORY) && $disk->exists($path) ? RealPdf::problem((string) $disk->get($path)) : 'validation.real_pdf';
 
         if ($problem === null) {
             return;
         }
 
-        if (self::inDirectory($path)) {
+        if (StoragePath::inDirectory($path, Document::DIRECTORY)) {
             $disk->delete($path);
         }
 
         throw ValidationException::withMessages(['file' => __($problem)]);
-    }
-
-    private static function inDirectory(string $path): bool
-    {
-        return str_starts_with($path, Document::DIRECTORY.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
     }
 }

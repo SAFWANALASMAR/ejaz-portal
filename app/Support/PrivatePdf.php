@@ -20,7 +20,7 @@ final class PrivatePdf
     public static function check(string $disk, string $directory, string $path, string $field): int
     {
         $storage = Storage::disk($disk);
-        $inDirectory = self::inDirectory($path, $directory);
+        $inDirectory = StoragePath::inDirectory($path, $directory);
         $problem = $inDirectory && $storage->exists($path) ? RealPdf::problem((string) $storage->get($path)) : 'validation.real_pdf';
 
         if ($problem !== null) {
@@ -32,10 +32,5 @@ final class PrivatePdf
         }
 
         return (int) $storage->size($path);
-    }
-
-    public static function inDirectory(string $path, string $directory): bool
-    {
-        return str_starts_with($path, $directory.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
     }
 }

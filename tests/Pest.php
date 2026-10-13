@@ -99,6 +99,33 @@ function mp4Contents(int $seconds = 30, int $padding = 0): string
 }
 
 /**
+ * صورة صغيرة بنوعها (png أو webp، وغيرهما jpeg) وأبعادها، تولّدها GD.
+ */
+function imageBytes(string $extension = 'png', int $width = 8, int $height = 6): string
+{
+    $image = imagecreatetruecolor($width, $height);
+    ob_start();
+    match ($extension) {
+        'png' => imagepng($image),
+        'webp' => imagewebp($image),
+        default => imagejpeg($image),
+    };
+
+    return (string) ob_get_clean();
+}
+
+/**
+ * ملف في مجلده على القرص الخاص المحلي باسم عشوائي، كما يتركه حقل الرفع قبل الإجراء. وبلا محتوى: PDF صالح.
+ */
+function storedPrivateFile(string $directory, ?string $contents = null, string $extension = 'pdf'): string
+{
+    $path = $directory.'/'.fake()->uuid().'.'.$extension;
+    Storage::disk('local')->put($path, $contents ?? pdfContents());
+
+    return $path;
+}
+
+/**
  * مشاركة مرسلة بإجابة ومنطقة ومقطع محفوظ على القرص المحلي (اختبارات مدة الاحتفاظ).
  */
 function entryWithVideo(Competition $competition, User $user): CompetitionSubmission

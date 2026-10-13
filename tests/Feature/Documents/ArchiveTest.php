@@ -37,8 +37,7 @@ function archiveData(ArchiveCategory $category, array $overrides = []): array
 
 function archiveFile(string $contents, string $extension = 'pdf'): array
 {
-    $path = ArchiveItem::DIRECTORY.'/'.fake()->uuid().'.'.$extension;
-    Storage::disk('local')->put($path, $contents);
+    $path = storedPrivateFile(ArchiveItem::DIRECTORY, $contents, $extension);
 
     return ['path' => $path, 'name' => 'ملف.'.$extension];
 }
@@ -97,10 +96,7 @@ it('shows items only to roles their category allows, and keeps others from filin
 });
 
 it('takes real PDFs and re-encoded images, and refuses other files', function () {
-    $image = imagecreatetruecolor(40, 30);
-    ob_start();
-    imagejpeg($image);
-    $jpeg = archiveFile((string) ob_get_clean(), 'jpg');
+    $jpeg = archiveFile(imageBytes('jpg', 40, 30), 'jpg');
 
     $item = app(SaveArchiveItem::class)->handle($this->secretary, new ArchiveItem, archiveData($this->category, ['type' => 'evidence', 'files' => [archiveFile(pdfContents()), $jpeg]]));
     expect($item->files)->toHaveCount(2);

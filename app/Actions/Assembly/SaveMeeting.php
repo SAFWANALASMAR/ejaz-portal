@@ -12,6 +12,7 @@ use App\Models\Meeting;
 use App\Models\User;
 use App\Notifications\MeetingNotice;
 use App\Support\PrivatePdf;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -122,7 +123,7 @@ class SaveMeeting
 
         // المرفق المحذوف من الاجتماع يُحذف ملفه بعد اعتماد الحفظ
         $kept = array_column($attachments, 'path');
-        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! PrivatePdf::inDirectory($path, Meeting::ATTACHMENTS_DIRECTORY));
+        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, Meeting::ATTACHMENTS_DIRECTORY));
         Storage::disk(Meeting::disk())->delete($removed->values()->all());
 
         if (($meeting->is_online || $meeting->online_meeting_id !== null) && ($creating || $meeting->wasChanged(['title', 'starts_at', 'ends_at', 'is_online']))) {

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\RegisterEntries\Pages;
 
-use App\Actions\Registers\LogRegisterAccess;
+use App\Actions\Activity\LogAccess;
 use App\Enums\ActivityEvent;
 use App\Filament\Resources\RegisterEntries\RegisterEntryResource;
 use App\Models\RegisterEntry;
@@ -23,7 +23,7 @@ class ViewRegisterEntry extends ViewRecord
 
         /** @var User $actor */
         $actor = auth()->user();
-        app(LogRegisterAccess::class)->handle($actor, $this->getRecord(), ActivityEvent::Viewed);
+        app(LogAccess::class)->handle($actor, $this->getRecord(), 'registers', ActivityEvent::Viewed);
     }
 
     protected function getHeaderActions(): array
