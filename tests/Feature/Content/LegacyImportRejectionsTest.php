@@ -24,21 +24,13 @@ beforeEach(function () {
 
     $this->dir = sys_get_temp_dir().'/import-rejections-'.Str::random(8);
     File::ensureDirectoryExists($this->dir.'/export/files');
-    File::put($this->dir.'/export/files/ok.png', pngBytes());
-    File::put($this->dir.'/outside.png', pngBytes());
+    File::put($this->dir.'/export/files/ok.png', imageBytes('png', 4, 4));
+    File::put($this->dir.'/outside.png', imageBytes('png', 4, 4));
 
     $this->admin = userWithRole(RoleName::SuperAdmin);
 });
 
 afterEach(fn () => File::deleteDirectory($this->dir));
-
-function pngBytes(): string
-{
-    ob_start();
-    imagepng(imagecreatetruecolor(4, 4));
-
-    return (string) ob_get_clean();
-}
 
 /**
  * @param  array<string, mixed>  $data

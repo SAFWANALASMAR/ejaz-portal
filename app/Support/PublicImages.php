@@ -25,7 +25,7 @@ final class PublicImages
     public static function prepare(array $before, array $after, string $directory, string $field): void
     {
         foreach (array_diff($after, $before) as $path) {
-            if (! self::inDirectory($path, $directory)) {
+            if (! StoragePath::inDirectory($path, $directory)) {
                 throw self::reject($field);
             }
 
@@ -47,16 +47,11 @@ final class PublicImages
      */
     public static function discard(array $before, array $after, string $directory): void
     {
-        $removed = array_filter(array_diff($before, $after), fn (string $path): bool => self::inDirectory($path, $directory));
+        $removed = array_filter(array_diff($before, $after), fn (string $path): bool => StoragePath::inDirectory($path, $directory));
 
         if ($removed !== []) {
             Storage::disk('public')->delete(array_values($removed));
         }
-    }
-
-    private static function inDirectory(string $path, string $directory): bool
-    {
-        return str_starts_with($path, $directory.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
     }
 
     private static function reject(string $field): ValidationException

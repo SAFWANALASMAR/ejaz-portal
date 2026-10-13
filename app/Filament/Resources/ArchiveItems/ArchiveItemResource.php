@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\ArchiveItems;
 
-use App\Actions\Documents\LogDocumentAccess;
+use App\Actions\Activity\LogAccess;
 use App\Enums\ActivityEvent;
 use App\Enums\ArchiveItemType;
 use App\Filament\Concerns\HasTranslatedLabels;
@@ -194,9 +194,9 @@ class ArchiveItemResource extends Resource
                 ->icon(Heroicon::OutlinedPaperClip)
                 ->color('gray')
                 ->authorize(fn (ArchiveItem $record): bool => self::actor()->can('view', $record))
-                ->action(function (ArchiveItem $record, LogDocumentAccess $log) use ($index): StreamedResponse {
+                ->action(function (ArchiveItem $record, LogAccess $log) use ($index): StreamedResponse {
                     $file = ($record->files ?? [])[$index] ?? abort(404);
-                    $log->handle(self::actor(), $record, ActivityEvent::FileDownloaded, ['file' => $file['name']]);
+                    $log->handle(self::actor(), $record, 'documents', ActivityEvent::FileDownloaded, ['file' => $file['name']]);
 
                     return Storage::disk(ArchiveItem::disk())->download($file['path'], $file['name']);
                 });

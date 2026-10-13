@@ -2,12 +2,13 @@
 
 namespace App\Filament\Resources\Meetings;
 
+use App\Actions\Activity\LogAccess;
 use App\Actions\Assembly\ApproveMeetingMinutes;
 use App\Actions\Assembly\CancelMeeting;
-use App\Actions\Assembly\LogFileDownload;
 use App\Actions\Assembly\MarkMeetingHeld;
 use App\Actions\Assembly\RecordMeetingAttendance;
 use App\Actions\Assembly\UploadMeetingMinutes;
+use App\Enums\ActivityEvent;
 use App\Jobs\SyncOnlineMeeting;
 use App\Models\Meeting;
 use App\Models\User;
@@ -136,8 +137,8 @@ final class MeetingActions
             ->icon(Heroicon::OutlinedArrowDownTray)
             ->color('gray')
             ->visible(fn (Meeting $record): bool => $record->minutes_file !== null && self::actor()->can('view', $record))
-            ->action(function (Meeting $record, LogFileDownload $log): StreamedResponse {
-                $log->handle(self::actor(), $record, 'minutes');
+            ->action(function (Meeting $record, LogAccess $log): StreamedResponse {
+                $log->handle(self::actor(), $record, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'minutes']);
 
                 return Storage::disk(Meeting::disk())->download((string) $record->minutes_file, 'minutes-'.$record->starts_at->format('Y-m-d').'.pdf', ['Content-Type' => 'application/pdf']);
             });
@@ -172,9 +173,9 @@ final class MeetingActions
                 ->icon(Heroicon::OutlinedPaperClip)
                 ->color('gray')
                 ->authorize(fn (Meeting $record): bool => self::actor()->can('view', $record))
-                ->action(function (Meeting $record, LogFileDownload $log) use ($index): StreamedResponse {
+                ->action(function (Meeting $record, LogAccess $log) use ($index): StreamedResponse {
                     $file = ($record->attachments ?? [])[$index] ?? abort(404);
-                    $log->handle(self::actor(), $record, 'attachment:'.$index);
+                    $log->handle(self::actor(), $record, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'attachment:'.$index]);
 
                     return Storage::disk(Meeting::disk())->download($file['path'], $file['name'], ['Content-Type' => 'application/pdf']);
                 });

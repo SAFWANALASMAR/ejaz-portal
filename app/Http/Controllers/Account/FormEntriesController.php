@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Account;
 
-use App\Actions\Documents\LogDocumentAccess;
+use App\Actions\Activity\LogAccess;
 use App\Actions\Documents\PrintFormEntry;
 use App\Enums\ActivityEvent;
 use App\Http\Controllers\Controller;
@@ -36,13 +36,13 @@ class FormEntriesController extends Controller
         return view('account.forms', ['entries' => $entries]);
     }
 
-    public function show(Request $request, FormEntry $entry, LogDocumentAccess $log): View
+    public function show(Request $request, FormEntry $entry, LogAccess $log): View
     {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('viewAsPerson', $entry), 403);
 
-        $log->handle($user, $entry, ActivityEvent::Viewed, ['view' => 'account']);
+        $log->handle($user, $entry, 'documents', ActivityEvent::Viewed, ['view' => 'account']);
 
         return view('documents.form-entry-print', [
             ...FormEntryLayout::viewData($entry),

@@ -6,15 +6,14 @@ use App\Enums\ActivityEvent;
 use App\Enums\RegisterEntryType;
 use App\Models\RegisterEntry;
 use App\Models\User;
-use App\Support\ImageSanitizer;
-use App\Support\PrivatePdf;
+use App\Support\PrivateUpload;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 /**
  * حفظ مستند في السجلات ذات الصلاحية (المدير التنفيذي والسكرتير — RegisterEntryPolicy). والمسؤول حساب
@@ -25,11 +24,6 @@ use RuntimeException;
 class SaveRegisterEntry
 {
     private const MAX_FILES = 10;
-
-    private const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-    // حد حقل الرفع (20 ميجابايت)، يُفحص قبل قراءة الملف كاملاً في الذاكرة كملفات الوظائف
-    private const MAX_BYTES = 20 * 1024 * 1024;
 
     /**
      * @param  array<string, mixed>  $data
@@ -105,7 +99,7 @@ class SaveRegisterEntry
         }
 
         $kept = array_column($files, 'path');
-        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! PrivatePdf::inDirectory($path, RegisterEntry::DIRECTORY));
+        $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, RegisterEntry::DIRECTORY));
         Storage::disk(RegisterEntry::disk())->delete($removed->values()->all());
 
         return $entry;
@@ -120,8 +114,6 @@ class SaveRegisterEntry
     private static function newFile(RegisterEntry $entry, array $file): array
     {
         $path = $file['path'];
-        $disk = Storage::disk(RegisterEntry::disk());
-        $inDirectory = PrivatePdf::inDirectory($path, RegisterEntry::DIRECTORY);
 
         // مرفق مستند آخر (ولو محذوف ناعماً) لا يُعاد استعماله، فلا يحذفه حذفُه منه
         $inUse = RegisterEntry::withTrashed()
@@ -133,27 +125,7 @@ class SaveRegisterEntry
             throw ValidationException::withMessages(['attachments' => __('validation.file_in_use')]);
         }
 
-        $type = $inDirectory && $disk->exists($path) && $disk->size($path) <= self::MAX_BYTES ? (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $disk->get($path)) : '';
-
-        if (in_array($type, self::IMAGE_TYPES, true)) {
-            try {
-                ImageSanitizer::strip(RegisterEntry::disk(), $path);
-            } catch (RuntimeException) {
-                $disk->delete($path);
-
-                throw ValidationException::withMessages(['attachments' => __('registers.validation.invalid_file')]);
-            }
-
-            $size = (int) $disk->size($path);
-        } elseif ($type === 'application/pdf') {
-            $size = PrivatePdf::check(RegisterEntry::disk(), RegisterEntry::DIRECTORY, $path, 'attachments');
-        } else {
-            if ($inDirectory) {
-                $disk->delete($path);
-            }
-
-            throw ValidationException::withMessages(['attachments' => __('registers.validation.invalid_file')]);
-        }
+        $size = PrivateUpload::check(RegisterEntry::disk(), RegisterEntry::DIRECTORY, $path, 'attachments', __('registers.validation.invalid_file'))['size'];
 
         return ['path' => $path, 'name' => str_replace(['/', '\\'], '-', $file['name']), 'size' => $size];
     }

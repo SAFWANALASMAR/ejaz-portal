@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Support\PrivatePdf;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -64,7 +65,7 @@ class UploadMeetingMinutes
             return $previous;
         });
 
-        if ($previous !== null && $previous !== $path && PrivatePdf::inDirectory($previous, Meeting::MINUTES_DIRECTORY)) {
+        if ($previous !== null && $previous !== $path && StoragePath::inDirectory($previous, Meeting::MINUTES_DIRECTORY)) {
             Storage::disk(Meeting::disk())->delete($previous);
         }
 

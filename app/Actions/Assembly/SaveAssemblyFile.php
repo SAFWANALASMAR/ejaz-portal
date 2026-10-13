@@ -7,6 +7,7 @@ use App\Enums\AssemblyFileCategory;
 use App\Models\AssemblyFile;
 use App\Models\User;
 use App\Support\PrivatePdf;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -59,7 +60,7 @@ class SaveAssemblyFile
 
         DB::transaction(fn () => $file->save());
 
-        if ($previous !== null && $previous !== $file->file && PrivatePdf::inDirectory($previous, AssemblyFile::DIRECTORY)) {
+        if ($previous !== null && $previous !== $file->file && StoragePath::inDirectory($previous, AssemblyFile::DIRECTORY)) {
             Storage::disk(AssemblyFile::disk())->delete($previous);
         }
 

@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Assembly;
 
-use App\Actions\Assembly\LogFileDownload;
+use App\Actions\Activity\LogAccess;
+use App\Enums\ActivityEvent;
 use App\Enums\AssemblyFileAudience;
 use App\Enums\AssemblyFileCategory;
 use App\Http\Controllers\Controller;
@@ -41,13 +42,13 @@ class AssemblyFileController extends Controller
         return view('assembly.files.index', ['files' => $files, 'active' => $category]);
     }
 
-    public function download(Request $request, AssemblyFile $file, LogFileDownload $log): StreamedResponse
+    public function download(Request $request, AssemblyFile $file, LogAccess $log): StreamedResponse
     {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('download', $file), 403);
 
-        $log->handle($user, $file, 'file');
+        $log->handle($user, $file, 'assembly', ActivityEvent::FileDownloaded, ['file' => 'file']);
 
         return Storage::disk(AssemblyFile::disk())->download($file->file, $file->downloadName(), ['Content-Type' => 'application/pdf']);
     }

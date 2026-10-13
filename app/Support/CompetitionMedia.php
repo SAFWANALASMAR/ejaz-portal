@@ -19,7 +19,7 @@ final class CompetitionMedia
 
     public static function inDirectory(string $path): bool
     {
-        return PrivatePdf::inDirectory($path, self::DIRECTORY);
+        return StoragePath::inDirectory($path, self::DIRECTORY);
     }
 
     /**

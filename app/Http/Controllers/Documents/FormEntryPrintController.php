@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Documents;
 
-use App\Actions\Documents\LogDocumentAccess;
+use App\Actions\Activity\LogAccess;
 use App\Actions\Documents\PrintFormEntry;
 use App\Enums\ActivityEvent;
 use App\Filament\Resources\FormEntries\FormEntryResource;
@@ -21,13 +21,13 @@ use Illuminate\View\View;
  */
 class FormEntryPrintController extends Controller
 {
-    public function show(Request $request, FormEntry $entry, LogDocumentAccess $log): View
+    public function show(Request $request, FormEntry $entry, LogAccess $log): View
     {
         self::authorizeStaff($request, $entry);
 
         /** @var User $actor */
         $actor = $request->user();
-        $log->handle($actor, $entry, ActivityEvent::Viewed, ['view' => 'print']);
+        $log->handle($actor, $entry, 'documents', ActivityEvent::Viewed, ['view' => 'print']);
 
         return view('documents.form-entry-print', [
             ...FormEntryLayout::viewData($entry),

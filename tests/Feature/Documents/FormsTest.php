@@ -41,8 +41,7 @@ function signatureDataUrl(): string
 
 function formFile(string $contents = ''): array
 {
-    $path = FormEntry::FILES_DIRECTORY.'/'.fake()->uuid().'.pdf';
-    Storage::disk('local')->put($path, $contents === '' ? pdfContents() : $contents);
+    $path = storedPrivateFile(FormEntry::FILES_DIRECTORY, $contents === '' ? null : $contents);
 
     return ['path' => $path, 'name' => 'مرفق.pdf'];
 }
