@@ -7,6 +7,7 @@ use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasPublicImages;
 use App\Rules\VideoUrl;
+use App\Support\StoragePath;
 use Database\Factories\LibraryItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,7 +117,7 @@ class LibraryItem extends Model implements HasPublicImages
      */
     public static function isOwnFile(string $path): bool
     {
-        return str_starts_with($path, self::FILE_DIRECTORY.'/') && ! str_contains($path, '..') && ! str_contains($path, "\0");
+        return StoragePath::inDirectory($path, self::FILE_DIRECTORY);
     }
 
     /**

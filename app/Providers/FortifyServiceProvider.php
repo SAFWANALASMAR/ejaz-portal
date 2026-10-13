@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\DisableTwoFactorAuthentication;
+use App\Actions\Fortify\EnableTwoFactorAuthentication;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
@@ -14,6 +15,7 @@ use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\NetworkPrefix;
+use App\Support\UploadLimits;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFactorAuthentication;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication as BaseEnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
@@ -42,6 +45,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
         $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
         $this->app->bind(BaseDisableTwoFactorAuthentication::class, DisableTwoFactorAuthentication::class);
+        $this->app->bind(BaseEnableTwoFactorAuthentication::class, EnableTwoFactorAuthentication::class);
         $this->app->bind(FortifyLoginRateLimiter::class, LoginRateLimiter::class);
         // مدخل كل بوابة بعد الدخول: اللوحة لمن يدخلها، ولوحة المستخدم لغيره
         $this->app->singleton(LoginResponseContract::class, PortalLoginResponse::class);
@@ -146,6 +150,10 @@ class FortifyServiceProvider extends ServiceProvider
                 Limit::perDay(30)->by($key.':day'),
             ];
         });
+
+        // رفع ملفات اللوحة المؤقت إلى القرص المحلي (Livewire): الملف يُستقبل كاملاً قبل أن يرفضه التحقق.
+        // وبدء الرفع (ومنه المباشر إلى التخزين) يُحدّ في AppServiceProvider
+        RateLimiter::for('uploads', fn (Request $request): array|Limit => UploadLimits::for($request, 'uploads') ?: Limit::none());
 
         RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour((int) config('security.password_reset_per_subscriber_per_hour'))
             ->by('password-reset:'.NetworkPrefix::subscriber($request->ip())));

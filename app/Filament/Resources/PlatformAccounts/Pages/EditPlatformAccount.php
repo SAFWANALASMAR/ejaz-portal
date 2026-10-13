@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PlatformAccounts\Pages;
 
-use App\Actions\Registers\LogRegisterAccess;
+use App\Actions\Activity\LogAccess;
 use App\Actions\Registers\SavePlatformAccount;
 use App\Enums\ActivityEvent;
 use App\Filament\Concerns\SavesThroughAction;
@@ -29,7 +29,7 @@ class EditPlatformAccount extends EditRecord
 
         /** @var User $actor */
         $actor = auth()->user();
-        app(LogRegisterAccess::class)->handle($actor, $this->getRecord(), ActivityEvent::Viewed);
+        app(LogAccess::class)->handle($actor, $this->getRecord(), 'registers', ActivityEvent::Viewed);
     }
 
     protected function getHeaderActions(): array

@@ -169,6 +169,18 @@ it('uploads straight to the storage with signed part links, then checks and keep
         ->and($this->s3->uploads)->toBe([]);
 });
 
+it('signs every part link for exactly the configured minutes, whatever the application clock says', function () {
+    // ساعة التطبيق قبل ساعة الخادم بساعة: المدة تُحسب من لحظة التوقيع نفسها، لا من now()
+    $this->travel(-1)->hours();
+
+    $urls = startS3Upload($this->contents)['urls'];
+
+    foreach ($urls as $url) {
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        expect($query['X-Amz-Expires'])->toBe((string) (config('competitions.video.url_minutes') * 60));
+    }
+});
+
 it('counts a part of the wrong size as missing, so it is uploaded again', function () {
     startS3Upload($this->contents);
     $video = SubmissionVideo::sole();

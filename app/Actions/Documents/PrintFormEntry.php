@@ -2,6 +2,7 @@
 
 namespace App\Actions\Documents;
 
+use App\Actions\Activity\LogAccess;
 use App\Enums\ActivityEvent;
 use App\Enums\FormEntryStatus;
 use App\Models\FormEntry;
@@ -20,7 +21,7 @@ use Mpdf\Mpdf;
  */
 class PrintFormEntry
 {
-    public function __construct(private LogDocumentAccess $log) {}
+    public function __construct(private LogAccess $log) {}
 
     /**
      * @return string محتوى الملف
@@ -79,7 +80,7 @@ class PrintFormEntry
         $html = view('documents.form-entry-pdf', ['entry' => $entry, 'blocks' => FormEntryLayout::blocks($entry)])->render();
         $pdf->WriteHTML(self::literal($html), HTMLParserMode::HTML_BODY);
 
-        $this->log->handle($actor, $entry, ActivityEvent::FileDownloaded, ['file' => 'pdf']);
+        $this->log->handle($actor, $entry, 'documents', ActivityEvent::FileDownloaded, ['file' => 'pdf']);
 
         return $pdf->Output('', 'S');
     }

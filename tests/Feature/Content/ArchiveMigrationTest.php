@@ -52,26 +52,13 @@ function archiveImportFixture(string $dir): string
             'pdf' => pdfContents(),
             'mp3' => mp3Contents(),
             'svg' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>',
-            default => tinyImage(strtolower(pathinfo($path, PATHINFO_EXTENSION))),
+            default => imageBytes(strtolower(pathinfo($path, PATHINFO_EXTENSION))),
         });
     }
 
     File::put($dir.'/legacy-site.json', $json);
 
     return $dir.'/legacy-site.json';
-}
-
-function tinyImage(string $extension): string
-{
-    $image = imagecreatetruecolor(8, 6);
-    ob_start();
-    match ($extension) {
-        'png' => imagepng($image),
-        'webp' => imagewebp($image),
-        default => imagejpeg($image),
-    };
-
-    return (string) ob_get_clean();
 }
 
 /**
@@ -264,8 +251,8 @@ it('answers every internal link of the published site without a 404', function (
 });
 
 it('rejects a media file outside the folder, a missing media item, an unknown setting and a non-YouTube home video, leaving no copies behind', function () {
-    File::put($this->dir.'/files/pic.png', tinyImage('png'));
-    File::put(dirname($this->dir).'/outside-'.basename($this->dir).'.png', tinyImage('png'));
+    File::put($this->dir.'/files/pic.png', imageBytes('png'));
+    File::put(dirname($this->dir).'/outside-'.basename($this->dir).'.png', imageBytes('png'));
     File::put($this->dir.'/broken.json', json_encode([
         'media' => [
             ['slug' => 'pic', 'file' => 'files/pic.png', 'title' => 'صورة تجريبية'],

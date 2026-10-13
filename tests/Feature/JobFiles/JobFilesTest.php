@@ -25,8 +25,7 @@ beforeEach(function () {
 
 function jobFileUpload(string $contents, string $extension = 'pdf'): array
 {
-    $path = JobFileDocument::DIRECTORY.'/'.fake()->uuid().'.'.$extension;
-    Storage::disk('local')->put($path, $contents);
+    $path = storedPrivateFile(JobFileDocument::DIRECTORY, $contents, $extension);
 
     return ['title' => 'مستند تجريبي', 'description' => null, 'path' => $path, 'original_name' => 'مستند.'.$extension];
 }
@@ -98,10 +97,7 @@ it('lets the responsible add, edit and delete documents, with real files only', 
     $document = saveDocument($accountant, $file, jobFileUpload(pdfContents()));
     expect($document->created_by)->toBe($accountant->id)->and($document->size)->toBeGreaterThan(0);
 
-    $image = imagecreatetruecolor(20, 20);
-    ob_start();
-    imagepng($image);
-    $png = jobFileUpload((string) ob_get_clean(), 'png');
+    $png = jobFileUpload(imageBytes('png', 20, 20), 'png');
     $old = $document->path;
 
     saveDocument($accountant, $file, [...$png, 'title' => 'عنوان معدل'], $document);

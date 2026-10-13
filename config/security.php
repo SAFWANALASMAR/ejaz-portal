@@ -22,6 +22,14 @@ return [
     // تنبيه المشرف العام عند هذه النسب من السقف، قبل التوقف عنده
     'sms_alert_thresholds' => [70, 90],
 
+    // تنبيه المشرف العام بعد هذا العدد من رموز التحقق الثنائي الخاطئة على حساب في اليوم (0 يوقفه). وأقل من 30،
+    // لأن محاولات التحقق الثنائي تتوقف عند 30 في اليوم (FortifyServiceProvider)
+    'two_factor_alert_threshold' => (int) env('TWO_FACTOR_ALERT_THRESHOLD', 5),
+
+    // رفع ملفات اللوحة المؤقت (Livewire): لكل حساب في الدقيقة وفي الساعة (0 بلا حد). يتسع لحقل ملفات متعددة (الأرشيف حتى 20)
+    'uploads_per_minute' => (int) env('UPLOADS_PER_MINUTE', 30),
+    'uploads_per_hour' => (int) env('UPLOADS_PER_HOUR', 300),
+
     // نموذج «تواصل معنا» في الساعة: لكل مشترك (عنوان IPv4، أو /64 في IPv6)، ولكل موقع /48 في IPv6،
     // وللبوابة كلها حارساً أخيراً من الإغراق. ويُضاف إليها 5 رسائل في اليوم لكل صندوق بريد
     'contact_per_subscriber_per_hour' => (int) env('CONTACT_PER_SUBSCRIBER_PER_HOUR', 20),

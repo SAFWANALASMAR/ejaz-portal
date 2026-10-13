@@ -134,7 +134,9 @@ return [
         // ورفع Livewire في اللوحة وحدها (لا رفع به في الموقع العام)، خلف الدخول والتحقق الثنائي
         'rules' => ['required', 'file', 'max:'.(max(25, (int) env('COMPETITION_EXAM_MEDIA_MAX_MB', 200)) * 1024)],
         'directory' => null,                                  // Example: 'tmp'                     | Default: 'livewire-tmp'
-        'middleware' => null,                                 // Example: 'throttle:5,1'            | Default: 'throttle:60,1'
+        // للمسجّل دخوله وحده (والتحقق الثنائي في مكوّنات اللوحة التي تصدر الرابط)، وبحد لكل حساب في الدقيقة
+        // والساعة (UploadLimits، الفحص الأمني 12 أكتوبر)
+        'middleware' => ['auth', 'throttle:uploads'],
         'preview_mimes' => [                                  // Supported file types for temporary pre-signed file URLs...
             // بلا svg: لا معاينة لملفات SVG المرفوعة من المستخدمين (docs/security.md)
             'png', 'gif', 'bmp', 'wav', 'mp4',

@@ -50,8 +50,7 @@ beforeEach(function () {
  */
 function meetingAttachment(string $contents = ''): array
 {
-    $path = Meeting::ATTACHMENTS_DIRECTORY.'/'.fake()->uuid().'.pdf';
-    Storage::disk('local')->put($path, $contents === '' ? pdfContents() : $contents);
+    $path = storedPrivateFile(Meeting::ATTACHMENTS_DIRECTORY, $contents === '' ? null : $contents);
 
     return ['path' => $path, 'name' => 'جدول الأعمال.pdf'];
 }

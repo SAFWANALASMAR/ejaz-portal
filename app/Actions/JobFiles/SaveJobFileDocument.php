@@ -5,14 +5,13 @@ namespace App\Actions\JobFiles;
 use App\Models\JobFile;
 use App\Models\JobFileDocument;
 use App\Models\User;
-use App\Support\ImageSanitizer;
-use App\Support\PrivatePdf;
+use App\Support\PrivateUpload;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 /**
  * إضافة مستند إلى ملف وظيفة أو تعديله (JobFileDocumentPolicy). الملف PDF حقيقي (PrivatePdf) أو صورة يُعاد
@@ -22,13 +21,6 @@ use RuntimeException;
  */
 class SaveJobFileDocument
 {
-    private const IMAGE_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-
-    private const MAX_BYTES = 20 * 1024 * 1024;
-
-    // سقف أبعاد الصورة قبل فكها في الذاكرة (صورة صغيرة الحجم بأبعاد ضخمة)
-    private const MAX_PIXELS = 40_000_000;
-
     /**
      * @param  array<string, mixed>  $data  title، وdescription، وpath، وoriginal_name
      *
@@ -93,37 +85,9 @@ class SaveJobFileDocument
             throw ValidationException::withMessages(['path' => __('validation.file_in_use')]);
         }
 
-        $disk = Storage::disk(JobFileDocument::disk());
-        $inDirectory = PrivatePdf::inDirectory($path, JobFileDocument::DIRECTORY);
-        $contents = $inDirectory && $disk->exists($path) && $disk->size($path) <= self::MAX_BYTES ? (string) $disk->get($path) : '';
-        $type = $contents === '' ? '' : (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($contents);
+        $file = PrivateUpload::check(JobFileDocument::disk(), JobFileDocument::DIRECTORY, $path, 'path', __('job_files.validation.invalid_file'));
 
-        if ($type === 'application/pdf') {
-            return [PrivatePdf::check(JobFileDocument::disk(), JobFileDocument::DIRECTORY, $path, 'path'), 'pdf'];
-        }
-
-        if (isset(self::IMAGE_TYPES[$type]) && self::withinPixels($contents)) {
-            try {
-                ImageSanitizer::strip(JobFileDocument::disk(), $path);
-
-                return [(int) $disk->size($path), self::IMAGE_TYPES[$type]];
-            } catch (RuntimeException) {
-                // يُحذف أدناه
-            }
-        }
-
-        if ($inDirectory) {
-            $disk->delete($path);
-        }
-
-        throw ValidationException::withMessages(['path' => __('job_files.validation.invalid_file')]);
-    }
-
-    private static function withinPixels(string $contents): bool
-    {
-        $size = @getimagesizefromstring($contents);
-
-        return is_array($size) && $size[0] * $size[1] <= self::MAX_PIXELS;
+        return [$file['size'], $file['extension']];
     }
 
     /**
@@ -131,7 +95,7 @@ class SaveJobFileDocument
      */
     private static function discard(mixed $path): void
     {
-        if (is_string($path) && PrivatePdf::inDirectory($path, JobFileDocument::DIRECTORY) && ! JobFileDocument::withTrashed()->where('path', $path)->exists()) {
+        if (is_string($path) && StoragePath::inDirectory($path, JobFileDocument::DIRECTORY) && ! JobFileDocument::withTrashed()->where('path', $path)->exists()) {
             Storage::disk(JobFileDocument::disk())->delete($path);
         }
     }

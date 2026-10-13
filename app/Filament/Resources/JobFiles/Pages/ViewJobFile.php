@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\JobFiles\Pages;
 
-use App\Actions\JobFiles\LogJobFileAccess;
+use App\Actions\Activity\LogAccess;
 use App\Actions\JobFiles\UpdateJobFileParticipants;
 use App\Enums\ActivityEvent;
 use App\Filament\Resources\JobFiles\JobFileResource;
@@ -28,7 +28,7 @@ class ViewJobFile extends ViewRecord
     {
         parent::mount($record);
 
-        app(LogJobFileAccess::class)->handle(self::actor(), $this->getRecord(), ActivityEvent::Viewed);
+        app(LogAccess::class)->handle(self::actor(), $this->getRecord(), 'job_files', ActivityEvent::Viewed);
     }
 
     public function getTitle(): string|Htmlable

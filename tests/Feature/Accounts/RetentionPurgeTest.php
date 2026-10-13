@@ -31,8 +31,7 @@ beforeEach(function () {
  */
 function requestWithFile(User $user): ServiceRequest
 {
-    $path = 'service-requests/'.fake()->uuid().'.pdf';
-    Storage::disk('local')->put($path, '%PDF-1.4');
+    $path = storedPrivateFile('service-requests', '%PDF-1.4');
 
     return ServiceRequest::factory()->for($user)->create([
         'answers' => ['about' => 'نبذة شخصية'],

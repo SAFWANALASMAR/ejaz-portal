@@ -43,6 +43,8 @@ return [
         'login_failed' => 'محاولة دخول فاشلة',
         'login_lockout' => 'قفل الدخول بعد محاولات خاطئة',
         'two_factor_failed' => 'رمز تحقق ثنائي خاطئ',
+        'two_factor_failures_alerted' => 'تنبيه المشرف العام بتتابع رموز تحقق ثنائي خاطئة',
+        'two_factor_rotation_refused' => 'رفض استبدال سر التحقق الثنائي المؤكد',
         'logout' => 'خروج',
         'password_reset' => 'تعيين كلمة المرور',
         'registered' => 'تسجيل حساب جديد',

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\DocumentFields;
 use App\Support\PrivatePdf;
 use App\Support\SignatureImage;
+use App\Support\StoragePath;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -120,7 +121,7 @@ class SaveFormEntry
 
         // المستبدل والمحذوف من الملفات، والتواقيع السابقة كلها (حُفظت من جديد)
         $kept = array_column($files, 'path');
-        $removed = $before->pluck('path')->reject(fn (string $path): bool => in_array($path, $kept, true) || ! PrivatePdf::inDirectory($path, FormEntry::FILES_DIRECTORY));
+        $removed = $before->pluck('path')->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, FormEntry::FILES_DIRECTORY));
         Storage::disk(FormEntry::disk())->delete([...$removed->values()->all(), ...array_column($previousSignatures, 'path')]);
 
         return $entry;
