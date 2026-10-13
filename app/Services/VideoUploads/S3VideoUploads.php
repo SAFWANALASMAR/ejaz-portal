@@ -43,7 +43,9 @@ final class S3VideoUploads implements VideoUploads
 
     public function urls(SubmissionVideo $video, array $indexes): array
     {
-        $expires = now()->addMinutes((int) config('competitions.video.url_minutes'));
+        // مدة نسبية تحسبها المكتبة من لحظة التوقيع نفسها، فتبقى المدة في الرابط (X-Amz-Expires) ثابتة. وتاريخ
+        // من now() كان يُطرح منه time() بعده، فتنقص ثانية إن مرّت بينهما، وتتبع ساعة الاختبار لا ساعة الخادم
+        $expires = '+'.(int) config('competitions.video.url_minutes').' minutes';
         $urls = [];
 
         foreach ($indexes as $index) {
