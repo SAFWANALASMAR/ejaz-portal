@@ -224,7 +224,7 @@ it('logs attachment changes by file name', function () {
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
     app(SaveRegisterEntry::class)->handle($this->director, $entry, registerData(['attachments' => []]));
 
-    $logs = Activity::where('subject_type', RegisterEntry::class)->where('subject_id', $entry->id)->whereNotNull('properties->attachments_removed')->get();
+    $logs = Activity::where('subject_type', RegisterEntry::class)->where('subject_id', $entry->id)->whereNotNull('properties->attachments_removed')->orderBy('id')->get();
     expect($logs->last()->properties['attachments_removed'])->toBe(['مرفق.pdf']);
 });
 
