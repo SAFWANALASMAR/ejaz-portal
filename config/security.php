@@ -60,6 +60,9 @@ return [
     // مدة خمول جلسة لوحة الإدارة بالدقائق قبل تسجيل الخروج آلياً
     'admin_idle_minutes' => (int) env('ADMIN_IDLE_MINUTES', 30),
 
+    // سقف مطلق لجلسة لوحة الإدارة بالدقائق من أول طلب فيها، مهما استمر النشاط (8 ساعات)
+    'admin_session_max_minutes' => (int) env('ADMIN_SESSION_MAX_MINUTES', 480),
+
     // HSTS يُرسل فقط على الاتصال الآمن
     'hsts_max_age' => 31536000,
 
