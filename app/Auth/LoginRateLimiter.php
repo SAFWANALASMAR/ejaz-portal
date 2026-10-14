@@ -3,23 +3,42 @@
 namespace App\Auth;
 
 use App\Support\LoginIdentifier;
+use App\Support\NetworkPrefix;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
 /**
- * قفل محاولات الدخول الخاطئة فقط (الدخول الناجح لا يُحسب، ويمسح العدّاد):
+ * قفل محاولات الدخول الخاطئة (الدخول الناجح لا يُحسب):
  * - خمس محاولات في الدقيقة لكل حساب وعنوان.
  * - عشر محاولات في ربع ساعة لكل حساب من أي عنوان (قفل مؤقت للحساب).
+ * - لكل شبكة في ربع ساعة: المشترك (عنوان IPv4، أو /64 في IPv6)، والموقع /48 في IPv6،
+ *   فلا يخمّن مصدر واحد كلمات مرور حسابات كثيرة. والدخول الناجح لا يمسحه.
+ * ومعها سقف عام لكل محاولات الدخول في البوابة في الدقيقة، ناجحة أو خاطئة، حارساً أخيراً للمعالج.
  *
+ * يعمل القفل في EnsureLoginIsNotThrottled قبل فحص كلمة المرور، فالمحجوب لا يكلّف تجزئة.
  * المفتاح هو المعرّف الموحَّد، فلا يتجاوز القفلَ تغييرُ صيغة الرقم (docs/decisions.md).
  */
 class LoginRateLimiter extends FortifyLoginRateLimiter
 {
+    private const ALL_KEY = 'login-all';
+
     /**
+     * كل الحدود: حدود الحساب ثم حدود الشبكة.
+     *
      * @return array<string, array{max: int, decay: int}>
      */
     protected function limits(Request $request): array
+    {
+        return $this->accountLimits($request) + $this->networkLimits($request);
+    }
+
+    /**
+     * حدود الحساب، يمسحها الدخول الناجح.
+     *
+     * @return array<string, array{max: int, decay: int}>
+     */
+    private function accountLimits(Request $request): array
     {
         $identifier = LoginIdentifier::normalize($request->input(Fortify::username()));
 
@@ -27,6 +46,26 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
             'login:'.$identifier.'|'.$request->ip() => ['max' => 5, 'decay' => 60],
             'login-account:'.$identifier => ['max' => 10, 'decay' => 900],
         ];
+    }
+
+    /**
+     * حدود الشبكة للمحاولات الخاطئة، لا يمسحها الدخول الناجح حتى لا يصفّرها المهاجم بحسابه.
+     *
+     * @return array<string, array{max: int, decay: int}>
+     */
+    private function networkLimits(Request $request): array
+    {
+        $ip = NetworkPrefix::normalize($request->ip());
+
+        $limits = [
+            'login-network:'.NetworkPrefix::subscriber($ip) => ['max' => (int) config('security.login_failures_per_subscriber'), 'decay' => 900],
+        ];
+
+        if ($ip !== null && NetworkPrefix::isIpv6($ip)) {
+            $limits['login-network:'.NetworkPrefix::prefix($ip, 48)] = ['max' => (int) config('security.login_failures_per_ipv6_site'), 'decay' => 900];
+        }
+
+        return $limits;
     }
 
     /**
@@ -38,6 +77,8 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     }
 
     /**
+     * يُستدعى مرة لكل محاولة قبل فحص كلمة المرور، فيُحسب فيه السقف العام لكل المحاولات.
+     *
      * @param  Request  $request
      */
     public function tooManyAttempts($request): bool
@@ -46,6 +87,16 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
             if ($this->limiter->tooManyAttempts($key, $limit['max'])) {
                 return true;
             }
+        }
+
+        $portalMax = (int) config('security.login_attempts_per_minute');
+
+        if ($portalMax > 0) {
+            if ($this->limiter->tooManyAttempts(self::ALL_KEY, $portalMax)) {
+                return true;
+            }
+
+            $this->limiter->hit(self::ALL_KEY, 60);
         }
 
         return false;
@@ -75,15 +126,23 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
             }
         }
 
+        $portalMax = (int) config('security.login_attempts_per_minute');
+
+        if ($portalMax > 0 && $this->limiter->tooManyAttempts(self::ALL_KEY, $portalMax)) {
+            $waits[] = $this->limiter->availableIn(self::ALL_KEY);
+        }
+
         return $waits === [] ? 0 : max($waits);
     }
 
     /**
+     * الدخول الناجح يمسح حدود الحساب وحدها.
+     *
      * @param  Request  $request
      */
     public function clear($request): void
     {
-        foreach (array_keys($this->limits($request)) as $key) {
+        foreach (array_keys($this->accountLimits($request)) as $key) {
             $this->limiter->clear($key);
         }
     }
