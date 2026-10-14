@@ -6,6 +6,7 @@ use App\Filament\AvatarProviders\InitialsAvatarProvider;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
+use App\Http\Middleware\LeavePanelWithFullPageLoad;
 use App\Http\Middleware\SecurityHeaders;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\FileUpload;
@@ -26,8 +27,11 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -68,6 +72,9 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): Htmlable => Vite::fonts())
             // صورة الحساب تُولَّد محلياً، لا من مزود خارجي
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
+            // التنقّل بين صفحات اللوحة بلا إعادة تحميل كاملة، وما خارجها يُحمَّل تحميلاً كاملاً (decisions.md)
+            ->spa()
+            ->spaUrlExceptions(fn (): array => self::urlsOutsidePanel($panel->getPath()))
             ->sidebarCollapsibleOnDesktop()
             ->unsavedChangesAlerts()
             ->databaseNotifications()
@@ -92,6 +99,7 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                LeavePanelWithFullPageLoad::class,
                 AuthenticateSession::class,
                 EnsureAccountIsActive::class,
                 ShareErrorsFromSession::class,
@@ -105,5 +113,26 @@ class AdminPanelProvider extends PanelProvider
                 EnsureTwoFactorIsEnabled::class,
                 AdminIdleTimeout::class,
             ], isPersistent: true);
+    }
+
+    /**
+     * أنماط كل رابط خارج /admin: الموقع العام بقالبه وأصوله، والدخول والخروج والتحقق الثنائي، وتنزيل الملفات
+     * والتصدير والطباعة (روابط موقّعة أو ردود ملفات لا صفحات). تُبنى من أول مقطع في كل مسار مسجّل، فالمسار
+     * الجديد خارج اللوحة يُستثنى بلا تعديل هنا. وتشمل الرابط المطلق (route() وurl()) والنسبي، وبالاستعلام
+     * وبالجزء #.
+     *
+     * @return list<string>
+     */
+    public static function urlsOutsidePanel(string $panelPath): array
+    {
+        return collect(Route::getRoutes()->getRoutes())
+            ->map(fn (RoutingRoute $route): string => Str::before(ltrim($route->uri(), '/'), '/'))
+            ->reject(fn (string $segment): bool => $segment === $panelPath || str_starts_with($segment, '{'))
+            ->unique()
+            ->flatMap(fn (string $segment): array => collect($segment === '' ? [url('/'), url('/').'/', '/'] : [url($segment), '/'.$segment])
+                ->flatMap(fn (string $prefix): array => [$prefix, $prefix.'?*', $prefix.'#*', ...($segment === '' ? [] : [$prefix.'/*'])])
+                ->all())
+            ->values()
+            ->all();
     }
 }

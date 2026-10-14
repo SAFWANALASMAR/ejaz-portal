@@ -87,6 +87,10 @@
 - ✅ (مدموج في `preview/local`) البث المباشر. (`requirements/09-extras.md`) في `feature/livestream` (`plans/livestream.md`).
 - ⬜ المساعد الذكي: يجيب من محتوى الجمعية المنشور فقط، بمفتاح تشغيل من الإدارة. (`requirements/10-ai-assistant.md`)
 
+## قرارات 14 أكتوبر 2026
+
+- 🟨 لوحة الإدارة بوضع SPA (`feat/admin-spa`): التنقّل بلا إعادة تحميل، والاستثناءات لكل ما خارج `/admin`، والخروج بتحميل كامل عند التحويل إلى خارجها (`decisions.md`). بانتظار مراجعة المشرف.
+
 ## ملاحظات المدير التنفيذي — 10 أكتوبر 2026 (ملزمة)
 
 المتطلبات في `requirements/12-executive-director-2026-10-10.md` و`requirements/11-job-files.md`، والمدخلات في `inputs/2026-10-10-executive-director/`. كل بند في فرع مستقل.
