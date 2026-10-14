@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -12,12 +14,15 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * وملف PDF من غير الإداريين لا يُعرض في المتصفح ($download): يُنزَّل كمرفقات المتقدمين (قرار
  * 2026-10-07)، وعلى استجابته سياسة CSP الكاملة من SecurityHeaders.
+ *
+ * ورأس Content-Disposition يُبنى بـ HeaderUtils::makeDisposition: الاسم بلا محارف تحكم ولا فواصل مسار،
+ * ويصل كاملاً في filename* (UTF-8)، ومعه اسم احتياطي ASCII بلا اقتباس.
  */
 final class PrivateFileResponse
 {
     public static function make(string $disk, string $path, string $mime, string $name, int $minutes, bool $download = false): Response
     {
-        $disposition = ($download ? 'attachment' : 'inline').'; filename="'.$name.'"';
+        $disposition = self::disposition($download ? HeaderUtils::DISPOSITION_ATTACHMENT : HeaderUtils::DISPOSITION_INLINE, $name);
         $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff', 'Content-Disposition' => $disposition];
         $storage = Storage::disk($disk);
 
@@ -32,5 +37,13 @@ final class PrivateFileResponse
             'ResponseContentDisposition' => $disposition,
             'ResponseCacheControl' => 'private, no-store',
         ]));
+    }
+
+    private static function disposition(string $type, string $name): string
+    {
+        $name = str_replace(['/', '\\'], '_', (string) preg_replace('/[\x00-\x1F\x7F]/u', '', $name));
+        $fallback = (string) preg_replace('/[^A-Za-z0-9._ -]/', '_', Str::ascii($name));
+
+        return HeaderUtils::makeDisposition($type, $name, trim($fallback, '._ ') === '' ? 'file' : $fallback);
     }
 }
