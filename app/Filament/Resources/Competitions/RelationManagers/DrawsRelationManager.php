@@ -58,7 +58,7 @@ class DrawsRelationManager extends RelationManager
             TextEntry::make('winners')->label(__('competitions.draws.winners'))->listWithLineBreaks()->bulleted(),
             TextEntry::make('void.reason')->label(__('competitions.draws.void_reason'))->visible(fn (CompetitionDraw $record): bool => $record->void !== null),
             TextEntry::make('void.approver.name')->label(__('competitions.draws.void_approver'))->visible(fn (CompetitionDraw $record): bool => $record->void?->approved_by !== null),
-            TextEntry::make('voidRequest.reason')->label(__('competitions.draws.void_pending_label'))->visible(fn (CompetitionDraw $record): bool => $record->void === null && $record->voidRequest !== null),
+            TextEntry::make('voidRequest.reason')->label(__('competitions.draws.void_pending_label'))->visible(fn (CompetitionDraw $record): bool => $record->void === null && $record->openVoidRequest() !== null),
         ]);
     }
 
@@ -77,15 +77,15 @@ class DrawsRelationManager extends RelationManager
                 TextColumn::make('status')->label(__('competitions.draws.status'))->badge()
                     ->state(fn (CompetitionDraw $record): string => match (true) {
                         $record->void !== null => __('competitions.draws.voided_label'),
-                        $record->voidRequest !== null => __('competitions.draws.void_pending_label'),
+                        $record->openVoidRequest() !== null => __('competitions.draws.void_pending_label'),
                         default => __('competitions.draws.active'),
                     })
                     ->color(fn (CompetitionDraw $record): string => match (true) {
                         $record->void !== null => 'gray',
-                        $record->voidRequest !== null => 'warning',
+                        $record->openVoidRequest() !== null => 'warning',
                         default => 'success',
                     })
-                    ->description(fn (CompetitionDraw $record): ?string => $record->void->reason ?? $record->voidRequest?->reason),
+                    ->description(fn (CompetitionDraw $record): ?string => $record->void->reason ?? $record->openVoidRequest()?->reason),
             ])
             ->headerActions([
                 Action::make('draw')
@@ -118,7 +118,7 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.void'))
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && $record->voidRequest === null
+                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && $record->openVoidRequest() === null
                         && (auth()->user()?->can('void', $record) ?? false))
                     // بعد الإلغاء الأول في المسابقة يصير الإلغاء طلباً يعتمده مشرف عام آخر (VoidDraw)
                     ->modalDescription(fn (): string => $this->competition()->draws()->whereHas('void')->exists()

@@ -87,6 +87,17 @@ class CompetitionDraw extends Model
     }
 
     /**
+     * الطلب المعلّق الذي لم تمض مدته. والذي مضت مدته كالساقط: لا أزرار له، ويُسقطه أول تعامل مع السحب
+     * (LapseDrawVoidRequests::forDraw) قبل الأمر اليومي.
+     */
+    public function openVoidRequest(): ?CompetitionDrawVoidRequest
+    {
+        $request = $this->voidRequest;
+
+        return $request !== null && ! $request->hasLapsed() ? $request : null;
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function executor(): BelongsTo
