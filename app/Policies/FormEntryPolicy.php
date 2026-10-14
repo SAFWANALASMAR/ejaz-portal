@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * النماذج المعبأة (صلاحيات form_entries.*). المسودة تُعدَّل وتُحذف، والمعتمد يُقفل (منع صريح لا يغيّره
- * Gate::after). ويعتمد المجلس، ولا يعتمد المعبأ من عبّأه.
+ * Gate::after). ويعتمد المجلس، ولا يعتمد المعبأ من عبّأه. وكل عملية على معبأ بعينه لمن عبّأه، أو لمن يملك
+ * form_entries.view_all (FormEntry::isVisibleInPanel — قرار صفوان، 14 أكتوبر 2026).
  */
 class FormEntryPolicy extends ModulePolicy
 {
@@ -19,21 +20,34 @@ class FormEntryPolicy extends ModulePolicy
         return 'form_entries';
     }
 
+    public function view(User $user, Model $record): bool
+    {
+        /** @var FormEntry $record */
+        return $record->isVisibleInPanel($user);
+    }
+
     public function update(User $user, Model $record): bool
     {
         /** @var FormEntry $record */
-        return $record->status === FormEntryStatus::Draft && $this->allows($user, 'update');
+        return $record->status === FormEntryStatus::Draft && $this->allows($user, 'update') && $record->isVisibleInPanel($user);
     }
 
     public function delete(User $user, Model $record): bool
     {
         /** @var FormEntry $record */
-        return $record->status === FormEntryStatus::Draft && $this->allows($user, 'delete');
+        return $record->status === FormEntryStatus::Draft && $this->allows($user, 'delete') && $record->isVisibleInPanel($user);
+    }
+
+    public function restore(User $user, Model $record): bool
+    {
+        /** @var FormEntry $record */
+        return $this->allows($user, 'delete') && $record->isVisibleInPanel($user);
     }
 
     public function approve(User $user, FormEntry $entry): bool
     {
-        return $entry->status === FormEntryStatus::Draft && $entry->created_by !== $user->id && $this->allows($user, 'approve');
+        return $entry->status === FormEntryStatus::Draft && $entry->created_by !== $user->id
+            && $this->allows($user, 'approve') && $entry->isVisibleInPanel($user);
     }
 
     /**
@@ -47,7 +61,8 @@ class FormEntryPolicy extends ModulePolicy
     }
 
     /**
-     * تصدير المعبأ: بيانات قد تكون شخصية تخرج من اللوحة، فلها صلاحيتها.
+     * تصدير المعبأ: بيانات قد تكون شخصية تخرج من اللوحة، فلها صلاحيتها. والملف بما يطّلع عليه المصدِّر
+     * وحده (ExportFormEntries).
      */
     public function export(User $user): bool
     {
