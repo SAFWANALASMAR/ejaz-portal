@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Enums\ServiceRequestStatus;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
+use App\Models\FormEntry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\Setting;
@@ -170,6 +171,65 @@ it('goes on to the requests when a competition entry before them cannot be purge
     expect($entry->fresh()->answers)->not->toBeNull()
         ->and($request->fresh()->answers)->toBeNull()
         ->and($request->fresh()->files)->toBeNull();
+});
+
+/**
+ * نموذج معبأ معتمد محفوظ في ملف صاحبه، بإجابة ومرفق وتوقيع على القرص الخاص.
+ */
+function formEntryOf(User $person): FormEntry
+{
+    return FormEntry::factory()->approved()->create([
+        'person_id' => $person->id,
+        'answers' => ['name' => 'اسم شخصي'],
+        'files' => [['key' => 'id', 'path' => storedPrivateFile(FormEntry::FILES_DIRECTORY, '%PDF-1.4'), 'name' => 'هوية.pdf', 'size' => 8]],
+        'signatures' => [['key' => 'sign', 'path' => storedPrivateFile(FormEntry::SIGNATURES_DIRECTORY, 'png', 'png')]],
+    ]);
+}
+
+it('purges the answers, files and signatures of filled forms saved to a deleted account after the period', function () {
+    // مهمة الإصلاحات الأمنية ٢ (البند ١): النماذج المعبأة في ملف صاحب الحساب كبقية الطلبات والتسجيلات
+    Setting::put('retention', ['days' => 30]);
+    $entry = formEntryOf($this->deleted);
+    $paths = [$entry->files[0]['path'], $entry->signatures[0]['path']];
+    $removed = formEntryOf($this->deleted);
+    $removed->delete();
+    $waiting = formEntryOf(User::factory()->create(['deletion_requested_at' => now()->subDays(5), 'anonymized_at' => now()->subDays(4)]));
+    $kept = formEntryOf(User::factory()->create());
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    $entry->refresh();
+    expect($entry->answers)->toBeNull()
+        ->and($entry->files)->toBeNull()
+        ->and($entry->signatures)->toBeNull()
+        ->and($entry->reference)->not->toBeNull()
+        ->and($entry->person_id)->toBe($this->deleted->id)
+        ->and(FormEntry::withTrashed()->find($removed->id)->answers)->toBeNull()
+        ->and(Storage::disk('local')->exists($paths[0]))->toBeFalse()
+        ->and(Storage::disk('local')->exists($paths[1]))->toBeFalse()
+        ->and(Storage::disk('local')->allFiles(FormEntry::FILES_DIRECTORY))->toHaveCount(2)
+        ->and(Storage::disk('local')->allFiles(FormEntry::SIGNATURES_DIRECTORY))->toHaveCount(2)
+        ->and($waiting->fresh()->answers)->not->toBeNull()
+        ->and($kept->fresh()->files)->not->toBeNull()
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_type', $entry->getMorphClass())->count())->toBe(2);
+
+    // مرة ثانية لا تمس شيئاً ولا تسجل من جديد
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(Activity::where('event', 'personal_data_purged')->where('subject_type', $entry->getMorphClass())->count())->toBe(2);
+});
+
+it('keeps a filled form as it was when its file cannot be deleted, and retries on the next run', function () {
+    Setting::put('retention', ['days' => 30]);
+    $entry = formEntryOf($this->deleted);
+    $path = $entry->files[0]['path'];
+    $original = failDeletesOf($path);
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
+    expect($entry->fresh()->answers)->not->toBeNull()->and($entry->fresh()->files)->toEqual($entry->files);
+
+    Storage::set('local', $original);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect($entry->fresh()->files)->toBeNull()->and(Storage::disk('local')->exists($path))->toBeFalse();
 });
 
 it('exports the data of every module for one account, in one copy', function () {
