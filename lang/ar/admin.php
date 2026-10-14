@@ -8,6 +8,7 @@ return [
 
     'brand' => 'جمعية إعجاز — لوحة الإدارة',
     'view_site' => 'عرض الموقع',
+    'leaving_panel' => 'جارٍ الانتقال…',
 
     'groups' => [
         'content' => 'المحتوى',
