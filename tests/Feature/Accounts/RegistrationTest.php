@@ -69,7 +69,8 @@ it('rejects an email or phone that is already registered', function () {
     User::factory()->create(['email' => 'abdullah@example.test']);
     $this->post('/register', registrationData())->assertSessionHasErrors('email');
 
-    User::factory()->create(['phone' => '+966512345678']);
+    // التفرد على الأرقام الموثقة وحدها (VerifiedPhoneUniquenessTest)
+    User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => now()]);
     $this->post('/register', registrationData(['email' => 'other@example.test', 'phone' => '051 234 5678']))
         ->assertSessionHasErrors('phone');
 });
@@ -107,7 +108,7 @@ it('still caps registrations per address at the configured limit', function () {
 it('counts probes of taken emails and phones toward the cap, so accounts cannot be enumerated without limit', function () {
     config(['security.registration_per_ip_per_hour' => 2]);
     User::factory()->create(['email' => 'user1@example.test']);
-    User::factory()->create(['phone' => SaudiPhone::normalize('0500000002')]);
+    User::factory()->create(['phone' => SaudiPhone::normalize('0500000002'), 'phone_verified_at' => now()]);
 
     registerNumber(1)->assertSessionHasErrors('email');
     registerNumber(2)->assertSessionHasErrors('phone');
