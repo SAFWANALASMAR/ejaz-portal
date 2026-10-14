@@ -7,6 +7,7 @@ use App\Enums\ServiceRequestStatus;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
+use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\Setting;
@@ -259,4 +260,32 @@ it('includes requests and competition entries removed from the panel in the pers
     $copy = app(ExportUserData::class)->handle($user);
 
     expect($copy['service_requests'])->toHaveCount(1)->and($copy['competition_submissions'])->toHaveCount(1);
+});
+
+it('deletes the message text left from accounts anonymized before the decision, even without a retention period', function () {
+    // كما تركها الإخفاء قبل قرار 14 أكتوبر 2026: الاسم والبريد والجوال مخفاة، والنص باقٍ
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $old->forceFill(['email' => 'deleted-'.$old->id.'@deleted.invalid'])->save();
+    $text = ['name' => __('users.anonymized_name'), 'email' => $old->email, 'subject' => 'موضوع يعرّف صاحبه', 'message' => 'نص يعرّف صاحبه', 'internal_note' => 'ملاحظة'];
+    $own = Inquiry::factory()->create(['user_id' => $old->id, ...$text]);
+    // رسالته زائراً من بريده الموثّق: بلا حساب، وبريدها بريد الحساب المخفى
+    $guest = Inquiry::factory()->create($text);
+    $removed = Inquiry::factory()->create(['user_id' => $old->id, ...$text]);
+    $removed->delete();
+    $kept = Inquiry::factory()->create(['user_id' => User::factory()->create()->id, 'subject' => 'موضوع باقٍ', 'message' => 'نص باقٍ']);
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 3.')->assertSuccessful();
+
+    foreach ([$own->fresh(), $guest->fresh(), Inquiry::withTrashed()->find($removed->id)] as $inquiry) {
+        expect($inquiry)->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull()
+            ->reference->not->toBeNull()->type->not->toBeNull()->status->not->toBeNull();
+    }
+
+    expect($kept->fresh())->subject->toBe('موضوع باقٍ')->message->toBe('نص باقٍ')
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_type', $own->getMorphClass())->count())->toBe(3);
+
+    // ما عولج لا يُعاد، فلا يتكرر سجله
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
 });

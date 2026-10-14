@@ -155,3 +155,12 @@ it('lists the messages newest first and filters them by status', function () {
         ->assertCanSeeTableRecords([$newer])
         ->assertCanNotSeeTableRecords([$older]);
 });
+
+it('shows a clear placeholder for the text removed with the sender identity, in the list and the message', function () {
+    $inquiry = Inquiry::factory()->create(['subject' => null, 'message' => null, 'internal_note' => null]);
+
+    $this->actingAs($this->secretary)->get(InquiryResource::getUrl('index'))->assertOk()->assertSee(__('inquiries.text_removed'));
+    $this->actingAs($this->secretary)->get(InquiryResource::getUrl('view', ['record' => $inquiry]))->assertOk()
+        ->assertSee($inquiry->reference)
+        ->assertSee(__('inquiries.text_removed'));
+});

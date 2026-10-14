@@ -285,6 +285,30 @@ it('hides the sender of the account messages, and of the guest messages from its
         ->and($other->fresh()->email)->toBe('other@example.com');
 });
 
+it('deletes the text of the sender messages on anonymization, keeping what the statistics need', function () {
+    $user = User::factory()->create(['email' => 'writer@example.com', 'email_verified_at' => now()]);
+    $text = ['subject' => 'موضوع فيه اسمي', 'message' => 'أنا فلان، جوالي 0501112223', 'internal_note' => 'نقلت من رسالته'];
+    $inquiry = Inquiry::factory()->create(['user_id' => $user->id, 'type' => InquiryType::Suggestion, 'status' => InquiryStatus::Closed, ...$text]);
+    $deleted = Inquiry::factory()->create(['user_id' => $user->id, ...$text]);
+    $deleted->delete();
+    $guest = Inquiry::factory()->create(['email' => 'Writer@Example.com', ...$text]);
+    $other = Inquiry::factory()->create(['email' => 'other@example.com', ...$text]);
+    $user->forceFill(['deletion_requested_at' => now()])->save();
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+
+    foreach ([$inquiry->fresh(), Inquiry::withTrashed()->find($deleted->id), $guest->fresh()] as $cleared) {
+        expect($cleared)->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull();
+    }
+
+    expect($inquiry->fresh())
+        ->reference->toBe($inquiry->reference)
+        ->type->toBe(InquiryType::Suggestion)
+        ->status->toBe(InquiryStatus::Closed)
+        ->created_at->toEqual($inquiry->created_at)
+        ->and($other->fresh())->subject->toBe('موضوع فيه اسمي')->message->toBe('أنا فلان، جوالي 0501112223');
+});
+
 it('leaves the guest messages of an unverified email untouched, since nothing proves they are the same person', function () {
     $user = User::factory()->create(['email' => 'claimed@example.com', 'email_verified_at' => null]);
     $guest = Inquiry::factory()->create(['email' => 'claimed@example.com']);

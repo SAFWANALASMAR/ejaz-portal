@@ -63,8 +63,8 @@ class AnonymizeUser
 
             $this->scrubActivityLog($user, $oldEmail, $oldPhone);
 
-            // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله،
-            // بلا تسجيل. ونص الرسالة سؤال مدة الاحتفاظ (open-questions.md)
+            // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله ونصها
+            // (Inquiry::FREE_TEXT)، بلا تسجيل. ويبقى رقمها ونوعها وحالتها وتاريخها للإحصاء
             Inquiry::withTrashed()->where(fn ($query) => $query->where('user_id', $user->id)->when(
                 $emailVerified,
                 fn ($query) => $query->orWhereRaw('lower(email) = ?', [mb_strtolower($oldEmail)]),
@@ -72,6 +72,7 @@ class AnonymizeUser
                 'name' => __('users.anonymized_name'),
                 'email' => $user->email,
                 'phone' => null,
+                ...array_fill_keys(Inquiry::FREE_TEXT, null),
             ]);
 
             DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();

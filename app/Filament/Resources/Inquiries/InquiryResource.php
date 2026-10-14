@@ -51,7 +51,7 @@ class InquiryResource extends Resource
             ->columns([
                 TextColumn::make('reference')->label(__('inquiries.fields.reference'))->searchable()->extraAttributes(['dir' => 'ltr']),
                 TextColumn::make('type')->label(__('inquiries.fields.type'))->badge(),
-                TextColumn::make('subject')->label(__('inquiries.fields.subject'))->searchable()->wrap()->limit(60),
+                TextColumn::make('subject')->label(__('inquiries.fields.subject'))->placeholder(__('inquiries.text_removed'))->searchable()->wrap()->limit(60),
                 TextColumn::make('name')->label(__('inquiries.fields.name'))->searchable(),
                 TextColumn::make('status')->label(__('inquiries.fields.status'))->badge(),
                 TextColumn::make('assignee.name')->label(__('inquiries.fields.assignee'))->placeholder(__('inquiries.unassigned')),
@@ -89,9 +89,10 @@ class InquiryResource extends Resource
                 TextEntry::make('email')->label(__('inquiries.fields.email'))->copyable(),
                 TextEntry::make('phone')->label(__('inquiries.fields.phone'))->placeholder('—'),
             ]),
+            // النص يُحذف عند إخفاء هوية المرسل (Inquiry::FREE_TEXT)
             Section::make()->columnSpanFull()->schema([
-                TextEntry::make('subject')->label(__('inquiries.fields.subject')),
-                TextEntry::make('message')->label(__('inquiries.fields.message'))->extraAttributes($multiline),
+                TextEntry::make('subject')->label(__('inquiries.fields.subject'))->placeholder(__('inquiries.text_removed')),
+                TextEntry::make('message')->label(__('inquiries.fields.message'))->placeholder(__('inquiries.text_removed'))->extraAttributes($multiline),
                 TextEntry::make('internal_note')->label(__('inquiries.fields.internal_note'))->placeholder('—')->extraAttributes($multiline),
             ]),
         ]);
