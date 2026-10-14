@@ -28,6 +28,12 @@ class Inquiry extends Model
     use HasFactory, HasUuids, LogsActivity, SoftDeletes;
 
     /**
+     * النص الحر، يُحذف عند إخفاء هوية المرسل (قرار صفوان، 14 أكتوبر 2026)، فيبقى للإحصاء الرقم والنوع
+     * والحالة والتاريخ. والملاحظة الداخلية معه، لأنها قد تنقل من نصه.
+     */
+    public const FREE_TEXT = ['subject', 'message', 'internal_note'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

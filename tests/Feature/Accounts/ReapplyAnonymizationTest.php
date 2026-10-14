@@ -1,7 +1,10 @@
 <?php
 
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
+use App\Models\Inquiry;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 /*
@@ -29,6 +32,37 @@ it('re-anonymizes an account that came back from a backup, keeping the original 
         ->and($user->anonymized_at->toIso8601ZuluString())->toBe('2026-09-01T10:00:00Z')
         ->and($user->deletion_requested_at)->not->toBeNull()
         ->and(Activity::where('event', 'anonymized')->where('subject_id', $user->id)->where('causer_id', $this->admin->id)->exists())->toBeTrue();
+});
+
+it('deletes the message text on anonymization and keeps it deleted after a restore from a backup', function () {
+    $this->restored->forceFill(['email_verified_at' => now()])->save();
+    $inquiry = Inquiry::factory()->create([
+        'user_id' => $this->restored->id, 'email' => 'back@example.test',
+        'subject' => 'موضوع يعرّفني', 'message' => 'نص فيه اسمي وجوالي', 'internal_note' => 'ملاحظة من نصه',
+    ]);
+    $guest = Inquiry::factory()->create(['email' => 'back@example.test', 'subject' => 'قبل التسجيل', 'message' => 'نص قبل التسجيل']);
+    // كما في النسخة: الحساب ورسائله قبل طلب الحذف
+    $backup = collect([['users', $this->restored->id], ['inquiries', $inquiry->id], ['inquiries', $guest->id]])
+        ->map(fn (array $row): array => [$row[0], (array) DB::table($row[0])->find($row[1])]);
+
+    $this->restored->forceFill(['deletion_requested_at' => now()])->save();
+    app(AnonymizeUser::class)->handle($this->admin, $this->restored);
+
+    expect($inquiry->fresh())->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull();
+
+    // الاستعادة: الصفوف كما كانت في النسخة، بنصها وبحساب غير مخفى
+    $backup->each(fn (array $row) => DB::table($row[0])->where('id', $row[1]['id'])->update($row[1]));
+    expect($inquiry->fresh()->message)->toBe('نص فيه اسمي وجوالي')
+        ->and($this->restored->fresh()->anonymized_at)->toBeNull();
+
+    $this->artisan('ejaz:reapply-anonymization', [
+        'user' => $this->restored->id, '--at' => '2026-09-01T10:00:00Z', '--actor' => 'admin@example.test',
+    ])->assertSuccessful();
+
+    foreach ([$inquiry->fresh(), $guest->fresh()] as $row) {
+        expect($row)->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull()
+            ->name->toBe(__('users.anonymized_name'))->email->toBe($this->restored->fresh()->email);
+    }
 });
 
 it('skips an account already anonymized or missing from the backup', function () {

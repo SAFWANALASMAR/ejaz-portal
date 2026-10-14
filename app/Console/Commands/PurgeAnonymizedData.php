@@ -6,7 +6,9 @@ use App\Actions\Competitions\PurgeSubmissionPersonalData;
 use App\Actions\Programs\PurgeProgramRegistrationPersonalData;
 use App\Actions\Services\PurgeServiceRequestPersonalData;
 use App\Actions\Surveys\PurgeSurveyResponsePersonalData;
+use App\Enums\ActivityEvent;
 use App\Models\CompetitionSubmission;
+use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SurveyResponse;
@@ -21,6 +23,8 @@ use Throwable;
  * - مقاطع المسابقات وإجاباتها: محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها وفترة الاعتراض.
  * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها وردود الموظفين وملاحظاتهم الداخلية عليها،
  *   وإجابات التسجيل في البرامج: من إخفاء بيانات الحساب.
+ * ونص رسائل «تواصل معنا» يُحذف عند الإخفاء نفسه (AnonymizeUser) بلا مدة، فيُحذف هنا ولو لم تُضبط المدة
+ * لما بقي فيه نص: رسائل من أُخفي قبل قرار الحذف (14 أكتوبر 2026)، أو أعادتها استعادة من نسخة.
  * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
@@ -35,10 +39,12 @@ class PurgeAnonymizedData extends Command
         PurgeServiceRequestPersonalData $purgeRequest,
         PurgeProgramRegistrationPersonalData $purgeRegistration,
     ): int {
+        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText().'.');
+
         $days = Retention::days();
 
         if ($days === null) {
-            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء.');
+            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء مما يتبعها.');
 
             return self::SUCCESS;
         }
@@ -104,5 +110,33 @@ class PurgeAnonymizedData extends Command
         $this->info($summary);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * نص رسائل الحسابات المخفاة: من حسابه، أو من بريده الموثّق (وبريدها بعد الإخفاء بريد الحساب المخفى).
+     * ويبقى الرقم والنوع والحالة والتاريخ، ولكل رسالة سجل.
+     */
+    private function clearInquiryText(): int
+    {
+        $cleared = 0;
+
+        Inquiry::query()
+            ->withTrashed()
+            ->where(fn ($query) => $query->whereNotNull('subject')->orWhereNotNull('message'))
+            ->where(fn ($query) => $query
+                ->whereIn('user_id', User::query()->select('id')->whereNotNull('anonymized_at'))
+                ->orWhereIn('email', User::query()->select('email')->whereNotNull('anonymized_at')))
+            ->lazyById()
+            ->each(function (Inquiry $inquiry) use (&$cleared): void {
+                $inquiry->forceFill(array_fill_keys(Inquiry::FREE_TEXT, null))->save();
+
+                activity('requests')->performedOn($inquiry)
+                    ->event(ActivityEvent::PersonalDataPurged->value)
+                    ->log(ActivityEvent::PersonalDataPurged->value);
+
+                $cleared++;
+            });
+
+        return $cleared;
     }
 }

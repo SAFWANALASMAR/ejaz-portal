@@ -33,5 +33,32 @@
 
 ## بعد الدمج
 
-- لا ترحيل، ولا مكتبة، ولا جدولة، ولا إعداد جديد.
+- لا مكتبة، ولا جدولة، ولا إعداد جديد. وترحيل واحد من تحديث 14 أكتوبر أدناه.
 - الخطوة تُجرَّب في أول تجربة استعادة على الخادم التجريبي.
+
+## تحديث — قرار صفوان (14 أكتوبر 2026): نص رسائل التواصل بعد إخفاء هوية المرسل
+
+### ما تغيّر
+
+- **`AnonymizeUser`** يحذف من رسائل «تواصل معنا» المرتبطة بالحساب (من حسابه، أو من بريده الموثّق) النص الحر: الموضوع والرسالة، والملاحظة الداخلية معهما (`Inquiry::FREE_TEXT`). ويبقى الرقم المرجعي والنوع والحالة والتاريخ والمسؤول للإحصاء.
+- **ترحيل جديد** `2026_10_14_090000_make_inquiry_text_nullable.php`: الموضوع والرسالة يقبلان null، والمحذوف null كبقية ما يُحذف من البيانات الشخصية. ولم يُعدَّل ترحيل الجدول الأصلي.
+- **`ejaz:purge-anonymized-data`** يحذف كل يوم، ولو لم تُضبط مدة الاحتفاظ، نص كل رسالة باقٍ لحساب مخفى، بسجل `personal_data_purged` لكل رسالة، ولا يعيد ما عولج. فيشمل ما أُخفي قبل القرار، وما أعادته استعادة من نسخة.
+- **بعد الاستعادة:** `ejaz:reapply-anonymization` يمر بـ `AnonymizeUser` نفسه فيحذف النص، ثم خطوة الاستعادة تشغّل `ejaz:purge-anonymized-data`.
+- **اللوحة:** الموضوع والرسالة المحذوفان يظهران «حُذف النص مع إخفاء هوية المرسل» (`lang/ar/inquiries.php`) في القائمة وصفحة الرسالة.
+- **الوثائق:** السؤال في `open-questions.md` مجاب، ومدة الاحتفاظ برسائل الزوار ومن لم يحذف حسابه باقية سؤالاً. وقرار في `decisions.md`. و`security.md` لا يذكر السلوك القديم فلم يُعدَّل.
+
+### الاختبارات الجديدة
+
+- `ContactTest`: `deletes the text of the sender messages on anonymization, keeping what the statistics need`.
+- `ReapplyAnonymizationTest`: `deletes the message text on anonymization and keeps it deleted after a restore from a backup` — يُخفى الحساب، ثم تُعاد صفوفه كما في النسخة (النص موجود والحساب غير مخفى)، ثم يُشغَّل الأمر فلا يبقى النص.
+- `RetentionPurgeTest`: `deletes the message text left from accounts anonymized before the decision, even without a retention period` — ولا يتكرر السجل في التشغيل الثاني.
+- `InquiryAdminTest`: `shows a clear placeholder for the text removed with the sender identity, in the list and the message`.
+
+### نتيجة الفحص
+
+- Pint: ناجح (948 ملفاً). PHPStan: صفر أخطاء.
+- الاختبارات: 1876 نجحت (8657 تحققاً)، ولا فشل، بعمليتين متوازيتين على `ejaz_testing_g2c`.
+
+### بعد الدمج
+
+- `php artisan migrate --force` (ترحيل جديد). وأول تشغيل مجدول لـ `ejaz:purge-anonymized-data` يحذف نص الرسائل القديمة لمن أُخفي قبل القرار.
