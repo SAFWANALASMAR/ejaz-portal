@@ -33,6 +33,10 @@
     --color-ink: #17202E;
     --color-muted: #556170;
     --color-line: #D8E3EE;
+
+    /* ظهور قائمة الرأس الأفقية (nav:): أصغر عرض تتسع فيه عناصر القائمة الحالية صفاً واحداً بهامش مريح،
+       بالقياس في المتصفح (docs/reviews/ready-fix-header-single-row.md) */
+    --breakpoint-nav: 77.5rem;
 }
 
 @layer base {
@@ -133,4 +137,18 @@
     .prose-ar blockquote {
         @apply my-4 border-s-4 border-accent bg-surface px-4 py-3;
     }
+}
+
+/* قائمة الرأس لا تتسع صفاً واحداً (resources/js/app.js): زر القائمة وقائمة الجوال بدلها. خارج الطبقات
+   لتغلب أصناف nav: */
+[data-site-header][data-nav-overflow] [data-main-nav] {
+    display: none;
+}
+
+[data-site-header][data-nav-overflow] [data-toggle='mobile-menu'] {
+    display: inline-block;
+}
+
+[data-site-header][data-nav-overflow] #mobile-menu:not([hidden]) {
+    display: block;
 }
