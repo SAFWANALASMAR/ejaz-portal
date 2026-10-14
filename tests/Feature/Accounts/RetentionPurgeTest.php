@@ -289,3 +289,28 @@ it('deletes the message text left from accounts anonymized before the decision, 
 
     expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
 });
+
+it('clears an internal note left on a message whose text was already removed', function () {
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $inquiry = Inquiry::factory()->create(['user_id' => $old->id, 'subject' => null, 'message' => null, 'internal_note' => 'ملاحظة بعد الحذف']);
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')->assertSuccessful();
+
+    expect($inquiry->fresh()->internal_note)->toBeNull();
+});
+
+it('keeps clearing the other messages when one cannot be cleared, and reports the failure', function () {
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $failing = Inquiry::factory()->create(['user_id' => $old->id, 'message' => 'نص يعرّف صاحبه']);
+    $other = Inquiry::factory()->create(['user_id' => $old->id, 'message' => 'نص آخر يعرّف صاحبه']);
+    Inquiry::saving(function (Inquiry $inquiry) use ($failing): void {
+        if ($inquiry->id === $failing->id) {
+            throw new RuntimeException('Storage down.');
+        }
+    });
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')->assertFailed();
+
+    expect($other->fresh()->message)->toBeNull()
+        ->and($failing->fresh()->message)->toBe('نص يعرّف صاحبه');
+});
