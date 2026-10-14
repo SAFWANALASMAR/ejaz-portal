@@ -30,8 +30,9 @@ services:
       VIEW_COMPILED_PATH: /tmp/ejaz-views
       # أكثر من طلب في الوقت نفسه (لوحة الإدارة واختبارات المتصفح)
       PHP_CLI_SERVER_WORKERS: 4
+    # كل المنافذ على هذا الجهاز وحده، فلا تصلها أجهزة الشبكة المحلية (APP_PORT رقم المنفذ وحده)
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
 
   queue:
     <<: *php
@@ -53,7 +54,7 @@ services:
       CHOKIDAR_USEPOLLING: "${VITE_POLLING:-false}"
     command: sh -c "npm install && npm run dev"
     ports:
-      - "${VITE_PORT:-5173}:5173"
+      - "127.0.0.1:${VITE_PORT:-5173}:5173"
     restart: unless-stopped
 
   # اختبارات المتصفح ولقطات الشاشات (tests/browser/README.md). لا تعمل تلقائياً:
@@ -82,8 +83,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql:ro
-    # منافذ القاعدة وRedis وMailpit على هذا الجهاز وحده: القاعدة بكلمة مرور افتراضية،
-    # وRedis وMailpit بلا كلمة مرور، فلا تصلها أجهزة الشبكة المحلية
+    # على هذا الجهاز وحده: القاعدة بكلمة مرور افتراضية في التطوير
     ports:
       - "127.0.0.1:${FORWARD_DB_PORT:-5432}:5432"
     healthcheck:
@@ -95,17 +95,21 @@ services:
 
   redis:
     image: redis:7-alpine
+    # بكلمة مرور حتى في التطوير: REDIS_PASSWORD في .env (يولّدها scripts/setup.sh)
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required in .env - run scripts/setup.sh}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.4
     ports:
       - "127.0.0.1:${FORWARD_MAILPIT_PORT:-1025}:1025"
       - "127.0.0.1:${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025"
