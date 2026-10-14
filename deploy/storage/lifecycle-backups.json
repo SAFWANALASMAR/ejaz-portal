@@ -5,6 +5,18 @@
       "Status": "Enabled",
       "Filter": { "Prefix": "db/" },
       "Expiration": { "Days": 30 }
+    },
+    {
+      "ID": "expire-file-copies",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "files/" },
+      "Expiration": { "Days": 30 }
+    },
+    {
+      "ID": "expire-old-versions",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "" },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
     }
   ]
 }

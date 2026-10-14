@@ -35,7 +35,7 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
 - **الملفات:**
   - `scripts/backup.sh`: `pg_dump` مضغوط مشفّر بمفتاح GPG عام إلى حاوية S3 منفصلة.
   - `.env.backup.example`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `ejaz-backup.timer`.
-  - `deploy/storage/lifecycle-backups.json`: هي وحدها تحذف النسخ بعد 30 يوماً. ومفتاح الخادم كتابة وسرد بلا حذف، ومعه الإصدارات أو قفل الكائنات على حاوية النسخ (شرط)، فمن يخترق الخادم لا يمحو النسخ ولا يكتب فوقها.
+  - `deploy/storage/lifecycle-backups.json`: هي وحدها تحذف النسخ بعد 30 يوماً: القاعدة (`db/`) والملفات (`files/`، بتجديد أسبوعي للحي منها) والإصدارات القديمة. ومفتاح الخادم كتابة وسرد بلا حذف، ومعه الإصدارات أو قفل الكائنات على حاوية النسخ (شرط)، فمن يخترق الخادم لا يمحو النسخ ولا يكتب فوقها.
   - دور قاعدة للقراءة وحدها للنسخ (`ejaz_backup`، في `.env.backup.example`).
 - **الدليل:** `scripts/restore.md` (التجربة الشهرية والاستعادة الفعلية)، و`docs/deploy.md` (الخطوة 8 والوحدات).
 - **التحقق:**

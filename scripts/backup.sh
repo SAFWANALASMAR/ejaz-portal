@@ -9,6 +9,9 @@
 #   ٣. مدة الاحتفاظ: بقاعدة دورة الحياة في حاوية النسخ وحدها (deploy/storage/lifecycle-backups.json)، لا من الخادم.
 #      فمفتاح الخادم كتابة وسرد بلا حذف، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط —
 #      deploy/storage/README.md) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
+#      والقاعدة تحذف نسخ القاعدة ونسخ الملفات (files/) بعد 30 يوماً، والإصدارات القديمة بعد 30 يوماً من استبدالها.
+#      ولئلا ينتهي ملف حي لم يتغير، يُعاد رفع الملفات كلها مرة في الأسبوع (BACKUP_FILES_REFRESH_WEEKDAY)،
+#      فالملف المحذوف من الخادم وحده يتوقف تجديده فيُحذف من النسخ بعد المدة (decisions.md — 14 أكتوبر 2026).
 #
 # الأدوات على الخادم: pg_dump (إصدار القاعدة نفسه 17)، وgpg، وaws (CLI يعمل مع أي تخزين متوافق مع S3).
 # المتغيرات من /etc/ejaz/backup.env (صلاحية 600، خارج قيت)، ولا سر في هذا الملف:
@@ -19,6 +22,7 @@
 #   BACKUP_GPG_RECIPIENT     معرّف المفتاح العام للتشفير (المفتاح الخاص خارج الخادم عند المسؤول)
 #   BACKUP_GPG_PUBLIC_KEY_FILE  (اختياري) ملف المفتاح العام يُستورد في حلقة مفاتيح مؤقتة (حاوية النسخ في compose)
 #   BACKUP_SYNC_FILES        true|false (افتراضياً true)
+#   BACKUP_FILES_REFRESH_WEEKDAY  يوم إعادة رفع الملفات كلها: 1 (الاثنين) إلى 7 (الأحد)، افتراضياً 7
 #   APP_ROOT                 جذر المشروع (افتراضياً مجلد هذا السكربت الأب)
 set -euo pipefail
 
@@ -34,6 +38,7 @@ done
 
 APP_ROOT="${APP_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SYNC_FILES="${BACKUP_SYNC_FILES:-true}"
+REFRESH_WEEKDAY="${BACKUP_FILES_REFRESH_WEEKDAY:-7}"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
 
@@ -60,13 +65,19 @@ sha256sum "$DUMP" | awk '{print $1}' > "$DUMP.sha256"
 "${S3[@]}" cp "$DUMP.sha256" "s3://$BACKUP_BUCKET/db/$(basename "$DUMP").sha256"
 log "✓ رُفعت db/$(basename "$DUMP") ($(du -h "$DUMP" | cut -f1))"
 
-# ٢. الملفات المحلية. بلا --delete، فلا يمحو حذفٌ خاطئ في الخادم نسخته الاحتياطية
+# ٢. الملفات المحلية. بلا --delete، فلا يمحو حذفٌ خاطئ في الخادم نسخته الاحتياطية.
+#    والمزامنة لا ترفع إلا الجديد والمتغير، فيُعاد رفع الكل في يوم التجديد، لتبقى نسخة كل ملف حي أحدث من مدة الانتهاء
 if [ "$SYNC_FILES" = "true" ]; then
   for disk in private public; do
     dir="$APP_ROOT/storage/app/$disk"
     if [ -d "$dir" ]; then
-      log "مزامنة storage/app/$disk"
-      "${S3[@]}" sync "$dir" "s3://$BACKUP_BUCKET/files/$disk/" --sse AES256 --exclude "livewire-tmp/*"
+      if [ "$(date -u +%u)" = "$REFRESH_WEEKDAY" ]; then
+        log "إعادة رفع storage/app/$disk كاملاً (التجديد الأسبوعي)"
+        "${S3[@]}" cp --recursive "$dir" "s3://$BACKUP_BUCKET/files/$disk/" --sse AES256 --exclude "livewire-tmp/*"
+      else
+        log "مزامنة storage/app/$disk"
+        "${S3[@]}" sync "$dir" "s3://$BACKUP_BUCKET/files/$disk/" --sse AES256 --exclude "livewire-tmp/*"
+      fi
     fi
   done
   log "✓ زُومنت الملفات"
