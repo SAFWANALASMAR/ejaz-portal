@@ -21,6 +21,9 @@ Schedule::command('programs:send-reminders')->hourly()->onOneServer();
 // أجزاء مقاطع المسابقات المهجورة لا تبقى على القرص الخاص
 Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 
+// طلبات إلغاء السحب التي لم يقرر فيها مشرف عام آخر خلال سبعة أيام تسقط، ويبقى السحب (docs/decisions.md)
+Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
+
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 

@@ -35,6 +35,27 @@ class CompetitionDrawPolicy
         return $user->hasRole(RoleName::SuperAdmin->value);
     }
 
+    /**
+     * اعتماد طلب إلغاء بعد الإلغاء الأول في المسابقة (ApproveDrawVoid): لمشرف عام غير طالب الإلغاء.
+     * نتيجة صريحة، فلا يجعلها Gate::after صحيحة لطالب الإلغاء.
+     */
+    public function approveVoid(User $user, CompetitionDraw $draw): bool
+    {
+        $request = $draw->voidRequest;
+
+        return $request !== null
+            && $request->requested_by !== $user->id
+            && $user->hasRole(RoleName::SuperAdmin->value);
+    }
+
+    /**
+     * رفض طلب الإلغاء بسبب (RejectDrawVoid): لمن يعتمده، فلا يرفض الطالب طلبه.
+     */
+    public function rejectVoid(User $user, CompetitionDraw $draw): bool
+    {
+        return $this->approveVoid($user, $draw);
+    }
+
     public function update(User $user, CompetitionDraw $draw): bool
     {
         return false;
