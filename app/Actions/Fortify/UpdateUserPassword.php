@@ -36,11 +36,14 @@ class UpdateUserPassword implements UpdatesUserPasswords
             'current_password.current_password' => __('The provided password does not match your current password.'),
         ]);
 
-        if ($validator->errors()->has('current_password')) {
-            CurrentPasswordLimiter::failed($user);
-        }
+        // التحقق مرة واحدة، ففحص كلمة المرور الحالية تجزئة واحدة لا اثنتان
+        if ($validator->fails()) {
+            if ($validator->errors()->has('current_password')) {
+                CurrentPasswordLimiter::failed($user);
+            }
 
-        $validator->validateWithBag('updatePassword');
+            throw (new ValidationException($validator))->errorBag('updatePassword');
+        }
 
         CurrentPasswordLimiter::passed($user);
 
