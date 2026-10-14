@@ -27,6 +27,9 @@ Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 
+// الملفات الشخصية في القرص الخاص التي لا يشير إليها سجل، ومنها ما أعادته استعادة نسخة احتياطية (scripts/restore.md)
+Schedule::command('ejaz:prune-orphan-private-files')->weekly()->withoutOverlapping()->onOneServer();
+
 // بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، لكل الوحدات، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
 Schedule::command('ejaz:purge-anonymized-data')->daily()->withoutOverlapping()->onOneServer();
 
