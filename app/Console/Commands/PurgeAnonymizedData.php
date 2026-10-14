@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Actions\Competitions\PurgeSubmissionPersonalData;
+use App\Actions\Documents\PurgeFormEntryPersonalData;
 use App\Actions\Programs\PurgeProgramRegistrationPersonalData;
 use App\Actions\Services\PurgeServiceRequestPersonalData;
 use App\Actions\Surveys\PurgeSurveyResponsePersonalData;
 use App\Models\CompetitionSubmission;
+use App\Models\FormEntry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SurveyResponse;
@@ -20,7 +22,7 @@ use Throwable;
  * بإعداد واحد لكل الوحدات (القضية #6). وبلا مدة مضبوطة لا يحذف شيئاً.
  * - مقاطع المسابقات وإجاباتها: محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها وفترة الاعتراض.
  * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها وردود الموظفين وملاحظاتهم الداخلية عليها،
- *   وإجابات التسجيل في البرامج: من إخفاء بيانات الحساب.
+ *   وإجابات التسجيل في البرامج، وإجابات النماذج المعبأة في ملفه ومرفقاتها وتواقيعها: من إخفاء بيانات الحساب.
  * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
@@ -34,6 +36,7 @@ class PurgeAnonymizedData extends Command
         PurgeSurveyResponsePersonalData $purgeResponse,
         PurgeServiceRequestPersonalData $purgeRequest,
         PurgeProgramRegistrationPersonalData $purgeRegistration,
+        PurgeFormEntryPersonalData $purgeFormEntry,
     ): int {
         $days = Retention::days();
 
@@ -92,6 +95,14 @@ class PurgeAnonymizedData extends Command
             ->whereNotNull('answers')
             ->lazyById()
             ->each(fn (ProgramRegistration $registration) => $attempt(fn () => $purgeRegistration->handle($registration)));
+
+        // النماذج المعبأة المحفوظة في ملفه، والمحذوفة من اللوحة داخلة
+        FormEntry::query()
+            ->withTrashed()
+            ->whereIn('person_id', $expired)
+            ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('files')->orWhereNotNull('signatures'))
+            ->lazyById()
+            ->each(fn (FormEntry $entry) => $attempt(fn () => $purgeFormEntry->handle($entry)));
 
         $summary = "سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.";
 
