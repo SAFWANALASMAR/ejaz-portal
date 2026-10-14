@@ -51,6 +51,7 @@ it('reports every npm package including build tools at moderate severity without
         expect($command)->not->toContain('--omit');
     }
 
+    // وتعمل دائماً بلا شرط، فلا تُتخطى بصمت (خطوة التأسيس صارت تُفشل الفحص ولا مخرج لها)
     expect($step)->toMatch('/^\s+continue-on-error: true\s*$/m')
-        ->and($step)->toMatch("/^\\s+if: steps\\.boot\\.outputs\\.ready == 'true'\\s*$/m");
+        ->and($step)->not->toMatch('/^\s+if:/m');
 });
