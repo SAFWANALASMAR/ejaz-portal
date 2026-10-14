@@ -23,6 +23,17 @@ else
   echo ".env موجود مسبقاً — لم يُعدَّل"
 fi
 
+# كلمة مرور Redis عشوائية إن لم تُضبط (compose.yaml يرفض التشغيل بدونها)
+if ! grep -q '^REDIS_PASSWORD=[A-Za-z0-9]\{16,\}$' .env; then
+  redis_password=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)
+  if grep -q '^REDIS_PASSWORD=' .env; then
+    sed -i.bak "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$redis_password/" .env && rm -f .env.bak
+  else
+    echo "REDIS_PASSWORD=$redis_password" >> .env
+  fi
+  echo "وُلّدت كلمة مرور Redis في .env"
+fi
+
 # على ماك ولينكس: نطابق رقم المستخدم داخل الحاوية مع مستخدم الجهاز
 case "$(uname -s)" in
   Darwin|Linux)
