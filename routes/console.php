@@ -30,7 +30,7 @@ Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 // بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، لكل الوحدات، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
 Schedule::command('ejaz:purge-anonymized-data')->daily()->withoutOverlapping()->onOneServer();
 
-// الحسابات غير الموثقة بعد 14 يوماً، ما لم ترتبط بسجل أو بدور غير المستفيد (decisions.md — 14 أكتوبر 2026)
+// حسابات التسجيل الذاتي التي لم توثَّق قط ولم يعد إليها أصحابها بعد 14 يوماً، ما لم ترتبط بسجل أو بدور غير المستفيد (decisions.md — 14 أكتوبر 2026)
 Schedule::command('ejaz:prune-unverified-accounts')->daily()->withoutOverlapping()->onOneServer();
 
 // إحصائيات البوابة تُحسب في الخلفية وتُخزَّن (performance.md)
