@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Auth\CurrentPasswordLimiter;
 use App\Models\User;
 use App\Notifications\ContactDetailsChanged;
 use App\Rules\SaudiMobile;
@@ -31,12 +32,27 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         $emailChanged = $input['email'] !== $user->email;
         $phoneChanged = $input['phone'] !== $user->phone;
 
-        Validator::make($input, [
+        // تخمين كلمة المرور الحالية يُقفل مع التأكيد وتغيير كلمة المرور، قبل فحص التجزئة
+        if ($emailChanged || $phoneChanged) {
+            CurrentPasswordLimiter::ensureNotLocked($user, 'current_password', 'updateProfileInformation');
+        }
+
+        $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => ['required', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)],
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
-        ])->validateWithBag('updateProfileInformation');
+        ]);
+
+        if ($validator->errors()->has('current_password')) {
+            CurrentPasswordLimiter::failed($user);
+        }
+
+        $validator->validateWithBag('updateProfileInformation');
+
+        if ($emailChanged || $phoneChanged) {
+            CurrentPasswordLimiter::passed($user);
+        }
 
         $previousEmail = $user->email;
 

@@ -8,6 +8,7 @@ use App\Actions\Fortify\EnableTwoFactorAuthentication;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Auth\CurrentPasswordLimiter;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
@@ -21,7 +22,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication as BaseEnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
@@ -100,25 +100,19 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * تأكيد كلمة المرور قبل الصفحات الحساسة: الأمان والتحقق الثنائي، وتنزيل البيانات.
      * تأكيد Fortify الافتراضي يبحث بعمود اسم الدخول (login)، ولا عمود بهذا الاسم لأن
-     * الدخول بالبريد أو الجوال. وخمس محاولات خاطئة تقفله ربع ساعة، كقفل الدخول.
+     * الدخول بالبريد أو الجوال. والقفل مشترك مع تغيير كلمة المرور والبريد والجوال (CurrentPasswordLimiter).
      */
     private function confirmPassword(User $user, ?string $password): bool
     {
-        $key = 'confirm-password:'.$user->id;
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'password' => __('account.confirm_password.throttle', ['minutes' => (int) ceil(RateLimiter::availableIn($key) / 60)]),
-            ]);
-        }
+        CurrentPasswordLimiter::ensureNotLocked($user, 'password');
 
         if ($user->is_active && Hash::check((string) $password, $user->password)) {
-            RateLimiter::clear($key);
+            CurrentPasswordLimiter::passed($user);
 
             return true;
         }
 
-        RateLimiter::hit($key, 900);
+        CurrentPasswordLimiter::failed($user);
 
         return false;
     }
