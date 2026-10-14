@@ -48,6 +48,14 @@ class CompetitionDrawPolicy
             && $user->hasRole(RoleName::SuperAdmin->value);
     }
 
+    /**
+     * رفض طلب الإلغاء بسبب (RejectDrawVoid): لمن يعتمده، فلا يرفض الطالب طلبه.
+     */
+    public function rejectVoid(User $user, CompetitionDraw $draw): bool
+    {
+        return $this->approveVoid($user, $draw);
+    }
+
     public function update(User $user, CompetitionDraw $draw): bool
     {
         return false;

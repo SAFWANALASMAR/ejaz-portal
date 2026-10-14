@@ -61,6 +61,8 @@ return [
         'draw_voided' => 'إلغاء سحب إلكتروني',
         'draw_void_requested' => 'طلب إلغاء سحب إلكتروني بانتظار اعتماد ثانٍ',
         'draw_void_approved' => 'اعتماد إلغاء سحب إلكتروني',
+        'draw_void_rejected' => 'رفض طلب إلغاء سحب إلكتروني',
+        'draw_void_lapsed' => 'سقوط طلب إلغاء سحب إلكتروني بلا قرار',
         'submissions_distributed' => 'توزيع آلي للمشاركات على المحكّمين',
         'submissions_exported' => 'تصدير مشاركات مسابقة',
         'survey_results_exported' => 'تصدير نتائج استبيان',

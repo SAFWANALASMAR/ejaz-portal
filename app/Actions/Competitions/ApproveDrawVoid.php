@@ -3,9 +3,9 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\ActivityEvent;
+use App\Enums\DrawVoidRequestStatus;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionDrawVoid;
-use App\Models\CompetitionDrawVoidRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * اعتماد طلب إلغاء سحب بعد الإلغاء الأول في المسابقة: لمشرف عام غير طالب الإلغاء (CompetitionDrawPolicy).
  * فيُسجَّل الإلغاء باسم الطالب وسببه، ومعه المعتمد، فلا يعيد الطالب السحب بنفسه (RunDraw).
+ * والطلب المرفوض أو الساقط أو الذي مضت مدته لا يُعتمد.
  */
 class ApproveDrawVoid
 {
@@ -34,7 +35,17 @@ class ApproveDrawVoid
                 throw ValidationException::withMessages(['reason' => __('competitions.draws.already_void')]);
             }
 
-            $request = CompetitionDrawVoidRequest::query()->where('draw_id', $draw->id)->firstOrFail();
+            $request = $draw->voidRequest()->first()
+                ?? throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_closed')]);
+
+            if ($request->hasLapsed()) {
+                throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);
+            }
+
+            $request->status = DrawVoidRequestStatus::Approved;
+            $request->decided_by = $actor->id;
+            $request->decided_at = now();
+            $request->save();
 
             $void = new CompetitionDrawVoid;
             $void->draw_id = $draw->id;

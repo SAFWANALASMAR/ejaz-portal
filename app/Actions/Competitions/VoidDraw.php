@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * معلَّماً بسببه، فلا يُختار سحب من بين سحوبات خفية.
  *
  * وإلغاء واحد لكل مسابقة بقرار مشرف عام واحد. وما بعده طلب لا إلغاء، يعتمده مشرف عام ثانٍ غير الطالب
- * (ApproveDrawVoid)، فلا يكرر مشرف واحد السحب حتى نتيجة بعينها (decisions.md — 14 أكتوبر 2026).
+ * (ApproveDrawVoid) أو يرفضه بسبب (RejectDrawVoid)، ويسقط بعد سبعة أيام بلا قرار، فلا يكرر مشرف واحد السحب حتى نتيجة بعينها (decisions.md — 14 أكتوبر 2026).
  */
 class VoidDraw
 {
@@ -44,7 +44,8 @@ class VoidDraw
                 throw ValidationException::withMessages(['reason' => __('competitions.draws.already_void')]);
             }
 
-            if (CompetitionDrawVoidRequest::query()->where('draw_id', $draw->id)->exists()) {
+            // طلب معلّق واحد للسحب، والمرفوض والساقط لا يمنعان طلباً جديداً
+            if ($draw->voidRequest()->exists()) {
                 throw ValidationException::withMessages(['reason' => __('competitions.draws.void_pending')]);
             }
 

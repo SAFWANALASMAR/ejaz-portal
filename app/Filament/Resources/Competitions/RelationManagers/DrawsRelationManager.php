@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Competitions\RelationManagers;
 
 use App\Actions\Competitions\ApproveDrawVoid;
+use App\Actions\Competitions\RejectDrawVoid;
 use App\Actions\Competitions\RunDraw;
 use App\Actions\Competitions\VoidDraw;
 use App\Models\Competition;
@@ -121,7 +122,7 @@ class DrawsRelationManager extends RelationManager
                         && (auth()->user()?->can('void', $record) ?? false))
                     // بعد الإلغاء الأول في المسابقة يصير الإلغاء طلباً يعتمده مشرف عام آخر (VoidDraw)
                     ->modalDescription(fn (): string => $this->competition()->draws()->whereHas('void')->exists()
-                        ? __('competitions.draws.void_request_confirm')
+                        ? __('competitions.draws.void_request_confirm', ['days' => CompetitionDrawVoidRequest::LAPSE_DAYS])
                         : __('competitions.draws.void_confirm'))
                     ->schema([
                         Textarea::make('reason')->label(__('competitions.draws.void_reason'))->required()->minLength(10)->maxLength(500),
@@ -154,6 +155,27 @@ class DrawsRelationManager extends RelationManager
                         try {
                             app(ApproveDrawVoid::class)->handle($user, $record);
                             Notification::make()->success()->title(__('competitions.draws.voided'))->send();
+                        } catch (ValidationException $exception) {
+                            Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
+                        }
+                    }),
+                // رفض طلب الإلغاء بسبب إلزامي: لمن يعتمده (CompetitionDrawPolicy::rejectVoid)
+                Action::make('reject_void')
+                    ->label(__('competitions.draws.reject_void'))
+                    ->icon('heroicon-o-x-circle')
+                    ->color('gray')
+                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && (auth()->user()?->can('rejectVoid', $record) ?? false))
+                    ->modalDescription(__('competitions.draws.reject_void_confirm'))
+                    ->schema([
+                        Textarea::make('reason')->label(__('competitions.draws.reject_reason'))->required()->minLength(10)->maxLength(500),
+                    ])
+                    ->action(function (CompetitionDraw $record, array $data): void {
+                        /** @var User $user */
+                        $user = auth()->user();
+
+                        try {
+                            app(RejectDrawVoid::class)->handle($user, $record, (string) $data['reason']);
+                            Notification::make()->success()->title(__('competitions.draws.void_rejected'))->send();
                         } catch (ValidationException $exception) {
                             Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
                         }
