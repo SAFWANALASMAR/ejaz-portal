@@ -50,51 +50,48 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # قبل تنفيذ /bootstrap لا توجد ملفات القفل ولا أدوات الجودة؛ يتخطى الفحص بقية الخطوات
+      # المشروع مؤسس: غياب ملف قفل أو إعداد التحليل يُفشل الفحص، ولا يُتخطى به شيء (الفحص الأمني 14 أكتوبر)
       - name: التحقق من اكتمال التأسيس
-        id: boot
         run: |
-          if [ -f composer.lock ] && [ -f package-lock.json ] && [ -f phpstan.neon ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::المشروع لم يُؤسس بعد بأمر /bootstrap — تُتخطى الفحوص"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
+          missing=0
+          for file in composer.lock package-lock.json phpstan.neon; do
+            if [ ! -f "$file" ]; then
+              echo "::error::الملف $file غائب، ولا يُفحص المشروع بدونه"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
           fi
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
-        if: steps.boot.outputs.ready == 'true'
         with:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, pcntl, exif
           coverage: none
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        if: steps.boot.outputs.ready == 'true'
         with:
           node-version: '22'
 
       - name: Cache Composer
-        if: steps.boot.outputs.ready == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.composer/cache
           key: composer-${{ hashFiles('composer.lock') }}
 
       - name: تثبيت المكتبات
-        if: steps.boot.outputs.ready == 'true'
         run: |
           composer install --no-interaction --prefer-dist --no-progress
           npm ci
           npm run build
 
       - name: تجهيز البيئة
-        if: steps.boot.outputs.ready == 'true'
         run: |
           cp .env.example .env
           php artisan key:generate
 
       - name: تدقيق المكتبات أمنياً
-        if: steps.boot.outputs.ready == 'true'
         run: |
           composer audit
           npm audit --omit=dev --audit-level=high
@@ -102,18 +99,14 @@ jobs:
       # أدوات البناء والتطوير (Vite وغيرها) لا تصل إلى الإنتاج، لكن ثغراتها تمس جهاز المطوّر والفحص الآلي.
       # تقريرية غير مانعة: تظهر في السجل ولا توقف الفحص، والمانع ما قبلها لمكتبات الإنتاج.
       - name: تدقيق مكتبات الواجهة كاملة (تقريري)
-        if: steps.boot.outputs.ready == 'true'
         continue-on-error: true
         run: npm audit --audit-level=moderate
 
       - name: تنسيق الشيفرة (Pint)
-        if: steps.boot.outputs.ready == 'true'
         run: vendor/bin/pint --test
 
       - name: التحليل الثابت (Larastan)
-        if: steps.boot.outputs.ready == 'true'
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
       - name: الاختبارات
-        if: steps.boot.outputs.ready == 'true'
         run: php artisan test
