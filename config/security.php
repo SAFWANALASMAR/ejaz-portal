@@ -54,6 +54,10 @@ return [
     'sms_pending_per_ipv6_site' => (int) env('SMS_PENDING_PER_IPV6_SITE', 200),
     'sms_sent_per_ipv6_site' => (int) env('SMS_SENT_PER_IPV6_SITE', 500),
 
+    // الحساب الذي لم يوثّق جواله يُحذف بعد هذه المدة بالأيام، ما لم يرتبط بسجل أو بدور غير المستفيد
+    // (ejaz:prune-unverified-accounts — decisions.md 14 أكتوبر 2026)
+    'unverified_account_days' => (int) env('UNVERIFIED_ACCOUNT_DAYS', 14),
+
     // أقصى انتظار بالثواني لقفل التحقق من رمز الجوال عند الطلبات المتزامنة
     'otp_lock_wait_seconds' => 3,
 

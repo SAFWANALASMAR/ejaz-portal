@@ -4,8 +4,10 @@ namespace App\Actions\Accounts;
 
 use App\Models\User;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,6 +54,30 @@ class VerifyPhoneCode
         // الرمز المكتمل يحرر مكانه في حد الشبكة
         SendPhoneVerificationCode::releaseBuckets((array) ($entry['buckets'] ?? []));
 
-        $user->forceFill(['phone_verified_at' => now()])->save();
+        $this->claimNumber($user);
+    }
+
+    /**
+     * الرقم الموثق لحساب واحد (فهرس تفرد جزئي)، والحسابات غير الموثقة التي تحمله تفقده، فلا يحجز
+     * حساب غير موثق رقم صاحبه (decisions.md — 14 أكتوبر 2026). ورقم موثق في حساب آخر لا يُوثَّق ثانية.
+     */
+    private function claimNumber(User $user): void
+    {
+        try {
+            DB::transaction(function () use ($user): void {
+                $holders = User::query()->where('phone', $user->phone)->whereKeyNot($user->getKey());
+
+                if ((clone $holders)->whereNotNull('phone_verified_at')->exists()) {
+                    throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
+                }
+
+                $holders->whereNull('phone_verified_at')->update(['phone' => null]);
+
+                $user->forceFill(['phone_verified_at' => now()])->save();
+            });
+        } catch (UniqueConstraintViolationException) {
+            // حسابان وثّقا الرقم نفسه في اللحظة نفسها
+            throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
+        }
     }
 }

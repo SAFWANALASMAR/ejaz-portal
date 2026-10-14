@@ -88,6 +88,8 @@ class UserForm
             $exists = User::query()
                 ->where($column, $normalize($value))
                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
+                // الجوال يتفرد على الأرقام الموثقة وحدها (decisions.md — 14 أكتوبر 2026)
+                ->when($column === 'phone', fn ($query) => $query->whereNotNull('phone_verified_at'))
                 ->exists();
 
             if ($exists) {

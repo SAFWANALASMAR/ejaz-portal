@@ -84,7 +84,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return match (true) {
             $login === '' => null,
             LoginIdentifier::isEmail($login) => self::query()->where('email', $login)->first(),
-            str_starts_with($login, '+966') => self::query()->where('phone', $login)->first(),
+            // الرقم قد يحمله حساب غير موثق مع صاحبه الموثق، فالموثق أولاً (decisions.md — 14 أكتوبر 2026)
+            str_starts_with($login, '+966') => self::query()->where('phone', $login)
+                ->orderByRaw('phone_verified_at IS NULL')->orderBy('id')->first(),
             default => null,
         };
     }

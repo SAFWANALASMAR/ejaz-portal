@@ -34,7 +34,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['required', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)],
+            'phone' => ['required', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)->whereNotNull('phone_verified_at')],
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
         ])->validateWithBag('updateProfileInformation');
 
