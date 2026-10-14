@@ -99,6 +99,13 @@ jobs:
           composer audit
           npm audit --omit=dev --audit-level=high
 
+      # أدوات البناء والتطوير (Vite وغيرها) لا تصل إلى الإنتاج، لكن ثغراتها تمس جهاز المطوّر والفحص الآلي.
+      # تقريرية غير مانعة: تظهر في السجل ولا توقف الفحص، والمانع ما قبلها لمكتبات الإنتاج.
+      - name: تدقيق مكتبات الواجهة كاملة (تقريري)
+        if: steps.boot.outputs.ready == 'true'
+        continue-on-error: true
+        run: npm audit --audit-level=moderate
+
       - name: تنسيق الشيفرة (Pint)
         if: steps.boot.outputs.ready == 'true'
         run: vendor/bin/pint --test
