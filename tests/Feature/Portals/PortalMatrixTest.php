@@ -58,6 +58,8 @@ function portalMatrix(): array
         'view forms' => [['viewAny', FormTemplate::class], [RoleName::BoardMember, RoleName::ExecutiveDirector, ...$employees]],
         'manage forms' => [['create', FormTemplate::class], [RoleName::ExecutiveDirector, ...$employees]],
         'approve filled forms' => [['form_entries.approve'], [RoleName::BoardMember]],
+        // وغيرهما يطّلع على ما عبّأه وحده (قرار صفوان، 14 أكتوبر 2026)
+        'see every filled form' => [['form_entries.view_all'], [RoleName::BoardMember, RoleName::ExecutiveDirector]],
 
         // الخامسة: المحكّمون
         'view reviews' => [['viewAny', SubmissionReview::class], [RoleName::Reviewer, RoleName::ProgramManager, RoleName::ExecutiveDirector]],

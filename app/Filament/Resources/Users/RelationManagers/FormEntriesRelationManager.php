@@ -41,7 +41,8 @@ class FormEntriesRelationManager extends RelationManager
         return $table
             ->modelLabel(__('documents.entries.model'))
             ->pluralModelLabel(__('documents.entries.plural'))
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('version.template'))
+            // ما يطّلع عليه الحساب في اللوحة وحده (FormEntry::scopeVisibleInPanel)
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('version.template')->scopes(['visibleInPanel' => [auth()->user()]]))
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('reference')->label(__('documents.fields.reference')),
