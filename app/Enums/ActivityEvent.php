@@ -43,6 +43,8 @@ enum ActivityEvent: string implements HasLabel
     case ResultsApproved = 'results_approved';
     case DrawExecuted = 'draw_executed';
     case DrawVoided = 'draw_voided';
+    case DrawVoidRequested = 'draw_void_requested';
+    case DrawVoidApproved = 'draw_void_approved';
     case SubmissionsDistributed = 'submissions_distributed';
     case SubmissionsExported = 'submissions_exported';
     case PersonalDataPurged = 'personal_data_purged';

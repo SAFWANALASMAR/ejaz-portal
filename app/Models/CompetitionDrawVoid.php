@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 /**
- * إلغاء سحب: سجل ثابت بسببه ومنفّذه ووقته (VoidDraw). والسحب الملغى يبقى ظاهراً معلَّماً.
+ * إلغاء سحب: سجل ثابت بسببه ومنفّذه ووقته، ومعتمده لما بعد الإلغاء الأول (VoidDraw وApproveDrawVoid). والسحب الملغى يبقى ظاهراً معلَّماً.
  */
 class CompetitionDrawVoid extends Model
 {
@@ -38,5 +38,13 @@ class CompetitionDrawVoid extends Model
     public function voider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

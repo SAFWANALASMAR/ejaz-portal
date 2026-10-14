@@ -75,6 +75,16 @@ class CompetitionDraw extends Model
     }
 
     /**
+     * طلب إلغاء بانتظار اعتماد مشرف عام ثانٍ (ApproveDrawVoid)، ما لم يكن للسحب إلغاء.
+     *
+     * @return HasOne<CompetitionDrawVoidRequest, $this>
+     */
+    public function voidRequest(): HasOne
+    {
+        return $this->hasOne(CompetitionDrawVoidRequest::class, 'draw_id');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function executor(): BelongsTo
