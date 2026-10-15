@@ -5,6 +5,7 @@ use App\Actions\Users\CreateStaffUser;
 use App\Enums\RoleName;
 use App\Models\ProgramRegistration;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\Fakes\FakeSmsGateway;
 
@@ -137,4 +138,29 @@ it('keeps an account a record points to by an unchecked key, and carries on with
     expect($action->prune($linked->id, []))->toBeFalse()
         ->and(User::find($linked->id))->not->toBeNull()
         ->and($action->prune($free->id, []))->toBeTrue();
+});
+
+it('backfills the first verification from the activity log for accounts that lost their current one', function () {
+    $changed = abandoned(['email_verified_at' => null, 'phone_verified_at' => null], days: 90);
+    $earlier = abandoned(['email_verified_at' => null, 'phone_verified_at' => null], days: 90);
+    $earlier->forceFill(['first_verified_at' => '2026-01-01 00:00:00'])->save();
+    $none = abandoned(['phone' => null]);
+
+    // كما يحفظها سجل العمليات: تغيير الجوال أفرغ التوثيق، والقيمة القديمة في old
+    $log = fn (User $user, array $changes) => DB::table('activity_log')->insert([
+        'log_name' => 'default', 'description' => 'updated', 'event' => 'updated',
+        'subject_type' => User::class, 'subject_id' => $user->id,
+        'attribute_changes' => json_encode($changes), 'properties' => '[]',
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+    $log($changed, ['attributes' => ['phone_verified_at' => null], 'old' => ['phone_verified_at' => '2026-09-01T08:30:00.000000Z']]);
+    $log($changed, ['attributes' => ['email_verified_at' => '2026-09-15T10:00:00.000000Z'], 'old' => ['email_verified_at' => null]]);
+    $log($earlier, ['attributes' => ['phone_verified_at' => '2026-09-01T08:30:00.000000Z']]);
+
+    (require database_path('migrations/2026_10_15_090000_backfill_first_verified_at_from_activity_log.php'))->up();
+
+    expect($changed->fresh()->first_verified_at->format('Y-m-d H:i:s'))->toBe('2026-09-01 08:30:00')
+        ->and($earlier->fresh()->first_verified_at->format('Y-m-d H:i:s'))->toBe('2026-01-01 00:00:00')
+        ->and($none->fresh()->first_verified_at)->toBeNull()
+        ->and(app(PruneUnverifiedAccounts::class)->query()->whereKey($changed->id)->exists())->toBeFalse();
 });
