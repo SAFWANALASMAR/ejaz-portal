@@ -5,6 +5,7 @@
 - **البدء والتشغيل:** [دليل-التشغيل.md](دليل-التشغيل.md)
 - **دستور المشروع (لكلود كود):** [CLAUDE.md](CLAUDE.md)
 - **فهرس المشروع (الوثائق والوحدات وحالتها):** [docs/README.md](docs/README.md)
+- **دليل المراجع الفني:** [docs/REVIEWER-GUIDE.md](docs/REVIEWER-GUIDE.md)
 - **المراحل والحالة:** [docs/roadmap.md](docs/roadmap.md)
 - **سجل التغييرات والإصدارات:** [CHANGELOG.md](CHANGELOG.md)
 - **المعلومات الناقصة من الجمعية:** [docs/open-questions.md](docs/open-questions.md)
