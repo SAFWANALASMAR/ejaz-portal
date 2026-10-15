@@ -21,6 +21,11 @@ return new class extends Migration
         DB::statement('CREATE UNIQUE INDEX users_verified_phone_unique ON users (phone) WHERE phone_verified_at IS NOT NULL');
     }
 
+    /**
+     * لا يعمل عملياً بعد التشغيل: متى حمل حسابان غير موثقين الرقم نفسه (وهو ما يسمح به up)، رفض إنشاءُ
+     * التفرد الكامل الرجوعَ بخطأ تكرار. ويلزم قبله قرار فيمن يبقى له الرقم من الحسابات غير الموثقة، ولا
+     * يتخذه ترحيل (decisions.md — مراجعة التكامل، 14 أكتوبر 2026).
+     */
     public function down(): void
     {
         DB::statement('DROP INDEX IF EXISTS users_verified_phone_unique');

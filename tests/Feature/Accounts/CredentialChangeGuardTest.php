@@ -48,6 +48,26 @@ it('sends nothing when the current password is wrong', function () {
     Notification::assertNothingSent();
 });
 
+it('checks the current password hash once per request, right or wrong', function () {
+    Notification::fake();
+    // أربعة طلبات، لكل طلب تجزئة واحدة (كانت اثنتين: errors() ثم validateWithBag())
+    $hasher = app('hash');
+    $counting = Mockery::mock($hasher);
+    $counting->shouldReceive('check')->times(4)->andReturnUsing(fn (...$arguments) => $hasher->check(...$arguments));
+    Hash::swap($counting);
+    $this->actingAs($this->user);
+
+    $this->put('/user/password', passwordChange('wrong-password'))->assertSessionHasErrorsIn('updatePassword', 'current_password');
+    $this->put('/user/password', passwordChange('password'))->assertSessionHasNoErrors();
+
+    $change = ['name' => 'سارة', 'email' => 'sara.new@example.test', 'phone' => '0512345678'];
+    $this->put('/user/profile-information', [...$change, 'current_password' => 'wrong-password'])
+        ->assertSessionHasErrorsIn('updateProfileInformation', 'current_password');
+    $this->put('/user/profile-information', [...$change, 'current_password' => 'brand-new-pass-2026'])->assertSessionHasNoErrors();
+
+    expect($this->user->fresh()->email)->toBe('sara.new@example.test');
+});
+
 it('locks the password change after five wrong current passwords, before checking the hash', function () {
     foreach (range(1, 5) as $ignored) {
         $this->actingAs($this->user)->put('/user/password', passwordChange('wrong-password'))

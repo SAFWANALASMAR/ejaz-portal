@@ -18,12 +18,19 @@ use Illuminate\Validation\ValidationException;
  */
 class ApproveDrawVoid
 {
+    public function __construct(private readonly LapseDrawVoidRequests $lapse) {}
+
     /**
      * @throws AuthorizationException
      * @throws ValidationException
      */
     public function handle(User $actor, CompetitionDraw $draw): CompetitionDrawVoid
     {
+        // الطلب الذي مضت مدته يسقط الآن لا عند الأمر اليومي، ويُحفظ سقوطه قبل رسالة الرفض
+        if ($this->lapse->forDraw($draw)) {
+            throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);
+        }
+
         if (! $actor->can('approveVoid', $draw)) {
             throw new AuthorizationException;
         }
@@ -40,6 +47,11 @@ class ApproveDrawVoid
 
             if ($request->hasLapsed()) {
                 throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);
+            }
+
+            // الطلب المقفل قد يكون غير الذي فحصته الصلاحية (سقط ذاك وطلب هذا المعتمدُ نفسه)، وقيد القاعدة يرفضه بخطأ
+            if ($request->requested_by === $actor->id) {
+                throw ValidationException::withMessages(['reason' => __('competitions.draws.void_own_request')]);
             }
 
             $request->status = DrawVoidRequestStatus::Approved;

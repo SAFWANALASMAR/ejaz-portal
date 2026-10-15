@@ -24,6 +24,9 @@ return [
     // صورة على القرص العام لا يشير إليها سجل تُحذف بعد هذه الأيام (ejaz:prune-public-files)
     'public_orphan_days' => (int) env('PUBLIC_ORPHAN_DAYS', 7),
 
+    // ملف شخصي على القرص الخاص لا يشير إليه سجل يُحذف بعد هذه الأيام (ejaz:prune-orphan-private-files)
+    'private_orphan_days' => (int) env('PRIVATE_ORPHAN_DAYS', 1),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

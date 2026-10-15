@@ -81,10 +81,14 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
                     deletion_requested_at, id)
       from users where deletion_requested_at >= 'T' and anonymized_at is null;
       ```
-   5. وإن ضاعت القاعدة السابقة ونسخة الخطوة ٢ معاً، فلا مصدر في الخادم لمن أُخفي بعد النسخة: يُذكر ذلك في توثيق الحادث (الخطوة ٩).
-7. تشغيل العمال والمجدول، ثم `php artisan up`، ثم `php artisan ejaz:health`.
-8. **لا `cache:clear`.** وإن لزم مسح ذاكرة المحتوى: `php artisan ejaz:refresh-content`.
-9. توثيق الحادث: ما فُقد بين آخر نسخة والحادث، وإبلاغ من يلزم وفق نظام حماية البيانات الشخصية إن مس الحادث بيانات شخصية.
+   5. وإن ضاعت القاعدة السابقة ونسخة الخطوة ٢ معاً، فلا مصدر في الخادم لمن أُخفي بعد النسخة: يُذكر ذلك في توثيق الحادث (الخطوة ١٠).
+7. **حذف الملفات الشخصية التي أعادتها مزامنة الملفات بلا سجل يشير إليها:** مرفقات النماذج المعبأة وتواقيعها، ومرفقات الطلبات، مما حُذف بعد مدة الاحتفاظ أو حذفه صاحبه بعد وقت النسخة. والموقع متوقف، فلا رفع جارٍ، فالعمر صفر:
+   1. `php artisan ejaz:prune-orphan-private-files --dry-run --days=0`، ومراجعة العدد والمسارات.
+   2. `php artisan ejaz:prune-orphan-private-files --days=0`. وإن توقف لأن الحذف بدا جماعياً (أكثر من نصف الملفات)، فراجع القاعدة المستعادة أولاً، ثم أعده بـ `--force` إن كان مقصوداً.
+   - ويعمل الأمر أسبوعياً في المجدول بعمر يوم (`PRIVATE_ORPHAN_DAYS`).
+8. تشغيل العمال والمجدول، ثم `php artisan up`، ثم `php artisan ejaz:health`.
+9. **لا `cache:clear`.** وإن لزم مسح ذاكرة المحتوى: `php artisan ejaz:refresh-content`.
+10. توثيق الحادث: ما فُقد بين آخر نسخة والحادث، وإبلاغ من يلزم وفق نظام حماية البيانات الشخصية إن مس الحادث بيانات شخصية.
 
 ## ٣. بحزمة الحاويات (`deploy/compose.production.yaml`)
 
@@ -98,4 +102,4 @@ $DC exec -T pgsql psql -U ejaz -d ejaz_restore_test -c "select count(*) from use
 $DC exec -T pgsql dropdb -U ejaz ejaz_restore_test      # الإتلاف بعد التجربة
 ```
 
-وفي الاستعادة الفعلية: الاستعادة في قاعدة جديدة (`ejaz_restored`)، ثم `DB_DATABASE=ejaz_restored` في `.env`، ثم إعادة الإخفاء كما في الخطوة ٦ أعلاه (`$DC run --rm app php artisan ejaz:reapply-anonymization ...` ثم `ejaz:purge-anonymized-data`)، ثم `$DC up -d app horizon scheduler` (تُبنى ذاكرة الإعدادات عند بدء الحاويات)، ثم `ejaz:health`.
+وفي الاستعادة الفعلية: الاستعادة في قاعدة جديدة (`ejaz_restored`)، ثم `DB_DATABASE=ejaz_restored` في `.env`، ثم إعادة الإخفاء كما في الخطوة ٦ أعلاه (`$DC run --rm app php artisan ejaz:reapply-anonymization ...` ثم `ejaz:purge-anonymized-data`)، ثم حذف الملفات بلا سجل كما في الخطوة ٧ (`$DC run --rm app php artisan ejaz:prune-orphan-private-files --days=0`)، ثم `$DC up -d app horizon scheduler` (تُبنى ذاكرة الإعدادات عند بدء الحاويات)، ثم `ejaz:health`.
