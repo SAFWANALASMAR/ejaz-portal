@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\FullPageLoadOnNavigate;
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,8 +29,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             AuthenticateSession::class,
             SecurityHeaders::class,
+            FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
         ]);
+
+        // التنقّل السريع إلى ما يُحمَّل كاملاً تحميل كامل (FullPageLoadOnNavigate)، ومنه تحويل الدخول من Authenticate:
+        // فيُقدَّم عليه في ترتيب الأولوية، وإلا قدّم لارافيل Authenticate على كل ما أُلحق بمجموعة web
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: FullPageLoadOnNavigate::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

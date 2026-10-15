@@ -15,7 +15,7 @@
         <ul class="space-y-3">
             @foreach ($requests as $item)
                 <li>
-                    <a href="{{ route('account.requests.show', $item) }}"
+                    <a href="{{ route('account.requests.show', $item) }}" wire:navigate
                         class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:border-primary/40">
                         <span class="min-w-0">
                             <span class="block font-semibold text-ink">{{ $item->opening->title }}</span>

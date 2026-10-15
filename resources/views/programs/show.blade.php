@@ -71,7 +71,7 @@
                         @if ($program->initiative)
                             <div class="flex gap-2">
                                 <dt class="text-muted">{{ svg('heroicon-o-sparkles', 'size-5 text-accent') }}<span class="sr-only">{{ __('programs.show.initiative') }}</span></dt>
-                                <dd><a href="{{ route('initiatives.show', $program->initiative->slug) }}" class="text-primary underline decoration-accent underline-offset-4">{{ $program->initiative->name }}</a></dd>
+                                <dd><a href="{{ route('initiatives.show', $program->initiative->slug) }}" wire:navigate class="text-primary underline decoration-accent underline-offset-4">{{ $program->initiative->name }}</a></dd>
                             </div>
                         @endif
                     </dl>

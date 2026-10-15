@@ -19,7 +19,7 @@
                 <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($openings as $opening)
                         <li>
-                            <a href="{{ route('services.openings.show', $opening->slug) }}"
+                            <a href="{{ route('services.openings.show', $opening->slug) }}" wire:navigate
                                 class="group flex h-full flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                                 <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$kind->icon(), 'size-8') }}</span>
                                 <span class="mt-3 block text-lg font-bold text-ink">{{ $opening->title }}</span>

@@ -26,7 +26,7 @@
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         @foreach (\App\Support\AccountNavigation::cards($user) as $link)
-            <a href="{{ route($link['route']) }}"
+            <a href="{{ route($link['route']) }}" @navigate(route($link['route']))
                 class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <span class="flex items-start gap-4">
                     <span class="text-accent">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>

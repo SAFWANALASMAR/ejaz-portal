@@ -87,7 +87,7 @@
             <ul class="mt-6 flex flex-wrap gap-2" aria-label="{{ __('library.fields.tags') }}">
                 @foreach ($item->tagList() as $tag)
                     <li>
-                        <a href="{{ route('library.section', [$item->section->value, 'tag' => $tag]) }}"
+                        <a href="{{ route('library.section', [$item->section->value, 'tag' => $tag]) }}" wire:navigate
                             class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-accent">{{ $tag }}</a>
                     </li>
                 @endforeach

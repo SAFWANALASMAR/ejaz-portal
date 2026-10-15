@@ -18,7 +18,7 @@
             @foreach ($questions as $question)
                 @php($done = $submission->answer($question) !== null)
                 <li>
-                    <a href="{{ route('competitions.exam.question', [$competition->slug, $loop->iteration]) }}"
+                    <a href="{{ route('competitions.exam.question', [$competition->slug, $loop->iteration]) }}" wire:navigate
                         class="flex items-center justify-between rounded-xl border border-line px-4 py-3 hover:border-primary">
                         <span class="font-semibold text-ink">{{ __('competitions.exam.question_of', ['number' => $loop->iteration, 'total' => $loop->count]) }}</span>
                         <span @class(['text-sm font-semibold', 'text-primary' => $done, 'text-red-700' => ! $done])>

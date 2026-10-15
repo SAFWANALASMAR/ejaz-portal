@@ -1,5 +1,9 @@
 // نموذج المشاركة في المسابقة: الحفظ التلقائي للمسودة، وتأكيد الإرسال، ورفع المقاطع مجزأة قابلة
 // للاستئناف (routes/competitions.php). وكل فحص هنا للراحة فقط، فالخادم يعيده كله.
+// ويُهيّأ مع كل صفحة (page.js)، ومغادرتها توقف الحفظ المؤجل والرفع والاستعلام عن الحالة كما كان التحميل الكامل
+// يوقفها، والرفع يُستأنف من حيث انقطع عند العودة.
+
+import { onPage } from './page';
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -21,12 +25,12 @@ async function request(url, options = {}) {
 
 // الجزء إلى مسار التطبيق برمز الحماية، أو مباشرة إلى التخزين السحابي برابطه الموقّع وحده، فلا
 // يُرسل رمز الحماية ولا الكعكات إلى نطاق آخر
-async function putChunk(url, chunk) {
+async function putChunk(url, chunk, signal) {
     if (new URL(url, location.href).origin === location.origin) {
-        return request(url, { method: 'PUT', body: chunk, headers: { 'Content-Type': 'application/octet-stream' } });
+        return request(url, { method: 'PUT', body: chunk, headers: { 'Content-Type': 'application/octet-stream' }, signal });
     }
 
-    const response = await fetch(url, { method: 'PUT', body: chunk, credentials: 'omit' });
+    const response = await fetch(url, { method: 'PUT', body: chunk, credentials: 'omit', signal });
 
     if (!response.ok) {
         throw new Error(String(response.status));
@@ -36,7 +40,7 @@ async function putChunk(url, chunk) {
 }
 
 // الحفظ التلقائي بعد توقف قصير عن الكتابة
-function autosave(form) {
+function autosave(form, signal) {
     const status = form.querySelector('[data-autosave-status]');
     let timer = null;
     let submitted = false;
@@ -89,7 +93,9 @@ function autosave(form) {
         if (event.persisted) {
             submitted = false;
         }
-    });
+    }, { signal });
+
+    signal.addEventListener('abort', () => clearTimeout(timer));
 }
 
 // مدة المقطع من بياناته في المتصفح، قبل الرفع
@@ -130,7 +136,7 @@ function recall(box) {
     }
 }
 
-function videoUpload(box) {
+function videoUpload(box, signal) {
     const input = box.querySelector('[data-video-input]');
     const progress = box.querySelector('[data-video-progress]');
     const status = box.querySelector('[data-video-status]');
@@ -143,6 +149,9 @@ function videoUpload(box) {
     }
 
     const url = (template, video) => template.replace('__VIDEO__', encodeURIComponent(video));
+    let polling = null;
+
+    signal.addEventListener('abort', () => clearTimeout(polling));
 
     const upload = async (file, video, chunkSize, urls, total) => {
         const indexes = Object.keys(urls).map(Number);
@@ -151,20 +160,20 @@ function videoUpload(box) {
 
         for (const index of indexes) {
             const chunk = file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize));
-            await putChunk(urls[index], chunk);
+            await putChunk(urls[index], chunk, signal);
             done++;
             progress.value = Math.round((done / total) * 100);
             status.textContent = messages.progress.replace(':percent', progress.value);
         }
 
-        const result = await request(url(box.dataset.completeUrl, video), { method: 'POST' });
+        const result = await request(url(box.dataset.completeUrl, video), { method: 'POST', signal });
         status.textContent = result.label;
         remember(box, null);
         poll(video);
     };
 
     const poll = async (video) => {
-        const result = await request(url(box.dataset.statusUrl, video)).catch(() => null);
+        const result = await request(url(box.dataset.statusUrl, video), { signal }).catch(() => null);
 
         if (!result) {
             return;
@@ -173,7 +182,7 @@ function videoUpload(box) {
         status.textContent = result.reason ? `${result.label} — ${result.reason}` : result.label;
 
         if (result.status === 'processing') {
-            setTimeout(() => poll(video), 3000);
+            polling = setTimeout(() => poll(video), 3000);
         }
     };
 
@@ -208,7 +217,7 @@ function videoUpload(box) {
 
             // الملف نفسه بعد انقطاع: يكمل الأجزاء الناقصة فقط
             if (previous && previous.name === file.name && previous.size === file.size && previous.modified === file.lastModified) {
-                const state = await request(url(box.dataset.statusUrl, previous.video)).catch(() => null);
+                const state = await request(url(box.dataset.statusUrl, previous.video), { signal }).catch(() => null);
 
                 if (state && state.status === 'uploading') {
                     const total = Math.ceil(file.size / state.chunk_size);
@@ -221,11 +230,17 @@ function videoUpload(box) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ size: file.size, type: file.type, duration }),
+                signal,
             });
 
             remember(box, { video: start.video, name: file.name, size: file.size, modified: file.lastModified });
             await upload(file, start.video, start.chunk_size, start.urls, Object.keys(start.urls).length);
         } catch (error) {
+            // مغادرة الصفحة أثناء الرفع: يُستأنف عند العودة
+            if (error.name === 'AbortError') {
+                return;
+            }
+
             status.textContent = `${messages.retry} (${error.message})`;
         } finally {
             input.disabled = false;
@@ -233,8 +248,10 @@ function videoUpload(box) {
     });
 }
 
-document.querySelectorAll('form[data-autosave]').forEach(autosave);
-document.querySelectorAll('[data-video-upload]').forEach(videoUpload);
+onPage((signal) => {
+    document.querySelectorAll('form[data-autosave]').forEach((form) => autosave(form, signal));
+    document.querySelectorAll('[data-video-upload]').forEach((box) => videoUpload(box, signal));
+});
 
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-confirm]');

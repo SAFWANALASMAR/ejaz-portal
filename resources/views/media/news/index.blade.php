@@ -30,7 +30,7 @@
                 <ul class="mt-2 flex flex-wrap gap-2" aria-labelledby="categories">
                     @foreach ($categories as $category)
                         <li>
-                            <a href="{{ route('media.news.index', ['category' => $category, ...$search]) }}" @if ($activeCategory === $category) aria-current="true" @endif
+                            <a href="{{ route('media.news.index', ['category' => $category, ...$search]) }}" wire:navigate @if ($activeCategory === $category) aria-current="true" @endif
                                 class="inline-flex rounded-full border border-line bg-white px-3 py-1 text-sm text-ink transition hover:border-accent aria-[current=true]:border-accent aria-[current=true]:bg-accent/15 aria-[current=true]:font-semibold">
                                 {{ $category }}
                             </a>
@@ -41,7 +41,7 @@
         @endif
 
         @if ($filters !== [])
-            <p class="mt-4"><a href="{{ route('media.news.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('news.filters.reset') }}</a></p>
+            <p class="mt-4"><a href="{{ route('media.news.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('news.filters.reset') }}</a></p>
         @endif
 
         <h2 class="sr-only">{{ __('news.list.items') }}</h2>

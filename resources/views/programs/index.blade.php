@@ -17,7 +17,7 @@
                 <ul class="grid gap-4 sm:grid-cols-3">
                     @foreach ($hub as $entry)
                         <li>
-                            <a href="{{ $entry['url'] }}" class="group flex h-full items-center gap-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+                            <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
                                 <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white" aria-hidden="true">
                                     {{ svg('heroicon-o-'.$entry['icon'], 'size-6') }}
                                 </span>
@@ -31,14 +31,14 @@
             <nav aria-label="{{ __('programs.tabs.label') }}" class="mx-auto mt-8 max-w-full overflow-x-auto">
                 <ul class="mx-auto flex w-max gap-2 rounded-full border border-line/70 bg-white p-1.5 shadow-xs">
                     <li>
-                        <a href="{{ route('programs.index') }}" @if (! $active) aria-current="page" @endif
+                        <a href="{{ route('programs.index') }}" wire:navigate @if (! $active) aria-current="page" @endif
                             class="block rounded-full px-5 py-2 text-sm font-semibold whitespace-nowrap text-muted transition hover:text-primary aria-[current=page]:bg-primary aria-[current=page]:text-white">
                             {{ __('programs.tabs.all') }}
                         </a>
                     </li>
                     @foreach ($types as $type)
                         <li>
-                            <a href="{{ route('programs.index', ['type' => $type->slug]) }}" @if ($active?->is($type)) aria-current="page" @endif
+                            <a href="{{ route('programs.index', ['type' => $type->slug]) }}" wire:navigate @if ($active?->is($type)) aria-current="page" @endif
                                 class="block rounded-full px-5 py-2 text-sm font-semibold whitespace-nowrap text-muted transition hover:text-primary aria-[current=page]:bg-primary aria-[current=page]:text-white">
                                 {{ $type->name }}
                             </a>

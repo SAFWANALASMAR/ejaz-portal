@@ -21,7 +21,7 @@
 
     <div class="flex flex-1 flex-col p-5 text-center">
         <h3 class="text-lg font-bold text-ink">
-            <a href="{{ route('programs.show', $program->slug) }}" class="hover:text-primary">{{ $program->title }}</a>
+            <a href="{{ route('programs.show', $program->slug) }}" wire:navigate class="hover:text-primary">{{ $program->title }}</a>
         </h3>
         @if (filled($program->summary))
             <p class="mt-2 text-sm leading-6 text-muted">{{ $program->summary }}</p>

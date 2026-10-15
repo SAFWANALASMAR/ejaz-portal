@@ -6,7 +6,7 @@
     use App\Support\Dates;
 @endphp
 
-<a href="{{ route('media.news.show', $article->slug) }}"
+<a href="{{ route('media.news.show', $article->slug) }}" wire:navigate
     class="group flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
     @if ($article->image)
         <img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover">

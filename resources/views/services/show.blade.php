@@ -43,7 +43,7 @@
                     </div>
                 </x-card>
 
-                <a href="{{ route($opening->kind->route()) }}" class="inline-block text-sm text-primary underline decoration-accent underline-offset-4">
+                <a href="{{ route($opening->kind->route()) }}" wire:navigate class="inline-block text-sm text-primary underline decoration-accent underline-offset-4">
                     {{ __('services.opening.back', ['kind' => $opening->kind->getLabel()]) }}
                 </a>
             </aside>

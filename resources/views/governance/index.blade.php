@@ -20,7 +20,7 @@
         <ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             @foreach (DocumentCategory::cases() as $category)
                 <li>
-                    <a href="{{ route('governance.index', ['category' => $category->value]) }}"
+                    <a href="{{ route('governance.index', ['category' => $category->value]) }}" wire:navigate
                         @if ($active === $category->value) aria-current="true" @endif
                         class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
                         <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$category->icon(), 'size-8') }}</span>
@@ -59,7 +59,7 @@
         </form>
 
         @if ($filters !== [])
-            <p class="mt-4"><a href="{{ route('governance.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('governance.filters.reset') }}</a></p>
+            <p class="mt-4"><a href="{{ route('governance.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('governance.filters.reset') }}</a></p>
         @endif
 
         <h2 class="sr-only">{{ __('governance.list.title') }}</h2>

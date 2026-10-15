@@ -28,8 +28,9 @@
     $classes = $base.' '.($variant === 'link' ? '' : $sizes[$size]).' '.$variants[$variant];
 @endphp
 
+{{-- الرابط إلى صفحة داخلية بالتنقّل السريع، وما يفتح تبويباً جديداً أو يُحمَّل كاملاً بدونه (SpaLink) --}}
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>
+    <a href="{{ $href }}" @navigate($attributes->has('target') ? null : $href) {{ $attributes->merge(['class' => $classes]) }}>
         {{ $slot }}
         @if ($arrow)
             {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0') }}

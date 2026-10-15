@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
  * رؤوس الحماية الموحدة لكل استجابات الويب (docs/security.md).
  *
  * السكربتات المضمنة لا تعمل إلا برمز (nonce) يتولد لكل طلب، وVite وLivewire
- * وFilament تضيفه تلقائياً. ويبقى 'unsafe-eval' لأن Alpine يحتاجه.
+ * وFilament تضيفه تلقائياً. و'unsafe-eval' للوحة الإدارة وحدها لأن تعابير Alpine فيها تحتاجه، والواجهة
+ * العامة بلا تعابير Alpine فلا تحتاجه وإن حمّلت Livewire للتنقّل السريع (docs/decisions.md).
  */
 class SecurityHeaders
 {
@@ -58,7 +59,7 @@ class SecurityHeaders
 
         $directives = [
             'default-src' => ["'self'"],
-            'script-src' => ["'self'", $nonce, "'unsafe-eval'", $dev],
+            'script-src' => ["'self'", $nonce, $request->routeIs('filament.*') ? "'unsafe-eval'" : null, $dev],
             'style-src' => ["'self'", "'unsafe-inline'", $dev],
             // الصور من الموقع نفسه، ونطاقات التخزين وشبكة التوصيل صراحةً من CSP_IMG_SRC
             'img-src' => ["'self'", 'data:', 'blob:', ...self::origins('img_src')],

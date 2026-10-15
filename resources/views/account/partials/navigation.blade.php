@@ -3,7 +3,7 @@
     @foreach ($links as $link)
         @php($active = \App\Support\AccountNavigation::isActive($link))
         <li>
-            <a href="{{ route($link['route']) }}" @if ($active) aria-current="page" @endif
+            <a href="{{ route($link['route']) }}" @navigate(route($link['route'])) @if ($active) aria-current="page" @endif
                 @class([
                     'flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition',
                     'bg-primary-dark/60 text-white' => $active,

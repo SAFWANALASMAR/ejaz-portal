@@ -16,7 +16,7 @@
 
             <ul class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <li>
-                    <a href="{{ route('assembly.files.index') }}" @if ($active === null) aria-current="true" @endif
+                    <a href="{{ route('assembly.files.index') }}" wire:navigate @if ($active === null) aria-current="true" @endif
                         class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:border-primary/40 aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
                         <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-folder', 'size-8') }}</span>
                         <span class="font-semibold text-ink">{{ __('assembly.files.all') }}</span>
@@ -24,7 +24,7 @@
                 </li>
                 @foreach (AssemblyFileCategory::cases() as $category)
                     <li>
-                        <a href="{{ route('assembly.files.index', ['category' => $category->value]) }}" @if ($active === $category) aria-current="true" @endif
+                        <a href="{{ route('assembly.files.index', ['category' => $category->value]) }}" wire:navigate @if ($active === $category) aria-current="true" @endif
                             class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:border-primary/40 aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
                             <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$category->icon(), 'size-8') }}</span>
                             <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>

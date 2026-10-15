@@ -30,14 +30,14 @@
                             <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-3 min-w-56 rounded-2xl border border-line/70 bg-white p-2 shadow-lg">
                                 @foreach ($item->children as $child)
                                     <li>
-                                        <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif
+                                        <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
                                             @if ($child->isCurrent()) aria-current="page" @endif
                                             class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface hover:text-primary aria-[current=page]:text-accent-dark">{{ $child->label }}</a>
                                     </li>
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif
+                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 @if ($current) aria-current="page" @endif
                                 @class([
                                     'relative block shrink-0 whitespace-nowrap px-2.5 py-2 text-[15px] font-medium transition hover:text-accent-dark',
@@ -55,14 +55,14 @@
         <div class="flex shrink-0 items-center gap-2">
             {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
             @if ($liveStream ?? null)
-                <a href="{{ route('live') }}" class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 sm:inline-flex">
+                <a href="{{ route('live') }}" wire:navigate class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 sm:inline-flex">
                     <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
                     {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
                 </a>
             @endif
 
             @if (Route::has('search'))
-                <a href="{{ route('search') }}" class="rounded-full p-2.5 text-ink/80 hover:bg-surface hover:text-primary" aria-label="{{ __('site.search') }}">
+                <a href="{{ route('search') }}" wire:navigate class="rounded-full p-2.5 text-ink/80 hover:bg-surface hover:text-primary" aria-label="{{ __('site.search') }}">
                     {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
                 </a>
             @else
@@ -104,13 +104,13 @@
                             </button>
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-accent/40 ps-3">
                                 @foreach ($item->children as $child)
-                                    <li><a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif
+                                    <li><a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
                                         @if ($child->isCurrent()) aria-current="page" @endif
                                         class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface aria-[current=page]:text-accent-dark">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->isCurrent()) aria-current="page" @endif
+                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif @if ($item->isCurrent()) aria-current="page" @endif
                                 class="block rounded-xl px-4 py-3 font-medium text-ink hover:bg-surface aria-[current=page]:text-accent-dark">{{ $item->label }}</a>
                         @endif
                     </li>
