@@ -2,24 +2,26 @@
     رأس الصفحة (docs/design/ui-reference.md — الرأس): الشعار يميناً، ثم القائمة الرئيسية
     (تُدار من لوحة الإدارة)، ثم البحث، ثم زر الدخول الكبسولي في أقصى اليسار.
     العنصر النشط بنفسجي بخط تحته. وعلى الجوال: الشعار يميناً وزر القائمة يساراً.
+    القائمة صف واحد لا تنكسر عباراته: تظهر من العرض nav (app.css)، وإن لم تتسع عناصرها ظهر زر القائمة
+    بدلها (resources/js/app.js).
     $siteMenu يأتي من App\View\Composers\SiteChromeComposer.
 --}}
 @php($menu = $siteMenu ?? collect())
 
 <header data-site-header class="sticky top-0 z-40 border-b border-line/60 bg-white/95 backdrop-blur transition-shadow data-scrolled:shadow-md">
-    <div class="container-page flex h-20 items-center justify-between gap-6">
+    <div class="container-page flex h-20 items-center justify-between gap-4">
         <x-brand />
 
-        <nav class="hidden flex-1 justify-center xl:flex" aria-label="{{ __('site.main_navigation') }}">
-            <ul class="flex items-center gap-1">
+        <nav data-main-nav class="hidden min-w-0 flex-1 justify-center nav:flex" aria-label="{{ __('site.main_navigation') }}">
+            <ul class="flex items-center gap-0.5">
                 @foreach ($menu as $item)
                     @php($current = $item->isCurrent() || $item->hasCurrentChild())
-                    <li class="relative">
+                    <li class="relative shrink-0">
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @class([
-                                    'relative flex items-center gap-1 px-3 py-2 text-[15px] font-medium transition hover:text-accent-dark',
-                                    'text-accent-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
+                                    'relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2 text-[15px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-2.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
@@ -38,8 +40,8 @@
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif
                                 @if ($current) aria-current="page" @endif
                                 @class([
-                                    'relative block px-3 py-2 text-[15px] font-medium transition hover:text-accent-dark',
-                                    'text-accent-dark after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
+                                    'relative block shrink-0 whitespace-nowrap px-2.5 py-2 text-[15px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-2.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
@@ -50,10 +52,10 @@
             </ul>
         </nav>
 
-        <div class="flex items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2">
             {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
             @if ($liveStream ?? null)
-                <a href="{{ route('live') }}" class="hidden items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 sm:inline-flex">
+                <a href="{{ route('live') }}" class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 sm:inline-flex">
                     <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
                     {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
                 </a>
@@ -74,14 +76,14 @@
             {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
             <div class="hidden sm:block">
                 @auth
-                    <x-button :href="route('account.dashboard')" size="sm" class="px-5">{{ __('site.my_account') }}</x-button>
+                    <x-button :href="route('account.dashboard')" size="sm" class="whitespace-nowrap px-5">{{ __('site.my_account') }}</x-button>
                 @else
-                    <x-button :href="route('login')" size="sm" class="px-5">{{ __('site.login') }}</x-button>
+                    <x-button :href="route('login')" size="sm" class="whitespace-nowrap px-5">{{ __('site.login') }}</x-button>
                 @endauth
             </div>
 
             <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
-                class="rounded-full p-2.5 text-ink hover:bg-surface xl:hidden">
+                class="rounded-full p-2.5 text-ink hover:bg-surface nav:hidden">
                 <span class="sr-only">{{ __('site.open_menu') }}</span>
                 {{ svg('heroicon-o-bars-3', 'size-6') }}
             </button>
@@ -89,7 +91,7 @@
     </div>
 
     {{-- قائمة الجوال واللوحي --}}
-    <div id="mobile-menu" hidden class="border-t border-line bg-white xl:hidden">
+    <div id="mobile-menu" hidden class="border-t border-line bg-white nav:hidden">
         <nav class="container-page max-h-[75vh] overflow-y-auto py-3" aria-label="{{ __('site.main_navigation') }}">
             <ul class="space-y-1">
                 @foreach ($menu as $item)

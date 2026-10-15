@@ -139,6 +139,21 @@ if (header) {
     window.addEventListener('scroll', onScroll, { passive: true });
 }
 
+// قائمة الرأس صف واحد أو زر القائمة: إن لم تتسع عناصرها بهامش مريح (قائمة أطول من القياس، أو شارة البث)
+// ظهر زر القائمة بدلها، فلا تنكسر عبارة ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة
+const mainNav = header?.querySelector('[data-main-nav]');
+
+if (mainNav) {
+    const list = mainNav.querySelector('ul');
+    const fit = () => {
+        header.removeAttribute('data-nav-overflow');
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && list.offsetWidth + 24 > mainNav.clientWidth);
+    };
+
+    new ResizeObserver(fit).observe(header);
+    document.fonts?.ready.then(fit);
+}
+
 // نموذج بـ data-confirm يُسأل المستخدم قبل إرساله (إلغاء تسجيل مثلاً). بلا سكربت مضمّن، فتسمح
 // به سياسة أمان المحتوى
 document.addEventListener('submit', (event) => {

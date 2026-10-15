@@ -267,7 +267,7 @@ it('prints an entry in the browser like a Word page, with the letterhead, the va
 });
 
 it('marks the letterhead details as missing when the settings are empty, instead of inventing them', function () {
-    $entry = FormEntry::factory()->create();
+    $entry = FormEntry::factory()->create(['created_by' => $this->secretary->id]);
 
     $this->actingAs($this->secretary)->get(route('documents.entries.print', $entry))
         ->assertOk()
@@ -358,7 +358,7 @@ it('lays half-width fields out in pairs and keeps a lone one on its own row', fu
 });
 
 it('prints an entry of an older version that has no layout keys', function () {
-    $entry = FormEntry::factory()->create(['answers' => ['name' => 'اسم قديم']]);
+    $entry = FormEntry::factory()->create(['answers' => ['name' => 'اسم قديم'], 'created_by' => $this->secretary->id]);
 
     expect(array_column(FormEntryLayout::blocks($entry), 'type'))->toBe(['row', 'row', 'row', 'row', 'row']);
     $this->actingAs($this->secretary)->get(route('documents.entries.print', $entry))->assertOk()->assertSee('اسم قديم');

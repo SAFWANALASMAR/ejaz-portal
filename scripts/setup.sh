@@ -23,6 +23,22 @@ else
   echo ".env موجود مسبقاً — لم يُعدَّل"
 fi
 
+# كلمة مرور Redis عشوائية إن غابت أو فرغت (compose.yaml يرفض التشغيل بدونها). والموجودة لا تُستبدل ولو كانت
+# برموز أو قصيرة، بل يُنبَّه إلى القصيرة. و«null» (من .env.example القديم) فراغ: لارافيل يقرؤها بلا كلمة مرور،
+# وcompose يجعلها كلمة المرور نفسها، فلا يتصلان
+current_redis_password=$(sed -n 's/^REDIS_PASSWORD=//p' .env | tail -n 1 | tr -d '\r')
+if [ -z "$current_redis_password" ] || [ "$current_redis_password" = "null" ]; then
+  redis_password=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)
+  if grep -q '^REDIS_PASSWORD=' .env; then
+    sed -i.bak "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$redis_password/" .env && rm -f .env.bak
+  else
+    echo "REDIS_PASSWORD=$redis_password" >> .env
+  fi
+  echo "وُلّدت كلمة مرور Redis في .env"
+elif [ "${#current_redis_password}" -lt 16 ]; then
+  echo "تنبيه: كلمة مرور Redis في .env أقصر من 16 حرفاً، ولم تُغيَّر. يُستحسن تقويتها."
+fi
+
 # على ماك ولينكس: نطابق رقم المستخدم داخل الحاوية مع مستخدم الجهاز
 case "$(uname -s)" in
   Darwin|Linux)

@@ -21,11 +21,20 @@ Schedule::command('programs:send-reminders')->hourly()->onOneServer();
 // أجزاء مقاطع المسابقات المهجورة لا تبقى على القرص الخاص
 Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 
+// طلبات إلغاء السحب التي لم يقرر فيها مشرف عام آخر خلال سبعة أيام تسقط، ويبقى السحب (docs/decisions.md)
+Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
+
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 
+// الملفات الشخصية في القرص الخاص التي لا يشير إليها سجل، ومنها ما أعادته استعادة نسخة احتياطية (scripts/restore.md)
+Schedule::command('ejaz:prune-orphan-private-files')->weekly()->withoutOverlapping()->onOneServer();
+
 // بيانات الحسابات المحذوفة بعد مدة الاحتفاظ من اللوحة، لكل الوحدات، وبلا مدة مضبوطة لا يُحذف شيء (docs/decisions.md)
 Schedule::command('ejaz:purge-anonymized-data')->daily()->withoutOverlapping()->onOneServer();
+
+// حسابات التسجيل الذاتي التي لم توثَّق قط ولم يعد إليها أصحابها بعد 14 يوماً، ما لم ترتبط بسجل أو بدور غير المستفيد (decisions.md — 14 أكتوبر 2026)
+Schedule::command('ejaz:prune-unverified-accounts')->daily()->withoutOverlapping()->onOneServer();
 
 // إحصائيات البوابة تُحسب في الخلفية وتُخزَّن (performance.md)
 Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();

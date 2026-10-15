@@ -3,10 +3,14 @@
 namespace App\Console\Commands;
 
 use App\Actions\Competitions\PurgeSubmissionPersonalData;
+use App\Actions\Documents\PurgeFormEntryPersonalData;
 use App\Actions\Programs\PurgeProgramRegistrationPersonalData;
 use App\Actions\Services\PurgeServiceRequestPersonalData;
 use App\Actions\Surveys\PurgeSurveyResponsePersonalData;
+use App\Enums\ActivityEvent;
 use App\Models\CompetitionSubmission;
+use App\Models\FormEntry;
+use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SurveyResponse;
@@ -20,7 +24,9 @@ use Throwable;
  * بإعداد واحد لكل الوحدات (القضية #6). وبلا مدة مضبوطة لا يحذف شيئاً.
  * - مقاطع المسابقات وإجاباتها: محسوبة من إغلاق المسابقة، فتبقى حتى انتهائها وفترة الاعتراض.
  * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها وردود الموظفين وملاحظاتهم الداخلية عليها،
- *   وإجابات التسجيل في البرامج: من إخفاء بيانات الحساب.
+ *   وإجابات التسجيل في البرامج، وإجابات النماذج المعبأة في ملفه ومرفقاتها وتواقيعها: من إخفاء بيانات الحساب.
+ * ونص رسائل «تواصل معنا» يُحذف عند الإخفاء نفسه (AnonymizeUser) بلا مدة، فيُحذف هنا ولو لم تُضبط المدة
+ * لما بقي فيه نص: رسائل من أُخفي قبل قرار الحذف (14 أكتوبر 2026)، أو أعادتها استعادة من نسخة.
  * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
@@ -34,18 +40,8 @@ class PurgeAnonymizedData extends Command
         PurgeSurveyResponsePersonalData $purgeResponse,
         PurgeServiceRequestPersonalData $purgeRequest,
         PurgeProgramRegistrationPersonalData $purgeRegistration,
+        PurgeFormEntryPersonalData $purgeFormEntry,
     ): int {
-        $days = Retention::days();
-
-        if ($days === null) {
-            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء.');
-
-            return self::SUCCESS;
-        }
-
-        $cutoff = now()->subDays($days);
-        // أصحاب الحسابات المخفاة قبل المدة
-        $expired = User::query()->select('id')->where('anonymized_at', '<', $cutoff);
         $purged = 0;
         $failed = 0;
 
@@ -59,6 +55,20 @@ class PurgeAnonymizedData extends Command
                 $failed++;
             }
         };
+
+        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText($attempt).'.');
+
+        $days = Retention::days();
+
+        if ($days === null) {
+            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء مما يتبعها.');
+
+            return $failed > 0 ? self::FAILURE : self::SUCCESS;
+        }
+
+        $cutoff = now()->subDays($days);
+        // أصحاب الحسابات المخفاة قبل المدة
+        $expired = User::query()->select('id')->where('anonymized_at', '<', $cutoff);
 
         CompetitionSubmission::query()
             ->withTrashed()
@@ -93,6 +103,14 @@ class PurgeAnonymizedData extends Command
             ->lazyById()
             ->each(fn (ProgramRegistration $registration) => $attempt(fn () => $purgeRegistration->handle($registration)));
 
+        // النماذج المعبأة المحفوظة في ملفه، والمحذوفة من اللوحة داخلة
+        FormEntry::query()
+            ->withTrashed()
+            ->whereIn('person_id', $expired)
+            ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('files')->orWhereNotNull('signatures'))
+            ->lazyById()
+            ->each(fn (FormEntry $entry) => $attempt(fn () => $purgeFormEntry->handle($entry)));
+
         $summary = "سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.";
 
         if ($failed > 0) {
@@ -104,5 +122,41 @@ class PurgeAnonymizedData extends Command
         $this->info($summary);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * نص رسائل الحسابات المخفاة: من حسابه، أو من بريده الموثّق (وبريدها بعد الإخفاء بريد الحساب المخفى).
+     * ويبقى الرقم والنوع والحالة والتاريخ، ولكل رسالة سجل. والنص الحر كله، ومنه الملاحظة الداخلية.
+     *
+     * @param  callable(callable): void  $attempt  الرسالة التي يتعذر حذف نصها لا توقف بقية التنظيف
+     */
+    private function clearInquiryText(callable $attempt): int
+    {
+        $cleared = 0;
+
+        Inquiry::query()
+            ->withTrashed()
+            ->where(function ($query): void {
+                foreach (Inquiry::FREE_TEXT as $column) {
+                    $query->orWhereNotNull($column);
+                }
+            })
+            ->where(fn ($query) => $query
+                ->whereIn('user_id', User::query()->select('id')->whereNotNull('anonymized_at'))
+                ->orWhereIn('email', User::query()->select('email')->whereNotNull('anonymized_at')))
+            ->lazyById()
+            ->each(function (Inquiry $inquiry) use ($attempt, &$cleared): void {
+                $attempt(function () use ($inquiry, &$cleared): void {
+                    $inquiry->forceFill(array_fill_keys(Inquiry::FREE_TEXT, null))->save();
+
+                    activity('requests')->performedOn($inquiry)
+                        ->event(ActivityEvent::PersonalDataPurged->value)
+                        ->log(ActivityEvent::PersonalDataPurged->value);
+
+                    $cleared++;
+                });
+            });
+
+        return $cleared;
     }
 }

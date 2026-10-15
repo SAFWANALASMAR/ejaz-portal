@@ -42,7 +42,8 @@ class CreateNewUser implements CreatesNewUsers
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique(User::class)],
-            'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)],
+            // التفرد على الأرقام الموثقة وحدها، فلا يحجز حساب غير موثق رقم غيره (decisions.md — 14 أكتوبر 2026)
+            'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)->whereNotNull('phone_verified_at')],
             'password' => $this->passwordRules(),
             'privacy' => ['accepted'],
         ]);
@@ -57,13 +58,16 @@ class CreateNewUser implements CreatesNewUsers
 
         RateLimiter::hit($throttleKey, 3600);
 
-        $user = User::create([
+        $user = new User([
             'name' => trim((string) $input['name']),
             'email' => $input['email'],
             'phone' => $input['phone'],
             'password' => $input['password'],
             'privacy_accepted_at' => now(),
         ]);
+        // التسجيل الذاتي وحده يُحذف حسابه إن تُرك غير موثق (PruneUnverifiedAccounts)، لا حساب أنشأه مشرف
+        $user->self_registered_at = now();
+        $user->save();
 
         $user->assignRole(RoleName::Member->value);
 

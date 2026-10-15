@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DrawVoidRequestStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -72,6 +73,28 @@ class CompetitionDraw extends Model
     public function void(): HasOne
     {
         return $this->hasOne(CompetitionDrawVoid::class, 'draw_id');
+    }
+
+    /**
+     * طلب الإلغاء المعلّق بانتظار قرار مشرف عام ثانٍ (ApproveDrawVoid وRejectDrawVoid)، وهو واحد على الأكثر
+     * (فهرس فريد جزئي). والمرفوض والساقط لا يُعدّان، فيُتاح بعدهما طلب جديد.
+     *
+     * @return HasOne<CompetitionDrawVoidRequest, $this>
+     */
+    public function voidRequest(): HasOne
+    {
+        return $this->hasOne(CompetitionDrawVoidRequest::class, 'draw_id')->where('status', DrawVoidRequestStatus::Pending);
+    }
+
+    /**
+     * الطلب المعلّق الذي لم تمض مدته. والذي مضت مدته كالساقط: لا أزرار له، ويُسقطه أول تعامل مع السحب
+     * (LapseDrawVoidRequests::forDraw) قبل الأمر اليومي.
+     */
+    public function openVoidRequest(): ?CompetitionDrawVoidRequest
+    {
+        $request = $this->voidRequest;
+
+        return $request !== null && ! $request->hasLapsed() ? $request : null;
     }
 
     /**

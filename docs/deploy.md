@@ -99,7 +99,7 @@ $DC ps                                         # كل الخدمات healthy
 
 ما يفعله السكربت بالترتيب:
 
-1. يتحقق من `APP_ENV` و`APP_DEBUG=false` و`APP_URL` بـ https و`SESSION_SECURE_COOKIE`، وينبّه لـ `TRUSTED_PROXIES` الفارغ ولمزود الرسائل `log`، ويتحقق من نظافة المجلد ووجود الوسم.
+1. يتحقق من `APP_ENV` و`APP_DEBUG=false` و`APP_URL` بـ https و`SESSION_SECURE_COOKIE`، وينبّه لـ `TRUSTED_PROXIES` الفارغ أو `*` ولمزود الرسائل `log`، ويتحقق من نظافة المجلد ووجود الوسم.
 2. يسحب الوسم.
 3. يبني صورتي التطبيق والويب بالوسم (والموقع يعمل).
 4. يضمن تشغيل القاعدة وRedis (إن كانتا مضمّنتين).

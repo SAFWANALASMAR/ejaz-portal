@@ -6,6 +6,8 @@ use App\Enums\RoleName;
 use App\Enums\ServiceRequestStatus;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
+use App\Models\FormEntry;
+use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\Setting;
@@ -172,6 +174,65 @@ it('goes on to the requests when a competition entry before them cannot be purge
         ->and($request->fresh()->files)->toBeNull();
 });
 
+/**
+ * نموذج معبأ معتمد محفوظ في ملف صاحبه، بإجابة ومرفق وتوقيع على القرص الخاص.
+ */
+function formEntryOf(User $person): FormEntry
+{
+    return FormEntry::factory()->approved()->create([
+        'person_id' => $person->id,
+        'answers' => ['name' => 'اسم شخصي'],
+        'files' => [['key' => 'id', 'path' => storedPrivateFile(FormEntry::FILES_DIRECTORY, '%PDF-1.4'), 'name' => 'هوية.pdf', 'size' => 8]],
+        'signatures' => [['key' => 'sign', 'path' => storedPrivateFile(FormEntry::SIGNATURES_DIRECTORY, 'png', 'png')]],
+    ]);
+}
+
+it('purges the answers, files and signatures of filled forms saved to a deleted account after the period', function () {
+    // مهمة الإصلاحات الأمنية ٢ (البند ١): النماذج المعبأة في ملف صاحب الحساب كبقية الطلبات والتسجيلات
+    Setting::put('retention', ['days' => 30]);
+    $entry = formEntryOf($this->deleted);
+    $paths = [$entry->files[0]['path'], $entry->signatures[0]['path']];
+    $removed = formEntryOf($this->deleted);
+    $removed->delete();
+    $waiting = formEntryOf(User::factory()->create(['deletion_requested_at' => now()->subDays(5), 'anonymized_at' => now()->subDays(4)]));
+    $kept = formEntryOf(User::factory()->create());
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    $entry->refresh();
+    expect($entry->answers)->toBeNull()
+        ->and($entry->files)->toBeNull()
+        ->and($entry->signatures)->toBeNull()
+        ->and($entry->reference)->not->toBeNull()
+        ->and($entry->person_id)->toBe($this->deleted->id)
+        ->and(FormEntry::withTrashed()->find($removed->id)->answers)->toBeNull()
+        ->and(Storage::disk('local')->exists($paths[0]))->toBeFalse()
+        ->and(Storage::disk('local')->exists($paths[1]))->toBeFalse()
+        ->and(Storage::disk('local')->allFiles(FormEntry::FILES_DIRECTORY))->toHaveCount(2)
+        ->and(Storage::disk('local')->allFiles(FormEntry::SIGNATURES_DIRECTORY))->toHaveCount(2)
+        ->and($waiting->fresh()->answers)->not->toBeNull()
+        ->and($kept->fresh()->files)->not->toBeNull()
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_type', $entry->getMorphClass())->count())->toBe(2);
+
+    // مرة ثانية لا تمس شيئاً ولا تسجل من جديد
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(Activity::where('event', 'personal_data_purged')->where('subject_type', $entry->getMorphClass())->count())->toBe(2);
+});
+
+it('keeps a filled form as it was when its file cannot be deleted, and retries on the next run', function () {
+    Setting::put('retention', ['days' => 30]);
+    $entry = formEntryOf($this->deleted);
+    $path = $entry->files[0]['path'];
+    $original = failDeletesOf($path);
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertFailed();
+    expect($entry->fresh()->answers)->not->toBeNull()->and($entry->fresh()->files)->toEqual($entry->files);
+
+    Storage::set('local', $original);
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect($entry->fresh()->files)->toBeNull()->and(Storage::disk('local')->exists($path))->toBeFalse();
+});
+
 it('exports the data of every module for one account, in one copy', function () {
     // القضية #6 (١.١١): الطلبات والتسجيلات والمشاركات والإجابات معاً بعد التكامل
     $user = User::factory()->create();
@@ -199,4 +260,57 @@ it('includes requests and competition entries removed from the panel in the pers
     $copy = app(ExportUserData::class)->handle($user);
 
     expect($copy['service_requests'])->toHaveCount(1)->and($copy['competition_submissions'])->toHaveCount(1);
+});
+
+it('deletes the message text left from accounts anonymized before the decision, even without a retention period', function () {
+    // كما تركها الإخفاء قبل قرار 14 أكتوبر 2026: الاسم والبريد والجوال مخفاة، والنص باقٍ
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $old->forceFill(['email' => 'deleted-'.$old->id.'@deleted.invalid'])->save();
+    $text = ['name' => __('users.anonymized_name'), 'email' => $old->email, 'subject' => 'موضوع يعرّف صاحبه', 'message' => 'نص يعرّف صاحبه', 'internal_note' => 'ملاحظة'];
+    $own = Inquiry::factory()->create(['user_id' => $old->id, ...$text]);
+    // رسالته زائراً من بريده الموثّق: بلا حساب، وبريدها بريد الحساب المخفى
+    $guest = Inquiry::factory()->create($text);
+    $removed = Inquiry::factory()->create(['user_id' => $old->id, ...$text]);
+    $removed->delete();
+    $kept = Inquiry::factory()->create(['user_id' => User::factory()->create()->id, 'subject' => 'موضوع باقٍ', 'message' => 'نص باقٍ']);
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 3.')->assertSuccessful();
+
+    foreach ([$own->fresh(), $guest->fresh(), Inquiry::withTrashed()->find($removed->id)] as $inquiry) {
+        expect($inquiry)->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull()
+            ->reference->not->toBeNull()->type->not->toBeNull()->status->not->toBeNull();
+    }
+
+    expect($kept->fresh())->subject->toBe('موضوع باقٍ')->message->toBe('نص باقٍ')
+        ->and(Activity::where('event', 'personal_data_purged')->where('subject_type', $own->getMorphClass())->count())->toBe(3);
+
+    // ما عولج لا يُعاد، فلا يتكرر سجله
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect(Activity::where('event', 'personal_data_purged')->count())->toBe(3);
+});
+
+it('clears an internal note left on a message whose text was already removed', function () {
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $inquiry = Inquiry::factory()->create(['user_id' => $old->id, 'subject' => null, 'message' => null, 'internal_note' => 'ملاحظة بعد الحذف']);
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')->assertSuccessful();
+
+    expect($inquiry->fresh()->internal_note)->toBeNull();
+});
+
+it('keeps clearing the other messages when one cannot be cleared, and reports the failure', function () {
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    $failing = Inquiry::factory()->create(['user_id' => $old->id, 'message' => 'نص يعرّف صاحبه']);
+    $other = Inquiry::factory()->create(['user_id' => $old->id, 'message' => 'نص آخر يعرّف صاحبه']);
+    Inquiry::saving(function (Inquiry $inquiry) use ($failing): void {
+        if ($inquiry->id === $failing->id) {
+            throw new RuntimeException('Storage down.');
+        }
+    });
+
+    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')->assertFailed();
+
+    expect($other->fresh()->message)->toBeNull()
+        ->and($failing->fresh()->message)->toBe('نص يعرّف صاحبه');
 });

@@ -107,6 +107,31 @@ class FormEntry extends Model
     }
 
     /**
+     * ما يطّلع عليه الحساب في اللوحة (قرار صفوان، 14 أكتوبر 2026): الكل لمن يملك form_entries.view_all،
+     * ولغيره ممن يملك form_entries.view ما عبّأه هو وحده (created_by). كـ isVisibleInPanel.
+     *
+     * @param  Builder<FormEntry>  $query
+     */
+    public function scopeVisibleInPanel(Builder $query, User $user): void
+    {
+        if (! $user->can('form_entries.view')) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        if (! $user->can('form_entries.view_all')) {
+            $query->where('created_by', $user->id);
+        }
+    }
+
+    public function isVisibleInPanel(User $user): bool
+    {
+        return $user->can('form_entries.view')
+            && ($this->created_by === $user->id || $user->can('form_entries.view_all'));
+    }
+
+    /**
      * صاحب المعبأ: الموظف أو المشارك الذي يُحفظ في ملفه (بجمهور النموذج — SaveFormEntry).
      *
      * @return BelongsTo<User, $this>

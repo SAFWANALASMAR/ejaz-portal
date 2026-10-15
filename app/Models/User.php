@@ -48,6 +48,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'phone_verified_at' => 'datetime',
             'privacy_accepted_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'self_registered_at' => 'datetime',
+            'first_verified_at' => 'datetime',
             'deletion_requested_at' => 'datetime',
             'anonymized_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
@@ -84,7 +86,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return match (true) {
             $login === '' => null,
             LoginIdentifier::isEmail($login) => self::query()->where('email', $login)->first(),
-            str_starts_with($login, '+966') => self::query()->where('phone', $login)->first(),
+            // الرقم قد يحمله حساب غير موثق مع صاحبه الموثق، فالموثق أولاً (decisions.md — 14 أكتوبر 2026)
+            str_starts_with($login, '+966') => self::query()->where('phone', $login)
+                ->orderByRaw('phone_verified_at IS NULL')->orderBy('id')->first(),
             default => null,
         };
     }
@@ -110,6 +114,13 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     protected static function booted(): void
     {
+        // أول توثيق للبريد أو الجوال يبقى ولو تغيّر أحدهما بعده، فلا يُعد الموثق قديماً غير موثق (PruneUnverifiedAccounts)
+        static::saving(function (User $user): void {
+            if ($user->first_verified_at === null && ($user->email_verified_at !== null || $user->phone_verified_at !== null)) {
+                $user->first_verified_at = now();
+            }
+        });
+
         static::updated(function (User $user): void {
             $changed = array_values(array_intersect(self::PERSONAL_FIELDS, array_keys($user->getChanges())));
 

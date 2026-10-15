@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Actions\Competitions;
+
+use App\Enums\ActivityEvent;
+use App\Enums\DrawVoidRequestStatus;
+use App\Models\CompetitionDraw;
+use App\Models\CompetitionDrawVoid;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * اعتماد طلب إلغاء سحب بعد الإلغاء الأول في المسابقة: لمشرف عام غير طالب الإلغاء (CompetitionDrawPolicy).
+ * فيُسجَّل الإلغاء باسم الطالب وسببه، ومعه المعتمد، فلا يعيد الطالب السحب بنفسه (RunDraw).
+ * والطلب المرفوض أو الساقط أو الذي مضت مدته لا يُعتمد.
+ */
+class ApproveDrawVoid
+{
+    public function __construct(private readonly LapseDrawVoidRequests $lapse) {}
+
+    /**
+     * @throws AuthorizationException
+     * @throws ValidationException
+     */
+    public function handle(User $actor, CompetitionDraw $draw): CompetitionDrawVoid
+    {
+        // الطلب الذي مضت مدته يسقط الآن لا عند الأمر اليومي، ويُحفظ سقوطه قبل رسالة الرفض
+        if ($this->lapse->forDraw($draw)) {
+            throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);
+        }
+
+        if (! $actor->can('approveVoid', $draw)) {
+            throw new AuthorizationException;
+        }
+
+        return DB::transaction(function () use ($actor, $draw): CompetitionDrawVoid {
+            $draw->competition()->lockForUpdate()->first();
+
+            if (CompetitionDrawVoid::query()->where('draw_id', $draw->id)->exists()) {
+                throw ValidationException::withMessages(['reason' => __('competitions.draws.already_void')]);
+            }
+
+            $request = $draw->voidRequest()->first()
+                ?? throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_closed')]);
+
+            if ($request->hasLapsed()) {
+                throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);
+            }
+
+            // الطلب المقفل قد يكون غير الذي فحصته الصلاحية (سقط ذاك وطلب هذا المعتمدُ نفسه)، وقيد القاعدة يرفضه بخطأ
+            if ($request->requested_by === $actor->id) {
+                throw ValidationException::withMessages(['reason' => __('competitions.draws.void_own_request')]);
+            }
+
+            $request->status = DrawVoidRequestStatus::Approved;
+            $request->decided_by = $actor->id;
+            $request->decided_at = now();
+            $request->save();
+
+            $void = new CompetitionDrawVoid;
+            $void->draw_id = $draw->id;
+            $void->reason = $request->reason;
+            $void->voided_by = $request->requested_by;
+            $void->approved_by = $actor->id;
+            $void->voided_at = now();
+            $void->save();
+
+            activity('competitions')->performedOn($draw)->causedBy($actor)
+                ->event(ActivityEvent::DrawVoidApproved->value)
+                ->withProperties(['reason' => $request->reason, 'requested_by' => $request->requested_by])
+                ->log(ActivityEvent::DrawVoidApproved->value);
+
+            return $void;
+        });
+    }
+}

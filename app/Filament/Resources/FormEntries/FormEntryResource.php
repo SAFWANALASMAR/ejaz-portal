@@ -59,7 +59,9 @@ class FormEntryResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['version.template', 'creator', 'person']);
+        // ما عبّأه الحساب وحده، أو الكل لمن يملك form_entries.view_all (FormEntry::scopeVisibleInPanel)، فلا يظهر
+        // معبأ غيره في القائمة ولا عددها ولا البحث، ولا يُفتح برابطه
+        return parent::getEloquentQuery()->with(['version.template', 'creator', 'person'])->scopes(['visibleInPanel' => [self::actor()]]);
     }
 
     public static function infolist(Schema $schema): Schema
@@ -93,8 +95,8 @@ class FormEntryResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->label(__('documents.fields.status'))->options(FormEntryStatus::class),
-                // ملف الشخص: معبآته كلها
-                SelectFilter::make('person')->label(__('documents.fields.person'))->relationship('person', 'name', fn (Builder $query) => $query->whereHas('formEntries'))->searchable(),
+                // ملف الشخص: معبآته كلها. والأسماء ممن في معبأ يطّلع عليه الحساب وحده
+                SelectFilter::make('person')->label(__('documents.fields.person'))->relationship('person', 'name', fn (Builder $query) => $query->whereHas('formEntries', fn (Builder $entries) => $entries->scopes(['visibleInPanel' => [self::actor()]])))->searchable(),
                 SelectFilter::make('template')
                     ->label(__('documents.fields.template'))
                     ->options(fn (): array => FormTemplate::withTrashed()->orderBy('title')->pluck('title', 'id')->all())

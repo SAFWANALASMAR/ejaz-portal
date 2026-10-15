@@ -72,8 +72,9 @@ return [
 
         // النماذج الإلكترونية والأرشيف والشواهد (المرحلة 4)
         'forms' => $crud,
-        // المعبأ يعبّئه السكرتير ويعتمده المجلس، وتصديره منفصل (بيانات قد تكون شخصية تخرج من اللوحة)
-        'form_entries' => [...$crud, 'approve', 'export'],
+        // المعبأ يعبّئه السكرتير ويعتمده المجلس، وتصديره منفصل (بيانات قد تكون شخصية تخرج من اللوحة).
+        // view_all: كل المعبأ، وبدونها يطّلع الحساب على ما عبّأه وحده (قرار صفوان، 14 أكتوبر 2026)
+        'form_entries' => [...$crud, 'approve', 'export', 'view_all'],
         'archive' => $crud,
         // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور (المشرف العام وحده)
         'archive_categories' => $crud,
@@ -98,7 +99,8 @@ return [
             'surveys.view', 'stats.view',
             'payments.view',
             'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
-            'forms.view', 'form_entries.view', 'form_entries.approve', 'archive.view',
+            // view_all: يعتمد المعبأ ولا يعبّئه، فيطّلع على ما عبّأه غيره
+            'forms.view', 'form_entries.view', 'form_entries.approve', 'form_entries.view_all', 'archive.view',
             'registers.view', 'committees.view', 'annual_plan.view',
         ],
         'secretary' => [
@@ -137,7 +139,8 @@ return [
             'competitions.*', 'submissions.*',
             'archive.*',
             'stats.view', 'surveys.view',
-            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete',
+            // view_all: «إدارة الموظفين»، فيطّلع على ما عبّأه الموظفون كما يطّلع على كل ملفات الوظائف
+            'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'form_entries.view_all',
             // السجلات والخطة السنوية (requirements/13)
             'registers.*', 'committees.view', 'meetings.view', 'meetings.view_all', 'annual_plan.*', 'platform_accounts.*',
         ],

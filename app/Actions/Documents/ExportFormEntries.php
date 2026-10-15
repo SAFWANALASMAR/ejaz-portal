@@ -17,7 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * «إمكانية تصدير البيانات عند الحاجة» (requirements/12 البند 10): معبأ نموذج واحد CSV يقرؤه Excel بالعربية،
  * بنهج تصدير نتائج الاستبيانات (يُبث صفاً صفاً، والخلية التي تبدأ بـ = + - @ تُحيَّد). أعمدة الإجابات
  * باتحاد حقول إصداراته (التخطيط مستبعد)، فلا يضيع حقل حُذف من الإصدار الحالي. بصلاحية
- * form_entries.export، ويُسجَّل بالنموذج والعدد.
+ * form_entries.export، ويُسجَّل بالنموذج والعدد. والملف بما يطّلع عليه المصدِّر في اللوحة وحده: ما عبّأه،
+ * أو الكل لمن يملك form_entries.view_all (FormEntry::scopeVisibleInPanel).
  */
 class ExportFormEntries
 {
@@ -33,6 +34,7 @@ class ExportFormEntries
         $fields = self::fields($template);
         $query = FormEntry::query()
             ->whereIn('form_template_version_id', $template->versions()->select('id'))
+            ->visibleInPanel($actor)
             ->with(['version', 'person', 'creator']);
 
         activity('documents')->causedBy($actor)->performedOn($template)

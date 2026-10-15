@@ -115,3 +115,23 @@ delete from service_requests where user_id = (select id from users where email =
 
 - **الزحف** (`final-crawl.mjs`، يقرأ فقط): كل رابط داخلي للزائر والمستفيد بحالته ولغته واتجاهه وأخطاء وحدة التحكم، والتمرير الأفقي على الجوال، وكل صف في `docs/legacy-import/redirects.csv`، وكل ملف مرتبط. `node tests/browser/final-crawl.mjs`، والنتيجة في `storage/playwright/final-check/crawl.json`.
 - **جولة العرض** (`demo-tour.spec.mjs`، فيديو صامت بعناوين عربية تُحقن أثناء التسجيل وحده): `npx playwright test --config=tests/browser/demo-tour.config.mjs`، و`TOUR=full` أو `TOUR=short` لأحدهما. والفيديو WebM في `storage/playwright/demo-tour/`.
+
+## لوحة الإدارة بوضع SPA
+
+`admin-spa.spec.mjs` على العروض الثلاثة: التنقّل بين ثلاث صفحات من القائمة الجانبية بلا إعادة تحميل كاملة، وحقل التوقيع في نموذج وُصل إليه بالتنقّل (رسم، ومسح، وحفظ)، وتنزيل ملف تصدير، وانتهاء مهلة الخمول يُخرج المشرف إلى صفحة الدخول بتحميل كامل.
+
+يحتاج مشرفاً تجريبياً بتحقق ثنائي ونموذجاً بحقل توقيع (`ejaz:demo-user --admin`، البيئة المحلية وحدها، وكلمة المرور والمفتاح عشوائيان في كل تشغيل)، وخادماً ثانياً بمهلة خمول دقيقة واحدة، حتى لا ينتظر الاختبار نصف ساعة. و`--no-reload` لازم، لأن `artisan serve` بدونه لا يمرر متغيرات البيئة إلى عماله:
+
+```bash
+docker compose run -d --name ejaz-spa-app -e ADMIN_IDLE_MINUTES=1 app php artisan serve --host=0.0.0.0 --port=8000 --no-reload
+creds=$(docker compose exec -T app php artisan ejaz:demo-user --admin --json)
+
+docker compose run --rm -e APP_HOST=ejaz-spa-app -e ADMIN_IDLE_MINUTES=1 -e ADMIN_SPA_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs admin-spa.spec.mjs
+
+docker rm -f ejaz-spa-app
+```
+
+- بلا `ADMIN_SPA_CREDENTIALS` يُتخطى الملف كله، وبلا `ADMIN_IDLE_MINUTES` يُتخطى اختبار الخمول وحده.
+- كل تشغيل يحفظ نموذجاً معبأً تجريبياً في قاعدة التطوير، ولقطة حقل التوقيع في `docs/design/screenshots/admin-spa-signature-<العرض>.png`.
+- رمز التحقق الثنائي لا يُقبل مرتين، فكل دخول ينتظر نافذة جديدة (حتى 30 ثانية).

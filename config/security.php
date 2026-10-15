@@ -6,8 +6,10 @@
 
 return [
 
-    // عناوين موزعات الأحمال الموثوقة (مفصولة بفاصلة، أو * خلف موزع مُدار)،
-    // حتى يرى التطبيق عنوان الزائر الحقيقي من رؤوس X-Forwarded-*
+    // عناوين موزعات الأحمال الموثوقة مفصولة بفاصلة (الأفضل)، حتى يرى التطبيق عنوان الزائر الحقيقي
+    // من رؤوس X-Forwarded-*. و* تصدّق رأس X-Forwarded-For من أي مصدر، فلا تُستعمل إلا والخادم معزول
+    // في الشبكة لا يصله إلا الموزع، والموزع يستبدل الرأس كاملاً، وإلا زُوّرت حدود الشبكات برأس.
+    // وفارغة إن وصل الزوار إلى الخادم مباشرة. وسكربتا النشر ينبّهان إلى الفارغة و* (docs/security.md)
     'trusted_proxies' => env('TRUSTED_PROXIES'),
 
     // حد التسجيل من عنوان واحد في الساعة. مرتفع عمداً لأن شبكات الجوال (CGNAT)
@@ -36,6 +38,16 @@ return [
     'contact_per_ipv6_site_per_hour' => (int) env('CONTACT_PER_IPV6_SITE_PER_HOUR', 60),
     'contact_per_hour' => (int) env('CONTACT_PER_HOUR', 300),
 
+    // محاولات الدخول الخاطئة في ربع ساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6) ولكل موقع /48 في IPv6،
+    // فوق قفل الحساب، حتى لا يخمّن مصدر واحد كلمات مرور حسابات كثيرة. وتتسع للشبكات المشتركة (CGNAT).
+    // ومعهما حارسان لمعالج التجزئة في الدقيقة (0 بلا حد)، يُضبطان مع اختبار التحمل (docs/performance.md):
+    // سقف عام للمحاولات الخاطئة في البوابة، والناجحة لا تُحسب منه فلا يملؤه صاحب حساب صحيح، وحد لكل
+    // المحاولات من كل مشترك ناجحة أو خاطئة. والمحجوب يُرفض بـ 429 قبل فحص كلمة المرور
+    'login_failures_per_subscriber' => (int) env('LOGIN_FAILURES_PER_SUBSCRIBER', 50),
+    'login_failures_per_ipv6_site' => (int) env('LOGIN_FAILURES_PER_IPV6_SITE', 150),
+    'login_failures_per_minute' => (int) env('LOGIN_FAILURES_PER_MINUTE', 1200),
+    'login_attempts_per_subscriber_per_minute' => (int) env('LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 300),
+
     // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),
@@ -54,11 +66,18 @@ return [
     'sms_pending_per_ipv6_site' => (int) env('SMS_PENDING_PER_IPV6_SITE', 200),
     'sms_sent_per_ipv6_site' => (int) env('SMS_SENT_PER_IPV6_SITE', 500),
 
+    // الحساب الذي لم يوثّق جواله يُحذف بعد هذه المدة بالأيام، ما لم يرتبط بسجل أو بدور غير المستفيد
+    // (ejaz:prune-unverified-accounts — decisions.md 14 أكتوبر 2026)
+    'unverified_account_days' => (int) env('UNVERIFIED_ACCOUNT_DAYS', 14),
+
     // أقصى انتظار بالثواني لقفل التحقق من رمز الجوال عند الطلبات المتزامنة
     'otp_lock_wait_seconds' => 3,
 
     // مدة خمول جلسة لوحة الإدارة بالدقائق قبل تسجيل الخروج آلياً
     'admin_idle_minutes' => (int) env('ADMIN_IDLE_MINUTES', 30),
+
+    // سقف مطلق لجلسة لوحة الإدارة بالدقائق من أول طلب فيها، مهما استمر النشاط (8 ساعات)
+    'admin_session_max_minutes' => (int) env('ADMIN_SESSION_MAX_MINUTES', 480),
 
     // HSTS يُرسل فقط على الاتصال الآمن
     'hsts_max_age' => 31536000,
