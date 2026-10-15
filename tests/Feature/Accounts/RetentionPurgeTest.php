@@ -309,8 +309,23 @@ it('keeps clearing the other messages when one cannot be cleared, and reports th
         }
     });
 
-    $this->artisan('ejaz:purge-anonymized-data')->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')->assertFailed();
+    // بلا مدة احتفاظ، والخلاصة تظهر فيُعرف سبب الفشل
+    $this->artisan('ejaz:purge-anonymized-data')
+        ->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')
+        ->expectsOutputToContain('سجلات حُذفت بياناتها: 0، وتعذر: 1.')
+        ->assertFailed();
 
     expect($other->fresh()->message)->toBeNull()
         ->and($failing->fresh()->message)->toBe('نص يعرّف صاحبه');
+});
+
+it('counts cleared messages once, apart from the records purged after the retention period', function () {
+    Setting::put('retention', ['days' => 30]);
+    $old = User::factory()->create(['deletion_requested_at' => now()->subDays(3), 'anonymized_at' => now()->subDays(2)]);
+    Inquiry::factory()->create(['user_id' => $old->id, 'message' => 'نص يعرّف صاحبه']);
+
+    $this->artisan('ejaz:purge-anonymized-data')
+        ->expectsOutputToContain('رسائل تواصل حُذف نصها: 1.')
+        ->expectsOutputToContain('سجلات حُذفت بياناتها: 0، وتعذر: 0.')
+        ->assertSuccessful();
 });
