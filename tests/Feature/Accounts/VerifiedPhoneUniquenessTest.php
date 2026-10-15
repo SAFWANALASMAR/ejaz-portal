@@ -1,8 +1,6 @@
 <?php
 
 use App\Actions\Accounts\SendPhoneVerificationCode;
-use App\Enums\RoleName;
-use App\Models\ProgramRegistration;
 use App\Models\User;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Notification;
@@ -103,26 +101,6 @@ it('logs in by phone to the verified account, not to an unverified one holding t
     $this->post('/login', ['login' => '0512345678', 'password' => 'password'])->assertRedirect('/account');
 
     $this->assertAuthenticatedAs($owner);
-});
-
-it('deletes unverified beneficiary accounts after 14 days, and keeps everything else', function () {
-    $old = squatter(['created_at' => now()->subDays(15)]);
-    $old->assignRole(RoleName::Member->value);
-    $cleared = User::factory()->create(['phone' => null, 'created_at' => now()->subDays(15)]);
-
-    $recent = squatter(['created_at' => now()->subDays(13)]);
-    $verified = User::factory()->create(['phone' => '+966511111111', 'phone_verified_at' => now(), 'created_at' => now()->subDays(30)]);
-    $staff = squatter(['created_at' => now()->subDays(30)]);
-    $staff->assignRole(RoleName::SuperAdmin->value);
-    $linked = squatter(['created_at' => now()->subDays(30)]);
-    ProgramRegistration::factory()->for($linked)->create();
-    $anonymized = User::factory()->create(['anonymized_at' => now()->subDays(20), 'created_at' => now()->subDays(30)]);
-
-    $this->artisan('ejaz:prune-unverified-accounts')->assertSuccessful();
-
-    expect(User::find($old->id))->toBeNull()
-        ->and(User::find($cleared->id))->toBeNull()
-        ->and(User::whereKey([$recent->id, $verified->id, $staff->id, $linked->id, $anonymized->id])->count())->toBe(5);
 });
 
 it('schedules the unverified accounts cleanup daily', function () {

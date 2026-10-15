@@ -37,11 +37,11 @@ class CompetitionDrawPolicy
 
     /**
      * اعتماد طلب إلغاء بعد الإلغاء الأول في المسابقة (ApproveDrawVoid): لمشرف عام غير طالب الإلغاء.
-     * نتيجة صريحة، فلا يجعلها Gate::after صحيحة لطالب الإلغاء.
+     * نتيجة صريحة، فلا يجعلها Gate::after صحيحة لطالب الإلغاء. والطلب الذي مضت مدته لا يُعتمد ولا يُرفض.
      */
     public function approveVoid(User $user, CompetitionDraw $draw): bool
     {
-        $request = $draw->voidRequest;
+        $request = $draw->openVoidRequest();
 
         return $request !== null
             && $request->requested_by !== $user->id

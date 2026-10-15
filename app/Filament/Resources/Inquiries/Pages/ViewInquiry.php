@@ -48,7 +48,9 @@ class ViewInquiry extends ViewRecord
                         ->label(__('inquiries.fields.internal_note'))
                         ->helperText(__('inquiries.fields.internal_note_hint'))
                         ->rows(4)
-                        ->maxLength(2000),
+                        ->maxLength(2000)
+                        // لا ملاحظة على رسالة حُذف نصها مع إخفاء هوية المرسل (UpdateInquiry)
+                        ->hidden(fn (Inquiry $record): bool => $record->textRemoved()),
                 ])
                 ->action(function (Inquiry $record, array $data, Action $action): void {
                     /** @var User $actor */

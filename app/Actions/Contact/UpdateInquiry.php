@@ -49,6 +49,11 @@ class UpdateInquiry
 
         $inquiry->fill($data);
 
+        // نص الرسالة حُذف مع إخفاء هوية المرسل، فلا تُضاف ملاحظة قد تنقل منه (Inquiry::FREE_TEXT)
+        if ($inquiry->textRemoved() && $inquiry->isDirty('internal_note') && filled($inquiry->internal_note)) {
+            throw ValidationException::withMessages(['internal_note' => __('inquiries.validation.note_text_removed')]);
+        }
+
         if ($inquiry->isDirty('assigned_to')) {
             if (! $actor->can('assign', $inquiry)) {
                 throw new AuthorizationException;

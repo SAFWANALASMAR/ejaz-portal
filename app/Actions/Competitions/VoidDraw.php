@@ -20,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  */
 class VoidDraw
 {
+    public function __construct(private readonly LapseDrawVoidRequests $lapse) {}
+
     /**
      * @throws AuthorizationException
      * @throws ValidationException
@@ -29,6 +31,9 @@ class VoidDraw
         if (! $actor->can('void', $draw)) {
             throw new AuthorizationException;
         }
+
+        // الطلب المعلّق الذي مضت مدته يسقط الآن، فلا يمنع طلباً جديداً حتى الأمر اليومي
+        $this->lapse->forDraw($draw);
 
         $reason = trim($reason);
 

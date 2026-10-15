@@ -140,7 +140,7 @@ it('hides board files from members, and serves files only by a valid signed link
     $this->get(URL::temporarySignedRoute('assembly.meetings.attachment', now()->addMinutes(10), [$this->meeting, 5]))->assertNotFound();
     $this->get(URL::temporarySignedRoute('assembly.meetings.minutes', now()->addMinutes(10), [$this->meeting]))->assertOk()->assertDownload();
 
-    $logs = Activity::where('event', 'file_downloaded')->get();
+    $logs = Activity::where('event', 'file_downloaded')->orderBy('id')->get();
     expect($logs)->toHaveCount(3)
         ->and($logs->pluck('causer_id')->unique()->all())->toBe([$this->member->id])
         ->and($logs->pluck('properties.file')->all())->toBe(['file', 'attachment:0', 'minutes']);

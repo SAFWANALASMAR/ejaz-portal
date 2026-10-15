@@ -156,6 +156,22 @@ it('lists the messages newest first and filters them by status', function () {
         ->assertCanNotSeeTableRecords([$older]);
 });
 
+it('refuses an internal note on a message whose text was removed, in the action and the panel', function () {
+    $inquiry = Inquiry::factory()->create(['subject' => null, 'message' => null, 'internal_note' => null]);
+
+    expect(fn () => app(UpdateInquiry::class)->handle($this->secretary, $inquiry, ['internal_note' => 'ملاحظة جديدة']))
+        ->toThrow(ValidationException::class, __('inquiries.validation.note_text_removed'))
+        ->and($inquiry->fresh()->internal_note)->toBeNull();
+
+    // والحالة تبقى قابلة للمعالجة، وحقل الملاحظة مخفي فلا يُرسل
+    $this->actingAs($this->secretary);
+    Livewire::test(ViewInquiry::class, ['record' => $inquiry->getRouteKey()])
+        ->callAction('process', ['status' => InquiryStatus::Closed->value, 'internal_note' => 'ملاحظة جديدة'])
+        ->assertNotified(__('inquiries.processed'));
+
+    expect($inquiry->fresh())->status->toBe(InquiryStatus::Closed)->internal_note->toBeNull();
+});
+
 it('shows a clear placeholder for the text removed with the sender identity, in the list and the message', function () {
     $inquiry = Inquiry::factory()->create(['subject' => null, 'message' => null, 'internal_note' => null]);
 

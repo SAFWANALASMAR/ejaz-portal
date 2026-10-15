@@ -44,11 +44,14 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
         ]);
 
-        if ($validator->errors()->has('current_password')) {
-            CurrentPasswordLimiter::failed($user);
-        }
+        // التحقق مرة واحدة، ففحص كلمة المرور الحالية تجزئة واحدة لا اثنتان
+        if ($validator->fails()) {
+            if ($validator->errors()->has('current_password')) {
+                CurrentPasswordLimiter::failed($user);
+            }
 
-        $validator->validateWithBag('updateProfileInformation');
+            throw (new ValidationException($validator))->errorBag('updateProfileInformation');
+        }
 
         if ($emailChanged || $phoneChanged) {
             CurrentPasswordLimiter::passed($user);

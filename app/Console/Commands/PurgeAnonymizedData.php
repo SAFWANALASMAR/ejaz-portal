@@ -42,19 +42,6 @@ class PurgeAnonymizedData extends Command
         PurgeProgramRegistrationPersonalData $purgeRegistration,
         PurgeFormEntryPersonalData $purgeFormEntry,
     ): int {
-        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText().'.');
-
-        $days = Retention::days();
-
-        if ($days === null) {
-            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء مما يتبعها.');
-
-            return self::SUCCESS;
-        }
-
-        $cutoff = now()->subDays($days);
-        // أصحاب الحسابات المخفاة قبل المدة
-        $expired = User::query()->select('id')->where('anonymized_at', '<', $cutoff);
         $purged = 0;
         $failed = 0;
 
@@ -68,6 +55,20 @@ class PurgeAnonymizedData extends Command
                 $failed++;
             }
         };
+
+        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText($attempt).'.');
+
+        $days = Retention::days();
+
+        if ($days === null) {
+            $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء مما يتبعها.');
+
+            return $failed > 0 ? self::FAILURE : self::SUCCESS;
+        }
+
+        $cutoff = now()->subDays($days);
+        // أصحاب الحسابات المخفاة قبل المدة
+        $expired = User::query()->select('id')->where('anonymized_at', '<', $cutoff);
 
         CompetitionSubmission::query()
             ->withTrashed()
@@ -125,27 +126,35 @@ class PurgeAnonymizedData extends Command
 
     /**
      * نص رسائل الحسابات المخفاة: من حسابه، أو من بريده الموثّق (وبريدها بعد الإخفاء بريد الحساب المخفى).
-     * ويبقى الرقم والنوع والحالة والتاريخ، ولكل رسالة سجل.
+     * ويبقى الرقم والنوع والحالة والتاريخ، ولكل رسالة سجل. والنص الحر كله، ومنه الملاحظة الداخلية.
+     *
+     * @param  callable(callable): void  $attempt  الرسالة التي يتعذر حذف نصها لا توقف بقية التنظيف
      */
-    private function clearInquiryText(): int
+    private function clearInquiryText(callable $attempt): int
     {
         $cleared = 0;
 
         Inquiry::query()
             ->withTrashed()
-            ->where(fn ($query) => $query->whereNotNull('subject')->orWhereNotNull('message'))
+            ->where(function ($query): void {
+                foreach (Inquiry::FREE_TEXT as $column) {
+                    $query->orWhereNotNull($column);
+                }
+            })
             ->where(fn ($query) => $query
                 ->whereIn('user_id', User::query()->select('id')->whereNotNull('anonymized_at'))
                 ->orWhereIn('email', User::query()->select('email')->whereNotNull('anonymized_at')))
             ->lazyById()
-            ->each(function (Inquiry $inquiry) use (&$cleared): void {
-                $inquiry->forceFill(array_fill_keys(Inquiry::FREE_TEXT, null))->save();
+            ->each(function (Inquiry $inquiry) use ($attempt, &$cleared): void {
+                $attempt(function () use ($inquiry, &$cleared): void {
+                    $inquiry->forceFill(array_fill_keys(Inquiry::FREE_TEXT, null))->save();
 
-                activity('requests')->performedOn($inquiry)
-                    ->event(ActivityEvent::PersonalDataPurged->value)
-                    ->log(ActivityEvent::PersonalDataPurged->value);
+                    activity('requests')->performedOn($inquiry)
+                        ->event(ActivityEvent::PersonalDataPurged->value)
+                        ->log(ActivityEvent::PersonalDataPurged->value);
 
-                $cleared++;
+                    $cleared++;
+                });
             });
 
         return $cleared;

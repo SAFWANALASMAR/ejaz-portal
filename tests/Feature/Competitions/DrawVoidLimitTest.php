@@ -20,6 +20,7 @@ use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -215,14 +216,63 @@ it('lapses a void request nobody decided within seven days, keeps the draw, logs
         ->and($draw->fresh()->void)->toBeNull();
 });
 
-it('refuses to approve or reject a request past its lapse time even before the daily command runs', function () {
+it('lapses a request past its time on the first decision attempt, before the daily command runs', function () {
+    Notification::fake();
+    $draw = drawWithPendingVoidRequest($this);
+    $request = $draw->voidRequest()->firstOrFail();
+    $this->travel(CompetitionDrawVoidRequest::LAPSE_DAYS)->days();
+    $this->travel(1)->hours();
+
+    expect(fn () => app(ApproveDrawVoid::class)->handle($this->adminA, $draw))->toThrow(ValidationException::class, __('competitions.draws.void_request_lapsed'));
+
+    // سقط الآن وحُفظ سقوطه، لا عند الأمر اليومي
+    expect($request->fresh()->status)->toBe(DrawVoidRequestStatus::Lapsed)
+        ->and(Activity::where('event', 'draw_void_lapsed')->count())->toBe(1)
+        ->and($draw->fresh()->void)->toBeNull();
+    Notification::assertSentToTimes($this->adminB, DrawVoidRequestClosed::class, 1);
+
+    // ولا طلب معلّقاً بعده يُرفض
+    expect(fn () => app(RejectDrawVoid::class)->handle($this->adminA, $draw->fresh(), $this->reason))->toThrow(AuthorizationException::class);
+
+    $this->artisan('ejaz:lapse-draw-void-requests')->assertSuccessful();
+    expect(Activity::where('event', 'draw_void_lapsed')->count())->toBe(1);
+});
+
+it('lapses a request past its time when a new void is asked for, instead of refusing it as pending', function () {
+    Notification::fake();
+    $draw = drawWithPendingVoidRequest($this);
+    $old = $draw->voidRequest()->firstOrFail();
+    $this->travel(CompetitionDrawVoidRequest::LAPSE_DAYS)->days();
+    $this->travel(1)->hours();
+
+    $new = app(VoidDraw::class)->handle($this->adminA, $draw, $this->reason);
+
+    expect($old->fresh()->status)->toBe(DrawVoidRequestStatus::Lapsed)
+        ->and($new)->toBeInstanceOf(CompetitionDrawVoidRequest::class)
+        ->and($new->requested_by)->toBe($this->adminA->id)
+        ->and($draw->fresh()->voidRequest->id)->toBe($new->id);
+});
+
+it('hides the decision buttons of a request past its time, and offers the void button again', function () {
     $draw = drawWithPendingVoidRequest($this);
     $this->travel(CompetitionDrawVoidRequest::LAPSE_DAYS)->days();
     $this->travel(1)->hours();
 
-    expect(fn () => app(ApproveDrawVoid::class)->handle($this->adminA, $draw))->toThrow(ValidationException::class, __('competitions.draws.void_request_lapsed'))
-        ->and(fn () => app(RejectDrawVoid::class)->handle($this->adminA, $draw, $this->reason))->toThrow(ValidationException::class, __('competitions.draws.void_request_lapsed'))
-        ->and($draw->fresh()->void)->toBeNull();
+    $this->actingAs($this->adminA);
+    Livewire::test(DrawsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertActionHidden(TestAction::make('approve_void')->table($draw))
+        ->assertActionHidden(TestAction::make('reject_void')->table($draw))
+        ->assertActionVisible(TestAction::make('void')->table($draw));
+});
+
+it('refuses a decision by the requester found under the lock with a message, not a database error', function () {
+    $draw = drawWithPendingVoidRequest($this);
+    // الصلاحية فُحصت على طلب غير الذي وُجد تحت القفل (سباق): يُحاكى بتجاوز الصلاحية لطالب الطلب نفسه
+    Gate::before(fn ($user, string $ability) => in_array($ability, ['approveVoid', 'rejectVoid'], true) ? true : null);
+
+    expect(fn () => app(ApproveDrawVoid::class)->handle($this->adminB, $draw))->toThrow(ValidationException::class, __('competitions.draws.void_own_request'))
+        ->and(fn () => app(RejectDrawVoid::class)->handle($this->adminB, $draw, $this->reason))->toThrow(ValidationException::class, __('competitions.draws.void_own_request'))
+        ->and($draw->voidRequest()->firstOrFail()->status)->toBe(DrawVoidRequestStatus::Pending);
 });
 
 it('records a decision once, and the database refuses to change it or let the requester decide', function () {

@@ -14,7 +14,10 @@ use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
  * - عشر محاولات في ربع ساعة لكل حساب من أي عنوان (قفل مؤقت للحساب).
  * - لكل شبكة في ربع ساعة: المشترك (عنوان IPv4، أو /64 في IPv6)، والموقع /48 في IPv6،
  *   فلا يخمّن مصدر واحد كلمات مرور حسابات كثيرة. والدخول الناجح لا يمسحه.
- * ومعها سقف عام لكل محاولات الدخول في البوابة في الدقيقة، ناجحة أو خاطئة، حارساً أخيراً للمعالج.
+ * ومعها حارسان للمعالج في الدقيقة:
+ * - سقف عام للمحاولات الخاطئة في البوابة كلها. والناجحة لا تُحسب منه، فلا يملؤه صاحب حساب صحيح
+ *   بتكرار الدخول فيغلق الدخول عن الجميع (مراجعة التكامل، 14 أكتوبر 2026).
+ * - حد لكل المحاولات من كل مشترك، ناجحة أو خاطئة، فلا يُنهك مصدر واحد المعالج بدخول صحيح متكرر.
  *
  * يعمل القفل في EnsureLoginIsNotThrottled قبل فحص كلمة المرور، فالمحجوب لا يكلّف تجزئة.
  * المفتاح هو المعرّف الموحَّد، فلا يتجاوز القفلَ تغييرُ صيغة الرقم (docs/decisions.md).
@@ -77,37 +80,59 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     }
 
     /**
-     * يُستدعى مرة لكل محاولة قبل فحص كلمة المرور، فيُحسب فيه السقف العام لكل المحاولات.
+     * السقف العام للمحاولات الخاطئة في البوابة (0 بلا سقف): يُفحص قبل كلمة المرور، ويُحسب مع الخاطئة وحدها.
+     *
+     * @return array<string, array{max: int, decay: int}>
+     */
+    private function portalLimits(): array
+    {
+        $max = (int) config('security.login_failures_per_minute');
+
+        return $max > 0 ? [self::ALL_KEY => ['max' => $max, 'decay' => 60]] : [];
+    }
+
+    /**
+     * حد كل المحاولات من المشترك (0 بلا حد): يُفحص ويُحسب قبل كلمة المرور، ناجحة كانت أو خاطئة.
+     *
+     * @return array<string, array{max: int, decay: int}>
+     */
+    private function attemptLimits(Request $request): array
+    {
+        $max = (int) config('security.login_attempts_per_subscriber_per_minute');
+
+        return $max > 0
+            ? ['login-attempts:'.NetworkPrefix::subscriber(NetworkPrefix::normalize($request->ip())) => ['max' => $max, 'decay' => 60]]
+            : [];
+    }
+
+    /**
+     * يُستدعى مرة لكل محاولة قبل فحص كلمة المرور، فيُحسب فيه حد كل المحاولات من المشترك.
      *
      * @param  Request  $request
      */
     public function tooManyAttempts($request): bool
     {
-        foreach ($this->limits($request) as $key => $limit) {
+        foreach ($this->limits($request) + $this->portalLimits() + $this->attemptLimits($request) as $key => $limit) {
             if ($this->limiter->tooManyAttempts($key, $limit['max'])) {
                 return true;
             }
         }
 
-        $portalMax = (int) config('security.login_attempts_per_minute');
-
-        if ($portalMax > 0) {
-            if ($this->limiter->tooManyAttempts(self::ALL_KEY, $portalMax)) {
-                return true;
-            }
-
-            $this->limiter->hit(self::ALL_KEY, 60);
+        foreach ($this->attemptLimits($request) as $key => $limit) {
+            $this->limiter->hit($key, $limit['decay']);
         }
 
         return false;
     }
 
     /**
+     * المحاولة الخاطئة وحدها: حدود الحساب والشبكة، والسقف العام.
+     *
      * @param  Request  $request
      */
     public function increment($request): void
     {
-        foreach ($this->limits($request) as $key => $limit) {
+        foreach ($this->limits($request) + $this->portalLimits() as $key => $limit) {
             $this->limiter->hit($key, $limit['decay']);
         }
     }
@@ -120,16 +145,10 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         // مدة الانتظار من الحد الذي بُلغ فعلاً، لا من أطول الحدود
         $waits = [];
 
-        foreach ($this->limits($request) as $key => $limit) {
+        foreach ($this->limits($request) + $this->portalLimits() + $this->attemptLimits($request) as $key => $limit) {
             if ($this->limiter->tooManyAttempts($key, $limit['max'])) {
                 $waits[] = $this->limiter->availableIn($key);
             }
-        }
-
-        $portalMax = (int) config('security.login_attempts_per_minute');
-
-        if ($portalMax > 0 && $this->limiter->tooManyAttempts(self::ALL_KEY, $portalMax)) {
-            $waits[] = $this->limiter->availableIn(self::ALL_KEY);
         }
 
         return $waits === [] ? 0 : max($waits);

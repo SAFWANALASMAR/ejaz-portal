@@ -58,13 +58,16 @@ class CreateNewUser implements CreatesNewUsers
 
         RateLimiter::hit($throttleKey, 3600);
 
-        $user = User::create([
+        $user = new User([
             'name' => trim((string) $input['name']),
             'email' => $input['email'],
             'phone' => $input['phone'],
             'password' => $input['password'],
             'privacy_accepted_at' => now(),
         ]);
+        // التسجيل الذاتي وحده يُحذف حسابه إن تُرك غير موثق (PruneUnverifiedAccounts)، لا حساب أنشأه مشرف
+        $user->self_registered_at = now();
+        $user->save();
 
         $user->assignRole(RoleName::Member->value);
 

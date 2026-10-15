@@ -18,7 +18,7 @@ beforeEach(function () {
     config([
         'security.login_failures_per_subscriber' => 3,
         'security.login_failures_per_ipv6_site' => 6,
-        'security.login_attempts_per_minute' => 100,
+        'security.login_failures_per_minute' => 100,
     ]);
 });
 
@@ -78,14 +78,13 @@ it('does not reset the network counter on a successful login', function () {
     loginFrom('203.0.113.7', 'user4@example.test')->assertStatus(429);
 });
 
-it('caps all login attempts on the portal, successful ones included', function () {
-    config(['security.login_attempts_per_minute' => 3]);
+it('caps failed login attempts on the portal, from any network', function () {
+    config(['security.login_failures_per_minute' => 3]);
     User::factory()->create(['email' => 'member@example.test']);
 
-    loginFrom('203.0.113.1', 'member@example.test', 'password')->assertOk();
-    $this->post('/logout');
     loginFrom('198.51.100.2', 'a@example.test')->assertStatus(422);
     loginFrom('192.0.2.3', 'b@example.test')->assertStatus(422);
+    loginFrom('203.0.113.1', 'c@example.test')->assertStatus(422);
 
     Hash::spy();
 
@@ -94,8 +93,43 @@ it('caps all login attempts on the portal, successful ones included', function (
     Hash::shouldNotHaveReceived('check');
 });
 
-it('turns the portal cap off at zero', function () {
-    config(['security.login_attempts_per_minute' => 0]);
+it('never counts successful logins toward the portal cap, so a valid account cannot lock others out', function () {
+    config(['security.login_failures_per_minute' => 3]);
+    User::factory()->create(['email' => 'attacker@example.test']);
+    User::factory()->create(['email' => 'member@example.test']);
+
+    // صاحب حساب صحيح (ولو بتحقق ثنائي) يكرر الدخول من شبكات كثيرة
+    foreach (range(1, 10) as $i) {
+        loginFrom("198.51.100.{$i}", 'attacker@example.test', 'password')->assertOk();
+        $this->post('/logout');
+    }
+
+    loginFrom('203.0.113.9', 'member@example.test', 'password')->assertOk();
+});
+
+it('limits all attempts from one network, successful ones included', function () {
+    config(['security.login_attempts_per_subscriber_per_minute' => 3]);
+    User::factory()->create(['email' => 'member@example.test']);
+
+    foreach (range(1, 3) as $i) {
+        loginFrom('203.0.113.7', 'member@example.test', 'password')->assertOk();
+        $this->post('/logout');
+    }
+
+    // شبكة أخرى لا تتأثر
+    loginFrom('198.51.100.7', 'member@example.test', 'password')->assertOk();
+    $this->post('/logout');
+
+    Hash::spy();
+
+    loginFrom('203.0.113.7', 'member@example.test', 'password')->assertStatus(429);
+
+    Hash::shouldNotHaveReceived('check');
+    $this->assertGuest();
+});
+
+it('turns the portal cap and the network attempts limit off at zero', function () {
+    config(['security.login_failures_per_minute' => 0, 'security.login_attempts_per_subscriber_per_minute' => 0]);
 
     foreach (range(1, 5) as $i) {
         loginFrom("198.51.100.{$i}", "user{$i}@example.test")->assertStatus(422);
