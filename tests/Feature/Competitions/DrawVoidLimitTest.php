@@ -238,6 +238,18 @@ it('lapses a request past its time on the first decision attempt, before the dai
     expect(Activity::where('event', 'draw_void_lapsed')->count())->toBe(1);
 });
 
+it('refuses a non super admin before lapsing anything', function () {
+    $draw = drawWithPendingVoidRequest($this);
+    $request = $draw->voidRequest()->firstOrFail();
+    $this->travel(CompetitionDrawVoidRequest::LAPSE_DAYS)->days();
+    $this->travel(1)->hours();
+
+    expect(fn () => app(ApproveDrawVoid::class)->handle($this->manager, $draw))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(RejectDrawVoid::class)->handle($this->manager, $draw, $this->reason))->toThrow(AuthorizationException::class)
+        ->and($request->fresh()->status)->toBe(DrawVoidRequestStatus::Pending)
+        ->and(Activity::where('event', 'draw_void_lapsed')->exists())->toBeFalse();
+});
+
 it('lapses a request past its time when a new void is asked for, instead of refusing it as pending', function () {
     Notification::fake();
     $draw = drawWithPendingVoidRequest($this);

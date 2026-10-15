@@ -26,6 +26,11 @@ class ApproveDrawVoid
      */
     public function handle(User $actor, CompetitionDraw $draw): CompetitionDrawVoid
     {
+        // من لا يقرر في طلبات الإلغاء أصلاً (غير المشرف العام) لا يصل إلى إسقاط الطلب
+        if (! $actor->can('void', $draw)) {
+            throw new AuthorizationException;
+        }
+
         // الطلب الذي مضت مدته يسقط الآن لا عند الأمر اليومي، ويُحفظ سقوطه قبل رسالة الرفض
         if ($this->lapse->forDraw($draw)) {
             throw ValidationException::withMessages(['reason' => __('competitions.draws.void_request_lapsed')]);

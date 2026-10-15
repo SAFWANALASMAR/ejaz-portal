@@ -46,24 +46,28 @@ class PurgeAnonymizedData extends Command
         $failed = 0;
 
         // سجل يتعذر حذفه (تعطل التخزين مثلاً) يُبلَّغ عنه ويبقى كما هو للدورة التالية، ولا يوقف الباقي
-        $attempt = function (callable $purge) use (&$purged, &$failed): void {
+        $fail = function (Throwable $exception) use (&$failed): void {
+            report($exception);
+            $failed++;
+        };
+        $attempt = function (callable $purge) use (&$purged, $fail): void {
             try {
                 $purge();
                 $purged++;
             } catch (Throwable $exception) {
-                report($exception);
-                $failed++;
+                $fail($exception);
             }
         };
 
-        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText($attempt).'.');
+        // الرسائل لها عدّها هنا، فلا تُحسب ثانية في «سجلات حُذفت بياناتها»
+        $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText($fail).'.');
 
         $days = Retention::days();
 
         if ($days === null) {
             $this->info('مدة الاحتفاظ غير مضبوطة في اللوحة، فلم يُحذف شيء مما يتبعها.');
 
-            return $failed > 0 ? self::FAILURE : self::SUCCESS;
+            return $this->summary($purged, $failed);
         }
 
         $cutoff = now()->subDays($days);
@@ -111,6 +115,14 @@ class PurgeAnonymizedData extends Command
             ->lazyById()
             ->each(fn (FormEntry $entry) => $attempt(fn () => $purgeFormEntry->handle($entry)));
 
+        return $this->summary($purged, $failed);
+    }
+
+    /**
+     * الخلاصة في كل حال، ومنها التعذر بلا مدة احتفاظ (في رسائل التواصل)، فلا يفشل الأمر بلا سبب ظاهر.
+     */
+    private function summary(int $purged, int $failed): int
+    {
         $summary = "سجلات حُذفت بياناتها: {$purged}، وتعذر: {$failed}.";
 
         if ($failed > 0) {
@@ -128,9 +140,9 @@ class PurgeAnonymizedData extends Command
      * نص رسائل الحسابات المخفاة: من حسابه، أو من بريده الموثّق (وبريدها بعد الإخفاء بريد الحساب المخفى).
      * ويبقى الرقم والنوع والحالة والتاريخ، ولكل رسالة سجل. والنص الحر كله، ومنه الملاحظة الداخلية.
      *
-     * @param  callable(callable): void  $attempt  الرسالة التي يتعذر حذف نصها لا توقف بقية التنظيف
+     * @param  callable(Throwable): void  $fail  الرسالة التي يتعذر حذف نصها تُحسب تعذراً، ولا توقف بقية التنظيف
      */
-    private function clearInquiryText(callable $attempt): int
+    private function clearInquiryText(callable $fail): int
     {
         $cleared = 0;
 
@@ -145,8 +157,8 @@ class PurgeAnonymizedData extends Command
                 ->whereIn('user_id', User::query()->select('id')->whereNotNull('anonymized_at'))
                 ->orWhereIn('email', User::query()->select('email')->whereNotNull('anonymized_at')))
             ->lazyById()
-            ->each(function (Inquiry $inquiry) use ($attempt, &$cleared): void {
-                $attempt(function () use ($inquiry, &$cleared): void {
+            ->each(function (Inquiry $inquiry) use ($fail, &$cleared): void {
+                try {
                     $inquiry->forceFill(array_fill_keys(Inquiry::FREE_TEXT, null))->save();
 
                     activity('requests')->performedOn($inquiry)
@@ -154,7 +166,9 @@ class PurgeAnonymizedData extends Command
                         ->log(ActivityEvent::PersonalDataPurged->value);
 
                     $cleared++;
-                });
+                } catch (Throwable $exception) {
+                    $fail($exception);
+                }
             });
 
         return $cleared;
