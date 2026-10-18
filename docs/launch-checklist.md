@@ -38,7 +38,7 @@
 
 ### النسخ والمراقبة
 
-- ⏳ **النسخ الاحتياطي** اليومي المشفّر خارج الخادم، والاحتفاظ، والاستعادة وتجربتها (`security.md` «النسخ الاحتياطي») — `scripts/backup.sh`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `deploy/systemd/ejaz-backup.timer`، و`scripts/restore.md`، و`deploy/storage/lifecycle-backups.json`. ويبقى نسخ الملفات الخاصة على S3 (مقاطع المسابقات، ومرفقات المتقدمين، والنماذج المعبأة) عند المزود الثاني بنداً مفتوحاً، وتشفير `files/` عند Hetzner يُجرَّب (`deploy/readiness.md` §١٤).
+- ⏳ **النسخ الاحتياطي** اليومي المشفّر خارج الخادم، والاحتفاظ، والاستعادة وتجربتها (`security.md` «النسخ الاحتياطي») — `scripts/backup.sh`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `deploy/systemd/ejaz-backup.timer`، و`scripts/restore.md`، و`deploy/storage/lifecycle-backups.json`. ونسخ الملفات الخاصة على S3 (مقاطع المسابقات، ومرفقات المتقدمين، والنماذج المعبأة) عند المزود الثاني مبني، و`files/` كلها مشفّرة عند العميل بلا `--sse` (19 أكتوبر 2026 — `deploy/readiness.md` §١٤، ومُجرَّب على MinIO في `tests/backup/`). ويبقى تجريبه على الخادم، وكلمتا سر تشفير الملفات في مدير كلمات المرور مع مفتاح GPG الخاص.
 - ✅ **المراقبة** (`security.md` «تنبيهات فورية») — `/up`، و`php artisan ejaz:health` (`deploy/systemd/compose/ejaz-health.service` مع مؤقته)، وفحوص صحة الحاويات، و`docs/monitoring.md`. ⏳ أداة التنبيه نفسها.
 
 ### المحتوى والفهرسة

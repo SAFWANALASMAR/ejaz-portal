@@ -13,6 +13,8 @@ final readonly class MenuLink
 {
     /**
      * @param  Collection<int, MenuLink>  $children
+     * @param  bool  $linkable  false لعنصر يشير إلى صفحة غير منشورة ويبقى لعناصره الفرعية: زر القائمة
+     *                          المنسدلة في الرأس، ولا رابط له في التذييل (SiteChromeComposer)
      */
     public function __construct(
         public int $id,
@@ -20,10 +22,11 @@ final readonly class MenuLink
         public string $url,
         public bool $opensInNewTab,
         public Collection $children,
+        public bool $linkable = true,
     ) {}
 
     /**
-     * @param  array{id: int, label: string, url: ?string, opens_in_new_tab: bool, children?: list<array<string, mixed>>}  $row
+     * @param  array{id: int, label: string, url: ?string, opens_in_new_tab: bool, linkable?: bool, children?: list<array<string, mixed>>}  $row
      */
     public static function fromArray(array $row): self
     {
@@ -33,6 +36,7 @@ final readonly class MenuLink
             url: (string) $row['url'],
             opensInNewTab: $row['opens_in_new_tab'],
             children: collect($row['children'] ?? [])->map(fn (array $child): self => self::fromArray($child)),
+            linkable: $row['linkable'] ?? true,
         );
     }
 

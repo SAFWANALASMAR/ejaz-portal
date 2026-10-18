@@ -38,3 +38,6 @@ Thumbs.db
 /docs/inputs/**/*.ai
 # ملفات الاستيراد المنزّلة من الموقع الحالي (docs/legacy-import/README.md)
 /docs/legacy-import/files/
+
+# ملف مؤقت لتجربة النسخ (tests/backup/run.sh)
+/tests/backup/.old-backup.sh

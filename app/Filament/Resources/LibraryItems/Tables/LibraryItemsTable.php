@@ -23,7 +23,7 @@ class LibraryItemsTable
         return $table
             ->defaultSort(fn (Builder $query): Builder => $query->scopes('newestFirst'))
             ->columns([
-                ImageColumn::make('thumbnail')->label('')->disk('public'),
+                ImageColumn::make('thumbnail')->label('')->disk('public')->disabledClick(),
                 TextColumn::make('title')->label(__('library.fields.title'))->searchable()->wrap(),
                 TextColumn::make('section')->label(__('library.fields.section'))->badge(),
                 TextColumn::make('author')->label(__('library.fields.author'))->searchable()->toggleable(),

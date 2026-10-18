@@ -1,0 +1,54 @@
+# تجربة النسخ الاحتياطي على تخزين S3 محلي (tests/backup/README.md): MinIO بدور حاوية الملفات (Contabo) وآخر بدور
+# حاوية النسخ (Hetzner) بقفل الكائنات والإصدارات، وقاعدة، وصورة النسخ الحقيقية (deploy/docker/Dockerfile).
+# مشروع compose مستقل بلا منافذ على الجهاز. التشغيل: bash tests/backup/run.sh
+name: ejazbackuptest
+
+x-minio: &minio
+  image: debian:bookworm-slim
+  # MinIO أُرشف ولا تُوزَّع صوره ولا ملفاته، فيُبنى من مصدره بإصدار مثبت في الحجم ejazbk-minio-bin (run.sh)
+  command: ["/opt/minio/minio", "server", "/data", "--quiet"]
+  environment:
+    MINIO_ROOT_USER: rootadmin
+    MINIO_ROOT_PASSWORD: rootadmin-test-only
+  volumes:
+    - minio-bin:/opt/minio:ro
+
+services:
+  contabo:
+    <<: *minio
+  hetzner:
+    <<: *minio
+
+  pgsql:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ejaz
+      POSTGRES_USER: ejaz
+      POSTGRES_PASSWORD: test-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ejaz -d ejaz"]
+      interval: 2s
+      retries: 20
+
+  tools:
+    image: debian:bookworm-slim
+    entrypoint: ["sleep", "infinity"]
+    volumes:
+      - minio-bin:/opt/minio:ro
+      - work:/work
+
+  backup:
+    image: ejaz-backup:test
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: backup
+    profiles: [run]
+    volumes:
+      - work:/work
+
+volumes:
+  minio-bin:
+    name: ejazbk-minio-bin
+    external: true
+  work:
