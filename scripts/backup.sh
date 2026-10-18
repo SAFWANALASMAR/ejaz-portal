@@ -31,7 +31,8 @@
 #   BACKUP_SYNC_FILES        true|false (افتراضياً true): نسخ الملفات أصلاً
 #   BACKUP_FILES_REFRESH_WEEKDAY  يوم إعادة رفع الملفات كلها: 1 (الاثنين) إلى 7 (الأحد)، افتراضياً 7
 #   BACKUP_SOURCE_S3_BUCKET  حاوية الملفات الخاصة على S3 (AWS_BUCKET في .env التطبيق)، أو none صراحةً إن كان القرص الخاص محلياً
-#   BACKUP_FILES_MAX_DURATION  أقصى مدة لنسخ الملفات في التشغيل الواحد (افتراضياً 20h)، فلا يمنع نسخة القاعدة التالية
+#   BACKUP_FILES_MAX_DURATION  مدة خطوة الملفات كلها في التشغيل الواحد (افتراضياً 20h)، فلا يمنع نسخة القاعدة التالية.
+#                            وإن انقضت قبل اكتمال النسخ، خرج السكربت برمز 75 بعد نسخة القاعدة، فتفشل الوحدة وينبّه
 #   BACKUP_SOURCE_S3_ENDPOINT BACKUP_SOURCE_S3_REGION   عنوانها ومنطقتها (AWS_ENDPOINT وAWS_DEFAULT_REGION في .env التطبيق)
 #   BACKUP_SOURCE_ACCESS_KEY_ID BACKUP_SOURCE_SECRET_ACCESS_KEY   مفتاح قراءة وحدها على حاوية الملفات إن أمكن عند المزود
 #                            (deploy/storage/README.md)، ولا يُستعمل هنا إلا مصدراً للقراءة
@@ -67,6 +68,19 @@ if [ "$SYNC_FILES" = "true" ]; then
     for var in BACKUP_SOURCE_S3_ENDPOINT BACKUP_SOURCE_ACCESS_KEY_ID BACKUP_SOURCE_SECRET_ACCESS_KEY; do
       [ -n "${!var:-}" ] || fail "المتغير $var غير مضبوط (BACKUP_SOURCE_S3_BUCKET مضبوط)"
     done
+  fi
+  # مدة خطوة الملفات كلها بالثواني: رقم بلا لاحقة، أو بـ s أو m أو h (مثل 20h)
+  max_duration="${BACKUP_FILES_MAX_DURATION:-20h}"
+  # بالعشري وحده (08h ليست ثُمانية)، وستة أرقام على الأكثر فلا فيض، وبين ثانية و22 ساعة: فوقها تبقى الوحدة عاملة
+  # عند موعد المؤقت التالي فتسقط نسخة القاعدة ذلك اليوم. ويُفحص هنا قبل أي رفع
+  [[ "$max_duration" =~ ^([0-9]{1,6})([smh]?)$ ]] || fail "BACKUP_FILES_MAX_DURATION غير صالح: $max_duration (مثل 20h أو 90m)"
+  FILES_BUDGET=$(( 10#${BASH_REMATCH[1]} ))
+  case "${BASH_REMATCH[2]}" in
+    h) FILES_BUDGET=$(( FILES_BUDGET * 3600 )) ;;
+    m) FILES_BUDGET=$(( FILES_BUDGET * 60 )) ;;
+  esac
+  if [ "$FILES_BUDGET" -lt 1 ] || [ "$FILES_BUDGET" -gt 79200 ]; then
+    fail "BACKUP_FILES_MAX_DURATION خارج الحد: $max_duration (بين 1s و22h)"
   fi
 fi
 
@@ -118,10 +132,7 @@ if [ "$SYNC_FILES" = "true" ]; then
   # copy لا sync (أعلاه)، وبلا أي خيار حذف.
   # في اليوم العادي لا يُرفع إلا الجديد والمتغير: --update مع --use-server-modtime يتخطى ملفاً نسخته أحدث من آخر تعديل
   # له، بوقت الرفع من السرد وحده (بلا HEAD). وفي يوم التجديد --ignore-times يعيد رفع كل ملف حي، فيبدأ عدّ مدته من جديد
-  # ولا يتجاوز نسخ الملفات BACKUP_FILES_MAX_DURATION (افتراضياً 20h)، فينتهي التشغيل قبل موعد الغد ولا يتخطى المؤقت نسخة
-  # القاعدة التالية (oneshot). ونسخة أولى أو تجديد أطول يكمل ما بقي في التشغيل التالي (deploy/readiness.md §١٤)
-  COPY=(rclone copy --config /dev/null --stats-one-line --stats 10m --exclude "livewire-tmp/**"
-    --max-duration "${BACKUP_FILES_MAX_DURATION:-20h}" --cutoff-mode soft)
+  COPY=(rclone copy --config /dev/null --stats-one-line --stats 10m --exclude "livewire-tmp/**" --cutoff-mode soft)
   if [ "$(date -u +%u)" = "$REFRESH_WEEKDAY" ]; then
     COPY+=(--ignore-times)
     log "التجديد الأسبوعي: إعادة رفع الملفات كلها"
@@ -129,16 +140,30 @@ if [ "$SYNC_FILES" = "true" ]; then
     COPY+=(--update --use-server-modtime)
   fi
 
-  for disk in private public; do
-    dir="$APP_ROOT/storage/app/$disk"
-    if [ -d "$dir" ]; then
-      log "نسخ storage/app/$disk مشفّراً"
-      "${COPY[@]}" "$dir" "vault:$disk"
-    else
-      log "تنبيه: storage/app/$disk غير موجود فلم يُنسخ (ربط حجم storage؟)"
+  # موعد نهائي واحد لخطوة الملفات كلها (BACKUP_FILES_MAX_DURATION)، ولكل نسخ ما بقي منه، فينتهي التشغيل قبل موعد الغد
+  # ولا يتخطى المؤقت نسخة القاعدة التالية (oneshot). ورمز rclone 10 (تجاوز المدة) نسخ جزئي يُسجَّل ويُكمَل ما بعده،
+  # وخطأ أي نسخ لا يوقف ما بعده: تعمل النسخ كلها، ثم يخرج السكربت في آخره برمز مميز (ما بعد الخطوة ٢)
+  DEADLINE=$(( $(date +%s) + FILES_BUDGET ))
+  PARTIAL=()
+  FAILED=()
+  copy_to() {
+    local label="$1" src="$2" dest="$3" remaining rc=0
+    remaining=$(( DEADLINE - $(date +%s) ))
+    if [ "$remaining" -le 0 ]; then
+      log "⚠ لم يُنسخ $label: انقضت مدة نسخ الملفات"
+      PARTIAL+=("$label")
+      return 0
     fi
-  done
+    log "نسخ $label مشفّراً (حتى ${remaining} ثانية)"
+    "${COPY[@]}" --max-duration "${remaining}s" "$src" "$dest" || rc=$?
+    case "$rc" in
+      0) ;;
+      10) log "⚠ نُسخ $label جزئياً: انقضت المدة، ويُكمَل في التشغيل التالي"; PARTIAL+=("$label") ;;
+      *) log "✗ فشل نسخ $label (rclone $rc)"; FAILED+=("$label") ;;
+    esac
+  }
 
+  # حاوية S3 أولاً: فيها الملفات الخاصة كلها في الإنتاج، فلا تحرمها النسخة الطويلة لقرص محلي من المدة
   if [ "$BACKUP_SOURCE_S3_BUCKET" != "none" ]; then
     export RCLONE_CONFIG_SOURCE_TYPE=s3
     export RCLONE_CONFIG_SOURCE_PROVIDER=Other
@@ -148,8 +173,29 @@ if [ "$SYNC_FILES" = "true" ]; then
     export RCLONE_CONFIG_SOURCE_SECRET_ACCESS_KEY="$BACKUP_SOURCE_SECRET_ACCESS_KEY"
     export RCLONE_CONFIG_SOURCE_NO_CHECK_BUCKET=true
 
-    log "نسخ حاوية الملفات $BACKUP_SOURCE_S3_BUCKET مشفّرة"
-    "${COPY[@]}" "source:$BACKUP_SOURCE_S3_BUCKET" "vault:s3-private"
+    copy_to "حاوية الملفات $BACKUP_SOURCE_S3_BUCKET" "source:$BACKUP_SOURCE_S3_BUCKET" "vault:s3-private"
+  fi
+
+  for disk in private public; do
+    dir="$APP_ROOT/storage/app/$disk"
+    if [ -d "$dir" ]; then
+      copy_to "storage/app/$disk" "$dir" "vault:$disk"
+    else
+      log "تنبيه: storage/app/$disk غير موجود فلم يُنسخ (ربط حجم storage؟)"
+    fi
+  done
+
+  if [ "${#PARTIAL[@]}" -gt 0 ]; then
+    log "⚠ نسخ الملفات جزئي: ${PARTIAL[*]} (نسخة القاعدة $STAMP رُفعت)" >&2
+  fi
+  if [ "${#FAILED[@]}" -gt 0 ]; then
+    fail "فشل نسخ: ${FAILED[*]} (نسخة القاعدة $STAMP رُفعت)"
+  fi
+  if [ "${#PARTIAL[@]}" -gt 0 ]; then
+    # 75 (EX_TEMPFAIL): تفشل الوحدة فيصل التنبيه، لا نجاح صامت. والجديد يُكمَل في التشغيل التالي، أما تجديد أسبوعي
+    # قُطع فيُعاد بتشغيل يدوي (scripts/restore.md «نسخ ملفات جزئي»). وتجديد واحد مقطوع لا يُنهي نسخة، لكن الترتيب ثابت، فإن
+    # تكرر القطع بقيت آخر الملفات بلا تجديد حتى تنتهي نسختها بعد 30 يوماً، ثم تُرفع من جديد في اليوم التالي
+    exit 75
   fi
   log "✓ نُسخت الملفات"
 fi

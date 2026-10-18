@@ -6,7 +6,7 @@
 
 - المفتاح الخاص لـ GPG (عند المسؤول، لا على خادم الإنتاج)، وعبارة مروره.
 - **كلمتا سر تشفير الملفات** `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT`، من مدير كلمات المرور مع مفتاح GPG الخاص (`.env.backup.example`). وبدونهما لا تُفك نسخ الملفات.
-- مفاتيح **قراءة** على حاوية النسخ (`GetObject` و`GetObjectVersion` و`ListBucket`)، وعنوان واجهة S3 للمزود ومنطقته. لا مفتاح الخادم: ذاك كتابة بلا قراءة ولا حذف.
+- مفاتيح **قراءة** على حاوية النسخ (`GetObject` و`GetObjectVersion` و`ListBucket` و`ListBucketVersions`، والأخيرة لـ `--s3-version-at`)، وعنوان واجهة S3 للمزود ومنطقته. لا مفتاح الخادم: ذاك كتابة بلا قراءة ولا حذف.
 - `pg_restore` بإصدار القاعدة نفسه (17)، و`gpg`، و`aws`، و`rclone` (صورة النسخ فيها الأربعة: `docker compose -f deploy/compose.production.yaml run --rm --entrypoint bash backup`).
 
 ### إعداد rclone لنسخ الملفات (بلا ملف إعداد ولا سر في سطر الأمر)
@@ -25,6 +25,7 @@ rclone lsd --config /dev/null vault:            # private وpublic وs3-private 
 ```
 
 - `vault:private` و`vault:public`: القرصان المحليان. و`vault:s3-private`: حاوية الملفات الخاصة على S3 (مقاطع المسابقات، والمرفقات، والنماذج المعبأة، وملفات الوثائق والمكتبة).
+- **نسخ ملفات جزئي** (السكربت خرج برمز 75: «نسخ الملفات جزئي» في السجل): الجديد يُكمَل في التشغيل التالي وحده. أما تجديد أسبوعي قُطع فيُعاد يدوياً في يوم آخر، حتى يكتمل: `docker compose --env-file .env -f deploy/compose.production.yaml run --rm -e BACKUP_FILES_REFRESH_WEEKDAY=$(date -u +%u) backup`. ويُشغَّل بعد نسخة 02:30 بمدة تنتهي قبل الموعد التالي (`-e BACKUP_FILES_MAX_DURATION=<الساعات حتى 02:00>h`)، لئلا يتداخل مع المؤقت: نسختا قاعدة وrclone إلى الوجهة نفسها معاً. وإن تكرر القطع فمدة أطول في `.env.backup` (حتى 22h، والسكربت يرفض ما فوقها) أو بديل §١٤ في `deploy/readiness.md`. وتجديد واحد مقطوع لا يُنهي نسخة، لكن الترتيب ثابت، فإن تكرر بقيت آخر الملفات بلا تجديد حتى تنتهي نسختها بعد 30 يوماً.
 - والحال يوم بعينه بإصدارات الحاوية: `--s3-version-at "2026-10-10 02:30:00"` مع أي أمر قراءة.
 - وما حُذف من المصدر يبقى في النسخ نحو 60 يوماً من آخر رفع: 30 يوماً نسخةً حالية حتى قاعدة الانتهاء، ثم 30 يوماً إصداراً قديماً حتى قاعدة الإصدارات القديمة، لأن النسخ نسخ لا مزامنة (`decisions.md` — 19 أكتوبر 2026). فاستعادة مجلد كامل تعيد معه ما حُذف بعد وقت النسخة، ويُحذف بالخطوة ٧ أدناه.
 
@@ -62,7 +63,7 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
           (select count(*) from migrations) migrations;
    ```
 2. نسخة من التطبيق بإصدار الإنتاج نفسه على قاعدة التجربة (`DB_DATABASE=ejaz_restore_test`، وبريد ورسائل وهمية: `MAIL_MAILER=log` و`SMS_DRIVER=log`، وطوابير متوقفة) تفتح الرئيسية ولوحة الإدارة، و`php artisan migrate:status` بلا ترحيل معلّق.
-3. ملف خاص عشوائي من نسخ الملفات يُفك ويُفتح، بإعداد rclone أعلاه: `rclone ls --config /dev/null vault:s3-private | shuf -n1 | awk '{print $2}'`، ثم `rclone copy --config /dev/null "vault:s3-private/<المسار>" ./restore-test/`. ثم يُتلف مع ما بعده.
+3. ملف خاص عشوائي من نسخ الملفات يُفك ويُفتح، بإعداد rclone أعلاه: `rclone lsf -R --files-only --config /dev/null vault:s3-private | shuf -n1` (المسار وحده، ولو فيه مسافات)، ثم `rclone copy --config /dev/null "vault:s3-private/<المسار>" ./restore-test/`. ثم يُتلف مع ما بعده.
 4. **الإتلاف بعد التجربة:** `dropdb ejaz_restore_test` و`shred -u ejaz.dump "$KEY"` و`rm -rf restore-test`، لأن فيها بيانات شخصية حقيقية.
 
 سجّل: التاريخ، والنسخة، والمدة من البدء حتى تحقق الخطوة ٢ (زمن الاستعادة الفعلي)، وأي مشكلة.
