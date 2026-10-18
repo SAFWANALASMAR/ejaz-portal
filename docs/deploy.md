@@ -1,8 +1,12 @@
 # دليل النشر في الإنتاج والتجريبية
 
-المرجع: بنود الإنتاج في المرحلة 1 من `roadmap.md`، و`security.md`، و`performance.md`، و`decisions.md` (11 أكتوبر 2026: تأجيل اختيار الخادم حتى يكتمل المشروع، ولا اعتماد على خدمة مُدارة).
+المرجع: بنود الإنتاج في المرحلة 1 من `roadmap.md`، و`security.md`، و`performance.md`، و`decisions.md` (11 أكتوبر 2026: تأجيل اختيار الخادم حتى يكتمل المشروع، ولا اعتماد على خدمة مُدارة. و18 أكتوبر 2026: الاستضافة خارج المملكة مقبولة، والمرشح Contabo والنسخ عند Hetzner).
 
-> **الحال:** كل ما هنا جاهز للتنفيذ، ولا حساب سحابي ولا خادم بعد. المزود يُختار بقائمة `deploy/provider-checklist.md` (والمرشح المسجَّل أوراكل كلاود في جدة والرياض)، والتجربة أولاً على الخادم التجريبي (`deploy/staging-plan.md`). كل قيمة بين `<...>` تُضبط عند الاختيار. ولا سر في قيت: الأسرار في مخزن أسرار المزود وفي `.env` على الخادم وحده.
+> **الحال:** كل ما هنا جاهز للتنفيذ، ولا حساب سحابي ولا خادم بعد.
+> - **المرشح (قرار 18 أكتوبر):** Contabo Cloud VDS XL للإنتاج، وContabo Object Storage للملفات في منطقة الخادم، وHetzner Object Storage للنسخ الاحتياطية عند شركة ثانية. والاعتماد النهائي بقائمة `deploy/provider-checklist.md`.
+> - **التجربة أولاً** على الخادم التجريبي (`deploy/staging-plan.md`)، ومن يجهّز الخادم يبدأ بدليل `deploy/handoff-server.md`.
+> - كل قيمة بين `<...>` تُضبط عند الاختيار.
+> - **لا سر في قيت:** الأسرار في مدير كلمات المرور المعتمد لدى الجمعية 【ناقص — `open-questions.md`】، وفي `.env` على الخادم وحده.
 
 ## الملفات
 
@@ -15,12 +19,14 @@
 - `deploy/storage/` — CORS ودورة الحياة لحاويات S3.
 - `deploy/php/production.ini` — قيم PHP للإنتاج (داخل الصورة).
 - `docs/monitoring.md`، و`docs/cutover.md` (نقل النطاق والتراجع)، و`docs/launch-checklist.md`.
+- `docs/deploy/handoff-server.md` — دليل التسليم لمن يجهّز الخادم. و`docs/deploy/provider-checklist.md` — ما يُتحقق منه عند المزودين، وإعدادات الذاكرة لكل حجم.
 - **بلا حاويات (بديل):** `scripts/deploy.sh`، و`deploy/nginx/ejaz.conf`، و`deploy/redis/redis.conf`، ووحدات `deploy/systemd/*.service` — في الملحق آخر الدليل.
 
 ## البنية
 
-- **خادم لينكس واحد داخل المملكة** بالحزمة كلها (المواصفات في `deploy/provider-checklist.md`)، ويُرفع حجمه مؤقتاً للذروة.
-- **تخزين كائنات متوافق مع S3 في المنطقة نفسها:** حاوية للملفات الخاصة ومقاطع المسابقات (`FILESYSTEM_PRIVATE_DISK=s3`)، وحاوية منفصلة للنسخ.
+- **خادم لينكس واحد** بالحزمة كلها (المرشح Contabo Cloud VDS XL، والمواصفات في `deploy/provider-checklist.md`). وعند المرشح يكون بحجم الذروة من البداية، لأنه لا يُرفع بالساعة ولا يُخفض.
+- **تخزين كائنات متوافق مع S3 في منطقة الخادم:** حاوية للملفات الخاصة ومقاطع المسابقات (`FILESYSTEM_PRIVATE_DISK=s3`، والمرشح Contabo Object Storage).
+- **حاوية النسخ عند مزود ثانٍ** (المرشح Hetzner Object Storage)، بحساب ومفتاح مستقلين وقفل الكائنات، فلا تجتمع البيانات ونسخها عند مزود واحد.
 - **القاعدة والذاكرة على الخادم** (ملف التعريف `bundled`)، بحجمين دائمين (`pgdata` و`redisdata`). والانتقال إلى خدمة مُدارة لاحقاً بمتغيرات البيئة وحدها (القسم «الانتقال إلى خدمة مُدارة»).
 - **التطبيق بلا حالة محلية** إلا القرص العام والسجلات في الحجم `storage`.
 
@@ -28,9 +34,11 @@
 
 1. Ubuntu LTS (أو ما يعادله)، وتحديثاته الأمنية آلية (`unattended-upgrades`).
 2. جدار ناري (المزود والخادم): 22 من عناوين الإدارة وحدها، و80 و443 للعموم. ولا منفذ للقاعدة ولا لـ Redis (شبكة الحاويات داخلية).
+   - جدار Contabo يحجب كل الوارد لحظة تفعيله، فتُضاف قواعده الثلاث قبله.
+   - وDocker يتجاوز جدار الخادم (ufw) في المنافذ المنشورة، فلا يُنشر إلا 80 و443 (`deploy/compose.production.yaml`).
 3. الدخول بمفاتيح SSH وحدها، ولا دخول بكلمة مرور ولا بـ root.
 4. Docker Engine وإضافة compose من مستودع Docker الرسمي.
-5. قرص البيانات مركّب على `/var/lib/docker` (أو مجلد Docker معدّل إليه)، فتكون القاعدة وRedis والتخزين عليه، ولقطاته مجدولة.
+5. قرص البيانات مركّب على `/var/lib/docker` (أو مجلد Docker معدّل إليه)، فتكون القاعدة وRedis والتخزين عليه، ولقطاته مجدولة حيث أتاحها المزود. وفي Cloud VDS قرص واحد بلا لقطات، فالاحتياط كله النسخ (الخطوة 9).
 6. المشروع:
    ```bash
    sudo mkdir -p /opt/ejaz && sudo chown "$USER" /opt/ejaz
@@ -49,23 +57,26 @@
    sudo systemctl enable ejaz-stack
    sudo systemctl enable --now ejaz-backup.timer ejaz-health.timer
    ```
-10. حاويتا التخزين: الإنشاء خاصة، ثم CORS والإصدارات ودورة الحياة (`deploy/storage/README.md`).
+10. حاويتا التخزين (`deploy/storage/README.md`):
+    - حاوية الملفات عند مزود الخادم: خاصة، ثم CORS والإصدارات ودورة الحياة.
+    - وحاوية النسخ عند المزود الثاني، بقفل الكائنات من إنشائها (لا يُضاف بعده).
 
 ## ثانياً: ملف `.env` للإنتاج
 
-من `.env.production.example`، وتُملأ الفارغة من مخزن الأسرار:
+من `.env.production.example`، وتُملأ الفارغة من مدير كلمات المرور (أعلى الدليل):
 
-- `APP_KEY`: يُولَّد مرة ويُحفظ في المخزن: `docker compose --env-file .env -f deploy/compose.production.yaml run --rm --no-deps app php artisan key:generate --show`.
+- `APP_KEY`: يُولَّد مرة ويُحفظ في مدير كلمات المرور: `docker compose --env-file .env -f deploy/compose.production.yaml run --rm --no-deps app php artisan key:generate --show`.
 - `APP_URL=https://ejaz.sa`، و`APP_DEBUG=false`، و`SESSION_SECURE_COOKIE=true`.
 - `SEO_INDEXABLE=false` حتى يوم نقل النطاق، ثم `true` في الإنتاج وحده.
 - `TRUSTED_PROXIES`: عناوين موزع الأحمال إن وُجد، وفارغة إن وصل الزوار مباشرة (`security.md`).
 - `DB_PASSWORD` و`REDIS_PASSWORD`: طويلة عشوائية (`openssl rand -base64 32`).
 - التخزين بواجهة S3 القياسية: `AWS_ENDPOINT` و`AWS_DEFAULT_REGION` و`AWS_USE_PATH_STYLE_ENDPOINT` و`AWS_BUCKET` والمفتاحان، و`CSP_CONNECT_SRC` بعنوان التخزين للرفع المباشر.
+  - عند Contabo: `AWS_ENDPOINT=https://eu2.contabostorage.com` بنمط المسار، والمنطقة كما في أمثلته (`default`). ويُجرَّب على التجريبي (`deploy/provider-checklist.md`).
 - `MAIL_*` لمزود البريد، و`SMS_DRIVER` بعد اعتماد المزود (`open-questions.md`)، و`SMS_PER_HOUR` حسب التسجيل المتوقع (`performance.md`).
-- ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`).
+- ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`، ولخادم Cloud VDS XL قسم «إعدادات خادم 8 أنوية و64 جيجابايت»).
 - ما يلزمه قرار أو حساب: Turnstile، وMicrosoft Graph، والدفع (`PAYMENTS_ENABLED=false`). انظر «عند كل نشر» في `security.md`.
 
-ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها، و`BACKUP_GPG_RECIPIENT`. ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` و`ListBucket` بلا `DeleteObject`)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
+ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`. ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject`)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 
 ## ثالثاً: أول نشر
 
@@ -127,13 +138,14 @@ $DC ps                                         # كل الخدمات healthy
 
 ## الملفات الخاصة
 
-- على تخزين S3 داخل المملكة (`FILESYSTEM_PRIVATE_DISK=s3`) بالواجهة القياسية (`AWS_ENDPOINT` و`AWS_DEFAULT_REGION` و`AWS_USE_PATH_STYLE_ENDPOINT` والحاوية من البيئة)، فيعمل مع أي مزود متوافق بلا تغيير في الشيفرة. واختبار `tests/Feature/Platform/S3CompatibleStorageTest.php` يتحقق من الروابط الموقّعة للقرص الخاص ولأجزاء الرفع المباشر بعنوان مخصص.
+- على تخزين S3 لدى مزود الخادم في منطقته (`FILESYSTEM_PRIVATE_DISK=s3`) بالواجهة القياسية (`AWS_ENDPOINT` و`AWS_DEFAULT_REGION` و`AWS_USE_PATH_STYLE_ENDPOINT` والحاوية من البيئة)، فيعمل مع أي مزود متوافق بلا تغيير في الشيفرة. واختبار `tests/Feature/Platform/S3CompatibleStorageTest.php` يتحقق من الروابط الموقّعة للقرص الخاص ولأجزاء الرفع المباشر بعنوان مخصص.
 - الحاوية خاصة بلا وصول عام، وإصداراتها مفعّلة.
+- **لا نسخة لها عند المزود الثاني بعد:** `scripts/backup.sh` ينسخ القاعدة والقرصين المحليين وحدهما. بند مفتوح بحله المقترح في `deploy/readiness.md` §١٤.
 - ملفات الوثائق والمكتبة المنشورة تُبث من PHP بعد فحص النشر. والمستهدف قبل الذروة رابط تخزين موقّع قصير (خطة I8 في `security/2026-10-10-security-audit.md`).
 
 ## الانتقال إلى خدمة مُدارة (لاحقاً، بلا تغيير في الشيفرة)
 
-متى توفرت قاعدة PostgreSQL 17 أو ذاكرة Redis 7 مُدارتان داخل المملكة وثبت تفوقهما:
+متى توفرت قاعدة PostgreSQL 17 أو ذاكرة Redis 7 مُدارتان لدى المزود وثبت تفوقهما:
 
 1. نسخة احتياطية (`ejaz-backup.service`)، ووضع الصيانة.
 2. القاعدة: استعادة النسخة في الخدمة المُدارة (`scripts/restore.md`)، ثم في `.env`: `DB_HOST` و`DB_PORT` و`DB_DATABASE` و`DB_USERNAME` و`DB_PASSWORD` (و`DB_SSLMODE=require` إن طلبه المزود)، ومثلها `PGHOST` وأخواته في `.env.backup`.
@@ -148,7 +160,7 @@ $DC ps                                         # كل الخدمات healthy
 
 ## التجريبية
 
-مطابقة للإنتاج ببيانات وهمية: الحزمة نفسها بـ `APP_ENV=staging` و`SEO_INDEXABLE=false` ونطاق فرعي، ومزود الرسائل `log`، وبريد وهمي. وعليها وحدها اختبار التحمل والفحص الأمني الفعلي (`deploy/staging-plan.md`).
+مطابقة للإنتاج ببيانات وهمية: الحزمة نفسها بـ `APP_ENV=staging` و`SEO_INDEXABLE=false` ونطاق فرعي، ومزود الرسائل `log`، وبريد وهمي، على خادم صغير شهراً (المرشح Contabo Cloud VPS). وعليها الفحص الأمني الفعلي. واختبار التحمل بإعدادها نفسه على خادم الإنتاج قبل تجهيزه للإنتاج، لأن الخادم الصغير ليس بمواصفات الإنتاج (`deploy/staging-plan.md` «اليوم ٥»).
 
 ---
 
