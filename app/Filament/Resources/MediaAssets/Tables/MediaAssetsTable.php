@@ -20,6 +20,7 @@ class MediaAssetsTable
                 ImageColumn::make('web_path')
                     ->label(__('media_assets.fields.preview'))
                     ->disk('public')
+                    ->disabledClick()
                     ->imageHeight(48),
                 TextColumn::make('title')
                     ->label(__('media_assets.fields.title'))

@@ -5,16 +5,37 @@
 ## ما يلزم
 
 - المفتاح الخاص لـ GPG (عند المسؤول، لا على خادم الإنتاج)، وعبارة مروره.
-- مفاتيح **قراءة** على حاوية النسخ، وعنوان واجهة S3 للمزود.
-- `pg_restore` بإصدار القاعدة نفسه (17)، و`gpg`، و`aws`.
+- **كلمتا سر تشفير الملفات** `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT`، من مدير كلمات المرور مع مفتاح GPG الخاص (`.env.backup.example`). وبدونهما لا تُفك نسخ الملفات.
+- مفاتيح **قراءة** على حاوية النسخ (`GetObject` و`GetObjectVersion` و`ListBucket`)، وعنوان واجهة S3 للمزود ومنطقته. لا مفتاح الخادم: ذاك كتابة بلا قراءة ولا حذف.
+- `pg_restore` بإصدار القاعدة نفسه (17)، و`gpg`، و`aws`، و`rclone` (صورة النسخ فيها الأربعة: `docker compose -f deploy/compose.production.yaml run --rm --entrypoint bash backup`).
+
+### إعداد rclone لنسخ الملفات (بلا ملف إعداد ولا سر في سطر الأمر)
+
+نسخ الملفات في `files/` من حاوية النسخ مشفّرة أسماءً ومحتوى بطبقة `crypt` في rclone (`scripts/backup.sh`)، فلا تُقرأ بأداة `aws`. على جهاز المسؤول، بعد ضبط `EP` و`BUCKET` ومفاتيح القراءة كما في القسم ١:
+
+```bash
+export RCLONE_CONFIG_BACKUP_TYPE=s3 RCLONE_CONFIG_BACKUP_PROVIDER=Other
+export RCLONE_CONFIG_BACKUP_ENDPOINT="$EP" RCLONE_CONFIG_BACKUP_REGION="$AWS_DEFAULT_REGION"
+export RCLONE_CONFIG_BACKUP_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" RCLONE_CONFIG_BACKUP_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+export RCLONE_CONFIG_VAULT_TYPE=crypt RCLONE_CONFIG_VAULT_REMOTE="backup:$BUCKET/files"
+read -rs -p 'BACKUP_CRYPT_PASSWORD: ' p; echo; export RCLONE_CONFIG_VAULT_PASSWORD="$(printf %s "$p" | rclone obscure -)"
+read -rs -p 'BACKUP_CRYPT_SALT: ' p; echo; export RCLONE_CONFIG_VAULT_PASSWORD2="$(printf %s "$p" | rclone obscure -)"; unset p
+
+rclone lsd --config /dev/null vault:            # private وpublic وs3-private بأسمائها المفكوكة
+```
+
+- `vault:private` و`vault:public`: القرصان المحليان. و`vault:s3-private`: حاوية الملفات الخاصة على S3 (مقاطع المسابقات، والمرفقات، والنماذج المعبأة، وملفات الوثائق والمكتبة).
+- والحال يوم بعينه بإصدارات الحاوية: `--s3-version-at "2026-10-10 02:30:00"` مع أي أمر قراءة.
+- وما حُذف من المصدر يبقى في النسخ نحو 60 يوماً من آخر رفع: 30 يوماً نسخةً حالية حتى قاعدة الانتهاء، ثم 30 يوماً إصداراً قديماً حتى قاعدة الإصدارات القديمة، لأن النسخ نسخ لا مزامنة (`decisions.md` — 19 أكتوبر 2026). فاستعادة مجلد كامل تعيد معه ما حُذف بعد وقت النسخة، ويُحذف بالخطوة ٧ أدناه.
 
 ## ١. تجربة الاستعادة الشهرية (لا تمس الإنتاج)
 
-تُجرى أول كل شهر على خادم التجريبية أو جهاز معزول، وتُسجَّل نتيجتها في `docs/backups/<التاريخ>.md`.
+تُجرى أول كل شهر على خادم التجريبية أو جهاز معزول، وتُسجَّل نتيجتها في `docs/backups/<التاريخ>.md`. وفك تشفير نسخ الإنتاج على جهاز حافظ المفتاح الخاص وحده، لا على خادم (`docs/deploy/handoff-server.md`).
 
 ```bash
-export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...   # مفاتيح قراءة، من مخزن الأسرار لا مكتوبة في الأمر
-EP=https://<namespace>.compat.objectstorage.<region>.oraclecloud.com
+export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...   # مفاتيح قراءة، من مدير كلمات المرور لا مكتوبة في الأمر
+EP=https://<الموقع>.your-objectstorage.com   # حاوية النسخ عند Hetzner (مثل fsn1)، أو عنوان المزود الثاني
+export AWS_DEFAULT_REGION=<الموقع>             # منطقة الحاوية نفسها (fsn1 مثلاً)
 BUCKET=<حاوية النسخ>
 
 # آخر نسخة
@@ -41,8 +62,8 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
           (select count(*) from migrations) migrations;
    ```
 2. نسخة من التطبيق بإصدار الإنتاج نفسه على قاعدة التجربة (`DB_DATABASE=ejaz_restore_test`، وبريد ورسائل وهمية: `MAIL_MAILER=log` و`SMS_DRIVER=log`، وطوابير متوقفة) تفتح الرئيسية ولوحة الإدارة، و`php artisan migrate:status` بلا ترحيل معلّق.
-3. ملف خاص عشوائي من `files/private/` يُنزَّل ويُفتح.
-4. **الإتلاف بعد التجربة:** `dropdb ejaz_restore_test` و`shred -u ejaz.dump "$KEY"`، لأن فيها بيانات شخصية حقيقية.
+3. ملف خاص عشوائي من نسخ الملفات يُفك ويُفتح، بإعداد rclone أعلاه: `rclone ls --config /dev/null vault:s3-private | shuf -n1 | awk '{print $2}'`، ثم `rclone copy --config /dev/null "vault:s3-private/<المسار>" ./restore-test/`. ثم يُتلف مع ما بعده.
+4. **الإتلاف بعد التجربة:** `dropdb ejaz_restore_test` و`shred -u ejaz.dump "$KEY"` و`rm -rf restore-test`، لأن فيها بيانات شخصية حقيقية.
 
 سجّل: التاريخ، والنسخة، والمدة من البدء حتى تحقق الخطوة ٢ (زمن الاستعادة الفعلي)، وأي مشكلة.
 
@@ -54,7 +75,10 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
 2. نسخة من الحال الراهنة قبل الاستعادة (`pg_dump` كما في السكربت)، فلا يضيع شيء إن كان الحادث جزئياً.
 3. تنزيل النسخة وفحص بصمتها وفك تشفيرها كما أعلاه.
 4. الاستعادة في قاعدة جديدة (`ejaz_restored`) لا فوق الحالية، ثم تبديل `DB_DATABASE` في `.env` إليها بعد التحقق، ثم `php artisan config:cache`.
-5. الملفات: `aws s3 sync s3://$BUCKET/files/private/ storage/app/private/` (أو استعادة إصدارات الحاوية إن كان القرص الخاص على S3).
+5. الملفات، بإعداد rclone أعلاه (مفكوكة في الطريق):
+   - القرصان المحليان: `rclone copy --config /dev/null vault:private storage/app/private/` و`vault:public` إلى `storage/app/public/`.
+   - حاوية الملفات الخاصة على S3: الخطأ الجزئي أولاً بإصدارات حاوية Contabo نفسها. وإن فُقدت الحاوية أو الحساب، فإلى حاوية جديدة بمفتاح إدارتها (`RCLONE_CONFIG_LIVE_*` كـ `BACKUP` أعلاه بعنوان حاوية الملفات ومفتاحها): `rclone copy --config /dev/null vault:s3-private live:<حاوية الملفات>`، ثم `AWS_BUCKET` في `.env` إن تغير اسمها، ثم إعدادها كما في `deploy/storage/README.md` (CORS والإصدارات ودورة الحياة).
+   - وبحال يوم الحادث: `--s3-version-at "<وقت النسخة>"`.
 6. **إعادة إخفاء من أُخفيت بياناتهم بعد وقت النسخة** (حق الحذف في نظام حماية البيانات الشخصية). النسخة تعيدهم ببياناتهم، وتعيد ما حذفه منهم `ejaz:purge-anonymized-data`.
    - المصدر القاعدة السابقة للاستعادة (الباقية باسمها القديم، أو نسخة الخطوة ٢ مستعادة في قاعدة جانبية): الحقلان `anonymized_at` و`deletion_requested_at` في `users`، وقيود الإخفاء في سجل العمليات `activity_log`.
    - وقت النسخة `T` من اسم ملفها، بتوقيت UTC (مثل `2026-10-10 02:30:00`).
@@ -87,7 +111,7 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
    2. `php artisan ejaz:prune-orphan-private-files --days=0`. وإن توقف لأن الحذف بدا جماعياً (أكثر من نصف الملفات)، فراجع القاعدة المستعادة أولاً، ثم أعده بـ `--force` إن كان مقصوداً.
    - ويعمل الأمر أسبوعياً في المجدول بعمر يوم (`PRIVATE_ORPHAN_DAYS`).
 8. تشغيل العمال والمجدول، ثم `php artisan up`، ثم `php artisan ejaz:health`.
-9. **لا `cache:clear`.** وإن لزم مسح ذاكرة المحتوى: `php artisan ejaz:refresh-content`.
+9. **لا `cache:clear`.** بل `php artisan ejaz:refresh-content` دائماً بعد الاستعادة: يمسح ذاكرة المحتوى ومعرّفات الصفحات المنشورة، فلا تبقى القائمة و`/privacy` على حال ما قبل الاستعادة حتى ساعة.
 10. توثيق الحادث: ما فُقد بين آخر نسخة والحادث، وإبلاغ من يلزم وفق نظام حماية البيانات الشخصية إن مس الحادث بيانات شخصية.
 
 ## ٣. بحزمة الحاويات (`deploy/compose.production.yaml`)

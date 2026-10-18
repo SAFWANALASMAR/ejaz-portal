@@ -4,6 +4,7 @@ namespace App\View\Composers;
 
 use App\Models\LiveStream;
 use App\Models\MenuItem;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Support\MenuLink;
 use Illuminate\Support\Collection;
@@ -43,6 +44,20 @@ class SiteChromeComposer
             ])
             ->all());
 
-        return collect($rows)->map(fn (array $row): MenuLink => MenuLink::fromArray($row));
+        // ولا يظهر رابط إلى صفحة غير منشورة (Page::slugForUrl)، فلا يفتح الزائر صفحة 404 من القائمة. ويُفحص عند العرض
+        // لا في المخزَّن، لأن نشر الصفحة يمسح ذاكرة المحتوى لا ذاكرة القائمة
+        $published = Page::publishedSlugs();
+        $linkable = fn (array $row): bool => ($slug = Page::slugForUrl((string) $row['url'])) === null || in_array($slug, $published, true);
+
+        return collect($rows)
+            ->map(fn (array $row): array => [
+                ...$row,
+                'linkable' => $linkable($row),
+                'children' => array_values(array_filter($row['children'], $linkable)),
+            ])
+            // ويبقى العنصر الرئيسي إن بقيت له عناصر فرعية، زراً لقائمتها بلا رابط (MenuLink::$linkable)
+            ->filter(fn (array $row): bool => $row['linkable'] || $row['children'] !== [])
+            ->values()
+            ->map(fn (array $row): MenuLink => MenuLink::fromArray($row));
     }
 }

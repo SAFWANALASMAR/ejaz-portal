@@ -19,7 +19,7 @@ class AlbumsTable
         return $table
             ->defaultSort(fn (Builder $query): Builder => $query->scopes('newestFirst'))
             ->columns([
-                ImageColumn::make('cover')->label('')->disk('public')->state(fn (Album $record): ?string => $record->cover()),
+                ImageColumn::make('cover')->label('')->disk('public')->state(fn (Album $record): ?string => $record->cover())->disabledClick(),
                 TextColumn::make('title')->label(__('albums.fields.title'))->searchable()->wrap(),
                 TextColumn::make('photos_count')->label(__('albums.fields.photos_count'))->state(fn (Album $record): int => count($record->photoList())),
                 TextColumn::make('published_on')->label(__('albums.fields.published_on'))->date('Y-m-d')->sortable(),

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\RoleName;
+use App\Filament\Resources\NewsArticles\NewsArticleResource;
 use App\Models\User;
 use Filament\Facades\Filament;
 
@@ -66,6 +68,27 @@ it('embeds YouTube only from the privacy-enhanced domain', function () {
         ->toContain('https://www.youtube-nocookie.com')
         ->not->toContain('https://www.youtube.com');
 });
+
+// ملاحظات التجربة الشاملة (الخلل 3): أداة رفع الصور في اللوحة ترسم المعاينة في عامل من blob:
+it('lets the admin forms draw image previews in a blob worker, without widening script-src', function (string $path) {
+    $csp = (string) $this->actingAs(userWithRole(RoleName::SuperAdmin))->get($path)->assertOk()
+        ->headers->get('Content-Security-Policy');
+
+    expect(cspDirective($csp, 'worker-src'))->toBe("worker-src 'self' blob:")
+        ->and(cspDirective($csp, 'script-src'))->not->toContain('blob:')->not->toContain('unsafe-inline');
+})->with([
+    'dashboard' => '/admin',
+    'news form' => fn () => NewsArticleResource::getUrl('create'),
+]);
+
+it('keeps workers out of the public site and the account', function (string $path) {
+    $user = User::factory()->create();
+    $response = str_starts_with($path, '/account') ? $this->actingAs($user)->get($path) : $this->get($path);
+    $csp = (string) $response->assertOk()->headers->get('Content-Security-Policy');
+
+    expect($csp)->not->toContain('worker-src')
+        ->and(cspDirective($csp, 'script-src'))->not->toContain('blob:');
+})->with(['/', '/register', '/contact', '/account/profile']);
 
 it('draws the admin avatar locally instead of calling an outside service', function () {
     Filament::setCurrentPanel('admin');

@@ -157,13 +157,13 @@ it('keeps the cache of each initiative apart from the list, whatever its slug', 
 ]);
 
 it('serves other published pages by their slug, and the about page by its own link only', function () {
-    Page::factory()->create(['slug' => 'privacy', 'title' => 'سياسة الخصوصية', 'blocks' => [
-        ['type' => 'text', 'data' => ['body' => '<p>نص السياسة</p>']],
+    Page::factory()->create(['slug' => 'vision', 'title' => 'الرؤية', 'blocks' => [
+        ['type' => 'text', 'data' => ['body' => '<p>نص الرؤية</p>']],
     ]]);
     Page::factory()->unpublished()->create(['slug' => 'draft']);
     aboutPage();
 
-    $this->get('/pages/privacy')->assertOk()->assertSeeInOrder(['<h1', 'سياسة الخصوصية'], false)->assertSee('نص السياسة');
+    $this->get('/pages/vision')->assertOk()->assertSeeInOrder(['<h1', 'الرؤية'], false)->assertSee('نص الرؤية');
     $this->get('/pages/draft')->assertNotFound();
     $this->get('/pages/unknown')->assertNotFound();
     $this->get('/pages/Bad_Slug')->assertNotFound();

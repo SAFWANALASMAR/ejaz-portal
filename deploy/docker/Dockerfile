@@ -60,10 +60,22 @@ FROM nginx:1.27-alpine AS web
 COPY deploy/docker/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=app /var/www/html/public /var/www/html/public
 
-# ---- النسخ الاحتياطي: pg_dump بإصدار القاعدة نفسه (17)، وgpg، وaws ----
+# ---- النسخ الاحتياطي: pg_dump بإصدار القاعدة نفسه (17)، وgpg، وaws، وrclone ----
 FROM postgres:17-bookworm AS backup
+# rclone بإصدار مثبت وبصمته من SHA256SUMS في downloads.rclone.org، لا من مستودع التوزيعة (decisions.md — 19 أكتوبر 2026)
+ARG RCLONE_VERSION=v1.75.2
+ARG RCLONE_SHA256_AMD64=349ac8fba6ff65d6247043f1750cdcb518ec5d500ef91463a10d37c0ccdf3702
+ARG RCLONE_SHA256_ARM64=7e1e8d69654941b7b7df84ee74c5f7fb09cce7d5496947fb7bf16b55ff427d10
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gnupg awscli ca-certificates \
+    && apt-get install -y --no-install-recommends gnupg awscli ca-certificates curl unzip \
+    && arch="$(dpkg --print-architecture)" \
+    && case "$arch" in amd64) sum="$RCLONE_SHA256_AMD64" ;; arm64) sum="$RCLONE_SHA256_ARM64" ;; *) echo "unsupported $arch" >&2; exit 1 ;; esac \
+    && curl -fsSLo /tmp/rclone.zip "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-${arch}.zip" \
+    && echo "$sum  /tmp/rclone.zip" | sha256sum -c - \
+    && unzip -j -q /tmp/rclone.zip "*/rclone" -d /usr/local/bin \
+    && chmod 755 /usr/local/bin/rclone \
+    && rm /tmp/rclone.zip \
+    && apt-get purge -y curl unzip && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 COPY scripts/backup.sh /usr/local/bin/ejaz-backup
 ENV APP_ROOT=/app

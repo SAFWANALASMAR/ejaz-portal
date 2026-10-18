@@ -31,6 +31,7 @@
 - `deploy/readiness.md` — كل ما يلزم الإطلاق وأين هو في المستودع.
 - `deploy/provider-checklist.md` — قائمة التحقق قبل اختيار المزوّد، والحد الأدنى للمواصفات.
 - `deploy/staging-plan.md` — خطة الخادم التجريبي (التكلفة تنتظر موافقة صفوان).
+- `deploy/handoff-server.md` — دليل التسليم لمن يجهّز الخادم: المتطلبات، والخطوات بالترتيب، وما لا يفعله، وما يسلّمه.
 - `launch-checklist.md`، و`launch-plan.md`، و`cutover.md` — يوم الإطلاق، ونقل النطاق، والتراجع.
 - `monitoring.md` — ما يُراقب ومتى يُنبَّه.
 - الملفات نفسها: `../deploy/` (compose الإنتاج، وnginx، وPHP، وRedis، والتخزين)، و`../scripts/` (النشر والنسخ الاحتياطي).
@@ -101,7 +102,7 @@
   - الشيفرة: `app/Actions/Registers/`، و`routes/registers.php`. الخطة: `plans/registers.md`. الاختبارات: `tests/Feature/Registers/`. الحالة: مدموج.
 - **لوحة إحصائيات الإدارة والمجلس:** أرقام الوحدات من البيانات الفعلية، وعدّاد الزيارات البسيط، ورسم آخر 30 يوماً.
   - الشيفرة: `app/Support/PortalStats.php`، و`app/Support/Visits.php`، و`app/Http/Middleware/CountVisit.php`، و`app/Filament/Widgets/`. الخطة: `plans/admin-stats.md`. الاختبارات: `tests/Feature/Stats/`.
-  - الحالة: منجزة في `feature/admin-stats-complete`، بانتظار مراجعة المشرف. وكانت «مدموج» هنا خطأً حتى 18 أكتوبر.
+  - الحالة: مدموجة في `main` بطلب #45. وكانت «مدموج» هنا خطأً قبل بنائها، حتى 18 أكتوبر.
 
 ### المتجر والخدمات المكملة
 

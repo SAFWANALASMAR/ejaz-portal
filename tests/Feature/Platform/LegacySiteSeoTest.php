@@ -26,14 +26,17 @@ it('describes every page by default with the old site description, with a canoni
     expect(__('site.description'))->toBe('رعاية الإعجاز العلمي في القرآن الكريم والسنة النبوية برؤية علمية ومنهجية رائدة');
 });
 
-it('takes the title and description of a page from its own data', function () {
-    Page::factory()->create(['slug' => 'privacy', 'title' => 'سياسة الخصوصية', 'summary' => 'ملخص الصفحة', 'is_published' => true]);
+it('takes the title and description of a page from its own data', function (string $slug, string $path) {
+    Page::factory()->create(['slug' => $slug, 'title' => 'عنوان الصفحة', 'summary' => 'ملخص الصفحة', 'is_published' => true]);
 
-    $this->get('/pages/privacy')->assertOk()
-        ->assertSee('<title>سياسة الخصوصية | '.__('site.short_name').'</title>', false)
+    $this->get($path)->assertOk()
+        ->assertSee('<title>عنوان الصفحة | '.__('site.short_name').'</title>', false)
         ->assertSee('<meta name="description" content="ملخص الصفحة">', false)
-        ->assertSee('<link rel="canonical" href="'.url('/pages/privacy').'">', false);
-});
+        ->assertSee('<link rel="canonical" href="'.url($path).'">', false);
+})->with([
+    'a page by its slug' => ['vision', '/pages/vision'],
+    'the privacy policy' => ['privacy', '/privacy'],
+]);
 
 it('shows the Arabic 404 page with the association identity and no indexing', function () {
     $this->get('/no-such-page')->assertNotFound()
@@ -95,7 +98,7 @@ it('shows the image alt text of a block, and an empty one for a decorative image
         ['type' => 'cards', 'data' => ['heading' => null, 'items' => [['title' => 'هدف', 'picture' => 'pages/c.webp']]]],
     ]]);
 
-    $html = (string) $this->get('/pages/privacy')->assertOk()->getContent();
+    $html = (string) $this->get('/privacy')->assertOk()->getContent();
 
     expect($html)->toContain('pages/a.webp" alt="قاعة"')
         ->toContain('pages/b.webp" alt=""')

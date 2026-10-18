@@ -3,8 +3,8 @@
     فتنجح عمليات Fortify (التفعيل والتأكيد والإيقاف) دون طلب كلمة المرور مرة أخرى.
 --}}
 @php
+    // ورسالة كل حالة من رسائل الجلسة في القالب (components/flash)
     $status = session('status');
-    $statusMessage = is_string($status) ? __('account.security.status.'.$status) : null;
     $pending = $user->two_factor_secret && ! $user->two_factor_confirmed_at;
     $enabled = $user->hasEnabledTwoFactorAuthentication();
     $showCodes = in_array($status, ['two-factor-authentication-confirmed', 'recovery-codes-generated'], true) || request()->boolean('codes');
@@ -12,10 +12,6 @@
 
 <x-layouts.account :title="__('account.profile.title')">
     @include('account.partials.profile-tabs')
-
-    @if ($statusMessage && $statusMessage !== 'account.security.status.'.$status)
-        <x-alert type="success">{{ $statusMessage }}</x-alert>
-    @endif
 
     <x-card>
         <h2 class="text-lg font-semibold text-ink">{{ __('account.security.two_factor') }}</h2>

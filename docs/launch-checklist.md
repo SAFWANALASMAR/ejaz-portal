@@ -9,14 +9,15 @@
 ## أ. قبل اختيار المزود
 
 - ⏳ **التحقق قبل التعاقد** (المنطقة، والخادم، وتخزين S3 في المنطقة، والإرسال، واللقطات، والأسعار) — `deploy/provider-checklist.md`. ولا اعتماد على قاعدة أو ذاكرة مُدارة (`decisions.md`، 11 أكتوبر)، فلا يمنع غيابهما الإطلاق.
-- ⏳ اعتماد صفوان للمزود وتكلفة الخادم التجريبي — `deploy/staging-plan.md`.
+- ⏳ اعتماد صفوان للمزود (المرشح في قرار 18 أكتوبر) وتكلفة الخادم التجريبي — `deploy/staging-plan.md`.
+- ⏳ **شروط النقل خارج المملكة** قبل أي بيانات حقيقية: اعتماد الجمعية المكتوب، وتقويم المخاطر، واتفاقيتا المعالجة، وسياسة الخصوصية — `decisions.md` (18 أكتوبر)، و`open-questions.md`.
 - ⏳ معلومات من الجمعية: صلاحية DNS للنطاق، والوصول إلى الاستضافة الحالية ونسخة منها، ومزود الرسائل النصية، ومزود البريد، وأداة التنبيه، ومن يحفظ مفتاح النسخ الخاص — `open-questions.md`.
 
 ## ب. ما هو جاهز في المستودع
 
 ### البنية والنشر
 
-- ✅ **بيئة الإنتاج داخل المملكة** (بند `roadmap.md`): حزمة مستقلة عن المزود، بـ PostgreSQL وRedis على الخادم — `deploy/compose.production.yaml`، و`deploy/docker/`، و`.env.production.example`، و`docs/deploy.md` (أولاً وثانياً). والانتقال إلى خدمة مُدارة بالمتغيرات وحدها — `docs/deploy.md` «الانتقال إلى خدمة مُدارة».
+- ✅ **بيئة الإنتاج** (بند `roadmap.md`): حزمة مستقلة عن المزود، بـ PostgreSQL وRedis على الخادم — `deploy/compose.production.yaml`، و`deploy/docker/`، و`.env.production.example`، و`docs/deploy.md` (أولاً وثانياً). والانتقال إلى خدمة مُدارة بالمتغيرات وحدها — `docs/deploy.md` «الانتقال إلى خدمة مُدارة».
 - ✅ **حزمة النشر المستقلة عن المزود** و**التخزين بواجهة S3 القياسية** (بندا `roadmap.md`) — `config/filesystems.php` (`AWS_ENDPOINT` و`AWS_DEFAULT_REGION` و`AWS_USE_PATH_STYLE_ENDPOINT` ومجاميع التحقق من البيئة)، واختبار `tests/Feature/Platform/S3CompatibleStorageTest.php`، و`deploy/storage/`.
 - ✅ **دليل «قائمة التحقق قبل اختيار المزوّد»** — `docs/deploy/provider-checklist.md`.
 - ✅ **الخادم التجريبي** (الخطة؛ التكلفة ⏳ صفوان) — `docs/deploy/staging-plan.md`.
@@ -37,7 +38,7 @@
 
 ### النسخ والمراقبة
 
-- ✅ **النسخ الاحتياطي** اليومي المشفّر خارج الخادم، والاحتفاظ، والاستعادة وتجربتها (`security.md` «النسخ الاحتياطي») — `scripts/backup.sh`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `deploy/systemd/ejaz-backup.timer`، و`scripts/restore.md`، و`deploy/storage/lifecycle-backups.json`.
+- ⏳ **النسخ الاحتياطي** اليومي المشفّر خارج الخادم، والاحتفاظ، والاستعادة وتجربتها (`security.md` «النسخ الاحتياطي») — `scripts/backup.sh`، وخدمة `backup` في الحزمة، و`deploy/systemd/compose/ejaz-backup.service` مع `deploy/systemd/ejaz-backup.timer`، و`scripts/restore.md`، و`deploy/storage/lifecycle-backups.json`. ونسخ الملفات الخاصة على S3 (مقاطع المسابقات، ومرفقات المتقدمين، والنماذج المعبأة) عند المزود الثاني مبني، و`files/` كلها مشفّرة عند العميل بلا `--sse` (19 أكتوبر 2026 — `deploy/readiness.md` §١٤، ومُجرَّب على MinIO في `tests/backup/`). ويبقى تجريبه على الخادم، وكلمتا سر تشفير الملفات في مدير كلمات المرور مع مفتاح GPG الخاص.
 - ✅ **المراقبة** (`security.md` «تنبيهات فورية») — `/up`، و`php artisan ejaz:health` (`deploy/systemd/compose/ejaz-health.service` مع مؤقته)، وفحوص صحة الحاويات، و`docs/monitoring.md`. ⏳ أداة التنبيه نفسها.
 
 ### المحتوى والفهرسة

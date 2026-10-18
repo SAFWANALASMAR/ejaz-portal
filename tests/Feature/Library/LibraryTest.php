@@ -214,3 +214,15 @@ it('caches the section and refreshes it on change, but never caches a search', f
 
     $this->get('/library/books')->assertSee('العنوان الجديد');
 });
+
+// ملاحظات التجربة الشاملة (الخلل 8): حجم الملف على زر التنزيل بتباين 4.5:1 فأكثر، كالحوكمة
+it('shows the file size on the download button in full white', function () {
+    storedLibraryItem(['slug' => 'book']);
+
+    $html = (string) $this->get('/library/books/book')->assertOk()->getContent();
+    $button = (string) str($html)->after('href="'.route('library.download', ['books', 'book']).'"')->before('</a>');
+
+    // الحجم يرث الأبيض الكامل من الزر، بلا شفافية ولا لون أخف
+    expect($button)->toContain('bg-primary text-white')
+        ->toContain('<span class="font-normal">('.__('site.file.size_kb', ['size' => 1]).')</span>');
+});

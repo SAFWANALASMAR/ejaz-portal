@@ -156,21 +156,21 @@ it('rejects an image that cannot be read, under its own field', function () {
         ->and(Storage::disk('public')->allFiles('initiatives'))->toBe([]);
 });
 
-it('never deletes the about page nor changes its link, even for the super admin', function () {
-    $about = Page::factory()->create(['slug' => Page::ABOUT]);
+it('never deletes the about or privacy page nor changes its link, even for the super admin', function (string $slug) {
+    $about = Page::factory()->create(['slug' => $slug]);
     $admin = userWithRole(RoleName::SuperAdmin);
 
     expect($admin->can('delete', $about))->toBeFalse()
         ->and(fn () => app(DeleteContent::class)->handle($admin, $about))->toThrow(AuthorizationException::class)
-        ->and(fn () => app(SaveContent::class)->handle($admin, $about, ['slug' => 'about-us']))->toThrow(ValidationException::class);
+        ->and(fn () => app(SaveContent::class)->handle($admin, $about, ['slug' => $slug.'-us']))->toThrow(ValidationException::class);
 
     $this->actingAs($this->editor);
     Livewire::test(EditContentPage::class, ['record' => $about->getRouteKey()])
         ->assertFormFieldIsDisabled('slug')
         ->assertActionHidden('delete');
 
-    expect($about->fresh()->slug)->toBe(Page::ABOUT);
-});
+    expect($about->fresh()->slug)->toBe($slug);
+})->with([Page::ABOUT, Page::PRIVACY]);
 
 it('records the order of the initiatives and shows it on the site at once', function () {
     $first = Initiative::factory()->create(['name' => 'الأولى', 'sort' => 1]);

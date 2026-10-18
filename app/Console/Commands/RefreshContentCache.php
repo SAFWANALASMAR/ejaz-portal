@@ -2,12 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Page;
 use App\Support\ContentCache;
 use Illuminate\Console\Command;
 
 /**
  * يمسح ذاكرة المحتوى العام وحدها بعد كل نشر، لأن القوالب والمسارات الجديدة تغيّر ما يُعرض
  * (بطاقة قسم بُني للتو مثلاً). بديل cache:clear الذي يصفّر حدود الحماية.
+ *
+ * ومعها معرّفات الصفحات المنشورة (مفتاحها مستقل عن ذاكرة المحتوى: Page::publishedSlugs)، فتظهر استعادة
+ * القاعدة أو تعديلها المباشر في القائمة و/privacy فوراً، لا بعد ساعتها الاحتياطية.
  */
 class RefreshContentCache extends Command
 {
@@ -18,6 +22,7 @@ class RefreshContentCache extends Command
     public function handle(): int
     {
         ContentCache::flush();
+        Page::flushPublishedSlugs();
 
         $this->info('مُسحت ذاكرة المحتوى العام.');
 

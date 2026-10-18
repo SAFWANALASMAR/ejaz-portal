@@ -151,3 +151,15 @@ it('shows the file size in kilobytes below a megabyte, and in megabytes above', 
     $this->get('/governance/small')->assertSee(__('site.file.size_kb', ['size' => 300]));
     $this->get('/governance/large')->assertSee(__('site.file.size_mb', ['size' => '3.0']));
 });
+
+// ملاحظات التجربة الشاملة (الخلل 8): الأبيض بشفافية 80% على الأزرق 4.4:1 دون حد WCAG، وبلا شفافية 5.9:1
+it('shows the file size on the download button in full white, for a contrast of at least 4.5:1', function () {
+    storedDocument(['slug' => 'bylaws']);
+
+    $html = (string) $this->get('/governance/bylaws')->assertOk()->getContent();
+    $button = (string) str($html)->after('href="'.route('governance.download', 'bylaws').'"')->before('</a>');
+
+    // الحجم يرث الأبيض الكامل من الزر، بلا شفافية ولا لون أخف
+    expect($button)->toContain('bg-primary text-white')
+        ->toContain('<span class="font-normal">('.__('site.file.size_kb', ['size' => 1]).')</span>');
+});

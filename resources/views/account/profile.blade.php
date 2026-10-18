@@ -1,11 +1,7 @@
 <x-layouts.account :title="__('account.profile.title')">
     @include('account.partials.profile-tabs')
 
-    @if (session('status') === 'profile-information-updated')
-        <x-alert type="success">{{ __('account.profile.saved') }}</x-alert>
-    @elseif (session('status') === 'password-updated')
-        <x-alert type="success">{{ __('account.profile.password_saved') }}</x-alert>
-    @endif
+    {{-- رسالة الحفظ وتغيير كلمة المرور من رسائل الجلسة في القالب (components/flash) --}}
 
     <x-card>
         <h2 class="mb-5 text-lg font-semibold text-ink">{{ __('account.profile.info') }}</h2>

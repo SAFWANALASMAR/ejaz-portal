@@ -25,8 +25,9 @@
         <nav aria-label="{{ __('site.footer.quick_links') }}">
             <p class="mb-4 font-semibold text-accent-light">{{ __('site.footer.quick_links') }}</p>
             <ul class="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-                @foreach ($menu as $item)
-                    <li><a href="{{ $item->href() }}" @if ($item->navigates()) wire:navigate @endif class="text-white/80 hover:text-white">{{ $item->label }}</a></li>
+                {{-- العنصر الذي يشير إلى صفحة غير منشورة يبقى في الرأس لعناصره الفرعية، ولا رابط له هنا (SiteChromeComposer) --}}
+                @foreach ($menu->where('linkable', true) as $item)
+                    <li><a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif class="text-white/80 hover:text-white">{{ $item->label }}</a></li>
                 @endforeach
             </ul>
         </nav>
@@ -71,7 +72,7 @@
     <div class="relative border-t border-white/10">
         <div class="container-page flex flex-col gap-2 py-5 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
             <p>© {{ now()->year }} {{ __('site.name') }} — {{ __('site.footer.rights') }}</p>
-            @if (Route::has('privacy'))
+            @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
                 <a href="{{ route('privacy') }}" wire:navigate class="hover:text-white">{{ __('site.footer.privacy') }}</a>
             @endif
         </div>
