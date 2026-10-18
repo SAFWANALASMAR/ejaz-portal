@@ -77,7 +77,7 @@
   - منجز في `feature/assembly` (الخطة `plans/assembly.md`)، ومدموج في `preview/local`.
   - **يبقى للإنتاج:** تطبيق الجمعية في Azure بصلاحية `Calendars.ReadWrite`، وحساب المنظِّم، ومفاتيح `MS_GRAPH_*` (`security.md`).
 - ✅ (مدموج في `preview/local`) نظام الملفات والشواهد والنماذج الإلكترونية والأرشيف. (`requirements/05-documents-forms.md`) منجز في `feature/documents-forms` (الخطة `plans/documents-forms.md`).
-- 🟨 لوحة إحصائيات للإدارة والمجلس (الخطة `plans/admin-stats.md`): أرقام الوحدات من البيانات الموجودة، وعدّاد الزيارات البسيط، ورسم آخر 30 يوماً. — منجزة في `feature/admin-stats-complete`، بانتظار مراجعة المشرف (`decisions.md` — 18 أكتوبر).
+- 🟨 لوحة إحصائيات للإدارة والمجلس (الخطة `plans/admin-stats.md`): أرقام الوحدات من البيانات الموجودة، وعدّاد الزيارات البسيط، ورسم آخر 30 يوماً. — منجزة في `feature/admin-stats-complete` (طلب الدمج #45)، بانتظار مراجعة المشرف (`decisions.md` — 18 أكتوبر).
   - **تصحيح (18 أكتوبر 2026):** كان البند معلَّماً «✅ مدموج» خطأً. الفرع `feature/admin-stats` لم يحوِ إلا الخطة، وما كان في اللوحة عنصر «إحصائيات البوابة» بثمانية أرقام من قياس الرضا، بلا عدّاد زيارات ولا رسم ولا أرقام للطلبات والبرامج (تقرير التجربة الشاملة، الخلل 1).
   - عند النشر: `php artisan migrate` (جدول `daily_visits`)، ثم `php artisan ejaz:refresh-stats`.
 

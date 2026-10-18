@@ -956,6 +956,8 @@
 
 ## 2026-10-18 — إكمال لوحة إحصائيات الإدارة والمجلس (`feature/admin-stats-complete`)
 
+**الفرع وطلب الدمج:** `feature/admin-stats-complete`، طلب الدمج #45.
+
 **ما أُنجز**
 - **تصحيح:** بند لوحة الإحصائيات كان معلَّماً «✅ مدموج» في `roadmap.md` و`docs/README.md`، ومعلناً في `[0.9.0-preview]` من `CHANGELOG.md`، وما دُمج هو الخطة وحدها (تقرير التجربة الشاملة، الخلل 1). صُحّح البند فيهما وفي أدلة المجلس والمدير التنفيذي واللوحة، وسُجّل التصحيح في `CHANGELOG.md` تحت `[Unreleased]` وفي `decisions.md`.
 - نُفّذت `plans/admin-stats.md` كما هي، في شجرة عمل مستقلة `ejaz-wt-admin-stats` بمشروع compose `ejazstats` والمنفذ 8020:
