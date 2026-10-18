@@ -35,6 +35,7 @@ Route::get('/', HomeController::class)->name('home');
 
 // المحتوى المؤسسي
 Route::get('/about', [PageController::class, 'about'])->name('about');
+Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 Route::get('/pages/{slug}', [PageController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('pages.show');

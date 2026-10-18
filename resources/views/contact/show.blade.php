@@ -97,10 +97,10 @@
                     <x-field name="subject" :label="__('contact.form.subject')" required maxlength="200" />
                     <x-field name="message" type="textarea" :label="__('contact.form.message')" required maxlength="5000" rows="7" />
 
-                    {{-- غرض الجمع عند نقطة الجمع دائماً، والرابط متى وُجدت صفحة سياسة الخصوصية (كالتذييل) --}}
+                    {{-- غرض الجمع عند نقطة الجمع دائماً، والرابط متى نُشرت صفحة سياسة الخصوصية (كالتذييل) --}}
                     <p class="text-sm text-muted">
                         {{ __('contact.form.privacy') }}
-                        @if (Route::has('privacy'))
+                        @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
                             {{ __('contact.form.privacy_more') }}
                             <a href="{{ route('privacy') }}" wire:navigate class="text-primary underline decoration-accent underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
                         @endif

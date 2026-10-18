@@ -24,6 +24,8 @@ final class FormFieldsRepeater
 
         return Repeater::make('form_fields')
             ->hiddenLabel()
+            // وإلا أخذ الزر اسم الحقل الإنجليزي («إضافة إلى form fields»)
+            ->addActionLabel(__('services.openings.fields.add_field'))
             ->schema([
                 TextInput::make('label')->label(__('services.openings.fields.field_label'))->required()->maxLength(150),
                 TextInput::make('key')

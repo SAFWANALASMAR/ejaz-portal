@@ -10,9 +10,9 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Setting;
 use App\Support\ContentBlocks;
-use App\Support\ContentCache;
 use Database\Seeders\LegacyRedirectsSeeder;
 use Database\Seeders\MenuSeeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -70,7 +70,8 @@ function publishEverything(): void
         $model::query()->update(['is_published' => true]);
     }
 
-    ContentCache::flush();
+    // التحديث الجماعي بلا أحداث النموذج، فبعده أمر النشر كما بعد تعديل القاعدة مباشرة: ذاكرة المحتوى والصفحات المنشورة
+    Artisan::call('ejaz:refresh-content');
 }
 
 it('imports the whole archive as drafts with the counts of the archive', function () {

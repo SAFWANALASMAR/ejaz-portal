@@ -133,6 +133,7 @@ return [
             'field_type' => 'النوع',
             'field_required' => 'إلزامي',
             'field_options' => 'الخيارات',
+            'add_field' => 'إضافة حقل',
             'requests_count' => 'الطلبات',
         ],
         'invalid_fields' => 'راجع حقول النموذج: لكل حقل معرّف صالح لا يتكرر واسم ونوع، ولحقل الاختيار خيارات.',

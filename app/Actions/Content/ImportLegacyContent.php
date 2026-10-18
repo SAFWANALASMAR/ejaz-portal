@@ -519,6 +519,7 @@ class ImportLegacyContent
     {
         return match (true) {
             $record instanceof Page && $record->slug === Page::ABOUT => route('about', absolute: false),
+            $record instanceof Page && $record->slug === Page::PRIVACY => route('privacy', absolute: false),
             $record instanceof Page && isset(Page::INTROS[$record->slug]) => (string) Page::introUrl($record->slug, false),
             $record instanceof Page => route('pages.show', $record->slug, false),
             $record instanceof Initiative => route('initiatives.show', $record->slug, false),

@@ -14,11 +14,12 @@ class PagePolicy extends ModulePolicy
     }
 
     /**
-     * صفحة «عن الجمعية» لا تُحذف، لأن رابط القائمة مبني عليها. والمنع صريح فيسري على المشرف العام.
+     * صفحتا «عن الجمعية» و«سياسة الخصوصية» لا تُحذفان، لأن رابطيهما مبنيان على معرّفيهما (Page::LOCKED_SLUGS).
+     * والمنع صريح فيسري على المشرف العام.
      */
     public function delete(User $user, Model $record): bool
     {
-        if ($record instanceof Page && $record->slug === Page::ABOUT) {
+        if ($record instanceof Page && in_array($record->slug, Page::LOCKED_SLUGS, true)) {
             return false;
         }
 

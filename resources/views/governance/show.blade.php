@@ -36,8 +36,9 @@
             <div class="flex flex-wrap gap-3">
                 <x-button :href="route('governance.download', $document->slug)">
                     {{ __('governance.document.download') }}
+                    {{-- بلا شفافية: الأبيض على الأزرق 5.9:1، وبشفافية 80% كان 4.4:1 دون حد WCAG --}}
                     @if ($size)
-                        <span class="font-normal opacity-80">({{ $size }})</span>
+                        <span class="font-normal">({{ $size }})</span>
                     @endif
                 </x-button>
                 <x-button variant="outline" :href="route('governance.file', $document->slug)" target="_blank" rel="noopener">

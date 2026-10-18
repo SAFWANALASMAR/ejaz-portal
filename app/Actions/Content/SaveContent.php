@@ -37,9 +37,9 @@ class SaveContent
             throw new AuthorizationException;
         }
 
-        // معرّف «عن الجمعية» ثابت، لأن رابطها مبني عليه
-        if ($record instanceof Page && $record->exists && $record->slug === Page::ABOUT && ($data['slug'] ?? Page::ABOUT) !== Page::ABOUT) {
-            throw ValidationException::withMessages(['slug' => __('content.about_slug_locked')]);
+        // معرّفا «عن الجمعية» و«سياسة الخصوصية» ثابتان، لأن رابطيهما مبنيان عليهما
+        if ($record instanceof Page && $record->exists && in_array($record->slug, Page::LOCKED_SLUGS, true) && ($data['slug'] ?? $record->slug) !== $record->slug) {
+            throw ValidationException::withMessages(['slug' => __('content.page_slug_locked')]);
         }
 
         $before = $record->publicImages();
