@@ -22,7 +22,7 @@
                         </a>
                     </div>
                     <h3 class="p-4 font-bold text-ink">
-                        <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" class="hover:text-primary hover:underline">{{ $item->title }}</a>
+                        <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate class="hover:text-primary hover:underline">{{ $item->title }}</a>
                     </h3>
                 </li>
             @endforeach

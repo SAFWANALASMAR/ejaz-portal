@@ -1,5 +1,12 @@
 // تفاعل الواجهة العامة بلا مكتبات: قائمة الجوال، والقوائم المنسدلة، وإظهار كلمة المرور.
 // كل زر قائمة له data-toggle وaria-controls يشير إلى العنصر الذي يفتحه.
+// والمستمعات المفوّضة على document مرة واحدة، وما يمسح عناصر الصفحة في onPage (page.js) يُعاد بعد كل تنقّل سريع.
+
+import { onLeave, onPage, start } from './page';
+import './competition-entry';
+import './live-countdown';
+import './gallery';
+import './competition-exam';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));
@@ -32,9 +39,15 @@ function playVideo(link) {
     frame.allowFullscreen = true;
     frame.referrerPolicy = 'strict-origin-when-cross-origin';
     frame.className = 'block aspect-video w-full';
+    frame.videoLink = link;
     link.replaceWith(frame);
     frame.focus();
 }
+
+// والرابط يعود مكان المشغّل قبل مغادرة الصفحة، فلا يحفظه Livewire في نسخة الرجوع فيعمل المقطع وحده (autoplay) عند الرجوع
+onLeave(() => {
+    document.querySelectorAll('iframe').forEach((frame) => frame.videoLink && frame.replaceWith(frame.videoLink));
+});
 
 // نسخ رابط الخبر، ويُعلَن النسخ على الزر نفسه (aria-live). والزر مخفي حتى يتاح النسخ في المتصفح
 function copyLink(button) {
@@ -50,11 +63,13 @@ function copyLink(button) {
     });
 }
 
-if (navigator.clipboard) {
-    document.querySelectorAll('[data-copy-link]').forEach((button) => {
-        button.hidden = false;
-    });
-}
+onPage(() => {
+    if (navigator.clipboard) {
+        document.querySelectorAll('[data-copy-link]').forEach((button) => {
+            button.hidden = false;
+        });
+    }
+});
 
 function togglePassword(button) {
     const input = document.getElementById(button.dataset.passwordToggle);
@@ -130,29 +145,43 @@ document.addEventListener('keydown', (event) => {
 // القائمة المنسدلة تُغلق متى خرج منها التركيز بلوحة المفاتيح، فلا تبقى مفتوحة تغطي ما بعدها
 document.addEventListener('focusin', (event) => closeAll(event.target));
 
-// ظل الرأس عند التمرير
-const header = document.querySelector('[data-site-header]');
+// القائمة المفتوحة تُغلق قبل مغادرة الصفحة، فلا تعود مفتوحة بزر الرجوع
+onLeave(() => {
+    document.querySelectorAll('[data-toggle][aria-expanded="true"]').forEach((toggle) => setOpen(toggle, false));
+});
 
-if (header) {
+onPage((signal) => {
+    // ظل الرأس عند التمرير
+    const header = document.querySelector('[data-site-header]');
+
+    if (!header) {
+        return;
+    }
+
     const onScroll = () => header.toggleAttribute('data-scrolled', window.scrollY > 4);
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-}
+    window.addEventListener('scroll', onScroll, { passive: true, signal });
 
-// قائمة الرأس صف واحد أو زر القائمة: إن لم تتسع عناصرها بهامش مريح (قائمة أطول من القياس، أو شارة البث)
-// ظهر زر القائمة بدلها، فلا تنكسر عبارة ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة
-const mainNav = header?.querySelector('[data-main-nav]');
+    // قائمة الرأس صف واحد أو زر القائمة: إن لم تتسع عناصرها بهامش مريح (قائمة أطول من القياس، أو شارة البث)
+    // ظهر زر القائمة بدلها، فلا تنكسر عبارة ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة.
+    // والرأس عنصر جديد في كل صفحة، والعنصر النشط فيه (aria-current) من الخادم
+    const mainNav = header.querySelector('[data-main-nav]');
 
-if (mainNav) {
+    if (!mainNav) {
+        return;
+    }
+
     const list = mainNav.querySelector('ul');
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
         header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && list.offsetWidth + 24 > mainNav.clientWidth);
     };
 
-    new ResizeObserver(fit).observe(header);
-    document.fonts?.ready.then(fit);
-}
+    const observer = new ResizeObserver(fit);
+    observer.observe(header);
+    signal.addEventListener('abort', () => observer.disconnect());
+    document.fonts?.ready.then(() => signal.aborted || fit());
+});
 
 // نموذج بـ data-confirm يُسأل المستخدم قبل إرساله (إلغاء تسجيل مثلاً). بلا سكربت مضمّن، فتسمح
 // به سياسة أمان المحتوى
@@ -164,7 +193,4 @@ document.addEventListener('submit', (event) => {
     }
 });
 
-import './competition-entry';
-import './live-countdown';
-import './gallery';
-import './competition-exam';
+start();

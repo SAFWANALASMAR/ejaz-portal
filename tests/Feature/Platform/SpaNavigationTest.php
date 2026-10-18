@@ -1,0 +1,264 @@
+<?php
+
+use App\Enums\RoleName;
+use App\Models\Document;
+use App\Models\MenuItem;
+use App\Models\Setting;
+use App\Models\User;
+use App\Support\SpaLink;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
+
+// التنقّل السريع في الواجهة العامة (wire:navigate — docs/decisions.md)
+
+/**
+ * روابط الصفحة: الرابط وهل يحمل wire:navigate.
+ *
+ * @return list<array{href: string, navigate: bool, html: string}>
+ */
+function pageLinks(string $html): array
+{
+    preg_match_all('/<a\s[^>]*>/', $html, $matches);
+
+    return array_map(fn (string $tag): array => [
+        'href' => preg_match('/href="([^"]*)"/', $tag, $href) === 1 ? html_entity_decode($href[1]) : '',
+        'navigate' => preg_match('/\swire:navigate[\s>]/', $tag) === 1,
+        'html' => $tag,
+    ], $matches[0]);
+}
+
+/**
+ * @param  list<array{href: string, navigate: bool, html: string}>  $links
+ */
+function linkTo(array $links, string $href): array
+{
+    $found = array_values(array_filter($links, fn (array $link): bool => $link['href'] === $href));
+
+    expect($found)->not->toBeEmpty("لا رابط إلى {$href}");
+
+    return $found;
+}
+
+/**
+ * سطر script-src من سياسة أمان المحتوى.
+ */
+function scriptSources(string $csp): string
+{
+    return collect(explode(';', $csp))->map(fn (string $directive): string => trim($directive))
+        ->first(fn (string $directive): bool => str_starts_with($directive, 'script-src '), '');
+}
+
+/**
+ * طلب تنقّل كما يرسله Livewire عند النقر على رابط wire:navigate.
+ */
+function navigateRequest(): array
+{
+    return ['X-Livewire-Navigate' => '1'];
+}
+
+beforeEach(function () {
+    Storage::fake('local');
+
+    MenuItem::factory()->create(['label' => 'الحوكمة', 'url' => '/governance', 'sort' => 1]);
+    $media = MenuItem::factory()->create(['label' => 'المركز الإعلامي', 'url' => '/media', 'sort' => 2]);
+    MenuItem::factory()->create(['parent_id' => $media->id, 'label' => 'الأخبار', 'url' => '/media/news']);
+    MenuItem::factory()->create(['label' => 'المتجر', 'url' => '/store', 'opens_in_new_tab' => true, 'sort' => 3]);
+    MenuItem::factory()->create(['label' => 'تواصل معنا', 'url' => '/contact', 'sort' => 4]);
+});
+
+it('marks the internal links in the header, mobile menu, footer and home cards for quick navigation', function () {
+    $links = pageLinks($this->get('/')->assertOk()->getContent());
+
+    // الشعار في الرأس والتذييل، وعناصر القائمة في الرأس وقائمة الجوال والتذييل، والعنصر الفرعي
+    foreach ([url('/'), url('/governance'), url('/media'), url('/media/news'), url('/contact')] as $href) {
+        foreach (linkTo($links, $href) as $link) {
+            expect($link['navigate'])->toBeTrue($link['html']);
+        }
+    }
+
+    // نسختا الرابط الفرعي على الأقل: القائمة المنسدلة وقائمة الجوال
+    expect(count(linkTo($links, url('/media/news'))))->toBeGreaterThanOrEqual(2);
+});
+
+it('leaves login, new-tab, outside and download links to a full page load', function () {
+    Setting::put('contact', ['social' => ['x' => 'https://x.com/example']]);
+
+    $links = pageLinks($this->get('/')->assertOk()->getContent());
+
+    foreach ([route('login'), url('/store'), 'https://x.com/example', '#main'] as $href) {
+        foreach (linkTo($links, $href) as $link) {
+            expect($link['navigate'])->toBeFalse($link['html']);
+        }
+    }
+});
+
+it('opens a governance document page quickly, and downloads and views its file with a full load', function () {
+    $document = Document::factory()->create(['slug' => 'charter', 'title' => 'اللائحة الأساسية']);
+    Storage::disk('local')->put($document->file, pdfContents());
+
+    $index = pageLinks($this->get('/governance')->assertOk()->getContent());
+    expect(linkTo($index, route('governance.show', 'charter'))[0]['navigate'])->toBeTrue();
+
+    $show = pageLinks($this->get(route('governance.show', 'charter'))->assertOk()->getContent());
+    expect(linkTo($show, route('governance.download', 'charter'))[0]['navigate'])->toBeFalse()
+        ->and(linkTo($show, route('governance.file', 'charter'))[0]['navigate'])->toBeFalse();
+});
+
+it('decides which addresses are pages for quick navigation', function (string $url, bool $navigates) {
+    expect(SpaLink::allows($url))->toBe($navigates);
+})->with([
+    'home' => [fn (): string => url('/'), true],
+    'relative path' => ['/governance', true],
+    'with a query' => [fn (): string => url('/governance?category=policies'), true],
+    'account page' => [fn (): string => url('/account/requests'), true],
+    'login' => [fn (): string => url('/login'), false],
+    'register' => [fn (): string => url('/register'), false],
+    'forgot password' => [fn (): string => url('/forgot-password'), false],
+    'two-factor challenge' => [fn (): string => url('/two-factor-challenge'), false],
+    'email verification' => [fn (): string => url('/email/verify'), false],
+    'governance download' => [fn (): string => url('/governance/charter/download'), false],
+    'governance file' => [fn (): string => url('/governance/charter/file'), false],
+    'library file' => [fn (): string => url('/library/books/guide/file'), false],
+    'signed link' => [fn (): string => url('/account/programs?expires=1&signature=abc'), false],
+    'admin panel' => [fn (): string => url('/admin'), false],
+    'store redirect' => [fn (): string => url('/store'), false],
+    'donation' => [fn (): string => url('/donate'), false],
+    'survey with its own policy' => [fn (): string => url('/surveys/abc'), false],
+    'filled form, a standalone print document' => [fn (): string => url('/account/forms/0f4c2a9e-0000-4000-8000-000000000000'), false],
+    'health check' => [fn (): string => url('/up'), false],
+    'sitemap' => [fn (): string => url('/sitemap.xml'), false],
+    'robots' => [fn (): string => url('/robots.txt'), false],
+    'old site address' => [fn (): string => url('/2019/05/some-old-post'), false],
+    'outside host' => ['https://example.com/governance', false],
+    'protocol-relative' => ['//example.com/governance', false],
+    'backslash host' => ['/\\example.com/governance', false],
+    'mail' => ['mailto:info@ejaz.sa', false],
+    'fragment' => ['#main', false],
+    'empty' => ['', false],
+]);
+
+it('loads Livewire once in the head with the request nonce, and allows no eval or inline scripts on public pages', function () {
+    $response = $this->get('/')->assertOk();
+    $html = $response->getContent();
+    $csp = (string) $response->headers->get('Content-Security-Policy');
+
+    preg_match("/'nonce-([^']+)'/", $csp, $nonce);
+    $head = strstr($html, '</head>', true);
+
+    // سكربت Livewire ونمطه في الرأس برمز الطلب، والنمط هو ما يقرأ منه Livewire الرمز للصفحات التالية
+    expect($head)->toMatch('#<script src="[^"]*/livewire\.js\?id=[^"]*" nonce="'.$nonce[1].'"#')
+        ->toContain('<style nonce="'.$nonce[1].'" data-livewire-style')
+        // مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره يعيد التحميل
+        ->toMatch('#<script src="[^"]*/livewire\.js[^>]* defer="true" data-navigate-track="reload">#')
+        ->and(substr_count($html, '/livewire.js?id='))->toBe(1)
+        // شريط تقدّم Livewire معطّل (دوره في ARIA غير صالح)، وشريط الموقع بدله (page.js)
+        ->and($html)->toContain('<body class="flex min-h-screen flex-col" data-no-progress-bar>');
+
+    expect(scriptSources($csp))->toBe("script-src 'self' 'nonce-{$nonce[1]}'")
+        ->not->toContain('unsafe-inline')
+        ->not->toContain('unsafe-eval');
+});
+
+it('keeps eval for the Alpine expressions in the admin panel alone', function () {
+    $csp = (string) $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk()
+        ->headers->get('Content-Security-Policy');
+
+    expect(scriptSources($csp))->toContain("'unsafe-eval'")
+        ->not->toContain('unsafe-inline');
+});
+
+it('serves a page to a quick navigation as it is', function () {
+    $this->get('/governance', navigateRequest())
+        ->assertOk()
+        ->assertSee('<h1', false)
+        ->assertDontSee('http-equiv="refresh"', false);
+});
+
+it('turns a quick navigation that ends at the login page into a full page load', function () {
+    $this->get('/account/requests', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.route('login').'">', false)
+        ->assertHeader('Cache-Control', 'no-store, private');
+
+    // والطلب العادي تحويل كما كان
+    $this->get('/account/requests')->assertRedirect(route('login'));
+});
+
+it('turns a quick navigation to a file into a full page load of the same address, without running its controller', function () {
+    $document = Document::factory()->create(['slug' => 'charter']);
+
+    // الملف ليس على القرص بعد: لو شُغّل المتحكم لردّ 404، فالرد صفحة التحميل الكامل دونه
+    $this->get(route('governance.download', 'charter'), navigateRequest())
+        ->assertOk()
+        ->assertHeader('Content-Type', 'text/html; charset=utf-8')
+        ->assertHeader('Content-Security-Policy')
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.route('governance.download', 'charter').'">', false);
+
+    Storage::disk('local')->put($document->file, pdfContents());
+    $this->get(route('governance.download', 'charter'))->assertDownload();
+});
+
+it('loads the store and the outside store behind it fully', function () {
+    $this->get('/store', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/store').'">', false);
+
+    $this->get('/store')->assertRedirect();
+});
+
+it('turns a quick navigation answered by something other than a page into a full page load', function () {
+    Route::middleware('web')->get('/spa-test-json', fn () => response()->json(['ok' => true]))->name('spa-test.json');
+
+    $this->get('/spa-test-json', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/spa-test-json').'">', false);
+});
+
+it('leaves Livewire out of the pages that load fully, so their links and policy end with them', function () {
+    // مكوّن عرضه اختبار سابق في العملية نفسها (لوحة الإدارة) يُبقي حقن Livewire الآلي مفعّلاً، وكل طلب في
+    // الإنتاج يبدأ بلا حالة
+    Livewire::flushState();
+
+    expect($this->get('/login')->assertOk()->getContent())->not->toContain('/livewire.js?id=')
+        ->and($this->get('/')->getContent())->toContain('/livewire.js?id=');
+});
+
+it('marks the pages of a signed-in member, so the browser back cache asks the server again', function () {
+    expect($this->get('/')->getContent())->not->toContain('<meta name="signed-in"')
+        ->and($this->actingAs(User::factory()->create())->get('/account')->getContent())->toContain('<meta name="signed-in" content="1">');
+});
+
+it('keeps the account area quick for a signed-in member, with its own pages marked', function () {
+    $links = pageLinks($this->actingAs(User::factory()->create())->get('/account')->assertOk()->getContent());
+
+    foreach (linkTo($links, route('account.requests.index')) as $link) {
+        expect($link['navigate'])->toBeTrue($link['html']);
+    }
+});
+
+it('checks a link against the routes without changing the parameters of the current route', function () {
+    $route = Route::getRoutes()->match(Request::create(url('/governance/charter')));
+
+    expect(SpaLink::allows(url('/governance/other-document')))->toBeTrue()
+        ->and($route->parameter('slug'))->toBe('charter');
+});
+
+it('keeps the same decisions with the route cache, where unnamed routes get generated names', function () {
+    $router = app('router');
+    $router->setCompiledRoutes($router->getRoutes()->compile());
+
+    expect(SpaLink::allows(url('/up')))->toBeFalse()
+        ->and(SpaLink::allows(url('/governance')))->toBeTrue()
+        ->and(SpaLink::allows(url('/governance/charter/download')))->toBeFalse()
+        ->and(SpaLink::allows(url('/2019/05/some-old-post')))->toBeFalse();
+});
+
+it('loads an error page fully when a navigation reaches one', function () {
+    $this->get('/media/news/no-such-article', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/media/news/no-such-article').'">', false);
+
+    $this->get('/media/news/no-such-article')->assertNotFound();
+});

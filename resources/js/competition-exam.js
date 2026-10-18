@@ -1,5 +1,8 @@
 // رحلة الاختبار الإلكتروني: تفعيل زر المتابعة حين تكتمل الحقول، والفيديو التعريفي (لا تقديم إلى الأمام،
 // والزر بعد انتهائه)، ومنع تكرار الإرسال. وكل فحص هنا للراحة فقط، فالخادم يعيده كله (ExamLock).
+// ويُهيّأ مع كل صفحة (page.js)، ومستمعاته على عناصرها فتزول معها.
+
+import { onPage } from './page';
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -91,6 +94,8 @@ function once(form) {
     });
 }
 
-document.querySelectorAll('form[data-exam-gate]').forEach(gate);
-document.querySelectorAll('video[data-exam-intro]').forEach(intro);
-document.querySelectorAll('form[data-once]').forEach(once);
+onPage(() => {
+    document.querySelectorAll('form[data-exam-gate]').forEach(gate);
+    document.querySelectorAll('video[data-exam-intro]').forEach(intro);
+    document.querySelectorAll('form[data-once]').forEach(once);
+});

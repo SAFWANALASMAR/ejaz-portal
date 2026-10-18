@@ -46,6 +46,14 @@ final readonly class MenuLink
         return str_starts_with($this->url, '/') ? url($this->url) : $this->url;
     }
 
+    /**
+     * يتنقّل إليه الزائر بلا إعادة تحميل (wire:navigate): صفحة داخلية لا تُفتح في تبويب جديد (SpaLink).
+     */
+    public function navigates(): bool
+    {
+        return ! $this->opensInNewTab && SpaLink::allows($this->href());
+    }
+
     public function isCurrent(): bool
     {
         if (! str_starts_with($this->url, '/')) {

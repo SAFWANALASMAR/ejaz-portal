@@ -102,7 +102,7 @@
                         {{ __('contact.form.privacy') }}
                         @if (Route::has('privacy'))
                             {{ __('contact.form.privacy_more') }}
-                            <a href="{{ route('privacy') }}" class="text-primary underline decoration-accent underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
+                            <a href="{{ route('privacy') }}" wire:navigate class="text-primary underline decoration-accent underline-offset-4">{{ __('contact.form.privacy_link') }}</a>.
                         @endif
                     </p>
 

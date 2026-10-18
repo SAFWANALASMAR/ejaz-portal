@@ -15,7 +15,7 @@
     <div class="container-page flex flex-wrap items-center justify-between gap-4 border-b border-line/70 pb-6">
         <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             @if (filled($article->category))
-                <a href="{{ route('media.news.index', ['category' => $article->category]) }}" class="font-semibold text-accent-dark hover:underline">{{ $article->category }}</a>
+                <a href="{{ route('media.news.index', ['category' => $article->category]) }}" wire:navigate class="font-semibold text-accent-dark hover:underline">{{ $article->category }}</a>
             @endif
             <time datetime="{{ $article->published_on->toDateString() }}" class="text-muted">{{ Dates::display($article->published_on) }}</time>
         </p>

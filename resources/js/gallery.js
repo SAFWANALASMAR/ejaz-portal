@@ -1,6 +1,8 @@
 // معرض الصور: كل [data-gallery] شبكة صور وعارض <dialog>. يفتح العارض على الصورة المضغوطة، وينتقل
 // بالزرين وبالأسهم، وEsc يغلقه (سلوك <dialog> نفسه). الموقع عربي من اليمين وحده، فالسهم الأيسر للتالية.
-// والصفحة خلفه لا تتمرر ما دام مفتوحاً.
+// والصفحة خلفه لا تتمرر ما دام مفتوحاً. ويُهيّأ مع كل صفحة (page.js)، ومستمعاته على عناصرها فتزول معها.
+
+import { onLeave, onPage } from './page';
 
 function setupGallery(root) {
     const dialog = root.querySelector('[data-gallery-dialog]');
@@ -52,4 +54,11 @@ function setupGallery(root) {
     });
 }
 
-document.querySelectorAll('[data-gallery]').forEach(setupGallery);
+onPage(() => document.querySelectorAll('[data-gallery]').forEach(setupGallery));
+
+// العارض المفتوح يُغلق قبل مغادرة الصفحة (زر الرجوع في المتصفح مثلاً)، فلا يبقى منع التمرير على الصفحة التالية
+// ولا يعود العارض مفتوحاً في نسخة الصفحة المحفوظة للرجوع
+onLeave(() => {
+    document.querySelectorAll('[data-gallery-dialog][open]').forEach((dialog) => dialog.close());
+    document.documentElement.classList.remove('overflow-hidden');
+});

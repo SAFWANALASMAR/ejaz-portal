@@ -152,3 +152,36 @@
 [data-site-header][data-nav-overflow] #mobile-menu:not([hidden]) {
     display: block;
 }
+
+/* شريط التقدّم أثناء التنقّل السريع (resources/js/page.js): زخرفة على html لا عنصر يقرؤه قارئ الشاشة، والصفحة
+   نفسها تُستبدل تحته */
+html[data-navigating]::before {
+    content: '';
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    z-index: 60;
+    height: 3px;
+    background: var(--color-primary);
+    /* يبدأ من جهة البداية؛ ولا قيمة منطقية لـ transform-origin، والموقع من اليمين وحده */
+    transform-origin: right;
+    animation: navigating 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes navigating {
+    from {
+        transform: scaleX(0.1);
+    }
+
+    to {
+        transform: scaleX(0.95);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-navigating]::before {
+        animation: none;
+        transform: scaleX(0.6);
+    }
+}

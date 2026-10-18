@@ -12,7 +12,7 @@
         @foreach ($tabs as $tab)
             @php($active = request()->routeIs($tab['route']))
             <li class="shrink-0">
-                <a href="{{ route($tab['route']) }}" @if ($active) aria-current="page" @endif
+                <a href="{{ route($tab['route']) }}" @navigate(route($tab['route'])) @if ($active) aria-current="page" @endif
                     @class([
                         'block rounded-full px-5 py-2 text-sm font-semibold transition',
                         'bg-primary text-white' => $active,

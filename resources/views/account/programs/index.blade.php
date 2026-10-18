@@ -15,7 +15,7 @@
                 <li class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs">
                     <div class="min-w-0">
                         @if ($registration->program->is_published && ! $registration->program->trashed())
-                            <a href="{{ route('programs.show', $registration->program->slug) }}" class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
+                            <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
                         @else
                             <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
                         @endif

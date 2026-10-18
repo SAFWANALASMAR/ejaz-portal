@@ -21,7 +21,7 @@
                                 {{ svg('heroicon-o-document-text', 'size-6') }}
                             </span>
                             <span class="min-w-0 flex-1">
-                                <a href="{{ route('assembly.meetings.show', $meeting) }}" class="block font-semibold text-ink hover:text-primary">{{ $meeting->title }}</a>
+                                <a href="{{ route('assembly.meetings.show', $meeting) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $meeting->title }}</a>
                                 <span class="mt-1 block text-sm text-muted">
                                     {{ Dates::display($meeting->starts_at) }} — {{ __('assembly.minutes.approved_on', ['date' => Dates::display($meeting->minutes_approved_at)]) }}
                                 </span>

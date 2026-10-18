@@ -36,6 +36,7 @@ use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -196,6 +197,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+
+        // @navigate($url): wire:navigate على رابط صفحة داخلية، ولا شيء لما يُحمَّل تحميلاً كاملاً (SpaLink)
+        Blade::directive('navigate', fn (string $url): string => "<?php if (\\App\\Support\\SpaLink::allows({$url})) echo 'wire:navigate'; ?>");
     }
 
     /**

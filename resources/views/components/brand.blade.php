@@ -4,7 +4,7 @@
 --}}
 @props(['light' => false])
 
-<a href="{{ route('home') }}" class="flex shrink-0 items-center">
+<a href="{{ route('home') }}" wire:navigate class="flex shrink-0 items-center">
     <img
         src="{{ asset($light ? 'images/brand/logo-horizontal-white.svg' : 'images/brand/logo-horizontal.svg') }}"
         alt="{{ __('site.name') }}"

@@ -10,7 +10,7 @@
     <x-card>
         <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.upcoming') }}</h2>
-            <a href="{{ route('account.programs.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
+            <a href="{{ route('account.programs.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
         </div>
 
         @if ($summary['upcoming']->isEmpty())
@@ -21,7 +21,7 @@
                     <li class="flex flex-wrap items-center justify-between gap-3 py-3">
                         <span class="min-w-0">
                             @if ($registration->program->is_published)
-                                <a href="{{ route('programs.show', $registration->program->slug) }}" class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
+                                <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
                             @else
                                 <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
                             @endif
@@ -40,7 +40,7 @@
     <x-card>
         <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.latest_requests') }}</h2>
-            <a href="{{ route('account.requests.index') }}" class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
+            <a href="{{ route('account.requests.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
         </div>
 
         @if ($summary['latest_requests']->isEmpty())
@@ -50,7 +50,7 @@
                 @foreach ($summary['latest_requests'] as $request)
                     <li class="flex flex-wrap items-center justify-between gap-3 py-3">
                         <span class="min-w-0">
-                            <a href="{{ route('account.requests.show', $request) }}" class="block font-semibold text-ink hover:text-primary">{{ $request->opening->title }}</a>
+                            <a href="{{ route('account.requests.show', $request) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $request->opening->title }}</a>
                             <span class="mt-1 block text-sm text-muted"><span dir="ltr">{{ $request->reference }}</span></span>
                         </span>
                         @include('account.requests.status', ['status' => $request->status])
