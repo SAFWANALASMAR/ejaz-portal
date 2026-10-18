@@ -15,7 +15,7 @@ use Throwable;
  * (wire:navigate)، إذا ردّ عليها الخادم بنجاح بصفحة HTML.
  *
  * ولا يعدّ: لوحة الإدارة، وطلبات Livewire وHorizon، والجلب المسبق، والملفات والتنزيلات، والتحويلات والأخطاء،
- * ولا ما ليس متصفحاً، ولا الزواحف الظاهرة باسمها (bot وcrawl وspider في وكيل المتصفح). والصفحة التي يعرضها
+ * ولا ما ليس متصفحاً، ولا الزواحف التي تعلن اسمها في وكيل المتصفح (bot وcrawl وspider ونحوها). والصفحة التي يعرضها
  * المتصفح من جلبه المسبق لا تُعدّ، لأنه لا يطلبها ثانية: نقص مقبول في عدّاد تقريبي.
  *
  * وهو في مجموعة web بعد FullPageLoadOnNavigate، فطلب التنقّل الذي يصير تحميلاً كاملاً لا يُعدّ إلا بتحميله.
@@ -75,6 +75,6 @@ class CountVisit
 
         $agent = (string) $request->userAgent();
 
-        return str_contains($agent, 'Mozilla/') && preg_match('/bot|crawl|spider/i', $agent) !== 1;
+        return str_contains($agent, 'Mozilla/') && preg_match('/bot|crawl|spider|slurp|headless|lighthouse|inspectiontool|externalagent|fetcher|monitor|preview/i', $agent) !== 1;
     }
 }

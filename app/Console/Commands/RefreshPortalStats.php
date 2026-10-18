@@ -7,6 +7,7 @@ use App\Support\ContentCache;
 use App\Support\PortalStats;
 use App\Support\Visits;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * ينقل عدّاد الزيارات إلى القاعدة، ثم يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي تستعمله
@@ -21,8 +22,12 @@ class RefreshPortalStats extends Command
 
     public function handle(): int
     {
-        // قبل الحساب، فأرقام زيارات اليوم في الإحصائيات هي المنقولة في هذا التشغيل
-        Visits::persist();
+        // قبل الحساب، فأرقام زيارات اليوم في الإحصائيات هي المنقولة في هذا التشغيل. وتعذّر النقل لا يوقف الحساب
+        try {
+            Visits::persist();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         ['previous' => $previous, 'current' => $current] = PortalStats::refresh();
 

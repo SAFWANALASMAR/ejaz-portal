@@ -3,6 +3,7 @@
 use App\Enums\RoleName;
 use App\Models\DailyVisit;
 use App\Models\FormEntry;
+use App\Models\ServiceRequest;
 use App\Support\PortalStats;
 use App\Support\Visits;
 use Illuminate\Cache\ArrayStore;
@@ -108,6 +109,21 @@ it('counts only successful pages that a browser asks for', function () {
 
     expect(visitsOf())->toBe(['views' => 1, 'visitors' => 1]);
 });
+
+it('does not count crawlers, monitors and previewers that name themselves', function (string $agent) {
+    $this->get('/', asBrowser(agent: $agent))->assertOk();
+
+    expect(visitsOf())->toBe(['views' => 0, 'visitors' => 0]);
+})->with([
+    'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/130.0 Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36 Chrome-Lighthouse',
+    'Mozilla/5.0 (compatible; Google-InspectionTool/1.0)',
+    'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GoogleOther; +https://developers.google.com/search/docs) Google-CloudVertexBot GoogleAgent-ExternalAgent',
+    'Mozilla/5.0 (compatible; Feedfetcher-Google; +http://www.google.com/feedfetcher.html)',
+    'Mozilla/5.0 (compatible; UptimeMonitor/1.0)',
+    'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 LinkPreview/1.0',
+]);
 
 it('does not count the admin panel, its print view of a filled form, or Horizon', function () {
     $this->actingAs(userWithRole(RoleName::SuperAdmin));
@@ -216,6 +232,31 @@ it('moves the counters to the database by the command, updating a day and never 
     }
     expect(visitsOf())->toBe(['views' => 4, 'visitors' => 4])
         ->and(DailyVisit::query()->count())->toBe(1);
+});
+
+it('still computes the numbers when moving the visits fails', function () {
+    Exceptions::fake();
+    ServiceRequest::factory()->count(2)->create();
+    $this->get('/', asBrowser())->assertOk();
+
+    // ذاكرة تعمل للحساب، ويتعذر فيها قراءة عدّاد الزيارات وحده
+    Cache::extend('failing-persist', fn (): Repository => Cache::repository(new class extends ArrayStore
+    {
+        public function get($key)
+        {
+            throw_if(str_starts_with($key, 'visits:'), new RuntimeException('visits unavailable'));
+
+            return parent::get($key);
+        }
+    }));
+    config(['cache.stores.failing-persist' => ['driver' => 'failing-persist']]);
+    Cache::setDefaultDriver('failing-persist');
+
+    $this->artisan('ejaz:refresh-stats')->assertSuccessful();
+
+    Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'visits unavailable');
+    expect(PortalStats::cached())->toMatchArray(['requests' => 2, 'views_today' => 0])
+        ->and(DailyVisit::query()->count())->toBe(0);
 });
 
 it('keeps the page when the counter fails', function () {
