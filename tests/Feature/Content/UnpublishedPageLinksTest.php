@@ -53,6 +53,9 @@ it('hides every menu and footer link to an unpublished page, whatever its slug',
     // رابط كامل على مضيف البوابة نفسه داخلي كذلك
     'full link to the about page' => [fn () => url('/about'), 'about'],
     'full link to a page' => [fn () => url('/pages/vision'), 'vision'],
+    'full link with www' => [fn () => preg_replace('#://#', '://www.', url('/about'), 1), 'about'],
+    'path in capitals' => ['/About', 'about'],
+    'host and slug in capitals' => [fn () => str_replace('://', '://WWW.', url('/pages/Vision')), 'vision'],
 ]);
 
 it('reads a full link on another host as an outside link, whatever its path', function () {

@@ -80,6 +80,23 @@ it('seeds the privacy page once as a draft that only marks the missing text, and
     $this->get('/privacy')->assertOk();
 });
 
+// ملاحظة المشرف على #44: معرّفات الصفحات المنشورة بمفتاح مستقل عن ذاكرة المحتوى، فيمسحه أمر ما بعد النشر والاستعادة أيضاً
+it('shows a page published directly in the database, as after a restore, once the content is refreshed', function () {
+    $page = privacyPage(published: false);
+    $link = 'href="'.route('privacy').'"';
+
+    $this->get('/privacy')->assertNotFound();
+    $this->get('/register')->assertDontSee($link, false);
+
+    // بلا أحداث النموذج، كاستعادة القاعدة أو تعديلها المباشر
+    Page::query()->whereKey($page->id)->update(['is_published' => true]);
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+
+    $this->get('/privacy')->assertOk()->assertSee('نص السياسة للاختبار');
+    $this->get('/register')->assertSee($link, false);
+});
+
 it('lists the published privacy page in the sitemap at its own address', function () {
     privacyPage();
 

@@ -87,7 +87,7 @@ pg_restore --no-owner --no-privileges --exit-on-error --dbname=ejaz_restore_test
    2. `php artisan ejaz:prune-orphan-private-files --days=0`. وإن توقف لأن الحذف بدا جماعياً (أكثر من نصف الملفات)، فراجع القاعدة المستعادة أولاً، ثم أعده بـ `--force` إن كان مقصوداً.
    - ويعمل الأمر أسبوعياً في المجدول بعمر يوم (`PRIVATE_ORPHAN_DAYS`).
 8. تشغيل العمال والمجدول، ثم `php artisan up`، ثم `php artisan ejaz:health`.
-9. **لا `cache:clear`.** وإن لزم مسح ذاكرة المحتوى: `php artisan ejaz:refresh-content`.
+9. **لا `cache:clear`.** بل `php artisan ejaz:refresh-content` دائماً بعد الاستعادة: يمسح ذاكرة المحتوى ومعرّفات الصفحات المنشورة، فلا تبقى القائمة و`/privacy` على حال ما قبل الاستعادة حتى ساعة.
 10. توثيق الحادث: ما فُقد بين آخر نسخة والحادث، وإبلاغ من يلزم وفق نظام حماية البيانات الشخصية إن مس الحادث بيانات شخصية.
 
 ## ٣. بحزمة الحاويات (`deploy/compose.production.yaml`)

@@ -82,22 +82,28 @@ class Page extends Model implements HasPublicImages
 
     protected static function booted(): void
     {
-        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القائمة القديمة وخزّنها (كالقائمة في MenuItem)
-        $flush = fn () => DB::afterCommit(fn () => Cache::forget(self::PUBLISHED_CACHE_KEY));
-
-        static::saved($flush);
-        static::deleted($flush);
+        static::saved(fn () => self::flushPublishedSlugs());
+        static::deleted(fn () => self::flushPublishedSlugs());
     }
 
     /**
      * معرّفات الصفحات المنشورة. تقرؤها القائمة والتذييل في كل صفحة، فمفتاحها مستقل عن ذاكرة المحتوى:
-     * لا يُعاد استعلامها مع كل تعديل في محتوى آخر، ويمسحها حفظ صفحة أو حذفها، وساعة احتياطية.
+     * لا يُعاد استعلامها مع كل تعديل في محتوى آخر. ويمسحها حفظ صفحة أو حذفها، وأمر ejaz:refresh-content
+     * بعد النشر والاستعادة والتعديل المباشر في القاعدة، وساعة احتياطية.
      *
      * @return list<string>
      */
     public static function publishedSlugs(): array
     {
         return Cache::remember(self::PUBLISHED_CACHE_KEY, now()->addHour(), fn (): array => self::query()->published()->pluck('slug')->all());
+    }
+
+    /**
+     * بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القائمة القديمة وخزّنها (كالقائمة في MenuItem).
+     */
+    public static function flushPublishedSlugs(): void
+    {
+        DB::afterCommit(fn () => Cache::forget(self::PUBLISHED_CACHE_KEY));
     }
 
     public static function isPublishedSlug(string $slug): bool
@@ -107,7 +113,8 @@ class Page extends Model implements HasPublicImages
 
     /**
      * معرّف الصفحة التي يعرضها رابط داخلي (/about و/privacy و/pages/{slug})، أو null لغيرها. والرابط الكامل
-     * على مضيف البوابة نفسه داخلي أيضاً (كـ SpaLink). وصفحات المقدمة null، لأن رابطها يحوّل إلى قالبها منشورةً أو لا.
+     * على مضيف البوابة نفسه داخلي أيضاً (كـ SpaLink)، بـ www أو بدونها. والمقارنة بلا حالة الأحرف، فلا يفلت /About.
+     * وصفحات المقدمة null، لأن رابطها يحوّل إلى قالبها منشورةً أو لا.
      */
     public static function slugForUrl(string $url): ?string
     {
@@ -117,15 +124,17 @@ class Page extends Model implements HasPublicImages
             return null;
         }
 
+        $host = fn (string $host): string => (string) preg_replace('/^www\./', '', strtolower($host));
+
         if (isset($parts['host'])) {
-            if (strcasecmp($parts['host'], (string) parse_url((string) config('app.url'), PHP_URL_HOST)) !== 0) {
+            if ($host($parts['host']) !== $host((string) parse_url((string) config('app.url'), PHP_URL_HOST))) {
                 return null;
             }
         } elseif (! str_starts_with($url, '/')) {
             return null;
         }
 
-        $path = trim($parts['path'] ?? '', '/');
+        $path = strtolower(trim($parts['path'] ?? '', '/'));
 
         $slug = match (true) {
             $path === self::ABOUT, $path === self::PRIVACY => $path,
