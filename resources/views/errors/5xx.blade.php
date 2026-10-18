@@ -20,6 +20,9 @@
     @vite(['resources/css/app.css'])
 </head>
 <body class="flex min-h-screen flex-col">
+    {{-- صفحة الصيانة (503) يضعها Livewire مكان الصفحة إن وصلها التنقّل السريع، فيُعلَن عنوانها (resources/js/page.js) --}}
+    <p class="sr-only" aria-live="polite" data-page-announcer></p>
+
     <header class="border-b border-line/70 bg-white">
         <div class="container-page flex h-20 items-center">
             <x-brand />

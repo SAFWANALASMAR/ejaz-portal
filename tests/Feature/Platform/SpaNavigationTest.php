@@ -6,9 +6,17 @@ use App\Models\MenuItem;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\SpaLink;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Route as RoutingRoute;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View as ViewFactory;
+use Illuminate\Support\Str;
+use Illuminate\View\View as RenderedView;
 use Livewire\Livewire;
 
 // التنقّل السريع في الواجهة العامة (wire:navigate — docs/decisions.md)
@@ -148,11 +156,12 @@ it('loads Livewire once in the head with the request nonce, and allows no eval o
     $head = strstr($html, '</head>', true);
 
     // سكربت Livewire ونمطه في الرأس برمز الطلب، والنمط هو ما يقرأ منه Livewire الرمز للصفحات التالية
-    expect($head)->toMatch('#<script src="[^"]*/livewire\.js\?id=[^"]*" nonce="'.$nonce[1].'"#')
+    // والملف livewire.js في التطوير، وlivewire.min.js حين يُطفأ APP_DEBUG
+    expect($head)->toMatch('#<script src="[^"]*/livewire(\.min)?\.js\?id=[^"]*" nonce="'.$nonce[1].'"#')
         ->toContain('<style nonce="'.$nonce[1].'" data-livewire-style')
         // مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره يعيد التحميل
-        ->toMatch('#<script src="[^"]*/livewire\.js[^>]* defer="true" data-navigate-track="reload">#')
-        ->and(substr_count($html, '/livewire.js?id='))->toBe(1)
+        ->toMatch('#<script src="[^"]*/livewire(\.min)?\.js[^>]* defer="true" data-navigate-track="reload">#')
+        ->and(preg_match_all('#/livewire(\.min)?\.js\?id=#', $html))->toBe(1)
         // شريط تقدّم Livewire معطّل (دوره في ARIA غير صالح)، وشريط الموقع بدله (page.js)
         ->and($html)->toContain('<body class="flex min-h-screen flex-col" data-no-progress-bar>');
 
@@ -221,8 +230,8 @@ it('leaves Livewire out of the pages that load fully, so their links and policy 
     // الإنتاج يبدأ بلا حالة
     Livewire::flushState();
 
-    expect($this->get('/login')->assertOk()->getContent())->not->toContain('/livewire.js?id=')
-        ->and($this->get('/')->getContent())->toContain('/livewire.js?id=');
+    expect($this->get('/login')->assertOk()->getContent())->not->toMatch('#/livewire(\.min)?\.js\?id=#')
+        ->and($this->get('/')->getContent())->toMatch('#/livewire(\.min)?\.js\?id=#');
 });
 
 it('marks the pages of a signed-in member, so the browser back cache asks the server again', function () {
@@ -255,10 +264,158 @@ it('keeps the same decisions with the route cache, where unnamed routes get gene
         ->and(SpaLink::allows(url('/2019/05/some-old-post')))->toBeFalse();
 });
 
-it('loads an error page fully when a navigation reaches one', function () {
+it('gives an error page to a navigation as a page, so the browser does not ask for it again', function () {
+    // Livewire يضعها مكان الصفحة برمز 200، فلا يحفظ رمز خطأ يحوّل الرجوع بعدها إلى تحميل كامل
+    $this->get('/media/news/no-such-article', navigateRequest())
+        ->assertOk()
+        ->assertHeader('Cache-Control', 'no-store, private')
+        ->assertSee(__('errors.404.title'))
+        ->assertDontSee('http-equiv="refresh"', false);
+
+    $this->get('/media/news/no-such-article')->assertNotFound();
+});
+
+it('runs the controller of an error page once, and counts it once against its rate limit', function () {
+    $runs = 0;
+    Route::middleware(['web', 'throttle:5,1,spa-test'])->get('/spa-test-forbidden', function () use (&$runs) {
+        $runs++;
+        abort(403);
+    })->name('spa-test.forbidden');
+
+    // صفحة الخطأ هي الرد، لا صفحة تطلب الرابط نفسه مرة ثانية
+    $this->get('/spa-test-forbidden', navigateRequest())
+        ->assertOk()
+        ->assertHeader('X-RateLimit-Remaining', '4')
+        ->assertSee(__('errors.403.title'))
+        ->assertDontSee('http-equiv="refresh"', false);
+
+    expect($runs)->toBe(1);
+});
+
+it('loads the other host fully when a page answers a navigation by redirecting there', function () {
+    Route::middleware('web')->get('/spa-test-away', fn () => redirect()->away('https://example.com/elsewhere?a=1&b=2'))->name('spa-test.away');
+
+    expect(SpaLink::allows(url('/spa-test-away')))->toBeTrue();
+
+    // Livewire كان سيتبع التحويل بطلب تمنعه سياسة connect-src فلا يحدث شيء
+    $this->get('/spa-test-away', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url=https://example.com/elsewhere?a=1&amp;b=2">', false);
+
+    $this->get('/spa-test-away')->assertRedirect('https://example.com/elsewhere?a=1&b=2');
+});
+
+it('loads a full-load route fully when a page answers a navigation by redirecting to it', function () {
+    Document::factory()->create(['slug' => 'charter']);
+    Route::middleware('web')->get('/spa-test-to-file', fn () => redirect()->route('governance.download', 'charter'))->name('spa-test.to-file');
+
+    expect(SpaLink::allows(url('/spa-test-to-file')))->toBeTrue();
+
+    $this->get('/spa-test-to-file', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.route('governance.download', 'charter').'">', false);
+});
+
+it('defers and tracks the Livewire script on public pages alone, so the admin panel served next does not inherit it', function () {
+    expect($this->get('/')->getContent())->toMatch('#<script src="[^"]*/livewire(\.min)?\.js[^>]* defer="true" data-navigate-track="reload">#');
+
+    // طلب تالٍ في العامل نفسه (Octane، والاختبارات): Livewire يمسح حالته بين الطلبات، وسماته تبقى
+    Livewire::flushState();
+    $admin = $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk()->getContent();
+
+    expect(preg_match('#<script src="[^"]*/livewire(\.min)?\.js[^>]*>#', $admin, $script))->toBe(1)
+        ->and($script[0])->not->toContain('defer')
+        ->not->toContain('data-navigate-track');
+});
+
+it('lets quick navigation reach page controllers only, so no file controller runs twice', function () {
+    // متحكم مسار يتنقّل إليه Livewire يرد بصفحة أو تحويل. والملف أو البيانات في مسار من FULL_PAGE_ROUTES، فلا
+    // يصل إليه طلب التنقّل؛ وإلا شغّله ثم أعاد المتصفح طلبه تحميلاً كاملاً (FullPageLoadOnNavigate)
+    $pages = [View::class, RenderedView::class, RedirectResponse::class];
+    // و`Response` يحمل أي محتوى (PDF في طباعة النماذج، وXML في خريطة الموقع)، فمساراته المتنقّل إليها مراجَعة
+    // بأسمائها: صفحة بترويسات (response()->view)
+    $reviewedResponses = ['account.dashboard', 'assembly.index', 'competitions.show', 'programs.show', 'services.openings.show'];
+
+    $files = collect(Route::getRoutes()->get('GET'))
+        ->reject(fn (RoutingRoute $route): bool => $route->isFallback || Str::is(SpaLink::FULL_PAGE_ROUTES, (string) $route->getName()))
+        ->map(function (RoutingRoute $route) use ($pages, $reviewedResponses): ?string {
+            $uses = $route->getAction('uses');
+            $action = match (true) {
+                $uses instanceof Closure => new ReflectionFunction($uses),
+                Str::contains($uses, '@') => new ReflectionMethod(...explode('@', $uses)),
+                default => new ReflectionMethod($uses, '__invoke'),
+            };
+
+            // مسار بلا اسم لا يتنقّل إليه Livewire (SpaLink)، فيُحمَّل كاملاً. ومسارات الحزم بلا اسم (أصول Livewire،
+            // وفحص /up) مقبولة، أما مسار التطبيق فيُسمّى، فيمر بهذا الفحص ولا يُنسى تحميلاً كاملاً بلا قصد
+            if ($route->getName() === null || str_starts_with($route->getName(), 'generated::')) {
+                return str_starts_with((string) $action->getFileName(), base_path('vendor')) ? null : 'بلا اسم: '.$route->uri();
+            }
+
+            $types = explode('|', ltrim((string) $action->getReturnType(), '?'));
+            $allowed = in_array($route->getName(), $reviewedResponses, true) ? [...$pages, Response::class] : $pages;
+
+            return array_diff($types, $allowed) === [] ? null : $route->getName().': '.(implode('|', array_filter($types)) ?: '—');
+        })
+        ->filter()
+        ->values();
+
+    expect($files)->toBeEmpty();
+});
+
+it('loads a server error page fully, so its real status reaches the server log', function () {
+    Route::middleware('web')->get('/spa-test-broken', fn () => throw new RuntimeException('broken'))->name('spa-test.broken');
+
+    // سجل nginx يرى 500 في طلب التحميل الكامل (docs/monitoring.md)
+    $this->get('/spa-test-broken', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/spa-test-broken').'">', false);
+
+    $this->get('/spa-test-broken')->assertInternalServerError();
+});
+
+it('loads a page over its rate limit fully, without counting the extra requests', function () {
+    Route::middleware(['web', 'throttle:1,1,spa-test-limit'])->get('/spa-test-limited', fn () => 'ok')->name('spa-test.limited');
+
+    $this->get('/spa-test-limited', navigateRequest())->assertOk();
+
+    // الحد يرفض قبل أن يعد، فطلبا التنقّل والتحميل الكامل بعده لا يزيدان العدد، ولا تبقى صفحته في نسخة الرجوع
+    $this->get('/spa-test-limited', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/spa-test-limited').'">', false);
+    $this->get('/spa-test-limited')->assertTooManyRequests();
+
+    expect(RateLimiter::attempts('spa-test-limit'.sha1('|127.0.0.1')))->toBe(1);
+});
+
+it('loads an error raised before the security headers fully, since it carries no request nonce', function () {
+    // الربط الضمني للنموذج يسبق SecurityHeaders: صفحته بلا رمز الطلب، فلو وُضعت في الصفحة لأضاف Livewire نمطها إلى الرأس.
+    // يعتمد على ترتيب الوسائط اليوم (SecurityHeaders بعد SubstituteBindings)، فإن تقدّمت عليه صارت الصفحة برمز الطلب
+    // وأُعطيت كما هي، ويُعدَّل هذا الاختبار معه
+    $url = url('/account/requests/0f4c2a9e-0000-4000-8000-000000000000');
+
+    $this->actingAs(User::factory()->create())
+        ->get($url, navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.$url.'">', false);
+});
+
+it('loads an error page fully when its own template fails, since the fallback page carries no request nonce', function () {
+    // قالب صفحة الخطأ يتعطل (القاعدة مثلاً): يرد لارافيل بصفحة Symfony الاحتياطية بأنماط مضمّنة، فلو وُضعت في الصفحة
+    // لبقيت أنماطها في الرأس للصفحات التالية
+    config(['app.debug' => false]);
+    ViewFactory::composer('partials.header', fn () => throw new RuntimeException('header failed'));
+
     $this->get('/media/news/no-such-article', navigateRequest())
         ->assertOk()
         ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/media/news/no-such-article').'">', false);
+});
 
-    $this->get('/media/news/no-such-article')->assertNotFound();
+it('loads an address without a page fully when the admin panel navigates to it, without running the fallback', function () {
+    // رابط في اللوحة لصفحة حُذفت يصل إلى المسار الاحتياطي: لا تُوضع صفحة الموقع العامة داخل اللوحة
+    $this->get('/admin/no-such-page', navigateRequest())
+        ->assertOk()
+        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/admin/no-such-page').'">', false);
+
+    $this->get('/admin/no-such-page')->assertNotFound();
 });

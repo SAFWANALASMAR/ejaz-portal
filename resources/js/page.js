@@ -1,7 +1,7 @@
 // التنقّل السريع (wire:navigate — docs/decisions.md): Livewire يضع الصفحة التالية مكان الحالية بلا إعادة تحميل،
 // فلا تُعاد السكربتات. فما يمسح عناصر الصفحة يُسجَّل هنا بـ onPage: يعمل عند أول تحميل، وبعد كل تنقّل تغيّرت
-// فيه الصفحة، ويأخذ إشارة (AbortSignal) تُلغى عند مغادرتها: تزيل المستمعات المسجلة بها، ويوقف عندها ما
-// يربطه بها من مؤقتات ومراقبات وطلبات. والمستمعات المفوّضة على document تُسجَّل مرة واحدة خارجها.
+// فيه الصفحة، ويأخذ إشارة (AbortSignal) تُلغى حين تحل التالية مكانها: تزيل المستمعات المسجلة بها، ويوقف عندها
+// ما يربطه بها من مؤقتات ومراقبات وطلبات. والمستمعات المفوّضة على document تُسجَّل مرة واحدة خارجها.
 
 const setups = [];
 const leaving = [];
@@ -29,6 +29,9 @@ function run() {
 }
 
 const signedIn = () => document.querySelector('meta[name="signed-in"]') !== null;
+
+// المنطقة الحية التي يُعلَن فيها عنوان الصفحة بعد التنقّل (في القالب العام)
+const announcer = () => document.querySelector('[data-page-announcer]');
 
 // شريط التقدّم (html[data-navigating] في app.css) متى طال التنقّل أكثر من 150 ملّي ثانية، كشريط Livewire المعطّل
 // في القالب لأن دوره في ARIA غير صالح. وLivewire يستبدل سمات html من الصفحة الجديدة فيزول معها أيضاً. وطلب
@@ -63,6 +66,11 @@ export function start() {
     });
 
     document.addEventListener('livewire:navigate', (event) => {
+        // منعه حارس قبله (رفع مقطع جارٍ في المسابقة): لا تنقّل
+        if (event.defaultPrevented) {
+            return;
+        }
+
         const { url, history, cached } = event.detail ?? {};
 
         // وكذلك نسخ Livewire المحفوظة لزري الرجوع والتقدّم: للمسجّل تُطلب الصفحة من الخادم كاملة، فبياناته
@@ -81,8 +89,9 @@ export function start() {
     });
 
     document.addEventListener('livewire:navigating', () => {
+        // الإعلان السابق يُمسح قبل أن يحفظ Livewire نسخة الصفحة، فيُعلَن عنوانها من جديد عند الرجوع إليها
+        announcer()?.replaceChildren();
         leaving.forEach((callback) => callback());
-        controller.abort();
     });
 
     // يُطلق أيضاً عند أول تحميل، وعند رابط داخل الصفحة نفسها، وعند الرجوع إليها دون تغيّرها: لا تهيئة مكررة
@@ -93,13 +102,32 @@ export function start() {
             return;
         }
 
+        // إشارة الصفحة السابقة تُلغى بعد أن حلّت الجديدة مكانها لا في navigating: فإن أُطلق ذلك ولم تتبدّل
+        // الصفحة بقيت وظائفها (الحفظ التلقائي، والعدّاد) تعمل
+        controller.abort();
         controller = new AbortController();
         run();
 
-        // التركيز إلى المحتوى الرئيسي، فيبدأ قارئ الشاشة ولوحة المفاتيح من الصفحة الجديدة لا من آخر الصفحة
-        // السابقة. وعنوان التبويب يحدّثه Livewire من الصفحة الجديدة. وعنصر autofocus يبقى له التركيز
+        // التركيز إلى عنوان الصفحة الجديدة (h1)، وإلا المحتوى الرئيسي بتسميته، فيقرؤها قارئ الشاشة وتبدأ منها
+        // لوحة المفاتيح لا من آخر الصفحة السابقة. وعنصر autofocus يبقى له التركيز
         if (!document.activeElement || document.activeElement === document.body) {
-            document.getElementById('main')?.focus({ preventScroll: true });
+            const heading = document.querySelector('#main h1');
+
+            if (heading && !heading.hasAttribute('tabindex')) {
+                heading.tabIndex = -1;
+            }
+
+            (heading ?? document.getElementById('main'))?.focus({ preventScroll: true });
+        }
+
+        // وعنوان التبويب (يحدّثه Livewire من الصفحة الجديدة) يُعلَن في المنطقة الحية المهذبة، بعد لحظة يسجّلها
+        // فيها قارئ الشاشة لأنها جديدة مع الصفحة
+        const region = announcer();
+
+        if (region) {
+            setTimeout(() => {
+                region.textContent = document.title;
+            }, 100);
         }
     });
 }

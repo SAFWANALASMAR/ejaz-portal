@@ -80,11 +80,12 @@ test.describe('public site quick navigation', () => {
             await viaMenu(page, path);
             expect(await marker(page)).toBe('kept');
 
-            // التركيز في المحتوى الرئيسي، وعنوان التبويب عنوان الصفحة الجديدة، والعنصر النشط في القائمة
-            expect(await page.evaluate(() => document.activeElement?.id)).toBe('main');
+            // التركيز على عنوان الصفحة الجديدة، وعنوان التبويب عنوانها ويُعلَن لقارئ الشاشة، والعنصر النشط في القائمة
+            expect(await page.evaluate(() => document.activeElement?.matches('#main h1'))).toBe(true);
             const heading = (await page.locator('main h1').first().innerText()).trim();
             headings[path] = heading;
             expect(await page.title()).toContain(heading);
+            await expect(page.locator('[data-page-announcer][aria-live="polite"]')).toHaveText(await page.title());
             const current = page.locator(`[data-site-header] a[aria-current="page"][href$="${path}"]`);
             expect(await current.count()).toBeGreaterThan(0);
         }
@@ -413,4 +414,354 @@ test('shows the site progress bar, not the Livewire one, while a navigation is s
     expect(await page.locator('#nprogress').count()).toBe(0);
     await page.waitForURL((url) => url.pathname === '/contact');
     await expect(page.locator('html')).not.toHaveAttribute('data-navigating', /.*/);
+});
+
+test('focuses the labelled main content after navigation to a page without an h1', async ({ page }) => {
+    // الصفحة نفسها بلا عنوان h1، كما يصلها المتصفح
+    await page.route('**/contact', async (route) => {
+        const response = await route.fetch();
+        const body = (await response.text()).replace(/<h1\b([^>]*)>([\s\S]*?)<\/h1>/g, '<p$1>$2</p>');
+        await route.fulfill({ response, body });
+    });
+    await page.goto('/');
+    await follow(page, page.locator('footer a[href$="/contact"]'), '/contact');
+
+    expect(await page.locator('main h1').count()).toBe(0);
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('main');
+    await expect(page.locator('#main')).toHaveAttribute('aria-label', /\S/);
+});
+
+// رأس الصفحة يدمجه Livewire مع رأس كل صفحة جديدة: ما تكرر منه لا يُضاف ثانية، فعدد عناصره ثابت، وLivewire واحد
+test('keeps the head the same size across navigations, with a single Livewire running', async ({ page }) => {
+    const warnings = [];
+    page.on('console', (message) => warnings.push(message.text()));
+
+    const head = () => page.evaluate(() => ({
+        links: document.head.querySelectorAll('link').length,
+        scripts: document.head.querySelectorAll('script').length,
+        styles: document.head.querySelectorAll('style').length,
+        livewire: document.querySelectorAll('script[src*="/livewire.js"], script[src*="/livewire.min.js"]').length,
+    }));
+
+    await page.goto('/');
+    await markPage(page);
+    const first = await head();
+    expect(first.livewire).toBe(1);
+
+    for (const path of ['/contact', '/governance', '/media', '/contact', '/']) {
+        await navigateTo(page, path);
+        expect(await head()).toEqual(first);
+    }
+
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === '/contact');
+    expect(await head()).toEqual(first);
+    expect(await marker(page)).toBe('kept');
+    expect(warnings.filter((text) => /multiple instances/i.test(text))).toEqual([]);
+});
+
+// ── وظائف الصفحة بعد التنقّل السريع: المعرض، والعدّاد، والحفظ التلقائي والرفع في المسابقة، والاختبار الإلكتروني.
+// تحتاج بيانات تجريبية تُنشأ قبل التشغيل وتُحذف بعده (tests/browser/README.md)، وبدونها يُتخطى الاختبار
+const FIXTURES = {
+    album: '/media/albums/demo-spa-album',
+    entry: '/competitions/demo-spa-entry',
+    exam: '/competitions/demo-spa-exam',
+};
+
+const fixture = async (page, path) => (await page.request.get(path)).ok();
+
+// تنقّل سريع بـ Livewire.navigate، لصفحة لا رابط ظاهراً إليها
+async function navigateTo(page, path) {
+    await page.evaluate(() => {
+        window.__navigated = false;
+        document.addEventListener('livewire:navigated', () => { window.__navigated = true; }, { once: true });
+    });
+    await page.evaluate((target) => window.Livewire.navigate(target), path);
+    await page.waitForURL((url) => url.pathname === path);
+    await page.waitForFunction(() => window.__navigated === true);
+}
+
+// تنقّل لا يبدّل الصفحة: الحدثان navigating ثم navigated على المحتوى نفسه، ثم رابط # داخل الصفحة بالتنقّل السريع
+// (يطلق Livewire له navigated وحده)
+async function navigationWithoutSwap(page) {
+    await page.evaluate(() => {
+        document.dispatchEvent(new CustomEvent('livewire:navigating', { detail: { onSwap: () => {} } }));
+        document.dispatchEvent(new CustomEvent('livewire:navigated'));
+    });
+    await page.evaluate(() => window.Livewire.navigate(`${window.location.pathname}#main`));
+    await page.waitForURL((url) => url.hash === '#main');
+}
+
+// ورابط إلى الصفحة نفسها بلا #: يجلبها Livewire من جديد ويبدّلها، فتُهيّأ وظائفها على عناصرها الجديدة
+const samePageNavigation = (page) => navigateTo(page, new URL(page.url()).pathname);
+
+async function expectTicking(page) {
+    const countdown = page.locator('[data-countdown]');
+    await expect(countdown).not.toBeEmpty();
+    const before = await countdown.innerText();
+    await expect(countdown).not.toHaveText(before, { timeout: 3000 });
+}
+
+test('opens the gallery viewer on an album reached by navigation, one photo per press', async ({ page }) => {
+    test.skip(!(await fixture(page, FIXTURES.album)), 'يحتاج الألبوم التجريبي (README)');
+
+    await page.goto('/media/albums');
+    await markPage(page);
+    await follow(page, page.locator(`main a[href$="${FIXTURES.album}"]`).first(), FIXTURES.album);
+
+    const dialog = page.locator('[data-gallery-dialog]');
+    const counter = dialog.locator('[data-gallery-counter]');
+    const browse = async () => {
+        await page.locator('[data-gallery-open]').first().click();
+        await expect(dialog).toBeVisible();
+        await expect(counter).toHaveText(/^1\D+3$/);
+        await dialog.locator('[data-gallery-next]').click();
+        await expect(counter).toHaveText(/^2\D+3$/);
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(page.locator('html')).not.toHaveClass(/overflow-hidden/);
+    };
+
+    await browse();
+
+    // وبعد مغادرته والرجوع إليه، وبعد تنقّل لا يبدّل الصفحة، وبعد رابط إليها: مستمع واحد لكل زر
+    await follow(page, page.locator('footer a[href$="/contact"]'), '/contact');
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === FIXTURES.album);
+    await browse();
+    await navigationWithoutSwap(page);
+    await browse();
+    await samePageNavigation(page);
+    await browse();
+    expect(await marker(page)).toBe('kept');
+});
+
+// صفحة الخطأ تُعطى لطلب التنقّل كما هي (FullPageLoadOnNavigate): بلا تحميل كامل، ولا يحفظ Livewire رمز خطأ يحوّل
+// الرجوع بعدها، فلا يذهب الرجوع والتقدّم إلى /undefined بعد رابط التخطي (مدخل في السجل بلا حالة)
+test('shows an error page reached by navigation in place, and Back and Forward still work after it', async ({ page }) => {
+    const visited = [];
+    page.on('framenavigated', (frame) => frame === page.mainFrame() && visited.push(frame.url()));
+
+    await page.goto('/governance');
+    await markPage(page);
+    const governance = (await page.locator('main h1').first().innerText()).trim();
+
+    await navigateTo(page, '/media/news/no-such-article');
+    await expect(page.locator('main h1').first()).not.toHaveText(governance);
+    expect(await marker(page)).toBe('kept');
+
+    await page.locator('a[href="#main"]').first().focus();
+    await page.keyboard.press('Enter');
+    await page.waitForURL((url) => url.hash === '#main');
+
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === '/media/news/no-such-article' && url.hash === '');
+    await page.goForward();
+    await page.waitForURL((url) => url.hash === '#main');
+    await page.goBack();
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === '/governance');
+    await expect(page.locator('main h1').first()).toHaveText(governance);
+    expect(await marker(page)).toBe('kept');
+    expect(visited.filter((url) => url.includes('undefined'))).toEqual([]);
+});
+
+test('keeps the live countdown running after navigation, and after a navigation that does not replace the page', async ({ page }) => {
+    test.skip(!(await fixture(page, '/live')), 'يحتاج بثاً تجريبياً قادماً (README)');
+
+    await page.goto('/governance');
+    await markPage(page);
+    await navigateTo(page, '/live');
+    await expectTicking(page);
+
+    await navigationWithoutSwap(page);
+    await expectTicking(page);
+    await samePageNavigation(page);
+    await expectTicking(page);
+
+    // والعودة إليه بعد مغادرته
+    await follow(page, page.locator('footer a[href$="/contact"]'), '/contact');
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === '/live');
+    await expectTicking(page);
+    expect(await marker(page)).toBe('kept');
+});
+
+test.describe('competition pages reached by navigation', () => {
+    test.skip(!existsSync(AUTH_STATE), 'يحتاج المستخدم التجريبي: DEMO_CREDENTIALS');
+    test.use({ storageState: AUTH_STATE });
+
+    // صفحة المسابقة ثم «أكمل مشاركتك» بالتنقّل السريع. والمسودة تُنشأ مرة بنموذجها (تحميل كامل)
+    async function openEntry(page, competition, path) {
+        test.skip(!(await fixture(page, competition)), 'يحتاج المسابقة التجريبية (README)');
+
+        await page.goto(competition);
+        const apply = page.locator('main form[action$="/entry/start"] button');
+
+        if (await apply.count()) {
+            await Promise.all([page.waitForURL((url) => url.pathname !== competition), apply.click()]);
+            await page.goto(competition);
+        }
+
+        await markPage(page);
+        await follow(page, page.locator(`main a[href$="${competition}/entry"]`).first(), path);
+    }
+
+    const autosaved = (page) => page.waitForResponse((response) => response.url().endsWith('/entry/autosave') && response.request().method() === 'POST');
+
+    test('saves the entry automatically, also after a navigation that does not replace the page', async ({ page }) => {
+        await openEntry(page, FIXTURES.entry, `${FIXTURES.entry}/entry`);
+        const status = page.locator('[data-autosave-status]');
+        const answer = page.locator('main textarea').first();
+
+        const [first] = await Promise.all([autosaved(page), answer.fill(`إجابة تجريبية ${Date.now()}`)]);
+        expect(first.ok()).toBe(true);
+        await expect(status).toHaveText(await status.getAttribute('data-saved'));
+
+        // تنقّل لا يبدّل الصفحة أثناء مهلة الحفظ (ثانيتان ونصف بعد آخر كتابة): يُحفظ ما كُتب
+        const [second] = await Promise.all([autosaved(page), (async () => {
+            await answer.fill(`إجابة تجريبية ثانية ${Date.now()}`);
+            await navigationWithoutSwap(page);
+        })()]);
+        expect(second.ok()).toBe(true);
+
+        // ورابط إلى الصفحة نفسها يبدّلها: الحفظ على النموذج الجديد
+        await samePageNavigation(page);
+        const [third] = await Promise.all([autosaved(page), page.locator('main textarea').first().fill(`إجابة تجريبية ثالثة ${Date.now()}`)]);
+        expect(third.ok()).toBe(true);
+        expect(await marker(page)).toBe('kept');
+    });
+
+    // الجزء معلّق حتى يُطلق، فيبقى الرفع جارياً
+    async function startHeldUpload(page) {
+        let release;
+        const held = new Promise((resolve) => { release = resolve; });
+        await page.route('**/competition-videos/*/chunks/*', async (route) => {
+            await held;
+            await route.continue().catch(() => null);
+        });
+
+        const box = page.locator('[data-video-upload]').first();
+        await Promise.all([
+            page.waitForRequest((request) => request.url().includes('/chunks/')),
+            box.locator('[data-video-input]').setInputFiles({ name: 'clip.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(64 * 1024) }),
+        ]);
+
+        return { release, leave: JSON.parse(await box.getAttribute('data-messages')).leave };
+    }
+
+    test('asks before leaving while a video uploads, and lets go once it ends', async ({ page }) => {
+        await openEntry(page, FIXTURES.entry, `${FIXTURES.entry}/entry`);
+        const { release, leave } = await startHeldUpload(page);
+        const entry = `${FIXTURES.entry}/entry`;
+        const dialogs = [];
+        page.on('dialog', async (dialog) => {
+            dialogs.push([dialog.type(), dialog.message()]);
+            await dialog.dismiss();
+        });
+
+        // تنقّل لا يبدّل الصفحة لا يقطع الرفع ولا يُسأل عنه، وكذلك الرجوع منه في الصفحة نفسها
+        await navigationWithoutSwap(page);
+        await page.goBack();
+        await page.waitForURL((url) => url.pathname === entry && url.hash === '');
+        expect(dialogs).toEqual([]);
+
+        // رابط بالتنقّل السريع: تأكيد بنصه من ملفات الترجمة، والبقاء يُبقي الصفحة والرفع
+        const contact = page.locator('footer a[href$="/contact"]');
+        await expect(contact).toHaveAttribute('wire:navigate', '');
+        await contact.click();
+        await expect.poll(() => dialogs.length).toBe(1);
+        expect(dialogs[0]).toEqual(['confirm', leave]);
+
+        // وزر الرجوع إلى صفحة المسابقة: العنوان يعود إلى الصفحة الباقية
+        await page.goBack();
+        await expect.poll(() => dialogs.length).toBe(2);
+        expect(dialogs[1]).toEqual(['confirm', leave]);
+        await page.waitForURL((url) => url.pathname === entry);
+
+        // والتحميل الكامل: يسأل المتصفح نفسه (beforeunload)
+        await page.evaluate(() => setTimeout(() => window.location.reload(), 0));
+        await expect.poll(() => dialogs.length).toBe(3);
+        expect(dialogs[2][0]).toBe('beforeunload');
+        await expect(page.locator('html[data-navigating]')).toHaveCount(0);
+        expect(await marker(page)).toBe('kept');
+
+        // اكتمال الرفع يزيل الحارس
+        await Promise.all([page.waitForResponse((response) => response.url().endsWith('/complete')), release()]);
+        await follow(page, contact, '/contact');
+        expect(dialogs).toHaveLength(3);
+        expect(await marker(page)).toBe('kept');
+
+        // والرجوع بعدها يمر بصفحة المشاركة ثم صفحة المسابقة، كلٌّ بمحتواها (لصاحب الحساب من الخادم)
+        await Promise.all([page.waitForEvent('load'), page.goBack()]);
+        await page.waitForURL((url) => url.pathname === entry);
+        await expect(page.locator('[data-video-upload]').first()).toBeVisible();
+        await page.goBack();
+        await page.waitForURL((url) => url.pathname === FIXTURES.entry);
+        await expect(page.locator(`main a[href$="${entry}"]`).first()).toBeVisible();
+        expect(dialogs).toHaveLength(3);
+    });
+
+    test('keeps the upload when Back stays on the same page, also after the page was reloaded', async ({ page }) => {
+        await openEntry(page, FIXTURES.entry, `${FIXTURES.entry}/entry`);
+
+        // بعد تحديث الصفحة تبقى حالة مدخلها من المستند السابق، فلولا الحارس لجلبها Livewire من جديد عند الرجوع إليه
+        await page.reload();
+        const { release } = await startHeldUpload(page);
+        const dialogs = [];
+        page.on('dialog', async (dialog) => {
+            dialogs.push(dialog.type());
+            await dialog.dismiss();
+        });
+
+        // رابط التخطي مدخل في السجل للصفحة نفسها، والرجوع منه لا يغادرها
+        await page.locator('a[href="#main"]').first().focus();
+        await page.keyboard.press('Enter');
+        await page.waitForURL((url) => url.hash === '#main');
+        await page.goBack();
+        await page.waitForURL((url) => url.hash === '');
+
+        expect(dialogs).toEqual([]);
+        await expect(page.locator('[data-video-progress]').first()).toBeVisible();
+        await Promise.all([page.waitForResponse((response) => response.url().endsWith('/complete')), release()]);
+    });
+
+    test('stops the upload when leaving is confirmed, without asking twice', async ({ page }) => {
+        await openEntry(page, FIXTURES.entry, `${FIXTURES.entry}/entry`);
+        const { release } = await startHeldUpload(page);
+        const dialogs = [];
+        const completed = [];
+        page.on('dialog', async (dialog) => {
+            dialogs.push(dialog.type());
+            await dialog.accept();
+        });
+        page.on('request', (request) => request.url().endsWith('/complete') && completed.push(request.url()));
+
+        await follow(page, page.locator('footer a[href$="/contact"]'), '/contact');
+        expect(dialogs).toEqual(['confirm']);
+        expect(await marker(page)).toBe('kept');
+
+        // الرفع توقف: الجزء المعلّق لا يكمله
+        release();
+        await page.waitForTimeout(500);
+        expect(completed).toEqual([]);
+
+        // ولا حارس بعدها: التحميل الكامل لا يُسأل عنه
+        await page.reload();
+        expect(dialogs).toEqual(['confirm']);
+    });
+
+    test('enables the exam registration button once its fields are complete', async ({ page }) => {
+        await openEntry(page, FIXTURES.exam, `${FIXTURES.exam}/exam`);
+        const form = page.locator('form[data-exam-gate]');
+        test.skip((await form.count()) === 0, 'المستخدم التجريبي تجاوز التسجيل في الاختبار التجريبي');
+
+        const button = form.locator('[data-exam-gate-submit]');
+        await expect(button).toBeDisabled();
+        await form.locator('[name="full_name"]').fill('مستخدم تجريبي');
+        await form.locator('[name="education_stage"]').selectOption({ index: 1 });
+        await form.locator('[name="pledge"]').check();
+        await expect(button).toBeEnabled();
+        expect(await marker(page)).toBe('kept');
+    });
 });
