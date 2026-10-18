@@ -100,7 +100,9 @@
   - الشيفرة: `app/Actions/JobFiles/`، و`routes/job-files.php`. الخطة: `plans/job-files.md`. الاختبارات: `tests/Feature/JobFiles/`. الحالة: مدموج.
 - **السجلات والخطة السنوية وحسابات المنصات:** السجلات والمستندات ذات الصلاحية بتنبيهاتها، وسجلات اللجان والمجلس والجمعية، والخطة السنوية مربوطة بالبرامج، وحسابات المنصات بلا كلمات مرور.
   - الشيفرة: `app/Actions/Registers/`، و`routes/registers.php`. الخطة: `plans/registers.md`. الاختبارات: `tests/Feature/Registers/`. الحالة: مدموج.
-- **لوحة إحصائيات الإدارة والمجلس:** `plans/admin-stats.md`. الحالة: مدموج.
+- **لوحة إحصائيات الإدارة والمجلس:** أرقام الوحدات من البيانات الفعلية، وعدّاد الزيارات البسيط، ورسم آخر 30 يوماً.
+  - الشيفرة: `app/Support/PortalStats.php`، و`app/Support/Visits.php`، و`app/Http/Middleware/CountVisit.php`، و`app/Filament/Widgets/`. الخطة: `plans/admin-stats.md`. الاختبارات: `tests/Feature/Stats/`.
+  - الحالة: مدموجة في `main` بطلب #45. وكانت «مدموج» هنا خطأً قبل بنائها، حتى 18 أكتوبر.
 
 ### المتجر والخدمات المكملة
 

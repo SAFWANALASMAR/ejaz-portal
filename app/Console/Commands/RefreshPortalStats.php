@@ -5,11 +5,14 @@ namespace App\Console\Commands;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\PortalStats;
+use App\Support\Visits;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
- * يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي تستعمله خانة في الرئيسية مُسحت ذاكرة
- * الرئيسية وحدها، فيظهر الرقم الجديد ولا تفقد الصفحات الأخرى تخزينها. وما لا تستعمله الرئيسية لا يمسح شيئاً.
+ * ينقل عدّاد الزيارات إلى القاعدة، ثم يحسب إحصائيات البوابة في الخلفية ويخزّنها. وإن تغيّر رقم آلي تستعمله
+ * خانة في الرئيسية مُسحت ذاكرة الرئيسية وحدها، فيظهر الرقم الجديد ولا تفقد الصفحات الأخرى تخزينها. وما لا
+ * تستعمله الرئيسية لا يمسح شيئاً.
  */
 class RefreshPortalStats extends Command
 {
@@ -19,6 +22,13 @@ class RefreshPortalStats extends Command
 
     public function handle(): int
     {
+        // قبل الحساب، فأرقام زيارات اليوم في الإحصائيات هي المنقولة في هذا التشغيل. وتعذّر النقل لا يوقف الحساب
+        try {
+            Visits::persist();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
         ['previous' => $previous, 'current' => $current] = PortalStats::refresh();
 
         // المسح لما تستعمله الرئيسية فعلاً وحده، فلا تفقد الصفحات العامة تخزينها دورياً وقت الذروة
