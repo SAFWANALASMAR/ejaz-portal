@@ -73,3 +73,15 @@ it('asks the association to state the backup retention in the privacy policy', f
     expect((string) file_get_contents(base_path('docs/open-questions.md')))
         ->toContain('مدة الاحتفاظ بالنسخ الاحتياطية في سياسة الخصوصية');
 });
+
+// مراجعة المشرف على #47: موعد واحد لخطوة الملفات كلها، وحاوية S3 أولاً، ولا يوقف خطأ نسخٍ ما بعده، والجزئي يخرج برمز مميز
+it('gives the file copies one deadline, copies the S3 bucket first, and ends a partial run with a distinct code', function () {
+    $script = (string) file_get_contents(base_path('scripts/backup.sh'));
+
+    expect($script)
+        ->toContain('DEADLINE=$(( $(date +%s) + FILES_BUDGET ))')
+        ->toContain('--max-duration "${remaining}s"')
+        ->toContain('|| rc=$?')
+        ->toContain('exit 75')
+        ->and(strpos($script, '"vault:s3-private"'))->toBeLessThan(strpos($script, 'for disk in private public'));
+});

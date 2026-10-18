@@ -79,11 +79,13 @@ NOT_TODAY=$(( TODAY % 7 + 1 ))
 git show 1a6fcf35:scripts/backup.sh > tests/backup/.old-backup.sh
 old_log="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" -v "$PWD/tests/backup/.old-backup.sh:/old.sh:ro" --entrypoint bash backup /old.sh 2>&1)" && old_rc=0 || old_rc=$?
 rm -f tests/backup/.old-backup.sh
-check "السكربت القديم بـ --sse يفشل على تخزين بلا SSE-S3" '[ "$old_rc" -ne 0 ]'
+check "السكربت القديم بـ --sse يفشل على تخزين بلا SSE-S3، بخطأ التشفير" '[ "$old_rc" -ne 0 ] && echo "$old_log" | grep -qiE "KMS|NotImplemented|encryption"'
 
 # حاوية الملفات الخاصة صريحة: فارغة ترفض العمل قبل أي رفع، وnone تنسخ القرصين المحليين وحدهما
-"${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_SOURCE_S3_BUCKET= backup >/dev/null 2>&1 && rc0=0 || rc0=$?
-check "BACKUP_SOURCE_S3_BUCKET فارغ يرفض العمل" '[ "$rc0" -ne 0 ]'
+dumps() { tools 'export PATH=/opt/minio:$PATH; mc ls h/backups/db/ 2>/dev/null | grep -c "dump.gpg$" || true'; }
+before="$(dumps)"
+log0="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_SOURCE_S3_BUCKET= backup 2>&1)" && rc0=0 || rc0=$?
+check "BACKUP_SOURCE_S3_BUCKET فارغ يرفض العمل قبل أي رفع" '[ "$rc0" -ne 0 ] && echo "$log0" | grep -q "BACKUP_SOURCE_S3_BUCKET غير مضبوط" && [ "$(dumps)" = "$before" ]'
 none_log="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_SOURCE_S3_BUCKET=none -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" backup 2>&1)" && rc00=0 || rc00=$?
 check "BACKUP_SOURCE_S3_BUCKET=none ينسخ القرصين المحليين وحدهما" '[ "$rc00" -eq 0 ] && ! echo "$none_log" | grep -q "حاوية الملفات"'
 
@@ -103,6 +105,7 @@ check "النسخ بعد حذف ملف من المصدر ينجح" '[ "$rc3" -eq
 tools 'sleep 2; printf "PRIVATE-LOCAL-CONTENT changed %s\n" {1..120} > /work/app/storage/app/private/forms/signature-secret.png'
 run4="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" backup 2>&1)" && rc4=0 || rc4=$?
 check "ملف تغيّر يُنسخ في اليوم العادي" '[ "$rc4" -eq 0 ]'
+
 
 # ٤. حاوية النسخ: لا اسم ولا محتوى مقروء، ونسخة القاعدة موجودة
 listing="$(tools 'export PATH=/opt/minio:$PATH; mc ls -r h/backups')"
@@ -126,6 +129,19 @@ first="$(echo "$listing" | awk "/ files\\//{print \$NF; exit}")"
 check "مفتاح النسخ لا يحذف" '! tools "export PATH=/opt/minio:\$PATH; mc rm -q hw/backups/$first" >/dev/null 2>&1'
 check "مفتاح حاوية الملفات لا يكتب" '! tools "export PATH=/opt/minio:\$PATH; echo x | mc pipe -q cr/live-files/x.txt" >/dev/null 2>&1'
 check "مفتاح حاوية الملفات لا يحذف" '! tools "export PATH=/opt/minio:\$PATH; mc rm -q cr/live-files/competitions/video-secret-1.mp4" >/dev/null 2>&1'
+
+# مدة الملفات واحدة للخطوة كلها: بثانية واحدة وملفات جديدة كبيرة في الحاوية تُرفع نسخة القاعدة، ويقطع rclone نسخ الحاوية (رمز 10)، ويُتخطى القرصان، ثم يخرج السكربت بـ 75
+tools 'export PATH=/opt/minio:$PATH; for i in $(seq 1 12); do head -c 40000000 /dev/urandom | mc pipe -q c/live-files/bulk/part-$i.bin >/dev/null; done'
+before="$(dumps)"
+run5="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_MAX_DURATION=1s -e RCLONE_BWLIMIT=1M -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" backup 2>&1)" && rc5=0 || rc5=$?
+check "مدة الملفات المنقضية: نسخة القاعدة مرفوعة، والخروج 75 بتنبيه «جزئي»" '[ "$rc5" -eq 75 ] && echo "$run5" | grep -q "نُسخ حاوية الملفات live-files جزئياً" && echo "$run5" | grep -q "لم يُنسخ storage/app/private" && echo "$run5" | grep -q "نسخ الملفات جزئي" && [ "$(dumps)" -eq $(( before + 1 )) ]'
+for bad in 20x 25h 0 9999999h; do
+  check "مدة غير صالحة ($bad) ترفض العمل قبل أي رفع" '! "${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_MAX_DURATION="$bad" backup >/dev/null 2>&1 && [ "$(dumps)" -eq $(( before + 1 )) ]'
+done
+
+# خطأ نسخ لا يوقف ما بعده: حاوية غائبة تفشل، ويُنسخ القرصان مع ذلك، والخروج 1 بعد نسخة القاعدة
+run6="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_SOURCE_S3_BUCKET=missing-bucket -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" backup 2>&1)" && rc6=0 || rc6=$?
+check "حاوية غائبة: الخروج 1، والقرصان يُنسخان بعدها" '[ "$rc6" -eq 1 ] && echo "$run6" | grep -q "فشل نسخ حاوية الملفات missing-bucket" && echo "$run6" | grep -q "نسخ storage/app/private مشفّراً" && [ "$(dumps)" -eq $(( before + 2 )) ]'
 
 # ٦. الاستعادة من جهاز المسؤول (مفتاح إدارة حاوية النسخ وكلمتا السر من مدير كلمات المرور)، كما في scripts/restore.md
 "${DC[@]}" run --rm -T --entrypoint bash \
