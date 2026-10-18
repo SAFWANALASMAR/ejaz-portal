@@ -100,6 +100,7 @@
                             'too_long' => __('competitions.video.too_long', ['seconds' => $question->max_video_seconds]),
                             'progress' => __('competitions.video.progress', ['percent' => ':percent']),
                             'retry' => __('competitions.video.retry'),
+                            'leave' => __('competitions.video.leave'),
                         ]) }}">
                         <p class="text-sm text-muted">{{ __('competitions.video.limits', ['mb' => $question->max_video_mb, 'seconds' => $question->max_video_seconds]) }}</p>
                         <p class="text-sm font-medium text-ink" data-video-status aria-live="polite">

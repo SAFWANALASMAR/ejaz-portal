@@ -29,6 +29,7 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
+use App\Support\SpaLink;
 use App\Support\UploadLimits;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
@@ -36,7 +37,9 @@ use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -45,6 +48,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
 use Livewire\Component;
+use Livewire\Livewire;
+use Livewire\Mechanisms\FrontendAssets\FrontendAssets;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
@@ -52,6 +57,11 @@ use function Livewire\on;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * سمات سكربت Livewire في صفحات التنقّل السريع (SpaLink::currentPage).
+     */
+    private const NAVIGATE_SCRIPT_ATTRIBUTES = ['defer' => true, 'data-navigate-track' => 'reload'];
+
     /**
      * Register any application services.
      */
@@ -200,6 +210,18 @@ class AppServiceProvider extends ServiceProvider
 
         // @navigate($url): wire:navigate على رابط صفحة داخلية، ولا شيء لما يُحمَّل تحميلاً كاملاً (SpaLink)
         Blade::directive('navigate', fn (string $url): string => "<?php if (\\App\\Support\\SpaLink::allows({$url})) echo 'wire:navigate'; ?>");
+
+        // سكربت Livewire في الواجهة العامة (components/layouts/app.blade.php) مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره
+        // (?id=) بعد نشر يعيد تحميلها عند التنقّل التالي. لمسارات الواجهة وحدها، وتُضبط سماته مع كل طلب: Livewire
+        // يحفظها في كائن واحد يبقى بين طلبات العامل نفسه (الاختبارات، وOctane)، فلا يرثها سكربت لوحة الإدارة
+        Event::listen(RouteMatched::class, function (RouteMatched $event): void {
+            $assets = app(FrontendAssets::class);
+            $assets->scriptTagAttributes = array_diff_key($assets->scriptTagAttributes, self::NAVIGATE_SCRIPT_ATTRIBUTES);
+
+            if (SpaLink::currentPage($event->request)) {
+                Livewire::useScriptTagAttributes(self::NAVIGATE_SCRIPT_ATTRIBUTES);
+            }
+        });
     }
 
     /**

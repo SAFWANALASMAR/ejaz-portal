@@ -138,7 +138,17 @@ docker rm -f ejaz-spa-app
 
 ## التنقّل السريع في الواجهة العامة
 
-`public-spa.spec.mjs` على العروض الثلاثة: التنقّل بين أربع صفحات عامة بلا إعادة تحميل (علامة في `window` تبقى)، والتركيز في المحتوى الرئيسي وعنوان التبويب والعنصر النشط بعده، وزرا الرجوع والتقدّم، وقائمة الجوال والقوائم المنسدلة بعد التنقّل، والشريط بصف واحد وقياسه على الرأس الجديد، وتنزيل وثيقة من الحوكمة، وفحص axe على صفحة وُصل إليها بالتنقّل، والدخول بتحميل كامل، والتحميل الكامل بعد نشر يغيّر الأصول، وصفحة الدخول كاملة حين يصل التنقّل إلى الحساب بلا جلسة، وشريط التقدّم أثناء تنقّل بطيء، ورابط مقطع يوتيوب يعود مكان مشغّله فلا يعمل المقطع عند الرجوع، ولا أخطاء في وحدة التحكم. ومع المستخدم التجريبي: التنقّل بين صفحات الحساب من قائمته والرجوع فيها من الخادم، وصفحة الدخول لا صفحة الحساب بزر الرجوع بعد الخروج، وإعادة طلب صفحة الحساب عند عودتها من ذاكرة الرجوع.
+`public-spa.spec.mjs` على العروض الثلاثة: التنقّل بين أربع صفحات عامة بلا إعادة تحميل (علامة في `window` تبقى)، والتركيز على عنوان الصفحة `h1` (أو المحتوى الرئيسي بتسميته في صفحة بلا عنوان) وإعلان عنوان التبويب والعنصر النشط بعده، ورأس الصفحة بعدد عناصره نفسه عبر التنقّلات ولا تحذير «multiple instances» من Livewire، وزرا الرجوع والتقدّم، وقائمة الجوال والقوائم المنسدلة بعد التنقّل، والشريط بصف واحد وقياسه على الرأس الجديد، وتنزيل وثيقة من الحوكمة، وفحص axe على صفحة وُصل إليها بالتنقّل، والدخول بتحميل كامل، والتحميل الكامل بعد نشر يغيّر الأصول، وصفحة الدخول كاملة حين يصل التنقّل إلى الحساب بلا جلسة، وشريط التقدّم أثناء تنقّل بطيء، ورابط مقطع يوتيوب يعود مكان مشغّله فلا يعمل المقطع عند الرجوع، ولا أخطاء في وحدة التحكم. ومع المستخدم التجريبي: التنقّل بين صفحات الحساب من قائمته والرجوع فيها من الخادم، وصفحة الدخول لا صفحة الحساب بزر الرجوع بعد الخروج، وإعادة طلب صفحة الحساب عند عودتها من ذاكرة الرجوع.
+
+ووظائف الصفحة بعد التنقّل، وبعد تنقّل يعلنه Livewire ولا يبدّل الصفحة (حدثا `navigating` و`navigated` على المحتوى نفسه، ورابط `#`)، وبعد رابط إلى الصفحة نفسها يبدّلها:
+
+- المعرض: العارض يفتح، والتالي صورة واحدة لكل ضغطة، وEsc يغلقه.
+- العدّاد التنازلي للبث يتقدّم.
+- صفحة الخطأ تُوضع مكان الصفحة بلا تحميل كامل، والرجوع والتقدّم بعدها (ومعهما رابط التخطي) لا يذهبان إلى `/undefined`.
+- ومع المستخدم التجريبي:
+  - الحفظ التلقائي في المسابقة، ومنه حفظ ينتظر مهلته أثناء تنقّل لا يبدّل الصفحة.
+  - حارس رفع المقطع: الرفع يمر بتنقّل لا يبدّل الصفحة وبالرجوع داخلها بعد تحديثها، وتأكيد بنصه عند التنقّل وزر الرجوع، و`beforeunload` عند التحميل الكامل، ويزول باكتمال الرفع، والرجوع بعده يمر بالصفحات بمحتواها. والمغادرة المؤكدة توقفه فلا يُرسل الإنهاء ولا يُسأل ثانية.
+  - زر المتابعة في تسجيل الاختبار الإلكتروني يُفعَّل حين تكتمل الحقول.
 
 الأصول مبنية (`npm run build`) بلا خادم Vite، و`--no-deps` حتى لا يبدأ خادم Vite:
 
@@ -156,6 +166,15 @@ docker compose run --rm --no-deps -e VITE_HOST=none -e DEMO_CREDENTIALS="$creds"
 docker compose exec -T app php artisan tinker --execute '$d = App\Models\Document::factory()->create(["slug" => "demo-spa-test", "title" => "وثيقة تجريبية لاختبار التنقل (تُحذف)"]); Storage::disk(App\Models\Document::disk())->put($d->file, "%PDF-1.4\n%%EOF"); Artisan::call("ejaz:refresh-content");'
 # بعده
 docker compose exec -T app php artisan tinker --execute '$d = App\Models\Document::where("slug", "demo-spa-test")->first(); Storage::disk(App\Models\Document::disk())->delete($d->file); $d->forceDelete(); Artisan::call("ejaz:refresh-content");'
+```
+
+- واختبارات وظائف الصفحة تحتاج ألبوماً بثلاث صور، وبثاً قادماً بعد 30 يوماً (بعد مدة الإعلان في الرأس، فلا تتغير القائمة)، ومسابقة بسؤال نصي وسؤال فيديو، واختباراً إلكترونياً. وبدونها تُتخطى. تُنشأ معلَّمة بوضوح في البيئة المحلية وحدها، وتُحذف بعده مع مشاركات المستخدم التجريبي فيها، ولا تُحفظ في قيت ولا في بذرة. والصور على القرص العام، فيلزمه `php artisan storage:link` مرة:
+
+```bash
+# قبل التشغيل
+docker compose exec -T app php artisan tinker --execute '$img = file_get_contents(public_path("icon-192.png")); foreach ([1, 2, 3] as $i) { Storage::disk("public")->put("albums/demo-spa-$i.png", $img); } App\Models\Album::factory()->create(["slug" => "demo-spa-album", "title" => "ألبوم تجريبي لاختبار التنقل (يُحذف)", "published_on" => now(), "photos" => ["albums/demo-spa-1.png", "albums/demo-spa-2.png", "albums/demo-spa-3.png"]]); App\Models\LiveStream::factory()->create(["title" => "بث تجريبي لاختبار التنقل (يُحذف)", "starts_at" => now()->addDays(30), "ends_at" => now()->addDays(30)->addHours(2)]); App\Models\Competition::factory()->withQuestions()->create(["slug" => "demo-spa-entry", "title" => "مسابقة تجريبية لاختبار التنقل (تُحذف)"]); App\Models\Competition::factory()->exam()->create(["slug" => "demo-spa-exam", "title" => "اختبار تجريبي لاختبار التنقل (يُحذف)"]); Artisan::call("ejaz:refresh-content");'
+# بعده
+docker compose exec -T app php artisan tinker --execute 'App\Models\Album::where("slug", "demo-spa-album")->forceDelete(); Storage::disk("public")->delete(["albums/demo-spa-1.png", "albums/demo-spa-2.png", "albums/demo-spa-3.png"]); App\Models\LiveStream::where("title", "بث تجريبي لاختبار التنقل (يُحذف)")->forceDelete(); foreach (App\Models\Competition::whereIn("slug", ["demo-spa-entry", "demo-spa-exam"])->get() as $c) { foreach ($c->submissions()->withTrashed()->get() as $s) { $s->videos()->each(fn ($v) => $v->delete()); $s->forceDelete(); } $c->questions()->delete(); $c->criteria()->delete(); $c->forceDelete(); } Artisan::call("ejaz:refresh-content");'
 ```
 
 - ذاكرة الرجوع في المتصفح (bfcache) لا تعمل في متصفح Playwright المؤتمت ولو أُزيل مفتاح إطفائها (`BackForwardCacheDisabledForDelegate`)، فيُختبر مسار الخادم بعد الخروج، وقرار `page.js` بحدث `pageshow` من الذاكرة يُطلق على الصفحة نفسها. والتجربة الفعلية لها في متصفح عادي: الدخول، ثم صفحة عامة، ثم «حسابي»، ثم الخروج، ثم زر الرجوع، والمتوقع صفحة الدخول.

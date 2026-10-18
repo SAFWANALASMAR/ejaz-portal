@@ -61,6 +61,11 @@
         @apply outline-accent-light;
     }
 
+    /* عنوان الصفحة يأخذ التركيز بعد التنقّل السريع ليقرأه قارئ الشاشة (resources/js/page.js)، ولا يُضغط فلا إطار حوله */
+    #main h1[tabindex='-1']:focus {
+        outline: none;
+    }
+
     [x-cloak] {
         display: none !important;
     }

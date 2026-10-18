@@ -25,7 +25,7 @@ final class SpaLink
         // وصفحة النموذج المعبأ في «نماذجي» مستند طباعة مستقل بأنماطه لا بقالب الموقع
         'account.forms.show',
         'account.data.export', 'competitions.works.show', 'competitions.reviews.*', 'competitions.videos.status',
-        'competitions.exam.intro.video', 'competitions.exam.media', 'registers.attachment', 'storage.local',
+        'competitions.exam.intro.video', 'competitions.exam.media', 'registers.attachment', 'storage.local', 'livewire.preview-file',
         // الدفع والتبرع، والمتجر (تحويل إلى متجر سلة)
         'donate', 'payments.*', 'store.*',
         // صفحة الاستبيان: سياسة أمان المحتوى فيها تسمح بعنصر التحدي وحدها، ولا تتغير السياسة بالتنقّل

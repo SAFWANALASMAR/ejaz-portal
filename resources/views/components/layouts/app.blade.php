@@ -39,9 +39,9 @@
     @fonts
     {{-- Livewire للتنقّل السريع (wire:navigate) وحده، في الرأس فيُحمَّل مرة واحدة لا مع كل صفحة. ونمطه يحمل رمز
          الطلب الأول فيضعه Livewire على سكربتات الصفحات التالية (docs/decisions.md). وصفحة تُحمَّل كاملاً بلا Livewire.
-         وسكربته مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره (?id=) بعد نشر يعيد تحميل الصفحة عند التنقّل التالي --}}
+         وسكربته مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره (?id=) بعد نشر يعيد تحميل الصفحة عند التنقّل التالي
+         (السمتان من AppServiceProvider لمسارات الواجهة وحدها) --}}
     @if (\App\Support\SpaLink::currentPage(request()))
-        @php(\Livewire\Livewire::useScriptTagAttributes(['defer' => true, 'data-navigate-track' => 'reload']))
         @livewireStyles
         @livewireScripts
     @endif
@@ -58,10 +58,13 @@
         {{ __('site.skip_to_content') }}
     </a>
 
+    {{-- بعد كل تنقّل سريع يُعلَن فيها عنوان الصفحة الجديدة لقارئ الشاشة (resources/js/page.js) --}}
+    <p class="sr-only" aria-live="polite" data-page-announcer></p>
+
     @include('partials.header')
 
-    {{-- بعد كل تنقّل سريع يُنقل التركيز إليه (resources/js/page.js)، فلا إطار حوله --}}
-    <main id="main" class="flex-1 focus:outline-none" tabindex="-1">
+    {{-- بعد كل تنقّل سريع يُنقل التركيز إلى عنوانه h1، أو إليه إن لم يكن (resources/js/page.js)، فلا إطار حوله --}}
+    <main id="main" class="flex-1 focus:outline-none" tabindex="-1" aria-label="{{ __('site.main_content') }}">
         {{ $slot }}
     </main>
 
