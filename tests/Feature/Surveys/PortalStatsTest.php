@@ -2,7 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Filament\Pages\SiteSettings;
-use App\Filament\Widgets\PortalStatsWidget;
+use App\Filament\Widgets\ProgramsStatsWidget;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\Setting;
@@ -27,19 +27,19 @@ it('computes the portal statistics in the background and keeps the last result',
         ->and($stats['users'])->toBe(User::count());
 });
 
-it('shows the statistics widget to the board and the super admin only', function () {
+it('shows the competition and survey numbers to the board and the super admin only', function () {
     $this->artisan('ejaz:refresh-stats');
 
     $this->actingAs(userWithRole(RoleName::BoardMember));
-    expect(PortalStatsWidget::canView())->toBeTrue();
-    Livewire::test(PortalStatsWidget::class)->assertSee(__('surveys.stats.submissions'));
+    expect(ProgramsStatsWidget::canView())->toBeTrue();
+    Livewire::test(ProgramsStatsWidget::class)->assertSee(__('surveys.stats.submissions'))->assertSee(__('surveys.stats.responses'));
 
     $this->actingAs(userWithRole(RoleName::SuperAdmin));
-    expect(PortalStatsWidget::canView())->toBeTrue();
+    expect(ProgramsStatsWidget::canView())->toBeTrue();
 
     foreach ([RoleName::ProgramManager, RoleName::ContentEditor, RoleName::Reviewer, RoleName::Secretary] as $role) {
         $this->actingAs(userWithRole($role));
-        expect(PortalStatsWidget::canView())->toBeFalse();
+        expect(ProgramsStatsWidget::canView())->toBeFalse();
     }
 });
 
