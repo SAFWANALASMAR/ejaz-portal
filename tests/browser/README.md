@@ -180,3 +180,25 @@ docker compose exec -T app php artisan tinker --execute 'App\Models\Album::where
 - ذاكرة الرجوع في المتصفح (bfcache) لا تعمل في متصفح Playwright المؤتمت ولو أُزيل مفتاح إطفائها (`BackForwardCacheDisabledForDelegate`)، فيُختبر مسار الخادم بعد الخروج، وقرار `page.js` بحدث `pageshow` من الذاكرة يُطلق على الصفحة نفسها. والتجربة الفعلية لها في متصفح عادي: الدخول، ثم صفحة عامة، ثم «حسابي»، ثم الخروج، ثم زر الرجوع، والمتوقع صفحة الدخول.
 - اختبار التحميل الكامل بعد النشر يحتاج الأصول المبنية، فيُتخطى مع خادم Vite (التشغيل الافتراضي أعلى الملف).
 - اختبار القائمة المنسدلة يتبع رابط «البرامج» من بذرة القائمة (`MenuSeeder`)، لأن صفحات «عن الجمعية» مسودات حتى تعتمدها الجمعية.
+
+## لوحة الإحصائيات
+
+`admin-stats.spec.mjs` على العروض الثلاثة: المجموعات الأربع بعناوينها وأرقامها، ووقت آخر حساب، ورسم الزيارات في آخر 30 يوماً مرسوماً فعلاً بنصه البديل لقارئ الشاشة، والاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe في العناصر. واللقطات في `docs/design/screenshots/admin-stats-<العرض>.png`.
+
+يحتاج مشرفاً تجريبياً بتحقق ثنائي (`ejaz:demo-user --admin`)، والأصول مبنية (`npm run build`). ويحتاج قبل التشغيل:
+
+- **زيارة معدودة واحدة على الأقل في آخر 30 يوماً**، منقولة إلى القاعدة. تكفي صفحة عامة من متصفح، أو طلب curl الذي في الأوامر أدناه. وبدونها يظهر الرسم فارغاً، فيفشل الاختبار عند صورة الرسم.
+- **حساباً للإحصائيات** (`ejaz:refresh-stats`)، وإلا لم تظهر المجموعات.
+
+```bash
+curl -s -o /dev/null -A 'Mozilla/5.0' "http://localhost:${APP_PORT:-8000}/"
+docker compose exec -T app php artisan ejaz:refresh-stats
+creds=$(docker compose exec -T app php artisan ejaz:demo-user --admin --json)
+
+docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs admin-stats.spec.mjs
+```
+
+- بلا `ADMIN_STATS_CREDENTIALS` يُتخطى الملف. ومع `admin-spa.spec.mjs` في تشغيل واحد يُمرَّر المتغيران من `$creds` نفسه، وآخر نافذة للرمز في ملف مشترك.
+- كل عرض دخول بالتحقق الثنائي، والحساب نفسه لا يتجاوز عشر محاولات في ربع ساعة (`two-factor` في `FortifyServiceProvider`). فإن تكرر التشغيل ورُدّ بـ 429، فيُنتظر ربع ساعة.
+- الأرقام في اللقطات من قاعدة التطوير كما هي، والزيارات من تصفح حقيقي لها. ولا تُدخل أرقام ولا أيام زيارات تجريبية في قيت ولا في بذرة.

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CountVisit;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\FullPageLoadOnNavigate;
 use App\Http\Middleware\SecurityHeaders;
@@ -25,12 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['webhooks/payments']);
 
         // تغيير كلمة المرور أو إعادة تعيينها يُنهي جلسات الحساب الأخرى في الموقع كله، لا في اللوحة وحدها
-        // (docs/security/2026-10-10-security-audit.md). وجلسة من غيّرها تبقى، لأن البصمة الجديدة تُحفظ فيها
+        // (docs/security/2026-10-10-security-audit.md). وجلسة من غيّرها تبقى، لأن البصمة الجديدة تُحفظ فيها.
+        // وعدّاد الزيارات بعد FullPageLoadOnNavigate، فلا يُعدّ طلب تنقّل يصير تحميلاً كاملاً إلا بتحميله
         $middleware->web(append: [
             AuthenticateSession::class,
             SecurityHeaders::class,
             FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
+            CountVisit::class,
         ]);
 
         // التنقّل السريع إلى ما يُحمَّل كاملاً تحميل كامل (FullPageLoadOnNavigate)، ومنه تحويل الدخول من Authenticate:
