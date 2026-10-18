@@ -156,11 +156,12 @@ it('loads Livewire once in the head with the request nonce, and allows no eval o
     $head = strstr($html, '</head>', true);
 
     // سكربت Livewire ونمطه في الرأس برمز الطلب، والنمط هو ما يقرأ منه Livewire الرمز للصفحات التالية
-    expect($head)->toMatch('#<script src="[^"]*/livewire\.js\?id=[^"]*" nonce="'.$nonce[1].'"#')
+    // والملف livewire.js في التطوير، وlivewire.min.js حين يُطفأ APP_DEBUG
+    expect($head)->toMatch('#<script src="[^"]*/livewire(\.min)?\.js\?id=[^"]*" nonce="'.$nonce[1].'"#')
         ->toContain('<style nonce="'.$nonce[1].'" data-livewire-style')
         // مؤجل فلا يوقف عرض الصفحة، وتغيّر إصداره يعيد التحميل
-        ->toMatch('#<script src="[^"]*/livewire\.js[^>]* defer="true" data-navigate-track="reload">#')
-        ->and(substr_count($html, '/livewire.js?id='))->toBe(1)
+        ->toMatch('#<script src="[^"]*/livewire(\.min)?\.js[^>]* defer="true" data-navigate-track="reload">#')
+        ->and(preg_match_all('#/livewire(\.min)?\.js\?id=#', $html))->toBe(1)
         // شريط تقدّم Livewire معطّل (دوره في ARIA غير صالح)، وشريط الموقع بدله (page.js)
         ->and($html)->toContain('<body class="flex min-h-screen flex-col" data-no-progress-bar>');
 
@@ -229,8 +230,8 @@ it('leaves Livewire out of the pages that load fully, so their links and policy 
     // الإنتاج يبدأ بلا حالة
     Livewire::flushState();
 
-    expect($this->get('/login')->assertOk()->getContent())->not->toContain('/livewire.js?id=')
-        ->and($this->get('/')->getContent())->toContain('/livewire.js?id=');
+    expect($this->get('/login')->assertOk()->getContent())->not->toMatch('#/livewire(\.min)?\.js\?id=#')
+        ->and($this->get('/')->getContent())->toMatch('#/livewire(\.min)?\.js\?id=#');
 });
 
 it('marks the pages of a signed-in member, so the browser back cache asks the server again', function () {
@@ -316,13 +317,13 @@ it('loads a full-load route fully when a page answers a navigation by redirectin
 });
 
 it('defers and tracks the Livewire script on public pages alone, so the admin panel served next does not inherit it', function () {
-    expect($this->get('/')->getContent())->toMatch('#<script src="[^"]*/livewire\.js[^>]* defer="true" data-navigate-track="reload">#');
+    expect($this->get('/')->getContent())->toMatch('#<script src="[^"]*/livewire(\.min)?\.js[^>]* defer="true" data-navigate-track="reload">#');
 
     // طلب تالٍ في العامل نفسه (Octane، والاختبارات): Livewire يمسح حالته بين الطلبات، وسماته تبقى
     Livewire::flushState();
     $admin = $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk()->getContent();
 
-    expect(preg_match('#<script src="[^"]*/livewire\.js[^>]*>#', $admin, $script))->toBe(1)
+    expect(preg_match('#<script src="[^"]*/livewire(\.min)?\.js[^>]*>#', $admin, $script))->toBe(1)
         ->and($script[0])->not->toContain('defer')
         ->not->toContain('data-navigate-track');
 });
@@ -336,8 +337,7 @@ it('lets quick navigation reach page controllers only, so no file controller run
     $reviewedResponses = ['account.dashboard', 'assembly.index', 'competitions.show', 'programs.show', 'services.openings.show'];
 
     $files = collect(Route::getRoutes()->get('GET'))
-        ->filter(fn (RoutingRoute $route): bool => ! $route->isFallback && $route->getName() !== null
-            && ! str_starts_with($route->getName(), 'generated::') && ! Str::is(SpaLink::FULL_PAGE_ROUTES, $route->getName()))
+        ->reject(fn (RoutingRoute $route): bool => $route->isFallback || Str::is(SpaLink::FULL_PAGE_ROUTES, (string) $route->getName()))
         ->map(function (RoutingRoute $route) use ($pages, $reviewedResponses): ?string {
             $uses = $route->getAction('uses');
             $action = match (true) {
@@ -345,6 +345,13 @@ it('lets quick navigation reach page controllers only, so no file controller run
                 Str::contains($uses, '@') => new ReflectionMethod(...explode('@', $uses)),
                 default => new ReflectionMethod($uses, '__invoke'),
             };
+
+            // مسار بلا اسم لا يتنقّل إليه Livewire (SpaLink)، فيُحمَّل كاملاً. ومسارات الحزم بلا اسم (أصول Livewire،
+            // وفحص /up) مقبولة، أما مسار التطبيق فيُسمّى، فيمر بهذا الفحص ولا يُنسى تحميلاً كاملاً بلا قصد
+            if ($route->getName() === null || str_starts_with($route->getName(), 'generated::')) {
+                return str_starts_with((string) $action->getFileName(), base_path('vendor')) ? null : 'بلا اسم: '.$route->uri();
+            }
+
             $types = explode('|', ltrim((string) $action->getReturnType(), '?'));
             $allowed = in_array($route->getName(), $reviewedResponses, true) ? [...$pages, Response::class] : $pages;
 
@@ -382,7 +389,9 @@ it('loads a page over its rate limit fully, without counting the extra requests'
 });
 
 it('loads an error raised before the security headers fully, since it carries no request nonce', function () {
-    // الربط الضمني للنموذج يسبق SecurityHeaders: صفحته بلا رمز الطلب، فلو وُضعت في الصفحة لأضاف Livewire نمطها إلى الرأس
+    // الربط الضمني للنموذج يسبق SecurityHeaders: صفحته بلا رمز الطلب، فلو وُضعت في الصفحة لأضاف Livewire نمطها إلى الرأس.
+    // يعتمد على ترتيب الوسائط اليوم (SecurityHeaders بعد SubstituteBindings)، فإن تقدّمت عليه صارت الصفحة برمز الطلب
+    // وأُعطيت كما هي، ويُعدَّل هذا الاختبار معه
     $url = url('/account/requests/0f4c2a9e-0000-4000-8000-000000000000');
 
     $this->actingAs(User::factory()->create())

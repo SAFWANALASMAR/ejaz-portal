@@ -11,9 +11,12 @@ const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ??
 // والحارس يزول باكتمال الرفع أو توقفه
 const uploads = new Map();
 
+// والمتصفح يعرض رسالته هو، والقيمة غير الفارغة يحتاجها كروم أندرويد القديم ليعرضها
 function holdPage(event) {
+    const [upload] = uploads.values();
+
     event.preventDefault();
-    event.returnValue = '';
+    event.returnValue = upload?.message ?? 'upload';
 }
 
 function guardUpload(controller, message) {

@@ -440,7 +440,7 @@ test('keeps the head the same size across navigations, with a single Livewire ru
         links: document.head.querySelectorAll('link').length,
         scripts: document.head.querySelectorAll('script').length,
         styles: document.head.querySelectorAll('style').length,
-        livewire: document.querySelectorAll('script[src*="/livewire.js"]').length,
+        livewire: document.querySelectorAll('script[src*="/livewire.js"], script[src*="/livewire.min.js"]').length,
     }));
 
     await page.goto('/');
