@@ -10,12 +10,14 @@ use Database\Factories\PageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
- * صفحة محتوى بمقاطع مرنة يحررها المحرر من اللوحة. و«عن الجمعية» صفحة بالمعرّف about،
- * لا تُحذف ولا يتغير معرّفها، لأن رابطها مبني عليه.
+ * صفحة محتوى بمقاطع مرنة يحررها المحرر من اللوحة. و«عن الجمعية» (about) و«سياسة الخصوصية» (privacy)
+ * لا تُحذفان ولا يتغير معرّفاهما (LOCKED_SLUGS)، لأن رابطيهما /about و/privacy مبنيان عليهما.
  *
  * وصفحات «المقدمة» (INTROS) نصوص صفحات الموقع السابق التي صار لها قالب مبني في البوابة: تُعرض
  * مقاطعها أعلى صفحة القالب (x-page-intro)، ورابطها /pages/{slug} يحوّل إليه.
@@ -27,6 +29,15 @@ class Page extends Model implements HasPublicImages
     use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
     public const ABOUT = 'about';
+
+    public const PRIVACY = 'privacy';
+
+    /**
+     * صفحات لها رابط خاص مبني على معرّفها، ويشير إليها التسجيل والقائمة: لا تُحذف ولا يتغير معرّفها.
+     */
+    public const LOCKED_SLUGS = [self::ABOUT, self::PRIVACY];
+
+    public const PUBLISHED_CACHE_KEY = 'pages.published';
 
     public const IMAGE_DIRECTORY = 'pages';
 
@@ -67,6 +78,62 @@ class Page extends Model implements HasPublicImages
         [$route, $parameters] = self::INTROS[$slug];
 
         return route($route, $parameters, $absolute);
+    }
+
+    protected static function booted(): void
+    {
+        // المسح بعد اعتماد المعاملة، وإلا قرأ طلب متزامن القائمة القديمة وخزّنها (كالقائمة في MenuItem)
+        $flush = fn () => DB::afterCommit(fn () => Cache::forget(self::PUBLISHED_CACHE_KEY));
+
+        static::saved($flush);
+        static::deleted($flush);
+    }
+
+    /**
+     * معرّفات الصفحات المنشورة. تقرؤها القائمة والتذييل في كل صفحة، فمفتاحها مستقل عن ذاكرة المحتوى:
+     * لا يُعاد استعلامها مع كل تعديل في محتوى آخر، ويمسحها حفظ صفحة أو حذفها، وساعة احتياطية.
+     *
+     * @return list<string>
+     */
+    public static function publishedSlugs(): array
+    {
+        return Cache::remember(self::PUBLISHED_CACHE_KEY, now()->addHour(), fn (): array => self::query()->published()->pluck('slug')->all());
+    }
+
+    public static function isPublishedSlug(string $slug): bool
+    {
+        return in_array($slug, self::publishedSlugs(), true);
+    }
+
+    /**
+     * معرّف الصفحة التي يعرضها رابط داخلي (/about و/privacy و/pages/{slug})، أو null لغيرها. والرابط الكامل
+     * على مضيف البوابة نفسه داخلي أيضاً (كـ SpaLink). وصفحات المقدمة null، لأن رابطها يحوّل إلى قالبها منشورةً أو لا.
+     */
+    public static function slugForUrl(string $url): ?string
+    {
+        $parts = parse_url($url);
+
+        if ($parts === false) {
+            return null;
+        }
+
+        if (isset($parts['host'])) {
+            if (strcasecmp($parts['host'], (string) parse_url((string) config('app.url'), PHP_URL_HOST)) !== 0) {
+                return null;
+            }
+        } elseif (! str_starts_with($url, '/')) {
+            return null;
+        }
+
+        $path = trim($parts['path'] ?? '', '/');
+
+        $slug = match (true) {
+            $path === self::ABOUT, $path === self::PRIVACY => $path,
+            preg_match('#^pages/([a-z0-9]+(?:-[a-z0-9]+)*)$#', $path, $matches) === 1 => $matches[1],
+            default => null,
+        };
+
+        return $slug !== null && ! isset(self::INTROS[$slug]) ? $slug : null;
     }
 
     public function imageDirectory(): string

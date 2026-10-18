@@ -24,7 +24,7 @@
                     @error('privacy') aria-invalid="true" aria-describedby="privacy-error" @enderror>
                 <span>
                     {{ __('account.register.privacy') }}
-                    @if (Route::has('privacy'))
+                    @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
                         <a href="{{ route('privacy') }}" target="_blank" class="text-primary underline">{{ __('account.register.privacy_link') }}</a>
                     @endif
                 </span>

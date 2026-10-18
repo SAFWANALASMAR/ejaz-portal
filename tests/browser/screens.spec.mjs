@@ -86,7 +86,8 @@ async function checkScreen(page, testInfo, screen) {
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-    await expect(page.locator('header [aria-label]').first()).toBeVisible();
+    // التنقل في الرأس: القائمة الرئيسية على الحاسب، وزرها على اللوحي والجوال (القائمة مخفية دون عرض nav)
+    await expect(page.locator('header [data-main-nav], header [aria-controls="mobile-menu"]').filter({ visible: true }).first()).toBeVisible();
     await expect(page.locator(screen.heading).first()).toBeVisible();
     await expect(page.locator('footer')).toBeVisible();
 

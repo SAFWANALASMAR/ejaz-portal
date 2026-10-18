@@ -2,6 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Models\MenuItem;
+use App\Models\Page;
 use App\Models\Setting;
 
 it('serves an Arabic right-to-left home page', function () {
@@ -53,6 +54,8 @@ it('sends HSTS only over https', function () {
 });
 
 it('shows only visible menu items and refreshes the cached menu on change', function () {
+    // منشورة، وإلا أخفت القائمة رابطها (UnpublishedPageLinksTest)
+    Page::factory()->create(['slug' => Page::ABOUT]);
     $about = MenuItem::create(['label' => 'عن الجمعية', 'url' => '/about', 'sort' => 1]);
     MenuItem::create(['label' => 'مخفي', 'url' => '/hidden', 'sort' => 2, 'is_visible' => false]);
     MenuItem::create(['parent_id' => $about->id, 'label' => 'الرؤية', 'url' => '/about#vision']);

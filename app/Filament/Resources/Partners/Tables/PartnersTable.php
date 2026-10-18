@@ -21,7 +21,7 @@ class PartnersTable
             // الترتيب يُحفظ باستعلام واحد لا يمر بأحداث النموذج، فيُسجَّل ويُمسح التخزين بإجراء
             ->afterReordering(fn (array $order) => app(RecordContentReorder::class)->handle(Partner::class, $order))
             ->columns([
-                ImageColumn::make('logo')->label('')->disk('public'),
+                ImageColumn::make('logo')->label('')->disk('public')->disabledClick(),
                 TextColumn::make('name')->label(__('partners.fields.name'))->searchable(),
                 TextColumn::make('kind')->label(__('partners.fields.kind'))->badge(),
                 TextColumn::make('url')->label(__('partners.fields.url'))->extraAttributes(['dir' => 'ltr'])->toggleable(),

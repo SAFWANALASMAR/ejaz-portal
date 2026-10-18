@@ -13,6 +13,7 @@ use App\Support\ContentBlocks;
 use App\Support\ContentCache;
 use Database\Seeders\LegacyRedirectsSeeder;
 use Database\Seeders\MenuSeeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -70,7 +71,9 @@ function publishEverything(): void
         $model::query()->update(['is_published' => true]);
     }
 
+    // التحديث الجماعي بلا أحداث النموذج، فيُمسح ما تمسحه: ذاكرة المحتوى، والصفحات المنشورة
     ContentCache::flush();
+    Cache::forget(Page::PUBLISHED_CACHE_KEY);
 }
 
 it('imports the whole archive as drafts with the counts of the archive', function () {

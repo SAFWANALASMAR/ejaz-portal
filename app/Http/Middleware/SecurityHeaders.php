@@ -12,7 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * السكربتات المضمنة لا تعمل إلا برمز (nonce) يتولد لكل طلب، وVite وLivewire
  * وFilament تضيفه تلقائياً. و'unsafe-eval' للوحة الإدارة وحدها لأن تعابير Alpine فيها تحتاجه، والواجهة
- * العامة بلا تعابير Alpine فلا تحتاجه وإن حمّلت Livewire للتنقّل السريع (docs/decisions.md).
+ * العامة بلا تعابير Alpine فلا تحتاجه وإن حمّلت Livewire للتنقّل السريع (docs/decisions.md). وكذلك
+ * worker-src لمعاينات الصور في نماذج اللوحة.
  */
 class SecurityHeaders
 {
@@ -73,6 +74,12 @@ class SecurityHeaders
             'form-action' => ["'self'", ...self::origins('form_action')],
             'frame-ancestors' => ["'none'"],
         ];
+
+        // أداة رفع الملفات في اللوحة (FilePond في Filament) ترسم معاينة الصورة في عامل من blob:، وبلا worker-src يُفحص
+        // العامل بـ script-src فيُحجب. فللوحة وحدها، ولا يتسع script-src ولا سياسة الواجهة العامة (docs/decisions.md)
+        if ($request->routeIs('filament.*')) {
+            $directives['worker-src'] = ["'self'", 'blob:'];
+        }
 
         // عنصر التحدي ضد الآليات في صفحتي الاستبيان والتبرع وحدهما، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
         // الصفحات الأخرى (docs/decisions.md)

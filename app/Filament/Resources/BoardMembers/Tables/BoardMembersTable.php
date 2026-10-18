@@ -21,7 +21,7 @@ class BoardMembersTable
             // الترتيب يُحفظ باستعلام واحد لا يمر بأحداث النموذج، فيُسجَّل ويُمسح التخزين بإجراء
             ->afterReordering(fn (array $order) => app(RecordContentReorder::class)->handle(BoardMember::class, $order))
             ->columns([
-                ImageColumn::make('photo')->label('')->disk('public')->circular(),
+                ImageColumn::make('photo')->label('')->disk('public')->circular()->disabledClick(),
                 TextColumn::make('name')->label(__('board.fields.name'))->searchable(),
                 TextColumn::make('position')->label(__('board.fields.position')),
                 IconColumn::make('is_visible')->label(__('board.fields.is_visible'))->boolean(),

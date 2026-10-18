@@ -20,7 +20,8 @@ class NewsArticlesTable
         return $table
             ->defaultSort(fn (Builder $query): Builder => $query->scopes('newestFirst'))
             ->columns([
-                ImageColumn::make('image')->label('')->disk('public'),
+                // الصورة بلا رابط: كان رابطاً بلا اسم مقروء إلى التعديل (axe: link-name)، ورابطه باقٍ في العنوان
+                ImageColumn::make('image')->label('')->disk('public')->disabledClick(),
                 TextColumn::make('title')->label(__('news.fields.title'))->searchable()->wrap(),
                 TextColumn::make('category')->label(__('news.fields.category'))->badge(),
                 TextColumn::make('published_on')->label(__('news.fields.published_on'))->date('Y-m-d')->sortable(),

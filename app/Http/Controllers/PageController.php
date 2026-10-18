@@ -10,8 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\HtmlString;
 
 /**
- * صفحات المحتوى المنشورة، مخزنة مؤقتاً: «عن الجمعية» (/about) بمجلس الإدارة، وكل صفحة أخرى
- * بمعرّفها (/pages/{slug})، مثل سياسة الخصوصية. وغير المنشورة 404، ولا يُخزَّن إلا معرّف
+ * صفحات المحتوى المنشورة، مخزنة مؤقتاً: «عن الجمعية» (/about) بمجلس الإدارة، و«سياسة الخصوصية»
+ * (/privacy)، وكل صفحة أخرى بمعرّفها (/pages/{slug}). وغير المنشورة 404، ولا يُخزَّن إلا معرّف
  * منشور، فلا تملأ الروابط العشوائية الذاكرة.
  */
 class PageController extends Controller
@@ -38,11 +38,19 @@ class PageController extends Controller
         return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
     }
 
+    /**
+     * سياسة الخصوصية متى نُشرت، وإلا 404. وروابطها في التسجيل والتواصل والتذييل تظهر بنشرها.
+     */
+    public function privacy(): View
+    {
+        return $this->page(Page::PRIVACY);
+    }
+
     public function show(string $slug): View|RedirectResponse
     {
-        // «عن الجمعية» برابطها الخاص وحده، فلا تتكرر الصفحة برابطين
-        if ($slug === Page::ABOUT) {
-            return redirect()->route('about', status: 301);
+        // «عن الجمعية» و«سياسة الخصوصية» برابطيهما الخاصين وحدهما، فلا تتكرر الصفحة برابطين
+        if ($slug === Page::ABOUT || $slug === Page::PRIVACY) {
+            return redirect()->route($slug === Page::ABOUT ? 'about' : 'privacy', status: 301);
         }
 
         // وصفحة المقدمة تُعرض في قالبها، فلا تتكرر برابطين
@@ -50,10 +58,12 @@ class PageController extends Controller
             return redirect($intro, 301);
         }
 
-        /** @var list<string> $published */
-        $published = ContentCache::remember('pages.slugs', fn (): array => Page::query()->published()->pluck('slug')->all());
+        return $this->page($slug);
+    }
 
-        abort_unless(in_array($slug, $published, true), 404);
+    private function page(string $slug): View
+    {
+        abort_unless(Page::isPublishedSlug($slug), 404);
 
         /** @var array{title: string, summary: ?string, html: string} $page */
         $page = ContentCache::remember('pages.show.'.$slug, function () use ($slug): array {

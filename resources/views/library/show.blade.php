@@ -60,8 +60,9 @@
                 <div class="flex flex-wrap gap-3">
                     <x-button :href="route('library.download', $route)">
                         {{ __('library.item.download') }}
+                        {{-- بلا شفافية، لتباين 4.5:1 فأكثر على الزر (governance/show) --}}
                         @if ($size)
-                            <span class="font-normal opacity-80">({{ $size }})</span>
+                            <span class="font-normal">({{ $size }})</span>
                         @endif
                     </x-button>
                     @if ($item->section->takesPdf())
