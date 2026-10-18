@@ -76,7 +76,7 @@
 - ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`، ولخادم Cloud VDS XL قسم «إعدادات خادم 8 أنوية و64 جيجابايت»).
 - ما يلزمه قرار أو حساب: Turnstile، وMicrosoft Graph، والدفع (`PAYMENTS_ENABLED=false`). انظر «عند كل نشر» في `security.md`.
 
-ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`. ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject`)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
+ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`، وكلمتا سر تشفير الملفات `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT` (عشوائيتان، ونسختهما في مدير كلمات المرور مع مفتاح GPG الخاص، ولا تُغيَّران بعد أول نسخة)، وحاوية الملفات الخاصة للقراءة `BACKUP_SOURCE_*` (`.env.backup.example`). ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف ولا قراءة** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject` ولا `GetObject` — `deploy/storage/README.md` «المفاتيح»)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 
 ## ثالثاً: أول نشر
 
@@ -140,7 +140,7 @@ $DC ps                                         # كل الخدمات healthy
 
 - على تخزين S3 لدى مزود الخادم في منطقته (`FILESYSTEM_PRIVATE_DISK=s3`) بالواجهة القياسية (`AWS_ENDPOINT` و`AWS_DEFAULT_REGION` و`AWS_USE_PATH_STYLE_ENDPOINT` والحاوية من البيئة)، فيعمل مع أي مزود متوافق بلا تغيير في الشيفرة. واختبار `tests/Feature/Platform/S3CompatibleStorageTest.php` يتحقق من الروابط الموقّعة للقرص الخاص ولأجزاء الرفع المباشر بعنوان مخصص.
 - الحاوية خاصة بلا وصول عام، وإصداراتها مفعّلة.
-- **لا نسخة لها عند المزود الثاني بعد:** `scripts/backup.sh` ينسخ القاعدة والقرصين المحليين وحدهما. بند مفتوح بحله المقترح في `deploy/readiness.md` §١٤.
+- **نسختها عند المزود الثاني:** `scripts/backup.sh` ينسخ الحاوية يومياً إلى حاوية النسخ مشفّرة عند العميل (rclone crypt) متى ضُبطت `BACKUP_SOURCE_*` في `.env.backup` (`deploy/readiness.md` §١٤). والنسخة الأولى قد تطول بحد Contabo، فتُشغَّل يدوياً قبل تفعيل المؤقت (`handoff-server.md`).
 - ملفات الوثائق والمكتبة المنشورة تُبث من PHP بعد فحص النشر. والمستهدف قبل الذروة رابط تخزين موقّع قصير (خطة I8 في `security/2026-10-10-security-audit.md`).
 
 ## الانتقال إلى خدمة مُدارة (لاحقاً، بلا تغيير في الشيفرة)
