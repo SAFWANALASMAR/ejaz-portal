@@ -21,6 +21,10 @@ return [
     */
     'private_disk' => env('FILESYSTEM_PRIVATE_DISK', 'local'),
 
+    // مدة رابط التخزين الموقّع لملفات الحوكمة والمكتبة بالدقائق، متى كان القرص الخاص على S3. تكفي سماع
+    // محاضرة صوتية وتصفح وثيقة (المشغّل والعارض يطلبان الأجزاء بالرابط نفسه)، وبعدها يُعاد تحميل الصفحة
+    'content_url_minutes' => (int) env('CONTENT_FILE_URL_MINUTES', 60),
+
     // صورة على القرص العام لا يشير إليها سجل تُحذف بعد هذه الأيام (ejaz:prune-public-files)
     'public_orphan_days' => (int) env('PUBLIC_ORPHAN_DAYS', 7),
 

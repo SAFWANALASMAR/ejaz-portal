@@ -135,8 +135,11 @@ tools 'export PATH=/opt/minio:$PATH; for i in $(seq 1 12); do head -c 40000000 /
 before="$(dumps)"
 run5="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_MAX_DURATION=1s -e RCLONE_BWLIMIT=1M -e BACKUP_FILES_REFRESH_WEEKDAY="$NOT_TODAY" backup 2>&1)" && rc5=0 || rc5=$?
 check "مدة الملفات المنقضية: نسخة القاعدة مرفوعة، والخروج 75 بتنبيه «جزئي»" '[ "$rc5" -eq 75 ] && echo "$run5" | grep -q "نُسخ حاوية الملفات live-files جزئياً" && echo "$run5" | grep -q "لم يُنسخ storage/app/private" && echo "$run5" | grep -q "نسخ الملفات جزئي" && [ "$(dumps)" -eq $(( before + 1 )) ]'
-for bad in 20x 25h 0 9999999h; do
-  check "مدة غير صالحة ($bad) ترفض العمل قبل أي رفع" '! "${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_MAX_DURATION="$bad" backup >/dev/null 2>&1 && [ "$(dumps)" -eq $(( before + 1 )) ]'
+# برسالة الرفض نفسها، لا برمز غير صفري وحده: فشل آخر قبل الرفع (اتصال أو مفتاح) لا يُحسب نجاحاً
+for case in "20x:غير صالح" "25h:خارج الحد" "0:خارج الحد" "9999999h:غير صالح"; do
+  bad="${case%%:*}"; reason="${case#*:}"
+  out="$("${DC[@]}" run --rm -T "${ENVS[@]}" -e BACKUP_FILES_MAX_DURATION="$bad" backup 2>&1)" && rc=0 || rc=$?
+  check "مدة غير صالحة ($bad) ترفض العمل قبل أي رفع («$reason»)" '[ "$rc" -eq 1 ] && echo "$out" | grep -qF "BACKUP_FILES_MAX_DURATION $reason: $bad" && [ "$(dumps)" -eq $(( before + 1 )) ]'
 done
 
 # خطأ نسخ لا يوقف ما بعده: حاوية غائبة تفشل، ويُنسخ القرصان مع ذلك، والخروج 1 بعد نسخة القاعدة

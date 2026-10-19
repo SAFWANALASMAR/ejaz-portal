@@ -6,6 +6,7 @@ use App\Models\SurveyResponse;
 use App\Models\User;
 use App\Services\BotChallenge\FakeBotChallenge;
 use App\Services\BotChallenge\TurnstileChallenge;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 /*
@@ -137,4 +138,33 @@ it('opens the CSP to the challenge on the survey page only, and only with the tu
 
     expect($this->get('/surveys/'.$this->survey->token)->headers->get('Content-Security-Policy'))->toContain('challenges.cloudflare.com')
         ->and($this->get('/')->headers->get('Content-Security-Policy'))->not->toContain('challenges.cloudflare.com');
+});
+
+// قرار صفوان (19 أكتوبر 2026): Turnstile لاستبيان الرضا. والمهلة أو انقطاع الشبكة أو خطأ المزود رفض آمن برسالة
+// واضحة للضيف، ولا تُحفظ إجابة
+it('turns a guest away with a clear message when Cloudflare times out, is unreachable or errs', function (Closure $reply) {
+    app()->instance(BotChallenge::class, new TurnstileChallenge('site', 'secret'));
+    Http::fake(['challenges.cloudflare.com/*' => $reply]);
+
+    $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0], 'cf-turnstile-response' => 'token'])
+        ->assertRedirect()
+        ->assertSessionHas('error', __('surveys.public.challenge_failed'));
+
+    expect(SurveyResponse::count())->toBe(0);
+})->with([
+    'timeout' => fn () => fn () => throw new ConnectionException('cURL error 28: Operation timed out after 5000 milliseconds'),
+    'unreachable' => fn () => fn () => throw new ConnectionException('cURL error 6: Could not resolve host'),
+    'provider error' => fn () => fn () => Http::response(['success' => true, 'action' => 'survey'], 503),
+    'not json' => fn () => fn () => Http::response('<html>bad gateway</html>', 200),
+]);
+
+it('saves a guest answer once Cloudflare confirms the token for this form and site', function () {
+    app()->instance(BotChallenge::class, new TurnstileChallenge('site', 'secret', 'ejaz.sa'));
+    Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'survey', 'hostname' => 'ejaz.sa'])]);
+
+    $this->post('/surveys/'.$this->survey->token, ['answers' => [$this->scale->id => 3, $this->choice->id => 0], 'cf-turnstile-response' => 'token'])
+        ->assertSessionHas('status');
+
+    expect(SurveyResponse::count())->toBe(1);
+    Http::assertSent(fn ($request) => $request->url() === 'https://challenges.cloudflare.com/turnstile/v0/siteverify' && $request['response'] === 'token');
 });
