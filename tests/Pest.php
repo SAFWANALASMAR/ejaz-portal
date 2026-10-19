@@ -5,6 +5,7 @@ use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
+use App\Models\Meeting;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Support\ContentCache;
@@ -182,4 +183,17 @@ function failDeletesOf(string ...$paths): FilesystemAdapter
     });
 
     return $original;
+}
+
+/**
+ * حدث تقويم كما يرده Graph لاجتماع بعنوانه وموعده الحاليين (فلا يُحدَّث بعد إنشائه)، مع ما يُضاف إليه.
+ *
+ * @param  array<string, mixed>  $extra
+ * @return array<string, mixed>
+ */
+function teamsEvent(Meeting $meeting, array $extra = []): array
+{
+    $at = fn ($time): array => ['dateTime' => $time->copy()->utc()->format('Y-m-d\TH:i:s').'.0000000', 'timeZone' => 'UTC'];
+
+    return ['subject' => $meeting->title, 'start' => $at($meeting->starts_at), 'end' => $at($meeting->ends_at ?? $meeting->starts_at->copy()->addHour()), ...$extra];
 }
