@@ -31,7 +31,7 @@ grep -Eq '^APP_URL=https://' .env || fail "APP_URL يجب أن يبدأ بـ htt
 grep -Eq '^SESSION_SECURE_COOKIE=true$' .env || fail "SESSION_SECURE_COOKIE يجب أن يكون true (والتجريبية أيضاً، فافتراضه آمن في production وحده)"
 grep -Eq '^TRUSTED_PROXIES=.+' .env || echo "تنبيه: TRUSTED_PROXIES فارغ. خلف موزع أحمال تتعطل حدود الشبكات (docs/security.md)"
 grep -Eq '^TRUSTED_PROXIES=.*\*' .env && echo "تنبيه: TRUSTED_PROXIES=* يصدّق رأس X-Forwarded-For من أي مصدر، فتُزوَّر حدود الشبكات. لا * إلا والخادم معزول خلف موزع يستبدل الرأس، والأفضل عناوين الموزع بعينها (docs/security.md)"
-grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل، ويرفضه التطبيق في الإنتاج حتى يُعتمد المزود"
+grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل حتى يُضبط المزود من «قنوات التواصل» في اللوحة (docs/guides/messaging.md)"
 { grep -Eq '^BOT_CHALLENGE_DRIVER=turnstile$' .env && grep -Eq '^TURNSTILE_SITE_KEY=.+' .env && grep -Eq '^TURNSTILE_SECRET_KEY=.+' .env; } \
   || echo "تنبيه: Turnstile غير مضبوط بمفتاحيه (BOT_CHALLENGE_DRIVER=turnstile). الضيف في استبيان مفتوح للضيوف يُرفض حتى يُضبط (docs/decisions.md)"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || fail "في المجلد تعديلات غير محفوظة. لا تُعدَّل الشيفرة على الخادم"

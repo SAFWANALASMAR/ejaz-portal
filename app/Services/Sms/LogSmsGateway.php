@@ -12,12 +12,14 @@ use RuntimeException;
  */
 class LogSmsGateway implements SmsGateway
 {
-    public function send(string $phone, string $message): void
+    public function send(string $phone, string $message): ?string
     {
         if (app()->isProduction()) {
             throw new RuntimeException('LogSmsGateway must not be used in production.');
         }
 
         Log::info('[SMS] '.$phone.': '.$message);
+
+        return null;
     }
 }
