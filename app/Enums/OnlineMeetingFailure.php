@@ -20,6 +20,8 @@ enum OnlineMeetingFailure: string implements HasLabel
     case OrganizerNotFound = 'organizer_not_found';
     // الحدث حُذف من التقويم مباشرة
     case EventNotFound = 'event_not_found';
+    // رفضت Graph الطلب نفسه (400)، فلا تصلحه الإعادة
+    case InvalidRequest = 'invalid_request';
     case Throttled = 'throttled';
     case Timeout = 'timeout';
     case ServiceError = 'service_error';

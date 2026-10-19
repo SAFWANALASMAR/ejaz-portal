@@ -176,13 +176,13 @@ it('refuses the fake Teams driver in production', function () {
 });
 
 it('talks to Microsoft Graph with an app token, sends only the title and time, and fails loudly', function () {
+    $meeting = Meeting::factory()->online()->create(['agenda' => 'بند فيه اسم عضو']);
     Http::fake([
         'login.microsoftonline.com/*' => Http::response(['access_token' => 'graph-token', 'expires_in' => 3600]),
-        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']]),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(teamsEvent($meeting, ['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])),
         'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::sequence()->push([], 200)->push([], 204)->push(['error' => ['code' => 'ErrorItemNotFound']], 404),
     ]);
     $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
-    $meeting = Meeting::factory()->online()->create(['agenda' => 'بند فيه اسم عضو']);
 
     expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1', 'organizer' => 'organizer@ejaz.example']);
 
@@ -202,20 +202,20 @@ it('talks to Microsoft Graph with an app token, sends only the title and time, a
 });
 
 it('reads a Teams link that arrives late, and retries the same event so a retry never doubles it', function () {
+    $meeting = Meeting::factory()->online()->create();
     Http::fake([
         'login.microsoftonline.com/*' => Http::response(['access_token' => 'graph-token', 'expires_in' => 3600]),
         'graph.microsoft.com/*' => Http::sequence()
             // الأول: الرابط يصل بقراءة الحدث بعد إنشائه
-            ->push(['id' => 'event-1'])
+            ->push(teamsEvent($meeting, ['id' => 'event-1']))
             ->push(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])
             // الثاني: لا رابط بعد القراءة، فيُعاد لاحقاً بالمعرّف نفسه
-            ->push(['id' => 'event-2'])
+            ->push(teamsEvent($meeting, ['id' => 'event-2']))
             ->push(['id' => 'event-2', 'onlineMeeting' => null])
             // الثالث: تعذر البوابة
             ->push(['error' => 'down'], 503),
     ]);
     $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
-    $meeting = Meeting::factory()->online()->create();
 
     expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1', 'organizer' => 'organizer@ejaz.example'])
         ->and(fn () => $graph->create($meeting))->toThrow(RuntimeException::class)

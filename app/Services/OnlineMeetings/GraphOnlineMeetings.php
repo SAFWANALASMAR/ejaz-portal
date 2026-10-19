@@ -11,6 +11,7 @@ use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -30,19 +31,25 @@ final class GraphOnlineMeetings implements OnlineMeetings
 
     /**
      * بـ transactionId ثابت للاجتماع (uuid والجيل): إعادة المحاولة بعد مهلة أو توقف العامل بعد الإنشاء
-     * يردها Graph إلى الحدث نفسه، فلا يتكرر حدث برابط صالح في التقويم.
+     * يردها Graph إلى الحدث نفسه، فلا يتكرر حدث برابط صالح في التقويم. والحدث المردود قد يحمل عنواناً أو
+     * موعداً قديماً (عُدّل الاجتماع بين المحاولتين)، فيُحدَّث إلى الحال.
      */
     public function create(Meeting $meeting): array
     {
         $organizer = $this->connection->organizer;
+        $payload = $this->payload($meeting);
         $event = $this->send(fn (PendingRequest $graph) => $graph->post($this->events($organizer), [
-            ...$this->payload($meeting),
+            ...$payload,
             'transactionId' => $meeting->uuid.'-'.$meeting->online_generation,
         ]));
         $id = $event->json('id');
 
         if (! is_string($id) || $id === '') {
             throw new OnlineMeetingFailed(OnlineMeetingFailure::Unexpected);
+        }
+
+        if (! self::matches($event, $payload)) {
+            $this->send(fn (PendingRequest $graph) => $graph->patch($this->events($organizer).'/'.rawurlencode($id), $payload));
         }
 
         // قد يتأخر تجهيز الاجتماع عن إنشاء الحدث، فيُقرأ الحدث مرة. وإن بقي بلا رابط فالمحاولة التالية
@@ -91,7 +98,8 @@ final class GraphOnlineMeetings implements OnlineMeetings
      */
     private function payload(Meeting $meeting): array
     {
-        $ends = $meeting->ends_at ?? throw new OnlineMeetingFailed(OnlineMeetingFailure::Unexpected);
+        // الاجتماع عن بعد بموعد انتهاء (SaveMeeting). والساعة احتياط لاسترداد حدث اجتماع صار في القاعة وحذفه
+        $ends = $meeting->ends_at ?? $meeting->starts_at->copy()->addHour();
 
         return [
             'subject' => $meeting->title,
@@ -100,6 +108,20 @@ final class GraphOnlineMeetings implements OnlineMeetings
             'isOnlineMeeting' => true,
             'onlineMeetingProvider' => 'teamsForBusiness',
         ];
+    }
+
+    /**
+     * الحدث المردود بعنوان الاجتماع وموعده الحاليين؟ والموعد لحظةٌ تُقارن، لا نصاً (Graph يضيف كسور الثانية).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private static function matches(Response $event, array $payload): bool
+    {
+        // منطقة زمنية لا تُقرأ (اسم ويندوز مثلاً) اختلافٌ، فيُحدَّث الحدث ولا ضرر
+        $same = fn (string $key): bool => rescue(fn (): bool => is_string($event->json($key.'.dateTime'))
+            && Carbon::parse((string) $event->json($key.'.dateTime'), (string) ($event->json($key.'.timeZone') ?? 'UTC'))->utc()->format('Y-m-d\TH:i:s') === $payload[$key]['dateTime'], false, report: false);
+
+        return $event->json('subject') === $payload['subject'] && $same('start') && $same('end');
     }
 
     private function events(string $organizer): string
@@ -136,6 +158,11 @@ final class GraphOnlineMeetings implements OnlineMeetings
 
         $code = $response->json('error.code');
 
+        // رمز رُفض (سُحبت الصلاحية أو تغيّر التطبيق) لا يُعاد استعماله، فالمحاولة التالية بمفتاح جديد
+        if (in_array($response->status(), [401, 403], true)) {
+            Cache::forget($this->tokenKey());
+        }
+
         throw new OnlineMeetingFailed(match (true) {
             $response->status() === 404 && $code === 'ErrorItemNotFound' => OnlineMeetingFailure::EventNotFound,
             $response->status() === 404, in_array($code, ['ErrorInvalidUser', 'MailboxNotEnabledForRESTAPI'], true) => OnlineMeetingFailure::OrganizerNotFound,
@@ -143,6 +170,7 @@ final class GraphOnlineMeetings implements OnlineMeetings
             $response->status() === 403 => OnlineMeetingFailure::AccessDenied,
             $response->status() === 429 => OnlineMeetingFailure::Throttled,
             $response->serverError() => OnlineMeetingFailure::ServiceError,
+            $response->status() === 400 => OnlineMeetingFailure::InvalidRequest,
             default => OnlineMeetingFailure::Unexpected,
         }, $response->status());
     }

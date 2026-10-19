@@ -116,6 +116,7 @@ it('turns each Microsoft failure into a reason, without its body or the secret',
     'unknown tenant' => [fn () => ['login.microsoftonline.com/*' => Http::response(['error' => 'invalid_request', 'error_description' => 'AADSTS90002: Tenant not found'], 400)], OnlineMeetingFailure::InvalidCredentials, 400],
     'no calendar permission' => [fn () => [...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorAccessDenied', 'message' => 'AADSTS denied']], 403)], OnlineMeetingFailure::AccessDenied, 403],
     'unknown organizer' => [fn () => [...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorInvalidUser']], 404)], OnlineMeetingFailure::OrganizerNotFound, 404],
+    'bad request' => [fn () => [...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorInvalidRequest']], 400)], OnlineMeetingFailure::InvalidRequest, 400],
     'throttled' => [fn () => [...teamsToken(), 'graph.microsoft.com/*' => Http::response([], 429)], OnlineMeetingFailure::Throttled, 429],
     'Microsoft down' => [fn () => [...teamsToken(), 'graph.microsoft.com/*' => Http::response([], 503)], OnlineMeetingFailure::ServiceError, 503],
     'login timeout' => [fn () => teamsTimeout(...), OnlineMeetingFailure::Timeout, null],
@@ -168,13 +169,13 @@ it('records a lasting failure on the meeting once, logs it, and leaves it for th
 
 it('retries a passing failure in the queue, and clears the reason once it works', function () {
     storeTeamsConnection();
+    $meeting = Meeting::factory()->online()->create();
     Http::fake([
         ...teamsToken(),
         'graph.microsoft.com/*' => Http::sequence()
             ->push([], 503)
-            ->push(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']]),
+            ->push(teamsEvent($meeting, ['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])),
     ]);
-    $meeting = Meeting::factory()->online()->create();
 
     expect(fn () => (new SyncOnlineMeeting($meeting->id))->handle())->toThrow(OnlineMeetingFailed::class)
         ->and($meeting->fresh()->online_sync_error)->toBe(OnlineMeetingFailure::ServiceError);
@@ -189,12 +190,12 @@ it('retries a passing failure in the queue, and clears the reason once it works'
 
 it('creates the Teams meeting again when its event was deleted from the calendar', function () {
     storeTeamsConnection();
+    $meeting = Meeting::factory()->online()->create(['online_meeting_id' => 'gone']);
     Http::fake([
         ...teamsToken(),
         'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/gone' => Http::response(['error' => ['code' => 'ErrorItemNotFound']], 404),
-        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(['id' => 'event-2', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/2']]),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(teamsEvent($meeting, ['id' => 'event-2', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/2']])),
     ]);
-    $meeting = Meeting::factory()->online()->create(['online_meeting_id' => 'gone']);
 
     (new SyncOnlineMeeting($meeting->id))->handle();
 
@@ -420,4 +421,83 @@ it('retries every failed meeting once Teams is enabled, and warns when switched 
         ->assertNotified(__('settings.online_meetings.disabled_with_links', ['count' => '1']));
 
     Bus::assertDispatchedTimes(SyncOnlineMeeting::class, 1);
+});
+
+it('brings an event returned by a retried create up to date, and leaves a current one alone', function () {
+    $meeting = Meeting::factory()->online()->create(['title' => 'العنوان الحالي']);
+    $stale = teamsEvent($meeting, ['id' => 'event-1', 'subject' => 'عنوان قديم', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']]);
+    Http::fake([
+        ...teamsToken(),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::sequence()
+            ->push($stale)
+            ->push(teamsEvent($meeting, ['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::response([], 200),
+    ]);
+    $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
+
+    $graph->create($meeting);
+    expect(Http::recorded(fn (Request $request) => $request->method() === 'PATCH'))->toHaveCount(1);
+    Http::assertSent(fn (Request $request) => $request->method() === 'PATCH' && $request['subject'] === 'العنوان الحالي');
+
+    $graph->create($meeting);
+    expect(Http::recorded(fn (Request $request) => $request->method() === 'PATCH'))->toHaveCount(1);
+});
+
+it('recovers and deletes an event whose create timed out once the meeting is cancelled', function () {
+    storeTeamsConnection();
+    $meeting = Meeting::factory()->online()->create();
+    Http::fake([
+        ...teamsToken(),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::sequence()
+            ->pushFailedConnection()
+            ->push(teamsEvent($meeting, ['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::response([], 204),
+    ]);
+
+    expect(fn () => (new SyncOnlineMeeting($meeting->id))->handle())->toThrow(OnlineMeetingFailed::class);
+    expect($meeting->fresh())->online_create_pending->toBeTrue()->online_meeting_id->toBeNull()->needsOnlineSync()->toBeTrue();
+
+    $meeting->forceFill(['status' => MeetingStatus::Cancelled])->save();
+    (new SyncOnlineMeeting($meeting->id))->handle();
+
+    $posts = Http::recorded(fn (Request $request) => $request->method() === 'POST' && str_ends_with($request->url(), '/events'));
+    expect(collect($posts)->map(fn ($pair) => $pair[0]['transactionId'])->unique()->values()->all())->toBe([$meeting->uuid.'-0']);
+    Http::assertSent(fn (Request $request) => $request->method() === 'DELETE' && str_ends_with($request->url(), '/events/event-1'));
+    expect($meeting->fresh())
+        ->online_meeting_id->toBeNull()
+        ->online_create_pending->toBeFalse()
+        ->online_generation->toBe(1)
+        ->needsOnlineSync()->toBeFalse();
+});
+
+it('drops a cached token that Graph refuses, so the next try asks for a new one', function (int $status) {
+    Http::fake([...teamsToken(), 'graph.microsoft.com/*' => Http::response([], $status)]);
+    $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
+    $meeting = Meeting::factory()->online()->create(['online_meeting_id' => 'event-1']);
+
+    expect(fn () => $graph->update($meeting))->toThrow(OnlineMeetingFailed::class)
+        ->and(fn () => $graph->update($meeting))->toThrow(OnlineMeetingFailed::class)
+        ->and(cache()->has('ms-graph-token:'.hash_hmac('sha256', 'tenant-1|client-1|secret-1', (string) config('app.key'))))->toBeFalse()
+        ->and(Http::recorded(fn (Request $request) => str_contains($request->url(), '/oauth2/v2.0/token')))->toHaveCount(2);
+})->with([401, 403]);
+
+it('does not retry a request Graph rejects as invalid', function () {
+    storeTeamsConnection();
+    Http::fake([...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorInvalidRequest']], 400)]);
+    $meeting = Meeting::factory()->online()->create();
+
+    (new SyncOnlineMeeting($meeting->id))->handle();
+
+    expect($meeting->fresh()->online_sync_error)->toBe(OnlineMeetingFailure::InvalidRequest)
+        ->and(OnlineMeetingFailure::InvalidRequest->isTransient())->toBeFalse();
+});
+
+it('warns on the settings page when the server does not use the graph driver', function () {
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+
+    config(['services.online_meetings.driver' => 'fake']);
+    Livewire::test(OnlineMeetingsSettings::class)->assertSee(__('settings.online_meetings.driver_warning'));
+
+    config(['services.online_meetings.driver' => 'graph']);
+    Livewire::test(OnlineMeetingsSettings::class)->assertDontSee(__('settings.online_meetings.driver_warning'));
 });

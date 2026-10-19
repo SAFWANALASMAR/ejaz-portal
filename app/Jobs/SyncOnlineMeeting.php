@@ -84,13 +84,20 @@ class SyncOnlineMeeting implements ShouldQueue
     private function sync(Meeting $meeting): void
     {
         // لا شيء في تيمز ولا يلزم شيء: لا يُقرأ الإعداد أصلاً، فلا يتعذر اجتماع في القاعة
-        if (! $meeting->wantsOnlineMeeting() && $meeting->online_meeting_id === null) {
+        if (! $meeting->wantsOnlineMeeting() && ! $meeting->hasOnlineMeeting()) {
             return;
         }
 
         $meetings = app(OnlineMeetings::class);
 
         if (! $meeting->wantsOnlineMeeting()) {
+            // إنشاء لم يُعرف مصيره ثم أُلغي الاجتماع: يُسترد الحدث بمعرّف منع التكرار نفسه ثم يُحذف، فلا يبقى
+            // رابط حي. وإن لم يكن وصل إلى Microsoft فيُنشأ هنا ويُحذف، ولا ضرر
+            if ($meeting->online_meeting_id === null) {
+                $created = $meetings->create($meeting);
+                $meeting->forceFill(['online_meeting_id' => $created['id'], 'online_organizer' => $created['organizer']])->saveQuietly();
+            }
+
             $meetings->cancel($meeting);
             self::forget($meeting);
 
@@ -112,8 +119,15 @@ class SyncOnlineMeeting implements ShouldQueue
             }
         }
 
+        // يُحفظ قبل الطلب: إن انقطع بعده عُرف أن للجيل الحالي حدثاً قد يكون في التقويم
+        $meeting->forceFill(['online_create_pending' => true])->saveQuietly();
         $created = $meetings->create($meeting);
-        $meeting->forceFill(['online_meeting_id' => $created['id'], 'online_join_url' => $created['join_url'], 'online_organizer' => $created['organizer']])->saveQuietly();
+        $meeting->forceFill([
+            'online_meeting_id' => $created['id'],
+            'online_join_url' => $created['join_url'],
+            'online_organizer' => $created['organizer'],
+            'online_create_pending' => false,
+        ])->saveQuietly();
     }
 
     /**
@@ -125,6 +139,7 @@ class SyncOnlineMeeting implements ShouldQueue
             'online_meeting_id' => null,
             'online_join_url' => null,
             'online_organizer' => null,
+            'online_create_pending' => false,
             'online_generation' => $meeting->online_generation + 1,
         ])->saveQuietly();
     }

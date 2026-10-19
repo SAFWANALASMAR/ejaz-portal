@@ -39,7 +39,7 @@ class CancelMeeting
             $meeting->setRawAttributes($locked->getAttributes(), true);
         });
 
-        if ($meeting->online_meeting_id !== null) {
+        if ($meeting->hasOnlineMeeting()) {
             SyncOnlineMeeting::dispatch($meeting->id);
         }
 

@@ -52,7 +52,7 @@ class Meeting extends Model
      *
      * @var array<string, mixed>
      */
-    protected $attributes = ['body' => 'general_assembly', 'online_generation' => 0];
+    protected $attributes = ['body' => 'general_assembly', 'online_generation' => 0, 'online_create_pending' => false];
 
     public const MINUTES_DIRECTORY = 'meeting-minutes';
 
@@ -72,6 +72,7 @@ class Meeting extends Model
             'online_sync_error' => OnlineMeetingFailure::class,
             'online_sync_failed_at' => 'datetime',
             'online_generation' => 'integer',
+            'online_create_pending' => 'boolean',
             'attachments' => 'array',
             'quorum_percent' => 'integer',
             'members_count' => 'integer',
@@ -96,7 +97,7 @@ class Meeting extends Model
     {
         // المحذوف من اللوحة يُلغى اجتماع تيمز له في الطابور، والمستعاد يُنشأ له من جديد
         static::deleted(function (Meeting $meeting): void {
-            if ($meeting->online_meeting_id !== null) {
+            if ($meeting->hasOnlineMeeting()) {
                 SyncOnlineMeeting::dispatch($meeting->id);
             }
         });
@@ -254,13 +255,21 @@ class Meeting extends Model
     }
 
     /**
-     * تيمز لا يطابق الاجتماع: تعذّرت مزامنته، أو يلزمه رابط لم يُنشأ، أو بقي له اجتماع تيمز لا يلزمه.
-     * فتظهر إعادة المحاولة للمسؤول.
+     * تيمز لا يطابق الاجتماع: تعذّرت مزامنته، أو يلزمه رابط لم يُنشأ، أو بقي له اجتماع تيمز لا يلزمه (ومنه
+     * إنشاء لم يُعرف مصيره). فتظهر إعادة المحاولة للمسؤول.
      */
     public function needsOnlineSync(): bool
     {
         return $this->online_sync_error !== null
-            || ($this->wantsOnlineMeeting() ? $this->online_meeting_id === null : $this->online_meeting_id !== null);
+            || ($this->wantsOnlineMeeting() ? $this->online_meeting_id === null : $this->hasOnlineMeeting());
+    }
+
+    /**
+     * له اجتماع تيمز، أو قد يكون: طُلب إنشاؤه ولم يُعرف معرّفه.
+     */
+    public function hasOnlineMeeting(): bool
+    {
+        return $this->online_meeting_id !== null || $this->online_create_pending;
     }
 
     public function getActivitylogOptions(): LogOptions

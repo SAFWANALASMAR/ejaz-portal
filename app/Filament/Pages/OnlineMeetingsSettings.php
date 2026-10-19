@@ -78,6 +78,12 @@ class OnlineMeetingsSettings extends Page
         return $schema
             ->statePath('data')
             ->components([
+                // بغير المشغّل graph لا يُستعمل هذا الإعداد أصلاً (fake للتطوير، ويُطفأ في الإنتاج)
+                Section::make(__('settings.online_meetings.driver_warning'))
+                    ->description(__('settings.online_meetings.driver_warning_hint', ['driver' => (string) config('services.online_meetings.driver')]))
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->iconColor('warning')
+                    ->visible(fn (): bool => ! self::graphDriver()),
                 Section::make()->description(__('settings.online_meetings.hint'))->columns(2)->schema([
                     Toggle::make('enabled')->label(__('settings.online_meetings.enabled'))
                         ->helperText(__('settings.online_meetings.enabled_hint'))
@@ -150,7 +156,7 @@ class OnlineMeetingsSettings extends Page
             ->send();
 
         // الإطفاء لا يلغي في تيمز ما أُلغي هنا بعده، فيُنبَّه إن بقيت روابط قائمة
-        $linked = Meeting::query()->whereNotNull('online_meeting_id')->count();
+        $linked = Meeting::query()->where(fn ($query) => $query->whereNotNull('online_meeting_id')->orWhere('online_create_pending', true))->count();
 
         if (! ($state['enabled'] ?? false) && $linked > 0) {
             Notification::make()->warning()->persistent()
@@ -173,7 +179,10 @@ class OnlineMeetingsSettings extends Page
         }
 
         if ($failure === null) {
-            Notification::make()->success()->title(__('settings.online_meetings.test_ok'))->send();
+            Notification::make()->success()->title(__('settings.online_meetings.test_ok'))
+                // الاتصال سليم، لكن الاجتماعات لا تمر به ما لم يكن المشغّل graph
+                ->body(self::graphDriver() ? null : __('settings.online_meetings.driver_warning'))
+                ->send();
 
             return;
         }
@@ -183,6 +192,11 @@ class OnlineMeetingsSettings extends Page
             ->body(__('assembly.online_failure_hints.'.$failure->value))
             ->persistent()
             ->send();
+    }
+
+    private static function graphDriver(): bool
+    {
+        return config('services.online_meetings.driver') === 'graph';
     }
 
     private function actor(): User

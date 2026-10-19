@@ -116,7 +116,7 @@ class SaveMeeting
         $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, Meeting::ATTACHMENTS_DIRECTORY));
         Storage::disk(Meeting::disk())->delete($removed->values()->all());
 
-        if (($meeting->is_online || $meeting->online_meeting_id !== null) && ($creating || $meeting->wasChanged(['title', 'starts_at', 'ends_at', 'is_online']))) {
+        if (($meeting->is_online || $meeting->hasOnlineMeeting()) && ($creating || $meeting->wasChanged(['title', 'starts_at', 'ends_at', 'is_online']))) {
             SyncOnlineMeeting::dispatch($meeting->id);
         }
 
