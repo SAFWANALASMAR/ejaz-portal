@@ -57,8 +57,13 @@ class SaveAssistantSettings
             $settings->api_key = null;
         }
 
-        if ($settings->generation_enabled && (! $settings->hasUsableProvider() || $settings->monthly_cap === null || $settings->input_price === null || $settings->output_price === null)) {
-            throw ValidationException::withMessages(['generation_enabled' => __('assistant.admin.settings.errors.generation_requires')]);
+        // التوليد في المساعد والتحليل في الإحصائيات يرسلان إلى المزود نفسه بالسقف نفسه، فلكل منهما الشرط نفسه
+        $ready = $settings->hasUsableProvider() && $settings->monthly_cap !== null && $settings->input_price !== null && $settings->output_price !== null;
+
+        foreach (['generation_enabled', 'analysis_enabled'] as $switch) {
+            if ($settings->{$switch} && ! $ready) {
+                throw ValidationException::withMessages([$switch => __('assistant.admin.settings.errors.generation_requires')]);
+            }
         }
 
         DB::transaction(function () use ($settings, $keyChanged, $actor): void {
@@ -113,6 +118,7 @@ class SaveAssistantSettings
         $validated = Validator::make($data, [
             'is_enabled' => ['boolean'],
             'generation_enabled' => ['boolean'],
+            'analysis_enabled' => ['boolean'],
             'provider' => ['nullable', Rule::in($providers)],
             'model' => ['nullable', 'string', 'max:150', 'regex:/^[A-Za-z0-9._:\/@\-]+$/'],
             'base_url' => ['nullable', 'string', 'max:300', function (string $attribute, mixed $value, Closure $fail): void {

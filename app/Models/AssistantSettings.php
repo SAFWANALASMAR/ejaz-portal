@@ -18,6 +18,7 @@ use Spatie\Activitylog\Support\LogOptions;
  *
  * @property bool $is_enabled
  * @property bool $generation_enabled
+ * @property bool $analysis_enabled
  * @property AssistantProvider|null $provider
  * @property string|null $model
  * @property string|null $base_url
@@ -31,7 +32,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $cap_alerted_month
  */
 #[Fillable([
-    'is_enabled', 'generation_enabled', 'provider', 'model', 'base_url', 'api_key', 'monthly_cap', 'input_price',
+    'is_enabled', 'generation_enabled', 'analysis_enabled', 'provider', 'model', 'base_url', 'api_key', 'monthly_cap', 'input_price',
     'output_price', 'welcome_text', 'suggested_questions', 'log_retention_days', 'cap_alerted_month',
 ])]
 class AssistantSettings extends Model
@@ -62,6 +63,7 @@ class AssistantSettings extends Model
         return [
             'is_enabled' => 'boolean',
             'generation_enabled' => 'boolean',
+            'analysis_enabled' => 'boolean',
             'provider' => AssistantProvider::class,
             'api_key' => 'encrypted',
             'monthly_cap' => 'decimal:2',
@@ -212,7 +214,7 @@ class AssistantSettings extends Model
     {
         return LogOptions::defaults()
             ->useLogName('assistant')
-            ->logOnly(['is_enabled', 'generation_enabled', 'provider', 'model', 'base_url', 'monthly_cap', 'input_price', 'output_price', 'welcome_text', 'suggested_questions', 'log_retention_days'])
+            ->logOnly(['is_enabled', 'generation_enabled', 'analysis_enabled', 'provider', 'model', 'base_url', 'monthly_cap', 'input_price', 'output_price', 'welcome_text', 'suggested_questions', 'log_retention_days'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

@@ -82,6 +82,7 @@ enum ActivityEvent: string implements HasLabel
     // المساعد الذكي: المفتاح بلا قيمته
     case AssistantKeyChanged = 'assistant_key_changed';
     case AssistantAnswerFlagged = 'assistant_answer_flagged';
+    case StatsAnalysisRequested = 'stats_analysis_requested';
     // قنوات التواصل: تغيير مفتاح مزود (بلا قيمته)، ورسالة اختبار من اللوحة، وإشعار تسليم بتوقيع خاطئ
     case MessagingSecretsChanged = 'messaging_secrets_changed';
     case MessagingTestSent = 'messaging_test_sent';
