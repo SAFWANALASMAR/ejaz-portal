@@ -2,7 +2,6 @@
 
 namespace App\Actions\Assembly;
 
-use App\Contracts\OnlineMeetings;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\MeetingType;
@@ -20,8 +19,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
-use RuntimeException;
 
 /**
  * جدولة اجتماع للجمعية العمومية أو تعديله (السكرتير، والمجدول وحده يُعدَّل — MeetingPolicy).
@@ -86,14 +83,7 @@ class SaveMeeting
             'location.required' => __('assembly.validation.place_or_online'),
         ])->validate();
 
-        // خطأ إعداد تيمز يظهر للسكرتير هنا، لا فشلاً متكرراً في الطابور
-        if ($online) {
-            try {
-                app(OnlineMeetings::class);
-            } catch (RuntimeException|InvalidArgumentException) {
-                throw ValidationException::withMessages(['is_online' => __('assembly.validation.online_unavailable')]);
-            }
-        }
+        // تعذر تيمز (ومنه الربط المطفأ) لا يمنع الحفظ: سببه على الاجتماع للمسؤول مع إعادة المحاولة (SyncOnlineMeeting)
 
         $before = collect($meeting->attachments ?? [])->keyBy('path');
         $attachments = array_map(fn (array $file): array => $before->get($file['path']) ?? self::newAttachment($meeting, $file), $validated['attachments'] ?? []);
@@ -126,7 +116,7 @@ class SaveMeeting
         $removed = $before->keys()->reject(fn (string $path): bool => in_array($path, $kept, true) || ! StoragePath::inDirectory($path, Meeting::ATTACHMENTS_DIRECTORY));
         Storage::disk(Meeting::disk())->delete($removed->values()->all());
 
-        if (($meeting->is_online || $meeting->online_meeting_id !== null) && ($creating || $meeting->wasChanged(['title', 'starts_at', 'ends_at', 'is_online']))) {
+        if (($meeting->is_online || $meeting->hasOnlineMeeting()) && ($creating || $meeting->wasChanged(['title', 'starts_at', 'ends_at', 'is_online']))) {
             SyncOnlineMeeting::dispatch($meeting->id);
         }
 

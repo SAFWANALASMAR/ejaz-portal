@@ -51,6 +51,14 @@ class MeetingPolicy extends ModulePolicy
     }
 
     /**
+     * إعادة مزامنة تيمز بأي حال للاجتماع: الملغى قد يبقى له اجتماع تيمز تعذّر إلغاؤه.
+     */
+    public function syncOnline(User $user, Meeting $meeting): bool
+    {
+        return $this->allows($user, 'update') && $meeting->isVisibleTo($user);
+    }
+
+    /**
      * الانعقاد والحضور بعد بدء الموعد.
      */
     public function markHeld(User $user, Meeting $meeting): bool

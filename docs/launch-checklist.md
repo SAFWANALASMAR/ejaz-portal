@@ -52,7 +52,7 @@
 ### ما يلزمه قرار أو حساب (`security.md` «عند كل نشر»)
 
 - ⏳ **التحدي ضد الآليات** إن سُمح للضيوف في استبيان: `BOT_CHALLENGE_DRIVER=turnstile` ومفتاحاه.
-- ⏳ **اجتماعات تيمز**: `ONLINE_MEETINGS_DRIVER=graph` ومفاتيح `MS_GRAPH_*` (حساب Microsoft 365 — المرحلة 4).
+- ⏳ **اجتماعات تيمز**: `ONLINE_MEETINGS_DRIVER=graph` (في القالب)، ثم تطبيق Entra ومفاتيحه في «ربط تيمز» باللوحة بعد وصول حساب Microsoft 365 (`guides/teams-meetings.md`). ولا يمنع الإطلاق: مطفأً يُحفظ الاجتماع عن بعد بلا رابط.
 - ⏳ **مزود الرسائل النصية**: `SMS_DRIVER` (بدونه لا يعمل توثيق الجوال في الإنتاج — I2 في تقرير الفحص).
 - 🗄️ **الدفع** (مؤرشف، لا يلزم للإطلاق): `PAYMENT_DRIVER=moyasar` ومفاتيحه، و`CSP_FORM_ACTION`، و`REVOKE` على جداول الدفع — بند المرحلة 5 في `roadmap.md`، متى أُعيد `PAYMENTS_ENABLED=true`.
 - ⏳ **رفع مقاطع المسابقات في الإنتاج** (المرحلة 2): `COMPETITION_VIDEO_UPLOAD=s3`، و`CSP_CONNECT_SRC`، وCORS، وقاعدة إلغاء الرفع غير المكتمل — `.env.production.example`، و`deploy/storage/`، و`docs/deploy.md` «حدود الرفع». و`ffmpeg` في الصورة.
