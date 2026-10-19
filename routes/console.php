@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\CheckHealth;
+use App\Models\AssistantLog;
 use App\Models\MessageLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
@@ -50,6 +51,11 @@ Schedule::call(fn () => Cache::put(CheckHealth::HEARTBEAT_KEY, now()->getTimesta
 
 // تنبيه المسؤولين بالمستندات القريبة من الانتهاء والمنتهية، مرة لكل عتبة (docs/plans/registers.md)
 Schedule::command('registers:send-alerts')->dailyAt('07:00')->timezone(config('app.display_timezone'))->withoutOverlapping()->onOneServer();
+
+// سجل محادثات المساعد يُحذف بعد مدة الاحتفاظ من إعداداته (requirements/10)، وفهرسه يُعاد بناؤه ليلياً احتياطاً لما
+// تغيّر خارج اللوحة
+Schedule::command('model:prune', ['--model' => [AssistantLog::class]])->daily()->onOneServer();
+Schedule::command('ejaz:assistant-index')->dailyAt('03:30')->timezone(config('app.display_timezone'))->withoutOverlapping()->onOneServer();
 
 // سجل حالة الرسائل بعد مدة الاحتفاظ (config/messaging.php: log_days)
 Schedule::command('model:prune', ['--model' => [MessageLog::class]])->daily()->onOneServer();
