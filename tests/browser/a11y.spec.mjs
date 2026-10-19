@@ -19,6 +19,8 @@ const ADMIN_STATE = process.env.ADMIN_STATE;
 const adminPages = [
     '/admin', '/admin/meetings', '/admin/meetings/create', '/admin/documents', '/admin/assembly-files', '/admin/users',
     '/admin/programs', '/admin/programs/create', '/admin/media-assets', '/admin/competitions', '/admin/archive-items', '/admin/form-templates', '/admin/reviews',
+    // ما أُضيف منذ 13 أكتوبر: المساعد الذكي، وقنوات التواصل، واجتماعات تيمز
+    '/admin/assistant-settings', '/admin/assistant-faqs', '/admin/assistant-logs', '/admin/messaging-channels', '/admin/online-meetings-settings',
 ];
 
 async function expectNoAxeViolations(page, path) {
