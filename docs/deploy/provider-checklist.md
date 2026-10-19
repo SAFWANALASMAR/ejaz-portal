@@ -97,6 +97,7 @@
   - الوثائق: `https://eu2.contabostorage.com` (أو `usc1` أو `sin1`)، ونمط المسار وحده (`AWS_USE_PATH_STYLE_ENDPOINT=true`).
   - والمنطقة في أمثلة Contabo `default`.
 - ⬜ **الروابط الموقّعة (presigned URLs)** للتنزيل وللرفع (`PUT` و`UploadPart`). الوثائق: التنزيل الموقّع موثّق، والرفع الموقّع غير مذكور نصاً. فيُجرَّب على التجريبي.
+  - ومعاملات `response-content-type` و`response-content-disposition` و`response-cache-control` في رابط التنزيل: ملفات الحوكمة والمكتبة والمسابقات تعتمد عليها في نوع الملف وعرضه أو تنزيله باسمه. ومعها طلب الجزء (`Range`) لمشغّل الصوت.
 - ⬜ **الرفع المجزأ (multipart).** الوثائق: مدعوم، وحد الجزء غير منشور. والأجزاء المتروكة تشغل السعة المدفوعة، ويلغيها `ejaz:prune-video-uploads` يومياً.
 - ⬜ **قواعد CORS** (`deploy/storage/cors.json`).
   - الوثائق: غير مذكورة في جدول الميزات الحالي.

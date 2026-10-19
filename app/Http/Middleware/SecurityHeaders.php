@@ -81,6 +81,12 @@ class SecurityHeaders
             $directives['worker-src'] = ["'self'", 'blob:'];
         }
 
+        // نطاق التخزين لعارض PDF في صفحتي الوثيقة وعنصر المكتبة وحدهما، متى حُوّل الملف إلى رابطه الموقّع. فواجهة
+        // المزود المشتركة بين عملائه لا تُضمَّن في صفحة أخرى بعد أي حقن (docs/decisions.md)
+        if ($request->routeIs('governance.show', 'library.show')) {
+            $directives['frame-src'] = [...$directives['frame-src'], ...self::origins('storage_frame_src')];
+        }
+
         // عنصر التحدي ضد الآليات في صفحتي الاستبيان والتبرع وحدهما، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
         // الصفحات الأخرى (docs/decisions.md)
         if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate')) {

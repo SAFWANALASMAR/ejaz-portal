@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -28,15 +29,31 @@ final class PrivateFileResponse
 
         abort_unless($storage->exists($path), 404);
 
-        if (config('filesystems.disks.'.$disk.'.driver') === 'local') {
+        if (self::isLocal($disk)) {
             return response()->file($storage->path($path), $headers);
         }
 
-        return redirect()->away($storage->temporaryUrl($path, now()->addMinutes($minutes), [
+        return self::temporaryRedirect($disk, $path, $mime, $name, $minutes, $download);
+    }
+
+    public static function isLocal(string $disk): bool
+    {
+        return config('filesystems.disks.'.$disk.'.driver') === 'local';
+    }
+
+    /**
+     * تحويل 302 إلى رابط التخزين الموقّع، بعد فحص الصلاحية والوجود عند المستدعي. والتحويل نفسه لا يُخزَّن عند
+     * وسيط مشترك، فلا يصل رابط إلى غير من طلبه ولا يبقى بعد إلغاء النشر.
+     */
+    public static function temporaryRedirect(string $disk, string $path, string $mime, string $name, int $minutes, bool $download = false): RedirectResponse
+    {
+        $disposition = self::disposition($download ? HeaderUtils::DISPOSITION_ATTACHMENT : HeaderUtils::DISPOSITION_INLINE, $name);
+
+        return redirect()->away(Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($minutes), [
             'ResponseContentType' => $mime,
             'ResponseContentDisposition' => $disposition,
             'ResponseCacheControl' => 'private, no-store',
-        ]));
+        ]))->header('Cache-Control', 'private, no-store');
     }
 
     private static function disposition(string $type, string $name): string
