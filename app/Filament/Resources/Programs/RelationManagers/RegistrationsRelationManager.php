@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Programs\RelationManagers;
 use App\Actions\Programs\RecordProgramAttendance;
 use App\Enums\RegistrationStatus;
 use App\Filament\Exports\ProgramRegistrationExporter;
+use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -42,6 +43,8 @@ class RegistrationsRelationManager extends RelationManager
             ->modelLabel(__('programs.registrations.model'))
             ->pluralModelLabel(__('programs.registrations.plural'))
             ->modifyQueryUsing(fn (Builder $query) => $query->with('user'))
+            // سبب غياب الشهادات بدل شهادة ناقصة (SyncAttendanceCertificate::issuable)
+            ->description(fn (): ?string => SyncAttendanceCertificate::issuable() ? null : __('programs.certificate.paused'))
             ->defaultSort('id')
             ->columns([
                 TextColumn::make('user.name')->label(__('programs.registrations.fields.name'))->searchable(),

@@ -6,6 +6,7 @@ use App\Enums\LibrarySection;
 use App\Http\Requests\LibraryIndexRequest;
 use App\Models\LibraryItem;
 use App\Support\ContentCache;
+use App\Support\PrivateFileResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -112,15 +113,20 @@ class LibraryController extends Controller implements HasMiddleware
     /**
      * الصوت على القرص المحلي يُقدَّم بطلب الجزء (Range)، فيعمل التقديم والتأخير في مشغّله. وPDF
      * كاملاً كالحوكمة، لأن عارض المتصفح يطلب الملف المحسَّن للويب قطعاً صغيرة كثيرة تتجاوز حد
-     * الطلبات. والاستجابة خاصة، فلا يحتفظ بها وسيط بعد إلغاء النشر. وفي الإنتاج يُسلَّم الملف
-     * للخادم أو لرابط تخزين موقّع قصير (roadmap.md).
+     * الطلبات. والاستجابة خاصة، فلا يحتفظ بها وسيط بعد إلغاء النشر. وعلى S3 تحويل إلى رابط تخزين
+     * موقّع قصير بعد فحص النشر، يطلب منه المشغّل والعارض الأجزاء مباشرة (roadmap.md، خطة I8). ويلزمه
+     * نطاق التخزين في CSP_MEDIA_SRC للصوت وCSP_FRAME_SRC للعرض المدمج.
      */
     private static function serve(LibraryItem $item, string $disposition): Response
     {
+        if (! PrivateFileResponse::isLocal(LibraryItem::disk())) {
+            return PrivateFileResponse::temporaryRedirect(LibraryItem::disk(), (string) $item->file, $item->fileContentType(), $item->downloadName(), (int) config('filesystems.content_url_minutes'), $disposition === 'attachment');
+        }
+
         $disk = Storage::disk(LibraryItem::disk());
         $headers = ['Content-Type' => $item->fileContentType()];
 
-        if (! $item->section->takesPdf() && config('filesystems.disks.'.LibraryItem::disk().'.driver') === 'local') {
+        if (! $item->section->takesPdf()) {
             return response()->file($disk->path((string) $item->file), $headers)
                 ->setPrivate()
                 ->setContentDisposition($disposition, $item->downloadName());

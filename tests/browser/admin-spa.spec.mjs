@@ -3,6 +3,7 @@
 //
 // يحتاج مشرفاً تجريبياً بتحقق ثنائي (ejaz:demo-user --admin --json)، وخادماً بمهلة خمول قصيرة حتى لا ينتظر
 // الاختبار نصف ساعة. التشغيل في tests/browser/README.md («لوحة الإدارة بوضع SPA»).
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -170,6 +171,18 @@ test.describe('admin panel in SPA mode', () => {
 
         await expectNoFullReload(page);
         expect(errors).toEqual([]);
+    });
+
+    // إعادة التجربة الشاملة (19 أكتوبر 2026، الخلل الجديد 2): رأس جدول «مكتبة الوسائط» الفارغ كان أعرض من الجوال،
+    // فيتمرر حاويه ولا تصله لوحة المفاتيح. والجدول فارغ في بيانات المعاينة، وبسجلات لا تظهر المخالفة أصلاً
+    test('keeps the media library table free of a scroll region the keyboard cannot reach', async () => {
+        await page.goto('/admin/media-assets');
+        await expect(page.locator('.fi-ta-ctn')).toBeVisible();
+
+        const { violations } = await new AxeBuilder({ page }).withRules(['scrollable-region-focusable']).analyze();
+
+        expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     });
 
     test('logs the administrator out with a full page load after the idle limit', async () => {
