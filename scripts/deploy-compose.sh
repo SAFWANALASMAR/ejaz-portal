@@ -69,6 +69,8 @@ fi
 
 say "٨/٩ ذاكرة المحتوى العام ورفع الصيانة"
 "${DC[@]}" exec -T app php artisan ejaz:refresh-content
+# فهرس المساعد الذكي من المحتوى المنشور: القوالب والمسارات الجديدة تغيّر روابط المقاطع (docs/guides/ai-assistant.md)
+"${DC[@]}" exec -T app php artisan ejaz:assistant-index
 "${DC[@]}" exec -T app php artisan up
 trap - ERR
 

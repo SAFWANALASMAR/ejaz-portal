@@ -32,6 +32,7 @@ return [
         'documents' => 'النماذج والأرشيف',
         'job_files' => 'ملفات الوظائف',
         'registers' => 'السجلات والمجالس والخطة السنوية',
+        'assistant' => 'المساعد الذكي',
     ],
 
     'events' => [
@@ -70,6 +71,8 @@ return [
         'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
         'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
         'live_stream_archived' => 'نقل تسجيل بث إلى المكتبة المرئية',
+        'assistant_key_changed' => 'تغيير مفتاح مزود المساعد',
+        'assistant_answer_flagged' => 'تعليم إجابة المساعد',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
         'attendance_recorded' => 'تسجيل حضور اجتماع',
         'minutes_uploaded' => 'رفع مسودة محضر',
@@ -86,6 +89,10 @@ return [
         'User' => 'حساب',
         'MenuItem' => 'عنصر قائمة',
         'Setting' => 'إعدادات الموقع',
+        'AssistantSettings' => 'إعدادات المساعد الذكي',
+        'AssistantFaq' => 'سؤال شائع للمساعد',
+        'AssistantGuide' => 'مقالة في دليل البوابة',
+        'AssistantLog' => 'محادثة مع المساعد',
         'Page' => 'صفحة',
         'Initiative' => 'مبادرة',
         'BoardMember' => 'عضو مجلس الإدارة',

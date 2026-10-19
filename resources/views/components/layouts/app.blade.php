@@ -69,5 +69,7 @@
     </main>
 
     @include('partials.footer')
+
+    @include('partials.assistant')
 </body>
 </html>

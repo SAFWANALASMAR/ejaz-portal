@@ -7,6 +7,7 @@ use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\GovernanceController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\EnsureAssistantEnabled;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 
@@ -73,6 +75,15 @@ Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slu
 // التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحدود لكل مشترك وللبوابة (FortifyServiceProvider)
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:contact')->name('contact.store');
+
+// المساعد الذكي (requirements/10): معطّلاً يرد 404، وحد الأسئلة لكل زائر (FortifyServiceProvider)
+Route::middleware(EnsureAssistantEnabled::class)->prefix('assistant')->name('assistant.')->group(function () {
+    Route::post('/ask', [AssistantController::class, 'ask'])->middleware('throttle:assistant')->name('ask');
+    Route::post('/answers/{answer}/rating', [AssistantController::class, 'rate'])
+        ->whereUuid('answer')
+        ->middleware('throttle:assistant-rating')
+        ->name('rate');
+});
 
 // لمحركات البحث: الخريطة من المنشور، وrobots بمفتاح الفهرسة
 Route::middleware('throttle:60,1')->group(function () {

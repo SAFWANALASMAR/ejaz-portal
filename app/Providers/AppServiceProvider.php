@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
+use App\Contracts\AiAssistant;
 use App\Contracts\BotChallenge;
 use App\Contracts\OnlineMeetings;
 use App\Contracts\PaymentGateway;
@@ -11,11 +12,13 @@ use App\Contracts\StoreCatalog;
 use App\Contracts\VideoUploads;
 use App\Contracts\WhatsAppNotifier;
 use App\Enums\RoleName;
+use App\Models\AssistantSettings;
 use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Policies\ExportPolicy;
+use App\Services\Assistant\AssistantProviders;
 use App\Services\BotChallenge\FakeBotChallenge;
 use App\Services\BotChallenge\TurnstileChallenge;
 use App\Services\OnlineMeetings\FakeOnlineMeetings;
@@ -28,6 +31,7 @@ use App\Services\VideoUploads\S3VideoUploads;
 use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
+use App\Support\Assistant\AssistantIndex;
 use App\Support\ChunkedVideoUpload;
 use App\Support\SpaLink;
 use App\Support\UploadLimits;
@@ -35,6 +39,7 @@ use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Routing\Events\RouteMatched;
@@ -134,6 +139,9 @@ class AppServiceProvider extends ServiceProvider
             };
         });
 
+        // المساعد الذكي: المزود من إعدادات اللوحة عند كل استعمال (requirements/10)، فلا يُحل إلا حين يُرسل إليه
+        $this->app->bind(AiAssistant::class, fn () => AssistantProviders::make(AssistantSettings::current()));
+
         $this->app->singleton(VideoUploads::class, function () {
             $disk = SubmissionVideo::disk();
 
@@ -207,6 +215,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+
+        // فهرس المساعد يتبع المحتوى: كل حفظ وحذف واستعادة يعيد مقاطع السجل، فلا تبقى مسودة ولا محذوف فيه
+        foreach (array_keys(AssistantIndex::MODELS) as $model) {
+            $model::saved(fn (Model $record) => AssistantIndex::sync($record));
+            $model::deleted(fn (Model $record) => AssistantIndex::sync($record));
+
+            if (in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
+                $model::restored(fn (Model $record) => AssistantIndex::sync($record));
+            }
+        }
 
         // @navigate($url): wire:navigate على رابط صفحة داخلية، ولا شيء لما يُحمَّل تحميلاً كاملاً (SpaLink)
         Blade::directive('navigate', fn (string $url): string => "<?php if (\\App\\Support\\SpaLink::allows({$url})) echo 'wire:navigate'; ?>");

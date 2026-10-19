@@ -1,15 +1,19 @@
 <?php
 
+use App\Contracts\AiAssistant;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
+use App\Models\AssistantSettings;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\User;
+use App\Services\Assistant\FakeAiAssistant;
 use App\Support\ContentCache;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -182,4 +186,31 @@ function failDeletesOf(string ...$paths): FilesystemAdapter
     });
 
     return $original;
+}
+
+/**
+ * يشغّل المساعد الذكي بالمزود الوهمي (للاختبارات)، بسقف وسعر فيعمل التوليد، ويعيد المزود الوهمي ليُفحص ما أُرسل إليه.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function enableAssistant(array $attributes = []): FakeAiAssistant
+{
+    // نطاق المزود المتوافق في الاختبارات مسموح كما يُضبط في .env على الخادم
+    config(['assistant.allowed_hosts' => ['api.anthropic.com', 'api.openai.com', 'models.example.sa']]);
+    AssistantSettings::query()->delete();
+    AssistantSettings::query()->create([
+        'is_enabled' => true,
+        'generation_enabled' => true,
+        'provider' => 'fake',
+        'monthly_cap' => 10,
+        'input_price' => 1,
+        'output_price' => 5,
+        ...$attributes,
+    ]);
+    Cache::forget(AssistantSettings::CACHE_KEY);
+
+    $fake = new FakeAiAssistant;
+    app()->instance(AiAssistant::class, $fake);
+
+    return $fake;
 }

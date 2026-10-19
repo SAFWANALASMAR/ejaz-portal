@@ -88,7 +88,11 @@
 - 🗄️ **مؤرشف:** المتجر الداخلي وبوابة ميسر والتبرعات (المبني في `feature/store-payments` — الفرع باقٍ) خلف `PAYMENTS_ENABLED=false`: مساراته 404، وشاشاته وقوائمه مخفية. يعود بالمفتاح وحده إن قررت الجمعية.
 - 🗄️ (مؤرشف، لا يلزم للإطلاق) ⬜ قبل نشر الدفع: `PAYMENT_DRIVER=moyasar` ومفاتيح ميسر و`PAYMENT_WEBHOOK_SECRET` (المشغّل `fake` يرفض العمل في الإنتاج)، ونطاق صفحة دفع ميسر في `CSP_FORM_ACTION`، و`zend.exception_ignore_args=On` في PHP، والمجدول `ejaz:sync-pending-payments` كل ساعة. وبعد النشر `php artisan db:seed --class=PermissionsSeeder` لصلاحيات `payments.*`، و`REVOKE TRUNCATE` على جدولي الدفع (و`UPDATE`/`DELETE` على `payment_events`) عن دور التطبيق.
 - ✅ (مدموج في `preview/local`) البث المباشر. (`requirements/09-extras.md`) في `feature/livestream` (`plans/livestream.md`).
-- ⬜ المساعد الذكي: يجيب من محتوى الجمعية المنشور فقط، بمفتاح تشغيل من الإدارة. (`requirements/10-ai-assistant.md`)
+- 🟨 (في `feature/ai-assistant`، بانتظار المراجعة والدمج) المساعد الذكي: دليل لاستخدام البوابة أولاً، ويجيب من محتوى الجمعية المنشور فقط، بمفتاح تشغيل من الإدارة ومطفأ افتراضياً. (`requirements/10-ai-assistant.md`، الخطة `plans/ai-assistant.md`، الدليل `guides/ai-assistant.md`)
+  - المزود من اللوحة: Claude من Anthropic، أو واجهة متوافقة مع OpenAI (ومنها نموذج داخل المملكة)، والوهمي للتطوير. والمرشد بالدليل والأسئلة الشائعة يعمل بلا مزود.
+  - **عند النشر:** `php artisan migrate`، ثم `php artisan db:seed --class=AccessSeeder --force` (صلاحية `ai_assistant.manage`)، ثم مرة واحدة `php artisan db:seed --class=AssistantGuideSeeder --force` (مسودات الدليل)، ثم `php artisan ejaz:assistant-index` (يشغّله `scripts/deploy-compose.sh` بعد كل نشر).
+  - **يبقى قبل تشغيله:** اختيار المزود والاشتراك، والسقف الشهري، ونص سياسة الخصوصية، والأسئلة الشائعة، ومراجعة مقالات الدليل (`open-questions.md`).
+- ⬜ تحليل الإحصائيات بالذكاء الاصطناعي في لوحة الإحصائيات، بطبقة المزود والسقف نفسيهما (إضافة صفوان، 19 أكتوبر 2026). بعد المساعد، في `feature/ai-analysis`.
 
 ## قرارات 14 أكتوبر 2026
 
