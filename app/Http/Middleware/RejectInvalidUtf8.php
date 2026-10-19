@@ -8,7 +8,8 @@ use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * مدخل بترميز UTF-8 غير صالح (في الحقول أو الاستعلام أو اسم ملف مرفوع) يُرفض بـ 400 قبل الجلسة والمتحكم.
+ * مدخل بترميز UTF-8 غير صالح (في حقول النموذج أو اسم ملف مرفوع) يُرفض بـ 400 قبل الجلسة والمتحكم. والاستعلام
+ * خارجه: صفحات القوائم تعيد البحث غير الصالح إلى القائمة كاملة (LibraryTest وGovernanceTest وMediaTest).
  * وإلا رفضه PostgreSQL عند الحفظ فصار 500، وأسقط حفظَ الجلسة بصيغة JSON عند إعادة المدخل القديم بعد خطأ
  * تحقق، فخرج صاحبه من حسابه (اختبار الأمن قبل الرفع، 19 أكتوبر 2026). والمتصفح لا يرسل مثله أبداً.
  */
@@ -16,7 +17,7 @@ class RejectInvalidUtf8
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless(self::valid($request->query->all()) && self::valid($request->request->all()) && self::valid($request->allFiles()), 400);
+        abort_unless(self::valid($request->request->all()) && self::valid($request->allFiles()), 400);
 
         return $next($request);
     }

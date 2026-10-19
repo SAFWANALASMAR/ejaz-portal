@@ -35,10 +35,9 @@ it('refuses an array verify token on the WhatsApp subscription check, not a serv
 });
 
 // ب٢: مدخل بترميز UTF-8 غير صالح كان يصير 500 من PostgreSQL، ويُخرج صاحبه من حسابه بعد خطأ تحقق
-it('refuses invalid UTF-8 in a field, a query or a file name with 400, before it reaches the database or the session', function () {
+it('refuses invalid UTF-8 in a field or a file name with 400, before it reaches the database or the session', function () {
     $this->post('/register', ['name' => "\xC3\x28abc", 'email' => 'utf8@example.test', 'password' => 'Utf8-Probe-Pass-2026', 'password_confirmation' => 'Utf8-Probe-Pass-2026'])
         ->assertStatus(400);
-    $this->get("/library?q=\xC3\x28")->assertStatus(400);
     expect(User::query()->where('email', 'utf8@example.test')->exists())->toBeFalse();
 
     $member = User::factory()->create();
