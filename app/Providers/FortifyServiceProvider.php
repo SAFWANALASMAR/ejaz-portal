@@ -173,5 +173,22 @@ class FortifyServiceProvider extends ServiceProvider
 
             return $limits;
         });
+
+        // المساعد الذكي: أسئلة كل زائر في نافذة (config/assistant.php)، وحد أوسع لشبكته (/24، أو /48 في IPv6) فلا يُلتف
+        // عليه بتدوير العناوين. والعنوان في مفتاح الحد وحده لا في السجل. والتقييم أوسع قليلاً، ولا يصل إلى المزود
+        RateLimiter::for('assistant', function (Request $request): array {
+            $ip = NetworkPrefix::normalize($request->ip());
+            $minutes = (int) config('assistant.per_visitor_minutes');
+            $network = $ip === null ? 'unknown' : NetworkPrefix::prefix($ip, NetworkPrefix::isIpv6($ip) ? 48 : 24);
+            $response = fn () => response()->json(['message' => __('assistant.limited'), 'contact_url' => route('contact', [], false)], 429);
+
+            return [
+                Limit::perMinutes($minutes, (int) config('assistant.per_visitor'))->by('assistant:'.NetworkPrefix::subscriber($ip))->response($response),
+                Limit::perMinutes($minutes, (int) config('assistant.per_network'))->by('assistant-net:'.$network)->response($response),
+            ];
+        });
+
+        RateLimiter::for('assistant-rating', fn (Request $request): Limit => Limit::perMinutes(10, 30)
+            ->by('assistant-rating:'.NetworkPrefix::subscriber($request->ip())));
     }
 }
