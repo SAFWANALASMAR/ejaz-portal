@@ -98,7 +98,15 @@ class AssistantSettings extends Model
             return $environment;
         }
 
-        // مفتاح شُفّر بمفتاح تطبيق قديم (APP_KEY تغيّر) لا يُقرأ: كأنه غير محفوظ، فيُكتب من جديد
+        return $this->storedKey();
+    }
+
+    /**
+     * المفتاح المحفوظ في القاعدة وحده، بلا مفتاح البيئة. ومفتاح شُفّر بمفتاح تطبيق قديم (APP_KEY تغيّر) لا يُقرأ: كأنه
+     * غير محفوظ، فيُكتب من جديد.
+     */
+    public function storedKey(): ?string
+    {
         try {
             return filled($this->api_key) ? (string) $this->api_key : null;
         } catch (DecryptException) {

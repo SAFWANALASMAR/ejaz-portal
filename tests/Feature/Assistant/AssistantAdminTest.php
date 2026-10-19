@@ -149,6 +149,35 @@ it('asks for the key again before sending a saved key to another provider or hos
     expect(AssistantSettings::query()->sole())->api_key->toBe('sk-local')->model->toBe('m2');
 });
 
+it('never sends one provider environment key to another provider when testing the connection', function () {
+    config(['assistant.api_keys.anthropic' => 'sk-anthropic-env']);
+    $admin = userWithRole(RoleName::SuperAdmin);
+    app(SaveAssistantSettings::class)->handle($admin, ['provider' => 'anthropic', 'model' => 'claude-haiku-5-5']);
+    Http::fake();
+
+    $this->actingAs($admin);
+    Livewire::test(AssistantSettingsPage::class)
+        ->fillForm(['provider' => 'openai_compatible', 'model' => 'gpt-x', 'base_url' => 'https://api.openai.com/v1'])
+        ->call('testConnection')
+        ->assertNotified(__('assistant.admin.settings.test_incomplete'));
+
+    Http::assertNothingSent();
+});
+
+it('tests the connection with the stored key only for the provider and host it was saved for', function () {
+    $admin = userWithRole(RoleName::SuperAdmin);
+    app(SaveAssistantSettings::class)->handle($admin, ['provider' => 'anthropic', 'model' => 'claude-haiku-5-5', 'api_key' => 'sk-stored']);
+    Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'OK']], 'usage' => ['input_tokens' => 3, 'output_tokens' => 1]])]);
+
+    $this->actingAs($admin);
+    Livewire::test(AssistantSettingsPage::class)
+        ->fillForm(['provider' => 'anthropic', 'model' => 'claude-sonnet-5-5'])
+        ->call('testConnection')
+        ->assertNotified(__('assistant.admin.settings.test_ok'));
+
+    Http::assertSent(fn (Request $request): bool => $request->hasHeader('x-api-key', 'sk-stored'));
+});
+
 it('clears the typed key from the page state when saving fails', function () {
     $this->actingAs(userWithRole(RoleName::SuperAdmin));
 

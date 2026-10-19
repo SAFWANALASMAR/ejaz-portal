@@ -1215,4 +1215,5 @@
     - ما خلف النافذة `inert` على الجوال.
     - حد المخرج في Chat Completions باسم `max_completion_tokens`، و`max_tokens` بالخيار `AI_ASSISTANT_OPENAI_TOKEN_PARAMETER`.
     - مفتاح البيئة لكل مزود (`AI_ASSISTANT_ANTHROPIC_KEY` و`AI_ASSISTANT_OPENAI_KEY`) بدل `AI_ASSISTANT_API_KEY`، فلا يُرسل مفتاح مزود إلى غيره.
+    - و«اختبار الاتصال» لا ينسخ إلا المفتاح المحفوظ في القاعدة، وما دام المزود والنطاق كما حُفظا. ومفتاح البيئة يأخذه الإعداد المعروض لمزوده وحده.
     - من يدير المساعد: المشرف العام وحده الآن، ويُوسَّع بقرار الجمعية من `config/permissions.php`.

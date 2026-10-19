@@ -12,7 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * «اختبار الاتصال» في إعدادات المساعد: طلب قصير إلى المزود بالقيم المعروضة في النموذج قبل حفظها، والمفتاح الجديد
- * إن كُتب وإلا المحفوظ. لا يُحفظ شيء ولا يُرسل محتوى، والطلب لا يُحسب على السقف (بضع وحدات).
+ * إن كُتب، وإلا المحفوظ لمزوده ونطاقه، أو مفتاح البيئة لمزوده. لا يُحفظ شيء ولا يُرسل محتوى، والطلب لا يُحسب على
+ * السقف (بضع وحدات).
  */
 class TestAssistantConnection
 {
@@ -35,7 +36,11 @@ class TestAssistantConnection
         $typed = filled($validated['api_key'] ?? null);
 
         SaveAssistantSettings::guardKeyDestination($settings, $saved, $typed);
-        $settings->api_key = $typed ? $validated['api_key'] : $saved?->apiKey();
+
+        // المكتوب، وإلا المفتاح المحفوظ في القاعدة وحده ما دام المزود والنطاق كما حُفظا. ومفتاح البيئة لا يُنسخ هنا:
+        // يأخذه الإعداد المعروض لمزوده وحده (environmentKey)، فلا يُرسل مفتاح Anthropic إلى غيرها (مراجعة المشرف، ٧)
+        $unchanged = $saved !== null && $saved->provider === $settings->provider && $saved->host() === $settings->host();
+        $settings->api_key = $typed ? $validated['api_key'] : ($unchanged ? $saved->storedKey() : null);
 
         if (! $settings->hasUsableProvider()) {
             return null;
