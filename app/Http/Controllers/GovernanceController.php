@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GovernanceIndexRequest;
 use App\Models\Document;
 use App\Support\ContentCache;
+use App\Support\PrivateFileResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -12,12 +13,13 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * الحوكمة: قائمة الوثائق المنشورة بالبحث والتصفية، وصفحة كل وثيقة، وملفها عرضاً مدمجاً
  * وتنزيلاً. الملفات في القرص الخاص، فلا يُقدَّم إلا ملف وثيقة منشورة، فإذا أُلغي نشرها لم
- * يبقَ ملفها متاحاً برابط قديم.
+ * يبقَ ملفها متاحاً بمسار الموقع. وعلى S3 يبقى رابط تخزين صدر قبل الإلغاء صالحاً حتى نهاية مدته
+ * (CONTENT_FILE_URL_MINUTES)، فالسحب العاجل بحذف الملف أو استبداله (docs/decisions.md).
  */
 class GovernanceController extends Controller implements HasMiddleware
 {
@@ -78,18 +80,32 @@ class GovernanceController extends Controller implements HasMiddleware
      * الملف للعرض المدمج في صفحة الوثيقة. وهذا المسار وحده يقبل التضمين من الموقع نفسه
      * (SecurityHeaders).
      */
-    public function file(string $slug): StreamedResponse
+    public function file(string $slug): Response
     {
-        $document = self::publishedDocument($slug);
-
-        return Storage::disk(Document::disk())->response($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf'], 'inline');
+        return self::serve(self::publishedDocument($slug), download: false);
     }
 
-    public function download(string $slug): StreamedResponse
+    public function download(string $slug): Response
     {
-        $document = self::publishedDocument($slug);
+        return self::serve(self::publishedDocument($slug), download: true);
+    }
 
-        return Storage::disk(Document::disk())->download($document->file, $document->downloadName(), ['Content-Type' => 'application/pdf']);
+    /**
+     * على القرص المحلي من التطبيق، وعلى S3 بتحويل إلى رابط تخزين موقّع قصير بعد فحص النشر، فلا تمر الملفات
+     * عبر PHP في الذروة (roadmap.md، خطة I8). والعرض المدمج يلزمه نطاق التخزين في CSP_FRAME_SRC.
+     */
+    private static function serve(Document $document, bool $download): Response
+    {
+        if (! PrivateFileResponse::isLocal(Document::disk())) {
+            return PrivateFileResponse::temporaryRedirect(Document::disk(), $document->file, 'application/pdf', $document->downloadName(), (int) config('filesystems.content_url_minutes'), $download);
+        }
+
+        $disk = Storage::disk(Document::disk());
+        $headers = ['Content-Type' => 'application/pdf'];
+
+        return $download
+            ? $disk->download($document->file, $document->downloadName(), $headers)
+            : $disk->response($document->file, $document->downloadName(), $headers, 'inline');
     }
 
     /**

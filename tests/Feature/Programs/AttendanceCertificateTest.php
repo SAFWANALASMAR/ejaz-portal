@@ -3,12 +3,15 @@
 use App\Actions\Programs\RecordProgramAttendance;
 use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
+use App\Filament\Resources\Programs\Pages\EditProgram;
+use App\Filament\Resources\Programs\RelationManagers\RegistrationsRelationManager;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -91,4 +94,38 @@ it('keeps a certificate and its path when the disk cannot delete it, so no file 
     expect($this->registration->fresh()->certificate_path)->toBe($path)
         ->and(Storage::disk('local')->exists($path))->toBeTrue()
         ->and($this->user->fresh()->anonymized_at)->toBeNull();
+});
+
+// decisions.md (19 أكتوبر 2026): لا شهادة ناقصة في الإنتاج قبل قالب الجمعية، والمسؤول يرى السبب
+it('issues no certificate in production until the association template is set, and tells the manager why', function () {
+    app()->detectEnvironment(fn () => 'production');
+    $this->registration->update(['attended_at' => now()]);
+
+    (new SyncAttendanceCertificate($this->registration))->handle();
+
+    expect($this->registration->fresh()->certificate_path)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
+    $this->actingAs($this->user)->get('/account/programs')->assertDontSee(__('programs.certificate.download'));
+
+    $this->actingAs(userWithRole(RoleName::ProgramManager));
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->program, 'pageClass' => EditProgram::class])
+        ->assertSee(__('programs.certificate.paused'));
+
+    config(['programs.certificate_template_ready' => true]);
+    (new SyncAttendanceCertificate($this->registration))->handle();
+
+    expect($this->registration->fresh()->certificate_path)->toStartWith('certificates/');
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->program, 'pageClass' => EditProgram::class])
+        ->assertDontSee(__('programs.certificate.paused'));
+});
+
+it('prints the missing-content mark on the temporary template outside production only', function () {
+    $missing = __('programs.certificate.missing');
+
+    expect(view('certificates.attendance', ['registration' => $this->registration])->render())->toContain($missing);
+
+    app()->detectEnvironment(fn () => 'production');
+
+    expect(view('certificates.attendance', ['registration' => $this->registration])->render())->not->toContain($missing)
+        ->not->toContain(__('site.missing'));
 });

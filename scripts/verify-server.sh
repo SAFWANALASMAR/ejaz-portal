@@ -9,7 +9,7 @@
 #
 # --staging: يُتوقع منع الفهرسة (Disallow: /). وبدونه يُتوقع سطر Sitemap (الإنتاج بعد نقل النطاق).
 # --server: يفحص أيضاً ejaz:health، وحدود الرفع في PHP وnginx، والمجدول وHorizon، ومؤقتي النسخ والصحة.
-# لا يغيّر شيئاً، ويطبع ✓ أو ✗ لكل فحص، ويخرج برمز 1 إن فشل أي فحص.
+# لا يغيّر شيئاً، ويطبع ✓ أو ✗ لكل فحص (أو ! لتحذير لا يُحسب فشلاً)، ويخرج برمز 1 إن فشل أي فحص.
 #
 # لا grep -q بعد أنبوب: يخرج عند أول تطابق فيأخذ curl إشارة SIGPIPE، ومع pipefail يُحسب الفحص فاشلاً.
 set -uo pipefail
@@ -36,6 +36,8 @@ cd "$(dirname "$0")/.."
 FAILED=0
 ok()  { printf '\033[1;32m✓\033[0m %s\n' "$1"; }
 bad() { printf '\033[1;31m✗\033[0m %s\n' "$1"; FAILED=$((FAILED + 1)); }
+# تحذير يُطبع ولا يُحسب فشلاً
+warn() { printf '\033[1;33m!\033[0m %s\n' "$1"; }
 # الفحص دالة تُمرَّر باسمها، لا نص يُنفَّذ
 check() { if "${@:2}" >/dev/null 2>&1; then ok "$1"; else bad "$1"; fi; }
 has()   { printf '%s' "$1" | grep -E "$2" >/dev/null; }
@@ -68,6 +70,12 @@ has "$CSP" "connect-src[^;]*( https:| \*)( |;|$)" && bad "connect-src يسمح �
 printf '%s\n' "$HEADERS" | grep -i '^strict-transport-security:' >/dev/null && ok "HSTS" || bad "لا HSTS"
 printf '%s\n' "$HEADERS" | grep -i '^x-frame-options: *deny' >/dev/null && ok "X-Frame-Options: DENY" || bad "X-Frame-Options ليس DENY"
 printf '%s\n' "$HEADERS" | grep -i '^x-content-type-options: *nosniff' >/dev/null && ok "nosniff" || bad "لا nosniff"
+# رأس التطبيق لا يُكرَّر من nginx (deploy/nginx: يُضاف الرأس متى غاب عن رد التطبيق وحده)
+[ "$(printf '%s\n' "$HEADERS" | grep -ciE '^(x-frame-options|content-security-policy):')" = 2 ] && ok "X-Frame-Options وCSP مرة واحدة" || bad "X-Frame-Options أو CSP مكرر أو غائب"
+# رد قبل وسائط المسار (405) برؤوس الحماية من nginx
+METHOD_HEADERS="$(curl -sS -o /dev/null -D - --max-time 20 -X DELETE "$URL/" | tr -d '\r' || true)"
+printf '%s\n' "$METHOD_HEADERS" | grep -E '^HTTP/[0-9.]+ 405' >/dev/null && printf '%s\n' "$METHOD_HEADERS" | grep -i '^x-frame-options: *deny' >/dev/null && printf '%s\n' "$METHOD_HEADERS" | grep -i '^x-content-type-options: *nosniff' >/dev/null \
+  && ok "رد 405 برؤوس الحماية" || bad "رد 405 بلا رؤوس الحماية (add_header في nginx؟)"
 
 [ "$(status_of "$URL/up")" = 200 ] && ok "/up يرد 200" || bad "/up لا يرد 200"
 SITEMAP="$(curl -s --max-time 30 "$URL/sitemap.xml" || true)"
@@ -121,13 +129,39 @@ if [ "$SERVER" = 1 ]; then
   # Result يكون success قبل أي تشغيل، فيُشترط أن الخدمة انتهت مرة على الأقل
   BACKUP_RESULT="$(systemctl show -p Result --value ejaz-backup.service 2>/dev/null || true)"
   BACKUP_RAN="$(systemctl show -p ExecMainExitTimestamp --value ejaz-backup.service 2>/dev/null || true)"
-  [ "$BACKUP_RESULT" = success ] && [ -n "$BACKUP_RAN" ] && ok "آخر نسخة احتياطية نجحت ($BACKUP_RAN)" || bad "لا نسخة احتياطية ناجحة بعد (systemctl start ejaz-backup.service)"
+  # 75 من backup.sh: القاعدة رُفعت والملفات انقطعت بالمدة، فيُكمَل في التشغيل التالي (تحذير لا فشل)
+  BACKUP_STATUS="$(systemctl show -p ExecMainStatus --value ejaz-backup.service 2>/dev/null || true)"
+  if [ "$BACKUP_RESULT" = success ] && [ -n "$BACKUP_RAN" ]; then
+    ok "آخر نسخة احتياطية نجحت ($BACKUP_RAN)"
+  elif [ "$BACKUP_STATUS" = 75 ] && [ -n "$BACKUP_RAN" ]; then
+    warn "القاعدة منسوخة والملفات جزئية ($BACKUP_RAN) — scripts/restore.md «نسخ ملفات جزئي»"
+  elif [ -n "$BACKUP_RAN" ]; then
+    bad "آخر نسخة احتياطية فشلت (${BACKUP_RESULT:-؟}، رمز ${BACKUP_STATUS:-؟}) — journalctl -u ejaz-backup.service"
+  else
+    bad "لا نسخة احتياطية ناجحة بعد (systemctl start ejaz-backup.service)"
+  fi
   if [ "$(envval COMPETITION_VIDEO_UPLOAD)" = s3 ]; then
     ORIGIN="$(envval CSP_CONNECT_SRC | cut -d, -f1)"
     ORIGIN="${ORIGIN%/}"
     [ -n "$ORIGIN" ] && printf '%s' "$CSP" | grep -F " $ORIGIN" >/dev/null \
       && ok "connect-src في الرأس يحوي نطاق التخزين ($ORIGIN)" \
       || bad "connect-src في الرأس لا يحوي CSP_CONNECT_SRC (${ORIGIN:-فارغ})، فيتعطل الرفع المباشر"
+  fi
+  # استبيان الرضا للضيوف بـ Turnstile (decisions.md — 19 أكتوبر 2026)
+  [ "$(envval BOT_CHALLENGE_DRIVER)" = turnstile ] && [ -n "$(envval TURNSTILE_SITE_KEY)" ] && [ -n "$(envval TURNSTILE_SECRET_KEY)" ] \
+    && ok "Turnstile بمفتاحيه للاستبيان" || bad "Turnstile غير مضبوط (BOT_CHALLENGE_DRIVER=turnstile والمفتاحان)، فيُرفض ضيف الاستبيان"
+  # ملفات الحوكمة والمكتبة برابط تخزين موقّع: الصوت بـ media-src، وعارض PDF بـ frame-src، في رأس كل صفحة لأن التنقّل
+  # السريع يُبقي سياسة أول صفحة. مطابقة حرفية للأصل داخل التوجيه، لا تعبير نمطي
+  if [ "$(envval FILESYSTEM_PRIVATE_DISK)" = s3 ]; then
+    for directive in media-src:CSP_MEDIA_SRC frame-src:CSP_FRAME_SRC; do
+      ORIGIN="$(envval "${directive#*:}" | cut -d, -f1)"
+      ORIGIN="${ORIGIN%/}"
+      SOURCES="$(printf '%s' "${CSP#*: }" | tr ';' '\n' | sed 's/^ *//' | grep "^${directive%%:*} " || true)"
+      case " $SOURCES " in
+        *" $ORIGIN "*) [ -n "$ORIGIN" ] && ok "${directive%%:*} في الرأس يحوي نطاق التخزين ($ORIGIN)" || bad "${directive#*:} فارغ، فلا تعمل ملفات الحوكمة والمكتبة" ;;
+        *) bad "${directive%%:*} في الرأس لا يحوي ${directive#*:} (${ORIGIN:-فارغ})، فلا تعمل ملفات الحوكمة والمكتبة" ;;
+      esac
+    done
   fi
   if [ "$STAGING" = 1 ]; then
     [ "$(envval SEO_INDEXABLE)" = false ] && ok "SEO_INDEXABLE=false في التجريبية" || bad "SEO_INDEXABLE ليس false في التجريبية"

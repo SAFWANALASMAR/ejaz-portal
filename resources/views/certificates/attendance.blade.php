@@ -29,7 +29,10 @@
         <div class="label">{{ __('programs.certificate.date') }}</div>
         <div class="value">{{ Dates::display($program->starts_at) }}</div>
 
-        <div class="missing">[{{ __('site.missing') }}: {{ __('programs.certificate.missing') }}]</div>
+        {{-- كمكوّن x-missing: لا علامة نقص في الإنتاج (والشهادة لا تُصدر فيه قبل قالب الجمعية) --}}
+        @unless (app()->isProduction())
+            <div class="missing">[{{ __('site.missing') }}: {{ __('programs.certificate.missing') }}]</div>
+        @endunless
         <div class="ref">{{ $registration->uuid }}</div>
     </div>
 </body>
