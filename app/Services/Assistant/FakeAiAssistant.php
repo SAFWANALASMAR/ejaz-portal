@@ -31,9 +31,12 @@ class FakeAiAssistant implements AiAssistant
             throw new AssistantProviderException('Fake provider failure.');
         }
 
-        $text = $this->reply ?? (preg_match('/<source id="1"[^>]*>\s*(.{0,200})/su', $message, $match) === 1
-            ? __('assistant.fake_reply', ['excerpt' => trim($match[1])]).' [1]'
-            : AnswerComposer::NO_ANSWER);
+        // جواب من أول مقطع، أو تقرير تجريبي لتحليل الإحصائيات، وإلا «لا جواب»
+        $text = $this->reply ?? match (true) {
+            preg_match('/<source id="1"[^>]*>\s*(.{0,200})/su', $message, $match) === 1 => __('assistant.fake_reply', ['excerpt' => trim($match[1])]).' [1]',
+            str_starts_with($message, '<figures>') => __('analysis.fake_report'),
+            default => AnswerComposer::NO_ANSWER,
+        };
 
         return new AssistantReply($text, (int) ceil(mb_strlen($system.$message) / 4), (int) ceil(mb_strlen($text) / 4));
     }
