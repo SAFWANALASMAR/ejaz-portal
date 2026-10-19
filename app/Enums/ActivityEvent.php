@@ -64,6 +64,12 @@ enum ActivityEvent: string implements HasLabel
     case MinutesUploaded = 'minutes_uploaded';
     case MinutesApproved = 'minutes_approved';
     case FileDownloaded = 'file_downloaded';
+    case OnlineMeetingFailed = 'online_meeting_failed';
+    case OnlineMeetingRetried = 'online_meeting_retried';
+
+    // ربط تيمز (للمشرف العام): بلا السر
+    case OnlineMeetingsSettingsUpdated = 'online_meetings_settings_updated';
+    case OnlineMeetingsConnectionTested = 'online_meetings_connection_tested';
 
     // النماذج والأرشيف: كل اطلاع وتنزيل يُسجَّل (requirements/05)
     case Viewed = 'viewed';
