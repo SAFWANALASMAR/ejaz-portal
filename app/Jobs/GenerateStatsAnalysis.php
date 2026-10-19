@@ -14,6 +14,7 @@ use App\Support\Assistant\ConcurrencyGate;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * يكتب نص تقرير التحليل من الأرقام المجمّعة المحفوظة مع الطلب، بمزود المساعد وسقفه وخاناته المتزامنة. يُرسل إليه
@@ -25,6 +26,16 @@ class GenerateStatsAnalysis implements ShouldQueue
     use Queueable;
 
     public int $tries = 1;
+
+    /**
+     * أطول قليلاً من مهلة المزود، فلا يُقتل العامل والطلب قائم.
+     */
+    public int $timeout = 60;
+
+    /**
+     * المدة التي يُعد بعدها التقرير المعلّق «تعذّر» (مات العامل أو توقف الطابور)، فلا تستطلع الصفحة بلا نهاية.
+     */
+    public const STALE_MINUTES = 10;
 
     public const SYSTEM = <<<'TEXT'
         أنت محلل بيانات لجمعية إعجاز للدراسات والبحوث العلمية. تكتب لمجلس الإدارة تقريراً عربياً موجزاً عن نشاط البرامج والمسابقات في فترة، من الأرقام المجمّعة داخل <figures> وحدها.
@@ -77,6 +88,16 @@ class GenerateStatsAnalysis implements ShouldQueue
             'output_tokens' => $reply->outputTokens,
             'cost' => $cost,
         ]);
+    }
+
+    /**
+     * أي خطأ غير تعذّر المزود (القاعدة، أو إعداد تغيّر، أو مهلة العامل) يجعل التقرير «تعذّر» لا «قيد الكتابة» إلى الأبد
+     * (المراجعة الأمنية للتحليل، ن1).
+     */
+    public function failed(?Throwable $exception): void
+    {
+        StatsAnalysis::query()->whereKey($this->analysisId)->where('status', StatsAnalysisStatus::Queued->value)
+            ->update(['status' => StatsAnalysisStatus::Failed->value]);
     }
 
     /**

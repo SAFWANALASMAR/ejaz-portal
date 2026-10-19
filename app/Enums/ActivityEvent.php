@@ -76,6 +76,7 @@ enum ActivityEvent: string implements HasLabel
     // المساعد الذكي: المفتاح بلا قيمته
     case AssistantKeyChanged = 'assistant_key_changed';
     case AssistantAnswerFlagged = 'assistant_answer_flagged';
+    case StatsAnalysisRequested = 'stats_analysis_requested';
 
     public function getLabel(): string
     {

@@ -1,7 +1,7 @@
 {{-- تقارير تحليل الإحصائيات: نص المزود، وبجانبه الأرقام التي بناها الخادم (StatsAnalysisFigures). والنص يُعرض نصاً --}}
 <x-filament-panels::page>
-    <div @if ($this->hasQueued()) wire:poll.5s @endif style="display: grid; gap: 1.5rem;">
-        @forelse ($this->analyses() as $analysis)
+    <div @if ($polling) wire:poll.5s @endif style="display: grid; gap: 1.5rem;">
+        @forelse ($analyses as $analysis)
             <x-filament::section
                 :heading="__('analysis.period', ['from' => $analysis->period_from->toDateString(), 'to' => $analysis->period_to->toDateString()])"
                 :description="__('analysis.requested_at', ['at' => $analysis->created_at->timezone(config('app.display_timezone'))->format('Y-m-d H:i')])">

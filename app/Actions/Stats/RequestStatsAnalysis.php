@@ -3,6 +3,7 @@
 namespace App\Actions\Stats;
 
 use App\Actions\Assistant\CheckAssistantBudget;
+use App\Enums\ActivityEvent;
 use App\Enums\StatsAnalysisStatus;
 use App\Jobs\GenerateStatsAnalysis;
 use App\Models\AssistantSettings;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Support\StatsAnalysisFigures;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -74,13 +76,27 @@ class RequestStatsAnalysis
 
         RateLimiter::hit($key, 3600);
 
-        $analysis = StatsAnalysis::query()->create([
-            'requested_by' => $actor->getKey(),
-            'period_from' => $from,
-            'period_to' => $to,
-            'status' => StatsAnalysisStatus::Queued,
-            'figures' => StatsAnalysisFigures::compute($from, $to),
-        ]);
+        $figures = StatsAnalysisFigures::compute($from, $to);
+
+        // عملية تكلّف وترسل إلى جهة خارجية، فتُسجَّل في سجل العمليات بفترتها (المراجعة الأمنية للتحليل، ن2)
+        $analysis = DB::transaction(function () use ($actor, $from, $to, $figures): StatsAnalysis {
+            $analysis = StatsAnalysis::query()->create([
+                'requested_by' => $actor->getKey(),
+                'period_from' => $from,
+                'period_to' => $to,
+                'status' => StatsAnalysisStatus::Queued,
+                'figures' => $figures,
+            ]);
+
+            activity('assistant')
+                ->causedBy($actor)
+                ->performedOn($analysis)
+                ->event(ActivityEvent::StatsAnalysisRequested->value)
+                ->withProperties(['from' => $from->toDateString(), 'to' => $to->toDateString()])
+                ->log(ActivityEvent::StatsAnalysisRequested->value);
+
+            return $analysis;
+        });
 
         GenerateStatsAnalysis::dispatch($analysis->id)->afterCommit();
 

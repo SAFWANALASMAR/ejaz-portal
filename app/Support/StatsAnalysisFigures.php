@@ -49,6 +49,8 @@ final class StatsAnalysisFigures
         $topPrograms = $registrations()->where($within('program_registrations.created_at'))
             ->where('program_registrations.status', RegistrationStatus::Confirmed->value)
             ->join('programs', 'programs.id', '=', 'program_registrations.program_id')
+            // أسماء المنشور وحده تُرسل وتُعرض
+            ->where('programs.is_published', true)
             ->toBase()
             ->selectRaw('programs.title as title, count(*) as total')
             ->groupBy('programs.id', 'programs.title')
@@ -61,6 +63,7 @@ final class StatsAnalysisFigures
         $byCompetition = $submissions()->where('competition_submissions.status', SubmissionStatus::Submitted->value)
             ->where($within('competition_submissions.submitted_at'))
             ->join('competitions', 'competitions.id', '=', 'competition_submissions.competition_id')
+            ->where('competitions.is_published', true)
             ->toBase()
             ->selectRaw('competitions.title as title, count(*) as total')
             ->groupBy('competitions.id', 'competitions.title')

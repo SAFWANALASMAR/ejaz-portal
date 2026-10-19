@@ -2,6 +2,7 @@
 
 use App\Actions\Assistant\SaveAssistantSettings;
 use App\Actions\Stats\RequestStatsAnalysis;
+use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Enums\StatsAnalysisStatus;
@@ -20,6 +21,7 @@ use App\Services\Assistant\FakeAiAssistant;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 /*
 | تحليل الإحصائيات بالذكاء الاصطناعي (إضافة صفوان، 19 أكتوبر 2026): لمن له stats.view، بمفتاح مستقل وبالمزود والسقف
@@ -185,6 +187,43 @@ it('runs the analysis from the page action', function () {
         ->assertNotified(__('analysis.queued'));
 
     expect(StatsAnalysis::query()->sole()->status)->toBe(StatsAnalysisStatus::Done);
+});
+
+it('records each analysis request in the activity log', function () {
+    enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+
+    $analysis = app(RequestStatsAnalysis::class)->handle($member, lastMonth());
+    $activity = Activity::query()->where('event', ActivityEvent::StatsAnalysisRequested->value)->sole();
+
+    expect($activity->causer_id)->toBe($member->id)
+        ->and($activity->subject_id)->toBe($analysis->id)
+        ->and($activity->properties->all())->toBe(lastMonth());
+});
+
+it('marks a report stuck in the queue as failed, so the page stops polling', function () {
+    enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $stuck = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    $stuck->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+
+    $this->actingAs($member)->get(StatsAnalysisPage::getUrl())->assertOk()->assertDontSee('wire:poll', false);
+    expect($stuck->fresh()->status)->toBe(StatsAnalysisStatus::Failed);
+
+    // وما يرمي من خطأ غير تعذّر المزود
+    $other = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    (new GenerateStatsAnalysis($other->id))->failed(new RuntimeException('boom'));
+    expect($other->fresh()->status)->toBe(StatsAnalysisStatus::Failed);
+});
+
+it('names only published programs and competitions', function () {
+    $fake = enableAnalysis();
+    $hidden = Program::factory()->create(['title' => 'برنامج غير منشور', 'is_published' => false]);
+    ProgramRegistration::factory()->create(['program_id' => $hidden->id]);
+
+    app(RequestStatsAnalysis::class)->handle(userWithRole(RoleName::BoardMember), lastMonth());
+
+    expect($fake->requests[0]['message'])->not->toContain('برنامج غير منشور');
 });
 
 it('does not enable the analysis without a provider, a cap and prices', function () {

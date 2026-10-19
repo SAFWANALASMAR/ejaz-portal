@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Actions\Stats\RequestStatsAnalysis;
 use App\Enums\StatsAnalysisStatus;
+use App\Jobs\GenerateStatsAnalysis;
 use App\Models\AssistantSettings;
 use App\Models\StatsAnalysis;
 use App\Models\User;
@@ -87,15 +88,21 @@ class StatsAnalysisPage extends Page
     }
 
     /**
-     * @return Collection<int, StatsAnalysis>
+     * آخر التقارير، وهل يُستطلع لتقرير حديث في الطابور. والمعلّق منذ أكثر من مهلته «تعذّر» (مات العامل أو توقف الطابور)،
+     * فلا تستطلع الصفحة بلا نهاية. وفي بيانات القالب لا في دوال عامة يناديها المتصفح.
+     *
+     * @return array{analyses: Collection<int, StatsAnalysis>, polling: bool}
      */
-    public function analyses(): Collection
+    protected function getViewData(): array
     {
-        return StatsAnalysis::query()->latest('id')->limit(self::SHOWN)->get();
-    }
+        $stale = now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES);
 
-    public function hasQueued(): bool
-    {
-        return StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)->exists();
+        StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)->where('created_at', '<', $stale)
+            ->update(['status' => StatsAnalysisStatus::Failed->value]);
+
+        return [
+            'analyses' => StatsAnalysis::query()->latest('id')->limit(self::SHOWN)->get(),
+            'polling' => StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)->exists(),
+        ];
     }
 }
