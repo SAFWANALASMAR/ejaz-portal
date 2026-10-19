@@ -67,8 +67,10 @@ class SecurityHeaders
             'font-src' => ["'self'", 'data:', $dev],
             'connect-src' => ["'self'", $dev, $devSocket, ...self::origins('connect_src')],
             'media-src' => ["'self'", 'blob:', ...self::origins('media_src')],
-            // 'self' لعرض ملف الوثيقة داخل صفحتها
-            'frame-src' => ["'self'", ...config('security.csp.frame_src')],
+            // 'self' لعرض ملف الوثيقة داخل صفحتها، ونطاق التخزين متى حُوّل الملف إلى رابطه الموقّع. وفي كل صفحة لا في
+            // صفحتي العارض وحدهما: التنقّل السريع يُبقي سياسة أول صفحة حُمّلت، فلا تصل سياسة صفحة إلا بتحميلها كاملاً
+            // (docs/decisions.md — 19 أكتوبر 2026)
+            'frame-src' => ["'self'", ...config('security.csp.frame_src'), ...self::origins('storage_frame_src')],
             'object-src' => ["'none'"],
             'base-uri' => ["'self'"],
             'form-action' => ["'self'", ...self::origins('form_action')],

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ContentCache;
+use App\Support\TeamsConnection;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -16,7 +17,9 @@ use Spatie\Activitylog\Support\LogOptions;
 #[Fillable(['key', 'value'])]
 class Setting extends Model
 {
-    use LogsActivity;
+    use LogsActivity {
+        shouldLogEvent as logsActivityShouldLogEvent;
+    }
 
     protected static function booted(): void
     {
@@ -70,5 +73,13 @@ class Setting extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logOnly(['key', 'value'])->logOnlyDirty()->dontLogEmptyChanges();
+    }
+
+    /**
+     * إعداد فيه سر (ربط تيمز) لا تدخل قيمته السجل ولو مشفّرة: يسجّله إجراؤه بلا السر (UpdateOnlineMeetingSettings).
+     */
+    protected function shouldLogEvent(string $eventName): bool
+    {
+        return $this->key !== TeamsConnection::SETTING && $this->logsActivityShouldLogEvent($eventName);
     }
 }

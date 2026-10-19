@@ -29,10 +29,14 @@ class MediaAssetsTable
                 TextColumn::make('alt')
                     ->label(__('media_assets.fields.alt'))
                     ->state(fn (MediaAsset $record): string => $record->is_decorative ? __('media_assets.decorative') : (string) $record->alt)
-                    ->wrap(),
+                    ->wrap()
+                    // على الجوال المعاينة والعنوان وحدهما: برأس الجدول كاملاً يتمرر حاويه الفارغ ولا تصله لوحة المفاتيح
+                    // (إعادة التجربة الشاملة، 19 أكتوبر 2026). والنص البديل في صفحة التعديل
+                    ->visibleFrom('md'),
                 IconColumn::make('from_template')
                     ->label(__('media_assets.fields.from_template'))
-                    ->boolean(),
+                    ->boolean()
+                    ->visibleFrom('md'),
                 TextColumn::make('original_name')
                     ->label(__('media_assets.fields.original_name'))
                     ->searchable()

@@ -58,6 +58,11 @@ class SyncAttendanceCertificate implements ShouldQueue
             return;
         }
 
+        // لا شهادة ناقصة في الإنتاج: تُصدر بعد ضبط قالب الجمعية، والمسؤول يرى السبب في جدول المسجلين
+        if (! self::issuable()) {
+            return;
+        }
+
         $path = self::DIRECTORY.'/'.$registration->uuid.'.pdf';
         Storage::disk(self::disk())->put($path, self::render($registration));
         $registration->forceFill(['certificate_path' => $path, 'certificate_issued_at' => now()])->saveQuietly();
@@ -79,6 +84,14 @@ class SyncAttendanceCertificate implements ShouldQueue
         }
 
         $registration->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
+    }
+
+    /**
+     * القالب المؤقت للتجربة خارج الإنتاج، وفي الإنتاج بعد ضبط قالب الجمعية وحده (config/programs.php).
+     */
+    public static function issuable(): bool
+    {
+        return ! app()->isProduction() || config('programs.certificate_template_ready') === true;
     }
 
     public static function disk(): string

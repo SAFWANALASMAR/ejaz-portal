@@ -19,7 +19,7 @@ final class FakeOnlineMeetings implements OnlineMeetings
     {
         $this->record('create', $meeting);
 
-        return ['id' => 'fake-'.$meeting->uuid, 'join_url' => 'https://teams.example.test/meet/'.$meeting->uuid];
+        return ['id' => 'fake-'.$meeting->uuid, 'join_url' => 'https://teams.example.test/meet/'.$meeting->uuid, 'organizer' => null];
     }
 
     public function update(Meeting $meeting): void
