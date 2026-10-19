@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 | وصفحة 404، وروابط ووردبريس القديمة، وصفحات المقدمة، ومقطع الرئيسية.
 */
 
-it('describes every page by default with the old site description, with a canonical link and the favicons', function () {
+it('describes every page by default with the approved short description, with a canonical link and the favicons', function () {
     $html = (string) $this->get('/contact')->assertOk()->getContent();
 
     expect($html)->toContain('<meta name="description" content="'.__('site.description').'">')
@@ -23,7 +23,7 @@ it('describes every page by default with the old site description, with a canoni
         expect(filesize(public_path($file)))->toBeGreaterThan(0);
     }
 
-    expect(__('site.description'))->toBe('رعاية الإعجاز العلمي في القرآن الكريم والسنة النبوية برؤية علمية ومنهجية رائدة');
+    expect(__('site.description'))->toBe('جمعية تعليمية متخصصة في تعليم القرآن الكريم والسنة النبوية وبيان وجوه الإعجاز فيهما');
 });
 
 it('takes the title and description of a page from its own data', function (string $slug, string $path) {

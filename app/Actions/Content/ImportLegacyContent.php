@@ -9,6 +9,7 @@ use App\Enums\DocumentCategory;
 use App\Enums\LibrarySection;
 use App\Enums\RedirectType;
 use App\Enums\SiteIcon;
+use App\Filament\Pages\SiteSettings;
 use App\Models\Document;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
@@ -387,8 +388,11 @@ class ImportLegacyContent
             'video_url' => ['nullable', 'string', 'max:'.VideoUrl::MAX_LENGTH, new VideoUrl(youtubeOnly: true)],
         ] : [
             'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9 ]+$/'],
             'address' => ['nullable', 'string', 'max:300', new PlainText(multiline: true)],
             'map_url' => ['nullable', 'string', 'max:1000', new SafeUrl(allowInternal: false)],
+            'social' => ['nullable', 'array:'.implode(',', SiteSettings::SOCIAL)],
+            'social.*' => ['nullable', 'string', 'max:500', new SafeUrl(allowInternal: false)],
         ];
 
         $validator = Validator::make($values, $rules);
@@ -404,6 +408,13 @@ class ImportLegacyContent
         $placed = null;
         $fill = array_filter($validator->validated(), fn (mixed $value, string $field): bool => filled($value)
             && blank($current[$field === 'hero_media' ? 'hero_image' : $field] ?? null), ARRAY_FILTER_USE_BOTH);
+
+        // حسابات التواصل حساباً حساباً: يُضاف ما لا رابط له، ولا يُمس ما أدخله المحرر
+        $social = array_diff_key(array_filter((array) ($validator->validated()['social'] ?? [])), array_filter((array) ($current['social'] ?? [])));
+        unset($fill['social']);
+        if ($social !== []) {
+            $fill['social'] = [...(array) ($current['social'] ?? []), ...$social];
+        }
 
         try {
             if (isset($fill['hero_media'])) {
