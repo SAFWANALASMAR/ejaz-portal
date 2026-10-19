@@ -10,7 +10,9 @@ use App\Contracts\SmsGateway;
 use App\Contracts\StoreCatalog;
 use App\Contracts\VideoUploads;
 use App\Contracts\WhatsAppNotifier;
+use App\Enums\OnlineMeetingFailure;
 use App\Enums\RoleName;
+use App\Exceptions\OnlineMeetingFailed;
 use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
 use App\Models\User;
@@ -30,6 +32,7 @@ use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
 use App\Support\SpaLink;
+use App\Support\TeamsConnection;
 use App\Support\UploadLimits;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
@@ -118,20 +121,14 @@ class AppServiceProvider extends ServiceProvider
 
         // اجتماعات تيمز للجمعية العمومية: يُحل عند المزامنة وحدها، وخطأ إعداده يظهر للسكرتير عند حفظ اجتماع عن
         // بعد (SaveMeeting)، ولا يمس غيره
-        $this->app->singleton(OnlineMeetings::class, function () {
-            /** @var array<string, mixed> $graph */
-            $graph = (array) config('services.online_meetings.graph');
-            $settings = array_map(fn (mixed $value): string => (string) $value, $graph);
-
-            return match (config('services.online_meetings.driver')) {
-                'fake' => $this->app->isProduction()
-                    ? throw new RuntimeException('The fake online meetings must not be used in production; set ONLINE_MEETINGS_DRIVER=graph.')
-                    : new FakeOnlineMeetings,
-                'graph' => in_array('', [$settings['tenant_id'] ?? '', $settings['client_id'] ?? '', $settings['client_secret'] ?? '', $settings['organizer'] ?? ''], true)
-                    ? throw new RuntimeException('Microsoft Graph needs MS_GRAPH_TENANT_ID, MS_GRAPH_CLIENT_ID, MS_GRAPH_CLIENT_SECRET and MS_GRAPH_ORGANIZER.')
-                    : new GraphOnlineMeetings($settings['tenant_id'], $settings['client_id'], $settings['client_secret'], $settings['organizer']),
-                default => throw new InvalidArgumentException('Unsupported online meetings driver: '.config('services.online_meetings.driver')),
-            };
+        // لا singleton: الإعداد من اللوحة يُقرأ عند كل استعمال، فلا يبقى عامل الطابور على إعداد قديم.
+        // والربط المطفأ أو الناقص OnlineMeetingFailed بسببه، فيُعرض على الاجتماع للمسؤول
+        $this->app->bind(OnlineMeetings::class, fn () => match (config('services.online_meetings.driver')) {
+            'fake' => $this->app->isProduction()
+                ? throw new OnlineMeetingFailed(OnlineMeetingFailure::NotConfigured)
+                : new FakeOnlineMeetings,
+            'graph' => new GraphOnlineMeetings(TeamsConnection::current() ?? throw new OnlineMeetingFailed(OnlineMeetingFailure::NotConfigured)),
+            default => throw new InvalidArgumentException('Unsupported online meetings driver: '.config('services.online_meetings.driver')),
         });
 
         $this->app->singleton(VideoUploads::class, function () {

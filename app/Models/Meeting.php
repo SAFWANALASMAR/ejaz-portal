@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\MeetingType;
+use App\Enums\OnlineMeetingFailure;
 use App\Jobs\SyncOnlineMeeting;
 use App\Support\AssemblyArea;
 use Database\Factories\MeetingFactory;
@@ -34,6 +35,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon $starts_at
  * @property Carbon|null $ends_at
  * @property list<array{path: string, name: string, size: int}>|null $attachments
+ * @property OnlineMeetingFailure|null $online_sync_error
+ * @property Carbon|null $online_sync_failed_at
  * @property Carbon|null $minutes_approved_at
  */
 #[Fillable(['title', 'type', 'starts_at', 'ends_at', 'location', 'is_online', 'agenda', 'attachments', 'quorum_percent', 'body', 'committee_id'])]
@@ -49,7 +52,7 @@ class Meeting extends Model
      *
      * @var array<string, mixed>
      */
-    protected $attributes = ['body' => 'general_assembly'];
+    protected $attributes = ['body' => 'general_assembly', 'online_generation' => 0];
 
     public const MINUTES_DIRECTORY = 'meeting-minutes';
 
@@ -66,6 +69,9 @@ class Meeting extends Model
             'ends_at' => 'datetime',
             'is_online' => 'boolean',
             'online_join_url' => 'encrypted',
+            'online_sync_error' => OnlineMeetingFailure::class,
+            'online_sync_failed_at' => 'datetime',
+            'online_generation' => 'integer',
             'attachments' => 'array',
             'quorum_percent' => 'integer',
             'members_count' => 'integer',
@@ -237,6 +243,24 @@ class Meeting extends Model
         }
 
         return $attendees >= (int) ceil($this->members_count * $this->quorum_percent / 100);
+    }
+
+    /**
+     * يلزمه اجتماع تيمز: عن بعد، ولم يُلغَ ولم يُحذف.
+     */
+    public function wantsOnlineMeeting(): bool
+    {
+        return $this->is_online && $this->status !== MeetingStatus::Cancelled && ! $this->trashed();
+    }
+
+    /**
+     * تيمز لا يطابق الاجتماع: تعذّرت مزامنته، أو يلزمه رابط لم يُنشأ، أو بقي له اجتماع تيمز لا يلزمه.
+     * فتظهر إعادة المحاولة للمسؤول.
+     */
+    public function needsOnlineSync(): bool
+    {
+        return $this->online_sync_error !== null
+            || ($this->wantsOnlineMeeting() ? $this->online_meeting_id === null : $this->online_meeting_id !== null);
     }
 
     public function getActivitylogOptions(): LogOptions

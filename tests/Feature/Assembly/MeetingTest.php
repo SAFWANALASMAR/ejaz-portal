@@ -7,6 +7,7 @@ use App\Actions\Assembly\SaveMeeting;
 use App\Contracts\OnlineMeetings;
 use App\Enums\MeetingStatus;
 use App\Enums\MembershipStatus;
+use App\Enums\OnlineMeetingFailure;
 use App\Enums\RoleName;
 use App\Jobs\SyncOnlineMeeting;
 use App\Models\AssemblyMembership;
@@ -14,6 +15,7 @@ use App\Models\Meeting;
 use App\Notifications\MeetingNotice;
 use App\Services\OnlineMeetings\FakeOnlineMeetings;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
+use App\Support\TeamsConnection;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
@@ -147,15 +149,21 @@ it('dispatches no Teams sync for a meeting in a hall', function () {
     Bus::assertNotDispatched(SyncOnlineMeeting::class);
 });
 
-it('refuses an online meeting while Teams is not configured, instead of failing later in the queue', function () {
-    app()->forgetInstance(OnlineMeetings::class);
-    config(['services.online_meetings.driver' => 'graph', 'services.online_meetings.graph.client_secret' => '']);
+it('saves an online meeting while Teams is switched off, and shows why it has no link', function () {
+    Notification::fake();
+    $member = AssemblyMembership::factory()->create()->user;
+    config(['services.online_meetings.driver' => 'graph']);
 
-    expect(fn () => app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'is_online' => true]))
-        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('is_online'));
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'is_online' => true])->fresh();
+
+    expect($meeting->exists)->toBeTrue()
+        ->and($meeting->online_join_url)->toBeNull()
+        ->and($meeting->online_sync_error)->toBe(OnlineMeetingFailure::NotConfigured)
+        ->and($meeting->needsOnlineSync())->toBeTrue();
+    Notification::assertSentTo($member, MeetingNotice::class);
 
     // والاجتماع في القاعة لا يمس الربط
-    expect(app(SaveMeeting::class)->handle($this->secretary, new Meeting, $this->data)->exists)->toBeTrue();
+    expect(app(SaveMeeting::class)->handle($this->secretary, new Meeting, $this->data)->fresh()->online_sync_error)->toBeNull();
 });
 
 it('refuses the fake Teams driver in production', function () {
@@ -171,12 +179,12 @@ it('talks to Microsoft Graph with an app token, sends only the title and time, a
     Http::fake([
         'login.microsoftonline.com/*' => Http::response(['access_token' => 'graph-token', 'expires_in' => 3600]),
         'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']]),
-        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::sequence()->push([], 200)->push([], 204)->push([], 404),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::sequence()->push([], 200)->push([], 204)->push(['error' => ['code' => 'ErrorItemNotFound']], 404),
     ]);
-    $graph = new GraphOnlineMeetings('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example');
+    $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
     $meeting = Meeting::factory()->online()->create(['agenda' => 'بند فيه اسم عضو']);
 
-    expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1']);
+    expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1', 'organizer' => 'organizer@ejaz.example']);
 
     $meeting->forceFill(['online_meeting_id' => 'event-1'])->save();
     $graph->update($meeting);
@@ -193,28 +201,31 @@ it('talks to Microsoft Graph with an app token, sends only the title and time, a
     Http::assertSentCount(5);
 });
 
-it('reads a Teams link that arrives late, and leaves no event without one behind, so a retry never doubles it', function () {
+it('reads a Teams link that arrives late, and retries the same event so a retry never doubles it', function () {
     Http::fake([
         'login.microsoftonline.com/*' => Http::response(['access_token' => 'graph-token', 'expires_in' => 3600]),
         'graph.microsoft.com/*' => Http::sequence()
             // الأول: الرابط يصل بقراءة الحدث بعد إنشائه
             ->push(['id' => 'event-1'])
             ->push(['id' => 'event-1', 'onlineMeeting' => ['joinUrl' => 'https://teams.microsoft.com/l/meetup-join/1']])
-            // الثاني: لا رابط بعد القراءة، فيُحذف الحدث
+            // الثاني: لا رابط بعد القراءة، فيُعاد لاحقاً بالمعرّف نفسه
             ->push(['id' => 'event-2'])
             ->push(['id' => 'event-2', 'onlineMeeting' => null])
-            ->push([], 204)
             // الثالث: تعذر البوابة
             ->push(['error' => 'down'], 503),
     ]);
-    $graph = new GraphOnlineMeetings('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example');
+    $graph = new GraphOnlineMeetings(new TeamsConnection('tenant-1', 'client-1', 'secret-1', 'organizer@ejaz.example'));
     $meeting = Meeting::factory()->online()->create();
 
-    expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1'])
+    expect($graph->create($meeting))->toBe(['id' => 'event-1', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/1', 'organizer' => 'organizer@ejaz.example'])
         ->and(fn () => $graph->create($meeting))->toThrow(RuntimeException::class)
         ->and(fn () => $graph->create($meeting))->toThrow(Exception::class);
 
-    Http::assertSent(fn ($request) => $request->method() === 'DELETE' && str_ends_with($request->url(), '/events/event-2'));
+    // كل إنشاء للاجتماع بمعرّف منع التكرار نفسه، فيرده Graph إلى الحدث الأول
+    $posts = Http::recorded(fn ($request) => $request->method() === 'POST' && str_ends_with($request->url(), '/events'));
+    expect($posts)->toHaveCount(3)
+        ->and(collect($posts)->map(fn ($pair) => $pair[0]['transactionId'])->unique()->values()->all())->toBe([$meeting->uuid.'-0']);
+    Http::assertNotSent(fn ($request) => $request->method() === 'DELETE');
 });
 
 it('creates the Teams meeting again for an online meeting restored after deletion', function () {

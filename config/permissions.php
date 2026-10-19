@@ -45,6 +45,8 @@ return [
         'activity' => ['view'],
         // مدة الاحتفاظ ببيانات الحسابات المحذوفة: لا تُربط بدور، فهي للمشرف العام وحده (Gate::after)
         'retention' => ['update'],
+        // ربط تيمز بمفتاح تطبيق الجمعية في Microsoft 365: لا يُربط بدور، فهو للمشرف العام وحده (Gate::after)
+        'online_meetings' => ['update'],
 
         // المسابقات (المرحلة 2)
         'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],

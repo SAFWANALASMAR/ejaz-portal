@@ -11,9 +11,10 @@ use App\Models\Meeting;
 interface OnlineMeetings
 {
     /**
-     * ينشئ اجتماع تيمز ويعيد معرّفه ورابط الانضمام.
+     * ينشئ اجتماع تيمز ويعيد معرّفه ورابط الانضمام، والمنظِّم الذي أُنشئ في تقويمه (فيُحدَّث ويُلغى فيه
+     * ولو تغيّر المنظِّم في الإعداد بعده). وإعادة الطلب نفسه لا تنشئ اجتماعاً ثانياً.
      *
-     * @return array{id: string, join_url: string}
+     * @return array{id: string, join_url: string, organizer: string|null}
      */
     public function create(Meeting $meeting): array;
 

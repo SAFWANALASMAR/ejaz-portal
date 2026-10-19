@@ -7,9 +7,9 @@ use App\Actions\Assembly\ApproveMeetingMinutes;
 use App\Actions\Assembly\CancelMeeting;
 use App\Actions\Assembly\MarkMeetingHeld;
 use App\Actions\Assembly\RecordMeetingAttendance;
+use App\Actions\Assembly\RetryOnlineMeeting;
 use App\Actions\Assembly\UploadMeetingMinutes;
 use App\Enums\ActivityEvent;
-use App\Jobs\SyncOnlineMeeting;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Rules\RealPdf;
@@ -150,12 +150,8 @@ final class MeetingActions
             ->label(__('assembly.actions.retry_online'))
             ->icon(Heroicon::OutlinedArrowPath)
             ->color('gray')
-            ->visible(fn (Meeting $record): bool => $record->is_online && blank($record->online_join_url) && self::actor()->can('update', $record))
-            ->action(function (Meeting $record): void {
-                SyncOnlineMeeting::dispatch($record->id);
-
-                Notification::make()->success()->title(__('assembly.notices.online_retry'))->send();
-            });
+            ->visible(fn (Meeting $record): bool => $record->needsOnlineSync() && self::actor()->can('syncOnline', $record))
+            ->action(fn (Meeting $record, RetryOnlineMeeting $retry) => self::run(fn () => $retry->handle(self::actor(), $record), __('assembly.notices.online_retry')));
     }
 
     /**
