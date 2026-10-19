@@ -27,10 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // تغيير كلمة المرور أو إعادة تعيينها يُنهي جلسات الحساب الأخرى في الموقع كله، لا في اللوحة وحدها
         // (docs/security/2026-10-10-security-audit.md). وجلسة من غيّرها تبقى، لأن البصمة الجديدة تُحفظ فيها.
-        // وعدّاد الزيارات بعد FullPageLoadOnNavigate، فلا يُعدّ طلب تنقّل يصير تحميلاً كاملاً إلا بتحميله
-        $middleware->web(append: [
+        // وعدّاد الزيارات بعد FullPageLoadOnNavigate، فلا يُعدّ طلب تنقّل يصير تحميلاً كاملاً إلا بتحميله.
+        // ورؤوس الحماية أول المجموعة: تحيط بكل ما بعدها، فتصل إلى ما يُرسم قبل المتحكم أيضاً (تجاوز الحد، والربط الضمني
+        // للنموذج، ورمز الحماية المنتهي)، برمز الطلب. ولوحة الإدارة لها مجموعتها، وفيها SecurityHeaders في أولها
+        $middleware->web(prepend: [SecurityHeaders::class], append: [
             AuthenticateSession::class,
-            SecurityHeaders::class,
             FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
             CountVisit::class,

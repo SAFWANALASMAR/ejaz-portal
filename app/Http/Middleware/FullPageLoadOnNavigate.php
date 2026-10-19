@@ -31,7 +31,7 @@ class FullPageLoadOnNavigate
         $route = $request->route();
 
         if (! SpaLink::currentPage($request) || ($route instanceof Route && $route->isFallback)) {
-            return $this->fullPageLoad($request, $request->fullUrl());
+            return $this->fullPageLoad($request->fullUrl());
         }
 
         $response = $next($request);
@@ -40,13 +40,13 @@ class FullPageLoadOnNavigate
         if ($response->isRedirection() && $response->headers->has('Location')) {
             $target = (string) $response->headers->get('Location');
 
-            return SpaLink::allows($target) ? $response : $this->fullPageLoad($request, $target);
+            return SpaLink::allows($target) ? $response : $this->fullPageLoad($target);
         }
 
         // ملف أو رد ليس صفحة من مسار فات FULL_PAGE_ROUTES: يُطلب من جديد تحميلاً كاملاً (احتياط). واختبار في
         // SpaNavigationTest يمنع متحكم صفحة يرد بملف، فلا يُشغَّل متحكم ملف مرتين
         if (! str_starts_with((string) $response->headers->get('Content-Type'), 'text/html')) {
-            return $this->fullPageLoad($request, $request->fullUrl());
+            return $this->fullPageLoad($request->fullUrl());
         }
 
         // صفحة خطأ المتحكم (خبر أُلغي نشره، أو رفض صلاحية) يأخذها Livewire برمز 200 فيضعها مكان الحالية، بلا طلب ثانٍ
@@ -60,17 +60,18 @@ class FullPageLoadOnNavigate
             return $response;
         }
 
-        return $response->getStatusCode() >= 400 ? $this->fullPageLoad($request, $request->fullUrl()) : $response;
+        return $response->getStatusCode() >= 400 ? $this->fullPageLoad($request->fullUrl()) : $response;
     }
 
     /**
-     * صفحة خطأ 4xx بقالب الموقع رُسمت داخل SecurityHeaders، فرمز الطلب فيها. وما سواها من الأخطاء تحميل كامل كما كان:
+     * صفحة خطأ 4xx بقالب الموقع برمز هذا الطلب (يضعه SecurityHeaders قبل هذه الوسيطة، ومنه صفحة الربط الضمني للنموذج).
+     * وما سواها من الأخطاء تحميل كامل كما كان:
      * - خطأ الخادم (5xx) يصل إلى سجل nginx برمزه الحقيقي في طلب التحميل الكامل بعده (docs/monitoring.md)، وصفحة
      *   التصحيح المحلية لا تبقى أنماطها في رأس الصفحات التالية.
      * - تجاوز الحد (429) لا يعدّه الحد ولا يعمل فيه متحكم، فلا تكرار في طلبه الثاني، ولا تبقى صفحته في نسخة
      *   Livewire للرجوع بعد انقضاء المهلة.
-     * - صفحة بلا رمز الطلب يضيف Livewire أنماطها إلى الرأس فتبقى للصفحات التالية: ما رُسم قبل SecurityHeaders (الربط
-     *   الضمني للنموذج)، وصفحة Symfony الاحتياطية حين يتعطل قالب صفحة الخطأ نفسه.
+     * - صفحة بلا رمز الطلب يضيف Livewire أنماطها إلى الرأس فتبقى للصفحات التالية: صفحة Symfony الاحتياطية حين يتعطل
+     *   قالب صفحة الخطأ نفسه.
      */
     private function inPlace(Response $response): bool
     {
@@ -78,18 +79,17 @@ class FullPageLoadOnNavigate
 
         return $response->isClientError()
             && $response->getStatusCode() !== Response::HTTP_TOO_MANY_REQUESTS
-            && $response->headers->has('Content-Security-Policy')
             && $nonce !== null
             && str_contains((string) $response->getContent(), 'nonce="'.$nonce.'"');
     }
 
     /**
-     * ورؤوس الحماية عليها كغيرها، فهذه الوسيطة تسبق SecurityHeaders في الترتيب (bootstrap/app.php).
+     * ورؤوس الحماية يضعها عليها SecurityHeaders كغيرها، فهو أول مجموعة web (bootstrap/app.php).
      */
-    private function fullPageLoad(Request $request, string $url): Response
+    private function fullPageLoad(string $url): Response
     {
-        return app(SecurityHeaders::class)->handle($request, fn (): Response => response()
+        return response()
             ->view('partials.full-page-load', ['url' => $url])
-            ->header('Cache-Control', 'no-store'));
+            ->header('Cache-Control', 'no-store');
     }
 }

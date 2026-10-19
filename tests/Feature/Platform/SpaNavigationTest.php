@@ -388,16 +388,15 @@ it('loads a page over its rate limit fully, without counting the extra requests'
     expect(RateLimiter::attempts('spa-test-limit'.sha1('|127.0.0.1')))->toBe(1);
 });
 
-it('loads an error raised before the security headers fully, since it carries no request nonce', function () {
-    // الربط الضمني للنموذج يسبق SecurityHeaders: صفحته بلا رمز الطلب، فلو وُضعت في الصفحة لأضاف Livewire نمطها إلى الرأس.
-    // يعتمد على ترتيب الوسائط اليوم (SecurityHeaders بعد SubstituteBindings)، فإن تقدّمت عليه صارت الصفحة برمز الطلب
-    // وأُعطيت كما هي، ويُعدَّل هذا الاختبار معه
-    $url = url('/account/requests/0f4c2a9e-0000-4000-8000-000000000000');
-
+it('gives the not-found page of an implicit model binding to a navigation as a page, with the request nonce', function () {
+    // الربط الضمني للنموذج يسبق المتحكم، وSecurityHeaders أول مجموعة web فصفحته برمز الطلب: تُعطى كما هي ككل صفحة
+    // خطأ بقالب الموقع، بلا تحميل كامل. ويعتمد على هذا الترتيب (SecurityHeadersOrderTest)
     $this->actingAs(User::factory()->create())
-        ->get($url, navigateRequest())
+        ->get('/account/requests/0f4c2a9e-0000-4000-8000-000000000000', navigateRequest())
         ->assertOk()
-        ->assertSee('<meta http-equiv="refresh" content="0;url='.$url.'">', false);
+        ->assertHeader('Cache-Control', 'no-store, private')
+        ->assertSee(__('errors.404.title'))
+        ->assertDontSee('http-equiv="refresh"', false);
 });
 
 it('loads an error page fully when its own template fails, since the fallback page carries no request nonce', function () {
