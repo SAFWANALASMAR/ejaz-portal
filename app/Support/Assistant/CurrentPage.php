@@ -14,11 +14,16 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 final class CurrentPage
 {
     /**
-     * المسار الموحّد إن كان مسار صفحة في الموقع، وإلا null.
+     * المسار الموحّد إن كان مسار صفحة في الموقع، وإلا null. والمسار الذي فيه رمز أو معرّف (رمز إعادة كلمة المرور،
+     * أو uuid طلب، أو رقم سجل) لا يُقبل، فلا يصل إلى المزود ولا إلى سجله (الفحص الأمني 19 أكتوبر)
      */
     public static function path(?string $path): ?string
     {
         if ($path === null || preg_match('#^/[\p{L}\p{N}/._\-]*$#u', $path) !== 1 || str_contains($path, '//') || str_contains($path, '..')) {
+            return null;
+        }
+
+        if (preg_match('#/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-z]{32,})(/|$)#i', $path) === 1) {
             return null;
         }
 

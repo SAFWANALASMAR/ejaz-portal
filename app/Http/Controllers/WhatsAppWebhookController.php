@@ -20,13 +20,15 @@ class WhatsAppWebhookController extends Controller
         $token = MessagingSettings::whatsapp()['verify_token'];
 
         // PHP يحوّل النقطة في اسم المعامل إلى شرطة سفلية: hub.mode ← hub_mode
-        if ($token === null || $request->query('hub_mode') !== 'subscribe' || ! hash_equals($token, (string) $request->query('hub_verify_token'))) {
+        // والمعامل المصفوفة (?hub.verify_token[]=) مرفوض كالخاطئ، لا خطأ في الخادم
+        $given = $request->query('hub_verify_token');
+        if ($token === null || $request->query('hub_mode') !== 'subscribe' || ! is_string($given) || ! hash_equals($token, $given)) {
             return response('', 403);
         }
 
-        $challenge = (string) $request->query('hub_challenge');
+        $challenge = $request->query('hub_challenge');
 
-        return response(ctype_digit($challenge) ? $challenge : '', 200)->header('Content-Type', 'text/plain');
+        return response(is_string($challenge) && ctype_digit($challenge) ? $challenge : '', 200)->header('Content-Type', 'text/plain');
     }
 
     public function receive(Request $request, HandleWhatsAppWebhook $handle): JsonResponse

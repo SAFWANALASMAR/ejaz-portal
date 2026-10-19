@@ -24,7 +24,9 @@ class ProgramController extends Controller
     public function index(Request $request): View|RedirectResponse
     {
         $types = ProgramType::query()->ordered()->get();
-        $active = $request->filled('type') ? $types->firstWhere('slug', (string) $request->query('type')) : null;
+        // والنوع المصفوفة (?type[]=) نوع مجهول يُحوَّل كغيره، لا خطأ في الخادم
+        $type = $request->query('type');
+        $active = is_string($type) && $type !== '' ? $types->firstWhere('slug', $type) : null;
 
         if ($request->filled('type') && $active === null) {
             return redirect()->route('programs.index');

@@ -17,7 +17,9 @@ final class ProviderHttp
 {
     public static function request(): PendingRequest
     {
+        // بلا تتبّع للتحويل: المفتاح في جسم الطلب عند بعض المزودين، فلا يُعاد إرساله إلى عنوان آخر (اختبار الأمن، 19 أكتوبر)
         return Http::acceptJson()
+            ->withoutRedirecting()
             ->timeout((int) config('messaging.timeout'))
             ->connectTimeout((int) config('messaging.connect_timeout'));
     }
