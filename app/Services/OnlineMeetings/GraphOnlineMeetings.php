@@ -38,10 +38,16 @@ final class GraphOnlineMeetings implements OnlineMeetings
     {
         $organizer = $this->connection->organizer;
         $payload = $this->payload($meeting);
-        $event = $this->send(fn (PendingRequest $graph) => $graph->post($this->events($organizer), [
-            ...$payload,
-            'transactionId' => $meeting->uuid.'-'.$meeting->online_generation,
-        ]));
+        try {
+            $event = $this->send(fn (PendingRequest $graph) => $graph->post($this->events($organizer), [
+                ...$payload,
+                'transactionId' => $meeting->uuid.'-'.$meeting->online_generation,
+            ]));
+        } catch (OnlineMeetingFailed $failed) {
+            // رفض نهائي للإنشاء نفسه (أو للمفتاح قبله): لا حدث في التقويم. والعابر قد يكون أُنشئ ولم يصل رده
+            throw $failed->reason->isTransient() ? $failed : new OnlineMeetingFailed($failed->reason, $failed->status, nothingCreated: true);
+        }
+
         $id = $event->json('id');
 
         if (! is_string($id) || $id === '') {

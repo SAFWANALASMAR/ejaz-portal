@@ -11,7 +11,10 @@ use RuntimeException;
  */
 class OnlineMeetingFailed extends RuntimeException
 {
-    public function __construct(public readonly OnlineMeetingFailure $reason, public readonly ?int $status = null)
+    /**
+     * @param  bool  $nothingCreated  رُفض طلب الإنشاء نفسه رفضاً نهائياً، فلا حدث في التقويم يُسترد
+     */
+    public function __construct(public readonly OnlineMeetingFailure $reason, public readonly ?int $status = null, public readonly bool $nothingCreated = false)
     {
         parent::__construct('Teams meeting sync failed: '.$reason->value.($status === null ? '' : ' (HTTP '.$status.')'));
     }

@@ -501,3 +501,45 @@ it('warns on the settings page when the server does not use the graph driver', f
     config(['services.online_meetings.driver' => 'graph']);
     Livewire::test(OnlineMeetingsSettings::class)->assertDontSee(__('settings.online_meetings.driver_warning'));
 });
+
+it('clears the pending create after a final refusal of the create itself, so a later cancel has nothing to recover', function () {
+    storeTeamsConnection();
+    $meeting = Meeting::factory()->online()->create();
+    Http::fake([...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorInvalidRequest']], 400)]);
+
+    (new SyncOnlineMeeting($meeting->id))->handle();
+    expect($meeting->fresh())->online_create_pending->toBeFalse()->online_sync_error->toBe(OnlineMeetingFailure::InvalidRequest);
+
+    $meeting->forceFill(['status' => MeetingStatus::Cancelled])->save();
+    $sent = count(Http::recorded());
+    (new SyncOnlineMeeting($meeting->id))->handle();
+
+    expect(Http::recorded())->toHaveCount($sent)
+        ->and($meeting->fresh())->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse();
+});
+
+it('ends a recovery the create refuses for good, and keeps the mark when the event may exist', function () {
+    storeTeamsConnection();
+    // انتهت مهلة الإنشاء ثم أُلغي الاجتماع، فرُفض طلب الاسترداد نهائياً: لا حدث ولا حذف
+    $refused = Meeting::factory()->online()->create(['status' => MeetingStatus::Cancelled, 'online_create_pending' => true]);
+    Http::fake([...teamsToken(), 'graph.microsoft.com/*' => Http::response(['error' => ['code' => 'ErrorInvalidRequest']], 400)]);
+
+    (new SyncOnlineMeeting($refused->id))->handle();
+
+    expect($refused->fresh())->online_create_pending->toBeFalse()->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse();
+    Http::assertNotSent(fn (Request $request) => $request->method() === 'DELETE');
+});
+
+it('keeps the pending create when the event was made but its link could not be read', function () {
+    storeTeamsConnection();
+    $meeting = Meeting::factory()->online()->create();
+    Http::fake([
+        ...teamsToken(),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events' => Http::response(teamsEvent($meeting, ['id' => 'event-1'])),
+        'graph.microsoft.com/v1.0/users/organizer%40ejaz.example/events/event-1' => Http::response(['error' => ['code' => 'ErrorAccessDenied']], 403),
+    ]);
+
+    (new SyncOnlineMeeting($meeting->id))->handle();
+
+    expect($meeting->fresh())->online_create_pending->toBeTrue()->online_sync_error->toBe(OnlineMeetingFailure::AccessDenied);
+});

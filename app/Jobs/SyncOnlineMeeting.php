@@ -94,7 +94,19 @@ class SyncOnlineMeeting implements ShouldQueue
             // إنشاء لم يُعرف مصيره ثم أُلغي الاجتماع: يُسترد الحدث بمعرّف منع التكرار نفسه ثم يُحذف، فلا يبقى
             // رابط حي. وإن لم يكن وصل إلى Microsoft فيُنشأ هنا ويُحذف، ولا ضرر
             if ($meeting->online_meeting_id === null) {
-                $created = $meetings->create($meeting);
+                try {
+                    $created = $meetings->create($meeting);
+                } catch (OnlineMeetingFailed $failed) {
+                    // رُفض الإنشاء نهائياً: لا حدث يُسترد ولا رابط حي، فلا يبقى الاجتماع «يحتاج مزامنة» بلا نهاية
+                    if (! $failed->nothingCreated) {
+                        throw $failed;
+                    }
+
+                    $meeting->forceFill(['online_create_pending' => false])->saveQuietly();
+
+                    return;
+                }
+
                 $meeting->forceFill(['online_meeting_id' => $created['id'], 'online_organizer' => $created['organizer']])->saveQuietly();
             }
 
@@ -121,7 +133,18 @@ class SyncOnlineMeeting implements ShouldQueue
 
         // يُحفظ قبل الطلب: إن انقطع بعده عُرف أن للجيل الحالي حدثاً قد يكون في التقويم
         $meeting->forceFill(['online_create_pending' => true])->saveQuietly();
-        $created = $meetings->create($meeting);
+
+        try {
+            $created = $meetings->create($meeting);
+        } catch (OnlineMeetingFailed $failed) {
+            // رُفض الإنشاء نفسه نهائياً (مثل 400): لا حدث للجيل الحالي، فلا يُسترد شيء لو أُلغي الاجتماع بعده
+            if ($failed->nothingCreated) {
+                $meeting->forceFill(['online_create_pending' => false])->saveQuietly();
+            }
+
+            throw $failed;
+        }
+
         $meeting->forceFill([
             'online_meeting_id' => $created['id'],
             'online_join_url' => $created['join_url'],
