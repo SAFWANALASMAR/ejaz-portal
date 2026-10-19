@@ -45,7 +45,7 @@
             @if (! empty($contact['phone']))
                 <p class="flex items-center gap-2">
                     {{ svg('heroicon-o-phone', 'size-4 shrink-0 text-accent-light') }}
-                    <a href="tel:{{ $contact['phone'] }}" class="text-white/80 hover:text-white" dir="ltr">{{ $contact['phone'] }}</a>
+                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $contact['phone']) }}" class="text-white/80 hover:text-white"><bdi dir="ltr">{{ $contact['phone'] }}</bdi></a>
                 </p>
             @endif
             @if (! empty($contact['address']))

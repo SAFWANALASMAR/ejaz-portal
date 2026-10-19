@@ -128,7 +128,7 @@ it('applies the archive corrections: audio order and titles, videos, documents, 
         ->and($home['hero_button_url'])->toBe('/about')
         ->and($home['video_url'])->toBe('https://youtube.com/watch?v=WaSvMAl4zPw')
         ->and($home['hero_image'])->toStartWith('settings/')
-        ->and($home['hero_image_alt'])->toBe('مشاركون بالزي السعودي حول طاولات مستديرة في قاعة أمام شاشة عرض')
+        ->and($home['hero_image_alt'])->toBe('مشاركون بالثوب والشماغ حول طاولات مستديرة في قاعة أمام شاشة عرض')
         ->and(Storage::disk('public')->exists($home['hero_image']))->toBeTrue()
         ->and($contact['email'])->toBe('info@ejaz.sa')
         ->and($contact['phone'])->toBe('+966 55 055 6758')
@@ -332,10 +332,23 @@ it('shows the approved contact details on the contact page, the footer and the p
         ->assertSee(__('site.license'));
 
     expect(FormEntryLayout::letterhead()['contact'])->toBe([
-        'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
-        '+966 55 055 6758',
-        'info@ejaz.sa',
+        'address' => 'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+        'phone' => '+966 55 055 6758',
+        'email' => 'info@ejaz.sa',
     ]);
+
+    // الجوال من اليسار في التذييل والترويسة، فلا ينقلب رمز + وأرقامه في السطر العربي
+    $this->get('/contact')->assertSee('<bdi dir="ltr">+966 55 055 6758</bdi>', false);
+
+    expect(view('documents.partials.form-letterhead', ['letterhead' => FormEntryLayout::letterhead(), 'logo' => ''])->render())
+        ->toContain('<span dir="ltr">+966 55 055 6758</span>')
+        ->toContain('<span dir="ltr">info@ejaz.sa</span>')
+        ->toContain(__('site.license'));
+
+    // تلغرام كبقية الحسابات: اسم المنصة ورابطها، في التذييل وفي «حساباتنا الرسمية» في الرئيسية
+    $this->get('/')->assertOk()
+        ->assertSee('href="https://t.me/ejazsa2025"', false)
+        ->assertSee(__('settings.social.telegram'));
 });
 
 it('adds the missing social accounts one by one, keeps what the editor entered, and refuses an unknown network or an unsafe link', function () {
