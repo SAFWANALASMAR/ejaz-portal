@@ -73,7 +73,7 @@ class AssistantSettingsPage extends Page
 
         $this->form->fill([
             // الحقول بأسمائها، فلا يُقرأ المفتاح ولا يُفك أصلاً
-            ...$settings->only(['is_enabled', 'generation_enabled', 'model', 'base_url', 'monthly_cap', 'input_price', 'output_price', 'welcome_text', 'log_retention_days']),
+            ...$settings->only(['is_enabled', 'generation_enabled', 'analysis_enabled', 'model', 'base_url', 'monthly_cap', 'input_price', 'output_price', 'welcome_text', 'log_retention_days']),
             'provider' => $settings->provider?->value,
             'suggested_questions' => (array) ($settings->suggested_questions ?? []),
             'api_key' => null,
@@ -95,6 +95,8 @@ class AssistantSettingsPage extends Page
                             ->helperText(__('assistant.admin.settings.is_enabled_hint')),
                         Toggle::make('generation_enabled')->label(__('assistant.admin.settings.generation_enabled'))
                             ->helperText(__('assistant.admin.settings.generation_enabled_hint')),
+                        Toggle::make('analysis_enabled')->label(__('assistant.admin.settings.analysis_enabled'))
+                            ->helperText(__('assistant.admin.settings.analysis_enabled_hint')),
                         Textarea::make('welcome_text')->label(__('assistant.admin.settings.welcome_text'))
                             ->helperText(__('assistant.admin.settings.welcome_text_hint'))
                             ->rows(3)
