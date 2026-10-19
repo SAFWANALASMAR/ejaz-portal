@@ -7,6 +7,7 @@ use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Http\Middleware\LeavePanelWithFullPageLoad;
+use App\Http\Middleware\RejectMalformedAdminRecord;
 use App\Http\Middleware\SecurityHeaders;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\FileUpload;
@@ -112,6 +113,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 EnsureTwoFactorIsEnabled::class,
                 AdminIdleTimeout::class,
+                // بعد الدخول، فلا يُعرف شكل الروابط من 404 قبله
+                RejectMalformedAdminRecord::class,
             ], isPersistent: true);
     }
 

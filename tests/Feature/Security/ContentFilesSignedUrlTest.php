@@ -2,6 +2,7 @@
 
 use App\Models\Document;
 use App\Models\LibraryItem;
+use App\Support\SpaLink;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -124,7 +125,7 @@ it('keeps the signed link out of the cached pages, which point to the checked ro
     expect($this->signed->getArrayCopy())->toBe([]);
 });
 
-it('allows framing the storage origin from CSP_FRAME_SRC on the viewer pages alone, ignoring a wildcard or a scheme', function () {
+it('allows framing the storage origin from CSP_FRAME_SRC alone, ignoring a wildcard or a scheme', function () {
     config(['security.csp.storage_frame_src' => ['https://eu2.contabostorage.com/', '*', 'https:', 'http://plain.example.test']]);
 
     s3Document(['slug' => 'report']);
@@ -133,7 +134,7 @@ it('allows framing the storage origin from CSP_FRAME_SRC on the viewer pages alo
     expect($frameSrc('/governance/report'))->toContain("'self'")->toContain('https://eu2.contabostorage.com')
         ->not->toContain('*')->not->toContain('https:')->not->toContain('http://plain.example.test');
 
-    // وفي صفحتي العارض وحدهما: واجهة المزود المشتركة بين عملائه لا تُضمَّن في غيرهما
-    expect($frameSrc('/'))->not->toContain('https://eu2.contabostorage.com')
-        ->and($frameSrc('/governance'))->not->toContain('https://eu2.contabostorage.com');
+    // وفي الصفحة التي يُتنقّل منها إلى الوثيقة بسرعة: التنقّل يُبقي سياستها، فبدونه يُمنع العارض
+    expect($frameSrc('/governance'))->toContain('https://eu2.contabostorage.com')
+        ->and(SpaLink::allows(route('governance.show', 'report')))->toBeTrue();
 });

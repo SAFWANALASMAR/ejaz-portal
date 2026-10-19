@@ -150,17 +150,18 @@ if [ "$SERVER" = 1 ]; then
   # استبيان الرضا للضيوف بـ Turnstile (decisions.md — 19 أكتوبر 2026)
   [ "$(envval BOT_CHALLENGE_DRIVER)" = turnstile ] && [ -n "$(envval TURNSTILE_SITE_KEY)" ] && [ -n "$(envval TURNSTILE_SECRET_KEY)" ] \
     && ok "Turnstile بمفتاحيه للاستبيان" || bad "Turnstile غير مضبوط (BOT_CHALLENGE_DRIVER=turnstile والمفتاحان)، فيُرفض ضيف الاستبيان"
-  # ملفات الحوكمة والمكتبة برابط تخزين موقّع: الصوت بـ media-src في كل صفحة (وframe-src لعارض PDF في صفحتي
-  # الوثيقة والعنصر وحدهما، فيُجرَّب بفتح وثيقة). مطابقة حرفية للأصل داخل التوجيه، لا تعبير نمطي
+  # ملفات الحوكمة والمكتبة برابط تخزين موقّع: الصوت بـ media-src، وعارض PDF بـ frame-src، في رأس كل صفحة لأن التنقّل
+  # السريع يُبقي سياسة أول صفحة. مطابقة حرفية للأصل داخل التوجيه، لا تعبير نمطي
   if [ "$(envval FILESYSTEM_PRIVATE_DISK)" = s3 ]; then
-    ORIGIN="$(envval CSP_MEDIA_SRC | cut -d, -f1)"
-    ORIGIN="${ORIGIN%/}"
-    MEDIA_SRC="$(printf '%s' "${CSP#*: }" | tr ';' '\n' | sed 's/^ *//' | grep '^media-src ' || true)"
-    case " $MEDIA_SRC " in
-      *" $ORIGIN "*) [ -n "$ORIGIN" ] && ok "media-src في الرأس يحوي نطاق التخزين ($ORIGIN)" || bad "CSP_MEDIA_SRC فارغ، فلا تعمل ملفات المكتبة الصوتية" ;;
-      *) bad "media-src في الرأس لا يحوي CSP_MEDIA_SRC (${ORIGIN:-فارغ})، فلا تعمل ملفات المكتبة الصوتية" ;;
-    esac
-    [ -n "$(envval CSP_FRAME_SRC)" ] && ok "CSP_FRAME_SRC مضبوط لعارض PDF" || bad "CSP_FRAME_SRC فارغ، فلا يعمل عارض PDF في صفحتي الوثيقة والعنصر"
+    for directive in media-src:CSP_MEDIA_SRC frame-src:CSP_FRAME_SRC; do
+      ORIGIN="$(envval "${directive#*:}" | cut -d, -f1)"
+      ORIGIN="${ORIGIN%/}"
+      SOURCES="$(printf '%s' "${CSP#*: }" | tr ';' '\n' | sed 's/^ *//' | grep "^${directive%%:*} " || true)"
+      case " $SOURCES " in
+        *" $ORIGIN "*) [ -n "$ORIGIN" ] && ok "${directive%%:*} في الرأس يحوي نطاق التخزين ($ORIGIN)" || bad "${directive#*:} فارغ، فلا تعمل ملفات الحوكمة والمكتبة" ;;
+        *) bad "${directive%%:*} في الرأس لا يحوي ${directive#*:} (${ORIGIN:-فارغ})، فلا تعمل ملفات الحوكمة والمكتبة" ;;
+      esac
+    done
   fi
   if [ "$STAGING" = 1 ]; then
     [ "$(envval SEO_INDEXABLE)" = false ] && ok "SEO_INDEXABLE=false في التجريبية" || bad "SEO_INDEXABLE ليس false في التجريبية"

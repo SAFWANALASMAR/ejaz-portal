@@ -42,8 +42,11 @@ final class PrivateFileResponse
     }
 
     /**
-     * تحويل 302 إلى رابط التخزين الموقّع، بعد فحص الصلاحية والوجود عند المستدعي. والتحويل نفسه لا يُخزَّن عند
-     * وسيط مشترك، فلا يصل رابط إلى غير من طلبه ولا يبقى بعد إلغاء النشر.
+     * تحويل 302 إلى رابط التخزين الموقّع. والتحويل نفسه لا يُخزَّن عند وسيط مشترك، فلا يصل رابط إلى غير من طلبه.
+     *
+     * شرط مسبق على المستدعي: فحص الصلاحية (أو النشر) ووجود الملف قبله، فالدالة لا تفحص شيئاً، ورابط ملف غائب يرد
+     * من التخزين 404 لا من البوابة. كما في make() أعلاه، وGovernanceController::publishedDocument،
+     * وLibraryController::publishedItem. ولا يُكرَّر فحص الوجود هنا، فهو طلب ثانٍ إلى التخزين لكل ملف.
      */
     public static function temporaryRedirect(string $disk, string $path, string $mime, string $name, int $minutes, bool $download = false): RedirectResponse
     {

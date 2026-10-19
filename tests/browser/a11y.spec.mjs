@@ -18,7 +18,7 @@ const ADMIN_STATE = process.env.ADMIN_STATE;
 // شاشات البوابات الخمس (App\Support\Portals): المجلس، والمدير التنفيذي، والموظفون، والمحكّمون، ولوحة البداية لكل منها
 const adminPages = [
     '/admin', '/admin/meetings', '/admin/meetings/create', '/admin/documents', '/admin/assembly-files', '/admin/users',
-    '/admin/programs', '/admin/programs/create', '/admin/competitions', '/admin/archive-items', '/admin/form-templates', '/admin/reviews',
+    '/admin/programs', '/admin/programs/create', '/admin/media-assets', '/admin/competitions', '/admin/archive-items', '/admin/form-templates', '/admin/reviews',
 ];
 
 async function expectNoAxeViolations(page, path) {

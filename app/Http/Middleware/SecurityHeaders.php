@@ -67,8 +67,10 @@ class SecurityHeaders
             'font-src' => ["'self'", 'data:', $dev],
             'connect-src' => ["'self'", $dev, $devSocket, ...self::origins('connect_src')],
             'media-src' => ["'self'", 'blob:', ...self::origins('media_src')],
-            // 'self' لعرض ملف الوثيقة داخل صفحتها
-            'frame-src' => ["'self'", ...config('security.csp.frame_src')],
+            // 'self' لعرض ملف الوثيقة داخل صفحتها، ونطاق التخزين متى حُوّل الملف إلى رابطه الموقّع. وفي كل صفحة لا في
+            // صفحتي العارض وحدهما: التنقّل السريع يُبقي سياسة أول صفحة حُمّلت، فلا تصل سياسة صفحة إلا بتحميلها كاملاً
+            // (docs/decisions.md — 19 أكتوبر 2026)
+            'frame-src' => ["'self'", ...config('security.csp.frame_src'), ...self::origins('storage_frame_src')],
             'object-src' => ["'none'"],
             'base-uri' => ["'self'"],
             'form-action' => ["'self'", ...self::origins('form_action')],
@@ -79,12 +81,6 @@ class SecurityHeaders
         // العامل بـ script-src فيُحجب. فللوحة وحدها، ولا يتسع script-src ولا سياسة الواجهة العامة (docs/decisions.md)
         if ($request->routeIs('filament.*')) {
             $directives['worker-src'] = ["'self'", 'blob:'];
-        }
-
-        // نطاق التخزين لعارض PDF في صفحتي الوثيقة وعنصر المكتبة وحدهما، متى حُوّل الملف إلى رابطه الموقّع. فواجهة
-        // المزود المشتركة بين عملائه لا تُضمَّن في صفحة أخرى بعد أي حقن (docs/decisions.md)
-        if ($request->routeIs('governance.show', 'library.show')) {
-            $directives['frame-src'] = [...$directives['frame-src'], ...self::origins('storage_frame_src')];
         }
 
         // عنصر التحدي ضد الآليات في صفحتي الاستبيان والتبرع وحدهما، متى كان مشغّله turnstile، فلا يتسع ما تسمح به

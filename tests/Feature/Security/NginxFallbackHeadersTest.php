@@ -27,6 +27,17 @@ it('adds every security header only when the application response lacks it', fun
 it('never sends a nonce policy or a fixed application header from nginx on the PHP location', function (string $path) {
     $config = (string) preg_replace('/^\s*#.*$/m', '', (string) file_get_contents(base_path($path)));
 
-    expect($config)->not->toContain('nonce')
-        ->and(preg_match('/location = \/index\.php \{[^}]*add_header/s', $config))->toBe(0);
+    // موقع PHP موجود أولاً، فلا ينجح فحص خلوّه بلا فحص
+    expect(preg_match('/location = \/index\.php \{[^}]*\}/s', $config, $php))->toBe(1)
+        ->and($php[0])->toContain('fastcgi_pass')
+        ->and($php[0])->not->toContain('add_header')
+        ->and($config)->not->toContain('nonce');
+})->with('nginx configs');
+
+it('falls back to the very HSTS value the application sends', function (string $path) {
+    $config = (string) file_get_contents(base_path($path));
+    preg_match('/^map \$upstream_http_strict_transport_security \$ejaz_\w+ \{ "" "([^"]+)"; default ""; \}$/m', $config, $map);
+
+    expect($map[1] ?? null)->toBe('max-age='.config('security.hsts_max_age').'; includeSubDomains')
+        ->and($this->get(str_replace('http://', 'https://', (string) config('app.url')).'/')->headers->get('Strict-Transport-Security'))->toBe($map[1] ?? null);
 })->with('nginx configs');
