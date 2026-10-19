@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Actions\Messaging;
+
+use App\Enums\ActivityEvent;
+use App\Enums\MessageStatus;
+use App\Models\MessageLog;
+use App\Services\Messaging\MessagingSettings;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+
+/**
+ * إشعارات حالة التسليم من WhatsApp Cloud API. التوقيع إلزامي: رأس X-Hub-Signature-256 بقيمة
+ * sha256=HMAC-SHA256(جسم الطلب الخام، App Secret)، فبلا App Secret مضبوط يُرفض كل إشعار (docs/decisions.md).
+ * والتوقيع الخاطئ يُسجَّل في سجل العمليات مرة لكل عنوان كل عشر دقائق.
+ * ويحدّث حالة الرسالة بمعرّفها، تقدماً فقط (أُرسلت ← سُلّمت ← قُرئت)، والفشل برمز خطئه.
+ */
+class HandleWhatsAppWebhook
+{
+    /**
+     * @throws AuthorizationException توقيع غائب أو خاطئ، أو App Secret غير مضبوط
+     */
+    public function handle(Request $request): int
+    {
+        $secret = MessagingSettings::whatsapp()['app_secret'];
+        $signature = (string) $request->header('X-Hub-Signature-256');
+
+        // بلا App Secret يُرفض كل إشعار بلا تسجيل: لا شيء يُتحقق منه بعد
+        if ($secret === null) {
+            throw new AuthorizationException;
+        }
+
+        if (! str_starts_with($signature, 'sha256=')
+            || ! hash_equals(hash_hmac('sha256', $request->getContent(), $secret), substr($signature, 7))) {
+            // مرة لكل عنوان كل عشر دقائق، فلا يُضخَّم سجل العمليات بطلبات مرفوضة
+            if (Cache::add('whatsapp-webhook-rejected:'.sha1((string) $request->ip()), true, 600)) {
+                activity('security')
+                    ->event(ActivityEvent::MessagingWebhookRejected->value)
+                    ->withProperties(['ip' => $request->ip()])
+                    ->log(ActivityEvent::MessagingWebhookRejected->value);
+            }
+
+            throw new AuthorizationException;
+        }
+
+        $updated = 0;
+
+        foreach ((array) $request->json('entry', []) as $entry) {
+            foreach ((array) data_get($entry, 'changes', []) as $change) {
+                foreach ((array) data_get($change, 'value.statuses', []) as $status) {
+                    $updated += $this->apply((array) $status);
+                }
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $status
+     */
+    private function apply(array $status): int
+    {
+        $id = $status['id'] ?? null;
+        $new = MessageStatus::tryFrom(is_string($status['status'] ?? null) ? $status['status'] : '');
+
+        if (! is_string($id) || $id === '' || ! in_array($new, [MessageStatus::Sent, MessageStatus::Delivered, MessageStatus::Read, MessageStatus::Failed], true)) {
+            return 0;
+        }
+
+        $log = MessageLog::query()->where('channel', 'whatsapp')->where('provider_message_id', $id)->latest('id')->first();
+
+        if ($log === null) {
+            return 0;
+        }
+
+        if ($new === MessageStatus::Failed) {
+            $code = data_get($status, 'errors.0.code');
+
+            return (int) $log->update(['status' => $new, 'error' => is_scalar($code) ? 'meta:'.$code : 'failed']);
+        }
+
+        if ($new->rank() <= $log->status->rank()) {
+            return 0;
+        }
+
+        return (int) $log->update(['status' => $new]);
+    }
+}

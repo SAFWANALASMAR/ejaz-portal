@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Services\Messaging;
+
+use App\Models\MessageLog;
+use RuntimeException;
+
+/**
+ * فشل إرسال رسالة عند المزود. السبب رمز قصير يُحفظ في سجل الرسائل (مثل http_401 أو timeout أو
+ * unifonic:ER-04)، ولا يحمل المفتاح ولا نص الرسالة ولا الرقم. وretryable: هل تفيد إعادة المحاولة في الطابور.
+ * وlog: سجل الحالة الذي كتبه DeliverMessage لهذا الفشل.
+ */
+class MessagingException extends RuntimeException
+{
+    // طول عمود error في message_logs
+    private const MAX_REASON = 100;
+
+    public readonly string $reason;
+
+    public ?MessageLog $log = null;
+
+    public function __construct(string $reason, public readonly bool $retryable = false)
+    {
+        // السبب قد يأتي من رد المزود، فيُقص فلا يرفضه عمود السجل
+        $this->reason = mb_substr($reason, 0, self::MAX_REASON);
+
+        parent::__construct('Messaging provider error: '.$this->reason);
+    }
+
+    public static function notConfigured(): self
+    {
+        return new self('not_configured');
+    }
+
+    public static function timeout(): self
+    {
+        return new self('timeout', retryable: true);
+    }
+
+    /**
+     * رد HTTP غير ناجح: المهلة والازدحام وأخطاء الخادم تُعاد، وأخطاء الطلب والمفتاح لا تُعاد.
+     */
+    public static function http(int $status, ?string $code = null): self
+    {
+        return new self($code !== null && $code !== '' ? $code : 'http_'.$status, retryable: $status === 429 || $status >= 500);
+    }
+}

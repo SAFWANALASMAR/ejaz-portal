@@ -10,6 +10,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Notifications\SubmissionReceived;
+use App\Services\Messaging\MessagingSettings;
 use App\Support\ExamQuestions;
 use App\Support\SubmissionReference;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -78,7 +79,7 @@ class SubmitExam
             GradeSubmission::dispatch($locked->id)->afterCommit();
             $user->notify(new SubmissionReceived($locked));
 
-            if (config('competitions.exam.whatsapp')) {
+            if (MessagingSettings::usageEnabled('whatsapp', 'exam_receipt')) {
                 SendExamReceipt::dispatch($locked->id)->afterCommit();
             }
         }

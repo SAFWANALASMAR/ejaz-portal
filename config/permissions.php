@@ -45,6 +45,8 @@ return [
         'activity' => ['view'],
         // مدة الاحتفاظ ببيانات الحسابات المحذوفة: لا تُربط بدور، فهي للمشرف العام وحده (Gate::after)
         'retention' => ['update'],
+        // قنوات التواصل: مزود الرسائل النصية وواتساب ومفاتيحهما. لا تُربط بدور، فهي للمشرف العام وحده (docs/guides/messaging.md)
+        'messaging' => ['update'],
 
         // المسابقات (المرحلة 2)
         'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],

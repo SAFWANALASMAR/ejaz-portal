@@ -22,8 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // لارافيل لا يفعّله في البيئة المحلية والاختبارات
         $middleware->trustHosts();
 
-        // إشعارات بوابة الدفع تأتي من خادمها بلا جلسة، ويُفحص توقيعها في الإجراء (docs/security.md)
-        $middleware->validateCsrfTokens(except: ['webhooks/payments']);
+        // إشعارات بوابة الدفع وحالة تسليم واتساب تأتي من خادمها بلا جلسة، ويُفحص توقيعها في الإجراء (docs/security.md)
+        $middleware->validateCsrfTokens(except: ['webhooks/payments', 'webhooks/whatsapp']);
 
         // تغيير كلمة المرور أو إعادة تعيينها يُنهي جلسات الحساب الأخرى في الموقع كله، لا في اللوحة وحدها
         // (docs/security/2026-10-10-security-audit.md). وجلسة من غيّرها تبقى، لأن البصمة الجديدة تُحفظ فيها.

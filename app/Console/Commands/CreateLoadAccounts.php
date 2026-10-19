@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\RoleName;
+use App\Services\Messaging\MessagingSettings;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -32,8 +33,8 @@ class CreateLoadAccounts extends Command
         }
 
         // أرقام الحسابات بصيغة سعودية، فلا تُنشأ ومزود رسائل حقيقي مفعّل، فلا يصل إشعار إلى أرقام أشخاص
-        if (config('services.sms.driver') !== 'log') {
-            $this->error('شغّل الأمر ومزود الرسائل log فقط (SMS_DRIVER=log).');
+        if (MessagingSettings::sms()['provider'] !== 'log') {
+            $this->error('شغّل الأمر ومزود الرسائل log فقط (SMS_DRIVER=log، ولا مزود في «قنوات التواصل»).');
 
             return self::FAILURE;
         }
