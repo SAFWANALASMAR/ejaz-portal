@@ -10,6 +10,7 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Setting;
 use App\Support\ContentBlocks;
+use App\Support\FormEntryLayout;
 use Database\Seeders\LegacyRedirectsSeeder;
 use Database\Seeders\MenuSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -127,10 +128,22 @@ it('applies the archive corrections: audio order and titles, videos, documents, 
         ->and($home['hero_button_url'])->toBe('/about')
         ->and($home['video_url'])->toBe('https://youtube.com/watch?v=WaSvMAl4zPw')
         ->and($home['hero_image'])->toStartWith('settings/')
-        ->and($home['hero_image_alt'])->toBe('【ناقص: نص بديل】')
+        ->and($home['hero_image_alt'])->toBe('مشاركون بالزي السعودي حول طاولات مستديرة في قاعة أمام شاشة عرض')
         ->and(Storage::disk('public')->exists($home['hero_image']))->toBeTrue()
         ->and($contact['email'])->toBe('info@ejaz.sa')
-        ->and($contact['map_url'])->toBe('https://maps.app.goo.gl/kYLnBrC7bKCu9WxJ6');
+        ->and($contact['phone'])->toBe('+966 55 055 6758')
+        ->and($contact['address'])->toBe('مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى')
+        // رابط الخريطة القديم يشير إلى العنوان القديم، فلا يُنقل حتى يصل رابط العنوان المعتمد
+        ->and($contact)->not->toHaveKey('map_url')
+        ->and($contact['social'])->toBe([
+            'x' => 'https://x.com/ejazsa2025',
+            'instagram' => 'https://instagram.com/ejazsa2025',
+            'youtube' => 'https://youtube.com/@ejazsa2025',
+            'tiktok' => 'https://tiktok.com/@ejazsa2025',
+            'telegram' => 'https://t.me/ejazsa2025',
+            'facebook' => 'https://facebook.com/profile.php?id=61595399341851',
+            'whatsapp' => 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
+        ]);
 
     // صور الأهداف في بطاقاتها، وصورتا طلب الانضمام زخرفيتان، والبريد المصحَّح
     $about = Page::query()->where('slug', 'about')->sole();
@@ -266,7 +279,7 @@ it('rejects a media file outside the folder, a missing media item, an unknown se
         ]]],
         'settings' => [
             'home' => ['video_url' => 'https://cdn.example.com/clip.mp4'],
-            'contact' => ['email' => 'info@example.com', 'phone' => '0500000000'],
+            'contact' => ['email' => 'info@example.com', 'fax' => '0120000000'],
         ],
     ], JSON_UNESCAPED_UNICODE));
 
@@ -275,7 +288,7 @@ it('rejects a media file outside the folder, a missing media item, an unknown se
     $this->artisan('import:legacy-site', ['file' => $this->dir.'/broken.json', '--actor' => $this->admin->email])
         ->expectsOutputToContain(__('import.errors.file_missing', ['file' => '../outside-'.basename($this->dir).'.png']))
         ->expectsOutputToContain(__('import.errors.media_missing', ['media' => 'ghost']))
-        ->expectsOutputToContain('phone')
+        ->expectsOutputToContain('fax')
         ->assertFailed();
 
     $asset = MediaAsset::query()->sole();
@@ -287,4 +300,60 @@ it('rejects a media file outside the folder, a missing media item, an unknown se
         ->and(Setting::group('contact')['email'] ?? null)->not->toBe('info@example.com');
 
     File::delete(dirname($this->dir).'/outside-'.basename($this->dir).'.png');
+});
+
+it('keeps the missing marks in the import file only where the association has not sent the content', function () {
+    $data = json_decode((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), true);
+    $marks = substr_count((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), '【ناقص');
+
+    // ستة كما في README وتقرير الجاهزية: خمسة نصوص صفحات، وعنوان صوتية واحد
+    $pages = collect($data['pages'])->filter(fn (array $page): bool => str_contains((string) json_encode($page, JSON_UNESCAPED_UNICODE), '【ناقص'))->pluck('slug')->sort()->values()->all();
+    $library = collect($data['library'])->filter(fn (array $item): bool => str_contains($item['title'], '【ناقص'))->pluck('slug')->all();
+    $media = collect($data['media'])->reject(fn (array $item): bool => $item['is_decorative']);
+
+    expect($marks)->toBe(6)
+        ->and($pages)->toBe(['about', 'inquiries', 'jobs', 'reports', 'volunteering'])
+        ->and($library)->toBe(['audio-02'])
+        ->and($media)->toHaveCount(45)
+        ->and($media->filter(fn (array $item): bool => blank($item['alt']) || str_contains($item['alt'], '【'))->all())->toBe([]);
+});
+
+it('shows the approved contact details on the contact page, the footer and the print letterhead after the import', function () {
+    $this->artisan('import:legacy-site', ['file' => $this->file, '--actor' => $this->admin->email])->assertSuccessful();
+
+    $this->get('/contact')->assertOk()
+        ->assertSee('+966 55 055 6758')
+        ->assertSee('tel:+966550556758', false)
+        ->assertSee('mailto:info@ejaz.sa', false)
+        ->assertSee('مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى')
+        ->assertDontSee(__('contact.info.missing'))
+        ->assertSee('https://t.me/ejazsa2025', false)
+        ->assertSee(__('settings.social.telegram'))
+        ->assertSee(__('site.license'));
+
+    expect(FormEntryLayout::letterhead()['contact'])->toBe([
+        'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+        '+966 55 055 6758',
+        'info@ejaz.sa',
+    ]);
+});
+
+it('adds the missing social accounts one by one, keeps what the editor entered, and refuses an unknown network or an unsafe link', function () {
+    Setting::put('contact', ['social' => ['x' => 'https://x.com/editor-choice']]);
+
+    $this->artisan('import:legacy-site', ['file' => $this->file, '--actor' => $this->admin->email])->assertSuccessful();
+
+    $social = Setting::group('contact')['social'];
+
+    expect($social['x'])->toBe('https://x.com/editor-choice')
+        ->and($social['telegram'])->toBe('https://t.me/ejazsa2025')
+        ->and($social)->toHaveCount(7);
+
+    foreach ([['myspace' => 'https://myspace.com/x'], ['x' => 'javascript:alert(1)']] as $bad) {
+        File::put($this->dir.'/social.json', json_encode(['settings' => ['contact' => ['social' => $bad]]]));
+
+        $this->artisan('import:legacy-site', ['file' => $this->dir.'/social.json', '--actor' => $this->admin->email])->assertFailed();
+    }
+
+    expect(Setting::group('contact')['social'])->toBe($social);
 });

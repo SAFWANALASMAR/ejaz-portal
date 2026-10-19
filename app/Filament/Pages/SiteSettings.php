@@ -44,7 +44,7 @@ use UnitEnum;
  */
 class SiteSettings extends Page
 {
-    public const SOCIAL = ['x', 'instagram', 'youtube', 'linkedin', 'snapchat', 'tiktok', 'facebook', 'whatsapp'];
+    public const SOCIAL = ['x', 'instagram', 'youtube', 'linkedin', 'snapchat', 'tiktok', 'telegram', 'facebook', 'whatsapp'];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 

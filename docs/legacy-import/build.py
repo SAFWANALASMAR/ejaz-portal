@@ -85,6 +85,55 @@ DECORATIVE = {
     'cultural-1.png', 'occupational-therapy.png', 'civic.png', 'education-technology.png', 'quality-control.png',
     'cultural.png', 'img-2.png', 'Image-901.png', 'Group-61552.png', '1.png', 'world-map1x.png', 'cropped-جمعية-إعجاز.png',
 }
+# Content-image alt text, written by looking at each image (19 Oct 2026): what is seen only, no names or occasions
+# that are not written in the image. Most are stock photos from the old site's WordPress template.
+ALT = {
+    'sticker.png': 'ملصق رسومي لوجه رجل ملتحٍ ينفخ صفارة احتفال وحوله قصاصات ملونة',
+    'kacst.png': 'شعار مدينة الملك عبدالعزيز للعلوم والتقنية',
+    'Group-1321314800.png': 'شكل زخرفي رمادي فاتح على خلفية بيضاء',
+    'Mask-4@2x.jpg': 'امرأة مبتسمة بقميص أبيض أمام نافذة',
+    'Mask-5@2x.jpg': 'رجل بقميص أبيض يشرح رافعاً إصبعه أمام لوح أبيض',
+    'img-asas1@2x.jpg': 'رجل وامرأة يتحادثان مبتسمين في مكتب',
+    'Mask-6@2x.jpg': 'رجل مبتسم بكنزة رمادية أمام خلفية فاتحة',
+    'cropped-شعار-الجمعية.jpeg': 'شعار جمعية إعجاز: كلمة «إعجاز» بخط عربي أزرق بين خطوط عمودية',
+    'img-ss2@2x.jpg': 'رجل مبتسم ببدلة رمادية وربطة عنق',
+    'carous-img-2@2x.jpg': 'رجل مبتسم بقميص فاتح عاقد الذراعين في مكتب، وفي الزاوية شعار شركة',
+    'bg-1@2x.jpg': 'امرأة مبتسمة تتحدث مع زملائها في اجتماع عمل',
+    'bg-4@2x.jpg': 'امرأة بنظارة تعمل على حاسوب محمول في مكتب ليلاً',
+    '1@2x.jpg': 'شاب مبتسم بسترة بنية عاقد الذراعين أمام خلفية رمادية',
+    'cta-bg@2x-1024x284-1.jpg': 'موظفان يرتديان سماعات رأس في مركز اتصال',
+    'Mask@2x-6.jpg': 'امرأة مبتسمة بنظارة تحمل جهازاً لوحياً في متجر ملابس',
+    'bg-3@2x.jpg': 'رجل بنظارة يعمل على حاسوب في مكتب تصميم وخلفه نماذج سيارات',
+    'bg-2@2x-1.jpg': 'رجلان بملابس المختبر ينظران إلى جهاز لوحي، أحدهما بقفاز أزرق',
+    'bg-2@2x.jpg': 'رجلان بملابس المختبر ينظران إلى جهاز لوحي، أحدهما بقفاز أزرق',
+    'bg-2@2x-scaled-1.jpeg': 'خلفية بيضاء باهتة يظهر فيها شخص بشكل خافت',
+    'img-1@2x-1.jpg': 'أيدي فريق عمل متراصة بعضها فوق بعض',
+    '2@2x.jpg': 'منظر جوي لمدينة بأبراج شاهقة عند الغروب',
+    'Image-2@2x.jpg': 'أيدٍ تكتب على حاسوب محمول بجانب كوب قهوة على مكتب',
+    'Mask-2@2x.jpg': 'فريق عمل يتناقش حول طاولة عليها حاسوب وأوراق',
+    'Mask-1@2x-3.jpg': 'فريق يضع أيديه معاً في المنتصف، منظر من الأعلى',
+    'img-6@2x.jpg': 'امرأة مبتسمة تتحدث مع زملائها في اجتماع عمل',
+    'Mask-1@2x-1.jpg': 'مساحة عمل واسعة بنوافذ كبيرة يعمل فيها أشخاص فرادى ومجموعات',
+    'bg-1@2x-scaled-1-760x520-1.jpeg': 'رجل يشرح بقلم أمام سبورة وزميل يستمع',
+    'img-2@2x-1-760x520-1.jpeg': 'رجل يتحدث إلى زملاء يرتدون نظارات الواقع الافتراضي أمام لوح عليه ملصقات',
+    'companybanner@2x-scaled-1-760x520-1.jpeg': 'امرأة ورجلان يتحادثون وقوفاً في مكتب',
+    'testimonials-bg@2x-scaled-1-760x520-1.jpeg': 'رجل ملتحٍ مبتسم بقميص أزرق في مكتب',
+    'Mask-group-1.png': 'شاشة هاتف تعرض محادثة في تطبيق باللغة الإنجليزية',
+    'Mask-3@2x.jpg': 'صورة بالأبيض والأسود لمجموعة في قاعة يرفع بعضهم أيديهم',
+    'caro-img@2x.jpg': 'رجل ملتحٍ مبتسم بقميص مربعات يشير بيده، وفي الزاوية شعار شركة',
+    'شعار-الجمعية.jpeg': 'شعار جمعية إعجاز للدراسات والبحوث العلمية',
+    'company-blog2-760x520-1.jpeg': 'امرأتان تنظران إلى شاشة حاسوب، إحداهما بنظارة',
+    'banner-company-optimized@2x-scaled-1-760x520-1.jpeg': 'مدينة بأبراج شاهقة وطرق متشابكة عند الغروب',
+    'Mask@2x-5.jpg': 'رجل يقدّم عرضاً أمام لوح أبيض مكتوب عليه، والحضور يصفقون',
+    'img-4@2x-1024x1006-1.jpg': 'أيدي فريق عمل متراصة بعضها فوق بعض',
+    'iPhone-14-Pro-1-1.png': 'شاشة هاتف تعرض تطبيقاً لتوليد الصور باللغة الإنجليزية',
+    '2.webp': 'مشاركون بالزي السعودي حول طاولات مستديرة في قاعة أمام شاشة عرض',
+    'iPhone-14-Pro-1.png': 'شاشة هاتف تعرض تطبيقاً لكتابة المحتوى باللغة الإنجليزية',
+    'portfoliodetail1.jpg': 'رجل يتحدث إلى زملاء يرتدون نظارات الواقع الافتراضي أمام لوح عليه ملصقات',
+    'جمعية-إعجاز.png': 'شعار جمعية إعجاز للدراسات والبحوث العلمية',
+    'testimonials-bg@2x-scaled-1.jpg': 'رجل ملتحٍ مبتسم بقميص أزرق مع زملائه في مكتب',
+    'mp-banner@2x.jpg': 'امرأة مبتسمة بقميص أخضر أمام حاسوب، وخلفها زميلان عند لوح',
+}
 # Where each placed image lives in the portal (its old URL redirects there). The rest stay in the library, and their old
 # URLs reach the home page through LegacyPaths (wp-content/uploads), with no registered redirect.
 PLACED = {
@@ -110,7 +159,7 @@ for entry in index:
         'slug': slug,
         'file': ('files/icons/' if icon else 'files/images/') + name,
         'title': entry['العنوان'] or name,
-        'alt': None if decorative else missing('نص بديل'),
+        'alt': None if decorative else ALT.get(name) or missing('نص بديل'),
         'is_decorative': decorative,
         'from_template': not any(ARABIC.search(p) for p in entry['مستخدم_في']),
         'target': PLACED.get(name),
@@ -160,9 +209,23 @@ about = {
 contact = page_lines('02 - تواصل معنا.md')
 contact_text = paragraphs(contact, after(contact, '## تواصل معنا'))[0]
 email = [line[7:] for line in contact if line.startswith('###### ') and '@' in line][0]
-address = [line[7:] for line in contact if line.startswith('###### شارع')][0]
-map_url = re.search(r'— (https://maps\.app\.goo\.gl/\S+)', read('03-القوائم-والتنقل', 'القائمة-الرئيسية.md')).group(1)
 assert email == 'info@ejaz.sa'
+# The association's approved data (from Safwan, who manages its official accounts, 19 Oct 2026), verbatim. It replaces the
+# archive's address (شارع ثوبان النبوي) and drops its map link, which points there; the new map link is asked of the
+# association (docs/drafts/content-requests.md).
+APPROVED_CONTACT = {
+    'phone': '+966 55 055 6758',
+    'address': 'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+    'social': {
+        'x': 'https://x.com/ejazsa2025',
+        'instagram': 'https://instagram.com/ejazsa2025',
+        'youtube': 'https://youtube.com/@ejazsa2025',
+        'tiktok': 'https://tiktok.com/@ejazsa2025',
+        'telegram': 'https://t.me/ejazsa2025',
+        'facebook': 'https://facebook.com/profile.php?id=61595399341851',
+        'whatsapp': 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
+    },
+}
 
 join = page_lines('04 - طلب الانضمام للجمعية العمومية.md')
 join_text = join[after(join, "## Let's talk.")].strip()
@@ -240,7 +303,7 @@ assert len(audio) == 30 and len(videos) == 20
 settings = {
     'home': {'hero_title': hero_heading[3:], 'hero_text': hero_text, 'hero_button_label': hero_button,
              'hero_button_url': '/about', 'hero_media': media_slug['2.webp'], 'video_url': home_video},
-    'contact': {'email': email, 'address': address, 'map_url': map_url},
+    'contact': {'email': email, **APPROVED_CONTACT},
 }
 
 # ---------------------------------------------------------------- redirects

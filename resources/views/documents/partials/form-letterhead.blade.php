@@ -7,6 +7,7 @@
     <tr>
         <td class="letterhead-org">
             <div class="org-name">{{ $letterhead['name'] }}</div>
+            <div class="org-contact">{{ __('site.license') }}</div>
             @if ($letterhead['contact'] === [])
                 <div class="org-contact missing">{{ __('documents.print.missing_contact') }}</div>
             @else
