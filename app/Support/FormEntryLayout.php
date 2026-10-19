@@ -75,16 +75,17 @@ final class FormEntryLayout
      * بيانات الترويسة: اسم الجمعية، وبيانات التواصل من الإعدادات وحدها (لا تُخترع). وما لم يُضبط منها
      * كله تظهر مكانه علامة الناقص.
      *
-     * @return array{name: string, contact: list<string>}
+     * @return array{name: string, contact: array<string, string>} التواصل بمفاتيحه: address وphone وemail
      */
     public static function letterhead(): array
     {
         $settings = Setting::group('contact');
 
-        $contact = array_values(array_filter(
-            [$settings['address'] ?? null, $settings['phone'] ?? null, $settings['email'] ?? null],
+        /** @var array<string, string> $contact */
+        $contact = array_filter(
+            ['address' => $settings['address'] ?? null, 'phone' => $settings['phone'] ?? null, 'email' => $settings['email'] ?? null],
             fn (mixed $value): bool => is_string($value) && trim($value) !== '',
-        ));
+        );
 
         return ['name' => __('site.name'), 'contact' => $contact];
     }

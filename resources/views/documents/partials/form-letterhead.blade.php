@@ -7,10 +7,21 @@
     <tr>
         <td class="letterhead-org">
             <div class="org-name">{{ $letterhead['name'] }}</div>
+            <div class="org-contact">{{ __('site.license') }}</div>
             @if ($letterhead['contact'] === [])
                 <div class="org-contact missing">{{ __('documents.print.missing_contact') }}</div>
             @else
-                <div class="org-contact">{{ implode(' — ', $letterhead['contact']) }}</div>
+                {{-- الجوال والبريد من اليسار، فلا تنقلب أرقامهما ورموزهما داخل السطر العربي --}}
+                <div class="org-contact">
+                    @foreach ($letterhead['contact'] as $key => $value)
+                        @unless ($loop->first) — @endunless
+                        @if ($key === 'address')
+                            {{ $value }}
+                        @else
+                            <span dir="ltr">{{ $value }}</span>
+                        @endif
+                    @endforeach
+                </div>
             @endif
         </td>
         <td class="letterhead-logo">
