@@ -77,6 +77,10 @@ enum ActivityEvent: string implements HasLabel
     case AssistantKeyChanged = 'assistant_key_changed';
     case AssistantAnswerFlagged = 'assistant_answer_flagged';
     case StatsAnalysisRequested = 'stats_analysis_requested';
+    // قنوات التواصل: تغيير مفتاح مزود (بلا قيمته)، ورسالة اختبار من اللوحة، وإشعار تسليم بتوقيع خاطئ
+    case MessagingSecretsChanged = 'messaging_secrets_changed';
+    case MessagingTestSent = 'messaging_test_sent';
+    case MessagingWebhookRejected = 'messaging_webhook_rejected';
 
     public function getLabel(): string
     {

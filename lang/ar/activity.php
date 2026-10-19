@@ -33,6 +33,7 @@ return [
         'job_files' => 'ملفات الوظائف',
         'registers' => 'السجلات والمجالس والخطة السنوية',
         'assistant' => 'المساعد الذكي',
+        'messaging' => 'قنوات التواصل',
     ],
 
     'events' => [
@@ -74,6 +75,9 @@ return [
         'assistant_key_changed' => 'تغيير مفتاح مزود المساعد',
         'assistant_answer_flagged' => 'تعليم إجابة المساعد',
         'stats_analysis_requested' => 'طلب تحليل الإحصائيات بالذكاء الاصطناعي',
+        'messaging_secrets_changed' => 'تغيير مفتاح مزود في قنوات التواصل',
+        'messaging_test_sent' => 'رسالة اختبار من قنوات التواصل',
+        'messaging_webhook_rejected' => 'رفض إشعار تسليم واتساب بتوقيع غير صحيح',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
         'attendance_recorded' => 'تسجيل حضور اجتماع',
         'minutes_uploaded' => 'رفع مسودة محضر',
