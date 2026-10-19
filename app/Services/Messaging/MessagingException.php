@@ -19,7 +19,10 @@ class MessagingException extends RuntimeException
 
     public ?MessageLog $log = null;
 
-    public function __construct(string $reason, public readonly bool $retryable = false)
+    /**
+     * @param  bool  $outcomeUnknown  انقطع الاتصال بعد وصول الطلب: ربما أُرسلت الرسالة (رمز التحقق لا يُعاد)
+     */
+    public function __construct(string $reason, public readonly bool $retryable = false, public readonly bool $outcomeUnknown = false)
     {
         // السبب قد يأتي من رد المزود، فيُقص فلا يرفضه عمود السجل
         $this->reason = mb_substr($reason, 0, self::MAX_REASON);
@@ -32,9 +35,20 @@ class MessagingException extends RuntimeException
         return new self('not_configured');
     }
 
-    public static function timeout(): self
+    /**
+     * لم يصل الطلب إلى المزود (الاسم أو الاتصال أو مهلته): الإعادة آمنة.
+     */
+    public static function connectFailed(): self
     {
-        return new self('timeout', retryable: true);
+        return new self('connect_failed', retryable: true);
+    }
+
+    /**
+     * انتهت مهلة القراءة بعد الاتصال: النتيجة مجهولة. تُعاد للإشعارات، ولا تُعاد لرمز التحقق (SendSms).
+     */
+    public static function outcomeUnknown(): self
+    {
+        return new self('timeout_unknown', retryable: true, outcomeUnknown: true);
     }
 
     /**

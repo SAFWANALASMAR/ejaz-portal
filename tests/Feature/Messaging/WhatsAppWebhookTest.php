@@ -1,9 +1,11 @@
 <?php
 
+use App\Actions\Messaging\HandleWhatsAppWebhook;
 use App\Enums\ActivityEvent;
 use App\Enums\MessageStatus;
 use App\Models\MessageLog;
 use App\Models\MessagingChannel;
+use Illuminate\Support\Facades\RateLimiter;
 use Spatie\Activitylog\Models\Activity;
 
 const WEBHOOK_APP_SECRET = 'meta-app-secret';
@@ -100,4 +102,45 @@ it('records nothing while no app secret is configured', function () {
     postStatus(statusPayload([]), 'anything')->assertForbidden();
 
     expect(Activity::where('event', ActivityEvent::MessagingWebhookRejected->value)->count())->toBe(0);
+});
+
+it('keeps a failure final, even when an earlier status arrives late', function () {
+    $log = sentWhatsApp();
+
+    postStatus(statusPayload([['id' => 'wamid.1', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
+    postStatus(statusPayload([['id' => 'wamid.1', 'status' => 'delivered']]))->assertOk();
+
+    expect($log->fresh())->status->toBe(MessageStatus::Failed)->error->toBe('meta:131026');
+});
+
+it('clears an old error when the status moves forward', function () {
+    $log = sentWhatsApp();
+    $log->update(['error' => 'stale']);
+
+    postStatus(statusPayload([['id' => 'wamid.1', 'status' => 'delivered']]))->assertOk();
+
+    expect($log->fresh())->status->toBe(MessageStatus::Delivered)->error->toBeNull();
+});
+
+it('limits and records rejected notifications per IPv6 /64, with a cap for everyone', function () {
+    $from = fn (string $ip) => test()->call('POST', '/webhooks/whatsapp', [], [], [], ['CONTENT_TYPE' => 'application/json', 'REMOTE_ADDR' => $ip, 'HTTP_X_HUB_SIGNATURE_256' => 'sha256=bad'], '{}');
+
+    // عنوانان في /64 واحدة: صف واحد
+    $from('2001:db8:1:1::1')->assertForbidden();
+    $from('2001:db8:1:1::2')->assertForbidden();
+    expect(Activity::where('event', ActivityEvent::MessagingWebhookRejected->value)->count())->toBe(1);
+
+    // بعد السقف العام لا صفوف جديدة ولو من مشترك جديد
+    foreach (range(1, HandleWhatsAppWebhook::REJECTED_PER_HOUR) as $i) {
+        RateLimiter::hit('whatsapp-webhook-rejected:all', 3600);
+    }
+    $from('2001:db8:2:2::1')->assertForbidden();
+    expect(Activity::where('event', ActivityEvent::MessagingWebhookRejected->value)->count())->toBe(1);
+
+    // والحد لكل /64 لا يُلتف عليه بتدوير العناوين
+    config(['messaging.webhook_per_minute' => 2]);
+    $from('2001:db8:3:3::1')->assertForbidden();
+    $from('2001:db8:3:3::2')->assertForbidden();
+    $from('2001:db8:3:3::3')->assertTooManyRequests();
+    $from('2001:db8:4:4::1')->assertForbidden();
 });

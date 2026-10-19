@@ -19,6 +19,9 @@ return [
     'tests_per_hour' => (int) env('MESSAGING_TESTS_PER_HOUR', 10),
     'tests_per_day' => (int) env('MESSAGING_TESTS_PER_DAY', 30),
 
+    // إشعارات تسليم واتساب في الدقيقة لكل مشترك (IPv4، أو /64 في IPv6). واسع لأن Meta ترسل من عناوين قليلة
+    'webhook_per_minute' => (int) env('MESSAGING_WEBHOOK_PER_MINUTE', 1000),
+
     // مدة الاحتفاظ بسجل حالة الرسائل بالأيام (model:prune يومياً)
     'log_days' => (int) env('MESSAGING_LOG_DAYS', 90),
 

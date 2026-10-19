@@ -129,18 +129,34 @@ describe('Msegat', function () {
     });
 });
 
-it('turns a timeout into a retryable failure for every provider', function (Closure $send) {
-    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out for https://example.test?key='.PROVIDER_TEST_KEY));
+it('marks a read timeout as an unknown outcome for every provider', function (Closure $send) {
+    // المهلة بعد الاتصال: ربما قبل المزود الرسالة، فلا يُعاد رمز التحقق (SendSms)
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received for https://example.test?key='.PROVIDER_TEST_KEY));
 
     $failure = providerFailure($send);
 
-    expect($failure->reason)->toBe('timeout')->and($failure->retryable)->toBeTrue();
+    expect($failure->reason)->toBe('timeout_unknown')
+        ->and($failure->outcomeUnknown)->toBeTrue();
 })->with([
     'taqnyat' => [fn () => (new TaqnyatSmsGateway(PROVIDER_TEST_KEY, 'EJAZ'))->send('+966500000001', '123456')],
     'unifonic' => [fn () => (new UnifonicSmsGateway(PROVIDER_TEST_KEY, 'EJAZ'))->send('+966500000001', '123456')],
     'msegat' => [fn () => (new MsegatSmsGateway('ejaz', PROVIDER_TEST_KEY, 'EJAZ'))->send('+966500000001', '123456')],
     'whatsapp' => [fn () => (new CloudWhatsAppNotifier('1234567890', PROVIDER_TEST_KEY, 'v23.0', 'ar', ['exam_receipt' => 'exam_receipt']))
         ->send('+966500000001', new WhatsAppMessage('exam_receipt', [], ''))],
+]);
+
+it('retries safely when the request never reached the provider', function (string $error) {
+    Http::fake(fn () => throw new ConnectionException($error));
+
+    $failure = providerFailure(fn () => (new TaqnyatSmsGateway(PROVIDER_TEST_KEY, 'EJAZ'))->send('+966500000001', '123456'));
+
+    expect($failure->reason)->toBe('connect_failed')
+        ->and($failure->retryable)->toBeTrue()
+        ->and($failure->outcomeUnknown)->toBeFalse();
+})->with([
+    'connect timeout' => ['cURL error 28: Connection timed out after 5001 milliseconds'],
+    'dns failure' => ['cURL error 6: Could not resolve host: api.taqnyat.sa'],
+    'refused' => ['cURL error 7: Failed to connect to api.taqnyat.sa port 443'],
 ]);
 
 it('uses the configured request timeouts', function () {

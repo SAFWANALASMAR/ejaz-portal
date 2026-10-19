@@ -22,6 +22,9 @@ use Throwable;
  * إرسال رسالة واحدة عبر قناتها وتسجيل حالتها (MessageLog) بلا نصها: أُرسلت بمعرّفها عند المزود، أو فشلت
  * برمز الخطأ، أو تجاوزت حد الرقم في اليوم، أو لا قالب لاستعمالها. والفشل يُعاد رميه لتعيد المهمة المحاولة
  * (ما لم يكن retryable=false). وغياب المزود في الإنتاج يُنبّه المشرف العام بالبريد مرة كل ست ساعات.
+ *
+ * حد الرقم في اليوم يُفحص قبل كل محاولة، ويُستهلك بعد كل محاولة وصلت إلى المزود، ومنها إعادات الطابور
+ * (فكل منها قد تكلّف رسالة). وما لم يُرسل أصلاً (لا مزود، أو لا قالب) لا يستهلكه.
  */
 class DeliverMessage
 {
@@ -47,18 +50,14 @@ class DeliverMessage
             'attempt' => min($attempt, 255),
         ]);
 
-        // حد الرقم في اليوم يُحسب مرة لكل رسالة، لا لكل إعادة محاولة
         $limit = (int) config('messaging.per_number_per_day');
         $key = 'msg-number:'.$channel.':'.LoginIdentifier::hash($phone);
+        $count = fn () => $limit > 0 ? RateLimiter::hit($key, 86400) : 0;
 
-        if ($attempt <= 1 && $limit > 0) {
-            if (RateLimiter::tooManyAttempts($key, $limit)) {
-                Log::warning('Messaging per-number daily limit reached.', ['channel' => $channel, 'usage' => $usage]);
+        if ($limit > 0 && RateLimiter::tooManyAttempts($key, $limit)) {
+            Log::warning('Messaging per-number daily limit reached.', ['channel' => $channel, 'usage' => $usage]);
 
-                return $record(MessageStatus::Throttled, error: 'per_number_limit');
-            }
-
-            RateLimiter::hit($key, 86400);
+            return $record(MessageStatus::Throttled, error: 'per_number_limit');
         }
 
         try {
@@ -68,19 +67,26 @@ class DeliverMessage
                 return $record(MessageStatus::Skipped, error: 'no_template');
             }
 
-            $exception->log = $record(MessageStatus::Failed, error: $exception->reason);
-
             if ($exception->reason === 'not_configured') {
+                $exception->log = $record(MessageStatus::Failed, error: $exception->reason);
                 $this->alertNotConfigured($channel);
+
+                throw $exception;
             }
+
+            $count();
+            $exception->log = $record(MessageStatus::Failed, error: $exception->reason);
 
             throw $exception;
         } catch (Throwable $exception) {
             // استثناء غير متوقع: يُسجَّل صنفه وحده، فرسالته قد تحمل تفاصيل الطلب
+            $count();
             $record(MessageStatus::Failed, error: substr(class_basename($exception), 0, 100));
 
             throw $exception;
         }
+
+        $count();
 
         // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها
         try {
@@ -90,6 +96,22 @@ class DeliverMessage
 
             return new MessageLog(['channel' => $channel, 'provider' => $provider, 'usage' => $usage, 'phone_hint' => MessageLog::hint($phone), 'status' => MessageStatus::Sent]);
         }
+    }
+
+    /**
+     * رسالة لم تُرسل لسبب قبل المزود (رمز تحقق انتهى عمره قبل أن تصل مهمته مثلاً): تُسجَّل ولا تستهلك الحد.
+     */
+    public function skip(string $channel, string $phone, string $usage, string $reason, int $attempt = 1): MessageLog
+    {
+        return MessageLog::query()->create([
+            'channel' => $channel,
+            'provider' => $channel === MessagingChannel::SMS ? MessagingSettings::sms()['provider'] : MessagingSettings::whatsapp()['provider'],
+            'usage' => $usage,
+            'phone_hint' => MessageLog::hint($phone),
+            'status' => MessageStatus::Skipped,
+            'error' => $reason,
+            'attempt' => min($attempt, 255),
+        ]);
     }
 
     private function alertNotConfigured(string $channel): void

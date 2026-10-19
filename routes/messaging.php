@@ -15,8 +15,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 | bootstrap/app.php)، والتوقيع يُفحص في HandleWhatsAppWebhook.
 */
 
-// Meta ترسل من عناوين قليلة، وحتى ثلاثة إشعارات لكل رسالة، فالحد واسع، والرفض لا يُسجَّل إلا مرة لكل عنوان
-Route::middleware('throttle:1000,1')
+// الحد لكل مشترك (IPv4، أو /64 في IPv6) في FortifyServiceProvider، والرفض يُسجَّل بسقف في HandleWhatsAppWebhook
+Route::middleware('throttle:whatsapp-webhook')
     ->withoutMiddleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class, EnsureAccountIsActive::class])
     ->group(function () {
         Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('messaging.whatsapp.verify');

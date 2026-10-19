@@ -201,3 +201,15 @@ it('treats keys that can no longer be decrypted as not configured, and lets the 
     app(UpdateMessagingChannels::class)->handle($admin, ['sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'api_key' => 'new-key']]);
     expect(MessagingChannel::for('sms')->secret('api_key'))->toBe('new-key');
 });
+
+it('clears a typed key when the form fields themselves are refused', function () {
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+
+    Livewire::test(MessagingChannels::class)
+        ->fillForm(['sms.provider' => 'taqnyat', 'sms.sender' => str_repeat('A', 25), 'sms.api_key' => CHANNELS_TEST_KEY])
+        ->call('save')
+        ->assertHasFormErrors(['sms.sender'])
+        ->assertSet('data.sms.api_key', null);
+
+    expect(MessagingChannel::count())->toBe(0);
+});

@@ -11,12 +11,14 @@ use App\Models\CompetitionSubmission;
 use App\Models\MessageLog;
 use App\Models\MessagingChannel;
 use App\Models\User;
+use App\Notifications\Channels\SmsChannel;
 use App\Notifications\MessagingNotConfigured;
 use App\Services\Messaging\MessagingException;
 use App\Services\Messaging\MessagingSettings;
 use App\Services\Sms\ConfiguredSmsGateway;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\Sms\TaqnyatSmsGateway;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -214,4 +216,108 @@ it('cuts a long provider error code to fit its column', function () {
     } catch (MessagingException $exception) {
         expect($exception->log?->error)->toHaveLength(100);
     }
+});
+
+it('does not resend a verification code after a read timeout, but retries a notification', function () {
+    panelSms();
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received'));
+
+    $otp = (new SendSms('+966500000123', 'رمز: 111111'))->withFakeQueueInteractions();
+    $otp->handle(app(SmsGateway::class), app(DeliverMessage::class));
+    $otp->assertFailed();
+
+    $notice = (new SendSms('+966500000124', 'إشعار', 'notification'))->withFakeQueueInteractions();
+    expect(fn () => $notice->handle(app(SmsGateway::class), app(DeliverMessage::class)))->toThrow(MessagingException::class);
+    $notice->assertNotFailed();
+
+    expect(MessageLog::pluck('error')->unique()->all())->toBe(['timeout_unknown']);
+});
+
+it('retries a verification code that never reached the provider', function () {
+    panelSms();
+    Http::fake(fn () => throw new ConnectionException('cURL error 7: Failed to connect to api.taqnyat.sa port 443'));
+
+    $job = (new SendSms('+966500000123', 'رمز'))->withFakeQueueInteractions();
+
+    expect(fn () => $job->handle(app(SmsGateway::class), app(DeliverMessage::class)))->toThrow(MessagingException::class);
+    $job->assertNotFailed();
+});
+
+it('drops a verification code job older than the code itself', function () {
+    panelSms();
+    Http::fake();
+    $job = new SendSms('+966500000123', 'رمز');
+
+    $this->travel(SendPhoneVerificationCode::TTL_MINUTES + 1)->minutes();
+    $job->handle(app(SmsGateway::class), app(DeliverMessage::class));
+
+    Http::assertNothingSent();
+    expect(MessageLog::sole())->status->toBe(MessageStatus::Skipped)->error->toBe('expired');
+});
+
+it('counts every attempt that reached the provider, retries included', function () {
+    config(['messaging.per_number_per_day' => 2]);
+    panelSms();
+    Http::fake(['api.taqnyat.sa/*' => Http::response('', 503)]);
+    $deliver = app(DeliverMessage::class);
+    $send = fn () => app(SmsGateway::class)->send('+966500000123', 'رمز');
+
+    foreach ([1, 2] as $attempt) {
+        expect(fn () => $deliver->handle('sms', '+966500000123', 'otp', $send, $attempt))->toThrow(MessagingException::class);
+    }
+
+    expect($deliver->handle('sms', '+966500000123', 'otp', $send, 3)->status)->toBe(MessageStatus::Throttled);
+    Http::assertSentCount(2);
+});
+
+it('does not use the daily quota when nothing was sent', function () {
+    config(['messaging.per_number_per_day' => 1]);
+    $deliver = app(DeliverMessage::class);
+
+    expect(fn () => $deliver->handle('sms', '+966500000123', 'otp', fn () => throw MessagingException::notConfigured()))->toThrow(MessagingException::class);
+    $deliver->handle('whatsapp', '+966500000123', 'exam_receipt', fn () => throw new MessagingException('no_template'));
+
+    expect($deliver->handle('sms', '+966500000123', 'otp', fn () => 'id-1')->status)->toBe(MessageStatus::Sent)
+        ->and($deliver->handle('whatsapp', '+966500000123', 'exam_receipt', fn () => 'wamid.1')->status)->toBe(MessageStatus::Sent);
+});
+
+it('keeps a final SMS failure in the log without failing the whole notification, and retries a temporary one', function () {
+    panelSms();
+    $user = User::factory()->create(['phone' => '+966500000123', 'phone_verified_at' => now()]);
+    $notification = new class extends Illuminate\Notifications\Notification
+    {
+        public function toSms(object $notifiable): string
+        {
+            return 'إشعار';
+        }
+    };
+    $channel = app(SmsChannel::class);
+
+    Http::fakeSequence('api.taqnyat.sa/*')->push(['message' => 'invalid credentials information'], 401)->push('', 503);
+
+    $channel->send($user, $notification);
+    expect(MessageLog::sole()->error)->toBe('http_401')
+        ->and(fn () => $channel->send($user, $notification))->toThrow(MessagingException::class);
+});
+
+it('sends verification codes to Saudi mobile numbers only', function () {
+    Queue::fake();
+    $user = User::factory()->create(['phone' => '+447700900123', 'phone_verified_at' => null]);
+
+    expect(fn () => app(SendPhoneVerificationCode::class)->handle($user))
+        ->toThrow(ValidationException::class, __('account.phone.not_saudi'));
+    Queue::assertNothingPushed();
+});
+
+it('refuses an international number at registration', function () {
+    $this->post('/register', [
+        'name' => 'متقدم',
+        'email' => 'intl@example.test',
+        'phone' => '+447700900123',
+        'password' => 'long-enough-pass-2026',
+        'password_confirmation' => 'long-enough-pass-2026',
+        'privacy' => '1',
+    ])->assertSessionHasErrors('phone');
+
+    expect(User::where('email', 'intl@example.test')->exists())->toBeFalse();
 });

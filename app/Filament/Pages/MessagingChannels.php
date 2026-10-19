@@ -267,21 +267,22 @@ class MessagingChannels extends Page
         /** @var User $user */
         $user = auth()->user();
 
-        /** @var array{sms: array<string, mixed>, whatsapp: array<string, mixed>} $state */
-        $state = $this->form->getState();
-
+        // المفاتيح المكتوبة لا تبقى في حالة الصفحة بأي حال: بعد الحفظ، أو رفض حقول النموذج (getState)، أو
+        // رفض الإجراء، أو أي خطأ آخر
         try {
+            /** @var array{sms: array<string, mixed>, whatsapp: array<string, mixed>} $state */
+            $state = $this->form->getState();
+
             $action->handle($user, $state);
         } catch (ValidationException $exception) {
-            // المفاتيح المكتوبة لا تبقى في حالة الصفحة بعد رفض الحفظ
-            $this->forgetSecrets();
-
+            // أخطاء getState بمسارات النموذج (data.)، وأخطاء الإجراء بمسارات الإعدادات فتُنقل إليها
             throw ValidationException::withMessages(
-                collect($exception->errors())->mapWithKeys(fn (array $messages, string $key) => ['data.'.$key => $messages])->all(),
+                collect($exception->errors())->mapWithKeys(fn (array $messages, string $key) => [(str_starts_with($key, 'data.') ? '' : 'data.').$key => $messages])->all(),
             );
+        } finally {
+            $this->forgetSecrets();
         }
 
-        // تفرغ حقول المفاتيح بعد الحفظ، فلا تبقى في حالة الصفحة
         $this->fillForm();
 
         Notification::make()->success()->title(__('messaging.saved'))->send();
