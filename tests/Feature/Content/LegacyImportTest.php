@@ -105,7 +105,8 @@ it('imports every kind as an unpublished draft through its own action, in the na
         ->and(Activity::whereMorphedTo('subject', $document)->where('event', 'created')->sole()->causer?->is($this->editor))->toBeTrue();
 
     // الروابط القديمة تُحوَّل إلى صفحات سجلاتها
-    expect(Redirect::query()->pluck('target', 'source')->all())->toBe([
+    // بترتيب الإنشاء صراحة: بلا ORDER BY يعيد PostgreSQL الصفوف بأي ترتيب (الصف المعدَّل ينتقل إلى آخر الجدول)
+    expect(Redirect::query()->orderBy('id')->pluck('target', 'source')->all())->toBe([
         'مبادرة-قيـم' => '/initiatives/qiyam',
         'wp-content/uploads/2026/01/شهادة.pdf' => '/governance/license',
         'old-page' => '/about',
