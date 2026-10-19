@@ -647,6 +647,12 @@ test.describe('لوحة الإدارة', () => {
         const printHref = await printLink.getAttribute('href');
         const print = await page.goto(printHref);
         expect.soft(print.status()).toBe(200);
+        // الترويسة: رقم الترخيص، والجوال والبريد من اليسار متى ضُبطا في الإعدادات
+        const letterhead = page.locator('.letterhead').first();
+        await expect.soft(letterhead).toContainText('رقم الترخيص');
+        for (const contact of await letterhead.locator('.org-contact span').all()) {
+            await expect.soft(contact).toHaveAttribute('dir', 'ltr');
+        }
         await shot(page, 'form-print', testInfo);
         const pdf = await page.request.get(printHref.replace(/\/print$/, '/pdf'));
         expect.soft(pdf.status()).toBe(200);
