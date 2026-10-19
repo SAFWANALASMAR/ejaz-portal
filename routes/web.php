@@ -125,5 +125,8 @@ require __DIR__.'/documents.php';
 // ملفات الوظائف: تنزيل مستنداتها، والشاشات في لوحة الإدارة
 require __DIR__.'/job-files.php';
 
+// قنوات التواصل: إشعارات حالة تسليم واتساب (docs/guides/messaging.md)
+require __DIR__.'/messaging.php';
+
 // البث المباشر (المرحلة 5): يظهر ويختفي بالموعد (docs/plans/livestream.md)
 Route::get('/live', LiveStreamController::class)->middleware('throttle:60,1')->name('live');

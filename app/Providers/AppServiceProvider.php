@@ -24,11 +24,11 @@ use App\Services\OnlineMeetings\FakeOnlineMeetings;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Services\Payments\FakePaymentGateway;
 use App\Services\Payments\MoyasarPaymentGateway;
-use App\Services\Sms\LogSmsGateway;
+use App\Services\Sms\ConfiguredSmsGateway;
 use App\Services\Store\SettingsStoreCatalog;
 use App\Services\VideoUploads\S3VideoUploads;
+use App\Services\WhatsApp\ConfiguredWhatsAppNotifier;
 use App\Services\WhatsApp\FakeWhatsAppNotifier;
-use App\Services\WhatsApp\LogWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\ChunkedVideoUpload;
 use App\Support\SpaLink;
@@ -73,17 +73,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(RecordMenuReorder::class);
 
         // التكاملات الخارجية خلف واجهات، ويُختار التطبيق من الإعدادات (docs/architecture.md)
-        $this->app->singleton(SmsGateway::class, fn () => match (config('services.sms.driver')) {
-            'log' => new LogSmsGateway,
-            default => throw new InvalidArgumentException('Unsupported SMS driver: '.config('services.sms.driver')),
-        });
-
-        // واتساب: ينتظر قرار صفوان في المزوّد، فالسجل للتطوير والوهمي للاختبارات (docs/plans/competition-exam.md)
-        $this->app->singleton(WhatsAppNotifier::class, fn () => match (config('services.whatsapp.driver')) {
-            'log' => new LogWhatsAppNotifier,
-            'fake' => new FakeWhatsAppNotifier,
-            default => throw new InvalidArgumentException('Unsupported WhatsApp driver: '.config('services.whatsapp.driver')),
-        });
+        // الرسائل النصية وواتساب: المزود يُختار عند كل إرسال من «قنوات التواصل» في اللوحة، وإلا من .env
+        // (docs/guides/messaging.md). والوهمي لواتساب في الاختبارات وحده
+        $this->app->singleton(SmsGateway::class, fn () => new ConfiguredSmsGateway);
+        $this->app->singleton(WhatsAppNotifier::class, fn () => config('services.whatsapp.driver') === 'fake'
+            ? new FakeWhatsAppNotifier
+            : new ConfiguredWhatsAppNotifier);
 
         // بوابة الدفع: وهمية في التطوير والاختبارات، وميسر بمفاتيح من .env (docs/plans/store-payments.md)
         $this->app->bind(MoyasarPaymentGateway::class, fn () => new MoyasarPaymentGateway(

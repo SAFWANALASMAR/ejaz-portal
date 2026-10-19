@@ -32,6 +32,7 @@ return [
         'documents' => 'النماذج والأرشيف',
         'job_files' => 'ملفات الوظائف',
         'registers' => 'السجلات والمجالس والخطة السنوية',
+        'messaging' => 'قنوات التواصل',
     ],
 
     'events' => [
@@ -70,6 +71,9 @@ return [
         'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
         'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
         'live_stream_archived' => 'نقل تسجيل بث إلى المكتبة المرئية',
+        'messaging_secrets_changed' => 'تغيير مفتاح مزود في قنوات التواصل',
+        'messaging_test_sent' => 'رسالة اختبار من قنوات التواصل',
+        'messaging_webhook_rejected' => 'رفض إشعار تسليم واتساب بتوقيع غير صحيح',
         'personal_data_purged' => 'حذف بيانات حساب محذوف بعد مدة الاحتفاظ',
         'attendance_recorded' => 'تسجيل حضور اجتماع',
         'minutes_uploaded' => 'رفع مسودة محضر',

@@ -35,17 +35,31 @@ return [
         ],
     ],
 
-    // مزود الرسائل النصية: log في التطوير، والمزود الفعلي بعد تعاقد الجمعية
+    // مزود الرسائل النصية من البيئة: log في التطوير (يرفض الإنتاج)، أو مزود سعودي بمفتاحه. والمعتاد ضبطه من اللوحة
     'sms' => [
+        // log أو taqnyat أو unifonic أو msegat. والمضبوط من «قنوات التواصل» في اللوحة يتقدم على هذه كلها
         'driver' => env('SMS_DRIVER', 'log'),
         'sender' => env('SMS_SENDER'),
+        'api_key' => env('SMS_API_KEY'),
+        // اسم حساب Msegat وحده
+        'username' => env('SMS_USERNAME'),
         // إشعار المتقدم برسالة نصية عند تغيّر حالة طلبه (requirements/02)، مع البريد. معطل افتراضياً
         'request_updates' => (bool) env('SMS_REQUEST_UPDATES', false),
     ],
 
-    // مزود واتساب: ينتظر قرار صفوان. log يكتب في السجل (يرفض الإنتاج)، وfake للاختبارات
+    // واتساب: log يكتب في السجل (يرفض الإنتاج)، وfake للاختبارات، وcloud (WhatsApp Cloud API من Meta) برسائل قوالب
+    // معتمدة. والمضبوط من «قنوات التواصل» في اللوحة يتقدم على هذه كلها (docs/guides/messaging.md)
     'whatsapp' => [
         'driver' => env('WHATSAPP_DRIVER', 'log'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),
+        'language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'ar'),
+        'templates' => [
+            'exam_receipt' => env('WHATSAPP_TEMPLATE_EXAM_RECEIPT'),
+        ],
     ],
 
     // التحدي ضد الآليات على إرسال غير المسجلين: fake في التطوير والاختبارات، وturnstile (Cloudflare)

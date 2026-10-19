@@ -32,6 +32,8 @@ final class SpaLink
         'surveys.show',
         // لوحة الإدارة بوضعها الخاص، ولوحة الطوابير، وخريطة الموقع وrobots
         'filament.*', 'horizon.*', 'sitemap', 'robots',
+        // إشعارات واتساب من خادم Meta: نص لا صفحة
+        'messaging.whatsapp.*',
     ];
 
     /**

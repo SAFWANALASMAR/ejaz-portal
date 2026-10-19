@@ -152,6 +152,11 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour((int) config('security.password_reset_per_subscriber_per_hour'))
             ->by('password-reset:'.NetworkPrefix::subscriber($request->ip())));
 
+        // إشعارات تسليم واتساب: لكل مشترك (عنوان IPv4، أو /64 في IPv6). واسع لأن Meta ترسل من عناوين قليلة،
+        // وحتى ثلاثة إشعارات لكل رسالة (routes/messaging.php)
+        RateLimiter::for('whatsapp-webhook', fn (Request $request): Limit => Limit::perMinute((int) config('messaging.webhook_per_minute'))
+            ->by('whatsapp-webhook:'.NetworkPrefix::subscriber($request->ip())));
+
         // «تواصل معنا»: لكل مشترك (عنوان IPv4، أو /64 في IPv6 فلا يُلتف عليه بتدوير العناوين)، ولكل
         // موقع /48 في IPv6، وسقف عام للبوابة حارساً أخيراً. والأرقام تتسع للشبكات المشتركة (CGNAT)
         RateLimiter::for('contact', function (Request $request): array {
