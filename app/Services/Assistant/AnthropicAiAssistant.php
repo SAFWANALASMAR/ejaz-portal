@@ -39,7 +39,7 @@ class AnthropicAiAssistant implements AiAssistant
                     'messages' => [['role' => 'user', 'content' => $message]],
                 ]);
         } catch (ConnectionException $exception) {
-            throw new AssistantProviderException('Anthropic request failed or timed out.', 0, $exception);
+            throw AssistantProviderException::connection('Anthropic', $exception);
         }
 
         if (! $response->successful()) {

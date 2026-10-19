@@ -125,7 +125,9 @@ class AssistantSettingsPage extends Page
                             ->password()
                             ->autocomplete('new-password')
                             ->placeholder($hasKey ? __('assistant.admin.settings.api_key_saved') : __('assistant.admin.settings.api_key_missing'))
-                            ->helperText((new AssistantSettings)->keyFromEnvironment() ? __('assistant.admin.settings.api_key_env') : __('assistant.admin.settings.api_key_hint'))
+                            ->helperText(AssistantSettings::providersWithEnvironmentKey() !== []
+                                ? __('assistant.admin.settings.api_key_env', ['providers' => implode('، ', array_map(fn (AssistantProvider $provider): string => $provider->getLabel(), AssistantSettings::providersWithEnvironmentKey()))])
+                                : __('assistant.admin.settings.api_key_hint'))
                             ->maxLength(500)
                             ->extraInputAttributes(['dir' => 'ltr']),
                         Toggle::make('clear_api_key')->label(__('assistant.admin.settings.clear_api_key'))->visible($hasKey),
@@ -172,9 +174,13 @@ class AssistantSettingsPage extends Page
         /** @var User $user */
         $user = auth()->user();
 
-        $this->withActionErrors(fn () => $action->handle($user, $this->form->getState()));
+        // المفتاح المكتوب يُفرغ نجح الحفظ أو فشل تحققه، فلا يبقى في حالة Livewire المحفوظة في الصفحة (مراجعة المشرف، ٤)
+        try {
+            $this->withActionErrors(fn () => $action->handle($user, $this->form->getState()));
+        } finally {
+            $this->data['api_key'] = null;
+        }
 
-        $this->data['api_key'] = null;
         $this->data['clear_api_key'] = false;
 
         Notification::make()->success()->title(__('assistant.admin.settings.saved'))->send();

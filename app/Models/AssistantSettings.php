@@ -13,8 +13,8 @@ use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * إعدادات المساعد الذكي: سجل واحد يُقرأ مع كل صفحة (زر المساعد)، فيُخزَّن في الذاكرة المؤقتة بقيمه الخام، ومنها
- * المفتاح مشفّراً كما في القاعدة. ومفتاح المزود مشفّر (encrypted) ولا يدخل سجل العمليات، ومفتاح AI_ASSISTANT_API_KEY
- * في .env يُقدَّم عليه متى وُجد (apiKey()).
+ * المفتاح مشفّراً كما في القاعدة. ومفتاح المزود مشفّر (encrypted) ولا يدخل سجل العمليات، ومفتاح المزود المختار
+ * في .env (مفتاح لكل مزود، config/assistant.php) يُقدَّم عليه متى وُجد (apiKey()).
  *
  * @property bool $is_enabled
  * @property bool $generation_enabled
@@ -88,12 +88,14 @@ class AssistantSettings extends Model
     }
 
     /**
-     * المفتاح من .env أولاً، ثم المحفوظ مشفّراً في القاعدة.
+     * مفتاح المزود المختار من .env أولاً، ثم المحفوظ مشفّراً في القاعدة.
      */
     public function apiKey(): ?string
     {
-        if ($this->keyFromEnvironment()) {
-            return (string) config('assistant.api_key');
+        $environment = $this->environmentKey();
+
+        if ($environment !== null) {
+            return $environment;
         }
 
         // مفتاح شُفّر بمفتاح تطبيق قديم (APP_KEY تغيّر) لا يُقرأ: كأنه غير محفوظ، فيُكتب من جديد
@@ -127,9 +129,24 @@ class AssistantSettings extends Model
         }
     }
 
-    public function keyFromEnvironment(): bool
+    /**
+     * مفتاح المزود المختار في ملف البيئة، مربوطاً بمزوده: مفتاح Anthropic لا يُرسل إلى المتوافق مع OpenAI ولا العكس.
+     */
+    public function environmentKey(): ?string
     {
-        return (string) config('assistant.api_key') !== '';
+        $key = $this->provider !== null ? (string) config('assistant.api_keys.'.$this->provider->value) : '';
+
+        return $key !== '' ? $key : null;
+    }
+
+    /**
+     * المزودون الذين لهم مفتاح في ملف البيئة، لتنبيه المشرف في الإعدادات.
+     *
+     * @return list<AssistantProvider>
+     */
+    public static function providersWithEnvironmentKey(): array
+    {
+        return array_values(array_filter(AssistantProvider::cases(), fn (AssistantProvider $provider): bool => (string) config('assistant.api_keys.'.$provider->value) !== ''));
     }
 
     /**

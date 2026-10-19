@@ -58,16 +58,19 @@ class AskAssistant
             return $this->record($question, AssistantMode::Busy, __('assistant.busy'), [], contact: true, settings: $settings);
         }
 
+        $usage = [];
+
         try {
             $reply = ConcurrencyGate::run(fn () => app(AiAssistant::class)->answer(PromptBuilder::SYSTEM, $message));
         } catch (AssistantProviderException $exception) {
             // السبب وحده في السجل، بلا السؤال ولا المفتاح
             Log::warning('AI assistant provider failed: '.$exception->getMessage());
             $reply = null;
+            $usage = $this->budget->timeoutUsage($settings, $exception, PromptBuilder::SYSTEM.$message);
         }
 
         if ($reply === null) {
-            return $this->record($question, AssistantMode::Busy, __('assistant.busy'), [], contact: true, settings: $settings);
+            return $this->record($question, AssistantMode::Busy, __('assistant.busy'), [], contact: true, settings: $settings, usage: $usage);
         }
 
         $cost = $this->budget->cost($settings, $reply->inputTokens, $reply->outputTokens);

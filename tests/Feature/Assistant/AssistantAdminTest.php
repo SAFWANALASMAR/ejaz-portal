@@ -114,7 +114,7 @@ it('sends the key only to provider hosts allowed on the server', function () {
         ->toThrow(ValidationException::class);
 
     // ولا يُرسل مفتاح البيئة إلى نطاق غير مسموح ولو حُفظ الإعداد مباشرة في القاعدة
-    config(['assistant.api_key' => 'sk-env']);
+    config(['assistant.api_keys.openai_compatible' => 'sk-env']);
     $settings = new AssistantSettings(['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://attacker.example/v1']);
     expect($settings->hasUsableProvider())->toBeFalse();
 
@@ -147,6 +147,19 @@ it('asks for the key again before sending a saved key to another provider or hos
     $action->handle($admin, ['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://models.example.sa/v1', 'api_key' => 'sk-local']);
     $action->handle($admin, ['provider' => 'openai_compatible', 'model' => 'm2', 'base_url' => 'https://models.example.sa/v1']);
     expect(AssistantSettings::query()->sole())->api_key->toBe('sk-local')->model->toBe('m2');
+});
+
+it('clears the typed key from the page state when saving fails', function () {
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+
+    Livewire::test(AssistantSettingsPage::class)
+        ->fillForm(['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://attacker.example/v1', 'api_key' => 'sk-typed-secret'])
+        ->call('save')
+        ->assertHasFormErrors(['base_url'])
+        ->assertSet('data.api_key', null)
+        ->assertDontSee('sk-typed-secret');
+
+    expect(AssistantSettings::query()->exists())->toBeFalse();
 });
 
 it('clears the typed key from the page state after testing the connection', function () {

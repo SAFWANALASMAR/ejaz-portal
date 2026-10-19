@@ -36,10 +36,15 @@ test('opens the assistant, answers with sources, and keeps the chat across navig
 
     const width = page.viewportSize().width;
 
-    // على الجوال تفتح بعرض الشاشة
+    // على الجوال تفتح بعرض الشاشة، وما خلفها inert. وعلى الحاسوب واللوحي تبقى الصفحة متاحة
+    const mainInert = () => page.evaluate(() => document.getElementById('main').inert);
+
     if (width < 640) {
         const box = await dialog.boundingBox();
         expect(Math.round(box.width)).toBe(width);
+        expect(await mainInert()).toBe(true);
+    } else {
+        expect(await mainInert()).toBe(false);
     }
 
     // سؤال مقترح من عناوين الدليل المفعّلة
