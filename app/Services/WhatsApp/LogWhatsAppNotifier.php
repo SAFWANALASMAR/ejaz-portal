@@ -11,12 +11,14 @@ use RuntimeException;
  */
 class LogWhatsAppNotifier implements WhatsAppNotifier
 {
-    public function send(string $phone, string $message): void
+    public function send(string $phone, WhatsAppMessage $message): ?string
     {
         if (app()->isProduction()) {
             throw new RuntimeException('LogWhatsAppNotifier must not be used in production.');
         }
 
-        Log::info('[WhatsApp] ***'.substr($phone, -4).': '.$message);
+        Log::info('[WhatsApp] ***'.substr($phone, -4).' ('.$message->usage.'): '.$message->text);
+
+        return null;
     }
 }

@@ -73,6 +73,10 @@ enum ActivityEvent: string implements HasLabel
     case InquiryNoteUpdated = 'inquiry_note_updated';
     // البث المباشر
     case LiveStreamArchived = 'live_stream_archived';
+    // قنوات التواصل: تغيير مفتاح مزود (بلا قيمته)، ورسالة اختبار من اللوحة، وإشعار تسليم بتوقيع خاطئ
+    case MessagingSecretsChanged = 'messaging_secrets_changed';
+    case MessagingTestSent = 'messaging_test_sent';
+    case MessagingWebhookRejected = 'messaging_webhook_rejected';
 
     public function getLabel(): string
     {
