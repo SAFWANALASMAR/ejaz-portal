@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\ServiceRequestEvent;
 use App\Models\User;
 use App\Notifications\Channels\SmsChannel;
+use App\Services\Messaging\MessagingSettings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
@@ -29,7 +30,7 @@ class ServiceRequestStatusChanged extends Notification implements ShouldBeEncryp
     public function via(object $notifiable): array
     {
         // الرسالة النصية «حسب الإعداد» (requirements/02)، ولجوال موثق فقط
-        $sms = config('services.sms.request_updates') && $notifiable instanceof User && $notifiable->hasVerifiedPhone();
+        $sms = MessagingSettings::usageEnabled('sms', 'request_updates') && $notifiable instanceof User && $notifiable->hasVerifiedPhone();
 
         return $sms ? ['mail', SmsChannel::class] : ['mail'];
     }

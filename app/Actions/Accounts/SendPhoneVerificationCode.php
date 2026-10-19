@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\SmsCapWarning;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
+use App\Support\SaudiPhone;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -50,6 +51,12 @@ class SendPhoneVerificationCode
 
         if ($phone === null) {
             throw ValidationException::withMessages(['code' => __('account.phone.no_phone')]);
+        }
+
+        // جوال سعودي وحده (كالتسجيل و«بياناتي» وشاشة المستخدمين: SaudiMobile)، فلا يُرسل رمز إلى رقم دولي
+        // مكلف وصل إلى الحساب من طريق آخر (استيراد أو تعديل في القاعدة)
+        if (SaudiPhone::normalize($phone) !== $phone) {
+            throw ValidationException::withMessages(['code' => __('account.phone.not_saudi')]);
         }
 
         foreach ([['otp-minute:', 1], ['otp-hour:', 5]] as [$prefix, $max]) {

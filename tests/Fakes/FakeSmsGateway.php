@@ -12,9 +12,11 @@ class FakeSmsGateway implements SmsGateway
     /** @var list<array{phone: string, message: string}> */
     public array $sent = [];
 
-    public function send(string $phone, string $message): void
+    public function send(string $phone, string $message): ?string
     {
         $this->sent[] = ['phone' => $phone, 'message' => $message];
+
+        return null;
     }
 
     public function lastCodeFor(string $phone): ?string
