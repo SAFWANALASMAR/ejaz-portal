@@ -2,6 +2,7 @@
 
 use App\Contracts\AiAssistant;
 use App\Enums\AssistantMode;
+use App\Enums\AssistantProvider;
 use App\Models\AssistantSettings;
 use App\Models\Page;
 use App\Services\Assistant\AnthropicAiAssistant;
@@ -58,9 +59,23 @@ it('calls an OpenAI compatible API at its base URL with a bearer token', functio
 
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://models.example.sa/v1/chat/completions'
         && $request->hasHeader('Authorization', 'Bearer local-key')
-        && array_keys($request->data()) === ['model', 'max_tokens', 'messages']
+        && array_keys($request->data()) === ['model', 'max_completion_tokens', 'messages']
+        && $request['max_completion_tokens'] === 600
         && $request['messages'] === [['role' => 'system', 'content' => 'التعليمات'], ['role' => 'user', 'content' => 'الرسالة']]);
 });
+
+it('sends max_tokens instead to older compatible servers when configured', function (string $setting, string $expected) {
+    config(['assistant.openai_token_parameter' => $setting]);
+    Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => 'جواب'], 'finish_reason' => 'stop']], 'usage' => ['prompt_tokens' => 1, 'completion_tokens' => 1]])]);
+
+    (new OpenAiCompatibleAiAssistant('https://models.example.sa/v1', 'k', 'm'))->answer('s', 'm');
+
+    Http::assertSent(fn (Request $request): bool => array_keys($request->data()) === ['model', $expected, 'messages']);
+})->with([
+    'older servers' => ['max_tokens', 'max_tokens'],
+    'default' => ['max_completion_tokens', 'max_completion_tokens'],
+    'anything else falls back' => ['tokens', 'max_completion_tokens'],
+]);
 
 it('waits for the provider no longer than the configured timeout', function (string $class, string $url) {
     $options = [];
@@ -128,8 +143,16 @@ it('builds the provider from the settings, preferring the environment key', func
     expect(AssistantProviders::make($settings))->toBeInstanceOf(AnthropicAiAssistant::class)
         ->and($settings->apiKey())->toBe('from-panel');
 
-    config(['assistant.api_key' => 'from-env']);
-    expect($settings->apiKey())->toBe('from-env');
+    // مفتاح البيئة مربوط بمزوده: مفتاح المتوافق مع OpenAI لا يُرسل إلى Anthropic، ومفتاح Anthropic يُقدَّم لها
+    config(['assistant.api_keys.openai_compatible' => 'openai-env']);
+    expect($settings->apiKey())->toBe('from-panel');
+
+    config(['assistant.api_keys.anthropic' => 'anthropic-env']);
+    expect($settings->apiKey())->toBe('anthropic-env')
+        ->and(AssistantSettings::providersWithEnvironmentKey())->toHaveCount(2);
+
+    $settings->provider = AssistantProvider::OpenAiCompatible;
+    expect($settings->apiKey())->toBe('openai-env');
 
     // المتوافق مع OpenAI يلزمه عنوانه الأساسي
     $openai = new AssistantSettings(['provider' => 'openai_compatible', 'model' => 'm', 'api_key' => 'k']);

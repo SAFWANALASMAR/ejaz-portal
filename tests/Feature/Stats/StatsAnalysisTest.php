@@ -156,6 +156,18 @@ it('marks the report as failed when the provider fails, without cost', function 
         ->and(AssistantUsage::monthCost())->toBe(0.0);
 });
 
+it('counts an estimated cost on the cap when the analysis times out', function () {
+    $fake = enableAnalysis();
+    $fake->timeout = true;
+
+    $analysis = app(RequestStatsAnalysis::class)->handle(userWithRole(RoleName::BoardMember), lastMonth())->fresh();
+
+    expect($analysis->status)->toBe(StatsAnalysisStatus::Failed)
+        ->and($analysis->output_tokens)->toBe((int) config('assistant.max_output_tokens'))
+        ->and((float) $analysis->cost)->toBeGreaterThan(0.0)
+        ->and(AssistantUsage::monthCost())->toBe((float) $analysis->cost);
+});
+
 it('validates the period', function (array $period) {
     enableAnalysis();
 

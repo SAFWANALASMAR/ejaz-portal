@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\PlainText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -21,8 +22,9 @@ class AskAssistantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'question' => ['required', 'string', 'min:2', 'max:'.(int) config('assistant.max_question')],
-            'page' => ['nullable', 'string', 'max:300'],
+            // نص صالح بلا محارف تحكم (ومنها NUL الذي ترفضه القاعدة بعد استدعاء المزود)، والسؤال يقبل الأسطر
+            'question' => ['required', 'string', 'min:2', 'max:'.(int) config('assistant.max_question'), new PlainText(multiline: true)],
+            'page' => ['nullable', 'string', 'max:300', new PlainText],
         ];
     }
 

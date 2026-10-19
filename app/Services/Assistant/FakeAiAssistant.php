@@ -4,6 +4,7 @@ namespace App\Services\Assistant;
 
 use App\Contracts\AiAssistant;
 use App\Support\Assistant\AnswerComposer;
+use Illuminate\Http\Client\ConnectionException;
 use RuntimeException;
 
 /**
@@ -19,6 +20,11 @@ class FakeAiAssistant implements AiAssistant
 
     public bool $fail = false;
 
+    /**
+     * تعذّر بانتهاء المهلة، فيُحسب على السقف تقديراً.
+     */
+    public bool $timeout = false;
+
     public function answer(string $system, string $message): AssistantReply
     {
         if (app()->isProduction()) {
@@ -26,6 +32,10 @@ class FakeAiAssistant implements AiAssistant
         }
 
         $this->requests[] = ['system' => $system, 'message' => $message];
+
+        if ($this->timeout) {
+            throw AssistantProviderException::connection('Fake', new ConnectionException('cURL error 28: Operation timed out'));
+        }
 
         if ($this->fail) {
             throw new AssistantProviderException('Fake provider failure.');

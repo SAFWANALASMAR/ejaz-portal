@@ -7,6 +7,7 @@ use App\Models\AssistantSettings;
 use App\Models\AssistantUsage;
 use App\Models\User;
 use App\Notifications\AssistantCapReached;
+use App\Services\Assistant\AssistantProviderException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -59,6 +60,26 @@ class CheckAssistantBudget
     public function record(float $cost): void
     {
         AssistantUsage::add($cost);
+    }
+
+    /**
+     * طلب انتهت مهلته وصل إلى المزود وقد يحاسب عليه، فيُحسب على السقف تقديراً بالزيادة: المدخل حرفان لكل وحدة، والمخرج
+     * بأقصاه (مراجعة المشرف، ٣). وغير المهلة (رفض الاتصال، أو رد بخطأ) لا تكلفة له.
+     *
+     * @return array{input_tokens?: int, output_tokens?: int, cost?: float}
+     */
+    public function timeoutUsage(AssistantSettings $settings, AssistantProviderException $exception, string $sent): array
+    {
+        if (! $exception->timedOut) {
+            return [];
+        }
+
+        $input = (int) ceil(mb_strlen($sent) / 2);
+        $output = (int) config('assistant.max_output_tokens');
+        $cost = $this->cost($settings, $input, $output);
+        $this->record($cost);
+
+        return ['input_tokens' => $input, 'output_tokens' => $output, 'cost' => $cost];
     }
 
     private function alert(AssistantSettings $settings, float $spent, float $cap): void

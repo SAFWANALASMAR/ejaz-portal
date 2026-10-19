@@ -19,6 +19,15 @@ class OpenAiCompatibleAiAssistant implements AiAssistant
         private readonly string $model,
     ) {}
 
+    /**
+     * max_completion_tokens (الافتراضي، ويلزم نماذج OpenAI الأحدث) أو max_tokens لخوادم أقدم متوافقة، من
+     * AI_ASSISTANT_OPENAI_TOKEN_PARAMETER. وغيرهما يعود إلى الافتراضي.
+     */
+    public static function tokenParameter(): string
+    {
+        return config('assistant.openai_token_parameter') === 'max_tokens' ? 'max_tokens' : 'max_completion_tokens';
+    }
+
     public function answer(string $system, string $message): AssistantReply
     {
         try {
@@ -32,14 +41,14 @@ class OpenAiCompatibleAiAssistant implements AiAssistant
                 ->withToken($this->apiKey)
                 ->post('/chat/completions', [
                     'model' => $this->model,
-                    'max_tokens' => (int) config('assistant.max_output_tokens'),
+                    self::tokenParameter() => (int) config('assistant.max_output_tokens'),
                     'messages' => [
                         ['role' => 'system', 'content' => $system],
                         ['role' => 'user', 'content' => $message],
                     ],
                 ]);
         } catch (ConnectionException $exception) {
-            throw new AssistantProviderException('Chat completions request failed or timed out.', 0, $exception);
+            throw AssistantProviderException::connection('Chat completions', $exception);
         }
 
         if (! $response->successful()) {

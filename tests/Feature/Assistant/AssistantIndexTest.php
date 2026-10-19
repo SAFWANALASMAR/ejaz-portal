@@ -17,6 +17,7 @@ use App\Support\Assistant\ArabicText;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\Assistant\AssistantRetriever;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 /*
 | فهرس المساعد: المحتوى المنشور وحده بكل مصادره، ويتبع النشر والحذف والاستعادة، ولا يقرأ الملفات الخاصة.
@@ -118,6 +119,29 @@ it('splits long content into passages within the limit', function () {
     foreach ($chunks as $chunk) {
         expect(mb_strlen($chunk))->toBeLessThanOrEqual((int) config('assistant.chunk_chars'));
     }
+});
+
+it('serializes the rebuild and the single-record sync with one advisory lock', function () {
+    $page = Page::factory()->create(['title' => 'الرؤية']);
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = [$query->sql, $query->bindings];
+    });
+
+    AssistantIndex::rebuild();
+    $page->update(['is_published' => false]);
+
+    $locks = array_values(array_filter($queries, fn (array $query): bool => str_contains($query[0], 'pg_advisory_xact_lock')));
+    expect($locks)->toHaveCount(2)
+        ->and(array_column($locks, 1))->each->toBe([AssistantIndex::LOCK]);
+
+    // القفل قبل الحذف في كلٍّ منهما
+    $sqls = array_column($queries, 0);
+    foreach (array_keys($sqls, $locks[0][0], true) as $index) {
+        expect($sqls[$index + 1])->toStartWith('delete from "assistant_chunks"');
+    }
+
+    expect(AssistantChunk::query()->where('source_type', 'page')->exists())->toBeFalse();
 });
 
 it('rebuilds the whole index from the command', function () {

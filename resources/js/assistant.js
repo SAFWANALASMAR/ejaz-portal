@@ -5,6 +5,19 @@
 const root = () => document.querySelector('[data-assistant]');
 const panel = () => document.getElementById('assistant-panel');
 const toggle = () => root()?.querySelector('[data-assistant-toggle]');
+const mobile = () => window.matchMedia('(max-width: 639px)').matches;
+
+// على الجوال تملأ النافذة الشاشة: ما خلفها inert، فلا تصل إليه لوحة المفاتيح ولا القارئ الصوتي (مراجعة المشرف، ٥).
+// وعلى الحاسوب نافذة جانبية لا تحجب الصفحة. ويُعاد بعد التنقّل السريع، لأن الصفحة الجديدة عناصر جديدة
+function shield(on) {
+    const own = root()?.closest('body > *');
+
+    [...document.body.children].forEach((child) => {
+        if (child !== own) {
+            child.inert = on;
+        }
+    });
+}
 
 function setOpen(open) {
     const element = panel();
@@ -18,6 +31,7 @@ function setOpen(open) {
     button.setAttribute('aria-expanded', String(open));
     // على الجوال تملأ النافذة الشاشة، فلا يتحرك ما خلفها
     document.documentElement.classList.toggle('max-sm:overflow-hidden', open);
+    shield(open && mobile());
 
     if (open) {
         element.querySelector('#assistant-question')?.focus();
@@ -237,11 +251,19 @@ document.addEventListener('click', (event) => {
     }
 
     // الانتقال إلى صفحة من المصادر على الجوال يغلق النافذة التي تملأ الشاشة، فتظهر الصفحة
-    if (event.target.closest('#assistant-panel a[href]') && window.matchMedia('(max-width: 639px)').matches) {
+    if (event.target.closest('#assistant-panel a[href]') && mobile()) {
         panel().hidden = true;
         toggle()?.setAttribute('aria-expanded', 'false');
         document.documentElement.classList.remove('max-sm:overflow-hidden');
+        shield(false);
     }
+});
+
+// الصفحة الجديدة بعد التنقّل السريع: تُحجب إن بقيت النافذة مفتوحة على الجوال (زر الرجوع مثلاً)
+document.addEventListener('livewire:navigated', () => {
+    const element = panel();
+
+    shield(Boolean(element && !element.hidden && mobile()));
 });
 
 document.addEventListener('submit', (event) => {

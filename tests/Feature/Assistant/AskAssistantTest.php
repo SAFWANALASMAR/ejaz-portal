@@ -304,6 +304,37 @@ it('answers that the assistant is busy when the provider fails', function () {
 
     ask('أين المخطوطات؟')->assertOk()
         ->assertJson(['mode' => AssistantMode::Busy->value, 'answer' => __('assistant.busy'), 'contact' => true, 'contact_url' => '/contact']);
+
+    // خطأ غير المهلة (رد بخطأ أو رفض اتصال) لا تكلفة له
+    expect(AssistantUsage::monthCost())->toBe(0.0);
+});
+
+it('counts an estimated cost on the cap when the provider times out', function () {
+    $fake = enableAssistant(['input_price' => 2, 'output_price' => 10]);
+    manuscriptsPage();
+    $fake->timeout = true;
+
+    ask('أين المخطوطات؟')->assertOk()->assertJsonPath('mode', AssistantMode::Busy->value);
+
+    $log = AssistantLog::query()->sole();
+    $sent = mb_strlen($fake->requests[0]['system'].$fake->requests[0]['message']);
+
+    expect($log->output_tokens)->toBe((int) config('assistant.max_output_tokens'))
+        ->and($log->input_tokens)->toBe((int) ceil($sent / 2))
+        ->and(AssistantUsage::monthCost())->toBe((float) $log->cost)
+        ->and((float) $log->cost)->toBeGreaterThan(0.0);
+});
+
+it('rejects control characters in the question or the page before calling the provider', function () {
+    $fake = enableAssistant();
+    manuscriptsPage();
+
+    // في وسط النص (TrimStrings يحذف NUL من طرفيه)
+    ask("المخطو\0طات")->assertUnprocessable()->assertJsonValidationErrors('question');
+    ask('المخطوطات', "/me\0dia")->assertUnprocessable()->assertJsonValidationErrors('page');
+    ask("المخطوطات\nسطر ثانٍ")->assertOk();
+
+    expect($fake->requests)->toHaveCount(1);
 });
 
 it('answers busy without calling the provider when all concurrent slots are taken', function () {

@@ -46,6 +46,18 @@ final class AssistantIndex
     ];
 
     /**
+     * قفل PostgreSQL على مستوى المعاملة يجمع إعادة البناء وتحديث السجل الواحد، فلا يتداخلان. بلاه قد تقرأ إعادة البناء
+     * صفحةً منشورة، ثم يُلغى نشرها ويحذف التحديث مقاطعها، ثم تضيفها إعادة البناء من قراءتها القديمة فتبقى (مراجعة المشرف، ٢).
+     * والقفل يُحرَّر وحده مع نهاية المعاملة.
+     */
+    public const LOCK = 7_420_190;
+
+    private static function lock(): void
+    {
+        DB::statement('select pg_advisory_xact_lock(?)', [self::LOCK]);
+    }
+
+    /**
      * يعيد مقاطع سجل واحد بعد اعتماد المعاملة: يحذف القديمة، ويضيف الجديدة إن كان منشوراً.
      */
     public static function sync(Model $model): void
@@ -58,6 +70,7 @@ final class AssistantIndex
 
         DB::afterCommit(function () use ($model, $source): void {
             DB::transaction(function () use ($model, $source): void {
+                self::lock();
                 AssistantChunk::query()->where('source_type', $source->value)->where('source_id', $model->getKey())->delete();
                 self::insert($source, $model);
             });
@@ -70,6 +83,7 @@ final class AssistantIndex
     public static function rebuild(): int
     {
         return DB::transaction(function (): int {
+            self::lock();
             AssistantChunk::query()->delete();
 
             foreach (self::MODELS as $class => $source) {
