@@ -20,6 +20,7 @@ use App\Services\Messaging\ProviderHttp;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Support\Assistant\CurrentPage;
 use App\Support\TeamsConnection;
+use Filament\Facades\Filament;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -141,24 +142,32 @@ it('prunes failed jobs after a week, daily', function () {
 
 // وبخطأ حقيقي من PostgreSQL (قيد فريد): نص الخطأ للتشخيص بلا سطر DETAIL، ورسالة الاستثناء نفسها بلا القيم المربوطة
 // (mask_bindings_in_exception_messages)، فلا تصل إلى failed_jobs ولا Horizon ولا الاستثناء المغلّف في قالب
-it('keeps the PostgreSQL error for diagnosis and masks the bound values in the exception itself', function () {
+// ونص PostgreSQL نفسه قد يحمل قيمة المدخل (22P02: invalid input syntax for type uuid: "…")، فيُسجَّل رمز الخطأ وحده
+// (بقايا مراجعة #61)
+it('logs only the SQLSTATE of a real PostgreSQL error, and masks the bound values in the exception itself', function (string $case, string $state, string $secret) {
     User::factory()->create(['email' => 'dupe@example.test']);
     $logged = [];
     Log::listen(function (MessageLogged $message) use (&$logged): void {
-        $logged[] = json_encode($message->context, JSON_UNESCAPED_UNICODE);
+        $logged[] = $message->message.' '.json_encode($message->context, JSON_UNESCAPED_UNICODE);
     });
 
     try {
-        DB::table('users')->insert(['name' => 'x', 'email' => 'dupe@example.test', 'password' => 'secret-hash-value', 'created_at' => now(), 'updated_at' => now()]);
-        $this->fail('the duplicate insert did not fail');
+        match ($case) {
+            'unique' => DB::table('users')->insert(['name' => 'x', 'email' => 'dupe@example.test', 'password' => 'secret-hash-value', 'created_at' => now(), 'updated_at' => now()]),
+            'uuid' => DB::select('select * from service_requests where uuid = ?::uuid', ['secret-typed-value']),
+        };
+        $this->fail('the query did not fail');
     } catch (QueryException $exception) {
         report($exception);
         expect($exception->getMessage())->not->toContain('secret-hash-value');
     }
 
-    expect(implode("\n", $logged))->toContain('duplicate key value')->toContain('23505')
-        ->not->toContain('dupe@example.test')->not->toContain('secret-hash-value');
-});
+    expect(implode("\n", $logged))->toContain($state)->toContain('Database query failed')
+        ->not->toContain($secret)->not->toContain('secret-hash-value')->not->toContain('invalid input syntax')->not->toContain('duplicate key');
+})->with([
+    'unique violation' => ['unique', '23505', 'dupe@example.test'],
+    'invalid uuid' => ['uuid', '22P02', 'secret-typed-value'],
+]);
 
 // ب٤: SSRF عبر عنوان مزود المساعد. الحماية قائمة مسموحة بالمضيف الدقيق من البيئة (AI_ASSISTANT_ALLOWED_HOSTS)، لا فحص
 // للعناوين الخاصة: فكل مضيف خارجها مرفوض أياً كانت صيغته (عشرية، أو ثمانية، أو ست عشرية، أو IPv6 معيّنة، أو اسم خارجي
@@ -186,6 +195,46 @@ it('accepts only the exact provider hosts allowed on the server, whatever form a
     'allowed host as user part' => 'https://api.openai.com@127.0.0.1/v1',
     'allowed host as subdomain' => 'https://api.openai.com.evil.example/v1',
 ]);
+
+// والاستعلام وUser-Agent في GET لا يفحصهما الوسيط: فما يكتب في GET لا يتعطل بهما. عدّاد الزيارات يأخذ بصمة الوكيل،
+// والجلسة تحفظ الرابط السابق (_previous.url) مرمَّزاً، فتبقى الجلسة بعد طلب كهذا (بقايا مراجعة #61)
+it('keeps GET pages, the visit counter and the session working with a broken query and user agent', function () {
+    config(['session.driver' => 'file']);
+    app('session')->forgetDrivers();
+    $broken = ['User-Agent' => "Mozilla/5.0 \xFF\xC3\x28"];
+
+    foreach (['/?utm=%FF', '/media/news?q=%FF', '/library?q=%C3%28', '/programs?type=%FF', '/contact?x=%FF'] as $uri) {
+        expect($this->withHeaders($broken)->get($uri)->getStatusCode())->toBeIn([200, 302], $uri);
+    }
+
+    $user = User::factory()->create(['password' => 'Keep-Session-Pass-2026']);
+    $cookie = config('session.cookie');
+    $session = $this->flushHeaders()->post('/login', ['login' => $user->email, 'password' => 'Keep-Session-Pass-2026'])->getCookie($cookie, false)->getValue();
+    app('auth')->forgetGuards();
+    app('session')->forgetDrivers();
+    $this->withHeaders($broken)->withUnencryptedCookie($cookie, $session)->get('/account?x=%FF&y=%C3%28')->assertOk();
+    app('auth')->forgetGuards();
+    app('session')->forgetDrivers();
+    $this->flushHeaders()->withUnencryptedCookie($cookie, $session)->get('/account')->assertOk();
+});
+
+// أنماط مضمّنة (style="") في قوالب اللوحة المضافة (recent-logs وstats-analysis) تمر من CSP في الإنتاج: style-src فيه
+// 'unsafe-inline' بلا nonce (فالمتصفح يهمل 'unsafe-inline' متى وُجد nonce)، في اللوحة والموقع (بقايا مراجعة #61)
+it('lets inline styles through the production CSP, with no style nonce that would cancel unsafe-inline', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    app()->detectEnvironment(fn () => 'production');
+
+    foreach ([
+        [userWithRole(RoleName::SuperAdmin), '/admin/messaging-channels'],
+        [null, '/'],
+    ] as [$user, $uri]) {
+        $response = $user ? $this->actingAs($user)->get($uri) : $this->get($uri);
+        preg_match('/style-src ([^;]+)/', (string) $response->headers->get('Content-Security-Policy'), $style);
+
+        expect($response->getStatusCode())->toBe(200, $uri)
+            ->and($style[1] ?? '')->toContain("'unsafe-inline'")->not->toContain('nonce-');
+    }
+});
 
 // المسار المكسور الترميز يرفضه الإطار نفسه بـ 400 قبل أي استعلام (/pages/%C3%28)، فيبقى كذلك
 it('answers 400 to a path segment that is not valid UTF-8', function (string $path) {

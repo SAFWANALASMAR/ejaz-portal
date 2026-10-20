@@ -204,6 +204,7 @@ it('refuses a forged Livewire update request from a member', function () {
             'calls' => [['method' => 'save', 'params' => []]],
         ]]])->getStatusCode();
 
-    expect($status)->toBeGreaterThanOrEqual(400)->toBeLessThan(500)
+    // 419 بالضبط من فحص سلامة اللقطة (LivewireReleaseTokenMismatchException)، كما في تقرير الأمن
+    expect($status)->toBe(419)
         ->and($target->fresh()->name)->toBe('موظف');
 });
