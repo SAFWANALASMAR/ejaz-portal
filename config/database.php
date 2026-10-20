@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // رسالة خطأ القاعدة بلا القيم المربوطة في كل مكان: السجل، والاستثناء المغلّف في قالب، وfailed_jobs وHorizon
+            // (اختبار الأمن قبل الرفع، مراجعة #61). والقيمة المكررة في سطر DETAIL لا يحذفها هذا: انظر bootstrap/app.php
+            'mask_bindings_in_exception_messages' => true,
         ],
 
         'sqlsrv' => [

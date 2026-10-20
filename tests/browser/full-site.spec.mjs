@@ -650,6 +650,8 @@ test.describe('لوحة الإدارة', () => {
         // الترويسة: رقم الترخيص، والجوال والبريد من اليسار متى ضُبطا في الإعدادات
         const letterhead = page.locator('.letterhead').first();
         await expect.soft(letterhead).toContainText('رقم الترخيص');
+        // الجوال والبريد مضبوطان بأمر الاستيراد (#58)، فلا تمر الحلقة فارغة
+        expect.soft(await letterhead.locator('.org-contact span').count(), 'الجوال والبريد في الترويسة').toBeGreaterThan(0);
         for (const contact of await letterhead.locator('.org-contact span').all()) {
             await expect.soft(contact).toHaveAttribute('dir', 'ltr');
         }
@@ -807,14 +809,19 @@ test.describe('الجديد منذ 13 أكتوبر', () => {
         await expect(form).toBeVisible();
         await shot(page, 'survey-guest', testInfo);
 
-        // إرسال آلي بلا رمز التحدي ولا رمز الجلسة: مرفوض
-        const robot = await request.post(new URL(form.page().url()).pathname, { form: { 'answers[1]': '5' }, maxRedirects: 0 });
-        expect.soft([403, 419, 422, 302]).toContain(robot.status());
+        // إرسال آلي بلا رمز التحدي ولا رمز الجلسة: مرفوض صراحة (لا 302، فهو رد الإرسال الناجح أيضاً)
+        const surveyUrl = page.url();
+        const robot = await request.post(new URL(surveyUrl).pathname, { form: { 'answers[1]': '5' }, maxRedirects: 0 });
+        expect.soft([403, 419, 422]).toContain(robot.status());
 
         await fillForm(form);
         await submit(page, form.locator('button[type=submit], button:not([type])').last());
         await expect.soft(page.locator('main')).not.toContainText('خطأ');
         await shot(page, 'survey-guest-done', testInfo);
+
+        // ويُرسل مرة: الزيارة الثانية من المتصفح نفسه بلا نموذج
+        await page.goto(surveyUrl);
+        await expect.soft(page.locator('main form[method=POST]').filter({ has: page.locator('[name^="answers"]') }), 'نموذج الاستبيان بعد الإرسال').toHaveCount(0);
         expect(errors, errors.join('\n')).toEqual([]);
     });
 
@@ -883,16 +890,50 @@ test.describe('الجديد منذ 13 أكتوبر', () => {
 
     test('XSS: ما كتبه مستفيد لا يُنفَّذ في اللوحة ولا في حسابه', async ({ page }, testInfo) => {
         test.skip(testInfo.project.name !== 'desktop');
+        test.setTimeout(300_000);
         let alerted = false;
-        page.on('dialog', () => {
+        // تُغلق كل نافذة فوراً، فلا تعلق الصفحة حتى المهلة، ويبقى أثرها في alerted
+        page.removeAllListeners('dialog');
+        page.on('dialog', (dialog) => {
             alerted = true;
+            dialog.dismiss().catch(() => {});
         });
         const injected = async (label) => {
             await page.waitForLoadState('networkidle').catch(() => {});
             expect.soft(await page.locator('[data-xss]').count(), label).toBe(0);
         };
 
+        // الطُعم من الاختبار نفسه، بنماذج الموقع كما يكتبها مهاجم: اسم حساب جديد، ورسالة تواصل
+        const bait = `"><img src=x data-xss=1 onerror=alert(1)><svg data-xss=1 onload=alert(1)>{{7*7}}`;
+        const marker = `xss-${Date.now()}`;
+        await page.context().clearCookies();
+        await page.goto('/register');
+        await page.fill('#field-name', `${marker} ${bait}`);
+        await page.fill('#field-email', `${marker}@example.com`);
+        await page.fill('#field-phone', `05${String(Date.now()).slice(-8)}`);
+        const password = `Xss-${randomUUID()}`;
+        await page.fill('#field-password', password);
+        await page.fill('#field-password_confirmation', password);
+        await page.locator('input[name=privacy]').check();
+        await submit(page, page.locator('main form button[type=submit]').first());
+        await page.context().clearCookies();
+        await page.goto('/contact');
+        const contact = page.locator('main form[action$="/contact"]');
+        await fillForm(contact);
+        await contact.locator('[name=name]').fill(`${marker} ${bait}`);
+        await contact.locator('textarea[name=message]').fill(`${marker} ${bait}`);
+        // مؤقت النموذج يرفض الإرسال الأسرع من الإنسان
+        await page.waitForTimeout(6000);
+        await submit(page, contact.locator('button[type=submit], button:not([type])').last());
+
         await login(page, 'admin');
+        // الطُعم ظاهر نصاً مهرَّباً في القائمة، فالفحص لا يمر على قاعدة بلا طُعم
+        await page.goto(`/admin/users?search=${marker}`);
+        await expect(page.locator('main')).toContainText(marker);
+        await injected('المستخدمون بالطُعم');
+        await page.goto(`/admin/inquiries?search=${marker}`);
+        await expect(page.locator('main')).toContainText(marker);
+        await injected('الاستفسارات بالطُعم');
         for (const path of ['/admin/users', '/admin/service-requests', '/admin/inquiries', '/admin/assistant-logs', '/admin/competitions', '/admin/activities']) {
             await page.goto(path);
             await injected(path);
@@ -902,7 +943,7 @@ test.describe('الجديد منذ 13 أكتوبر', () => {
                 await injected(`${path} → السجل`);
             }
         }
-        await page.goto('/admin/users?tableSearch=xss-canary');
+        await page.goto('/admin/users?search=xss-canary');
         await injected('بحث المستخدمين');
         expect(alerted, 'نافذة alert من نص محقون').toBe(false);
     });

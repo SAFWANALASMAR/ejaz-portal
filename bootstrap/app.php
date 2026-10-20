@@ -51,17 +51,20 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // خطأ القاعدة يُسجَّل بلا قيم الاستعلام: رسالته تحمل القيم المربوطة (الاسم والبريد والجوال وبصمة كلمة المرور)،
-        // ورسالة PostgreSQL تحمل القيمة المكررة في القيد الفريد. فيُسجَّل رمز الخطأ والاستعلام بعلاماته وموضعه وحدها
+        // ورسالة PostgreSQL تحمل القيمة المكررة في سطر DETAIL للقيد الفريد. فيُسجَّل رمز الخطأ ونص PostgreSQL بلا
+        // DETAIL، والاستعلام بعلاماته، وموضعه، واسم المسار لا المسار نفسه (فيه رموز مثل reset-password/{token})
         // (docs/security.md: لا كلمات مرور ولا بيانات هوية في السجلات — اختبار الأمن قبل الرفع، 19 أكتوبر 2026)
         $exceptions->report(function (QueryException $exception): false {
             $frame = collect($exception->getTrace())->first(fn (array $frame) => str_starts_with($frame['file'] ?? '', app_path()));
+            $error = preg_replace('/\s*(DETAIL|CONTEXT|HINT):.*$/s', '', (string) ($exception->errorInfo[2] ?? ''));
 
             Log::error('Database query failed', [
                 'sqlstate' => $exception->errorInfo[0] ?? $exception->getCode(),
+                'error' => $error === '' ? null : $error,
                 'connection' => $exception->getConnectionName(),
                 'sql' => $exception->getSql(),
                 'at' => isset($frame['file']) ? $frame['file'].':'.($frame['line'] ?? 0) : null,
-                'url' => app()->runningInConsole() ? null : request()->path(),
+                'route' => app()->runningInConsole() ? null : request()->route()?->getName(),
             ]);
 
             return false;

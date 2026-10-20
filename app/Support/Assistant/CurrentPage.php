@@ -14,8 +14,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 final class CurrentPage
 {
     /**
-     * المسار الموحّد إن كان مسار صفحة في الموقع، وإلا null. والمسار الذي فيه رمز أو معرّف (رمز إعادة كلمة المرور،
-     * أو uuid طلب، أو رقم سجل) لا يُقبل، فلا يصل إلى المزود ولا إلى سجله (الفحص الأمني 19 أكتوبر)
+     * المسار الموحّد إن كان مسار صفحة في الموقع، وإلا null. للاستعمال في الخادم وحده (البحث والاسم)، ولا يُرسل إلى
+     * المزود: إليه قالب المسار (template).
      */
     public static function path(?string $path): ?string
     {
@@ -23,11 +23,23 @@ final class CurrentPage
             return null;
         }
 
-        if (preg_match('#/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-z]{32,})(/|$)#i', $path) === 1) {
+        return mb_substr($path, 0, 300);
+    }
+
+    /**
+     * قالب مسار الصفحة بلا قيمه (/reset-password/{token}، /pages/{slug})، وهو وحده ما يصل إلى المزود. فلا يصله رمز
+     * إعادة كلمة المرور ولا معرّف سجل ولا أي قيمة في المسار، أياً كان شكلها (اختبار الأمن قبل الرفع، مراجعة #61).
+     * والمسار الاحتياطي (صفحة غير موجودة) null.
+     */
+    public static function template(string $path): ?string
+    {
+        try {
+            $route = app(Router::class)->getRoutes()->match(Request::create($path));
+        } catch (HttpException) {
             return null;
         }
 
-        return mb_substr($path, 0, 300);
+        return $route->isFallback ? null : '/'.ltrim(preg_replace('/\{([^}?:]+)[^}]*\}/', '{$1}', $route->uri()) ?? '', '/');
     }
 
     public static function name(string $path): ?string

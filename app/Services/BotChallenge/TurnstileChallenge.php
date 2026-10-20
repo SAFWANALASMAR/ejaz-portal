@@ -4,6 +4,7 @@ namespace App\Services\BotChallenge;
 
 use App\Contracts\BotChallenge;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -27,6 +28,12 @@ final class TurnstileChallenge implements BotChallenge
     public function passes(string $token, string $action): bool
     {
         if ($token === '' || strlen($token) > 2048) {
+            return false;
+        }
+
+        // الرمز لمرة واحدة: Cloudflare يرفض المعاد (timeout-or-duplicate)، ويُرفض هنا أيضاً قبل سؤاله، فلا يُقبل الرمز
+        // الواحد لطلبين متزامنين يصلان قبل أن يسجّله (اختبار الأمن قبل الرفع، مراجعة #61). وعمر الرمز عند Cloudflare 300 ثانية
+        if (! Cache::add('turnstile:'.hash('sha256', $token), true, 300)) {
             return false;
         }
 
