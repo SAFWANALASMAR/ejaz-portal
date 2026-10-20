@@ -44,7 +44,11 @@ class CreateNewUser implements CreatesNewUsers
             'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique(User::class)],
             // التفرد على الأرقام الموثقة وحدها، فلا يحجز حساب غير موثق رقم غيره (decisions.md — 14 أكتوبر 2026)
             'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)->whereNotNull('phone_verified_at')],
-            'password' => $this->passwordRules(),
+            'password' => $this->passwordRules(
+                is_string($input['name'] ?? null) ? $input['name'] : null,
+                $input['email'],
+                is_string($input['phone']) ? $input['phone'] : null,
+            ),
             'privacy' => ['accepted'],
         ]);
 

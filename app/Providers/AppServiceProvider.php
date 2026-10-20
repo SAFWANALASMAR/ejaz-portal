@@ -35,6 +35,7 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\ChunkedVideoUpload;
+use App\Support\PasswordPolicy;
 use App\Support\SpaLink;
 use App\Support\TeamsConnection;
 use App\Support\UploadLimits;
@@ -158,8 +159,8 @@ class AppServiceProvider extends ServiceProvider
             throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
         }
 
-        // قواعد كلمة المرور في docs/security.md
-        Password::defaults(fn () => Password::min(10)->uncompromised());
+        // قواعد كلمة المرور في docs/security.md، وتعريفها في PasswordPolicy (قرار صفوان، 20 أكتوبر 2026)
+        Password::defaults(fn () => PasswordPolicy::defaults());
 
         // الروابط المطلقة (asset وroute وurl) من APP_URL لا من رأس Host في الطلب، فلا يُسمَّم
         // ما يُخزَّن من HTML (ContentCache) بنطاق آخر. ويرفض trustHosts المضيف المجهول في الإنتاج

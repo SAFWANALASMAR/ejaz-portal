@@ -14,6 +14,8 @@
         <x-field name="password" type="password" :label="__('account.register.password')" :placeholder="__('account.register.password')" icon="lock-closed" hide-label
             :hint="__('account.register.password_hint')" autocomplete="new-password" required />
 
+        <x-password-rules />
+
         <x-field name="password_confirmation" type="password" :label="__('account.register.password_confirmation')" :placeholder="__('account.register.password_confirmation')"
             icon="lock-closed" hide-label autocomplete="new-password" required />
 

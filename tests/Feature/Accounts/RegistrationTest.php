@@ -23,8 +23,8 @@ function registrationData(array $overrides = []): array
         'name' => 'عبدالله محمد',
         'email' => 'Abdullah@Example.test',
         'phone' => '0512345678',
-        'password' => 'long-enough-pass-2026',
-        'password_confirmation' => 'long-enough-pass-2026',
+        'password' => 'Long-Enough-Pass-2026',
+        'password_confirmation' => 'Long-Enough-Pass-2026',
         'privacy' => '1',
         ...$overrides,
     ];
@@ -61,7 +61,7 @@ it('rejects invalid input', function (array $overrides, string $field) {
     'landline' => [['phone' => '0112345678'], 'phone'],
     'bad email' => [['email' => 'not-an-email'], 'email'],
     'short password' => [['password' => 'short', 'password_confirmation' => 'short'], 'password'],
-    'mismatch' => [['password_confirmation' => 'something-else-2026'], 'password'],
+    'mismatch' => [['password_confirmation' => 'Something-Else-2026'], 'password'],
     'short name' => [['name' => 'ع'], 'name'],
 ]);
 

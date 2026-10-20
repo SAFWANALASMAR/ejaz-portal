@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Auth\CurrentPasswordLimiter;
+use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Models\User;
 use App\Notifications\PasswordChanged;
 use Illuminate\Support\Facades\Hash;
@@ -31,7 +32,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
 
         $validator = Validator::make($input, [
             'current_password' => ['required', 'string', 'current_password:web'],
-            'password' => $this->passwordRules(),
+            'password' => $this->passwordRules($user->name, $user->email, $user->phone),
         ], [
             'current_password.current_password' => __('The provided password does not match your current password.'),
         ]);
@@ -50,6 +51,11 @@ class UpdateUserPassword implements UpdatesUserPasswords
         $user->forceFill([
             'password' => Hash::make($input['password']),
         ])->save();
+
+        // وكلمة المرور الجديدة تطابق السياسة، فتُرفع مطالبة التغيير (RequirePasswordUpgrade)
+        if (request()->hasSession()) {
+            request()->session()->forget(RequirePasswordUpgrade::SESSION_KEY);
+        }
 
         $user->notify(new PasswordChanged);
     }

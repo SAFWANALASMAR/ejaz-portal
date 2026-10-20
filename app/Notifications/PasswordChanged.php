@@ -2,14 +2,17 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
+use App\Notifications\Channels\SmsChannel;
+use App\Services\Messaging\MessagingSettings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه صاحب الحساب بأن كلمة مروره تغيّرت من داخل حسابه، فيكتشف جلسة مسروقة غيّرتها
- * (الفحص الأمني، 14 أكتوبر 2026). على نمط ContactDetailsChanged.
+ * تنبيه صاحب الحساب بأن كلمة مروره تغيّرت، من داخل حسابه أو بالاستعادة، فيكتشف جلسة مسروقة غيّرتها (الفحص الأمني،
+ * 14 أكتوبر 2026). بالبريد، وبالرسالة النصية متى كانت جاهزة وجواله موثقاً (قرار صفوان، 20 أكتوبر 2026).
  */
 class PasswordChanged extends Notification implements ShouldQueueAfterCommit
 {
@@ -20,7 +23,9 @@ class PasswordChanged extends Notification implements ShouldQueueAfterCommit
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone();
+
+        return $sms ? ['mail', SmsChannel::class] : ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -31,5 +36,10 @@ class PasswordChanged extends Notification implements ShouldQueueAfterCommit
             ->line(__('account.password_changed_mail.body'))
             ->line(__('account.password_changed_mail.not_you'))
             ->salutation(__('account.mail.salutation'));
+    }
+
+    public function toSms(object $notifiable): string
+    {
+        return __('account.password_changed_mail.sms');
     }
 }

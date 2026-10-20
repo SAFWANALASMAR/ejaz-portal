@@ -4,6 +4,7 @@ use App\Http\Middleware\CountVisit;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\FullPageLoadOnNavigate;
 use App\Http\Middleware\RejectInvalidUtf8;
+use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\QueryException;
@@ -34,10 +35,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // ورؤوس الحماية أول المجموعة: تحيط بكل ما بعدها، فتصل إلى ما يُرسم قبل المتحكم أيضاً (تجاوز الحد، والربط الضمني
         // للنموذج، ورمز الحماية المنتهي)، برمز الطلب. ولوحة الإدارة لها مجموعتها، وفيها SecurityHeaders في أولها.
         // والمدخل بترميز غير صالح يُرفض بعدها وقبل الجلسة (RejectInvalidUtf8)
+        // وكلمة مرور قائمة لا تطابق السياسة تُغيَّر من «الأمان» قبل أي صفحة أخرى (RequirePasswordUpgrade)
         $middleware->web(prepend: [SecurityHeaders::class, RejectInvalidUtf8::class], append: [
             AuthenticateSession::class,
             FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
+            RequirePasswordUpgrade::class,
             CountVisit::class,
         ]);
 

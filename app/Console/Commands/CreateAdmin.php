@@ -5,12 +5,12 @@ namespace App\Console\Commands;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\PasswordPolicy;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * إنشاء المشرف العام الأول. يسأل عن البيانات تفاعلياً، فلا كلمة مرور في الشيفرة
@@ -25,7 +25,7 @@ class CreateAdmin extends Command
     {
         $name = (string) $this->ask('الاسم الكامل');
         $email = mb_strtolower(trim((string) $this->ask('البريد الإلكتروني')));
-        $password = (string) $this->secret('كلمة المرور (10 أحرف على الأقل)');
+        $password = (string) $this->secret('كلمة المرور ('.__('account.password_rules.summary').')');
         $confirmation = (string) $this->secret('أعد كتابة كلمة المرور');
 
         $validator = Validator::make(
@@ -33,7 +33,7 @@ class CreateAdmin extends Command
             [
                 'name' => ['required', 'string', 'min:3', 'max:120'],
                 'email' => ['required', 'email:rfc', 'max:255', Rule::unique(User::class)],
-                'password' => ['required', 'confirmed', Password::defaults()],
+                'password' => PasswordPolicy::rules($name, $email, null),
             ],
         );
 

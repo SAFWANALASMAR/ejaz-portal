@@ -29,8 +29,8 @@ function registerWithPhone(string $email): TestResponse
         'name' => 'عبدالله محمد',
         'email' => $email,
         'phone' => '0512345678',
-        'password' => 'long-enough-pass-2026',
-        'password_confirmation' => 'long-enough-pass-2026',
+        'password' => 'Long-Enough-Pass-2026',
+        'password_confirmation' => 'Long-Enough-Pass-2026',
         'privacy' => '1',
     ]);
 }

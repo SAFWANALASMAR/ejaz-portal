@@ -24,7 +24,7 @@
     </x-card>
 
     <x-card>
-        <h2 class="mb-5 text-lg font-semibold text-ink">{{ __('account.profile.password') }}</h2>
+        <h2 id="password" class="mb-5 scroll-mt-24 text-lg font-semibold text-ink">{{ __('account.profile.password') }}</h2>
 
         <form method="POST" action="{{ route('user-password.update') }}" class="grid gap-5 md:grid-cols-2" novalidate>
             @csrf
@@ -36,6 +36,7 @@
                 autocomplete="new-password" dir="ltr" required />
             <x-field name="password_confirmation" type="password" :label="__('account.register.password_confirmation')" bag="updatePassword"
                 autocomplete="new-password" dir="ltr" required />
+            <x-password-rules class="md:col-span-2" />
 
             <div class="md:col-span-2">
                 <x-button>{{ __('site.save') }}</x-button>

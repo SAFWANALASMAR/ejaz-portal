@@ -314,8 +314,8 @@ it('refuses an international number at registration', function () {
         'name' => 'متقدم',
         'email' => 'intl@example.test',
         'phone' => '+447700900123',
-        'password' => 'long-enough-pass-2026',
-        'password_confirmation' => 'long-enough-pass-2026',
+        'password' => 'Long-Enough-Pass-2026',
+        'password_confirmation' => 'Long-Enough-Pass-2026',
         'privacy' => '1',
     ])->assertSessionHasErrors('phone');
 
