@@ -15,6 +15,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -73,5 +74,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
 
             return false;
+        });
+
+        // كل رفض وصول (403) يُسجَّل: الحساب والمسار باسمه والطريقة، فيظهر من يجرّب ما ليس له (ASVS 7.2.2، مطابقة
+        // المعايير — 20 أكتوبر 2026). في سجل التطبيق لا في سجل العمليات، فلا يملأ طالبٌ مكررٌ القاعدةَ. والرد كما هو
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request): null {
+            if ($exception->getStatusCode() === 403) {
+                Log::warning('Access denied', [
+                    'user_id' => $request->user()?->getAuthIdentifier(),
+                    'route' => $request->route()?->getName(),
+                    'method' => $request->method(),
+                    'ip' => $request->ip(),
+                ]);
+            }
+
+            return null;
         });
     })->create();

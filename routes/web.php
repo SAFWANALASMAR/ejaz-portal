@@ -107,6 +107,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/security', SecurityController::class)->middleware('password.confirm')->name('security');
+    Route::post('/security/other-sessions', [SecurityController::class, 'logoutOtherSessions'])->middleware('throttle:10,1')->name('security.other-sessions');
 
     Route::get('/verify-phone', [PhoneVerificationController::class, 'show'])->name('phone.verify');
     Route::post('/verify-phone', [PhoneVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('phone.verify.store');

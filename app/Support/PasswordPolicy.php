@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use App\Rules\LatinMixedCase;
+use App\Rules\PasswordFitsHash;
 use App\Rules\PasswordWithoutPersonalData;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
@@ -22,7 +23,7 @@ final class PasswordPolicy
      */
     public static function structure(): Password
     {
-        return Password::min(self::MIN_LENGTH)->letters()->numbers()->symbols()->rules([new LatinMixedCase]);
+        return Password::min(self::MIN_LENGTH)->letters()->numbers()->symbols()->rules([new LatinMixedCase, new PasswordFitsHash]);
     }
 
     /**
