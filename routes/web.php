@@ -3,6 +3,7 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\PasswordResetByPhoneController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
@@ -32,6 +33,13 @@ use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-reset'])
     ->name('password.email');
+
+// الاستعادة برمز الجوال (قرار صفوان، 20 أكتوبر 2026): طلب الرمز بحد الاستعادة نفسه، ثم صفحة الرمز وكلمة المرور الجديدة
+Route::middleware('guest:'.config('fortify.guard'))->group(function () {
+    Route::post('/forgot-password/phone', [PasswordResetByPhoneController::class, 'send'])->middleware('throttle:password-reset')->name('password.phone.send');
+    Route::get('/forgot-password/phone', [PasswordResetByPhoneController::class, 'edit'])->name('password.phone.reset');
+    Route::post('/forgot-password/phone/reset', [PasswordResetByPhoneController::class, 'update'])->middleware('throttle:10,1')->name('password.phone.update');
+});
 
 Route::get('/', HomeController::class)->name('home');
 

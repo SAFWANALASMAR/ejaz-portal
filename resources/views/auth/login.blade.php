@@ -16,6 +16,8 @@
             </label>
         </div>
 
+        <x-bot-challenge action="login" />
+
         <x-button class="w-full">{{ __('account.login.submit') }}</x-button>
     </form>
 

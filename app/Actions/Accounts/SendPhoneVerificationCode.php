@@ -35,6 +35,14 @@ class SendPhoneVerificationCode
 
     public const MAX_ATTEMPTS = 5;
 
+    /**
+     * غرض الرمز: توثيق الجوال، أو استعادة كلمة المرور به (ResetPasswordByPhone، قرار صفوان 20 أكتوبر 2026). لكل غرض
+     * مفتاح رمزه ونص رسالته، والحدود كلها مشتركة بينهما، فلا يُضاعف الغرض الثاني ما يُرسل إلى رقم أو من شبكة.
+     */
+    public const VERIFY = 'verify';
+
+    public const RESET = 'reset';
+
     private const PENDING_WINDOW = 3600;
 
     /**
@@ -45,7 +53,7 @@ class SendPhoneVerificationCode
         ['otp-number-day:', 10, 86400],
     ];
 
-    public function handle(User $user): void
+    public function handle(User $user, string $purpose = self::VERIFY): void
     {
         $phone = $user->phone;
 
@@ -78,7 +86,7 @@ class SendPhoneVerificationCode
             }
         }
 
-        $previous = Cache::get(self::cacheKey($user));
+        $previous = Cache::get(self::cacheKey($user, $purpose));
         $previousBuckets = is_array($previous) ? (array) ($previous['buckets'] ?? []) : [];
         $networks = self::networks(request()->ip());
 
@@ -128,7 +136,7 @@ class SendPhoneVerificationCode
 
         $expiresAt = now()->addMinutes(self::TTL_MINUTES);
 
-        Cache::put(self::cacheKey($user), [
+        Cache::put(self::cacheKey($user, $purpose), [
             'hash' => self::hash($code, $phone),
             'phone' => $phone,
             'buckets' => array_map(fn (string $network) => 'sms-pending:'.$network, array_keys($networks)),
@@ -136,7 +144,7 @@ class SendPhoneVerificationCode
             'expires_at' => $expiresAt->getTimestamp(),
         ], $expiresAt);
 
-        SendSms::dispatch($phone, __('account.phone.sms', [
+        SendSms::dispatch($phone, __($purpose === self::RESET ? 'account.password_reset.sms' : 'account.phone.sms', [
             'code' => $code,
             'minutes' => self::TTL_MINUTES,
         ]));
@@ -227,9 +235,9 @@ class SendPhoneVerificationCode
         }
     }
 
-    public static function cacheKey(User $user): string
+    public static function cacheKey(User $user, string $purpose = self::VERIFY): string
     {
-        return 'phone-otp:'.$user->id;
+        return ($purpose === self::RESET ? 'password-reset-otp:' : 'phone-otp:').$user->id;
     }
 
     public static function hash(string $code, string $phone): string

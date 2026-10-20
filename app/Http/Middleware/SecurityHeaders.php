@@ -83,9 +83,9 @@ class SecurityHeaders
             $directives['worker-src'] = ["'self'", 'blob:'];
         }
 
-        // عنصر التحدي ضد الآليات في صفحتي الاستبيان والتبرع وحدهما، متى كان مشغّله turnstile، فلا يتسع ما تسمح به
-        // الصفحات الأخرى (docs/decisions.md)
-        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate')) {
+        // عنصر التحدي ضد الآليات في صفحات نماذجه وحدها، متى كان مشغّله turnstile، فلا يتسع ما تسمح به الصفحات الأخرى
+        // (docs/decisions.md): الاستبيان والتبرع، والدخول والتسجيل والاستعادة (قرار صفوان، 20 أكتوبر 2026)
+        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate', 'login', 'register', 'password.request')) {
             $directives['script-src'] = [...$directives['script-src'], ...config('security.csp.challenge_src')];
             $directives['frame-src'] = [...$directives['frame-src'], ...config('security.csp.challenge_src')];
         }

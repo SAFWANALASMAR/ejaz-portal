@@ -2,6 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Notifications\RegistrationAttemptOnAccount;
 use App\Notifications\VerifyEmailNotification;
 use App\Support\SaudiPhone;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -65,14 +66,19 @@ it('rejects invalid input', function (array $overrides, string $field) {
     'short name' => [['name' => 'ع'], 'name'],
 ]);
 
-it('rejects an email or phone that is already registered', function () {
-    User::factory()->create(['email' => 'abdullah@example.test']);
-    $this->post('/register', registrationData())->assertSessionHasErrors('email');
+// برسالة عامة واحدة على البريد للحالين، فلا يُعرف أي الحقلين يخص حساباً، وصاحب البريد يُنبَّه بالمحاولة
+// (CreateNewUser — قرار صفوان، 20 أكتوبر 2026)
+it('rejects an email or phone that is already registered, with one message that names neither', function () {
+    $owner = User::factory()->create(['email' => 'abdullah@example.test']);
+    $this->post('/register', registrationData())
+        ->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
+    Notification::assertSentTo($owner, RegistrationAttemptOnAccount::class);
 
     // التفرد على الأرقام الموثقة وحدها (VerifiedPhoneUniquenessTest)
     User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => now()]);
     $this->post('/register', registrationData(['email' => 'other@example.test', 'phone' => '051 234 5678']))
-        ->assertSessionHasErrors('phone');
+        ->assertSessionHasErrors(['email' => __('account.register.unavailable')])
+        ->assertSessionDoesntHaveErrors('phone');
 });
 
 function registerNumber(int $i, array $server = []): TestResponse
@@ -111,7 +117,7 @@ it('counts probes of taken emails and phones toward the cap, so accounts cannot 
     User::factory()->create(['phone' => SaudiPhone::normalize('0500000002'), 'phone_verified_at' => now()]);
 
     registerNumber(1)->assertSessionHasErrors('email');
-    registerNumber(2)->assertSessionHasErrors('phone');
+    registerNumber(2)->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
 
     registerNumber(3)->assertSessionHasErrors(['email' => __('account.register.too_many')]);
     expect(User::count())->toBe(2);

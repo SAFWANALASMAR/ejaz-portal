@@ -36,6 +36,8 @@
             @enderror
         </div>
 
+        <x-bot-challenge action="register" />
+
         <x-button class="w-full">{{ __('account.register.submit') }}</x-button>
     </form>
 
