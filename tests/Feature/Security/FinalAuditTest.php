@@ -74,7 +74,7 @@ it('refuses invalid UTF-8 in a field or a file name with 400, before it reaches 
 
 // الجلسة تُحفظ بصيغة JSON: لو بلغها المدخل المكسور في «المدخل القديم» بعد خطأ تحقق لفرغت. فالرد 400 لا يلمس
 // الجلسة (لا كعكة جلسة فيه)، وطلب تالٍ بكعكة الدخول نفسها ما زال مسجلاً: يُدخل الحساب بطلب حقيقي، والجلسة في ملف،
-// ويُنسى الحارس ومدير الجلسات بين الطلبات، فلا يبقى مسجلاً إلا بجلسته المحفوظة.
+// ويُنسى الحارس ومدير الجلسات ونسخة session.store في الحاوية بين الطلبات، فلا يبقى مسجلاً إلا بجلسته المحفوظة.
 // وفقدان الجلسة بلا الوسيط لا يظهر في بيئة الاختبار، فدليله الحي في تقرير الأمن (م١)
 it('keeps a signed-in member signed in after a refused broken field or query', function (string $query, array $data) {
     config(['session.driver' => 'file']);
@@ -86,6 +86,7 @@ it('keeps a signed-in member signed in after a refused broken field or query', f
 
     app('auth')->forgetGuards();
     app('session')->forgetDrivers();
+    app()->forgetInstance('session.store');
     $refused = $this->withUnencryptedCookie($cookie, $session)->from(route('services.apply', $opening->slug))
         ->post(route('services.apply.store', $opening->slug).$query, $data)
         ->assertStatus(400);
@@ -93,6 +94,7 @@ it('keeps a signed-in member signed in after a refused broken field or query', f
 
     app('auth')->forgetGuards();
     app('session')->forgetDrivers();
+    app()->forgetInstance('session.store');
     $this->withUnencryptedCookie($cookie, $session)->get('/account')->assertOk();
     $this->assertAuthenticatedAs($user);
 })->with([
