@@ -20,6 +20,7 @@ use App\Services\Messaging\ProviderHttp;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Support\Assistant\CurrentPage;
 use App\Support\TeamsConnection;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
@@ -127,6 +128,15 @@ it('logs a database error without the bound values or the duplicate key detail',
     $all = implode("\n", $logged);
     expect($all)->toContain('Database query failed')->toContain('insert into')
         ->not->toContain('victim@example.test')->not->toContain('+966500000999')->not->toContain('$2y$12$hash');
+});
+
+// وما يبقى في failed_jobs من نص الاستثناء يُحذف بعد أسبوع، كقائمة Horizon
+it('prunes failed jobs after a week, daily', function () {
+    $events = collect(app(Schedule::class)->events())->filter(fn ($event) => str_contains((string) $event->command, 'queue:prune-failed'));
+
+    expect($events)->toHaveCount(1)
+        ->and((string) $events->first()->command)->toContain('--hours=168')
+        ->and($events->first()->expression)->toBe('0 0 * * *');
 });
 
 // وبخطأ حقيقي من PostgreSQL (قيد فريد): نص الخطأ للتشخيص بلا سطر DETAIL، ورسالة الاستثناء نفسها بلا القيم المربوطة

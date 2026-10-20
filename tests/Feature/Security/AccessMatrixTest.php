@@ -192,10 +192,12 @@ it('refuses panel Livewire actions to a role without the permission and on a rec
     Livewire::test(EditReview::class, ['record' => $review->getRouteKey()])->assertOk();
 });
 
-// والطلب الخام إلى نقطة Livewire بلقطة مزوّرة (مكوّن تعديل المستخدم في اللوحة، وتوقيع غير صحيح) مرفوض قبل أي إجراء
+// والطلب الخام إلى نقطة Livewire بلقطة مزوّرة (مكوّن تعديل المستخدم في اللوحة، وتوقيع غير صحيح) مرفوض قبل أي إجراء.
+// برأس X-Livewire كعميل Livewire نفسه، فيبلغ فحص التوقيع لا فحص الرأس (RequireLivewireHeaders)
 it('refuses a forged Livewire update request from a member', function () {
     $target = userWithRole(RoleName::Accountant, ['name' => 'موظف']);
     $status = $this->actingAs(userWithRole(RoleName::Member))
+        ->withHeader('X-Livewire', 'true')
         ->postJson(route('default-livewire.update'), ['components' => [[
             'snapshot' => json_encode(['data' => ['record' => $target->getKey()], 'memo' => ['name' => 'filament.admin.resources.users.pages.edit-user', 'id' => 'x', 'path' => 'admin/users/'.$target->getKey().'/edit', 'method' => 'GET'], 'checksum' => 'forged']),
             'updates' => ['data.name' => 'مخترَق'],

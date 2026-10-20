@@ -59,3 +59,7 @@ Schedule::command('ejaz:assistant-index')->dailyAt('03:30')->timezone(config('ap
 
 // سجل حالة الرسائل بعد مدة الاحتفاظ (config/messaging.php: log_days)
 Schedule::command('model:prune', ['--model' => [MessageLog::class]])->daily()->onOneServer();
+
+// المهام الفاشلة بعد أسبوع، كما يحذفها Horizon من قائمته (config/horizon.php: trim.failed)، فلا يبقى نص استثناءاتها
+// بلا حد (اختبار الأمن قبل الرفع، مراجعة #61)
+Schedule::command('queue:prune-failed', ['--hours' => 168])->daily()->onOneServer();
