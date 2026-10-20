@@ -214,9 +214,15 @@ it('refuses wrong input under its field', function (array $data, string $field) 
     'folding white space in the email' => [['email' => "visitor\r\n @example.com"], 'email'],
     'right-to-left override in the subject' => [['subject' => "عنوان\u{202E}مقلوب"], 'subject'],
     'control character in the subject' => [['subject' => "عنوان\x07"], 'subject'],
-    'broken encoding in the message' => [['message' => "رسالة\xFF"], 'message'],
     'too long a message' => [['message' => str_repeat('ر', 5001)], 'message'],
 ]);
+
+// والترميز المكسور يُرفض بـ 400 قبل الجلسة (RejectInvalidUtf8)، لا تحت حقله: إعادته في الجلسة كانت تُسقط حفظها
+it('refuses a broken encoding in the message before the session', function () {
+    sendContactForm(['message' => "رسالة\xFF"])->assertStatus(400);
+
+    expect(Inquiry::count())->toBe(0);
+});
 
 it('limits one mailbox to five messages a day, whatever way its address is written', function () {
     foreach (['visitor@gmail.com', 'Visitor@Gmail.com', 'v.isitor@gmail.com', 'visitor+news@gmail.com', 'vis.itor+x@googlemail.com'] as $email) {

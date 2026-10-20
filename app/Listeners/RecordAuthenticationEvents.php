@@ -110,8 +110,10 @@ class RecordAuthenticationEvents
     {
         $request = request();
 
+        // المتصفح يرسله بلا قيد: بترميز غير صالح كان ترميز السجل يرمي استثناءً قبل أن يحسب Fortify المحاولة الفاشلة،
+        // فيسقط قفل الدخول وسجله (اختبار الأمن قبل الرفع، مراجعة #61). فيُنقّى قبل الحفظ
         $origin = $user?->anonymized_at === null
-            ? ['ip' => $request->ip(), 'agent' => Str::limit((string) $request->userAgent(), 200, '')]
+            ? ['ip' => $request->ip(), 'agent' => mb_scrub(Str::limit((string) $request->userAgent(), 200, ''), 'UTF-8')]
             : [];
 
         $logger = activity('security')

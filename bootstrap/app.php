@@ -3,13 +3,16 @@
 use App\Http\Middleware\CountVisit;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\FullPageLoadOnNavigate;
+use App\Http\Middleware\RejectInvalidUtf8;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Log;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,8 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // (docs/security/2026-10-10-security-audit.md). وجلسة من غيّرها تبقى، لأن البصمة الجديدة تُحفظ فيها.
         // وعدّاد الزيارات بعد FullPageLoadOnNavigate، فلا يُعدّ طلب تنقّل يصير تحميلاً كاملاً إلا بتحميله.
         // ورؤوس الحماية أول المجموعة: تحيط بكل ما بعدها، فتصل إلى ما يُرسم قبل المتحكم أيضاً (تجاوز الحد، والربط الضمني
-        // للنموذج، ورمز الحماية المنتهي)، برمز الطلب. ولوحة الإدارة لها مجموعتها، وفيها SecurityHeaders في أولها
-        $middleware->web(prepend: [SecurityHeaders::class], append: [
+        // للنموذج، ورمز الحماية المنتهي)، برمز الطلب. ولوحة الإدارة لها مجموعتها، وفيها SecurityHeaders في أولها.
+        // والمدخل بترميز غير صالح يُرفض بعدها وقبل الجلسة (RejectInvalidUtf8)
+        $middleware->web(prepend: [SecurityHeaders::class, RejectInvalidUtf8::class], append: [
             AuthenticateSession::class,
             FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
@@ -45,4 +49,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // خطأ القاعدة يُسجَّل بلا قيم الاستعلام: رسالته تحمل القيم المربوطة (الاسم والبريد والجوال وبصمة كلمة المرور)،
+        // ورسالة PostgreSQL تحمل القيمة المكررة في سطر DETAIL للقيد الفريد. فيُسجَّل رمز الخطأ ونص PostgreSQL بلا
+        // DETAIL، والاستعلام بعلاماته، وموضعه، واسم المسار لا المسار نفسه (فيه رموز مثل reset-password/{token})
+        // (docs/security.md: لا كلمات مرور ولا بيانات هوية في السجلات — اختبار الأمن قبل الرفع، 19 أكتوبر 2026)
+        $exceptions->report(function (QueryException $exception): false {
+            $frame = collect($exception->getTrace())->first(fn (array $frame) => str_starts_with($frame['file'] ?? '', app_path()));
+            $error = preg_replace('/\s*(DETAIL|CONTEXT|HINT):.*$/s', '', (string) ($exception->errorInfo[2] ?? ''));
+
+            Log::error('Database query failed', [
+                'sqlstate' => $exception->errorInfo[0] ?? $exception->getCode(),
+                'error' => $error === '' ? null : $error,
+                'connection' => $exception->getConnectionName(),
+                'sql' => $exception->getSql(),
+                'at' => isset($frame['file']) ? $frame['file'].':'.($frame['line'] ?? 0) : null,
+                'route' => app()->runningInConsole() ? null : request()->route()?->getName(),
+            ]);
+
+            return false;
+        });
     })->create();

@@ -51,7 +51,9 @@ class AskAssistant
             return $this->record($question, AssistantMode::NoMatch, __('assistant.no_answer'), [], contact: true);
         }
 
-        $message = PromptBuilder::message($question, $chunks, $path !== null ? CurrentPage::name($path) : null, $path);
+        // إلى المزود اسم الصفحة وقالب مسارها بلا قيمه، لا المسار نفسه
+        $template = $path !== null ? CurrentPage::template($path) : null;
+        $message = PromptBuilder::message($question, $chunks, $template !== null ? CurrentPage::name((string) $path) : null, $template);
 
         // الحد العام للبوابة في الدقيقة قبل الخانات المتزامنة: ما زاد «مشغول» بلا اتصال بالمزود
         if (! $this->budget->takeSlot()) {

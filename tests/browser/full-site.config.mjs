@@ -14,6 +14,7 @@ export default defineConfig({
     testDir: '.',
     testMatch: 'full-site.spec.mjs',
     outputDir: '../../storage/playwright/full-site',
+    globalSetup: './full-site-setup.mjs',
     reporter: [['list'], ['json', { outputFile: '../../storage/playwright/full-site/results.json' }]],
     // دخول واحد في كل مرة: رمز التحقق الثنائي لا يُقبل مرتين، والحسابات التجريبية تشترك في مفتاح واحد
     workers: 1,

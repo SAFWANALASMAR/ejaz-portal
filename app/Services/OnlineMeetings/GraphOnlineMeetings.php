@@ -183,7 +183,8 @@ final class GraphOnlineMeetings implements OnlineMeetings
 
     private function graph(): PendingRequest
     {
-        return Http::withToken($this->token())->acceptJson()->connectTimeout(5)->timeout(15);
+        // بلا تتبّع للتحويل، كمزودي المساعد والرسائل: لا يذهب الرمز ولا السر إلى عنوان غير Graph
+        return Http::withToken($this->token())->acceptJson()->withoutRedirecting()->connectTimeout(5)->timeout(15);
     }
 
     /**
@@ -199,7 +200,7 @@ final class GraphOnlineMeetings implements OnlineMeetings
         }
 
         try {
-            $response = Http::asForm()->connectTimeout(5)->timeout(10)
+            $response = Http::asForm()->withoutRedirecting()->connectTimeout(5)->timeout(10)
                 ->post('https://login.microsoftonline.com/'.rawurlencode($this->connection->tenantId).'/oauth2/v2.0/token', [
                     'grant_type' => 'client_credentials',
                     'client_id' => $this->connection->clientId,
