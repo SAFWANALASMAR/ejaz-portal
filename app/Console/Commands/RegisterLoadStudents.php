@@ -34,7 +34,7 @@ class RegisterLoadStudents extends Command
             return self::FAILURE;
         }
 
-        $category = $competition->openCategories()->get()->first();
+        $category = $competition->openCategories()->first();
         $region = CompetitionRegion::query()->active()->value('id');
         $count = (int) $this->argument('count');
         $registered = 0;
@@ -54,7 +54,7 @@ class RegisterLoadStudents extends Command
 
             $register->handle($user, $competition, [
                 'full_name' => 'طالب اختبار التحمل بن مثال',
-                'national_id' => self::nationalId($n),
+                'national_id' => self::nationalId(100000 + $n),
                 'category_id' => $category->id,
                 'grade' => $category->gradeList()[0] ?? null,
                 'region_id' => $region,

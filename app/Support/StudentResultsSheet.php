@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ActivityEvent;
+use App\Filament\Exports\ServiceRequestExporter;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
@@ -63,7 +64,7 @@ final class StudentResultsSheet
                     $submission = $attempt->submission;
                     $rank++;
 
-                    $writer->addRow(Row::fromValues([
+                    $writer->addRow(self::row([
                         $rank,
                         (string) $submission->reference,
                         (string) $submission->full_name,
@@ -85,6 +86,16 @@ final class StudentResultsSheet
 
             $writer->close();
         }, 'results-'.$competition->slug.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * صف بخلايا نصية آمنة: النص الذي يبدأ بـ = أو + أو - أو @ يُكتب نصاً لا صيغة (حقل مخصص يكتبه الطالب).
+     *
+     * @param  list<string|int|float|null>  $values
+     */
+    private static function row(array $values): Row
+    {
+        return Row::fromValues(array_map(fn (string|int|float|null $value): string|int|float|null => is_string($value) ? ServiceRequestExporter::safeCell($value) : $value, $values));
     }
 
     public static function score(CompetitionAttempt $attempt): string

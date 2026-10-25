@@ -6,6 +6,7 @@ use App\Enums\MeetingBody;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\BodyMembership;
+use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
@@ -68,7 +69,7 @@ class ExportUserData
                     'cancelled_at' => $date($registration->cancelled_at),
                     'registered_at' => $date($registration->created_at),
                 ])->all(),
-            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question', 'works'])->get()
+            'competition_submissions' => CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->with(['competition', 'videos.question', 'works', 'attempts.round'])->get()
                 ->map(fn (CompetitionSubmission $submission): array => [
                     'competition' => $submission->competition->title,
                     'status' => $submission->status->value,
@@ -102,6 +103,15 @@ class ExportUserData
                         'url' => $work->url,
                         'size_bytes' => $work->size,
                         'uploaded_at' => $date($work->created_at),
+                    ])->all(),
+                    // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات)، والدرجة بعد نشر نتائج المرحلة وحدها
+                    'attempts' => $submission->attempts->map(fn (CompetitionAttempt $attempt): array => [
+                        'round' => $attempt->round->name,
+                        'status' => $attempt->status->value,
+                        'started_at' => $date($attempt->started_at),
+                        'submitted_at' => $date($attempt->submitted_at),
+                        'answers' => $attempt->answers,
+                        'score' => $attempt->round->resultsPublished() ? (float) $attempt->score + (float) $attempt->essay_score : null,
                     ])->all(),
                 ])->all(),
             'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey.questions')->get()

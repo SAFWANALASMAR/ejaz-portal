@@ -155,7 +155,7 @@ k6 run \
 
 ```bash
 k6 run -e BASE_URL=http://localhost:8140 -e PASSWORD="$LOAD_PASSWORD" -e COMPETITION=<slug> -e ROUND=<uuid> \
-       -e STUDENTS=300 -e START_AT=$(( $(date +%s) + 120 )) tests/load/student-exam.js
+       -e STUDENTS=300 -e LOGIN_SPREAD=240 -e START_AT=$(( $(date +%s) + 300 )) tests/load/student-exam.js
 ```
 
 بعده: محاولة واحدة لكل طالب، وكلها مسلَّمة ومصححة (الناتجان 300 ثم صفر):

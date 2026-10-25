@@ -3,7 +3,7 @@
 // الصفحات على مهل (ANSWER_SECONDS لكل صفحة)، ثم يسلّم. والتجهيز: ejaz:load-accounts ثم ejaz:load-students.
 //
 //   k6 run -e BASE_URL=http://localhost:8140 -e PASSWORD="$LOAD_PASSWORD" -e COMPETITION=slug -e ROUND=<uuid> \
-//          -e STUDENTS=300 -e START_AT=$(( $(date +%s) + 120 )) tests/load/student-exam.js
+//          -e STUDENTS=300 -e LOGIN_SPREAD=240 -e START_AT=$(( $(date +%s) + 300 )) tests/load/student-exam.js
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
@@ -16,6 +16,7 @@ guard('PASSWORD', 'COMPETITION', 'ROUND', 'START_AT');
 const STUDENTS = Number(__ENV.STUDENTS || 300);
 const START_AT = Number(__ENV.START_AT);
 const ANSWER_SECONDS = Number(__ENV.ANSWER_SECONDS || 3);
+const LOGIN_SPREAD = Number(__ENV.LOGIN_SPREAD || 0);
 const ROUND = `${BASE}/competitions/${__ENV.COMPETITION}/rounds/${__ENV.ROUND}`;
 
 const received = new Counter('attempts_received');
@@ -39,7 +40,9 @@ function answers(body) {
     const form = {};
 
     for (const [, id, value] of body.matchAll(/name="answers\[(\d+)\]" value="([0-9a-f]{12})"/g)) {
-        form[`answers[${id}]`] ??= value;
+        if (!(`answers[${id}]` in form)) {
+            form[`answers[${id}]`] = value;
+        }
     }
 
     return form;
@@ -47,6 +50,9 @@ function answers(body) {
 
 export default function () {
     const n = exec.vu.idInTest;
+
+    // الدخول موزّع على LOGIN_SPREAD ثانية قبل البدء، كوصول الطلاب إلى المعمل، والبدء نفسه في لحظة واحدة
+    sleep((n % STUDENTS) * (LOGIN_SPREAD / STUDENTS));
 
     if (!login(n)) {
         return;

@@ -28,12 +28,12 @@ class RegistrationsRelationManager extends RelationManager
     protected static string $relationship = 'submissions';
 
     /**
-     * رقم الهوية وجوال ولي الأمر في نافذة الاطلاع وحدها. محمية لا عامة، فلا تُحفظ في لقطة Livewire التي تصل
-     * إلى المتصفح مع كل طلب، وتُرسم في الطلب الذي فتح النافذة وحده.
+     * رقم الهوية وجوال ولي الأمر في نافذة الاطلاع وحدها: يُقرأ ويُسجَّل عند فتحها، ويبقى لمن فتحها حتى يفتح
+     * نافذة أخرى. وتُرسم النافذة في طلب لاحق، فالخاصية عامة (تصل إلى متصفح صاحب الصلاحية وحده، وهو ما يراه).
      *
      * @var array{national_id: string|null, guardian_phone: string|null}|null
      */
-    protected ?array $revealed = null;
+    public ?array $revealed = null;
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {

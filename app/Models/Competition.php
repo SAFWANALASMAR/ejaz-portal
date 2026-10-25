@@ -135,11 +135,24 @@ class Competition extends Model
     }
 
     /**
+     * بنك المسابقة في نموذجها (الأعمال والاختبار الإلكتروني)، بلا أسئلة مراحل مسابقة الطلاب، فلا يصل بنك المراحل
+     * إلى نموذج المشاركة ولا التصحيح القديم ولا حفظ النموذج.
+     *
      * @return HasMany<CompetitionQuestion, $this>
      */
     public function questions(): HasMany
     {
-        return $this->hasMany(CompetitionQuestion::class)->orderBy('sort_order')->orderBy('id');
+        return $this->hasMany(CompetitionQuestion::class)->whereNull('round_id')->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * بنك مراحل مسابقة الطلاب كلها (QuestionBankRelationManager).
+     *
+     * @return HasMany<CompetitionQuestion, $this>
+     */
+    public function roundQuestions(): HasMany
+    {
+        return $this->hasMany(CompetitionQuestion::class)->whereNotNull('round_id')->orderBy('sort_order')->orderBy('id');
     }
 
     /**
@@ -227,7 +240,8 @@ class Competition extends Model
     public function scheduleLocked(): bool
     {
         // السحب الملغى لا يقفل، فيُصحَّح موعد خاطئ كان سبب الإلغاء
-        return $this->exists && ($this->resultsApproved() || $this->draws()->whereDoesntHave('void')->exists());
+        // وسحب المتساوين في مرحلة من مسابقة الطلاب لا يقفل مواعيد المسابقة (RunTieDraw)
+        return $this->exists && ($this->resultsApproved() || $this->draws()->whereNull('round_id')->whereDoesntHave('void')->exists());
     }
 
     /**

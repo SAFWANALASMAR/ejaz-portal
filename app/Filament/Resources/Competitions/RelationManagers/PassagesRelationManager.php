@@ -74,7 +74,7 @@ class PassagesRelationManager extends RelationManager
                 TextColumn::make('kind')->label(__('competitions.student.passage_attributes.kind'))->badge(),
                 TextColumn::make('title')->label(__('competitions.student.passage_attributes.title'))
                     ->state(fn (CompetitionPassage $record): string => $record->label())->wrap(),
-                TextColumn::make('category.name')->label(__('competitions.student.passage_attributes.category_id'))->placeholder(__('competitions.student.admin.all_categories')),
+                TextColumn::make('category.name')->label(__('competitions.student.passage_attributes.category_id'))->default(__('competitions.student.admin.all_categories')),
                 TextColumn::make('questions_count')->label(__('competitions.student.admin.questions_count'))->numeric(),
             ])
             ->filters([

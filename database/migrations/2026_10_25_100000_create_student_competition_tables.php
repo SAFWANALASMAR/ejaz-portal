@@ -131,6 +131,7 @@ return new class extends Migration
             $table->index(['round_id', 'status']);
             $table->index(['status', 'deadline_at']);
             $table->index('user_id');
+            $table->index('submission_id');
         });
 
         Schema::table('competition_draws', function (Blueprint $table) {

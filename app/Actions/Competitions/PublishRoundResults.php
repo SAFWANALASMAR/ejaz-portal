@@ -35,7 +35,7 @@ class PublishRoundResults
         }
 
         // ما بقي جارياً بعد النافذة انتهى وقته حتماً (الموعد النهائي لا يتجاوز نهايتها)
-        $round->attempts()->where('status', AttemptStatus::InProgress)->each(
+        $round->attempts()->where('status', AttemptStatus::InProgress)->lazyById()->each(
             fn (CompetitionAttempt $attempt) => $this->submit->handle(null, $attempt, auto: true),
         );
 

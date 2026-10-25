@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Competitions\RunTieDraw;
 use App\Enums\SubmissionStatus;
 use App\Models\CompetitionDraw;
 use App\Support\DrawSelector;
@@ -29,7 +30,11 @@ class VerifyDraw extends Command
 
         $hashMatches = DrawSelector::fingerprint($draw->entrants) === $draw->entrants_hash;
         $winnersMatch = DrawSelector::winners($draw->seed, $draw->entrants, $draw->winners_count) === $draw->winners;
-        $current = $draw->competition->submissions()->where('status', SubmissionStatus::Submitted)->whereNotNull('reference')->orderBy('reference')->pluck('reference')->all();
+        // سحب المتساوين في مرحلة (RunTieDraw): القائمة الآن هي المتساوون على درجة التساوي نفسها
+        $current = $draw->round_id !== null && $draw->round !== null
+            ? app(RunTieDraw::class)->ranked($draw->round, $draw->category_id)
+                ->filter(fn (array $row): bool => $row['total'] === (float) $draw->tie_score)->pluck('reference')->sort()->values()->all()
+            : $draw->competition->submissions()->where('status', SubmissionStatus::Submitted)->whereNotNull('reference')->orderBy('reference')->pluck('reference')->all();
 
         $this->line('بصمة المشمولين: '.($hashMatches ? 'مطابقة' : 'غير مطابقة'));
         $this->line('الفائزون من البذرة: '.($winnersMatch ? 'مطابقون' : 'غير مطابقين'));

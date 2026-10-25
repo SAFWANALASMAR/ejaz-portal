@@ -73,7 +73,7 @@ class DrawsRelationManager extends RelationManager
                 // سحب المتساوين في مسابقة الطلاب: مرحلته وفئته ودرجة التساوي (RunTieDraw)
                 TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id'))->placeholder('—')
                     ->description(fn (CompetitionDraw $record): ?string => $record->round_id !== null ? ($record->category->name ?? __('competitions.student.admin.all_categories')).' · '.__('competitions.student.admin.tie_score', ['score' => $record->tie_score]) : null)
-                    ->visible(fn (): bool => $this->competition()->student_mode),
+                    ->visible(fn (): bool => (bool) $this->competition()->student_mode),
                 TextColumn::make('executor.name')->label(__('competitions.draws.executor')),
                 TextColumn::make('entrants_count')->label(__('competitions.draws.entrants_count'))->numeric(),
                 TextColumn::make('winners_count')->label(__('competitions.draws.winners_count'))->numeric(),
@@ -123,7 +123,7 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.void'))
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (CompetitionDraw $record): bool => $record->void === null && $record->openVoidRequest() === null
+                    ->visible(fn (CompetitionDraw $record): bool => $record->round_id === null && $record->void === null && $record->openVoidRequest() === null
                         && (auth()->user()?->can('void', $record) ?? false))
                     // بعد الإلغاء الأول في المسابقة يصير الإلغاء طلباً يعتمده مشرف عام آخر (VoidDraw)
                     ->modalDescription(fn (): string => $this->competition()->draws()->whereHas('void')->exists()

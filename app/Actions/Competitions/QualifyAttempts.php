@@ -8,6 +8,7 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 /**
  * تأهيل طلاب من نتائج مرحلة إلى التي بعدها (المرحلة «للمتأهلين»)، أو إلغاء تأهيلهم. لمحاولات مسلَّمة في المرحلة
@@ -26,6 +27,11 @@ class QualifyAttempts
     {
         if (! $actor->can('competitions.approve') || ! $round->competition->student_mode) {
             throw new AuthorizationException;
+        }
+
+        // التأهل يكشف النتيجة (صفحة المرحلة التالية تقول «للمتأهلين»)، فبعد نشر نتائج المرحلة وحده
+        if (! $round->resultsPublished()) {
+            throw ValidationException::withMessages(['round' => __('competitions.student.qualify_before_publish')]);
         }
 
         $count = CompetitionAttempt::query()

@@ -43,7 +43,7 @@ class QuestionBankRelationManager extends RelationManager
 {
     use RunsStudentCompetitionActions;
 
-    protected static string $relationship = 'questions';
+    protected static string $relationship = 'roundQuestions';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
@@ -98,7 +98,7 @@ class QuestionBankRelationManager extends RelationManager
                 TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id'))->sortable(),
                 TextColumn::make('type')->label(__('competitions.student.question_attributes.type'))->badge(),
                 TextColumn::make('prompt')->label(__('competitions.student.question_attributes.prompt'))->limit(90)->wrap()->searchable(),
-                TextColumn::make('category.name')->label(__('competitions.student.question_attributes.category_id'))->placeholder(__('competitions.student.admin.all_categories')),
+                TextColumn::make('category.name')->label(__('competitions.student.question_attributes.category_id'))->default(__('competitions.student.admin.all_categories')),
                 TextColumn::make('passage_id')->label(__('competitions.student.question_attributes.passage_id'))
                     ->state(fn (CompetitionQuestion $record): ?string => $record->passage?->label())->placeholder('—')->limit(40),
                 TextColumn::make('points')->label(__('competitions.fields.points'))->numeric(),
@@ -130,7 +130,16 @@ class QuestionBankRelationManager extends RelationManager
                         $this->attempt(function () use ($data): void {
                             /** @var TemporaryUploadedFile $file */
                             $file = $data['file'];
-                            $count = app(ImportStudentQuestions::class)->handle($this->actor(), $this->round((int) $data['round_id']), $file->getRealPath());
+                            // نسخة محلية مؤقتة: الرفع المؤقت قد يكون على S3 في الإنتاج فلا مسار محلياً له
+                            $path = (string) tempnam(sys_get_temp_dir(), 'questions');
+                            file_put_contents($path, (string) $file->get());
+
+                            try {
+                                $count = app(ImportStudentQuestions::class)->handle($this->actor(), $this->round((int) $data['round_id']), $path);
+                            } finally {
+                                @unlink($path);
+                            }
+
                             Notification::make()->success()->title(__('competitions.student.admin.imported', ['count' => $count]))->send();
                         });
                     }),

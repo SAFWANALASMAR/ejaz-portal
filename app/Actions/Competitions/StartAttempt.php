@@ -42,16 +42,19 @@ class StartAttempt
             throw new AuthorizationException(__('competitions.student.not_qualified'));
         }
 
-        $layout = AttemptLayout::build($round, (int) $submission->category_id);
-
-        if ($layout === []) {
-            throw ValidationException::withMessages(['round' => __('competitions.student.no_questions')]);
-        }
-
-        $deadline = now()->addMinutes($round->duration_minutes);
-
         try {
-            return DB::transaction(function () use ($user, $round, $submission, $layout, $deadline): CompetitionAttempt {
+            return DB::transaction(function () use ($user, $round, $submission): CompetitionAttempt {
+                // قفل مشترك على المرحلة: تعديل البنك يقفلها قفلاً حصرياً ثم يفحص أول محاولة، فإما ينتظر هذا
+                // البدء تعديلاً جارياً حتى يُعتمد (ويُمسح البنك المخزن)، وإما يجد التعديلُ المحاولةَ فيُرفض
+                CompetitionRound::query()->whereKey($round->id)->sharedLock()->firstOrFail();
+
+                $layout = AttemptLayout::build($round, (int) $submission->category_id);
+
+                if ($layout === []) {
+                    throw ValidationException::withMessages(['round' => __('competitions.student.no_questions')]);
+                }
+
+                $deadline = now()->addMinutes($round->duration_minutes);
                 $attempt = new CompetitionAttempt;
                 $attempt->round_id = $round->id;
                 $attempt->submission_id = $submission->id;

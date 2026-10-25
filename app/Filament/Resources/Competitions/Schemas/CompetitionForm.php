@@ -46,7 +46,9 @@ class CompetitionForm
                         ->label(__('competitions.fields.categories'))
                         ->helperText(__('competitions.fields.categories_hint'))
                         ->rules(['array', 'max:20'])
-                        ->nestedRecursiveRules(['string', 'max:60']),
+                        ->nestedRecursiveRules(['string', 'max:60'])
+                        // مسابقة الطلاب فئاتها من القائمة في تبويبها (الفئات المفتوحة في هذا الإطلاق)
+                        ->hidden(fn (Get $get): bool => (bool) $get('student_mode')),
                     DateTimePicker::make('opens_at')->label(__('competitions.fields.opens_at'))->helperText(__('competitions.fields.dates_hint'))->seconds(false)->required()
                         // معطّل ويُرسل كما هو، فيُحفظ غيره، والإجراء يرفض تغييره (SaveCompetition)
                         ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false)->dehydrated(),

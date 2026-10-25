@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\QuestionType;
+use App\Filament\Exports\ServiceRequestExporter;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
@@ -88,7 +89,7 @@ final class StudentQuestionsSheet
             $writer->addRow(Row::fromValues(self::headings()));
 
             foreach ($rows as $row) {
-                $writer->addRow(Row::fromValues($row));
+                $writer->addRow(Row::fromValues(array_map(fn (string|int $value): string|int|null => is_string($value) ? ServiceRequestExporter::safeCell($value) : $value, $row)));
             }
 
             $writer->close();

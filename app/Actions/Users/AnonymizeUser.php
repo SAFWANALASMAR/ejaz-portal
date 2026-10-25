@@ -90,14 +90,13 @@ class AnonymizeUser
 
             // بيانات تسجيل الاختبار تعرّف صاحبها فتُمسح الآن، لا بعد مدة الاحتفاظ. ويبقى الرقم المرجعي والدرجات
             DB::table('competition_submissions')->where('user_id', $user->id)
-                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'extra' => null]);
+                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'extra' => null]);
 
-            // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور
-            CompetitionSubmission::query()->where('user_id', $user->id)->whereNotNull('certificate_path')->get()
-                ->each(function (CompetitionSubmission $submission): void {
-                    Storage::disk(GenerateCompetitionCertificate::disk())->delete((string) $submission->certificate_path);
-                    $submission->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
-                });
+            // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
+            // المعاملة فلا يضيع ملف إن تراجعت
+            $certificates = CompetitionSubmission::query()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();
+            CompetitionSubmission::query()->where('user_id', $user->id)->update(['certificate_path' => null, 'certificate_issued_at' => null]);
+            DB::afterCommit(fn () => Storage::disk(GenerateCompetitionCertificate::disk())->delete($certificates));
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
             AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);

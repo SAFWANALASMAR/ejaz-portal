@@ -100,6 +100,17 @@ class SaveCompetition
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
 
+        // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
+        $background = $data['certificate_background'] ?? null;
+
+        if (filled($background) && $background !== $backgroundBefore) {
+            try {
+                ImageSanitizer::strip((string) config('filesystems.private_disk', 'local'), (string) $background);
+            } catch (\Throwable) {
+                throw ValidationException::withMessages(['certificate_background' => __('competitions.student.certificate_background_invalid')]);
+            }
+        }
+
         // الاختبار الإلكتروني بلا أعمال: حقلها مخفي في اللوحة فلا يصل، فتُفرَّغ هنا
         if ((bool) ($data['exam_mode'] ?? $competition->exam_mode)) {
             $data['work_types'] = null;
@@ -226,7 +237,8 @@ class SaveCompetition
             'work_types' => ['nullable', 'array', 'max:'.count(WorkType::cases())],
             'work_types.*' => ['distinct', Rule::enum(WorkType::class)],
             'student_mode' => ['boolean'],
-            'certificate_background' => ['nullable', 'string', 'max:255', 'starts_with:'.self::CERTIFICATE_DIRECTORY.'/'],
+            // اسم عشوائي في مجلد القوالب وحده، فلا يشير المسار إلى ملف خاص آخر (../)
+            'certificate_background' => ['nullable', 'string', 'max:255', 'regex:#^'.self::CERTIFICATE_DIRECTORY.'/[A-Za-z0-9]+\.(jpe?g|png)$#'],
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
 
@@ -310,7 +322,12 @@ class SaveCompetition
             $validator->errors()->add('student_mode', __('competitions.student.one_mode'));
         }
 
-        $hasQuestions = array_key_exists('questions', $data) ? $questions !== [] : $competition->exists && $competition->questions()->exists();
+        // مسابقة الطلاب بنكها في مراحلها، وبنك نموذجها لا يُحفظ
+        $hasQuestions = match (true) {
+            (bool) ($data['student_mode'] ?? $competition->student_mode) => $competition->exists && $competition->roundQuestions()->exists(),
+            array_key_exists('questions', $data) => $questions !== [],
+            default => $competition->exists && $competition->questions()->exists(),
+        };
 
         if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));

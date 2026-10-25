@@ -54,7 +54,8 @@ class SaveCompetitionRound
                     || (int) $validated['question_count'] !== $round->question_count
                     || (int) $validated['duration_minutes'] !== $round->duration_minutes;
 
-                if ($changed) {
+                // والنهاية تُمد ولا تُقدَّم: المواعيد النهائية للمحاولات القائمة محسوبة منها، والنشر بعدها
+                if ($changed || Carbon::parse((string) $validated['ends_at'])->lt($round->ends_at)) {
                     throw ValidationException::withMessages(['starts_at' => __('competitions.student.round_locked')]);
                 }
             }

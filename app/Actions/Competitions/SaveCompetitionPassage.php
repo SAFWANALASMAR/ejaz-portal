@@ -69,7 +69,7 @@ class SaveCompetitionPassage
             return $passage;
         });
 
-        RoundQuestions::forget($round->id);
+        DB::afterCommit(fn () => RoundQuestions::forget($round->id));
 
         return $saved;
     }

@@ -79,7 +79,7 @@ test.describe('student competition: the student journey', () => {
         await page.selectOption('#field-grade', { label: 'الأول الثانوي' });
         await page.fill('#field-guardian_phone', '0551112233');
         await page.check('input[name="pledge"]');
-        await Promise.all([page.waitForURL(`**/competitions/${DEMO.slug}`), page.getByRole('button', { name: 'تسجيل' }).click()]);
+        await Promise.all([page.waitForURL(`**/competitions/${DEMO.slug}`), page.getByRole('button', { name: 'تسجيل', exact: true }).click()]);
         await expect(page.getByText('تم تسجيلك في المسابقة')).toBeVisible();
 
         await page.getByRole('link', { name: 'ادخل الاختبار' }).click();
@@ -192,13 +192,15 @@ test.describe('student competition: the director journey in the panel', () => {
         for (const [tab, step] of [['بنك الأسئلة', '21-admin-bank'], ['النصوص والمقاطع', '22-admin-passages'], ['حقول التسجيل', '23-admin-fields'], ['المسجلون', '24-admin-registrations'], ['النتائج', '26-admin-results']]) {
             await page.getByRole('tab', { name: tab }).click();
             await page.waitForLoadState('networkidle');
+            // محتوى التبويب المختار بعنوانه قبل الفحص واللقطة
+            await expect(page.locator('.fi-resource-relation-manager').getByRole('heading', { name: tab }).first()).toBeVisible();
             await inspect(page, testInfo, step, errors);
 
             if (tab === 'المسجلون') {
                 await expect(page.getByText(/••••••\d{4}/).first()).toBeVisible();
                 await page.getByRole('button', { name: 'عرض رقم الهوية' }).first().click();
                 await expect(page.getByText('يُسجَّل هذا الاطلاع في سجل العمليات.')).toBeVisible();
-                await expect(page.getByText(/^1\d{9}$/).first()).toBeVisible();
+                await expect(page.getByRole('dialog').getByText(/\b1\d{9}\b/).first()).toBeVisible();
                 await inspect(page, testInfo, '25-admin-reveal', errors);
                 await page.keyboard.press('Escape');
             }
@@ -206,6 +208,8 @@ test.describe('student competition: the director journey in the panel', () => {
 
         await page.getByRole('button', { name: 'سحب للمتساوين' }).click();
         await expect(page.getByText('عدد المراكز (الجوائز)')).toBeVisible();
+        // تنتهي حركة فتح النافذة (شفافية متدرجة) قبل فحص التباين
+        await page.waitForTimeout(600);
         await inspect(page, testInfo, '27-admin-tie-draw', errors);
         await page.keyboard.press('Escape');
 

@@ -43,7 +43,7 @@ function matrixGetUris(callable $filter): array
 {
     return collect(Router::getRoutes()->getRoutes())
         ->filter(fn (Route $route) => in_array('GET', $route->methods(), true) && $filter($route))
-        ->map(fn (Route $route) => '/'.ltrim((string) preg_replace_callback('/\{([^}?]+)\??\}/', fn (array $m) => str_contains($m[1], 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment'], true) ? (string) Str::uuid() : '1', $route->uri()), '/'))
+        ->map(fn (Route $route) => '/'.ltrim((string) preg_replace_callback('/\{([^}?]+)\??\}/', fn (array $m) => str_contains($m[1], 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment', 'round', 'submission'], true) ? (string) Str::uuid() : '1', $route->uri()), '/'))
         ->unique()
         ->values()
         ->all();

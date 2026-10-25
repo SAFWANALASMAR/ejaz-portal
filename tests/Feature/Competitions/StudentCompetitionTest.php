@@ -406,6 +406,7 @@ it('clears the student identity, guardian phone, custom fields and certificate w
     Storage::disk('local')->put('competition-certificates/y.pdf', '%PDF-1.4');
     $submission->forceFill(['certificate_path' => 'competition-certificates/y.pdf'])->save();
 
+    $student->forceFill(['deletion_requested_at' => now()])->save();
     app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $student);
 
     $fresh = $submission->fresh();
@@ -428,4 +429,29 @@ it('lets the owner download the certificate, and nobody else', function () {
     $this->get('/account/competitions/'.$submission->uuid.'/certificate')->assertOk()->assertDownload('certificate-'.$submission->reference.'.pdf');
 
     $this->actingAs(registeredStudent($this->competition, 2))->get('/account/competitions/'.$submission->uuid.'/certificate')->assertNotFound();
+});
+
+it('keeps the works entry routes and their question list away from a student competition', function () {
+    $question = studentQuestion($this->round, ['prompt' => 'سؤال مرحلة سري']);
+    $student = registeredStudent($this->competition);
+    $student->forceFill(['phone' => '+966500000077', 'phone_verified_at' => now()])->save();
+
+    $this->actingAs($student)->get('/competitions/students/entry')->assertNotFound();
+    $this->post('/competitions/students/entry/start')->assertNotFound();
+    $this->post('/competitions/students/entry', ['answers' => [$question->id => 'b']])->assertNotFound();
+    $this->post('/competitions/students/entry/submit')->assertNotFound();
+    $this->post('/competitions/students/entry/works', ['type' => 'link', 'url' => 'https://example.com'])->assertNotFound();
+
+    expect($this->competition->questions()->count())->toBe(0)
+        ->and(CompetitionSubmission::query()->where('user_id', $student->id)->sole()->answers)->toBeNull();
+});
+
+it('marks a submission automatic only near the deadline, whatever the browser sends', function () {
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition);
+    $attempt = startedAttempt($student);
+
+    $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/submit', ['auto' => '1']);
+
+    expect($attempt->fresh()->auto_submitted)->toBeFalse();
 });
