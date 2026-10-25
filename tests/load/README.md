@@ -158,6 +158,8 @@ k6 run -e BASE_URL=http://localhost:8140 -e PASSWORD="$LOAD_PASSWORD" -e COMPETI
        -e STUDENTS=300 -e LOGIN_SPREAD=240 -e START_AT=$(( $(date +%s) + 300 )) tests/load/student-exam.js
 ```
 
+ولإعادة التشغيل بحسابات لم تبدأ المرحلة بعد: `-e ACCOUNT_OFFSET=300` يبدأ من الحساب 301 (بعد `ejaz:load-students` بعدد أكبر).
+
 بعده: محاولة واحدة لكل طالب، وكلها مسلَّمة ومصححة (الناتجان 300 ثم صفر):
 
 ```sql

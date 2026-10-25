@@ -17,6 +17,8 @@ const STUDENTS = Number(__ENV.STUDENTS || 300);
 const START_AT = Number(__ENV.START_AT);
 const ANSWER_SECONDS = Number(__ENV.ANSWER_SECONDS || 3);
 const LOGIN_SPREAD = Number(__ENV.LOGIN_SPREAD || 0);
+// أول حساب يُستعمل بعد هذا العدد، لتشغيل ثانٍ بحسابات لم تبدأ
+const ACCOUNT_OFFSET = Number(__ENV.ACCOUNT_OFFSET || 0);
 const ROUND = `${BASE}/competitions/${__ENV.COMPETITION}/rounds/${__ENV.ROUND}`;
 
 const received = new Counter('attempts_received');
@@ -49,7 +51,7 @@ function answers(body) {
 }
 
 export default function () {
-    const n = exec.vu.idInTest;
+    const n = ACCOUNT_OFFSET + exec.vu.idInTest;
 
     // الدخول موزّع على LOGIN_SPREAD ثانية قبل البدء، كوصول الطلاب إلى المعمل، والبدء نفسه في لحظة واحدة
     sleep((n % STUDENTS) * (LOGIN_SPREAD / STUDENTS));
