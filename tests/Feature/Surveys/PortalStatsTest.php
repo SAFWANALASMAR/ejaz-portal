@@ -34,7 +34,7 @@ it('shows the competition and survey numbers to the board and the super admin on
     expect(ProgramsStatsWidget::canView())->toBeTrue();
     Livewire::test(ProgramsStatsWidget::class)->assertSee(__('surveys.stats.submissions'))->assertSee(__('surveys.stats.responses'));
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     expect(ProgramsStatsWidget::canView())->toBeTrue();
 
     foreach ([RoleName::ProgramManager, RoleName::ContentEditor, RoleName::Reviewer, RoleName::Secretary] as $role) {

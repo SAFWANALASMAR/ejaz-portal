@@ -20,6 +20,10 @@ use Livewire\Livewire;
  * ملاحظات المدير التنفيذي على الرئيسية ومحور «الدورات والبرامج».
  * docs/requirements/12-executive-director-2026-10-10.md (القسمان 3 و4)
  */
+beforeEach(function () {
+    showLegacyHomeSections();
+});
+
 it('gives the competitions their own shortcut and names the programs shortcut courses and programs', function () {
     $this->get('/')->assertOk()
         ->assertSee(__('home.shortcuts.competitions.title'))
@@ -93,7 +97,7 @@ it('keeps sponsors on the home page however many partners come before them', fun
 it('hides the videos and accounts sections when switched off', function () {
     LibraryItem::factory()->video()->create(['on_home' => true]);
     Setting::put('contact', ['social' => ['x' => 'https://x.com/example']]);
-    Setting::put('home', ['show_videos' => false, 'show_accounts' => false]);
+    showLegacyHomeSections(['show_videos' => false, 'show_accounts' => false]);
 
     $this->get('/')->assertOk()
         ->assertDontSee(__('home.videos.title'))

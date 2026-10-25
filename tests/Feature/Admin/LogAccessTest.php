@@ -13,7 +13,7 @@ use Spatie\Activitylog\Models\Activity;
 */
 
 it('writes the access in the log of its module, in the name of the actor', function () {
-    $actor = userWithRole(RoleName::SuperAdmin);
+    $actor = userWithRole(RoleName::TechnicalAdmin);
     $subject = User::factory()->create();
 
     app(LogAccess::class)->handle($actor, $subject, 'registers', ActivityEvent::FileDownloaded, ['file' => 'a.pdf']);
@@ -26,7 +26,7 @@ it('writes the access in the log of its module, in the name of the actor', funct
 });
 
 it('refuses a log name the activity log screen does not list', function () {
-    expect(fn () => app(LogAccess::class)->handle(userWithRole(RoleName::SuperAdmin), User::factory()->create(), 'document', ActivityEvent::Viewed))
+    expect(fn () => app(LogAccess::class)->handle(userWithRole(RoleName::TechnicalAdmin), User::factory()->create(), 'document', ActivityEvent::Viewed))
         ->toThrow(InvalidArgumentException::class);
 });
 

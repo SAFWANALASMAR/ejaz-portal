@@ -3,6 +3,7 @@
 namespace App\Actions\Library;
 
 use App\Enums\LibrarySection;
+use App\Jobs\FetchYoutubeThumbnail;
 use App\Models\LibraryItem;
 use App\Models\User;
 use App\Rules\RealPdf;
@@ -24,11 +25,12 @@ class SaveLibraryItem
 {
     /**
      * @param  array<string, mixed>  $data
+     * @param  bool  $legacyFile  ملف صوتي من الموقع السابق (ImportLegacyContent)، فيُقبل مع قرار الروابط
      *
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function handle(User $actor, LibraryItem $item, array $data): LibraryItem
+    public function handle(User $actor, LibraryItem $item, array $data, bool $legacyFile = false): LibraryItem
     {
         $allowed = $item->exists ? $actor->can('update', $item) : $actor->can('create', LibraryItem::class);
 
@@ -51,9 +53,18 @@ class SaveLibraryItem
         // وحجم الملف يُحسب من الملف نفسه، لا مما يُمرَّر
         $item->fill([...Arr::except($data, ['file_size']), 'section' => $section]);
 
+        // المرئية والصوتية برابط يوتيوب لا بملف مرفوع (ملاحظات المدير التنفيذي، 25 أكتوبر 2026): لا يُرفع ملف صوتي جديد،
+        // ويبقى ما رُفع منها قبل القرار ما لم يُضف رابط يحل محله. ومع الرابط يُمسح الملف بعده، فلا رفض (كتاب صار صوتية)
+        if (! $legacyFile && $item->section->keepsLegacyFile() && filled($item->file) && blank($item->video_url)
+            && ($item->file !== $previousFile || $previousSection !== $item->section)) {
+            throw ValidationException::withMessages(['file' => __('library.validation.audio_by_link')]);
+        }
+
         // لكل قسم مصدر واحد، فيُمسح مصدر القسم الآخر: لا ملف لمقطع، ولا رابط لكتاب
         if ($item->section->takesVideoUrl()) {
-            $item->file = null;
+            if (! $item->section->keepsLegacyFile() || filled($item->video_url)) {
+                $item->file = null;
+            }
         } else {
             $item->video_url = null;
         }
@@ -93,6 +104,12 @@ class SaveLibraryItem
             $item->file_size = Storage::disk(LibraryItem::disk())->size((string) $item->file);
         }
 
+        // صورة يوتيوب التي جلبها الخادم لمقطع آخر لا تبقى بعد تغيّر الرابط (FetchYoutubeThumbnail::isFetchedFor)
+        if (filled($item->thumbnail) && FetchYoutubeThumbnail::isFetched((string) $item->thumbnail)
+            && ! FetchYoutubeThumbnail::isFetchedFor((string) $item->thumbnail, $item->youtubeId())) {
+            $item->thumbnail = null;
+        }
+
         DB::transaction(fn () => $item->save());
 
         if ($previousFile !== null && $previousFile !== $item->file && LibraryItem::isOwnFile($previousFile)) {
@@ -100,6 +117,10 @@ class SaveLibraryItem
         }
 
         PublicImages::discard($thumbnailBefore, $item->publicImages()['thumbnail'], LibraryItem::IMAGE_DIRECTORY);
+
+        if (blank($item->thumbnail) && $item->youtubeId() !== null && config('security.youtube_thumbnails')) {
+            FetchYoutubeThumbnail::dispatch($item->getKey());
+        }
 
         return $item;
     }

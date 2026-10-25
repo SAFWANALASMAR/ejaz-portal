@@ -9,6 +9,7 @@ import './gallery';
 import './competition-exam';
 import './assistant';
 import './password-rules';
+import './home';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

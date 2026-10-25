@@ -27,13 +27,14 @@ class ResetUserPassword implements ResetsUserPasswords
     public function reset(User $user, array $input): void
     {
         Validator::make($input, [
-            'password' => $this->passwordRules($user->name, $user->email, $user->phone),
+            'password' => $this->passwordRules($user->name, $user->email, $user->phone, $user->username),
         ])->validate();
 
         // كلمة المرور الجديدة تطابق السياسة، فتُرفع مطالبة التغيير (RequirePasswordUpgrade)
         $user->forceFill([
             'password' => Hash::make($input['password']),
             'password_upgrade_required_at' => null,
+            'password_set_by_admin_at' => null,
         ])->save();
 
         $user->notify(new PasswordChanged);

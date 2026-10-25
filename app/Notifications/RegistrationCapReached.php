@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرف العام ببلوغ سقف التسجيل في الساعة (CreateNewUser)، فيتوقف التسجيل حتى تنقضي الساعة. مرة في الساعة، على
+ * تنبيه المشرف العام والمسؤول التقني ببلوغ سقف التسجيل في الساعة (CreateNewUser)، فيتوقف التسجيل حتى تنقضي الساعة. مرة في الساعة، على
  * نمط SmsCapWarning.
  */
 class RegistrationCapReached extends Notification implements ShouldQueueAfterCommit

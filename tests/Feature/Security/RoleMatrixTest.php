@@ -2,6 +2,7 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\Page as ResourcePage;
 use Illuminate\Database\Eloquent\Model;
@@ -260,3 +261,60 @@ it('refuses or allows each panel create and edit screen to each role exactly as 
     expect($checked)->toBeGreaterThan(40)
         ->and($wrong)->toBe([]);
 })->with(fn () => array_map(fn (RoleName $role) => [$role], RoleName::cases()));
+
+// محاولات كتابة فعلية لكل دور (بقايا مراجعة #64، ومهمة لأن المشرف العام صار اطلاعاً فقط — 25 أكتوبر 2026): «حفظ» في شاشة
+// التعديل، و«حذف» في الجدول وفي شاشة التعديل، والحذف الجماعي، على سجل حقيقي من مصنعه. وما لا يحق للدور تعديله (u) أو حذفه
+// (d) في الملف المراجَع يبقى كما هو بعد كل المحاولات، أياً كان ما أظهرته الواجهة أو أخفته.
+it('leaves every record unchanged after real save, delete, table and bulk attempts by a role without the right', function (RoleName $role) {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $records = roleMatrixRecords();
+    $saved = json_decode((string) file_get_contents(ROLE_MATRIX_FILE), true)[$role->value]['policies'];
+    $this->actingAs(userWithRole($role));
+    $changed = [];
+    $attempted = 0;
+
+    foreach (Filament::getPanel('admin')->getResources() as $resource) {
+        $model = $resource::getModel();
+        $record = $records[$model] ?? null;
+        $policy = $saved[class_basename($model)] ?? null;
+
+        if ($record === null || $policy === null || (str_contains($policy, 'u') && str_contains($policy, 'd'))) {
+            continue;
+        }
+
+        $before = $record->fresh()?->getAttributes();
+        $pages = $resource::getPages();
+        $attempts = [];
+
+        if (($list = ($pages['index'] ?? null)?->getPage()) !== null) {
+            $attempts[] = fn () => Livewire::test($list)->callAction(TestAction::make('delete')->table($record));
+            $attempts[] = fn () => Livewire::test($list)->selectTableRecords([$record->getKey()])->callAction(TestAction::make('delete')->table()->bulk());
+        }
+
+        if (($edit = ($pages['edit'] ?? null)?->getPage()) !== null) {
+            $attempts[] = fn () => Livewire::test($edit, ['record' => $record->getRouteKey()])->call('save');
+            $attempts[] = fn () => Livewire::test($edit, ['record' => $record->getRouteKey()])->callAction('delete');
+        }
+
+        foreach ($attempts as $attempt) {
+            $attempted++;
+
+            try {
+                $attempt();
+            } catch (Throwable) {
+                // الرفض (403 أو 404 أو إجراء مخفي) هو المتوقع
+            }
+        }
+
+        $after = $record->fresh()?->getAttributes();
+
+        if (! str_contains($policy, 'd') && $after === null) {
+            $changed[class_basename($model)] = 'deleted';
+        } elseif (! str_contains($policy, 'u') && $after !== null && $after != $before) {
+            $changed[class_basename($model)] = 'updated';
+        }
+    }
+
+    expect($attempted)->toBeGreaterThan(0)
+        ->and($changed)->toBe([]);
+})->with(fn () => array_map(fn (RoleName $role) => [$role], array_values(array_filter(RoleName::cases(), fn (RoleName $role): bool => ! in_array($role, RoleName::administrators(), true)))));

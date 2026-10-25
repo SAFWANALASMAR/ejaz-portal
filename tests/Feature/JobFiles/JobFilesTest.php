@@ -154,7 +154,7 @@ it('keeps participants to reading unless allowed to add, and then to their own d
         ->and(fn () => saveDocument($manager, JobFile::factory()->responsible(RoleName::FinancialManager)->create(), jobFileUpload(pdfContents()), $own))->toThrow(AuthorizationException::class);
 
     // والمشرف العام يطّلع ولا يضيف ولا يعدّل (منع صريح لا يغيّره Gate::after)، ورفض المرفوع يحذفه
-    $superAdmin = userWithRole(RoleName::SuperAdmin);
+    $superAdmin = userWithRole(RoleName::TechnicalAdmin);
     $rejected = jobFileUpload(pdfContents());
     expect($superAdmin->can('view', $managerDocument))->toBeTrue()
         ->and($superAdmin->can('update', $managerDocument))->toBeFalse()
@@ -198,5 +198,5 @@ it('lets the executive director manage the files themselves, and nobody else', f
     expect($executive->can('delete', $file))->toBeTrue();
     JobFileDocument::factory()->create(['job_file_id' => $file->id]);
     expect($executive->can('delete', $file->fresh()))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $file->fresh()))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $file->fresh()))->toBeFalse();
 });

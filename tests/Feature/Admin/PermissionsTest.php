@@ -39,7 +39,7 @@ it('gives each role exactly the permissions in the configuration', function (Rol
     $granted = Role::findByName($role->value)->permissions->pluck('name')->sort()->values()->all();
 
     expect($granted)->toBe(expectedPermissions($role->value));
-})->with(collect(RoleName::cases())->reject(fn (RoleName $role) => $role === RoleName::SuperAdmin)->values()->all());
+})->with(collect(RoleName::cases())->reject(fn (RoleName $role) => $role === RoleName::TechnicalAdmin)->values()->all());
 
 it('keeps personal data and the activity log away from the content editor and the board', function () {
     $editor = Role::findByName(RoleName::ContentEditor->value);
@@ -105,7 +105,7 @@ it('grants each role what its work needs, by name', function () {
 it('keeps a denial with a message from a policy, for the super admin too', function () {
     Gate::define('deny-with-message', fn () => Response::deny('ممنوع'));
 
-    expect(Gate::forUser(userWithRole(RoleName::SuperAdmin))->inspect('deny-with-message')->denied())->toBeTrue();
+    expect(Gate::forUser(userWithRole(RoleName::TechnicalAdmin))->inspect('deny-with-message')->denied())->toBeTrue();
 });
 
 it('applies the module policy to each action', function () {
@@ -124,7 +124,7 @@ it('applies the module policy to each action', function () {
 });
 
 it('lets the super admin do everything a policy does not explicitly forbid', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $log = Activity::create(['description' => 'test', 'log_name' => 'default']);
 
     expect($admin->can('update', MenuItem::factory()->create()))->toBeTrue()

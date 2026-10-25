@@ -14,6 +14,7 @@ use Tests\Fakes\FakeSmsGateway;
 */
 
 beforeEach(function () {
+    enableVerification();
     $this->sms = FakeSmsGateway::swap();
     Notification::fake();
 });
@@ -31,7 +32,7 @@ function registerWithPhone(string $email): TestResponse
         'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ]);
 }
 

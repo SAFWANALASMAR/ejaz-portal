@@ -93,7 +93,7 @@ it('lets the supervising roles and the super admin see and open every entry', fu
 })->with([
     'board member' => [RoleName::BoardMember],
     'executive director' => [RoleName::ExecutiveDirector],
-    'super admin' => [RoleName::SuperAdmin],
+    'super admin' => [RoleName::TechnicalAdmin],
 ]);
 
 it('refuses the list and the entries to a role without the permission and to a guest', function () {
@@ -127,7 +127,7 @@ it('exports only the entries the exporter may see', function () {
         ->not->toContain('معبأ المحاسب')
         ->not->toContain('معبأ المدير المالي');
 
-    expect($csv(userWithRole(RoleName::SuperAdmin)))->toContain('معبأ السكرتير')
+    expect($csv(userWithRole(RoleName::TechnicalAdmin)))->toContain('معبأ السكرتير')
         ->toContain('معبأ المحاسب')
         ->toContain('معبأ المدير المالي');
 });

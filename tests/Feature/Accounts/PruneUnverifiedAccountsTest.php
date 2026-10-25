@@ -15,6 +15,7 @@ use Tests\Fakes\FakeSmsGateway;
 */
 
 beforeEach(function () {
+    enableVerification();
     FakeSmsGateway::swap();
     Notification::fake();
 });
@@ -46,7 +47,7 @@ it('deletes abandoned self-registered accounts after 14 days, and keeps everythi
     $recent = abandoned(days: 13);
     $verified = abandoned(['phone_verified_at' => now()]);
     $staff = abandoned(days: 30);
-    $staff->assignRole(RoleName::SuperAdmin->value);
+    $staff->assignRole(RoleName::TechnicalAdmin->value);
     $linked = abandoned(days: 30);
     ProgramRegistration::factory()->for($linked)->create();
     $anonymized = abandoned(['anonymized_at' => now()->subDays(20)], days: 30);
@@ -66,7 +67,7 @@ it('deletes an account registered through the site and never verified, once the 
         'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ])->assertSessionHasNoErrors();
 
     $user = User::where('email', 'left@example.test')->firstOrFail();
@@ -104,7 +105,7 @@ it('never deletes a long-verified member who changed their phone and has not ent
 
 it('never deletes an account an administrator created, even without a phone or a verified email', function () {
     $admin = User::factory()->create();
-    $admin->assignRole(RoleName::SuperAdmin->value);
+    $admin->assignRole(RoleName::TechnicalAdmin->value);
 
     $created = app(CreateStaffUser::class)->handle($admin, ['name' => 'موظف جديد', 'email' => 'new.staff@example.test'], []);
     // ولو فقد توثيق بريده: لم ينشئه التسجيل الذاتي

@@ -29,7 +29,7 @@ function policyRegistration(string $password): array
         'phone' => '0512345678',
         'password' => $password,
         'password_confirmation' => $password,
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ];
 }
 
@@ -91,8 +91,8 @@ it('applies the policy and the personal data rule to a password change and a res
 
 it('applies the policy to the admin creation command', function () {
     $this->artisan('ejaz:create-admin')
-        ->expectsQuestion('الاسم الكامل', 'مشرف البوابة')
         ->expectsQuestion('البريد الإلكتروني', 'portal-admin@example.test')
+        ->expectsQuestion('الاسم الكامل', 'مشرف البوابة')
         ->expectsQuestion('كلمة المرور ('.__('account.password_rules.summary').')', 'portal-admin-2026')
         ->expectsQuestion('أعد كتابة كلمة المرور', 'portal-admin-2026')
         ->assertFailed();
@@ -100,8 +100,8 @@ it('applies the policy to the admin creation command', function () {
     expect(User::query()->where('email', 'portal-admin@example.test')->exists())->toBeFalse();
 
     $this->artisan('ejaz:create-admin')
-        ->expectsQuestion('الاسم الكامل', 'مشرف البوابة')
         ->expectsQuestion('البريد الإلكتروني', 'portal-admin@example.test')
+        ->expectsQuestion('الاسم الكامل', 'مشرف البوابة')
         ->expectsQuestion('كلمة المرور ('.__('account.password_rules.summary').')', 'Strong-Admin-Pass-2026')
         ->expectsQuestion('أعد كتابة كلمة المرور', 'Strong-Admin-Pass-2026')
         ->assertSuccessful();

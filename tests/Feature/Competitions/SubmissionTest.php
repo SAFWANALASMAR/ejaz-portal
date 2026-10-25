@@ -268,7 +268,7 @@ it('keeps every applicant inside their own entry', function () {
     expect($mine->fresh()->answer($this->text))->toBe('جواب-خاص-بالمتقدم')
         ->and($other->can('view', $mine))->toBeFalse()
         ->and($other->can('update', $mine))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('update', $mine))->toBeFalse()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('update', $mine))->toBeFalse()
         ->and(userWithRole(RoleName::BoardMember)->can('view', $mine))->toBeFalse();
 });
 

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CountVisit;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureAccountVerified;
 use App\Http\Middleware\FullPageLoadOnNavigate;
 use App\Http\Middleware\RejectInvalidUtf8;
 use App\Http\Middleware\RequirePasswordUpgrade;
@@ -47,6 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
             VerifyBotChallenge::class,
             CountVisit::class,
         ]);
+
+        // التوثيق شرطاً متى فُعّل من اللوحة وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        $middleware->alias(['verified' => EnsureAccountVerified::class]);
 
         // التنقّل السريع إلى ما يُحمَّل كاملاً تحميل كامل (FullPageLoadOnNavigate)، ومنه تحويل الدخول من Authenticate:
         // فيُقدَّم عليه في ترتيب الأولوية، وإلا قدّم لارافيل Authenticate على كل ما أُلحق بمجموعة web

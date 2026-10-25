@@ -4,6 +4,7 @@ namespace App\Actions\Accounts;
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\AccountSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,11 @@ class PruneUnverifiedAccounts
 
     public function handle(): int
     {
+        // ما دام التوثيق مطفأً من اللوحة فالحساب غير الموثق هو المعتاد، فلا يُحذف (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        if (! AccountSettings::verificationEnabled()) {
+            return 0;
+        }
+
         $count = 0;
         $columns = $this->referencingColumns();
 
@@ -101,7 +107,9 @@ class PruneUnverifiedAccounts
             ->where(fn (Builder $query) => $query->whereNull('last_login_at')
                 ->orWhereRaw('last_login_at <= self_registered_at + make_interval(secs => ?)', [self::REGISTRATION_LOGIN_SECONDS]))
             ->whereDoesntHave('roles', fn (Builder $roles) => $roles->where('name', '!=', RoleName::Member->value))
-            ->whereDoesntHave('permissions');
+            ->whereDoesntHave('permissions')
+            // ما سُجّل والتوثيق مطفأ لم يُطلب منه توثيق، فلا يُحذف إن فُعّل بعده (مراجعة المشرف المبكرة، ٥)
+            ->when(AccountSettings::verificationEnabledAt(), fn (Builder $query, $at) => $query->where('self_registered_at', '>=', $at));
 
         foreach ($columns ?? $this->referencingColumns() as [$table, $column]) {
             $query->whereNotExists(fn ($sub) => $sub->selectRaw('1')->from($table)->whereColumn("{$table}.{$column}", 'users.id'));

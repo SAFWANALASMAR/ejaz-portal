@@ -84,7 +84,7 @@
 cd /opt/ejaz
 bash scripts/deploy-compose.sh v1.0.0
 DC="docker compose --env-file .env -f deploy/compose.production.yaml"
-$DC exec app php artisan ejaz:create-admin      # المشرف الأول، تفاعلي
+$DC exec app php artisan ejaz:create-admin      # المسؤول التقني الأول، تفاعلي (--role=super_admin للمشرف العام، اطلاع فقط)
 $DC exec -T app php artisan db:seed --class=MenuSeeder --force
 $DC exec -T app php artisan db:seed --class=ContentSeeder --force
 $DC exec -T app php artisan db:seed --class=ProgramTypesSeeder --force

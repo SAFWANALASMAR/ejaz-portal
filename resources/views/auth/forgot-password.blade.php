@@ -39,6 +39,12 @@
         </section>
     @endif
 
+    {{-- من لا بريد موثقاً له ولا جوالاً تعيد له الإدارة كلمة المرور من اللوحة (ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
+    <p class="mt-5 rounded-xl bg-surface px-4 py-3 text-sm leading-6 text-muted">
+        {{ __('account.forgot.no_contact') }}
+        <a href="{{ route('contact') }}" class="font-medium text-primary underline">{{ __('account.forgot.contact') }}</a>
+    </p>
+
     <x-or-divider class="my-5" />
 
     <x-button variant="outline" :href="route('login')" class="w-full">{{ __('account.forgot.back_to_login') }}</x-button>

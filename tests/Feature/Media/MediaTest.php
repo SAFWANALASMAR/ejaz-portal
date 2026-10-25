@@ -4,22 +4,20 @@ use App\Enums\SurveyAudience;
 use App\Models\Album;
 use App\Models\NewsArticle;
 use App\Models\Partner;
-use App\Models\Setting;
 use App\Models\Survey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
-it('shows the media center tiles, with the video library opening the library videos, and the latest news', function () {
+it('shows the media center tiles, news and announcements only, and the latest news', function () {
     NewsArticle::factory()->create(['title' => 'خبر منشور']);
     NewsArticle::factory()->unpublished()->create(['title' => 'خبر غير منشور']);
 
     $response = $this->get('/media')->assertOk()
         ->assertSeeInOrder(['<h1', __('media.title')], false)
         ->assertSee('href="'.route('media.news.index').'"', false)
-        ->assertSee('href="'.route('media.albums.index').'"', false)
-        ->assertSee('href="'.route('library.section', 'videos').'"', false)
-        ->assertSee('href="'.route('media.partners').'"', false)
+        ->assertSee('href="'.route('media.announcements').'"', false)
+        ->assertDontSee('href="'.route('media.albums.index').'"', false)
         ->assertSee('خبر منشور')
         ->assertDontSee('خبر غير منشور');
 
@@ -152,18 +150,19 @@ it('shows the published partners in their order, linking only to safe addresses'
 });
 
 it('shows the latest news and the partners on the home page, each hidden from the settings', function () {
+    showLegacyHomeSections();
     NewsArticle::factory()->create(['title' => 'خبر في الرئيسية']);
     Partner::factory()->create(['name' => 'شريك في الرئيسية']);
 
     $this->get('/')
-        ->assertSee(__('media.latest_news'))
+        ->assertSee(__('home.ticker.news'))
         ->assertSee('خبر في الرئيسية')
         ->assertSee('شريك في الرئيسية')
         // وبطاقة المركز الإعلامي في الاختصارات بوجود مساره
         ->assertSee(__('home.shortcuts.media.title'))
         ->assertSee('href="'.route('media.index').'"', false);
 
-    Setting::put('home', ['show_latest' => false, 'show_partners' => false]);
+    showLegacyHomeSections(['show_latest' => false, 'show_partners' => false]);
 
     $this->get('/')->assertDontSee('خبر في الرئيسية')->assertDontSee('شريك في الرئيسية');
 });

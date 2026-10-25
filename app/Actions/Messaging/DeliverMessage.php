@@ -21,7 +21,7 @@ use Throwable;
 /**
  * إرسال رسالة واحدة عبر قناتها وتسجيل حالتها (MessageLog) بلا نصها: أُرسلت بمعرّفها عند المزود، أو فشلت
  * برمز الخطأ، أو تجاوزت حد الرقم في اليوم، أو لا قالب لاستعمالها. والفشل يُعاد رميه لتعيد المهمة المحاولة
- * (ما لم يكن retryable=false). وغياب المزود في الإنتاج يُنبّه المشرف العام بالبريد مرة كل ست ساعات.
+ * (ما لم يكن retryable=false). وغياب المزود في الإنتاج يُنبّه المشرف العام والمسؤول التقني بالبريد مرة كل ست ساعات.
  *
  * حد الرقم في اليوم يُفحص قبل كل محاولة، ويُستهلك بعد كل محاولة وصلت إلى المزود، ومنها إعادات الطابور
  * (فكل منها قد تكلّف رسالة). وما لم يُرسل أصلاً (لا مزود، أو لا قالب) لا يستهلكه.
@@ -123,7 +123,7 @@ class DeliverMessage
         Log::critical('Messaging provider is not configured in production.', ['channel' => $channel]);
 
         Notification::send(
-            User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+            User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
             new MessagingNotConfigured($channel),
         );
     }

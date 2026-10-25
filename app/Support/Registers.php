@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Enums\RoleName;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -30,14 +29,14 @@ final class Registers
     }
 
     /**
-     * الحسابات الفعّالة التي تملك الصلاحية بأدوارها، والمشرف العام (يملك الكل دون ربط). لقوائم اختيار
+     * الحسابات الفعّالة التي تملك الصلاحية بأدوارها (والمسؤول التقني بكل الصلاحيات). لقوائم اختيار
      * المسؤول والمكلَّف في اللوحة، والإجراء يفحص الحساب المختار بـ can() نفسها.
      *
      * @return Builder<User>
      */
     public static function usersWhoCan(string $permission): Builder
     {
-        $roles = Role::query()->whereHas('permissions', fn (Builder $query) => $query->where('name', $permission))->pluck('name')->push(RoleName::SuperAdmin->value);
+        $roles = Role::query()->whereHas('permissions', fn (Builder $query) => $query->where('name', $permission))->pluck('name');
 
         return User::query()->where('is_active', true)->whereNull('anonymized_at')->whereHas('roles', fn (Builder $query) => $query->whereIn('name', $roles->all()));
     }

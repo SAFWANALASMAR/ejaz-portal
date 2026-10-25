@@ -9,7 +9,10 @@
     $email = is_string($contact['email'] ?? null) ? $contact['email'] : null;
     $phone = is_string($contact['phone'] ?? null) ? $contact['phone'] : null;
     $address = is_string($contact['address'] ?? null) ? $contact['address'] : null;
-    $map = is_string($contact['map_url'] ?? null) && SafeUrl::isSafe($contact['map_url'], allowInternal: false) ? $contact['map_url'] : null;
+    // الرابط المدخل صراحة، وإلا المولّد من العنوان الوطني المختصر (NationalAddress)
+    $map = is_string($contact['map_url'] ?? null) && SafeUrl::isSafe($contact['map_url'], allowInternal: false)
+        ? $contact['map_url']
+        : \App\Support\NationalAddress::mapUrl(is_string($contact['short_address'] ?? null) ? $contact['short_address'] : null);
     $hasInfo = filled($email) || filled($phone) || filled($address) || $map !== null;
     // بلا بيانات تبقى البطاقة بعلامة 【ناقص】 في التطوير، ولا تظهر فارغة للزوار في الإنتاج
     $showInfo = $hasInfo || ! app()->isProduction();
@@ -53,6 +56,9 @@
                             <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
                                 {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
                                 {{ __('contact.info.map') }}
+                                @if (\App\Support\NationalAddress::normalize($contact['short_address'] ?? null))
+                                    <bdi dir="ltr" class="font-normal text-muted">{{ \App\Support\NationalAddress::normalize($contact['short_address']) }}</bdi>
+                                @endif
                                 <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                             </a>
                         </p>

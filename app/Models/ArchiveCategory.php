@@ -44,7 +44,7 @@ class ArchiveCategory extends Model
 
     public function allows(User $user): bool
     {
-        return $user->hasRole(RoleName::SuperAdmin->value) || $user->hasAnyRole($this->roles);
+        return RoleName::isOverseer($user) || $user->hasAnyRole($this->roles);
     }
 
     /**
@@ -54,7 +54,7 @@ class ArchiveCategory extends Model
      */
     public static function visibleTo(User $user): Builder
     {
-        if ($user->hasRole(RoleName::SuperAdmin->value)) {
+        if (RoleName::isOverseer($user)) {
             return self::query();
         }
 

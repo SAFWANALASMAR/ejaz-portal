@@ -41,6 +41,11 @@ Route::middleware('guest:'.config('fortify.guard'))->group(function () {
     Route::post('/forgot-password/phone/reset', [PasswordResetByPhoneController::class, 'update'])->middleware('throttle:10,1')->name('password.phone.update');
 });
 
+// Filament يسجّل مسار «صفوف الاستيراد الفاشلة» دائماً، والبوابة لا تستورد ولا جدول imports فيها: كان الربط الضمني يسأل
+// جدولاً غير موجود فيرد 500 لأي زائر. فيُعاد تسجيله هنا بالاسم والمسار نفسيهما بلا نموذج مربوط، فيرد 404 قبل أي استعلام،
+// ولا يمس ربطٌ عام معامل {import} في أي مسار آخر (مراجعة المشرف على #64)
+Route::get('/filament/imports/{import}/failed-rows/download', fn () => abort(404))->name('filament.imports.failed-rows.download');
+
 Route::get('/', HomeController::class)->name('home');
 
 // المحتوى المؤسسي
@@ -77,6 +82,7 @@ Route::get('/media', [MediaController::class, 'index'])->name('media.index');
 Route::get('/media/partners', [MediaController::class, 'partners'])->name('media.partners');
 Route::get('/media/news', [NewsController::class, 'index'])->name('media.news.index');
 Route::get('/media/news/{slug}', [NewsController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.news.show');
+Route::get('/media/announcements', [MediaController::class, 'announcements'])->name('media.announcements');
 Route::get('/media/albums', [AlbumController::class, 'index'])->name('media.albums.index');
 Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.albums.show');
 

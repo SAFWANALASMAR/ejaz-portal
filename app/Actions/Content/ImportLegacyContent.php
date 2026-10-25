@@ -229,7 +229,7 @@ class ImportLegacyContent
 
             $saved = match ($section) {
                 'documents' => $this->saveDocument->handle($actor, $existing instanceof Document ? $existing : new Document, $fields),
-                'library' => $this->saveLibraryItem->handle($actor, $existing instanceof LibraryItem ? $existing : new LibraryItem, $fields),
+                'library' => $this->saveLibraryItem->handle($actor, $existing instanceof LibraryItem ? $existing : new LibraryItem, $fields, legacyFile: true),
                 default => $this->saveContent->handle($actor, $existing ?? new $class, $fields),
             };
         } catch (ValidationException $exception) {
@@ -473,7 +473,8 @@ class ImportLegacyContent
 
         $librarySection = $section === 'library' ? LibrarySection::from((string) $values['section']) : null;
 
-        if ($librarySection?->takesVideoUrl()) {
+        // والصوتية من الموقع السابق ملفات تبقى تعمل (LibrarySection::keepsLegacyFile)
+        if ($librarySection?->takesVideoUrl() && ! $librarySection->keepsLegacyFile()) {
             throw ValidationException::withMessages(['file' => __('import.errors.video_file')]);
         }
 

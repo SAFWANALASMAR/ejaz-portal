@@ -141,7 +141,7 @@ it('takes the visits of today in Riyadh from what the command moved to the datab
 });
 
 it('shows every computed number, with its label, in exactly one group', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $this->artisan('ejaz:refresh-stats')->assertSuccessful();
 
     $keys = array_keys(PortalStats::cached());
@@ -156,10 +156,10 @@ it('shows every computed number, with its label, in exactly one group', function
     }
 });
 
-it('shows the statistics dashboard to the board, the executive director and the super admin only', function () {
+it('shows the statistics dashboard to the board, the administrators and the super admin only', function () {
     $this->artisan('ejaz:refresh-stats');
 
-    foreach ([RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::SuperAdmin] as $role) {
+    foreach ([RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::TechnicalAdmin, RoleName::SuperAdmin] as $role) {
         $this->actingAs(userWithRole($role));
 
         $dashboard = $this->get('/admin')->assertOk();
@@ -170,7 +170,7 @@ it('shows the statistics dashboard to the board, the executive director and the 
         }
     }
 
-    foreach (array_filter(RoleName::cases(), fn (RoleName $role): bool => ! in_array($role, [RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::SuperAdmin], true)) as $role) {
+    foreach (array_filter(RoleName::cases(), fn (RoleName $role): bool => ! in_array($role, [RoleName::BoardMember, RoleName::ExecutiveDirector, RoleName::TechnicalAdmin, RoleName::SuperAdmin], true)) as $role) {
         $this->actingAs(userWithRole($role));
 
         foreach (statsWidgets() as $widget) {

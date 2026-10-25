@@ -1,0 +1,32 @@
+{{-- الإعلانات: المنشور في مدة عرضه بترتيبه في اللوحة، بتصفية بنوعه (تُخزَّن نصاً لكل نوع — MediaController) --}}
+<x-page-hero :title="__('announcements.title')" :summary="__('announcements.intro')" />
+
+<section class="py-10 sm:py-14">
+    <div class="container-page">
+        <nav aria-label="{{ __('announcements.list.filter') }}">
+            <ul class="flex flex-wrap gap-2">
+                @foreach ([null, ...\App\Enums\AnnouncementKind::cases()] as $option)
+                    @php($active = $option === $kind)
+                    <li>
+                        <a href="{{ route('media.announcements', $option ? ['kind' => $option->value] : []) }}" wire:navigate @if ($active) aria-current="page" @endif
+                            @class([
+                                'inline-flex rounded-full px-5 py-2 text-sm font-semibold transition',
+                                'bg-primary text-white' => $active,
+                                'border border-line bg-white text-ink hover:border-primary hover:text-primary' => ! $active,
+                            ])>{{ $option?->getLabel() ?? __('announcements.list.all') }}</a>
+                    </li>
+                @endforeach
+            </ul>
+        </nav>
+
+        @if ($announcements->isEmpty())
+            <p class="mt-8 text-muted">{{ __('announcements.list.empty') }}</p>
+        @else
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($announcements as $announcement)
+                    <li>@include('media.announcements.card', ['announcement' => $announcement])</li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
+</section>

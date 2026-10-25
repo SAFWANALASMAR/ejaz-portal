@@ -3,13 +3,17 @@
 namespace App\Filament\Pages;
 
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Enums\RoleName;
 use App\Enums\SiteIcon;
+use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\PlainText;
 use App\Rules\SafeUrl;
 use App\Rules\StoreUrl;
 use App\Rules\VideoUrl;
+use App\Support\AccountSettings;
+use App\Support\NationalAddress;
 use App\Support\PortalStats;
 use App\Support\Retention;
 use BackedEnum;
@@ -44,6 +48,8 @@ use UnitEnum;
  */
 class SiteSettings extends Page
 {
+    use ReadableByOverseers;
+
     public const SOCIAL = ['x', 'instagram', 'youtube', 'linkedin', 'snapchat', 'tiktok', 'telegram', 'facebook', 'whatsapp'];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
@@ -53,7 +59,7 @@ class SiteSettings extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
-    public static function canAccess(): bool
+    protected static function canWrite(): bool
     {
         return auth()->user()?->can('update', Setting::class) ?? false;
     }
@@ -77,13 +83,17 @@ class SiteSettings extends Page
     {
         $this->form->fill([
             'contact' => Setting::group('contact'),
+            // افتراض المقاطع كما في BuildHomePage: مقاطع المدير التنفيذي ظاهرة، والسابقة (والإحصائيات) مخفية
             'home' => [
-                'show_shortcuts' => true,
+                'show_hero' => false,
+                'show_video' => false,
+                'show_shortcuts' => false,
                 'show_latest' => true,
-                'show_initiatives' => true,
-                'show_stats' => true,
-                'show_partners' => true,
-                'show_videos' => true,
+                'show_announcements' => true,
+                'show_initiatives' => false,
+                'show_stats' => false,
+                'show_partners' => false,
+                'show_videos' => false,
                 'show_accounts' => true,
                 ...Setting::group('home'),
             ],
@@ -95,6 +105,10 @@ class SiteSettings extends Page
                 'amounts' => array_map(fn (int $amount): array => ['amount' => $amount], array_map('intval', (array) (Setting::group('donations')['amounts'] ?? []))),
             ],
             'retention' => Setting::group('retention'),
+            'accounts' => [
+                'verification' => AccountSettings::verificationEnabled(),
+                'show_deferred_portals' => AccountSettings::showsDeferredPortals(),
+            ],
         ]);
     }
 
@@ -102,12 +116,24 @@ class SiteSettings extends Page
     {
         return $schema
             ->statePath('data')
+            ->disabled(fn (): bool => ! static::canWrite())
             ->components([
                 Tabs::make()->tabs([
                     Tab::make(__('settings.tabs.contact'))->schema([
                         TextInput::make('contact.email')->label(__('settings.contact.email'))->email()->maxLength(255),
                         TextInput::make('contact.phone')->label(__('settings.contact.phone'))->tel()->maxLength(20),
                         Textarea::make('contact.address')->label(__('settings.contact.address'))->rows(2)->maxLength(300),
+                        // يولّد رابط الخريطة ما لم يُدخل رابطها صراحة (NationalAddress)
+                        TextInput::make('contact.short_address')->label(__('settings.contact.short_address'))
+                            ->helperText(__('settings.contact.short_address_hint'))
+                            ->maxLength(12)
+                            ->dehydrateStateUsing(fn (?string $state): ?string => NationalAddress::normalize($state) ?? (filled($state) ? $state : null))
+                            ->rule(fn () => function (string $attribute, mixed $value, \Closure $fail): void {
+                                if (filled($value) && NationalAddress::normalize((string) $value) === null) {
+                                    $fail(__('settings.contact.short_address_invalid'));
+                                }
+                            })
+                            ->extraInputAttributes(['dir' => 'ltr']),
                         TextInput::make('contact.map_url')->label(__('settings.contact.map_url'))
                             ->helperText(__('settings.contact.map_url_hint'))
                             ->maxLength(1000)
@@ -155,14 +181,17 @@ class SiteSettings extends Page
                                 ->rule(new VideoUrl(youtubeOnly: true))
                                 ->columnSpanFull(),
                         ]),
-                        Section::make(__('settings.home.sections'))->columns(3)->schema([
-                            Toggle::make('home.show_shortcuts')->label(__('settings.home.show_shortcuts')),
+                        Section::make(__('settings.home.sections'))->description(__('settings.home.sections_hint'))->columns(3)->schema([
                             Toggle::make('home.show_latest')->label(__('settings.home.show_latest')),
+                            Toggle::make('home.show_announcements')->label(__('settings.home.show_announcements')),
+                            Toggle::make('home.show_accounts')->label(__('settings.home.show_accounts')),
+                            Toggle::make('home.show_hero')->label(__('settings.home.show_hero')),
+                            Toggle::make('home.show_video')->label(__('settings.home.show_video')),
+                            Toggle::make('home.show_shortcuts')->label(__('settings.home.show_shortcuts')),
                             Toggle::make('home.show_initiatives')->label(__('settings.home.show_initiatives')),
                             Toggle::make('home.show_stats')->label(__('settings.home.show_stats')),
                             Toggle::make('home.show_partners')->label(__('settings.home.show_partners')),
                             Toggle::make('home.show_videos')->label(__('settings.home.show_videos')),
-                            Toggle::make('home.show_accounts')->label(__('settings.home.show_accounts')),
                         ]),
                         Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
                             Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(5)->defaultItems(0)->schema([
@@ -215,7 +244,19 @@ class SiteSettings extends Page
                             ]),
                         ]),
                     ]),
-                    // تحذف بيانات شخصية آلياً، فللمشرف العام وحده (retention.update)، ولا تُرسل من غيره
+                    // التوثيق والبوابات المؤجلة (accounts.update: المدير التنفيذي والمسؤول التقني)، ولا تُرسل من غيرهما.
+                    // ويطّلع عليها المشرف العام
+                    Tab::make(__('settings.tabs.accounts'))
+                        ->visible(fn (): bool => (auth()->user()?->can('accounts.update') ?? false) || (auth()->user() instanceof User && RoleName::isOverseer(auth()->user())))
+                        ->schema([
+                            Section::make()->description(__('settings.accounts.hint'))->schema([
+                                Toggle::make('accounts.verification')->label(__('settings.accounts.verification'))
+                                    ->helperText(__('settings.accounts.verification_hint')),
+                                Toggle::make('accounts.show_deferred_portals')->label(__('settings.accounts.show_deferred_portals'))
+                                    ->helperText(__('settings.accounts.show_deferred_portals_hint')),
+                            ]),
+                        ]),
+                    // تحذف بيانات شخصية آلياً، فللمسؤول التقني وحده (retention.update)، ولا تُرسل من غيره
                     Tab::make(__('settings.tabs.retention'))
                         ->visible(fn (): bool => auth()->user()?->can('retention.update') ?? false)
                         ->schema([
@@ -240,18 +281,25 @@ class SiteSettings extends Page
                 ->footer([
                     Actions::make([
                         Action::make('save')->label(__('site.save'))->submit('save')->keyBindings(['mod+s']),
-                    ]),
+                    ])->visible(fn (): bool => static::canWrite()),
                 ]),
         ]);
     }
 
     public function save(UpdateSiteSettings $action): void
     {
+        $this->authorizeWrite();
+
         /** @var User $user */
         $user = auth()->user();
 
-        /** @var array{contact: array<string, mixed>, home: array<string, mixed>, store: array<string, mixed>, donations: array<string, mixed>, retention?: array<string, mixed>} $state */
+        /** @var array{contact: array<string, mixed>, home: array<string, mixed>, store: array<string, mixed>, donations: array<string, mixed>, retention?: array<string, mixed>, accounts?: array<string, mixed>} $state */
         $state = $this->form->getState();
+
+        // تبويب الحسابات يراه المشرف العام اطلاعاً، فلا يُرسل إلا ممن يملك تغييره
+        if (! $user->can('accounts.update')) {
+            unset($state['accounts']);
+        }
 
         $state['contact']['social'] = array_filter($state['contact']['social'] ?? []);
         $state['home']['stats'] = array_values($state['home']['stats'] ?? []);

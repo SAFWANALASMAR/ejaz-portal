@@ -61,7 +61,7 @@ it('refuses to rotate a confirmed two-factor secret, logs the attempt and tells 
 it('alerts the super admin once a day when wrong two-factor codes pile up on one account', function () {
     Notification::fake();
     config(['security.two_factor_alert_threshold' => 3]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $editor = userWithRole(RoleName::ContentEditor, ['email' => 'editor@example.test']);
     $this->post('/login', ['login' => 'editor@example.test', 'password' => 'password'])->assertRedirect('/two-factor-challenge');
 
@@ -119,7 +119,7 @@ it('refuses a temporary upload without a signed-in account, even with a signed l
 it('turns the alert off and the upload limit off at zero', function () {
     Notification::fake();
     config(['security.two_factor_alert_threshold' => 0, 'security.uploads_per_minute' => 0, 'security.uploads_per_hour' => 0]);
-    userWithRole(RoleName::SuperAdmin);
+    userWithRole(RoleName::TechnicalAdmin);
     userWithRole(RoleName::ContentEditor, ['email' => 'editor@example.test']);
     $this->post('/login', ['login' => 'editor@example.test', 'password' => 'password']);
 

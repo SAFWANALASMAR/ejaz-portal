@@ -32,7 +32,7 @@
 - كل المنافذ (`app` و`vite` و`pgsql` و`redis` و`mailpit`) على هذا الجهاز وحده (`127.0.0.1`)، فلا تصلها أجهزة الشبكة. ولتغيير رقم المنفذ: الرقم وحده في `.env` (`APP_PORT=8001` أو `FORWARD_DB_PORT=5433`)، بلا عنوان.
 - `redis` بكلمة مرور `REDIS_PASSWORD` من `.env`، ويولّدها `scripts/setup.sh`. وبدونها يرفض `docker compose` التشغيل.
 
-**أول مرة:** `bash scripts/setup.sh`، ثم `docker compose exec app php artisan ejaz:create-admin` لإنشاء المشرف العام، ثم الدخول وتفعيل التحقق الثنائي (شرط لدخول اللوحة).
+**أول مرة:** `bash scripts/setup.sh`، ثم `docker compose exec app php artisan ejaz:create-admin` لإنشاء المسؤول التقني (والمشرف العام بـ `--role=super_admin`، اطلاع فقط)، ثم الدخول وتفعيل التحقق الثنائي (شرط لدخول اللوحة).
 
 **يومياً:** `docker compose up -d`.
 

@@ -10,9 +10,12 @@ use Illuminate\Support\Facades\Vite;
 it('shows the official logo in the header and its white version in the footer', function () {
     $html = (string) $this->get('/')->assertOk()->getContent();
 
+    // الشعار الكامل بأعمدته ومخطوطة الاسم (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
     expect($html)
-        ->toContain('/images/brand/logo-horizontal.svg')
-        ->toContain('/images/brand/logo-horizontal-white.svg')
+        ->toContain('/images/brand/logo-mark.png')
+        ->toContain('/images/brand/logo-calligraphy.png')
+        ->toContain('/images/brand/logo-mark-white.png')
+        ->toContain('/images/brand/logo-calligraphy-white.png')
         ->toContain('alt="'.e(__('site.name')).'"');
 });
 
@@ -58,7 +61,7 @@ it('preloads only the two weights used at the top of the page, in woff2', functi
     expect($preloads->pluck('weight')->unique()->sort()->values()->all())->toBe([400, 700])
         ->and($preloads->every(fn (array $preload): bool => str_ends_with($preload['file'], '.woff2')))->toBeTrue();
 
-    $user = userWithRole(RoleName::SuperAdmin);
+    $user = userWithRole(RoleName::TechnicalAdmin);
     $html = (string) $this->actingAs($user)->get($path)->assertOk()->getContent();
     preg_match_all('#<link\b[^>]*\bas="font"[^>]*>#', $html, $links);
 

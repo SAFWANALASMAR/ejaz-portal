@@ -280,7 +280,7 @@ it('hides the sender of the account messages, and of the guest messages from its
     $other = Inquiry::factory()->create(['email' => 'other@example.com']);
     $user->forceFill(['deletion_requested_at' => now()])->save();
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
 
     $user->refresh();
 
@@ -301,7 +301,7 @@ it('deletes the text of the sender messages on anonymization, keeping what the s
     $other = Inquiry::factory()->create(['email' => 'other@example.com', ...$text]);
     $user->forceFill(['deletion_requested_at' => now()])->save();
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
 
     foreach ([$inquiry->fresh(), Inquiry::withTrashed()->find($deleted->id), $guest->fresh()] as $cleared) {
         expect($cleared)->subject->toBeNull()->message->toBeNull()->internal_note->toBeNull();
@@ -322,7 +322,7 @@ it('leaves the guest messages of an unverified email untouched, since nothing pr
 
     expect(app(ExportUserData::class)->handle($user)['inquiries'])->toBe([]);
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
 
     expect($guest->fresh()->email)->toBe('claimed@example.com');
 });

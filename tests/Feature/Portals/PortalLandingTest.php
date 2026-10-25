@@ -23,6 +23,10 @@ use Livewire\Livewire;
  * مدخل كل بوابة بعد الدخول (requirements/12 §12): من يدخل اللوحة إلى /admin، والمشترك إلى لوحته.
  * وعنصر «بوابتي» يعرض قدرات الفئة بنصوصها، وكل قدرة رابط إلى شاشتها لمن يملك فتحها.
  */
+beforeEach(function () {
+    showDeferredPortals();
+});
+
 it('sends a member to the account area after login', function () {
     $member = User::factory()->create(['email' => 'member@example.test']);
     $member->assignRole(RoleName::Member->value);
@@ -108,7 +112,8 @@ it('shows each role only its navigation', function (RoleName $role, array $visib
     }
 })->with([
     'board' => [RoleName::BoardMember, [MeetingResource::class, DocumentResource::class, AssemblyFileResource::class], [UserResource::class, ProgramResource::class]],
-    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class, MeetingResource::class], [DocumentResource::class, AssemblyFileResource::class]],
+    // والمدير التنفيذي أدمن كامل (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+    'executive director' => [RoleName::ExecutiveDirector, [UserResource::class, ProgramResource::class, CompetitionResource::class, ArchiveItemResource::class, MeetingResource::class, DocumentResource::class, AssemblyFileResource::class], []],
     'employee' => [RoleName::MarketingManager, [ArchiveItemResource::class, ProgramResource::class, FormTemplateResource::class], [UserResource::class, CompetitionResource::class, MeetingResource::class, DocumentResource::class]],
     'reviewer' => [RoleName::Reviewer, [ReviewResource::class], [UserResource::class, ProgramResource::class, ArchiveItemResource::class]],
 ]);

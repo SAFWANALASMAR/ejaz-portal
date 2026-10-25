@@ -53,7 +53,7 @@ class CreateDemoUser extends Command
             'privacy_accepted_at' => now(),
             'is_active' => true,
         ])->save();
-        $user->syncRoles([($admin ? RoleName::SuperAdmin : RoleName::Member)->value]);
+        $user->syncRoles([($admin ? RoleName::TechnicalAdmin : RoleName::Member)->value]);
 
         if ($secret !== null) {
             $user->forceFill([

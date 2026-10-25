@@ -221,7 +221,7 @@ function registerAt(int $i, array $server = [], array $cookies = [])
         'phone' => '05'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
         'password' => 'Limits-Strong-Pass-2026',
         'password_confirmation' => 'Limits-Strong-Pass-2026',
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ]);
     auth()->logout();
 
@@ -237,7 +237,7 @@ it('caps sign ups per device by its own cookie, not by the browser string many s
 
     registerAt(1, [], $device)->assertSessionHasNoErrors();
     registerAt(2, [], $device)->assertSessionHasNoErrors();
-    registerAt(3, [], $device)->assertSessionHasErrors(['email' => __('account.register.too_many')]);
+    registerAt(3, [], $device)->assertSessionHasErrors(['username' => __('account.register.too_many')]);
 
     // جهاز آخر خلف العنوان نفسه وبنص المتصفح نفسه يسجّل
     registerAt(4, [], ['ejaz_device' => str_repeat('b2', 16)])->assertSessionHasNoErrors();
@@ -248,17 +248,17 @@ it('caps sign ups per network a day, so rotating addresses in one /24 does not h
 
     registerAt(1, ['REMOTE_ADDR' => '198.51.100.10'])->assertSessionHasNoErrors();
     registerAt(2, ['REMOTE_ADDR' => '198.51.100.20'])->assertSessionHasNoErrors();
-    registerAt(3, ['REMOTE_ADDR' => '198.51.100.30'])->assertSessionHasErrors(['email' => __('account.register.too_many')]);
+    registerAt(3, ['REMOTE_ADDR' => '198.51.100.30'])->assertSessionHasErrors(['username' => __('account.register.too_many')]);
     registerAt(4, ['REMOTE_ADDR' => '203.0.113.30'])->assertSessionHasNoErrors();
 });
 
 it('pauses sign up at the portal cap and tells the super admins once', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     config(['security.registration_per_hour' => 1]);
 
     registerAt(1)->assertSessionHasNoErrors();
-    registerAt(2)->assertSessionHasErrors(['email' => __('account.register.busy')]);
-    registerAt(3)->assertSessionHasErrors(['email' => __('account.register.busy')]);
+    registerAt(2)->assertSessionHasErrors(['username' => __('account.register.busy')]);
+    registerAt(3)->assertSessionHasErrors(['username' => __('account.register.busy')]);
 
     Notification::assertSentToTimes($admin, RegistrationCapReached::class, 1);
 });
@@ -273,17 +273,24 @@ it('keeps probes of taken emails out of the portal cap, so they cannot pause sig
     foreach (range(1, 3) as $i) {
         test()->withServerVariables(['REMOTE_ADDR' => "198.51.10{$i}.7"])->withCookies(['ejaz_device' => str_repeat("c{$i}", 16)])
             ->post('/register', ['name' => 'مستفيد تجريبي', 'email' => "taken{$i}@example.test", 'phone' => "05600000{$i}0",
-                'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
+                'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'username' => uniqueUsername(), 'privacy' => '1'])
             ->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
     }
 
     registerAt(1, ['REMOTE_ADDR' => '203.0.113.40'])->assertSessionHasNoErrors();
 });
 
-it('refuses a sign up without a phone field as a validation error, not a server error', function () {
+// الجوال اختياري منذ ملاحظات المدير التنفيذي (25 أكتوبر 2026)، واسم المستخدم إلزامي: خطأ تحقق لا خطأ خادم
+it('accepts a sign up without a phone field, and refuses one without a username as a validation error, not a server error', function () {
     $this->post('/register', ['name' => 'مستفيد تجريبي', 'email' => 'nophone@example.test',
+        'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'username' => uniqueUsername(), 'privacy' => '1'])
+        ->assertRedirect()->assertSessionHasNoErrors();
+
+    auth()->logout();
+
+    $this->post('/register', ['name' => 'مستفيد آخر', 'email' => 'nouser@example.test',
         'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
-        ->assertRedirect()->assertSessionHasErrors('phone');
+        ->assertRedirect()->assertSessionHasErrors('username');
 });
 
 // ── التحدي ضد الآليات على نماذج الزائر

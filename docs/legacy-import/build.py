@@ -188,6 +188,30 @@ values = [{'icon': None, 'title': home[i][6:], 'text': paragraphs(home, after(ho
 values_image = [image_in(line) for line in home[values_i:values_end] if image_in(line)]
 assert len(goal_titles) == 5 and len(goal_images) == 5 and len(values) == 4 and values_image == ['img-2.png']
 
+# الرؤية والرسالة والأهداف والقيم من «الخطة الاستراتيجية لجمعية إعجاز 1447» حرفياً (ص8، وص11، وص9 و10)، بدل نصوص الموقع
+# السابق (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026). وصورة كل هدف من الموقع السابق بعنوانه
+def goal_key(title):
+    return title.rstrip('.').replace('ً', '').rstrip('ا')
+
+
+vision = ['ريادة تعليمية في ضوء براهين الإيمان العلمية.']
+mission = ['الإسهام في تنمية وتطوير المنظومة التعليمية والبحثية لبراهين الإيمان العلمية، عبر مبادرات نوعية، وشراكات فاعلة، وبرامج ودراسات متخصصة، وفق معايير منضبطة وموثوقة.']
+goal_image = {goal_key(title): image for title, image in zip(goal_titles, goal_images)}
+goal_titles = [
+    'تعزيز القيم والانتماء الوطني.',
+    'تجويد نواتج التعلم وتحسين موقع النظام التعليمي عالمياً.',
+    'تنمية وتطوير قُدرات الكوادر التعليمية.',
+    'تطوير منظومة الجامعات والمؤسسات التعليمية والتدريبية.',
+    'تعزيز مشاركة المُجتمع في التعليم والتعلم.',
+]
+goal_images = [goal_image[goal_key(title)] for title in goal_titles]
+values = [
+    {'icon': None, 'title': 'الإحسان والمهنية', 'text': 'نسعى إلى التمسك بأعلى معايير المهنية والقيمية.'},
+    {'icon': None, 'title': 'الابتكار', 'text': 'تبني الابتكار المؤدي إلى التميز لإيجاد بيئة جاذبة ومحفزة للإبداع.'},
+    {'icon': None, 'title': 'التمكين', 'text': 'تمكين الباحثين والكوادر العلمية والتعليمية قيمة وركيزة أساسية نعتز بها.'},
+    {'icon': None, 'title': 'التكامل', 'text': 'التشاركية والتواصل مع الأطراف ذات العلاقة والاستثمار الأمثل للإمكانات وتكامل الطاقات.'},
+]
+
 about = {
     'slug': 'about',
     'title': 'عن الجمعية',
@@ -195,14 +219,14 @@ about = {
     'summary': about_paras[0] if len(about_paras[0]) <= 300 else None,
     'blocks': [
         {'type': 'text', 'data': {'heading': 'من نحن', 'body': html(about_paras)}},
-        {'type': 'text', 'data': {'heading': 'الرســــالة', 'body': html(mission)}},
-        {'type': 'text', 'data': {'heading': 'الرؤيــــة', 'body': html(vision)}},
+        {'type': 'text', 'data': {'heading': 'الرؤية', 'body': html(vision)}},
+        {'type': 'text', 'data': {'heading': 'الرسالة', 'body': html(mission)}},
         # In the old menu only, with no link and no text
         {'type': 'text', 'data': {'heading': 'التوجه الاستراتيجي', 'body': html([missing('محتوى التوجه الاستراتيجي')])}},
-        {'type': 'cards', 'data': {'heading': 'الأهداف الاستراتيجية', 'items': [
+        {'type': 'cards', 'data': {'heading': 'أهداف الجمعية', 'items': [
             {'icon': None, 'title': t, 'text': None, 'media': media_slug[img]} for t, img in zip(goal_titles, goal_images)]}},
         {'type': 'image', 'data': {'media': media_slug[values_image[0]]}},
-        {'type': 'cards', 'data': {'heading': 'قيمنا', 'items': values}},
+        {'type': 'cards', 'data': {'heading': 'قيم الجمعية', 'items': values}},
     ],
 }
 
@@ -232,7 +256,8 @@ join_text = join[after(join, "## Let's talk.")].strip()
 join_images = [image_in(line) for line in join if image_in(line)]
 assert join_text.startswith('لطلب الانضمام') and join_images == ['Image-901.png', 'Group-61552.png']
 
-empty_text = [{'type': 'text', 'data': {'heading': None, 'body': html([missing('نص الصفحة')])}}]
+# صفحات بعناوينها وحدها حتى يُضاف محتواها من اللوحة (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026)
+empty_text = []
 pages = [
     about,
     {'slug': 'contact', 'title': 'تواصل معنا', 'summary': contact_text,

@@ -150,8 +150,8 @@ it('lets drafts be edited, a board member who did not fill it approve, and locks
         ->and($entry->approved_by)->toBe($this->board->id)
         ->and(Activity::where('event', 'form_entry_approved')->sole()->causer_id)->toBe($this->board->id)
         ->and(fn () => app(SaveFormEntry::class)->handle($this->secretary, $entry, ['answers' => ['name' => 'تغيير']]))->toThrow(AuthorizationException::class)
-        ->and(userWithRole(RoleName::SuperAdmin)->can('update', $entry))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $entry))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('update', $entry))->toBeFalse()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $entry))->toBeFalse();
 });
 
 it('refuses filling an inactive form, and filling by those without the permission', function () {

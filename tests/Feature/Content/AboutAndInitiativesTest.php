@@ -3,7 +3,6 @@
 use App\Models\BoardMember;
 use App\Models\Initiative;
 use App\Models\Page;
-use App\Models\Setting;
 use App\Support\ContentCache;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,6 +13,10 @@ function aboutPage(array $attributes = []): Page
 {
     return Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية', ...$attributes]);
 }
+
+beforeEach(function () {
+    showLegacyHomeSections();
+});
 
 it('shows the published about page with its blocks and the visible board members in order', function () {
     aboutPage([
@@ -122,7 +125,7 @@ it('shows the published initiatives on the home page unless the section is switc
 
     $this->get('/')->assertSee('قيم')->assertSee(route('initiatives.show', 'qiyam'), false)->assertSee(route('initiatives.index'), false);
 
-    Setting::put('home', ['show_initiatives' => false]);
+    showLegacyHomeSections(['show_initiatives' => false]);
 
     $this->get('/')->assertDontSee(route('initiatives.show', 'qiyam'), false);
 });

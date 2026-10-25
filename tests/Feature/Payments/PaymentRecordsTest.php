@@ -46,7 +46,7 @@ it('opens the payments screen to the board and the super admin, and keeps others
 
     $this->actingAs(userWithRole(RoleName::BoardMember))->get(PaymentResource::getUrl('index'))->assertOk();
     $this->actingAs(userWithRole(RoleName::BoardMember))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk()->assertSee($payment->receipt_number);
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk();
 
     foreach ([RoleName::ContentEditor, RoleName::Secretary, RoleName::ProgramManager, RoleName::Reviewer] as $role) {
         $this->actingAs(userWithRole($role))->get(PaymentResource::getUrl('index'))->assertForbidden();
@@ -59,7 +59,7 @@ it('opens the payments screen to the board and the super admin, and keeps others
 
 it('lets no one delete or edit a payment, not even the super admin', function () {
     $payment = Payment::factory()->paid()->create();
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect($admin->can('delete', $payment))->toBeFalse()
         ->and($admin->can('update', $payment))->toBeFalse()
@@ -75,7 +75,7 @@ it('refunds a paid payment through the gateway for the super admin with a reason
     $payment->forceFill(['gateway_reference' => $gateway->start($payment, 'http://localhost/return')->reference])->save();
     $gateway->markPaid((string) $payment->gateway_reference);
     app(SyncPaymentWithGateway::class)->handle($payment->fresh());
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Paid);
 
@@ -135,13 +135,13 @@ it('shows the donor identity only to those allowed, not to the board', function 
         ->assertSee($payment->receipt_number)
         ->assertDontSee('donor-private@example.test')
         ->assertDontSee('اسم المتبرع');
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk()
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(PaymentResource::getUrl('view', ['record' => $payment]))->assertOk()
         ->assertSee('donor-private@example.test');
 });
 
 it('keeps the payment paid without a refund reason when the gateway refuses the refund, and records the failure', function () {
     $payment = Payment::factory()->paid()->create();
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $this->mock(PaymentGateway::class, fn (MockInterface $mock) => $mock->shouldReceive('refund')->once()->andThrow(new ConnectionException('gateway down')));
 
     expect(fn () => app(RefundPayment::class)->handle($admin, $payment, 'طلب المتبرع الاسترداد خلال المدة'))->toThrow(ValidationException::class);
@@ -165,7 +165,7 @@ it('refunds from the panel after confirming the password, and hides the action f
     $this->actingAs(userWithRole(RoleName::BoardMember));
     Livewire::test(ViewPayment::class, ['record' => $payment->getRouteKey()])->assertActionHidden('refund');
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Livewire::test(ViewPayment::class, ['record' => $payment->getRouteKey()])
         ->callAction('refund', data: ['reason' => 'طلب المتبرع الاسترداد خلال المدة', 'password' => 'wrong-password'])
         ->assertHasActionErrors(['password']);
@@ -183,7 +183,7 @@ it('scrubs the donor identity from the payments of an anonymised account and kee
     $user = User::factory()->create(['deletion_requested_at' => now()]);
     $payment = Payment::factory()->paid()->for($user)->create();
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
 
     $payment->refresh();
 

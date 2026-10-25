@@ -25,6 +25,7 @@ enum ActivityEvent: string implements HasLabel
     case TwoFactorRotationRefused = 'two_factor_rotation_refused';
     case Logout = 'logout';
     case PasswordReset = 'password_reset';
+    case PasswordSetByAdmin = 'password_set_by_admin';
     case OtherSessionsEnded = 'other_sessions_ended';
     case Registered = 'registered';
     case AdminCreated = 'admin_created';

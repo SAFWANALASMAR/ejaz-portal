@@ -92,6 +92,9 @@ return [
     // HSTS يُرسل فقط على الاتصال الآمن
     'hsts_max_age' => 31536000,
 
+    // الصورة المصغرة لمقطع يوتيوب في المكتبة تُجلب من الخادم وتُحفظ محلياً، لا من متصفح الزائر (FetchYoutubeThumbnail)
+    'youtube_thumbnails' => (bool) env('YOUTUBE_THUMBNAILS', true),
+
     // مصادر خارجية مسموحة في سياسة أمان المحتوى (CSP)
     'csp' => [
         // تضمين مقاطع المكتبة والبث، من youtube-nocookie.com وحده (www.youtube.com رابط خارجي لا يُضمَّن)

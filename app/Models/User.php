@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\AccountSettings;
 use App\Support\LoginIdentifier;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -15,14 +16,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'privacy_accepted_at'])]
+#[Fillable(['name', 'username', 'email', 'phone', 'password', 'privacy_accepted_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
@@ -35,8 +38,10 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'username' => null,
         'is_active' => true,
         'password_upgrade_required_at' => null,
+        'password_set_by_admin_at' => null,
     ];
 
     /**
@@ -55,6 +60,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'anonymized_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'password_upgrade_required_at' => 'datetime',
+            'password_set_by_admin_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
@@ -78,8 +84,30 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->phone !== null && $this->phone_verified_at !== null;
     }
 
+    public function hasVerifiedEmail(): bool
+    {
+        return $this->email !== null && $this->email_verified_at !== null;
+    }
+
     /**
-     * الحساب صاحب معرّف الدخول: البريد، أو الجوال بأي صيغة.
+     * الحساب يستوفي التوثيق المطلوب للتسجيل في البرامج وتقديم الطلبات: لا شيء ما دام التوثيق مطفأً من اللوحة
+     * (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، وإلا بريد موثق أو جوال موثق.
+     */
+    public function isVerified(): bool
+    {
+        return ! AccountSettings::verificationEnabled() || $this->hasVerifiedEmail() || $this->hasVerifiedPhone();
+    }
+
+    /**
+     * ما يُعرض به الحساب في التنبيهات والسجلات: اسم المستخدم، ثم البريد، ثم الجوال.
+     */
+    public function identifier(): string
+    {
+        return $this->username ?? $this->email ?? $this->phone ?? '#'.$this->getKey();
+    }
+
+    /**
+     * الحساب صاحب معرّف الدخول: البريد، أو الجوال بأي صيغة، أو اسم المستخدم.
      */
     public static function findByLoginIdentifier(?string $identifier): ?self
     {
@@ -87,32 +115,98 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
         return match (true) {
             $login === '' => null,
-            LoginIdentifier::isEmail($login) => self::query()->where('email', $login)->first(),
-            // الرقم قد يحمله حساب غير موثق مع صاحبه الموثق، فالموثق أولاً (decisions.md — 14 أكتوبر 2026)
-            str_starts_with($login, '+966') => self::query()->where('phone', $login)
-                ->orderByRaw('phone_verified_at IS NULL')->orderBy('id')->first(),
+            LoginIdentifier::isEmail($login) => self::soleHolder('email', $login),
+            str_starts_with($login, '+966') => self::soleHolder('phone', $login),
+            LoginIdentifier::isUsername($login) => self::query()->where('username', $login)->first(),
             default => null,
         };
     }
 
-    public function sendEmailVerificationNotification(): void
+    /**
+     * صاحب البريد أو الجوال عند الدخول: الموثق أولاً، فالقيمة قد يحملها حساب غير موثق مع صاحبها (decisions.md — 14
+     * أكتوبر 2026). وبلا موثق يُقبل الحساب غير الموثق ما دام وحده، فإن اشترك فيها أكثر من حساب لم يُعرف صاحبها، فيدخل
+     * كلٌّ باسم مستخدمه (مراجعة المشرف المبكرة، 26 أكتوبر 2026).
+     */
+    private static function soleHolder(string $column, string $value): ?self
     {
-        $this->notify(new VerifyEmailNotification);
+        $holders = self::query()->where($column, $value)->orderByRaw($column.'_verified_at IS NULL')->orderBy('id')->limit(2)->get();
+        $first = $holders->first();
+
+        return match (true) {
+            $first === null => null,
+            $first->getAttribute($column.'_verified_at') !== null, $holders->count() === 1 => $first,
+            default => null,
+        };
     }
 
     /**
+     * البريد الموثق لحساب واحد (فهرس تفرد جزئي)، والحسابات غير الموثقة التي تحمله تفقده، فلا يحجز حساب غير موثق بريد
+     * صاحبه والتوثيق مطفأ (مراجعة المشرف المبكرة، 26 أكتوبر 2026). وبريد موثق في حساب آخر لا يُوثَّق ثانية.
+     */
+    public function markEmailAsVerified(): bool
+    {
+        if ($this->email === null) {
+            return false;
+        }
+
+        try {
+            return DB::transaction(function (): bool {
+                $holders = self::query()->where('email', $this->email)->whereKeyNot($this->getKey());
+
+                if ((clone $holders)->whereNotNull('email_verified_at')->exists()) {
+                    return false;
+                }
+
+                self::releaseFromUnverified('email', (string) $this->email, $this->getKey());
+
+                return $this->forceFill(['email_verified_at' => $this->freshTimestamp()])->save();
+            });
+        } catch (UniqueConstraintViolationException) {
+            // حسابان وثّقا البريد نفسه في اللحظة نفسها
+            return false;
+        }
+    }
+
+    /**
+     * يُسقط البريد أو الجوال عن الحسابات غير الموثقة التي تحمله، حين يأخذه حساب موثق (التوثيق، أو إنشاء حساب موظف).
+     */
+    public static function releaseFromUnverified(string $column, string $value, int|string|null $except = null): void
+    {
+        self::query()->where($column, $value)->whereNull($column.'_verified_at')
+            ->when($except !== null, fn ($query) => $query->whereKeyNot($except))
+            ->update([$column => null]);
+    }
+
+    /**
+     * رابط التوثيق لمن له بريد. وإرساله الآلي بعد التسجيل يتبع مفتاح التوثيق في اللوحة (SendVerificationWhenRequired)،
+     * وطلبه من صاحب الحساب يرسله دائماً.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        if ($this->email !== null) {
+            $this->notify(new VerifyEmailNotification);
+        }
+    }
+
+    /**
+     * الاستعادة بالبريد للبريد الموثق وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، فلا يستعيد حساباً من كتب بريد
+     * غيره عند التسجيل. والرد للطالب واحد في كل حال (NeutralPasswordResetLinkResponse). ومن لا بريد موثقاً له ولا جوالاً
+     * يعيد له المدير التنفيذي أو المسؤول التقني كلمة المرور من اللوحة.
+     *
      * @param  string  $token
      */
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new ResetPasswordNotification($token));
+        if ($this->hasVerifiedEmail()) {
+            $this->notify(new ResetPasswordNotification($token));
+        }
     }
 
     /**
      * البيانات الشخصية لا تُسجَّل قيمها في سجل العمليات، بل أسماء ما تغيّر منها فقط
      * (حق الحذف في نظام حماية البيانات الشخصية — docs/decisions.md).
      */
-    public const PERSONAL_FIELDS = ['name', 'email', 'phone'];
+    public const PERSONAL_FIELDS = ['name', 'username', 'email', 'phone'];
 
     protected static function booted(): void
     {

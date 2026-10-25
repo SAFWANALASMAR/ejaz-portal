@@ -13,6 +13,7 @@ use App\Support\ContentBlocks;
 use App\Support\FormEntryLayout;
 use Database\Seeders\LegacyRedirectsSeeder;
 use Database\Seeders\MenuSeeder;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +30,7 @@ beforeEach(function () {
 
     $this->dir = sys_get_temp_dir().'/archive-import-'.Str::random(8);
     $this->file = archiveImportFixture($this->dir);
-    $this->admin = userWithRole(RoleName::SuperAdmin);
+    $this->admin = userWithRole(RoleName::TechnicalAdmin);
 });
 
 afterEach(fn () => File::deleteDirectory($this->dir));
@@ -206,6 +207,8 @@ it('keeps the WordPress admin paths a plain 404', function () {
 });
 
 it('answers every internal link of the published site without a 404', function () {
+    // الزحف يطلب كل الروابط في دقيقة واحدة، فحد الطلبات (60 في الدقيقة لملفات الوثائق والمكتبة) خارج ما يُختبر هنا
+    $this->withoutMiddleware(ThrottleRequests::class);
     $this->seed(MenuSeeder::class);
     $this->seed(LegacyRedirectsSeeder::class);
     $this->artisan('import:legacy-site', ['file' => $this->file, '--actor' => $this->admin->email])->assertSuccessful();
@@ -306,13 +309,14 @@ it('keeps the missing marks in the import file only where the association has no
     $data = json_decode((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), true);
     $marks = substr_count((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), '【ناقص');
 
-    // ستة كما في README وتقرير الجاهزية: خمسة نصوص صفحات، وعنوان صوتية واحد
+    // اثنتان كما في README: نص التوجه الاستراتيجي، وعنوان صوتية واحد. وصفحات الاستفسارات والتوظيف والتطوع والتقارير
+    // بعناوينها وحدها (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
     $pages = collect($data['pages'])->filter(fn (array $page): bool => str_contains((string) json_encode($page, JSON_UNESCAPED_UNICODE), '【ناقص'))->pluck('slug')->sort()->values()->all();
     $library = collect($data['library'])->filter(fn (array $item): bool => str_contains($item['title'], '【ناقص'))->pluck('slug')->all();
     $media = collect($data['media'])->reject(fn (array $item): bool => $item['is_decorative']);
 
-    expect($marks)->toBe(6)
-        ->and($pages)->toBe(['about', 'inquiries', 'jobs', 'reports', 'volunteering'])
+    expect($marks)->toBe(2)
+        ->and($pages)->toBe(['about'])
         ->and($library)->toBe(['audio-02'])
         ->and($media)->toHaveCount(45)
         ->and($media->filter(fn (array $item): bool => blank($item['alt']) || str_contains($item['alt'], '【'))->all())->toBe([]);
