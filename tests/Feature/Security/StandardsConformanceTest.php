@@ -98,3 +98,17 @@ it('logs every access denial with the account and the route name', function () {
         && $context['user_id'] === $member->id
         && $context['route'] === 'filament.admin.resources.users.index');
 });
+
+// لا واجهة برمجية، فلا رأس CORS على أي مسار. وإعداد لارافيل الافتراضي كان يرد «*» على /api/* (اختبار الاختراق الآلي)
+it('sends no CORS header, on the old API prefix or anywhere else', function (string $method, string $path) {
+    $response = $this->call($method, $path, server: [
+        'HTTP_ORIGIN' => 'https://attacker.example',
+        'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+    ]);
+
+    expect($response->headers->has('Access-Control-Allow-Origin'))->toBeFalse();
+})->with([
+    'api GET' => ['GET', '/api/soap'],
+    'api preflight' => ['OPTIONS', '/api/users'],
+    'home' => ['GET', '/'],
+]);
