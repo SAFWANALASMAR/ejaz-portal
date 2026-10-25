@@ -3,6 +3,7 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\PasswordResetByPhoneController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
@@ -32,6 +33,13 @@ use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-reset'])
     ->name('password.email');
+
+// الاستعادة برمز الجوال (قرار صفوان، 20 أكتوبر 2026): طلب الرمز بحد الاستعادة نفسه، ثم صفحة الرمز وكلمة المرور الجديدة
+Route::middleware('guest:'.config('fortify.guard'))->group(function () {
+    Route::post('/forgot-password/phone', [PasswordResetByPhoneController::class, 'send'])->middleware('throttle:password-reset')->name('password.phone.send');
+    Route::get('/forgot-password/phone', [PasswordResetByPhoneController::class, 'edit'])->name('password.phone.reset');
+    Route::post('/forgot-password/phone/reset', [PasswordResetByPhoneController::class, 'update'])->middleware('throttle:10,1')->name('password.phone.update');
+});
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -99,6 +107,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/security', SecurityController::class)->middleware('password.confirm')->name('security');
+    Route::post('/security/other-sessions', [SecurityController::class, 'logoutOtherSessions'])->middleware('throttle:10,1')->name('security.other-sessions');
 
     Route::get('/verify-phone', [PhoneVerificationController::class, 'show'])->name('phone.verify');
     Route::post('/verify-phone', [PhoneVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('phone.verify.store');

@@ -2,18 +2,17 @@
 
 namespace App\Actions\Fortify;
 
-use Illuminate\Contracts\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use App\Support\PasswordPolicy;
 
 trait PasswordValidationRules
 {
     /**
-     * Get the validation rules used to validate passwords.
+     * قواعد كلمة المرور الجديدة ببيانات صاحبها، فلا تحوي اسمه ولا بريده ولا جواله (PasswordPolicy).
      *
-     * @return array<int, Rule|array<mixed>|string>
+     * @return list<mixed>
      */
-    protected function passwordRules(): array
+    protected function passwordRules(?string $name = null, ?string $email = null, ?string $phone = null): array
     {
-        return ['required', 'string', Password::default(), 'confirmed'];
+        return PasswordPolicy::rules($name, $email, $phone);
     }
 }

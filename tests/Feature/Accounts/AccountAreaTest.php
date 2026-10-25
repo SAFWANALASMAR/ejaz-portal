@@ -108,17 +108,17 @@ it('keeps verification when the contact details do not change', function () {
 it('changes the password only with the current one', function () {
     $this->actingAs($this->user)->put('/user/password', [
         'current_password' => 'wrong-current',
-        'password' => 'brand-new-pass-2026',
-        'password_confirmation' => 'brand-new-pass-2026',
+        'password' => 'Brand-New-Pass-2026',
+        'password_confirmation' => 'Brand-New-Pass-2026',
     ])->assertSessionHasErrorsIn('updatePassword', 'current_password');
 
     $this->actingAs($this->user)->put('/user/password', [
         'current_password' => 'password',
-        'password' => 'brand-new-pass-2026',
-        'password_confirmation' => 'brand-new-pass-2026',
+        'password' => 'Brand-New-Pass-2026',
+        'password_confirmation' => 'Brand-New-Pass-2026',
     ])->assertSessionHasNoErrors();
 
-    expect(Hash::check('brand-new-pass-2026', $this->user->fresh()->password))->toBeTrue();
+    expect(Hash::check('Brand-New-Pass-2026', $this->user->fresh()->password))->toBeTrue();
 });
 
 it('asks for the password before opening the security page', function () {

@@ -35,6 +35,7 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\ChunkedVideoUpload;
+use App\Support\PasswordPolicy;
 use App\Support\SpaLink;
 use App\Support\TeamsConnection;
 use App\Support\UploadLimits;
@@ -49,6 +50,7 @@ use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -158,8 +160,17 @@ class AppServiceProvider extends ServiceProvider
             throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
         }
 
-        // قواعد كلمة المرور في docs/security.md
-        Password::defaults(fn () => Password::min(10)->uncompromised());
+        // قواعد كلمة المرور في docs/security.md، وتعريفها في PasswordPolicy (قرار صفوان، 20 أكتوبر 2026)
+        Password::defaults(fn () => PasswordPolicy::defaults());
+
+        // Filament يسجّل مسار «صفوف الاستيراد الفاشلة» دائماً، والبوابة لا تستورد ولا جدول imports فيها: كان الربط
+        // الضمني يسأل جدولاً غير موجود فيرد 500 لأي زائر (مصفوفة الصلاحيات، 20 أكتوبر 2026). فالمسار 404 قبل أي استعلام.
+        // ومساره وحده بالاسم (مراجعة المشرف على #64): أي معامل {import} في مسار آخر يبقى بربطه المعتاد
+        Route::bind('import', function (string $value, \Illuminate\Routing\Route $route): string {
+            abort_if($route->getName() === 'filament.imports.failed-rows.download', 404);
+
+            return $value;
+        });
 
         // الروابط المطلقة (asset وroute وurl) من APP_URL لا من رأس Host في الطلب، فلا يُسمَّم
         // ما يُخزَّن من HTML (ContentCache) بنطاق آخر. ويرفض trustHosts المضيف المجهول في الإنتاج

@@ -16,6 +16,7 @@ use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\NetworkPrefix;
+use App\Support\PasswordPolicy;
 use App\Support\UploadLimits;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -86,6 +87,15 @@ class FortifyServiceProvider extends ServiceProvider
 
         if (! $user->is_active || ! Hash::check($password, $user->password)) {
             return null;
+        }
+
+        // كلمة المرور النصية متاحة هنا وحدها: إن لم تطابق السياسة الجديدة يُطالَب صاحبها بتغييرها بعد الدخول
+        // (RequirePasswordUpgrade)، فلا تُكسر الحسابات القائمة (قرار صفوان، 20 أكتوبر 2026). والمطالبة على الحساب لا في
+        // الجلسة: تبقى مع «تذكّرني» وجلساته الأخرى، ولا تنتقل إلى حساب آخر يدخل في الجلسة نفسها قبل التحقق الثنائي
+        $weak = ! PasswordPolicy::satisfiedBy($password, $user);
+
+        if ($weak !== ($user->password_upgrade_required_at !== null)) {
+            $user->forceFill(['password_upgrade_required_at' => $weak ? now() : null])->saveQuietly();
         }
 
         // لا «تذكّرني» للأدوار الإدارية: كعكة التذكّر تعيد الدخول بلا كلمة مرور ولا تحقق ثنائي بعد انتهاء

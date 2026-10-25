@@ -8,6 +8,7 @@ import './live-countdown';
 import './gallery';
 import './competition-exam';
 import './assistant';
+import './password-rules';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

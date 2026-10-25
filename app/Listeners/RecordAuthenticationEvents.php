@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Actions\Accounts\NoticeNewDeviceLogin;
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Actions\Accounts\WarnRepeatedTwoFactorFailures;
 use App\Enums\ActivityEvent;
@@ -33,9 +34,12 @@ class RecordAuthenticationEvents
             return;
         }
 
+        $loggedInBefore = $event->user->last_login_at !== null;
         $event->user->forceFill(['last_login_at' => now()])->saveQuietly();
 
         $this->log(ActivityEvent::Login, $event->user);
+
+        app(NoticeNewDeviceLogin::class)->handle($event->user, $loggedInBefore);
     }
 
     public function handleFailed(Failed $event): void

@@ -41,13 +41,13 @@ it('resets the password with a valid token only once', function () {
     $payload = [
         'token' => $token,
         'email' => 'member@example.test',
-        'password' => 'brand-new-pass-2026',
-        'password_confirmation' => 'brand-new-pass-2026',
+        'password' => 'Brand-New-Pass-2026',
+        'password_confirmation' => 'Brand-New-Pass-2026',
     ];
 
     $this->post('/reset-password', $payload)->assertRedirect('/login');
-    expect(Hash::check('brand-new-pass-2026', $user->fresh()->password))->toBeTrue();
+    expect(Hash::check('Brand-New-Pass-2026', $user->fresh()->password))->toBeTrue();
 
-    $this->post('/reset-password', [...$payload, 'password' => 'another-pass-2026', 'password_confirmation' => 'another-pass-2026'])
+    $this->post('/reset-password', [...$payload, 'password' => 'Another-Pass-2026', 'password_confirmation' => 'Another-Pass-2026'])
         ->assertSessionHasErrors('email');
 });

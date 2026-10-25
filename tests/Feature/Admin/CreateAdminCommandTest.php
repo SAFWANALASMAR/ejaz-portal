@@ -9,7 +9,7 @@ function runCreateAdmin(string $email, string $password, ?string $confirmation =
     return test()->artisan('ejaz:create-admin')
         ->expectsQuestion('الاسم الكامل', 'مشرف البوابة')
         ->expectsQuestion('البريد الإلكتروني', $email)
-        ->expectsQuestion('كلمة المرور (10 أحرف على الأقل)', $password)
+        ->expectsQuestion('كلمة المرور ('.__('account.password_rules.summary').')', $password)
         ->expectsQuestion('أعد كتابة كلمة المرور', $confirmation ?? $password);
 }
 
@@ -29,7 +29,7 @@ it('rejects a short password', function () {
 });
 
 it('rejects a mismatched confirmation', function () {
-    runCreateAdmin('admin@example.test', 'a-Strong-pass-2026', 'another-pass-2026')->assertFailed();
+    runCreateAdmin('admin@example.test', 'a-Strong-pass-2026', 'Another-Pass-2026')->assertFailed();
 
     expect(User::count())->toBe(0);
 });
