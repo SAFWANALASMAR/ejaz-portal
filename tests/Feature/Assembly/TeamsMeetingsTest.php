@@ -378,7 +378,8 @@ it('tests the saved connection with a fresh token and reports the reason', funct
     Http::assertNotSent(fn (Request $request) => $request->hasHeader('Authorization', 'Bearer stale-token'));
     Http::assertNotSent(fn (Request $request) => in_array($request->method(), ['POST', 'PATCH', 'DELETE'], true) && str_contains($request->url(), 'graph.microsoft.com'));
 
-    expect(Activity::where('event', ActivityEvent::OnlineMeetingsConnectionTested->value)->pluck('properties')->map->get('result')->all())
+    // بترتيب الإدراج صراحة، فترتيب PostgreSQL بلا ORDER BY غير مضمون (فشل متقطع في الفحص الآلي)
+    expect(Activity::where('event', ActivityEvent::OnlineMeetingsConnectionTested->value)->orderBy('id')->pluck('properties')->map->get('result')->all())
         ->toBe(['not_configured', 'ok', 'access_denied']);
 });
 
