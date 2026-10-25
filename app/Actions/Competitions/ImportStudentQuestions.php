@@ -6,6 +6,7 @@ use App\Enums\QuestionType;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use App\Support\StudentQuestionsSheet;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class ImportStudentQuestions
      */
     public function handle(User $actor, CompetitionRound $round, string $path): int
     {
-        if (! $actor->can('update', $round->competition)) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update')) {
             throw new AuthorizationException;
         }
 

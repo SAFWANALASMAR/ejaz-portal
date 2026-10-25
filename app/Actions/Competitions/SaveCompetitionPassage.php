@@ -8,6 +8,7 @@ use App\Models\CompetitionPassage;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Rules\VideoUrl;
+use App\Support\CompetitionAccess;
 use App\Support\RoundQuestions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class SaveCompetitionPassage
     {
         $competition = $round->competition;
 
-        if (! $actor->can('update', $competition) || ! $competition->student_mode || ($passage !== null && $passage->round_id !== $round->id)) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update') || ! $competition->student_mode || ($passage !== null && $passage->round_id !== $round->id)) {
             throw new AuthorizationException;
         }
 

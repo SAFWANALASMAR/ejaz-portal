@@ -5,6 +5,7 @@ namespace App\Actions\Competitions;
 use App\Models\Competition;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class SaveCompetitionRound
      */
     public function handle(User $actor, Competition $competition, ?CompetitionRound $round, array $data): CompetitionRound
     {
-        if (! $actor->can('update', $competition) || ! $competition->student_mode || $competition->trashed()) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update') || ! $competition->student_mode || $competition->trashed()) {
             throw new AuthorizationException;
         }
 
@@ -49,13 +50,22 @@ class SaveCompetitionRound
                 ? CompetitionRound::query()->whereKey($round->id)->lockForUpdate()->firstOrFail()
                 : new CompetitionRound;
 
+            $endsAt = Carbon::parse((string) $validated['ends_at']);
+
+            // بعد نشر النتائج لا تتغير النافذة: تمديدها يفتح الاختبار لطلاب تظهر درجتهم فور التسليم (مراجعة المشرف)
+            if ($round->resultsPublished() && (! Carbon::parse((string) $validated['starts_at'])->equalTo($round->starts_at) || ! $endsAt->equalTo($round->ends_at))) {
+                throw ValidationException::withMessages(['ends_at' => __('competitions.student.round_published_locked')]);
+            }
+
             if ($round->locked()) {
                 $changed = ! Carbon::parse((string) $validated['starts_at'])->equalTo($round->starts_at)
                     || (int) $validated['question_count'] !== $round->question_count
-                    || (int) $validated['duration_minutes'] !== $round->duration_minutes;
+                    || (int) $validated['duration_minutes'] !== $round->duration_minutes
+                    // ومن بدأ قُبل بشرط المرحلة حينها، فلا يتغير «للمتأهلين» بعده
+                    || (bool) ($validated['qualified_only'] ?? false) !== $round->qualified_only;
 
                 // والنهاية تُمد ولا تُقدَّم: المواعيد النهائية للمحاولات القائمة محسوبة منها، والنشر بعدها
-                if ($changed || Carbon::parse((string) $validated['ends_at'])->lt($round->ends_at)) {
+                if ($changed || $endsAt->lt($round->ends_at)) {
                     throw ValidationException::withMessages(['starts_at' => __('competitions.student.round_locked')]);
                 }
             }

@@ -6,6 +6,7 @@ use App\Enums\CompetitionFieldType;
 use App\Models\Competition;
 use App\Models\CompetitionField;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,7 @@ class SaveCompetitionField
      */
     public function handle(User $actor, Competition $competition, ?CompetitionField $field, array $data): CompetitionField
     {
-        if (! $actor->can('update', $competition) || ! $competition->student_mode || ($field !== null && $field->competition_id !== $competition->id)) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update') || ! $competition->student_mode || ($field !== null && $field->competition_id !== $competition->id)) {
             throw new AuthorizationException;
         }
 

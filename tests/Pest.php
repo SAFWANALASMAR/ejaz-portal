@@ -254,7 +254,9 @@ function studentNationalId(int $serial): string
 }
 
 /**
- * سؤال اختيار في بنك مرحلة من مسابقة الطلاب، الصحيح فيه الخيار b، أو صح وخطأ الصحيح فيه «صح».
+ * سؤال اختيار في بنك مرحلة من مسابقة الطلاب، الصحيح فيه الخيار b، أو صح وخطأ الصحيح فيه «صح». ويُضبط عدد أسئلة
+ * المرحلة على بنك الطالب الافتراضي (registeredStudent: المرحلة الثانوية)، لأن البنك بالعدد تماماً شرط البدء.
+ * والاختبار الذي يختبر البنك الناقص أو الزائد يضبط العدد بنفسه بعده.
  *
  * @param  array<string, mixed>  $attributes
  */
@@ -272,6 +274,9 @@ function studentQuestion(CompetitionRound $round, array $attributes = []): Compe
     ]);
     $question->competition_id = $round->competition_id;
     $question->save();
+
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $round->forceFill(['question_count' => $round->questions()->where(fn ($query) => $query->whereNull('category_id')->orWhere('category_id', $secondary))->count()])->save();
     RoundQuestions::forget($round->id);
 
     return $question;

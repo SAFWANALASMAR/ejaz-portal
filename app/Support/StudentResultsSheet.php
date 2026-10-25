@@ -8,6 +8,7 @@ use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Number;
 use OpenSpout\Common\Entity\Row;
@@ -23,9 +24,16 @@ final class StudentResultsSheet
 {
     /**
      * @param  Builder<CompetitionAttempt>  $query
+     *
+     * @throws AuthorizationException
      */
     public static function download(User $actor, Competition $competition, Builder $query): StreamedResponse
     {
+        // بيانات قاصرين: لمن رُبط به التصدير وحده، ولو وصل الطلب من غير الزر المخفي
+        if (! CompetitionAccess::allows($actor, 'submissions.export')) {
+            throw new AuthorizationException;
+        }
+
         $full = $actor->can('viewNationalId', $competition);
 
         activity('competitions')->performedOn($competition)->causedBy($actor)

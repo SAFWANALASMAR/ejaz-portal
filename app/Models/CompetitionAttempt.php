@@ -54,6 +54,7 @@ class CompetitionAttempt extends Model
             'auto_submitted' => 'boolean',
             'layout' => 'array',
             'answers' => 'array',
+            'question_count' => 'integer',
             'score' => 'decimal:2',
             'max_score' => 'decimal:2',
             'essay_score' => 'decimal:2',

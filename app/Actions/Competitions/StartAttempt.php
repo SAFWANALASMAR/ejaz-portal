@@ -3,6 +3,7 @@
 namespace App\Actions\Competitions;
 
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
@@ -49,8 +50,10 @@ class StartAttempt
                 CompetitionRound::query()->whereKey($round->id)->sharedLock()->firstOrFail();
 
                 $layout = AttemptLayout::build($round, (int) $submission->category_id);
+                $ids = array_merge(...array_map(fn (array $unit): array => array_column($unit['questions'], 'id'), $layout));
 
-                if ($layout === []) {
+                // بنك الفئة بعدد المرحلة تماماً، فلا يختلف عدد الأسئلة ولا الدرجة القصوى بين الطلاب (مراجعة المشرف)
+                if ($ids === [] || count($ids) !== $round->question_count) {
                     throw ValidationException::withMessages(['round' => __('competitions.student.no_questions')]);
                 }
 
@@ -63,6 +66,9 @@ class StartAttempt
                 $attempt->deadline_at = $deadline->min($round->ends_at);
                 $attempt->layout = $layout;
                 $attempt->answers = [];
+                // العدد والدرجة القصوى عند البدء، فيُتحقق من تساويهما قبل الترتيب والسحب (RunTieDraw)
+                $attempt->question_count = count($ids);
+                $attempt->max_score = (float) CompetitionQuestion::query()->whereIn('id', $ids)->sum('points');
                 $attempt->save();
 
                 return $attempt;

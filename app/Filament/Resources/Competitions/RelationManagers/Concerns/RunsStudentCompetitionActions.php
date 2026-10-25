@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Competitions\RelationManagers\Concerns;
 
 use App\Models\Competition;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Closure;
 use Filament\Notifications\Notification;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -63,8 +64,14 @@ trait RunsStudentCompetitionActions
         return $this->getOwnerRecord();
     }
 
+    /**
+     * أزرار الكتابة بالربط نفسه كالإجراءات (CompetitionAccess)، فلا تظهر للمشرف العام (اطلاع فقط).
+     */
     protected function allows(string $permission): bool
     {
-        return auth()->user()?->can($permission) ?? false;
+        /** @var User|null $user */
+        $user = auth()->user();
+
+        return CompetitionAccess::allows($user, $permission);
     }
 }

@@ -7,6 +7,7 @@ use App\Enums\AttemptStatus;
 use App\Jobs\GenerateCompetitionCertificate;
 use App\Models\Competition;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
@@ -24,7 +25,7 @@ class IssueCompetitionCertificates
      */
     public function handle(User $actor, Competition $competition): int
     {
-        if (! $actor->can('competitions.approve') || ! $competition->student_mode) {
+        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $competition->student_mode) {
             throw new AuthorizationException;
         }
 

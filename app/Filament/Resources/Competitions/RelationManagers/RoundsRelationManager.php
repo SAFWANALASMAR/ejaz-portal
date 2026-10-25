@@ -8,6 +8,7 @@ use App\Actions\Competitions\SaveCompetitionRound;
 use App\Enums\AttemptStatus;
 use App\Filament\Resources\Competitions\RelationManagers\Concerns\RunsStudentCompetitionActions;
 use App\Models\CompetitionRound;
+use App\Support\AttemptLayout;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -86,7 +87,11 @@ class RoundsRelationManager extends RelationManager
                 TextColumn::make('starts_at')->label(__('competitions.student.round_attributes.starts_at'))->dateTime('Y-m-d H:i'),
                 TextColumn::make('ends_at')->label(__('competitions.student.round_attributes.ends_at'))->dateTime('Y-m-d H:i'),
                 TextColumn::make('question_count')->label(__('competitions.student.round_attributes.question_count'))->numeric(),
-                TextColumn::make('questions_count')->label(__('competitions.student.admin.bank_size'))->numeric(),
+                TextColumn::make('questions_count')->label(__('competitions.student.admin.bank_size'))->numeric()
+                    // بنك كل فئة مفتوحة بعدد أسئلة المرحلة تماماً، وإلا لا يبدأ طلابها (AttemptLayout وStartAttempt)
+                    ->description(fn (CompetitionRound $record): string => ($short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()))) === []
+                        ? __('competitions.student.bank_ready')
+                        : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $name.' ('.$count.')')->implode('، ')])),
                 TextColumn::make('duration_minutes')->label(__('competitions.student.round_attributes.duration_minutes'))->numeric(),
                 IconColumn::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->boolean(),
                 TextColumn::make('started_count')->label(__('competitions.student.admin.started'))->numeric(),

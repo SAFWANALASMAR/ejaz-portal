@@ -7,6 +7,8 @@ use App\Filament\Exports\ServiceRequestExporter;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -42,8 +44,16 @@ final class StudentQuestionsSheet
         ];
     }
 
-    public static function download(CompetitionRound $round): StreamedResponse
+    /**
+     * @throws AuthorizationException
+     */
+    public static function download(User $actor, CompetitionRound $round): StreamedResponse
     {
+        // فيه الإجابات الصحيحة: لمن يدير المسابقات وحده، ولو وصل الطلب من غير الزر المخفي
+        if (! CompetitionAccess::allows($actor, 'competitions.update')) {
+            throw new AuthorizationException;
+        }
+
         $questions = $round->questions()->with('category')->get();
 
         return self::stream('questions-'.$round->uuid.'.xlsx', $questions->map(fn (CompetitionQuestion $question): array => self::row($question))->all());

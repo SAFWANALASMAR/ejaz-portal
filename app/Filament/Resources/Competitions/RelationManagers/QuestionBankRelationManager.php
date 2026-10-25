@@ -150,7 +150,7 @@ class QuestionBankRelationManager extends RelationManager
                     ->schema([
                         Select::make('round_id')->label(__('competitions.student.question_attributes.round_id'))->options(fn (): array => $this->roundOptions())->required(),
                     ])
-                    ->action(fn (array $data): StreamedResponse => StudentQuestionsSheet::download($this->round((int) $data['round_id']))),
+                    ->action(fn (array $data): StreamedResponse => StudentQuestionsSheet::download($this->actor(), $this->round((int) $data['round_id']))),
                 Action::make('template')
                     ->label(__('competitions.student.admin.import_template'))
                     ->icon('heroicon-o-document-arrow-down')

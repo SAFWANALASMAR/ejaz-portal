@@ -8,6 +8,7 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use App\Support\DrawSelector;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -31,21 +32,32 @@ class RunTieDraw
      */
     public function handle(User $actor, CompetitionRound $round, ?int $categoryId, int $places): array
     {
-        if (! $actor->can('competitions.draw') || ! $round->competition->student_mode) {
+        if (! CompetitionAccess::allows($actor, 'competitions.draw') || ! $round->competition->student_mode) {
             throw new AuthorizationException;
         }
 
         $existing = $this->existing($round, $categoryId);
 
+        // سحب واحد لكل مرحلة وفئة بمراكزه: إعادة الضغط بالعدد نفسه تعرضه، وبعدد آخر تُرفض ولا تُغيّره
         if ($existing !== null) {
+            if ((int) $existing->places !== $places) {
+                throw ValidationException::withMessages(['places' => __('competitions.student.draw_other_places', ['places' => (int) $existing->places])]);
+            }
+
             return [$existing, false];
         }
 
-        if (! $round->hasEnded()) {
-            throw ValidationException::withMessages(['places' => __('competitions.student.draw_before_end')]);
+        // عند إعلان الجوائز: بعد نشر نتائج المرحلة (ونشرها بعد انتهاء نافذتها)
+        if (! $round->resultsPublished()) {
+            throw ValidationException::withMessages(['places' => __('competitions.student.draw_before_publish')]);
         }
 
         $ranked = $this->ranked($round, $categoryId);
+
+        // الترتيب بالدرجة الخام لا يصح إلا والدرجة القصوى واحدة للجميع
+        if ($ranked->pluck('max')->unique()->count() > 1) {
+            throw ValidationException::withMessages(['places' => __('competitions.student.mixed_max_scores')]);
+        }
 
         if ($places < 1 || $places >= $ranked->count()) {
             throw ValidationException::withMessages(['places' => __('competitions.student.draw_places', ['max' => max(0, $ranked->count() - 1)])]);
@@ -105,7 +117,7 @@ class RunTieDraw
     /**
      * المسلِّمون بدرجتهم الكلية (الآلية والمقالي) تنازلياً، برقم تسجيلهم المرجعي.
      *
-     * @return Collection<int, array{reference: string, total: float}>
+     * @return Collection<int, array{reference: string, total: float, max: float}>
      */
     public function ranked(CompetitionRound $round, ?int $categoryId): Collection
     {
@@ -115,10 +127,11 @@ class RunTieDraw
             ->whereHas('submission', fn ($query) => $query->whereNull('deleted_at')->whereNotNull('reference')
                 ->when($categoryId !== null, fn ($query) => $query->where('category_id', $categoryId)))
             ->with('submission:id,reference')
-            ->get(['id', 'submission_id', 'score', 'essay_score'])
+            ->get(['id', 'submission_id', 'score', 'essay_score', 'max_score'])
             ->map(fn (CompetitionAttempt $attempt): array => [
                 'reference' => (string) $attempt->submission->reference,
                 'total' => round((float) $attempt->score + (float) $attempt->essay_score, 2),
+                'max' => round((float) $attempt->max_score, 2),
             ])
             ->sortByDesc('total')
             ->values();

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Competitions\DeleteStudentCompetitionItem;
 use App\Actions\Competitions\ImportStudentQuestions;
 use App\Actions\Competitions\IssueCompetitionCertificates;
 use App\Actions\Competitions\PublishRoundResults;
@@ -7,6 +8,8 @@ use App\Actions\Competitions\QualifyAttempts;
 use App\Actions\Competitions\RevealStudentIdentity;
 use App\Actions\Competitions\RunTieDraw;
 use App\Actions\Competitions\SaveCompetition;
+use App\Actions\Competitions\SaveCompetitionField;
+use App\Actions\Competitions\SaveCompetitionPassage;
 use App\Actions\Competitions\SaveCompetitionRound;
 use App\Actions\Competitions\SaveStudentQuestion;
 use App\Actions\Competitions\StartAttempt;
@@ -36,6 +39,7 @@ use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\StudentQuestionsSheet;
 use App\Support\StudentResultsSheet;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -173,7 +177,7 @@ it('adds rounds from the panel and locks their start, count and duration after t
     studentQuestion($this->round);
     app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
 
-    $data = ['name' => 'اسم جديد', 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at->copy()->addHour(), 'question_count' => 10, 'duration_minutes' => 30];
+    $data = ['name' => 'اسم جديد', 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at->copy()->addHour(), 'question_count' => $this->round->question_count, 'duration_minutes' => 30];
     $saved = app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $this->round, $data);
     expect($saved->name)->toBe('اسم جديد');
 
@@ -204,6 +208,7 @@ it('validates student questions and locks the bank after the first attempt', fun
     $onVideo = $save->handle($this->manager, $this->round, null, ['type' => 'video_choice', 'prompt' => 'عن المقطع', 'points' => 2, 'passage_id' => $video->id, 'options' => [['label' => 'أ'], ['label' => 'ب', 'is_correct' => true]]]);
     expect($onVideo->passage_id)->toBe($video->id)->and($onVideo->correct_option)->toBe('b');
 
+    $this->round->forceFill(['question_count' => $this->round->questions()->count()])->save();
     app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
 
     expect(fn () => $save->handle($this->manager, $this->round, $tf, ['type' => 'true_false', 'prompt' => 'تعديل', 'points' => 1, 'true_false' => 't']))->toThrow(ValidationException::class);
@@ -257,6 +262,7 @@ it('draws among students tied at the prize boundary, recording a draw that never
     collect([2, 3, 4])->each(fn (int $serial) => submittedWithScore($serial, 7));
     submittedWithScore(5, 3);
     $this->travel(4)->hours();
+    $this->round->forceFill(['results_published_at' => now()])->save();
 
     [$draw, $fresh] = app(RunTieDraw::class)->handle($this->manager, $this->round, null, 3);
 
@@ -281,6 +287,7 @@ it('refuses a tie draw when nobody is tied at the boundary', function () {
     submittedWithScore(2, 7);
     submittedWithScore(3, 5);
     $this->travel(4)->hours();
+    $this->round->forceFill(['results_published_at' => now()])->save();
 
     expect(fn () => app(RunTieDraw::class)->handle($this->manager, $this->round, null, 1))->toThrow(ValidationException::class)
         ->and(CompetitionDraw::query()->count())->toBe(0);
@@ -411,7 +418,7 @@ it('writes spreadsheet cells that start like formulas as plain text', function (
 it('does not let a round end move earlier once students have started', function () {
     studentQuestion($this->round);
     app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
-    $data = ['name' => $this->round->name, 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at->copy()->subHour(), 'question_count' => 10, 'duration_minutes' => 30];
+    $data = ['name' => $this->round->name, 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at->copy()->subHour(), 'question_count' => $this->round->question_count, 'duration_minutes' => 30];
 
     expect(fn () => app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $this->round, $data))->toThrow(ValidationException::class);
 });
@@ -427,6 +434,7 @@ it('keeps a tie draw out of the void action and out of the competition schedule 
     studentQuestion($this->round);
     collect([1, 2, 3])->each(fn (int $serial) => submittedWithScore($serial, 7));
     $this->travel(4)->hours();
+    $this->round->forceFill(['results_published_at' => now()])->save();
     [$draw] = app(RunTieDraw::class)->handle($this->manager, $this->round, null, 2);
 
     expect($this->competition->fresh()->scheduleLocked())->toBeFalse();
@@ -436,4 +444,100 @@ it('keeps a tie draw out of the void action and out of the competition schedule 
         ->assertActionHidden(TestAction::make('void')->table($draw));
 
     $this->artisan('ejaz:verify-draw', ['uuid' => $draw->uuid])->assertSuccessful()->expectsOutputToContain('كما كانت عند السحب');
+});
+
+it('locks the round window once results are published, and the qualified-only rule after the first attempt', function () {
+    studentQuestion($this->round);
+    app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    $data = fn (array $overrides = []): array => ['name' => $this->round->name, 'starts_at' => $this->round->starts_at, 'ends_at' => $this->round->ends_at, 'question_count' => $this->round->question_count, 'duration_minutes' => 30, ...$overrides];
+
+    expect(fn () => app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $this->round, $data(['qualified_only' => true])))->toThrow(ValidationException::class);
+
+    $this->travel(4)->hours();
+    app(PublishRoundResults::class)->handle($this->manager, $this->round);
+    $round = $this->round->fresh();
+
+    expect(fn () => app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $round, $data(['ends_at' => $round->ends_at->copy()->addDay()])))->toThrow(ValidationException::class)
+        ->and(app(SaveCompetitionRound::class)->handle($this->manager, $this->competition, $round, $data(['name' => 'اسم آخر']))->name)->toBe('اسم آخر');
+});
+
+it('refuses to publish while a student is still within time, and submits only attempts whose time is over', function () {
+    studentQuestion($this->round);
+    $late = app(StartAttempt::class)->handle(registeredStudent($this->competition, 1), $this->round);
+    $running = app(StartAttempt::class)->handle(registeredStudent($this->competition, 2), $this->round);
+    $this->travel(4)->hours();
+    // خلل مفترض: موعد محاولة بعد النهاية (لا يقع إلا بخلل)، فالنشر يرفض ولا يقطع على صاحبها
+    $running->forceFill(['deadline_at' => now()->addMinutes(10)])->save();
+
+    expect(fn () => app(PublishRoundResults::class)->handle($this->manager, $this->round))->toThrow(ValidationException::class)
+        ->and($running->fresh()->isInProgress())->toBeTrue()
+        ->and($late->fresh()->isInProgress())->toBeTrue();
+
+    $running->forceFill(['deadline_at' => now()->subMinute()])->save();
+    app(PublishRoundResults::class)->handle($this->manager, $this->round);
+
+    expect($late->fresh()->isInProgress())->toBeFalse()->and($running->fresh()->auto_submitted)->toBeTrue();
+});
+
+it('draws only after publication, with the recorded number of places, and among equal maximum scores', function () {
+    studentQuestion($this->round);
+    collect([1, 2, 3])->each(fn (int $serial) => submittedWithScore($serial, 7));
+    $this->travel(4)->hours();
+
+    expect(fn () => app(RunTieDraw::class)->handle($this->manager, $this->round, null, 2))->toThrow(ValidationException::class);
+
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    app(RunTieDraw::class)->handle($this->manager, $this->round, null, 2);
+
+    expect(fn () => app(RunTieDraw::class)->handle($this->manager, $this->round, null, 1))->toThrow(ValidationException::class)
+        ->and(CompetitionDraw::query()->count())->toBe(1);
+
+    $category = $this->competition->openCategories()->where('name', 'المرحلة الثانوية')->value('competition_categories.id');
+    CompetitionAttempt::query()->latest('id')->first()->forceFill(['max_score' => 99])->save();
+
+    expect(fn () => app(RunTieDraw::class)->handle($this->manager, $this->round, (int) $category, 2))->toThrow(ValidationException::class);
+});
+
+it('keeps the super admin read-only on every student competition write', function () {
+    $super = userWithRole(RoleName::SuperAdmin);
+    studentQuestion($this->round);
+    $attempt = submittedWithScore(1, 5);
+    $this->travel(4)->hours();
+    $roundData = ['name' => 'م', 'starts_at' => now(), 'ends_at' => now()->addDay(), 'question_count' => 1, 'duration_minutes' => 30];
+    $choice = ['type' => 'multiple_choice', 'prompt' => 'س', 'points' => 1, 'options' => [['label' => 'أ', 'is_correct' => true], ['label' => 'ب']]];
+
+    $writes = [
+        fn () => app(SaveCompetitionRound::class)->handle($super, $this->competition, null, $roundData),
+        fn () => app(SaveStudentQuestion::class)->handle($super, $this->round, null, $choice),
+        fn () => app(SaveCompetitionPassage::class)->handle($super, $this->round, null, ['kind' => 'text', 'body' => 'نص']),
+        fn () => app(SaveCompetitionField::class)->handle($super, $this->competition, null, ['label' => 'ح', 'type' => 'text']),
+        fn () => app(DeleteStudentCompetitionItem::class)->handle($super, $this->round),
+        fn () => app(PublishRoundResults::class)->handle($super, $this->round),
+        fn () => app(QualifyAttempts::class)->handle($super, $this->round, [$attempt->id]),
+        fn () => app(RunTieDraw::class)->handle($super, $this->round, null, 1),
+        fn () => app(IssueCompetitionCertificates::class)->handle($super, $this->competition),
+        fn () => StudentResultsSheet::download($super, $this->competition, $this->competition->attempts()->getQuery()),
+        fn () => StudentQuestionsSheet::download($super, $this->round),
+    ];
+
+    foreach ($writes as $write) {
+        expect($write)->toThrow(AuthorizationException::class);
+    }
+
+    $this->actingAs($super);
+    Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertActionHidden(TestAction::make('create')->table())
+        ->assertActionHidden(TestAction::make('publish')->table($this->round));
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertActionHidden(TestAction::make('export')->table())
+        ->assertActionHidden(TestAction::make('tie_draw')->table())
+        ->assertActionHidden(TestAction::make('certificates')->table());
+});
+
+it('checks the permission inside both spreadsheet downloads, whatever the button shows', function () {
+    $board = userWithRole(RoleName::BoardMember);
+
+    expect(fn () => StudentResultsSheet::download($board, $this->competition, $this->competition->attempts()->getQuery()))->toThrow(AuthorizationException::class)
+        ->and(fn () => StudentQuestionsSheet::download($board, $this->round))->toThrow(AuthorizationException::class)
+        ->and(StudentQuestionsSheet::download($this->manager, $this->round)->getStatusCode())->toBe(200);
 });

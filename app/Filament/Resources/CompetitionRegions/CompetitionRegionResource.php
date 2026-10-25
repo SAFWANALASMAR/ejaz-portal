@@ -5,6 +5,8 @@ namespace App\Filament\Resources\CompetitionRegions;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\CompetitionRegions\Pages\ManageCompetitionRegions;
 use App\Models\CompetitionRegion;
+use App\Models\User;
+use App\Support\CompetitionAccess;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -52,7 +54,7 @@ class CompetitionRegionResource extends Resource
                 TextColumn::make('name')->label(__('competitions.student.regions.name')),
                 // التفعيل من الجدول مباشرة لمن يعدّل (CompetitionRegionPolicy)
                 ToggleColumn::make('is_active')->label(__('competitions.student.regions.is_active'))
-                    ->disabled(fn (): bool => ! (auth()->user()?->can('competitions.update') ?? false)),
+                    ->disabled(fn (): bool => ! CompetitionAccess::allows(auth()->user() instanceof User ? auth()->user() : null, 'competitions.update')),
             ])
             ->recordActions([
                 EditAction::make(),

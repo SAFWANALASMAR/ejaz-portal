@@ -8,6 +8,7 @@ use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use App\Support\RoundQuestions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class SaveStudentQuestion
     {
         $competition = $round->competition;
 
-        if (! $actor->can('update', $competition) || ! $competition->student_mode || ($question !== null && $question->round_id !== $round->id)) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update') || ! $competition->student_mode || ($question !== null && $question->round_id !== $round->id)) {
             throw new AuthorizationException;
         }
 

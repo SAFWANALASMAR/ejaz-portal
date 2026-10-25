@@ -7,6 +7,7 @@ use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use App\Support\RoundQuestions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ class DeleteStudentCompetitionItem
             ? $item->competition
             : $item->round->competition;
 
-        if (! $actor->can('update', $competition) || ! $competition->student_mode) {
+        if (! CompetitionAccess::allows($actor, 'competitions.update') || ! $competition->student_mode) {
             throw new AuthorizationException;
         }
 

@@ -7,6 +7,7 @@ use App\Enums\AttemptStatus;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -26,7 +27,7 @@ class PublishRoundResults
      */
     public function handle(User $actor, CompetitionRound $round): CompetitionRound
     {
-        if (! $actor->can('competitions.approve') || ! $round->competition->student_mode) {
+        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $round->competition->student_mode) {
             throw new AuthorizationException;
         }
 
@@ -34,8 +35,16 @@ class PublishRoundResults
             throw ValidationException::withMessages(['round' => __('competitions.student.publish_before_end')]);
         }
 
-        // ما بقي جارياً بعد النافذة انتهى وقته حتماً (الموعد النهائي لا يتجاوز نهايتها)
-        $round->attempts()->where('status', AttemptStatus::InProgress)->lazyById()->each(
+        // لا نشر ومحاولة جارية في وقتها: لا يُقطع على طالب بقي له وقت (مراجعة المشرف). والموعد لا يتجاوز النهاية
+        // عند البدء، فلا يقع هذا إلا بخلل، ويُرفض صراحة
+        $cutoff = now()->subSeconds((int) config('competitions.student.grace_seconds'));
+
+        if ($round->attempts()->where('status', AttemptStatus::InProgress)->where('deadline_at', '>=', $cutoff)->exists()) {
+            throw ValidationException::withMessages(['round' => __('competitions.student.publish_running')]);
+        }
+
+        // وما بقي جارياً وقد انتهى وقته يُسلَّم بما حُفظ قبل النشر
+        $round->attempts()->where('status', AttemptStatus::InProgress)->where('deadline_at', '<', $cutoff)->lazyById()->each(
             fn (CompetitionAttempt $attempt) => $this->submit->handle(null, $attempt, auto: true),
         );
 

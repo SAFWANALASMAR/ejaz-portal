@@ -7,6 +7,7 @@ use App\Enums\AttemptStatus;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +26,7 @@ class QualifyAttempts
      */
     public function handle(User $actor, CompetitionRound $round, array $attemptIds, bool $qualified = true): int
     {
-        if (! $actor->can('competitions.approve') || ! $round->competition->student_mode) {
+        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $round->competition->student_mode) {
             throw new AuthorizationException;
         }
 

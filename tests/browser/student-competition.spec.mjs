@@ -193,7 +193,7 @@ test.describe('student competition: the director journey in the panel', () => {
             await page.getByRole('tab', { name: tab }).click();
             await page.waitForLoadState('networkidle');
             // محتوى التبويب المختار بعنوانه قبل الفحص واللقطة
-            await expect(page.locator('.fi-resource-relation-manager').getByRole('heading', { name: tab }).first()).toBeVisible();
+            await expect(page.getByRole('tabpanel', { name: new RegExp(`^${tab}`) })).toBeVisible();
             await inspect(page, testInfo, step, errors);
 
             if (tab === 'المسجلون') {

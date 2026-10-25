@@ -238,7 +238,7 @@ class SaveCompetition
             'work_types.*' => ['distinct', Rule::enum(WorkType::class)],
             'student_mode' => ['boolean'],
             // اسم عشوائي في مجلد القوالب وحده، فلا يشير المسار إلى ملف خاص آخر (../)
-            'certificate_background' => ['nullable', 'string', 'max:255', 'regex:#^'.self::CERTIFICATE_DIRECTORY.'/[A-Za-z0-9]+\.(jpe?g|png)$#'],
+            'certificate_background' => ['nullable', 'string', 'max:255', 'regex:#^'.self::CERTIFICATE_DIRECTORY.'/[A-Za-z0-9_-]+\.(jpe?g|png)$#'],
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
 

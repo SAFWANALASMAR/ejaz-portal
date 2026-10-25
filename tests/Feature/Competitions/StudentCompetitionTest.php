@@ -15,6 +15,7 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\AttemptLayout;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -200,17 +201,34 @@ it('builds a random order per student, keeping passage questions together under 
     expect($orders->unique()->count())->toBeGreaterThan(1);
 });
 
-it('takes only the round question count from a larger bank, and only the student category and shared questions', function () {
+it('asks every student of a category the whole bank of their category and the shared questions, recording count and maximum', function () {
     $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->firstOrFail();
     collect(range(1, 12))->each(fn () => studentQuestion($this->round));
     $other = studentQuestion($this->round, ['category_id' => $middle->id]);
-    $own = studentQuestion($this->round, ['category_id' => $this->secondary->id]);
-    $this->round->forceFill(['question_count' => 13])->save();
+    $own = studentQuestion($this->round, ['category_id' => $this->secondary->id, 'points' => 3]);
 
-    $ids = startedAttempt(registeredStudent($this->competition))->questionIds();
+    $attempt = startedAttempt(registeredStudent($this->competition));
 
-    expect($ids)->toHaveCount(13)->not->toContain($other->id);
+    expect($this->round->question_count)->toBe(13)
+        ->and($attempt->questionIds())->toHaveCount(13)->toContain($own->id)->not->toContain($other->id)
+        ->and($attempt->question_count)->toBe(13)
+        ->and((float) $attempt->max_score)->toBe(15.0);
 });
+
+it('refuses to start from a bank that does not match the round question count, so no two students get different counts', function (int $count) {
+    $passage = new CompetitionPassage(['round_id' => $this->round->id, 'kind' => PassageKind::Text, 'body' => 'فقرة تجريبية']);
+    $passage->competition_id = $this->competition->id;
+    $passage->save();
+    collect(range(1, 4))->each(fn () => studentQuestion($this->round, ['type' => QuestionType::PassageChoice, 'passage_id' => $passage->id]));
+    collect(range(1, 3))->each(fn () => studentQuestion($this->round));
+    $this->round->forceFill(['question_count' => $count])->save();
+    $student = registeredStudent($this->competition);
+
+    $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/start')->assertSessionHasErrors('round');
+
+    expect(CompetitionAttempt::query()->count())->toBe(0)
+        ->and(AttemptLayout::shortfalls($this->round->fresh()))->toBe(['المرحلة المتوسطة' => 7, 'المرحلة الثانوية' => 7, 'المرحلة الجامعية' => 7, 'المهتمون' => 7]);
+})->with(['bank shorter than the count' => 10, 'bank longer than the count' => 5]);
 
 it('shows a visible timer, never the correct answer or option keys, and saves answers by opaque tokens', function () {
     $question = studentQuestion($this->round, ['prompt' => 'سؤال الصفحة']);
