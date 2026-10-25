@@ -35,35 +35,38 @@ class StartAttempt
             return $existing;
         }
 
-        if (! $competition->is_published || $competition->trashed() || ! $round->isRunning()) {
-            throw new AuthorizationException(__('competitions.student.round_closed'));
-        }
-
-        if ($round->qualified_only && ! $this->qualified($round, $submission)) {
-            throw new AuthorizationException(__('competitions.student.not_qualified'));
-        }
-
         try {
-            return DB::transaction(function () use ($user, $round, $submission): CompetitionAttempt {
-                // قفل مشترك على المرحلة: تعديل البنك يقفلها قفلاً حصرياً ثم يفحص أول محاولة، فإما ينتظر هذا
-                // البدء تعديلاً جارياً حتى يُعتمد (ويُمسح البنك المخزن)، وإما يجد التعديلُ المحاولةَ فيُرفض
-                CompetitionRound::query()->whereKey($round->id)->sharedLock()->firstOrFail();
+            return DB::transaction(function () use ($user, $round, $competition, $submission): CompetitionAttempt {
+                // قفل مشترك على المرحلة، والفحوص كلها على النسخة المقفولة (مراجعة المشرف): تعديل البنك أو النافذة
+                // يقفلها قفلاً حصرياً ثم يفحص أول محاولة، فإما ينتظر هذا البدء التعديل حتى يُعتمد، وإما يجد التعديلُ
+                // المحاولةَ فيُرفض
+                $locked = CompetitionRound::query()->whereKey($round->id)->sharedLock()->firstOrFail();
+                $locked->setRelation('competition', $competition);
 
-                $layout = AttemptLayout::build($round, (int) $submission->category_id);
-                $ids = array_merge(...array_map(fn (array $unit): array => array_column($unit['questions'], 'id'), $layout));
+                // ولا بدء في مرحلة نُشرت نتائجها: تظهر درجة من يسلّم فيها فوراً
+                if (! $competition->is_published || $competition->trashed() || ! $locked->isRunning() || $locked->resultsPublished()) {
+                    throw new AuthorizationException(__('competitions.student.round_closed'));
+                }
 
-                // بنك الفئة بعدد المرحلة تماماً، فلا يختلف عدد الأسئلة ولا الدرجة القصوى بين الطلاب (مراجعة المشرف)
-                if ($ids === [] || count($ids) !== $round->question_count) {
+                if ($locked->qualified_only && ! $this->qualified($locked, $submission)) {
+                    throw new AuthorizationException(__('competitions.student.not_qualified'));
+                }
+
+                $layout = AttemptLayout::build($locked, (int) $submission->category_id);
+                $ids = array_merge([], ...array_map(fn (array $unit): array => array_column($unit['questions'], 'id'), $layout));
+
+                // لكل طالب من الفئة العدد نفسه تماماً، وبنكها الذي لا يكوّنه يرفض البدء (AttemptLayout::shortfall)
+                if ($ids === [] || count($ids) !== $locked->question_count || AttemptLayout::shortfall($locked, (int) $submission->category_id) !== null) {
                     throw ValidationException::withMessages(['round' => __('competitions.student.no_questions')]);
                 }
 
-                $deadline = now()->addMinutes($round->duration_minutes);
+                $deadline = now()->addMinutes($locked->duration_minutes);
                 $attempt = new CompetitionAttempt;
-                $attempt->round_id = $round->id;
+                $attempt->round_id = $locked->id;
                 $attempt->submission_id = $submission->id;
                 $attempt->user_id = $user->id;
                 $attempt->started_at = now();
-                $attempt->deadline_at = $deadline->min($round->ends_at);
+                $attempt->deadline_at = $deadline->min($locked->ends_at);
                 $attempt->layout = $layout;
                 $attempt->answers = [];
                 // العدد والدرجة القصوى عند البدء، فيُتحقق من تساويهما قبل الترتيب والسحب (RunTieDraw)

@@ -57,9 +57,10 @@ return [
         'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],
         // المشاركات منفصلة لأن فيها بيانات المتقدمين الشخصية
         'submissions' => ['view', 'assign', 'export', 'delete'],
-        // رقم هوية الطالب وجوال ولي أمره كاملين في مسابقة الطلاب: صلاحية مستقلة للمدير التنفيذي (والمسؤول التقني)،
-        // ومعهما منشئ المسابقة. وتُفحص بالربط نفسه لا بـ Gate::after، فلا ينالها المشرف العام ضمناً (CompetitionPolicy)
-        'competition' => ['view_national_id'],
+        // مسابقة الطلاب (plans/student-competition.md): رقم الهوية كاملاً، وإدارة النتائج (النشر والسحب والتأهيل والشهادات
+        // والتصدير)، وتصحيح التسجيلات. للمدير التنفيذي (والمسؤول التقني)، والأوليان لمنشئ المسابقة أيضاً،
+        // ولا لمسؤول البرامج. وتُفحص بالربط نفسه (CompetitionAccess) لا بـ Gate::after، فلا ينالها المشرف العام ضمناً
+        'competition' => ['view_national_id', 'manage_results', 'correct_registrations'],
         // التحكيم: السياسة تحصره في المسند إلى المحكّم نفسه
         'reviews' => ['view', 'update'],
 
@@ -146,7 +147,7 @@ return [
             'job_files.*',
             'users.view', 'users.create', 'users.update',
             'program_types.*', 'programs.*',
-            'competitions.*', 'submissions.*', 'competition.view_national_id',
+            'competitions.*', 'submissions.*', 'competition.*',
             'archive.*',
             'stats.view', 'surveys.view',
             // view_all: «إدارة الموظفين»، فيطّلع على ما عبّأه الموظفون كما يطّلع على كل ملفات الوظائف

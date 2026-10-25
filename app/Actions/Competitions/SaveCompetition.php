@@ -10,10 +10,12 @@ use App\Models\Competition;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionMedia;
 use App\Support\ExamQuestions;
 use App\Support\ImageSanitizer;
+use App\Support\SchoolNetworkLimits;
 use App\Support\VideoProbe;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -143,6 +145,10 @@ class SaveCompetition
                 $competition->openCategories()->sync(array_map('intval', $openCategories));
             }
 
+            if ($competition->student_mode && $competition->rounds()->doesntExist()) {
+                $this->createDefaultRounds($competition);
+            }
+
             if ($criteria !== null) {
                 $this->syncCriteria($competition, $criteria);
             }
@@ -168,6 +174,7 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
+        SchoolNetworkLimits::forget();
 
         // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص
         if (filled($backgroundBefore) && $backgroundBefore !== $competition->certificate_background) {
@@ -175,6 +182,28 @@ class SaveCompetition
         }
 
         return $competition->refresh();
+    }
+
+    /**
+     * مراحل مسابقة الطلاب الأربع (قرار المدير التنفيذي) عند إنشائها، بالعدد والمدة الافتراضيين، ونوافذ مبدئية متتالية
+     * أسبوعاً بعد نهاية التسجيل يعدّلها المدير من تبويب «المراحل» (وتُحذف وتُضاف هناك).
+     */
+    private function createDefaultRounds(Competition $competition): void
+    {
+        for ($number = 1; $number <= (int) config('competitions.student.default_rounds'); $number++) {
+            $starts = $competition->closes_at->copy()->addWeeks($number - 1);
+
+            $round = new CompetitionRound([
+                'name' => __('competitions.student.admin.round_default', ['number' => __('competitions.student.ordinals.'.$number)]),
+                'sort_order' => $number,
+                'starts_at' => $starts,
+                'ends_at' => $starts->copy()->addDay(),
+                'question_count' => (int) config('competitions.student.default_questions'),
+                'duration_minutes' => (int) config('competitions.student.default_minutes'),
+            ]);
+            $round->competition_id = $competition->id;
+            $round->save();
+        }
     }
 
     /**

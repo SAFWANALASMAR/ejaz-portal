@@ -3,6 +3,7 @@
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
+use App\Contracts\BotChallenge;
 use App\Enums\AttemptStatus;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
@@ -15,6 +16,7 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Services\BotChallenge\FakeBotChallenge;
 use App\Support\AttemptLayout;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -215,20 +217,77 @@ it('asks every student of a category the whole bank of their category and the sh
         ->and((float) $attempt->max_score)->toBe(15.0);
 });
 
-it('refuses to start from a bank that does not match the round question count, so no two students get different counts', function (int $count) {
+it('draws from a larger bank exactly the round count for every student, keeping a passage with all its questions', function () {
     $passage = new CompetitionPassage(['round_id' => $this->round->id, 'kind' => PassageKind::Text, 'body' => 'فقرة تجريبية']);
     $passage->competition_id = $this->competition->id;
     $passage->save();
-    collect(range(1, 4))->each(fn () => studentQuestion($this->round, ['type' => QuestionType::PassageChoice, 'passage_id' => $passage->id]));
+    $grouped = collect(range(1, 4))->map(fn () => studentQuestion($this->round, ['type' => QuestionType::PassageChoice, 'passage_id' => $passage->id])->id);
     collect(range(1, 3))->each(fn () => studentQuestion($this->round));
+    // البنك سبعة أسئلة (نص بأربعة وثلاثة منفردة) والعدد خمسة: نص وسؤال، أو لا يكتمل بالمنفردة وحدها
+    $this->round->forceFill(['question_count' => 5])->save();
+
+    expect(AttemptLayout::shortfalls($this->round->fresh()))->toBe([]);
+
+    foreach (range(1, 6) as $serial) {
+        $ids = collect(startedAttempt(registeredStudent($this->competition, $serial))->questionIds());
+
+        expect($ids)->toHaveCount(5)
+            ->and($ids->intersect($grouped)->count())->toBeIn([0, 4]);
+    }
+});
+
+it('refuses to start only when the bank cannot make the round count, naming the category and the possible count', function (int $count, int $possible) {
+    foreach (range(1, 2) as $index) {
+        $passage = new CompetitionPassage(['round_id' => $this->round->id, 'kind' => PassageKind::Text, 'body' => 'فقرة '.$index]);
+        $passage->competition_id = $this->competition->id;
+        $passage->save();
+        collect(range(1, 4))->each(fn () => studentQuestion($this->round, ['type' => QuestionType::PassageChoice, 'passage_id' => $passage->id]));
+    }
     $this->round->forceFill(['question_count' => $count])->save();
     $student = registeredStudent($this->competition);
 
     $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/start')->assertSessionHasErrors('round');
 
     expect(CompetitionAttempt::query()->count())->toBe(0)
-        ->and(AttemptLayout::shortfalls($this->round->fresh()))->toBe(['المرحلة المتوسطة' => 7, 'المرحلة الثانوية' => 7, 'المرحلة الجامعية' => 7, 'المهتمون' => 7]);
-})->with(['bank shorter than the count' => 10, 'bank longer than the count' => 5]);
+        ->and(AttemptLayout::shortfalls($this->round->fresh()))->toHaveKey('المرحلة الثانوية', $possible);
+})->with(['bank shorter than the count' => [10, 8], 'two passages of four cannot make five' => [5, 4]]);
+
+it('refuses a larger bank whose questions carry different points, so the maximum stays the same for everyone', function () {
+    collect(range(1, 3))->each(fn () => studentQuestion($this->round));
+    studentQuestion($this->round, ['points' => 3]);
+    $this->round->forceFill(['question_count' => 2])->save();
+
+    $this->actingAs(registeredStudent($this->competition))->post('/competitions/students/rounds/'.$this->round->uuid.'/start')->assertSessionHasErrors('round');
+
+    expect(AttemptLayout::shortfalls($this->round->fresh()))->toHaveKey('المرحلة الثانوية', -1);
+});
+
+it('refuses to start in a round whose results are published, even inside its window', function () {
+    studentQuestion($this->round);
+    $this->round->forceFill(['results_published_at' => now()])->save();
+
+    $this->actingAs(registeredStudent($this->competition))->post('/competitions/students/rounds/'.$this->round->uuid.'/start')
+        ->assertSessionHas('error', __('competitions.student.round_closed'));
+
+    expect(CompetitionAttempt::query()->count())->toBe(0);
+});
+
+it('asks for the anti-bot challenge on the competition registration form, even for a signed-in student', function () {
+    app()->instance(BotChallenge::class, new FakeBotChallenge(passes: false));
+
+    $this->actingAs(User::factory()->create())->post('/competitions/students/register', studentForm())->assertSessionHasErrors('bot');
+
+    expect(CompetitionSubmission::query()->count())->toBe(0);
+});
+
+it('shows the pledge and the exam instructions with a visible sample tag until the association approves them', function () {
+    studentQuestion($this->round);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/competitions/students/register')->assertSee(__('competitions.student.pledge'))->assertSee(__('site.sample'));
+    $this->post('/competitions/students/register', studentForm());
+    $this->get('/competitions/students/rounds/'.$this->round->uuid)->assertSee(__('competitions.student.instructions_heading'))->assertSee(__('site.sample'));
+});
 
 it('shows a visible timer, never the correct answer or option keys, and saves answers by opaque tokens', function () {
     $question = studentQuestion($this->round, ['prompt' => 'سؤال الصفحة']);

@@ -129,6 +129,8 @@ class SaveStudentQuestion
                 'correct_option' => $correct,
             ])->save();
 
+            RoundQuestions::forget($round->id);
+
             return $question;
         });
 

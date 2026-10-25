@@ -6,10 +6,12 @@ use App\Actions\Competitions\ApproveDrawVoid;
 use App\Actions\Competitions\RejectDrawVoid;
 use App\Actions\Competitions\RunDraw;
 use App\Actions\Competitions\VoidDraw;
+use App\Actions\Competitions\VoidTieDraw;
 use App\Models\Competition;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionDrawVoidRequest;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
@@ -141,6 +143,28 @@ class DrawsRelationManager extends RelationManager
                             Notification::make()->success()->title($result instanceof CompetitionDrawVoidRequest
                                 ? __('competitions.draws.void_requested')
                                 : __('competitions.draws.voided'))->send();
+                        } catch (ValidationException $exception) {
+                            Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
+                        }
+                    }),
+                // سحب المتساوين في مرحلة: يلغيه من يدير النتائج بسبب مسجّل، مرة لكل مرحلة وفئة (VoidTieDraw)
+                Action::make('void_tie')
+                    ->label(__('competitions.draws.void'))
+                    ->icon('heroicon-o-no-symbol')
+                    ->color('danger')
+                    ->visible(fn (CompetitionDraw $record): bool => $record->round_id !== null && $record->void === null
+                        && CompetitionAccess::managesResults(auth()->user() instanceof User ? auth()->user() : null, $this->competition()))
+                    ->modalDescription(__('competitions.student.tie_void_confirm'))
+                    ->schema([
+                        Textarea::make('reason')->label(__('competitions.draws.void_reason'))->required()->minLength(10)->maxLength(500),
+                    ])
+                    ->action(function (CompetitionDraw $record, array $data): void {
+                        /** @var User $user */
+                        $user = auth()->user();
+
+                        try {
+                            app(VoidTieDraw::class)->handle($user, $record, (string) $data['reason']);
+                            Notification::make()->success()->title(__('competitions.draws.voided'))->send();
                         } catch (ValidationException $exception) {
                             Notification::make()->danger()->title(collect($exception->errors())->flatten()->first())->send();
                         }

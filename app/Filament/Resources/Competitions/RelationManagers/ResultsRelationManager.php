@@ -92,13 +92,13 @@ class ResultsRelationManager extends RelationManager
                 Action::make('export')
                     ->label(__('competitions.student.admin.export_results'))
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->visible(fn (): bool => $this->allows('submissions.export'))
+                    ->visible(fn (): bool => $this->managesResults())
                     ->action(fn (): StreamedResponse => StudentResultsSheet::download($this->actor(), $this->competition(), $this->getFilteredSortedTableQuery())),
                 Action::make('tie_draw')
                     ->label(__('competitions.student.admin.tie_draw'))
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
-                    ->visible(fn (): bool => $this->allows('competitions.draw'))
+                    ->visible(fn (): bool => $this->managesResults())
                     ->modalDescription(__('competitions.student.admin.tie_draw_hint'))
                     ->schema([
                         Select::make('round_id')->label(__('competitions.student.question_attributes.round_id'))->options(fn (): array => $this->roundOptions())->required(),
@@ -126,7 +126,7 @@ class ResultsRelationManager extends RelationManager
                     ->icon('heroicon-o-academic-cap')
                     ->requiresConfirmation()
                     ->modalDescription(__('competitions.student.admin.issue_certificates_confirm'))
-                    ->visible(fn (): bool => $this->allows('competitions.approve'))
+                    ->visible(fn (): bool => $this->managesResults())
                     ->action(fn () => $this->attempt(function (): void {
                         $count = app(IssueCompetitionCertificates::class)->handle($this->actor(), $this->competition());
                         Notification::make()->success()->title(__('competitions.student.admin.certificates_queued', ['count' => $count]))->send();
@@ -136,14 +136,14 @@ class ResultsRelationManager extends RelationManager
                 BulkAction::make('qualify')
                     ->label(__('competitions.student.admin.qualify'))
                     ->icon('heroicon-o-arrow-trending-up')
-                    ->visible(fn (): bool => $this->allows('competitions.approve'))
+                    ->visible(fn (): bool => $this->managesResults())
                     ->requiresConfirmation()
                     ->action(fn (Collection $records) => $this->qualify($records, true)),
                 BulkAction::make('unqualify')
                     ->label(__('competitions.student.admin.unqualify'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
-                    ->visible(fn (): bool => $this->allows('competitions.approve'))
+                    ->visible(fn (): bool => $this->managesResults())
                     ->requiresConfirmation()
                     ->action(fn (Collection $records) => $this->qualify($records, false)),
             ]);

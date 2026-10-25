@@ -120,7 +120,6 @@ return new class extends Migration
             // الوحدات بترتيب الطالب: [{passage: id|null, questions: [{id, options: [مفاتيح]}]}]
             $table->jsonb('layout');
             $table->jsonb('answers')->nullable();
-            $table->unsignedSmallInteger('question_count')->default(0);
             $table->decimal('score', 8, 2)->nullable();
             $table->decimal('max_score', 8, 2)->nullable();
             $table->decimal('essay_score', 8, 2)->nullable();
@@ -132,7 +131,6 @@ return new class extends Migration
             $table->index(['round_id', 'status']);
             $table->index(['status', 'deadline_at']);
             $table->index('user_id');
-            $table->index('submission_id');
         });
 
         Schema::table('competition_draws', function (Blueprint $table) {

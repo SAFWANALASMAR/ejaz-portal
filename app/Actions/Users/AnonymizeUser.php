@@ -94,8 +94,8 @@ class AnonymizeUser
 
             // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
             // المعاملة فلا يضيع ملف إن تراجعت
-            $certificates = CompetitionSubmission::query()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();
-            CompetitionSubmission::query()->where('user_id', $user->id)->update(['certificate_path' => null, 'certificate_issued_at' => null]);
+            $certificates = CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();
+            CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->update(['certificate_path' => null, 'certificate_issued_at' => null]);
             DB::afterCommit(fn () => Storage::disk(GenerateCompetitionCertificate::disk())->delete($certificates));
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره

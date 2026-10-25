@@ -52,21 +52,27 @@ class RoundsRelationManager extends RelationManager
 
         return $schema->columns(2)->components([
             TextInput::make('name')->label(__('competitions.student.round_attributes.name'))->required()->maxLength(100)
-                ->default(fn (): string => __('competitions.student.admin.round_default', ['number' => $this->competition()->rounds()->count() + 1])),
+                ->default(function (): string {
+                    $number = $this->competition()->rounds()->count() + 1;
+
+                    return __('competitions.student.admin.round_default', ['number' => __('competitions.student.ordinals')[$number] ?? $number]);
+                }),
             TextInput::make('sort_order')->label(__('competitions.student.round_attributes.sort_order'))->integer()->minValue(0)->maxValue(1000)
                 ->default(fn (): int => (int) $this->competition()->rounds()->max('sort_order') + 1),
             DateTimePicker::make('starts_at')->label(__('competitions.student.round_attributes.starts_at'))->seconds(false)->required()
                 ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
             DateTimePicker::make('ends_at')->label(__('competitions.student.round_attributes.ends_at'))->seconds(false)->required()->after('starts_at'),
             TextInput::make('question_count')->label(__('competitions.student.round_attributes.question_count'))->integer()->required()
-                ->minValue(1)->maxValue((int) config('competitions.student.max_questions'))
-                ->helperText(__('competitions.student.admin.question_count_hint'))
+                ->minValue((int) config('competitions.student.min_questions'))->maxValue((int) config('competitions.student.max_questions'))
+                ->default((int) config('competitions.student.default_questions'))
+                ->helperText(__('competitions.student.admin.question_count_hint', ['min' => config('competitions.student.min_questions'), 'max' => config('competitions.student.max_questions')]))
                 ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
             TextInput::make('duration_minutes')->label(__('competitions.student.round_attributes.duration_minutes'))->integer()->required()
-                ->minValue($min)->maxValue($max)
-                ->helperText(__('competitions.student.admin.duration_hint'))
+                ->minValue($min)->maxValue($max)->default((int) config('competitions.student.default_minutes'))
+                ->helperText(__('competitions.student.admin.duration_hint', ['min' => $min, 'max' => $max]))
                 ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
-            Toggle::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->helperText(__('competitions.student.admin.qualified_only_hint'))->columnSpanFull(),
+            Toggle::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->helperText(__('competitions.student.admin.qualified_only_hint'))->columnSpanFull()
+                ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
         ]);
     }
 
@@ -76,12 +82,15 @@ class RoundsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->withCount([
                     'attempts as started_count',
+                    // يختبرون الآن: جارية لم ينته وقتها
+                    'attempts as running_count' => fn (Builder $query) => $query->where('status', AttemptStatus::InProgress)->where('deadline_at', '>', now()),
                     'attempts as submitted_count' => fn (Builder $query) => $query->where('status', AttemptStatus::Submitted),
                     'questions',
                 ]))
             ->defaultSort('sort_order')
-            // متابعة حية في أيام النوافذ: الأعداد تتجدد كل نصف دقيقة
-            ->poll('30s')
+            // متابعة حية في أيام النوافذ: المسجلون، ومن يختبر الآن، ومن سلّم، تتجدد كل خمس عشرة ثانية
+            ->poll('15s')
+            ->description(fn (): string => __('competitions.student.admin.registered_count', ['count' => $this->competition()->submissions()->whereNotNull('registered_at')->count()]))
             ->columns([
                 TextColumn::make('name')->label(__('competitions.student.round_attributes.name'))->weight('bold'),
                 TextColumn::make('starts_at')->label(__('competitions.student.round_attributes.starts_at'))->dateTime('Y-m-d H:i'),
@@ -91,10 +100,13 @@ class RoundsRelationManager extends RelationManager
                     // بنك كل فئة مفتوحة بعدد أسئلة المرحلة تماماً، وإلا لا يبدأ طلابها (AttemptLayout وStartAttempt)
                     ->description(fn (CompetitionRound $record): string => ($short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()))) === []
                         ? __('competitions.student.bank_ready')
-                        : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $name.' ('.$count.')')->implode('، ')])),
+                        : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $count < 0
+                            ? __('competitions.student.bank_short_points', ['category' => $name])
+                            : __('competitions.student.bank_short_count', ['category' => $name, 'count' => $count]))->implode('، ')])),
                 TextColumn::make('duration_minutes')->label(__('competitions.student.round_attributes.duration_minutes'))->numeric(),
                 IconColumn::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->boolean(),
                 TextColumn::make('started_count')->label(__('competitions.student.admin.started'))->numeric(),
+                TextColumn::make('running_count')->label(__('competitions.student.admin.running'))->numeric(),
                 TextColumn::make('submitted_count')->label(__('competitions.student.admin.submitted'))->numeric(),
                 TextColumn::make('results_published_at')->label(__('competitions.student.admin.results_published_at'))->dateTime('Y-m-d H:i')->placeholder(__('competitions.student.admin.not_published')),
             ])
@@ -112,7 +124,7 @@ class RoundsRelationManager extends RelationManager
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalDescription(__('competitions.student.admin.publish_confirm'))
-                    ->visible(fn (CompetitionRound $record): bool => $this->allows('competitions.approve') && ! $record->resultsPublished())
+                    ->visible(fn (CompetitionRound $record): bool => $this->managesResults() && ! $record->resultsPublished())
                     ->action(fn (CompetitionRound $record) => $this->attempt(function () use ($record): void {
                         app(PublishRoundResults::class)->handle($this->actor(), $record);
                         Notification::make()->success()->title(__('competitions.student.admin.published'))->send();

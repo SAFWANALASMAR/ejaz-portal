@@ -26,7 +26,7 @@ class QualifyAttempts
      */
     public function handle(User $actor, CompetitionRound $round, array $attemptIds, bool $qualified = true): int
     {
-        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $round->competition->student_mode) {
+        if (! CompetitionAccess::managesResults($actor, $round->competition) || ! $round->competition->student_mode) {
             throw new AuthorizationException;
         }
 

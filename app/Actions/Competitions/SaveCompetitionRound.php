@@ -2,10 +2,12 @@
 
 namespace App\Actions\Competitions;
 
+use App\Enums\AttemptStatus;
 use App\Models\Competition;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionAccess;
+use App\Support\SchoolNetworkLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -40,12 +42,12 @@ class SaveCompetitionRound
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
-            'question_count' => ['required', 'integer', 'min:1', 'max:'.config('competitions.student.max_questions')],
+            'question_count' => ['required', 'integer', 'min:'.config('competitions.student.min_questions'), 'max:'.config('competitions.student.max_questions')],
             'duration_minutes' => ['required', 'integer', 'min:'.config('competitions.student.min_minutes'), 'max:'.config('competitions.student.max_minutes')],
             'qualified_only' => ['boolean'],
         ], attributes: __('competitions.student.round_attributes'))->validate();
 
-        return DB::transaction(function () use ($competition, $round, $validated): CompetitionRound {
+        $saved = DB::transaction(function () use ($competition, $round, $validated): CompetitionRound {
             $round = $round !== null
                 ? CompetitionRound::query()->whereKey($round->id)->lockForUpdate()->firstOrFail()
                 : new CompetitionRound;
@@ -77,7 +79,23 @@ class SaveCompetitionRound
                 'qualified_only' => (bool) ($validated['qualified_only'] ?? false),
             ])->save();
 
+            // مدّ النهاية يمدّ المحاولات الجارية التي قطعتها النهاية القديمة: الموعد أقرب البدء + المدة والنهاية الجديدة
+            // (مراجعة المشرف). والمسلَّمة لا تتغير
+            foreach ($round->attempts()->where('status', AttemptStatus::InProgress)->lockForUpdate()->get() as $attempt) {
+                $deadline = $attempt->started_at->copy()->addMinutes($round->duration_minutes)->min($round->ends_at);
+
+                if (! $deadline->equalTo($attempt->deadline_at)) {
+                    $attempt->deadline_at = $deadline;
+                    $attempt->save();
+                }
+            }
+
             return $round;
         });
+
+        // نافذة المسابقة تتغير، فتُحسب حدود شبكات المدارس من جديد (SchoolNetworkLimits)
+        SchoolNetworkLimits::forget();
+
+        return $saved;
     }
 }

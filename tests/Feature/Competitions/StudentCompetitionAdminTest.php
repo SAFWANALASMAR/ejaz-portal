@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Competitions\CorrectStudentRegistration;
 use App\Actions\Competitions\DeleteStudentCompetitionItem;
 use App\Actions\Competitions\ImportStudentQuestions;
 use App\Actions\Competitions\IssueCompetitionCertificates;
@@ -14,6 +15,7 @@ use App\Actions\Competitions\SaveCompetitionRound;
 use App\Actions\Competitions\SaveStudentQuestion;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
+use App\Actions\Competitions\VoidTieDraw;
 use App\Enums\AttemptStatus;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
@@ -59,7 +61,8 @@ use Spatie\Activitylog\Models\Activity;
 */
 
 beforeEach(function () {
-    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    // البنوك في الاختبارات صغيرة، فيُخفض أدنى عدد للأسئلة (30 بقرار المدير) في حفظ المرحلة، واختبار الحدين بقيمهما
+    config(['competitions.exam.national_id_key' => 'test-hmac-key', 'competitions.student.min_questions' => 1]);
 
     $this->director = userWithRole(RoleName::ExecutiveDirector);
     $this->manager = userWithRole(RoleName::ProgramManager);
@@ -329,10 +332,14 @@ it('exports results with the national ID masked unless the exporter may see it i
     $query = fn () => $this->competition->attempts()->getQuery();
 
     $content = fn (User $user): string => TestResponse::fromBaseResponse(StudentResultsSheet::download($user, $this->competition, $query()))->streamedContent();
-    $masked = readXlsx($content(userWithRole(RoleName::ProgramManager)));
+    // من يدير النتائج بلا الاطلاع الكامل على الهوية (صلاحية مفردة)، ومسؤول برامج ليس منشئها لا يصدّر أصلاً
+    $resultsOnly = User::factory()->create();
+    $resultsOnly->givePermissionTo('competition.manage_results');
+    $masked = readXlsx($content($resultsOnly));
     $full = readXlsx($content($this->director));
 
-    expect($masked)->toHaveCount(2)
+    expect(fn () => StudentResultsSheet::download(userWithRole(RoleName::ProgramManager), $this->competition, $query()))->toThrow(AuthorizationException::class)
+        ->and($masked)->toHaveCount(2)
         ->and(implode(' ', $masked[1]))->not->toContain(studentNationalId(6))->toContain(substr(studentNationalId(6), -4))
         ->and(implode(' ', $full[1]))->toContain(studentNationalId(6))
         ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(2);
@@ -540,4 +547,166 @@ it('checks the permission inside both spreadsheet downloads, whatever the button
     expect(fn () => StudentResultsSheet::download($board, $this->competition, $this->competition->attempts()->getQuery()))->toThrow(AuthorizationException::class)
         ->and(fn () => StudentQuestionsSheet::download($board, $this->round))->toThrow(AuthorizationException::class)
         ->and(StudentQuestionsSheet::download($this->manager, $this->round)->getStatusCode())->toBe(200);
+});
+
+it('creates four rounds with the director limits, and keeps a round count and duration within them', function () {
+    config(['competitions.student.min_questions' => 30]);
+
+    $competition = app(SaveCompetition::class)->handle($this->director, new Competition, [
+        'title' => 'مسابقة بأربع مراحل', 'slug' => 'four-rounds', 'opens_at' => now()->toDateTimeString(), 'closes_at' => now()->addWeek()->toDateTimeString(),
+        'student_mode' => true, 'is_published' => false,
+    ]);
+    $rounds = $competition->rounds()->get();
+
+    expect($rounds)->toHaveCount(4)
+        ->and($rounds->pluck('name')->all())->toBe(['المرحلة الأولى', 'المرحلة الثانية', 'المرحلة الثالثة', 'المرحلة الرابعة'])
+        ->and($rounds->pluck('question_count')->unique()->values()->all())->toBe([40])
+        ->and($rounds->pluck('duration_minutes')->unique()->values()->all())->toBe([45]);
+
+    $data = ['name' => 'م', 'starts_at' => now()->addMonth(), 'ends_at' => now()->addMonth()->addDay()];
+    expect(fn () => app(SaveCompetitionRound::class)->handle($this->director, $competition, null, [...$data, 'question_count' => 29, 'duration_minutes' => 45]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveCompetitionRound::class)->handle($this->director, $competition, null, [...$data, 'question_count' => 41, 'duration_minutes' => 45]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveCompetitionRound::class)->handle($this->director, $competition, null, [...$data, 'question_count' => 40, 'duration_minutes' => 46]))->toThrow(ValidationException::class)
+        ->and(app(SaveCompetitionRound::class)->handle($this->director, $competition, null, [...$data, 'question_count' => 30, 'duration_minutes' => 30])->exists)->toBeTrue();
+});
+
+it('keeps results operations to the executive director and the competition creator, not every program manager', function () {
+    studentQuestion($this->round);
+    $attempt = submittedWithScore(1, 5);
+    $this->travel(4)->hours();
+    $other = userWithRole(RoleName::ProgramManager);
+
+    foreach ([
+        fn () => app(PublishRoundResults::class)->handle($other, $this->round),
+        fn () => app(QualifyAttempts::class)->handle($other, $this->round, [$attempt->id]),
+        fn () => app(RunTieDraw::class)->handle($other, $this->round, null, 1),
+        fn () => app(IssueCompetitionCertificates::class)->handle($other, $this->competition),
+    ] as $operation) {
+        expect($operation)->toThrow(AuthorizationException::class);
+    }
+
+    $this->actingAs($other);
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertActionHidden(TestAction::make('export')->table())
+        ->assertActionHidden(TestAction::make('certificates')->table());
+
+    expect(app(PublishRoundResults::class)->handle($this->director, $this->round)->resultsPublished())->toBeTrue();
+});
+
+it('voids a tie draw once with a recorded reason and allows a new draw, but not a second void', function () {
+    studentQuestion($this->round);
+    collect([1, 2, 3])->each(fn (int $serial) => submittedWithScore($serial, 7));
+    $this->travel(4)->hours();
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    [$first] = app(RunTieDraw::class)->handle($this->director, $this->round, null, 2);
+
+    expect(fn () => app(VoidTieDraw::class)->handle($this->director, $first, 'قصير'))->toThrow(ValidationException::class);
+
+    app(VoidTieDraw::class)->handle($this->director, $first, 'أُدخل عدد المراكز خطأً في اللجنة');
+    [$second, $fresh] = app(RunTieDraw::class)->handle($this->director, $this->round, null, 1);
+
+    expect($fresh)->toBeTrue()->and($second->id)->not->toBe($first->id)
+        ->and(Activity::query()->where('event', 'draw_voided')->first()?->properties['reason'])->toBe('أُدخل عدد المراكز خطأً في اللجنة')
+        ->and(fn () => app(VoidTieDraw::class)->handle($this->director, $second, 'سبب ثانٍ مكتوب بطوله'))->toThrow(ValidationException::class)
+        ->and(fn () => app(VoidTieDraw::class)->handle(userWithRole(RoleName::SuperAdmin), $second, 'سبب ثالث مكتوب بطوله'))->toThrow(AuthorizationException::class);
+});
+
+it('waits for the network grace after the round end before publishing', function () {
+    studentQuestion($this->round);
+    app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    $this->travelTo($this->round->ends_at->copy()->addSeconds(5));
+
+    expect(fn () => app(PublishRoundResults::class)->handle($this->director, $this->round))->toThrow(ValidationException::class);
+
+    $this->travel(30)->seconds();
+
+    expect(app(PublishRoundResults::class)->handle($this->director, $this->round)->resultsPublished())->toBeTrue();
+});
+
+it('extends the deadline of running attempts when the round end is extended', function () {
+    studentQuestion($this->round);
+    $this->round->forceFill(['ends_at' => now()->addMinutes(10)])->save();
+    $attempt = app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    expect($attempt->deadline_at->timestamp)->toBe($this->round->ends_at->timestamp);
+
+    $round = $this->round->fresh();
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => $round->name, 'starts_at' => $round->starts_at, 'ends_at' => $round->ends_at->copy()->addHours(2),
+        'question_count' => $round->question_count, 'duration_minutes' => 30,
+    ]);
+
+    expect($attempt->fresh()->deadline_at->timestamp)->toBe($attempt->started_at->copy()->addMinutes(30)->timestamp);
+});
+
+it('clears the revealed identity from the page state when the reveal window closes', function () {
+    $submission = CompetitionSubmission::query()->where('user_id', registeredStudent($this->competition, 4)->id)->sole();
+    $this->actingAs($this->director);
+
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->mountAction(TestAction::make('reveal')->table($submission))
+        ->assertSet('revealed.national_id', studentNationalId(4))
+        ->call('unmountAction')
+        ->assertSet('revealed', null);
+});
+
+it('refuses an import whose uncompressed size is too large, and restores cells protected from formulas', function () {
+    $bomb = tempnam(sys_get_temp_dir(), 'z').'.xlsx';
+    $zip = new ZipArchive;
+    $zip->open($bomb, ZipArchive::CREATE);
+    $zip->addFromString('xl/worksheets/sheet1.xml', str_repeat(' ', 21 * 1024 * 1024));
+    $zip->close();
+
+    expect(fn () => app(ImportStudentQuestions::class)->handle($this->manager, $this->round, $bomb))->toThrow(ValidationException::class);
+
+    $file = questionsXlsx([['صح وخطأ', '', '', "'=1+1 عبارة تجريبية", '', '', '', '', '', '', 'صح', '1']]);
+    app(ImportStudentQuestions::class)->handle($this->manager, $this->round, $file);
+
+    expect($this->round->questions()->sole()->prompt)->toBe('=1+1 عبارة تجريبية');
+});
+
+it('lets the executive director correct or cancel a registration with a logged reason, freeing a squatted national ID', function () {
+    $squatter = registeredStudent($this->competition, 9);
+    $submission = CompetitionSubmission::query()->where('user_id', $squatter->id)->sole();
+    $correct = app(CorrectStudentRegistration::class);
+
+    expect(fn () => $correct->cancel($this->manager, $submission, 'سبب مكتوب بطوله'))->toThrow(AuthorizationException::class)
+        ->and(fn () => $correct->cancel(userWithRole(RoleName::SuperAdmin), $submission, 'سبب مكتوب بطوله'))->toThrow(AuthorizationException::class);
+
+    $correct->edit($this->director, $submission, ['full_name' => 'اسم مصحح بن مثال تجريبي', 'category_id' => $submission->category_id, 'grade' => 'الثالث الثانوي', 'region_id' => $submission->region_id, 'reason' => 'خطأ إملائي في الاسم من المدرسة']);
+    expect($submission->fresh()->full_name)->toBe('اسم مصحح بن مثال تجريبي');
+
+    $correct->cancel($this->director, $submission->fresh(), 'رقم هوية طالب آخر سُجّل بغير حق');
+    $owner = registeredStudent($this->competition, 9);
+
+    expect(CompetitionSubmission::query()->whereKey($submission->id)->exists())->toBeFalse()
+        ->and(CompetitionSubmission::query()->withTrashed()->whereKey($submission->id)->value('national_id_hash'))->toBeNull()
+        ->and(CompetitionSubmission::query()->where('user_id', $owner->id)->exists())->toBeTrue()
+        ->and(Activity::query()->where('event', 'registration_corrected')->count())->toBe(2)
+        ->and(Activity::query()->where('event', 'registration_corrected')->get()->pluck('properties')->flatten()->implode(' '))->not->toContain(studentNationalId(9));
+});
+
+it('shows the live counts: registered, taking the exam now, and submitted', function () {
+    studentQuestion($this->round);
+    app(StartAttempt::class)->handle(registeredStudent($this->competition, 1), $this->round);
+    submittedWithScore(2, 1);
+    registeredStudent($this->competition, 3);
+    $this->actingAs($this->director);
+
+    Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertSee(__('competitions.student.admin.registered_count', ['count' => 3]))
+        ->assertSee(__('competitions.student.admin.running'))
+        ->assertTableColumnStateSet('running_count', 1, $this->round)
+        ->assertTableColumnStateSet('submitted_count', 1, $this->round);
+});
+
+it('rejects a certificate background path by its pattern alone', function () {
+    try {
+        app(SaveCompetition::class)->handle($this->manager, $this->competition, [
+            'title' => $this->competition->title, 'slug' => 'students', 'opens_at' => $this->competition->opens_at, 'closes_at' => $this->competition->closes_at,
+            'certificate_background' => 'competition-certificate-templates/x..png',
+        ]);
+        $this->fail('expected a validation error');
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['certificate_background'][0])->toContain(__('competitions.attributes.certificate_background'));
+    }
 });

@@ -6,6 +6,7 @@ use App\Actions\Competitions\RegisterStudent;
 use App\Actions\Competitions\SaveAttemptAnswers;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
+use App\Contracts\BotChallenge;
 use App\Http\Controllers\Controller;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
@@ -47,6 +48,15 @@ class StudentExamController extends Controller
     public function register(Request $request, string $slug, RegisterStudent $register): RedirectResponse
     {
         $competition = $this->competition($slug);
+
+        // التحدي ضد الآليات (Turnstile) على نموذج التسجيل في المسابقة أيضاً، ولو كان الطالب داخلاً (مراجعة المطابقة).
+        // ووسيط VerifyBotChallenge لنماذج الزائر وحده، فيُفحص هنا بفعل النموذج نفسه
+        $token = $request->input('cf-turnstile-response');
+
+        if (! app(BotChallenge::class)->passes(is_string($token) ? $token : '', 'competition-register')) {
+            return back()->withInput($request->except(['national_id', 'guardian_phone', 'cf-turnstile-response']))
+                ->withErrors(['bot' => __('account.bot_challenge.failed')]);
+        }
 
         try {
             $register->handle($this->user($request), $competition, $request->only(['full_name', 'national_id', 'category_id', 'grade', 'region_id', 'guardian_phone', 'fields', 'pledge']));

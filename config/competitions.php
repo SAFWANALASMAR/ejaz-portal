@@ -65,16 +65,30 @@ return [
 
     // مسابقة الطلاب (docs/plans/student-competition.md)
     'student' => [
-        // السؤال المقالي مبني ومطفأ بقرار المدير التنفيذي، وتصحيحه يدوي حين يُفعَّل
-        'essay_enabled' => (bool) env('COMPETITION_STUDENT_ESSAY', false),
-
         // هامش بالثواني بعد الموعد النهائي يُقبل فيه حفظ الإجابة الأخيرة والتسليم (تأخر الشبكة)
         'grace_seconds' => (int) env('COMPETITION_STUDENT_GRACE_SECONDS', 20),
 
-        // حدود تقنية لعدد أسئلة المرحلة ومدتها بالدقائق، والقيم الفعلية لكل مرحلة من اللوحة
-        'max_questions' => 200,
-        'min_minutes' => 5,
-        'max_minutes' => 180,
+        // عدد أسئلة المرحلة ومدتها بالدقائق بقرار المدير التنفيذي: 30–40 سؤالاً و30–45 دقيقة، والافتراضي 40 و45.
+        // والقيمة لكل مرحلة من اللوحة ضمنها
+        'min_questions' => 30,
+        'max_questions' => 40,
+        'default_questions' => 40,
+        'min_minutes' => 30,
+        'max_minutes' => 45,
+        'default_minutes' => 45,
+
+        // المراحل التي تُنشأ مع المسابقة (قرار المدير: أربع)، وتُضاف وتُحذف من اللوحة
+        'default_rounds' => 4,
+
+        // حدود العنوان الواحد أثناء نافذة مسابقة الطلاب (SchoolNetworkLimits)، لمدرسة كاملة خلف عنوان واحد. ومقابلها
+        // خارج النافذة في config/security.php: 120 تسجيلاً في الساعة، و2000 لكل شبكة في اليوم، و50 دخولاً خاطئاً في
+        // ربع ساعة، و300 محاولة دخول في الدقيقة
+        'window_limits' => [
+            'registration_per_ip_per_hour' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_IP_PER_HOUR', 600),
+            'registration_per_network_per_day' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_NETWORK_PER_DAY', 6000),
+            'login_failures_per_subscriber' => (int) env('COMPETITION_WINDOW_LOGIN_FAILURES_PER_SUBSCRIBER', 300),
+            'login_attempts_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 900),
+        ],
 
         // سقف الحرف في إجابة المقالي
         'essay_max_chars' => 5000,

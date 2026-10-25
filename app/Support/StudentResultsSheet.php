@@ -30,7 +30,7 @@ final class StudentResultsSheet
     public static function download(User $actor, Competition $competition, Builder $query): StreamedResponse
     {
         // بيانات قاصرين: لمن رُبط به التصدير وحده، ولو وصل الطلب من غير الزر المخفي
-        if (! CompetitionAccess::allows($actor, 'submissions.export')) {
+        if (! CompetitionAccess::managesResults($actor, $competition)) {
             throw new AuthorizationException;
         }
 

@@ -24,6 +24,7 @@
             </div>
         </dl>
 
+        <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }} <x-sample /></p>
         <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
             @foreach (__('competitions.student.instructions') as $line)
                 <li>{{ $line }}</li>

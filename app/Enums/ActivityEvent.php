@@ -58,6 +58,7 @@ enum ActivityEvent: string implements HasLabel
     case CertificatesIssued = 'certificates_issued';
     case NationalIdViewed = 'national_id_viewed';
     case ResultsExported = 'competition_results_exported';
+    case RegistrationCorrected = 'registration_corrected';
 
     // قياس الرضا
     case SurveyResultsExported = 'survey_results_exported';

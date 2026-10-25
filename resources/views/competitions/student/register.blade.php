@@ -70,12 +70,14 @@
         <div>
             <label class="flex items-start gap-3">
                 <input type="checkbox" name="pledge" value="1" required class="mt-1 accent-primary" @checked(old('pledge'))>
-                <span class="font-medium text-ink">{{ __('competitions.exam.pledge') }}</span>
+                <span class="font-medium text-ink">{{ __('competitions.student.pledge') }} <x-sample /></span>
             </label>
             @error('pledge')
                 <p class="mt-1 text-sm font-medium text-red-700">{{ $message }}</p>
             @enderror
         </div>
+
+        <x-bot-challenge action="competition-register" signed-in />
 
         <x-button class="w-full sm:w-auto" arrow>{{ __('competitions.student.register_submit') }}</x-button>
     </form>

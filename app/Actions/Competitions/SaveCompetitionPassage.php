@@ -67,6 +67,8 @@ class SaveCompetitionPassage
             // أسئلته تتبع فئته، فلا يتفرق النص عن أسئلته بين الفئات
             $passage->questions()->update(['category_id' => $passage->category_id]);
 
+            RoundQuestions::forget($round->id);
+
             return $passage;
         });
 

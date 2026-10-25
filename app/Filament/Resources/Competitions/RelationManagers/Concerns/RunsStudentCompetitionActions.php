@@ -74,4 +74,15 @@ trait RunsStudentCompetitionActions
 
         return CompetitionAccess::allows($user, $permission);
     }
+
+    /**
+     * أزرار النشر والسحب والتأهيل والشهادات والتصدير بقاعدة الإجراءات نفسها (CompetitionAccess::managesResults).
+     */
+    protected function managesResults(): bool
+    {
+        /** @var User|null $user */
+        $user = auth()->user();
+
+        return CompetitionAccess::managesResults($user, $this->competition());
+    }
 }

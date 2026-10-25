@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Random\Randomizer;
 
 /**
- * ترتيب اختبار الطالب العشوائي (قرار المدير التنفيذي: العشوائية إلزامية): أسئلة المرحلة لفئته ولكل الفئات كلها،
- * مجموعة في وحدات (سؤال منفرد، أو نص أو مقطع بأسئلته مجتمعة)، تُخلط الوحدات ثم الأسئلة داخلها ثم خياراتها (إلا
- * صح وخطأ فترتيبه ثابت). وبنك كل فئة بعدد أسئلة المرحلة تماماً (مراجعة المشرف)، فيُسأل الطلاب كلهم الأسئلة
- * نفسها بالعدد والدرجة القصوى نفسيهما، ولا يبدأ أحد الاختبار من بنك ناقص أو زائد (StartAttempt). والمولّد الآمن
- * الافتراضي في Randomizer، فلا يُتوقع الترتيب.
+ * ترتيب اختبار الطالب العشوائي (قرار المدير التنفيذي: العشوائية إلزامية) من بنك فئته في المرحلة (أسئلتها وأسئلة
+ * «كل الفئات»)، مجموعاً في وحدات: سؤال منفرد، أو نص أو مقطع بأسئلته مجتمعة لا تتفرق.
+ *
+ * البنك قد يزيد على عدد أسئلة المرحلة، فيُسحب لكل طالب عشوائياً من الوحدات ما مجموعه العدد تماماً (مراجعة
+ * المشرف، 26 أكتوبر)، فيأخذ طلاب الفئة كلهم العدد نفسه. وحين يزيد البنك على العدد تتساوى درجات أسئلته، فتتساوى
+ * الدرجة القصوى أيضاً. وما لا يكوّن العدد تماماً يُرفض البدء منه، وجدول المراحل يُظهره للمدير (shortfalls).
+ * ثم تُخلط الوحدات، والأسئلة داخلها، وخياراتها (إلا صح وخطأ فترتيبه ثابت). والمولّد الآمن الافتراضي في
+ * Randomizer، فلا يُتوقع الترتيب ولا الاختيار.
  */
 final class AttemptLayout
 {
@@ -24,13 +27,10 @@ final class AttemptLayout
     public static function build(CompetitionRound $round, int $categoryId, ?Randomizer $randomizer = null): array
     {
         $randomizer ??= new Randomizer;
+        $units = self::pick($randomizer->shuffleArray(self::units(self::bank($round, $categoryId))), $round->question_count);
 
-        /** @var array<string, list<CompetitionQuestion>> $units */
-        $units = [];
-
-        foreach (self::bank($round, $categoryId) as $question) {
-            $key = $question->passage_id !== null ? 'p'.$question->passage_id : 'q'.$question->id;
-            $units[$key][] = $question;
+        if ($units === null) {
+            return [];
         }
 
         return array_map(fn (array $unit): array => [
@@ -41,7 +41,7 @@ final class AttemptLayout
                     ? $question->optionKeys()
                     : $randomizer->shuffleArray($question->optionKeys()),
             ], $randomizer->shuffleArray($unit)),
-        ], $randomizer->shuffleArray(array_values($units)));
+        ], $randomizer->shuffleArray($units));
     }
 
     /**
@@ -58,15 +58,108 @@ final class AttemptLayout
     }
 
     /**
-     * الفئات المفتوحة التي لا يساوي بنكها عدد أسئلة المرحلة، بعدد أسئلتها: {اسم الفئة: العدد}. فارغة = جاهزة.
+     * الفئات المفتوحة التي لا يكوّن بنكها عدد أسئلة المرحلة تماماً، بأقصى عدد ممكن منه دون العدد: {الفئة: العدد}.
+     * وبنك أكبر من العدد بدرجات أسئلة مختلفة غير جاهز أيضاً (عدده -1)، لأن الدرجة القصوى تختلف بين الطلاب.
+     * والفارغة = جاهزة كلها.
      *
      * @return array<string, int>
      */
     public static function shortfalls(CompetitionRound $round): array
     {
-        return $round->competition->openCategories()->get()
-            ->mapWithKeys(fn (CompetitionCategory $category): array => [$category->name => self::bank($round, $category->id)->count()])
-            ->reject(fn (int $count): bool => $count === $round->question_count)
-            ->all();
+        $short = [];
+
+        foreach ($round->competition->openCategories()->get() as $category) {
+            /** @var CompetitionCategory $category */
+            $possible = self::shortfall($round, $category->id);
+
+            if ($possible !== null) {
+                $short[$category->name] = $possible;
+            }
+        }
+
+        return $short;
+    }
+
+    /**
+     * null إن كان بنك الفئة جاهزاً، وإلا أقصى عدد ممكن منه دون العدد، أو -1 لبنك أكبر بدرجات مختلفة.
+     */
+    public static function shortfall(CompetitionRound $round, int $categoryId): ?int
+    {
+        $bank = self::bank($round, $categoryId);
+        $reachable = self::reachable(self::units($bank), $round->question_count);
+
+        return match (true) {
+            ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
+            $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
+            default => null,
+        };
+    }
+
+    /**
+     * @param  Collection<int, CompetitionQuestion>  $bank
+     * @return list<list<CompetitionQuestion>>
+     */
+    private static function units(Collection $bank): array
+    {
+        $units = [];
+
+        foreach ($bank as $question) {
+            $units[$question->passage_id !== null ? 'p'.$question->passage_id : 'q'.$question->id][] = $question;
+        }
+
+        return array_values($units);
+    }
+
+    /**
+     * وحدات مجموع أسئلتها العدد تماماً، بترتيب الوحدات المعطى (العشوائي): تؤخذ الوحدة إن بقي العدد ممكناً بما بعدها.
+     * أو null إن تعذّر.
+     *
+     * @param  list<list<CompetitionQuestion>>  $units
+     * @return list<list<CompetitionQuestion>>|null
+     */
+    private static function pick(array $units, int $count): ?array
+    {
+        $reachable = self::reachable($units, $count);
+
+        if (! $reachable[0][$count]) {
+            return null;
+        }
+
+        $picked = [];
+        $left = $count;
+
+        foreach ($units as $index => $unit) {
+            $size = count($unit);
+
+            if ($size <= $left && $reachable[$index + 1][$left - $size]) {
+                $picked[] = $unit;
+                $left -= $size;
+            }
+        }
+
+        return $picked;
+    }
+
+    /**
+     * reachable[i][t]: هل تكوّن الوحدات من i إلى آخرها مجموعاً t تماماً (برمجة ديناميكية صغيرة: وحدات قليلة × عدد ≤ 200).
+     *
+     * @param  list<list<CompetitionQuestion>>  $units
+     * @return array<int, array<int, bool>>
+     */
+    private static function reachable(array $units, int $count): array
+    {
+        $n = count($units);
+        $reachable = [$n => array_fill(0, $count + 1, false)];
+        $reachable[$n][0] = true;
+
+        for ($i = $n - 1; $i >= 0; $i--) {
+            $size = count($units[$i]);
+
+            for ($t = 0; $t <= $count; $t++) {
+                $reachable[$i][$t] = $reachable[$i + 1][$t] || ($t >= $size && $reachable[$i + 1][$t - $size]);
+            }
+        }
+
+        return $reachable;
     }
 }

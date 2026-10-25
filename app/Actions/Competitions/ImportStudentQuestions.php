@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use OpenSpout\Reader\XLSX\Reader;
 use Throwable;
+use ZipArchive;
 
 /**
  * استيراد أسئلة مرحلة من ملف إكسل بأعمدة القالب (StudentQuestionsSheet): كل صف سؤال يُحفظ عبر SaveStudentQuestion
@@ -23,6 +24,9 @@ use Throwable;
 class ImportStudentQuestions
 {
     private const MAX_ROWS = 1000;
+
+    // حجم الملف بعد فك الضغط: بنك من ألف سؤال بنصوصه أقل من هذا بكثير
+    private const MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024;
 
     public function __construct(private SaveStudentQuestion $save) {}
 
@@ -84,6 +88,28 @@ class ImportStudentQuestions
         });
     }
 
+    /**
+     * مجموع أحجام ملفات الأرشيف بعد فك الضغط (xlsx أرشيف zip)، أو ما فوق الحد إن لم يُقرأ أرشيفاً.
+     */
+    private static function uncompressedSize(string $path): int
+    {
+        $zip = new ZipArchive;
+
+        if ($zip->open($path) !== true) {
+            return PHP_INT_MAX;
+        }
+
+        $total = 0;
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $total += (int) ($zip->statIndex($i)['size'] ?? 0);
+        }
+
+        $zip->close();
+
+        return $total;
+    }
+
     private function rowError(int $row, string $reason): ValidationException
     {
         return ValidationException::withMessages(['file' => __('competitions.student.admin.import_row', ['row' => $row, 'reason' => $reason])]);
@@ -100,22 +126,23 @@ class ImportStudentQuestions
     {
         $rows = [];
 
+        // حجم الملف بعد فك ضغطه قبل فتحه: ملايين الصفوف الفارغة المضغوطة في ملف صغير تستنزف المعالج (مراجعة المشرف)
+        if (self::uncompressedSize($path) > self::MAX_UNCOMPRESSED_BYTES) {
+            throw ValidationException::withMessages(['file' => __('competitions.student.admin.import_too_many', ['max' => self::MAX_ROWS])]);
+        }
+
         try {
             $reader = new Reader;
             $reader->open($path);
 
             foreach ($reader->getSheetIterator() as $sheet) {
                 foreach ($sheet->getRowIterator() as $index => $row) {
-                    // سقف للصفوف المقروءة كلها لا الممتلئة وحدها: ملايين الصفوف الفارغة المضغوطة تستنزف المعالج
-                    if ($index > self::MAX_ROWS * 2) {
-                        throw ValidationException::withMessages(['file' => __('competitions.student.admin.import_too_many', ['max' => self::MAX_ROWS])]);
-                    }
-
                     if ($index === 1) {
                         continue;
                     }
 
-                    $cells = array_map(fn (mixed $value): string => trim(is_scalar($value) ? (string) $value : ''), $row->toArray());
+                    // والخلية التي حماها التصدير من الصيغ بفاصلة عليا (ServiceRequestExporter::safeCell) تعود كما كانت
+                    $cells = array_map(fn (mixed $value): string => (string) preg_replace("/^'(?=[=+\\-@\\t\\r])/", '', trim(is_scalar($value) ? (string) $value : '')), $row->toArray());
 
                     if (implode('', $cells) === '') {
                         continue;

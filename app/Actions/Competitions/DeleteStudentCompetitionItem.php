@@ -54,6 +54,7 @@ class DeleteStudentCompetitionItem
             }
 
             $item->delete();
+            RoundQuestions::forget($roundId);
         });
 
         DB::afterCommit(fn () => RoundQuestions::forget($roundId));

@@ -27,11 +27,12 @@ class PublishRoundResults
      */
     public function handle(User $actor, CompetitionRound $round): CompetitionRound
     {
-        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $round->competition->student_mode) {
+        if (! CompetitionAccess::managesResults($actor, $round->competition) || ! $round->competition->student_mode) {
             throw new AuthorizationException;
         }
 
-        if (! $round->hasEnded()) {
+        // بعد النهاية وهامش الشبكة: الحفظ مقبول حتى الموعد وهامشه، فلا يُسقط النشرُ آخرَ الإجابات (مراجعة المشرف)
+        if (now()->lte($round->ends_at->copy()->addSeconds((int) config('competitions.student.grace_seconds')))) {
             throw ValidationException::withMessages(['round' => __('competitions.student.publish_before_end')]);
         }
 

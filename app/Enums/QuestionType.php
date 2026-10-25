@@ -34,19 +34,14 @@ enum QuestionType: string implements HasLabel
     }
 
     /**
-     * أنواع مسابقة الطلاب، والمقالي حين يُفعَّل وحده.
+     * أنواع مسابقة الطلاب المتاحة. المقالي مبني (العرض والحفظ) ومطفأ في الشيفرة نفسها لا بمتغير بيئة: لا شاشة
+     * تصحيح يدوي له بعد، فلا يدخل بنكاً ولا اختباراً حتى تُبنى ويُضاف هنا (مراجعة المشرف، decisions.md).
      *
      * @return list<self>
      */
     public static function student(): array
     {
-        $types = [self::MultipleChoice, self::PassageChoice, self::VideoChoice, self::TrueFalse];
-
-        if ((bool) config('competitions.student.essay_enabled')) {
-            $types[] = self::Essay;
-        }
-
-        return $types;
+        return [self::MultipleChoice, self::PassageChoice, self::VideoChoice, self::TrueFalse];
     }
 
     /**

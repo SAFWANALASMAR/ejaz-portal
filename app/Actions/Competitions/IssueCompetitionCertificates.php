@@ -25,7 +25,7 @@ class IssueCompetitionCertificates
      */
     public function handle(User $actor, Competition $competition): int
     {
-        if (! CompetitionAccess::allows($actor, 'competitions.approve') || ! $competition->student_mode) {
+        if (! CompetitionAccess::managesResults($actor, $competition) || ! $competition->student_mode) {
             throw new AuthorizationException;
         }
 
