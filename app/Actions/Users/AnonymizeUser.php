@@ -5,14 +5,17 @@ namespace App\Actions\Users;
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
 use App\Enums\MembershipStatus;
+use App\Jobs\GenerateCompetitionCertificate;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\AssemblyMembership;
+use App\Models\CompetitionSubmission;
 use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
@@ -87,7 +90,14 @@ class AnonymizeUser
 
             // بيانات تسجيل الاختبار تعرّف صاحبها فتُمسح الآن، لا بعد مدة الاحتفاظ. ويبقى الرقم المرجعي والدرجات
             DB::table('competition_submissions')->where('user_id', $user->id)
-                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null]);
+                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'extra' => null]);
+
+            // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور
+            CompetitionSubmission::query()->where('user_id', $user->id)->whereNotNull('certificate_path')->get()
+                ->each(function (CompetitionSubmission $submission): void {
+                    Storage::disk(GenerateCompetitionCertificate::disk())->delete((string) $submission->certificate_path);
+                    $submission->forceFill(['certificate_path' => null, 'certificate_issued_at' => null])->saveQuietly();
+                });
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
             AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);

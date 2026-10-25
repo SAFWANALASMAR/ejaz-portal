@@ -92,6 +92,10 @@ class ExportUserData
                         'education_stage' => $submission->education_stage?->value,
                         'national_id' => $submission->national_id,
                         'registered_at' => $date($submission->registered_at),
+                        // مسابقة الطلاب
+                        'grade' => $submission->grade,
+                        'guardian_phone' => $submission->guardian_phone,
+                        'extra' => $submission->extra,
                     ],
                     'works' => $submission->works->map(fn (SubmissionWork $work): array => [
                         'type' => $work->type->value,

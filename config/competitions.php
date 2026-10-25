@@ -63,4 +63,24 @@ return [
         'url_minutes' => (int) env('COMPETITION_WORKS_URL_MINUTES', 10),
     ],
 
+    // مسابقة الطلاب (docs/plans/student-competition.md)
+    'student' => [
+        // السؤال المقالي مبني ومطفأ بقرار المدير التنفيذي، وتصحيحه يدوي حين يُفعَّل
+        'essay_enabled' => (bool) env('COMPETITION_STUDENT_ESSAY', false),
+
+        // هامش بالثواني بعد الموعد النهائي يُقبل فيه حفظ الإجابة الأخيرة والتسليم (تأخر الشبكة)
+        'grace_seconds' => (int) env('COMPETITION_STUDENT_GRACE_SECONDS', 20),
+
+        // حدود تقنية لعدد أسئلة المرحلة ومدتها بالدقائق، والقيم الفعلية لكل مرحلة من اللوحة
+        'max_questions' => 200,
+        'min_minutes' => 5,
+        'max_minutes' => 180,
+
+        // سقف الحرف في إجابة المقالي
+        'essay_max_chars' => 5000,
+
+        // صورة خلفية الشهادة التي يرفعها المسؤول (ميجابايت)
+        'certificate_background_max_kb' => 5120,
+    ],
+
 ];

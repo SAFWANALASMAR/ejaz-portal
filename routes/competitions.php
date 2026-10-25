@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Account\CompetitionCertificateController;
 use App\Http\Controllers\Account\CompetitionsController;
 use App\Http\Controllers\Competitions\CompetitionController;
 use App\Http\Controllers\Competitions\EntryController;
 use App\Http\Controllers\Competitions\ExamController;
 use App\Http\Controllers\Competitions\ReviewVideoController;
 use App\Http\Controllers\Competitions\ReviewWorkController;
+use App\Http\Controllers\Competitions\StudentExamController;
 use App\Http\Controllers\Competitions\VideoUploadController;
 use App\Http\Controllers\Competitions\WorkController;
 use App\Http\Middleware\AdminIdleTimeout;
@@ -62,4 +64,18 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
     Route::get('/competition-works/{work}', [WorkController::class, 'show'])->middleware('throttle:120,1,competition-work-show')->name('competitions.works.show');
     Route::delete('/competition-works/{work}', [WorkController::class, 'destroy'])->middleware('throttle:30,1,competition-work-destroy')->name('competitions.works.destroy');
     Route::get('/competition-reviews/{review}/works/{work}', ReviewWorkController::class)->middleware([AdminIdleTimeout::class, 'throttle:240,1,competition-review-work'])->name('competitions.reviews.work');
+
+    // مسابقة الطلاب (docs/plans/student-competition.md). الحدود بعدّاد لكل حساب لا لكل عنوان، فطلاب المدرسة
+    // الواحدة خلف عنوان شبكة واحد لا يتزاحمون. والانتقال بين الوحدات يحفظ الإجابات فحده أعلى
+    Route::get('/competitions/{slug}/register', [StudentExamController::class, 'registerForm'])->middleware('throttle:60,1,competition-student-register-form')->name('competitions.student.register');
+    Route::post('/competitions/{slug}/register', [StudentExamController::class, 'register'])->middleware('throttle:10,60,competition-student-register')->name('competitions.student.register.store');
+    Route::prefix('/competitions/{slug}/rounds/{round}')->whereUuid('round')->group(function () {
+        Route::get('/', [StudentExamController::class, 'show'])->middleware('throttle:120,1,competition-student-round')->name('competitions.student.round');
+        Route::post('/start', [StudentExamController::class, 'start'])->middleware('throttle:20,1,competition-student-start')->name('competitions.student.start');
+        Route::get('/units/{number}', [StudentExamController::class, 'unit'])->whereNumber('number')->middleware('throttle:240,1,competition-student-unit')->name('competitions.student.unit');
+        Route::post('/units/{number}', [StudentExamController::class, 'save'])->whereNumber('number')->middleware('throttle:240,1,competition-student-save')->name('competitions.student.save');
+        Route::get('/review', [StudentExamController::class, 'review'])->middleware('throttle:120,1,competition-student-review')->name('competitions.student.review');
+        Route::post('/submit', [StudentExamController::class, 'submit'])->middleware('throttle:20,1,competition-student-submit')->name('competitions.student.submit');
+    });
+    Route::get('/account/competitions/{submission}/certificate', CompetitionCertificateController::class)->whereUuid('submission')->middleware('throttle:30,1,competition-certificate')->name('account.competitions.certificate');
 });

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -30,7 +31,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<mixed>|null $categories
  * @property array<mixed>|null $work_types
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -52,7 +53,67 @@ class Competition extends Model
             'exam_mode' => 'boolean',
             'intro_video_seconds' => 'integer',
             'work_types' => 'array',
+            'student_mode' => 'boolean',
         ];
+    }
+
+    /**
+     * مراحل مسابقة الطلاب بترتيبها (plans/student-competition.md).
+     *
+     * @return HasMany<CompetitionRound, $this>
+     */
+    public function rounds(): HasMany
+    {
+        return $this->hasMany(CompetitionRound::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * محاولات الطلاب في كل المراحل (لوحة النتائج).
+     *
+     * @return HasManyThrough<CompetitionAttempt, CompetitionRound, $this>
+     */
+    public function attempts(): HasManyThrough
+    {
+        return $this->hasManyThrough(CompetitionAttempt::class, CompetitionRound::class, 'competition_id', 'round_id');
+    }
+
+    /**
+     * حقول التسجيل المخصصة.
+     *
+     * @return HasMany<CompetitionField, $this>
+     */
+    public function fields(): HasMany
+    {
+        return $this->hasMany(CompetitionField::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<CompetitionPassage, $this>
+     */
+    public function passages(): HasMany
+    {
+        return $this->hasMany(CompetitionPassage::class)->orderBy('id');
+    }
+
+    /**
+     * الفئات المفتوحة في هذا الإطلاق.
+     *
+     * @return BelongsToMany<CompetitionCategory, $this>
+     */
+    public function openCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(CompetitionCategory::class, 'competition_category_competition', 'competition_id', 'category_id')
+            ->orderBy('sort_order')->orderBy('competition_categories.id');
+    }
+
+    /**
+     * منشئ المسابقة: يطّلع على أرقام هويات مسجليها كاملة (CompetitionPolicy::viewNationalId).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
@@ -184,7 +245,7 @@ class Competition extends Model
      */
     public function workTypeList(): array
     {
-        if ($this->exam_mode) {
+        if ($this->exam_mode || $this->student_mode) {
             return [];
         }
 

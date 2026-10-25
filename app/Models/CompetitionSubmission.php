@@ -34,9 +34,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $intro_started_at
  * @property Carbon|null $intro_watched_at
  * @property Carbon|null $instructions_accepted_at
+ * @property array<mixed>|null $extra
+ * @property Carbon|null $certificate_issued_at
  */
 #[Fillable(['category', 'region', 'answers'])]
-#[Hidden(['national_id', 'national_id_hash'])]
+#[Hidden(['national_id', 'national_id_hash', 'guardian_phone'])]
 class CompetitionSubmission extends Model
 {
     /** @use HasFactory<CompetitionSubmissionFactory> */
@@ -69,7 +71,50 @@ class CompetitionSubmission extends Model
             'intro_started_at' => 'datetime',
             'intro_watched_at' => 'datetime',
             'instructions_accepted_at' => 'datetime',
+            'guardian_phone' => 'encrypted',
+            'extra' => 'array',
+            'certificate_issued_at' => 'datetime',
         ];
+    }
+
+    /**
+     * فئة الطالب في مسابقة الطلاب.
+     *
+     * @return BelongsTo<CompetitionCategory, $this>
+     */
+    public function studentCategory(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionCategory::class, 'category_id');
+    }
+
+    /**
+     * @return BelongsTo<CompetitionRegion, $this>
+     */
+    public function studentRegion(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionRegion::class, 'region_id');
+    }
+
+    /**
+     * محاولاته في مراحل مسابقة الطلاب.
+     *
+     * @return HasMany<CompetitionAttempt, $this>
+     */
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(CompetitionAttempt::class, 'submission_id');
+    }
+
+    /**
+     * رقم الهوية أو الجوال مخفياً إلا آخر أربعة أرقام، لكل عرض لا يملك صاحبه الاطلاع الكامل.
+     */
+    public static function mask(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return str_repeat('•', max(0, mb_strlen($value) - 4)).mb_substr($value, -4);
     }
 
     /**

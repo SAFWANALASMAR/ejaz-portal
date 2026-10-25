@@ -67,9 +67,13 @@ class DrawsRelationManager extends RelationManager
         return $table
             // قائمة المشمولين (قد تبلغ عشرات الآلاف) لا تُقرأ في الجدول، بل في صفحة السحب وحدها
             ->modifyQueryUsing(fn ($query) => $query->with(['executor', 'void.voider', 'void.approver', 'voidRequest'])
-                ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at']))
+                ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at', 'round_id', 'category_id', 'tie_score']))
             ->columns([
                 TextColumn::make('executed_at')->label(__('competitions.draws.executed_at'))->dateTime('Y-m-d H:i'),
+                // سحب المتساوين في مسابقة الطلاب: مرحلته وفئته ودرجة التساوي (RunTieDraw)
+                TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id'))->placeholder('—')
+                    ->description(fn (CompetitionDraw $record): ?string => $record->round_id !== null ? ($record->category->name ?? __('competitions.student.admin.all_categories')).' · '.__('competitions.student.admin.tie_score', ['score' => $record->tie_score]) : null)
+                    ->visible(fn (): bool => $this->competition()->student_mode),
                 TextColumn::make('executor.name')->label(__('competitions.draws.executor')),
                 TextColumn::make('entrants_count')->label(__('competitions.draws.entrants_count'))->numeric(),
                 TextColumn::make('winners_count')->label(__('competitions.draws.winners_count'))->numeric(),
@@ -92,7 +96,8 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.run'))
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
-                    ->visible(fn (): bool => (auth()->user()?->can('competitions.draw') ?? false)
+                    // مسابقة الطلاب سحبها بين المتساوين من نتائجها (ResultsRelationManager)
+                    ->visible(fn (): bool => (auth()->user()?->can('competitions.draw') ?? false) && ! $this->competition()->student_mode
                         && $this->competition()->draws()->whereDoesntHave('void')->doesntExist())
                     ->modalDescription(__('competitions.draws.run_confirm'))
                     ->schema([

@@ -68,6 +68,24 @@ class CompetitionDraw extends Model
     }
 
     /**
+     * مرحلة سحب المتساوين في مسابقة الطلاب (RunTieDraw)، أو null لسحب المسابقة كلها.
+     *
+     * @return BelongsTo<CompetitionRound, $this>
+     */
+    public function round(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionRound::class, 'round_id');
+    }
+
+    /**
+     * @return BelongsTo<CompetitionCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionCategory::class, 'category_id');
+    }
+
+    /**
      * @return HasOne<CompetitionDrawVoid, $this>
      */
     public function void(): HasOne

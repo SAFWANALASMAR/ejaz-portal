@@ -7,6 +7,7 @@ use App\Enums\QuestionType;
 use App\Enums\RoleName;
 use App\Enums\WorkType;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
 use App\Models\User;
@@ -40,6 +41,11 @@ class SaveCompetition
     private const OPTION_KEYS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
 
     /**
+     * مجلد صور خلفية شهادات مسابقة الطلاب في القرص الخاص.
+     */
+    public const CERTIFICATE_DIRECTORY = 'competition-certificate-templates';
+
+    /**
      * @param  array<string, mixed>  $data
      *
      * @throws AuthorizationException
@@ -64,7 +70,19 @@ class SaveCompetition
         $criteria = $data['criteria'] ?? null;
         $questions = $data['questions'] ?? null;
         $reviewers = $data['reviewers'] ?? null;
-        unset($data['criteria'], $data['questions'], $data['reviewers']);
+        $openCategories = $data['open_categories'] ?? null;
+        unset($data['criteria'], $data['questions'], $data['reviewers'], $data['open_categories']);
+
+        // مسابقة الطلاب: بنكها في مراحلها يُدار من صفحاتها (SaveStudentQuestion)، فلا يمسه بنك النموذج ولو وصل،
+        // ولا أعمال فيها (docs/plans/student-competition.md)
+        if ((bool) ($data['student_mode'] ?? $competition->student_mode)) {
+            $questions = null;
+            $data['work_types'] = null;
+        }
+
+        if (! $competition->exists) {
+            $data['created_by'] = $actor->id;
+        }
 
         if ($reviewers !== null) {
             $this->checkReviewers($competition, array_map('intval', $reviewers));
@@ -80,13 +98,14 @@ class SaveCompetition
         $media = $this->prepareMedia($competition, ['questions' => $questions ?? [], ...$data]);
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
+        $backgroundBefore = $competition->certificate_background;
 
         // الاختبار الإلكتروني بلا أعمال: حقلها مخفي في اللوحة فلا يصل، فتُفرَّغ هنا
         if ((bool) ($data['exam_mode'] ?? $competition->exam_mode)) {
             $data['work_types'] = null;
         }
 
-        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers): void {
+        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
@@ -99,7 +118,20 @@ class SaveCompetition
                 $this->checkLocks($locked, $requested);
             }
 
-            $competition->fill($data)->save();
+            $createdBy = $data['created_by'] ?? null;
+            unset($data['created_by']);
+            $competition->fill($data);
+
+            if ($createdBy !== null) {
+                $competition->created_by = (int) $createdBy;
+            }
+
+            $competition->save();
+
+            if ($openCategories !== null) {
+                $competition->openCategories()->sync(array_map('intval', $openCategories));
+            }
+
             if ($criteria !== null) {
                 $this->syncCriteria($competition, $criteria);
             }
@@ -125,6 +157,11 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
+
+        // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص
+        if (filled($backgroundBefore) && $backgroundBefore !== $competition->certificate_background) {
+            Storage::disk((string) config('filesystems.private_disk', 'local'))->delete((string) $backgroundBefore);
+        }
 
         return $competition->refresh();
     }
@@ -156,6 +193,11 @@ class SaveCompetition
             && $competition->submissions()->withTrashed()->exists()) {
             throw ValidationException::withMessages(['exam_mode' => __('competitions.exam_validation.exam_mode_locked')]);
         }
+
+        if (array_key_exists('student_mode', $data) && $competition->exists && (bool) $data['student_mode'] !== $competition->student_mode
+            && ($competition->submissions()->withTrashed()->exists() || $competition->rounds()->exists())) {
+            throw ValidationException::withMessages(['student_mode' => __('competitions.student.mode_locked')]);
+        }
     }
 
     /**
@@ -183,6 +225,10 @@ class SaveCompetition
             'intro_video_path' => ['nullable', 'string', 'max:255'],
             'work_types' => ['nullable', 'array', 'max:'.count(WorkType::cases())],
             'work_types.*' => ['distinct', Rule::enum(WorkType::class)],
+            'student_mode' => ['boolean'],
+            'certificate_background' => ['nullable', 'string', 'max:255', 'starts_with:'.self::CERTIFICATE_DIRECTORY.'/'],
+            'open_categories' => ['nullable', 'array', 'max:50'],
+            'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
 
             'reviewers' => ['nullable', 'array', 'max:200'],
             'reviewers.*' => ['integer', 'distinct'],
@@ -195,7 +241,7 @@ class SaveCompetition
 
             'questions' => ['nullable', 'array', 'max:200'],
             'questions.*.id' => ['nullable', 'integer', 'distinct'],
-            'questions.*.type' => ['required', Rule::enum(QuestionType::class)],
+            'questions.*.type' => ['required', Rule::enum(QuestionType::class)->only(QuestionType::classic())],
             'questions.*.prompt' => ['required', 'string', 'max:2000'],
             'questions.*.is_required' => ['boolean'],
             'questions.*.options' => ['nullable', 'array', 'max:'.count(self::OPTION_KEYS)],
@@ -258,6 +304,11 @@ class SaveCompetition
         }
 
         $this->checkExam($validator, $competition, $data, $questions);
+
+        // نوع واحد للمسابقة: الاختبار الإلكتروني ومسابقة الطلاب لا يجتمعان
+        if ((bool) ($data['exam_mode'] ?? $competition->exam_mode) && (bool) ($data['student_mode'] ?? $competition->student_mode)) {
+            $validator->errors()->add('student_mode', __('competitions.student.one_mode'));
+        }
 
         $hasQuestions = array_key_exists('questions', $data) ? $questions !== [] : $competition->exists && $competition->questions()->exists();
 

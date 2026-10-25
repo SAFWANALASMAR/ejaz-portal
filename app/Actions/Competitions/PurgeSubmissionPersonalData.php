@@ -69,6 +69,10 @@ class PurgeSubmissionPersonalData
                 'contact_email' => null,
                 'national_id' => null,
                 'national_id_hash' => null,
+                // بيانات تسجيل مسابقة الطلاب (plans/student-competition.md)
+                'guardian_phone' => null,
+                'grade' => null,
+                'extra' => null,
             ])->save();
 
             activity('competitions')->performedOn($locked)
