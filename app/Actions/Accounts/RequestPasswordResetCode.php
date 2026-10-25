@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
+use function Illuminate\Support\defer;
+
 /**
  * طلب رمز استعادة كلمة المرور بالجوال (قرار صفوان، 20 أكتوبر 2026). الرمز إلى رقم موثق في حساب نشط وحده، وبحدود رمز
  * التوثيق نفسها (SendPhoneVerificationCode: لكل حساب، ولكل رقم، ولكل شبكة، وسقف البوابة).
@@ -37,13 +39,17 @@ class RequestPasswordResetCode
             ->where('is_active', true)
             ->first();
 
+        // الإرسال بعد الرد (defer): قفل الرمز وفحص الحدود وكتابة الذاكرة تجري للرقم المسجل وحده، فلو جرت قبل الرد لفرق
+        // توقيته بين رقم مسجل وغيره. والرسالة نفسها في الطابور أصلاً (SendSms)
         if ($user !== null) {
-            try {
-                $this->send->handle($user, SendPhoneVerificationCode::RESET);
-            } catch (ValidationException $limited) {
-                // حد بُلغ: لا يُكشف للطالب، فيبقى الرد واحداً
-                Log::info('Password reset code not sent.', ['user_id' => $user->id, 'reason' => array_key_first($limited->errors())]);
-            }
+            defer(function () use ($user): void {
+                try {
+                    $this->send->handle($user, SendPhoneVerificationCode::RESET);
+                } catch (ValidationException $limited) {
+                    // حد بُلغ: لا يُكشف للطالب، فيبقى الرد واحداً
+                    Log::info('Password reset code not sent.', ['user_id' => $user->id, 'reason' => array_key_first($limited->errors())]);
+                }
+            });
         }
 
         return $normalized;

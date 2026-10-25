@@ -9,6 +9,10 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
+use function Livewire\invade;
 
 /*
 | مصفوفة الصلاحيات الكاملة (قرار صفوان، 20 أكتوبر 2026 — البند ٥ من مهمة تشديد الدخول): كل حالة (زائر وكل دور من الأدوار)
@@ -197,3 +201,62 @@ it('answers 404 on the unused Filament import route instead of a database error'
     $this->get('/filament/imports/1/failed-rows/download')->assertNotFound();
     $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/filament/imports/1/failed-rows/download')->assertNotFound();
 });
+
+it('limits the import 404 to the Filament route, leaving any other {import} parameter to its usual binding', function () {
+    Router::middleware('web')->get('/test-import-param/{import}', fn (string $import) => 'got '.$import)->name('test.import-param');
+
+    $this->get('/test-import-param/abc')->assertOk()->assertSee('got abc');
+});
+
+// محاولات الكتابة في اللوحة لكل دور بـ Livewire (مراجعة المشرف على #64): شاشة الإنشاء وشاشة التعديل لكل مورد، على سجل
+// حقيقي من مصنعه. والمتوقع من خانات السياسات في الملف المراجَع (c وu)، لا من سلوك الشيفرة: ما لا يحق للدور لا تُفتح
+// شاشته (403 أو 404)، فلا يصل إلى «حفظ» ولا «حذف»، والسجل كما هو. وما يحق له يُفتح، شاهداً على أن الرفض من الصلاحية.
+it('refuses or allows each panel create and edit screen to each role exactly as the reviewed policies say', function (RoleName $role) {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $records = roleMatrixRecords();
+    $saved = json_decode((string) file_get_contents(ROLE_MATRIX_FILE), true)[$role->value]['policies'];
+    $this->actingAs(userWithRole($role));
+    $wrong = [];
+    $checked = 0;
+
+    foreach (Filament::getPanel('admin')->getResources() as $resource) {
+        $model = $resource::getModel();
+        $record = $records[$model] ?? null;
+        $policy = $saved[class_basename($model)] ?? null;
+
+        if ($record === null || $policy === null) {
+            continue;
+        }
+
+        $before = $record->fresh()?->getAttributes();
+
+        foreach (['create' => 'c', 'edit' => 'u'] as $name => $letter) {
+            $page = ($resource::getPages()[$name] ?? null)?->getPage();
+
+            if ($page === null) {
+                continue;
+            }
+
+            $allowed = str_contains($policy, $letter);
+            $checked++;
+
+            try {
+                $status = invade(Livewire::test($page, $name === 'edit' ? ['record' => $record->getRouteKey()] : []))->lastState->getResponse()->status();
+            } catch (Throwable $exception) {
+                $status = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 500;
+            }
+
+            if ($allowed ? $status !== 200 : ! in_array($status, [403, 404], true)) {
+                $wrong[class_basename($page)] = ['policy' => $policy, 'status' => $status];
+            }
+        }
+
+        if ($record->fresh()?->getAttributes() != $before) {
+            $wrong[class_basename($model).' changed'] = true;
+        }
+    }
+
+    // كل مورد له سجل وشاشة، لا مرور فارغ
+    expect($checked)->toBeGreaterThan(40)
+        ->and($wrong)->toBe([]);
+})->with(fn () => array_map(fn (RoleName $role) => [$role], RoleName::cases()));

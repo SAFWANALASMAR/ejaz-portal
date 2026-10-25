@@ -29,17 +29,21 @@ class VerifyPhoneCode
      * يستهلك الرمز لغرضه (توثيق الجوال أو استعادة كلمة المرور — ResetPasswordByPhone): صحيح فيُحذف، فلا يصلح مرة ثانية،
      * وخاطئ فتُعدّ المحاولة، والخامسة تبطله. داخل قفل لكل مستخدم وغرض. ورسائل الخطأ بمفاتيح الغرض نفسه.
      *
+     * و$beforeConsume يجري بعد ثبوت صحة الرمز وقبل استهلاكه، داخل القفل: ما يرميه يُبقي الرمز صالحاً بلا عدّ محاولة.
+     * فالاستعادة تفحص كلمة المرور فيه، فلا يرى رد كلمة المرور إلا من يملك الرمز.
+     *
      * @param  array{expired: string, invalid: string, busy: string}|null  $messages
+     * @param  (callable(): void)|null  $beforeConsume
      *
      * @throws ValidationException
      */
-    public function consume(User $user, string $code, string $purpose, ?array $messages = null): void
+    public function consume(User $user, string $code, string $purpose, ?array $messages = null, ?callable $beforeConsume = null): void
     {
         $messages ??= ['expired' => __('account.phone.expired'), 'invalid' => __('account.phone.invalid'), 'busy' => __('account.phone.busy')];
 
         try {
             Cache::lock('phone-otp-verify:'.($purpose === SendPhoneVerificationCode::VERIFY ? '' : $purpose.':').$user->id, 10)
-                ->block((int) config('security.otp_lock_wait_seconds'), fn () => $this->check($user, $code, $purpose, $messages));
+                ->block((int) config('security.otp_lock_wait_seconds'), fn () => $this->check($user, $code, $purpose, $messages, $beforeConsume));
         } catch (LockTimeoutException) {
             throw ValidationException::withMessages(['code' => $messages['busy']]);
         }
@@ -47,8 +51,9 @@ class VerifyPhoneCode
 
     /**
      * @param  array{expired: string, invalid: string, busy: string}  $messages
+     * @param  (callable(): void)|null  $beforeConsume
      */
-    private function check(User $user, string $code, string $purpose, array $messages): void
+    private function check(User $user, string $code, string $purpose, array $messages, ?callable $beforeConsume): void
     {
         $key = SendPhoneVerificationCode::cacheKey($user, $purpose);
         $entry = Cache::get($key);
@@ -67,6 +72,10 @@ class VerifyPhoneCode
             Cache::put($key, $entry, Carbon::createFromTimestamp($entry['expires_at']));
 
             throw ValidationException::withMessages(['code' => $messages['invalid']]);
+        }
+
+        if ($beforeConsume !== null) {
+            $beforeConsume();
         }
 
         Cache::forget($key);

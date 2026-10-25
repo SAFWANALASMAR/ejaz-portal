@@ -30,8 +30,10 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules($user->name, $user->email, $user->phone),
         ])->validate();
 
+        // كلمة المرور الجديدة تطابق السياسة، فتُرفع مطالبة التغيير (RequirePasswordUpgrade)
         $user->forceFill([
             'password' => Hash::make($input['password']),
+            'password_upgrade_required_at' => null,
         ])->save();
 
         $user->notify(new PasswordChanged);

@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * تعيين كلمة مرور جديدة برمز الجوال (قرار صفوان، 20 أكتوبر 2026): الرمز ستة أرقام، صالح عشر دقائق، لمرة واحدة، ويُبطل
- * بعد خمس محاولات خاطئة (VerifyPhoneCode::consume). وكلمة المرور تُفحص بالسياسة قبل استهلاك الرمز، فلا يضيع الرمز
- * بكلمة مرور مرفوضة.
+ * بعد خمس محاولات خاطئة (VerifyPhoneCode::consume). والرمز يُفحص أولاً، ثم كلمة المرور بالسياسة، ثم يُستهلك الرمز:
+ * فلا يرى رد كلمة المرور إلا من يملك الرمز، ولا يضيع الرمز بكلمة مرور مرفوضة.
  *
  * بعد التعيين: ينبَّه صاحب الحساب (ResetUserPassword)، ويتجدد رمز «تذكّرني»، وتنتهي جلساته الأخرى ببصمة كلمة المرور
  * (AuthenticateSession)، ولا دخول تلقائي، فيبقى التحقق الثنائي على حسابات اللوحة. والرقم بلا حساب يرد الرسائل نفسها
@@ -28,11 +28,12 @@ class ResetPasswordByPhone
     public function __construct(private VerifyPhoneCode $verify, private ResetUserPassword $reset) {}
 
     /**
-     * يظهر خيار الجوال متى كانت الرسائل النصية جاهزة من اللوحة. وخارج الإنتاج يعمل بمشغّل log للتطوير والاختبار.
+     * يظهر خيار الجوال متى كانت الرسائل النصية جاهزة من اللوحة. وفي التطوير والاختبار وحدهما يعمل بمشغّل log، لا في أي
+     * بيئة غير الإنتاج: فالخادم التجريبي العام كالإنتاج (مراجعة المشرف على #64).
      */
     public static function available(): bool
     {
-        return MessagingSettings::ready('sms') || ! app()->isProduction();
+        return MessagingSettings::ready('sms') || app()->environment('local', 'testing');
     }
 
     /**
@@ -62,9 +63,12 @@ class ResetPasswordByPhone
             $this->refuseUnknown($phone, $messages);
         }
 
-        Validator::make($input, ['password' => PasswordPolicy::rules($user->name, $user->email, $user->phone)])->validate();
-
-        $this->verify->consume($user, (string) $input['code'], SendPhoneVerificationCode::RESET, $messages);
+        // الرمز أولاً ثم كلمة المرور: لا يصل إلى قواعدها (الاسم والبريد وفحص التسريب الخارجي) إلا من يملك الرمز، فلا
+        // يفرق ردها ولا توقيتها بين رقم مسجل وغيره. وكلمة المرور المرفوضة لا تستهلك الرمز ولا تعدّ محاولة
+        $this->verify->consume($user, (string) $input['code'], SendPhoneVerificationCode::RESET, $messages,
+            function () use ($input, $user): void {
+                Validator::make($input, ['password' => PasswordPolicy::rules($user->name, $user->email, $user->phone)])->validate();
+            });
 
         $this->reset->reset($user, [
             'password' => (string) $input['password'],

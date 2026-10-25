@@ -1,7 +1,7 @@
 <?php
 
+use App\Actions\Fortify\ResetUserPassword;
 use App\Enums\RoleName;
-use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Models\User;
 use App\Notifications\PasswordChanged;
 use Illuminate\Support\Facades\Hash;
@@ -113,7 +113,7 @@ it('asks an existing account with a weak password to change it before anything e
 
     $this->post('/login', ['login' => 'old-weak@example.test', 'password' => 'oldpassword10'])->assertRedirect();
     $this->assertAuthenticatedAs($user);
-    expect(session(RequirePasswordUpgrade::SESSION_KEY))->toBeTrue();
+    expect($user->fresh()->password_upgrade_required_at)->not->toBeNull();
 
     $this->get('/account')->assertRedirect(route('account.profile').'#password')->assertSessionHas('status', __('account.password_rules.upgrade_required'));
     $this->get('/account/requests')->assertRedirect(route('account.profile').'#password');
@@ -122,16 +122,16 @@ it('asks an existing account with a weak password to change it before anything e
     $this->put('/user/password', ['current_password' => 'oldpassword10', 'password' => 'New-Strong-Pass-2026', 'password_confirmation' => 'New-Strong-Pass-2026'])
         ->assertSessionHasNoErrors();
 
-    expect(session(RequirePasswordUpgrade::SESSION_KEY))->toBeNull();
+    expect($user->fresh()->password_upgrade_required_at)->toBeNull();
     $this->get('/account')->assertOk();
 });
 
 it('lets an existing account with a password that meets the policy in without asking', function () {
-    User::factory()->create(['email' => 'old-strong@example.test', 'password' => 'Already-Strong-Pass-2026']);
+    $user = User::factory()->create(['email' => 'old-strong@example.test', 'password' => 'Already-Strong-Pass-2026']);
 
     $this->post('/login', ['login' => 'old-strong@example.test', 'password' => 'Already-Strong-Pass-2026']);
 
-    expect(session(RequirePasswordUpgrade::SESSION_KEY))->toBeNull();
+    expect($user->fresh()->password_upgrade_required_at)->toBeNull();
     $this->get('/account')->assertOk();
 });
 
@@ -147,4 +147,35 @@ it('keeps the request through two-factor, and asks a panel account before the pa
     // و«الأمان» (التحقق الثنائي) يُفتح، بتأكيد كلمة المرور كعادته لا بالمطالبة
     $this->get('/account/security')->assertRedirect(route('password.confirm'));
     $this->get('/account/profile')->assertOk();
+});
+
+it('keeps asking on a remember me return and on other sessions, since the request is on the account', function () {
+    $user = User::factory()->create(['email' => 'remembered-weak@example.test', 'password' => 'oldpassword10']);
+
+    $this->post('/login', ['login' => 'remembered-weak@example.test', 'password' => 'oldpassword10', 'remember' => '1']);
+
+    // جلسة جديدة بلا شيء من الأولى، كعودة «تذكّرني» أو جهاز آخر
+    $this->flushSession();
+    auth()->forgetGuards();
+    $this->actingAs($user->fresh())->get('/account')->assertRedirect(route('account.profile').'#password');
+});
+
+it('does not carry the request to another account signed in within the same session', function () {
+    User::factory()->withTwoFactor()->create(['email' => 'weak-first@example.test', 'password' => 'password']);
+    $other = User::factory()->create(['email' => 'strong-second@example.test', 'password' => 'Already-Strong-Pass-2026']);
+
+    // الأول يقف عند التحقق الثنائي، ثم يدخل الثاني في الجلسة نفسها
+    $this->post('/login', ['login' => 'weak-first@example.test', 'password' => 'password'])->assertRedirect('/two-factor-challenge');
+    $this->post('/login', ['login' => 'strong-second@example.test', 'password' => 'Already-Strong-Pass-2026']);
+
+    $this->assertAuthenticatedAs($other);
+    $this->get('/account')->assertOk();
+});
+
+it('clears the request when the password is reset', function () {
+    $user = User::factory()->create(['password' => 'oldpassword10', 'password_upgrade_required_at' => now()]);
+
+    app(ResetUserPassword::class)->reset($user, ['password' => 'Reset-Strong-Pass-2026', 'password_confirmation' => 'Reset-Strong-Pass-2026']);
+
+    expect($user->fresh()->password_upgrade_required_at)->toBeNull();
 });

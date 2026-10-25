@@ -37,7 +37,8 @@ class SendPhoneVerificationCode
 
     /**
      * غرض الرمز: توثيق الجوال، أو استعادة كلمة المرور به (ResetPasswordByPhone، قرار صفوان 20 أكتوبر 2026). لكل غرض
-     * مفتاح رمزه ونص رسالته، والحدود كلها مشتركة بينهما، فلا يُضاعف الغرض الثاني ما يُرسل إلى رقم أو من شبكة.
+     * مفتاح رمزه ونص رسالته. وحدود الحساب والرقم لكل غرض وحده (مراجعة المشرف على #64): فمن يعرف الرقم ويستنزف رموز الاستعادة
+     * لا يحرم صاحبه رمز التوثيق. وحدود الشبكة وسقف البوابة مشتركة بينهما، فلا يُضاعف الغرض الثاني ما يُرسل من شبكة.
      */
     public const VERIFY = 'verify';
 
@@ -67,8 +68,11 @@ class SendPhoneVerificationCode
             throw ValidationException::withMessages(['code' => __('account.phone.not_saudi')]);
         }
 
+        // الاستعادة بمفاتيح مستقلة، والتوثيق بمفاتيحه القائمة كما هي
+        $scope = $purpose === self::RESET ? 'reset:' : '';
+
         foreach ([['otp-minute:', 1], ['otp-hour:', 5]] as [$prefix, $max]) {
-            $key = $prefix.$user->id;
+            $key = $prefix.$scope.$user->id;
 
             if (RateLimiter::tooManyAttempts($key, $max)) {
                 throw ValidationException::withMessages([
@@ -78,7 +82,7 @@ class SendPhoneVerificationCode
         }
 
         // مفتاح الرقم ببصمته، فلا يُخزَّن الرقم نصاً في مفاتيح الحدود
-        $number = (string) LoginIdentifier::hash($phone);
+        $number = $scope.LoginIdentifier::hash($phone);
 
         foreach (self::NUMBER_LIMITS as [$prefix, $max]) {
             if (RateLimiter::tooManyAttempts($prefix.$number, $max)) {
@@ -114,8 +118,8 @@ class SendPhoneVerificationCode
             throw ValidationException::withMessages(['code' => __('account.phone.unavailable')]);
         }
 
-        RateLimiter::hit('otp-minute:'.$user->id, 60);
-        RateLimiter::hit('otp-hour:'.$user->id, 3600);
+        RateLimiter::hit('otp-minute:'.$scope.$user->id, 60);
+        RateLimiter::hit('otp-hour:'.$scope.$user->id, 3600);
 
         foreach (self::NUMBER_LIMITS as [$prefix, , $decay]) {
             RateLimiter::hit($prefix.$number, $decay);

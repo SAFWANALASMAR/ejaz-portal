@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     protected $attributes = [
         'is_active' => true,
+        'password_upgrade_required_at' => null,
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'deletion_requested_at' => 'datetime',
             'anonymized_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
+            'password_upgrade_required_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];

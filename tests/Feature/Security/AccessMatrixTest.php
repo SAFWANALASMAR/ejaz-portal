@@ -89,9 +89,11 @@ it('answers 403 to an ordinary member on every admin panel screen and Horizon', 
     expect($wrong)->toBe([]);
 });
 
-it('never opens the records of one member to another, by uuid or by signed link, and opens each to its owner', function () {
+// لكل دور، لا للمستفيد وحده (مراجعة المشرف على #64): طلب المستفيد وملفه وشهادته ونموذجه وعمله في المسابقة لا تُفتح ولا تُعدَّل
+// من مسارات حسابه لأحد غيره، ولو كان مشرفاً عاماً، فمكان الإدارة اللوحة بصلاحياتها وسجلها
+it('never opens the records of one member to another role, by uuid or by signed link, and opens each to its owner', function (RoleName $role) {
     $victim = userWithRole(RoleName::Member);
-    $attacker = userWithRole(RoleName::Member);
+    $attacker = userWithRole($role);
 
     $request = ServiceRequest::factory()->create(['user_id' => $victim->id, 'files' => ['cv' => ['path' => storedPrivateFile('service-requests'), 'name' => 'cv.pdf', 'size' => 100]]]);
     $registration = ProgramRegistration::factory()->create(['user_id' => $victim->id, 'attended_at' => now(), 'certificate_path' => storedPrivateFile('certificates')]);
@@ -121,7 +123,7 @@ it('never opens the records of one member to another, by uuid or by signed link,
     expect($request->fresh()->answers)->not->toBe(['about' => 'x'])
         ->and($registration->fresh()->status)->toBe($registration->status)
         ->and(SubmissionWork::query()->whereKey($work->id)->exists())->toBeTrue();
-});
+})->with(fn () => array_map(fn (RoleName $role) => [$role], RoleName::cases()));
 
 // عضو في الجمعية العمومية يجتاز بوابة المنطقة، فيُختبر فحص السجل نفسه: اجتماع المجلس وملفه لا يُفتحان له ولو بتوقيع
 // صالح، واجتماع الجمعية وملفها يُفتحان. وملف وظيفة لموظف بلا صلة بها، وصاحب الوظيفة يصل إليه

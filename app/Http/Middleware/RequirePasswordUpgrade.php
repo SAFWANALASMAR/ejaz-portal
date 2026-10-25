@@ -7,15 +7,17 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * حساب قائم كلمة مروره لا تطابق السياسة الجديدة (PasswordPolicy) يُطالَب بتغييرها: علامة في الجلسة يضعها الدخول
- * (FortifyServiceProvider::authenticate)، فلا يُفتح إلا «بياناتي» لتغييرها وما يلزمه والخروج، في الموقع واللوحة.
- * وتُرفع العلامة بعد التغيير (UpdateUserPassword). فلا تُكسر الحسابات القائمة، ولا تبقى على كلمة مرور ضعيفة
- * (قرار صفوان، 20 أكتوبر 2026).
+ * حساب قائم كلمة مروره لا تطابق السياسة الجديدة (PasswordPolicy) يُطالَب بتغييرها: علامة على الحساب
+ * (password_upgrade_required_at) يضعها الدخول بكلمة المرور (FortifyServiceProvider::authenticate)، فلا يُفتح إلا «بياناتي»
+ * لتغييرها وما يلزمه والخروج، في الموقع واللوحة. وتُرفع بعد التغيير أو الاستعادة (UpdateUserPassword وResetUserPassword).
+ * فلا تُكسر الحسابات القائمة، ولا تبقى على كلمة مرور ضعيفة (قرار صفوان، 20 أكتوبر 2026).
+ *
+ * والعلامة على الحساب لا في الجلسة (مراجعة المشرف على #64، 25 أكتوبر 2026): تبقى مع دخول «تذكّرني» وجلساته الأخرى، ولا
+ * تنتقل إلى حساب آخر يدخل في الجلسة نفسها. والحساب الذي لم يدخل بكلمة مروره منذ النشر لا تُعرف قوتها، فيُطالَب عند أول
+ * دخول بها (decisions.md).
  */
 class RequirePasswordUpgrade
 {
-    public const SESSION_KEY = 'auth.password_upgrade';
-
     /**
      * ما يُفتح والمطالبة قائمة: «بياناتي» وفيها نموذج تغيير كلمة المرور، وتغييرها، و«الأمان» وتأكيد كلمة المرور
      * والتحقق الثنائي فيه (شرط اللوحة)، والخروج.
@@ -24,7 +26,7 @@ class RequirePasswordUpgrade
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->hasSession() || ! $request->session()->get(self::SESSION_KEY) || $request->user() === null || $request->routeIs(...self::ALLOWED)) {
+        if ($request->user()?->password_upgrade_required_at === null || $request->routeIs(...self::ALLOWED)) {
             return $next($request);
         }
 

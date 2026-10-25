@@ -65,7 +65,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(
                 is_string($input['name'] ?? null) ? $input['name'] : null,
                 $input['email'],
-                is_string($input['phone']) ? $input['phone'] : null,
+                is_string($input['phone'] ?? null) ? $input['phone'] : null,
             ),
             'privacy' => ['accepted'],
         ], [
@@ -77,7 +77,8 @@ class CreateNewUser implements CreatesNewUsers
             $taken = $validator->failed();
 
             if (isset($taken['email']['Unique']) || isset($taken['phone']['Unique'])) {
-                self::hit($limits);
+                // تُحسب في حدود المشترك والجهاز والشبكة، لا في سقف البوابة: وإلا أوقف من يجرّب بُرُداً مستخدمة التسجيلَ للجميع
+                self::hit(array_diff_key($limits, ['register:all' => true]));
                 self::noticeOwner($input['email']);
                 self::mergeTaken($validator);
             }

@@ -20,6 +20,7 @@ use App\Services\Messaging\ProviderHttp;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Support\Assistant\CurrentPage;
 use App\Support\TeamsConnection;
+use App\Support\Visits;
 use Filament\Facades\Filament;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
@@ -205,9 +206,19 @@ it('keeps GET pages, the visit counter and the session working with a broken que
     app('session')->forgetDrivers();
     $broken = ['User-Agent' => "Mozilla/5.0 \xFF\xC3\x28"];
 
+    $pages = 0;
     foreach (['/?utm=%FF', '/media/news?q=%FF', '/library?q=%C3%28', '/programs?type=%FF', '/contact?x=%FF'] as $uri) {
-        expect($this->withHeaders($broken)->get($uri)->getStatusCode())->toBeIn([200, 302], $uri);
+        $status = $this->withHeaders($broken)->get($uri)->getStatusCode();
+        expect($status)->toBeIn([200, 302], $uri);
+        $pages += $status === 200 ? 1 : 0;
     }
+
+    // والعدّاد كتب فعلاً، لا رمز الحالة وحده (مراجعة المشرف على #64): مشاهدة لكل صفحة ردت 200، وزائر واحد بالوكيل المكسور
+    Visits::persist();
+    $today = DB::table('daily_visits')->where('date', Visits::today())->first();
+    expect($pages)->toBeGreaterThan(0)
+        ->and((int) $today?->views)->toBe($pages)
+        ->and((int) $today?->visitors)->toBe(1);
 
     $user = User::factory()->create(['password' => 'Keep-Session-Pass-2026']);
     $cookie = config('session.cookie');
@@ -218,6 +229,23 @@ it('keeps GET pages, the visit counter and the session working with a broken que
     app('auth')->forgetGuards();
     app('session')->forgetDrivers();
     $this->flushHeaders()->withUnencryptedCookie($cookie, $session)->get('/account')->assertOk();
+});
+
+// وسجل النشاط من طلب GET: دخول «تذكّرني» بوكيل مكسور يكتب حدث الدخول بوكيل منقّى، والجلسة الجديدة تعمل
+it('writes the remember me sign-in to the security log from a GET with a broken user agent', function () {
+    $user = User::factory()->create(['password' => 'Keep-Session-Pass-2026']);
+    $recaller = $this->post('/login', ['login' => $user->email, 'password' => 'Keep-Session-Pass-2026', 'remember' => '1'])
+        ->getCookie(auth()->guard()->getRecallerName(), false)->getValue();
+    Activity::query()->delete();
+
+    $this->flushSession();
+    app('auth')->forgetGuards();
+    $this->withHeaders(['User-Agent' => "Mozilla/5.0 \xFF\xC3\x28"])->withUnencryptedCookie(auth()->guard()->getRecallerName(), $recaller)
+        ->get('/account?x=%FF')->assertOk();
+
+    $login = Activity::query()->where('event', ActivityEvent::Login->value)->whereMorphedTo('subject', $user)->sole();
+    expect(mb_check_encoding((string) data_get($login->properties, 'agent'), 'UTF-8'))->toBeTrue()
+        ->and((string) data_get($login->properties, 'agent'))->toStartWith('Mozilla/5.0');
 });
 
 // أنماط مضمّنة (style="") في قوالب اللوحة المضافة (recent-logs وstats-analysis) تمر من CSP في الإنتاج: style-src فيه
