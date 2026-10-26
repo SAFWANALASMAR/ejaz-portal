@@ -17,7 +17,6 @@ use App\Http\Responses\NeutralPasswordResetResponse;
 use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
-use App\Services\BotChallenge\TurnstileChallenge;
 use App\Support\NetworkPrefix;
 use App\Support\PasswordPolicy;
 use App\Support\SchoolNetworkLimits;
@@ -180,8 +179,7 @@ class FortifyServiceProvider extends ServiceProvider
         // وبدء الرفع (ومنه المباشر إلى التخزين) يُحدّ في AppServiceProvider
         RateLimiter::for('uploads', fn (Request $request): array|Limit => UploadLimits::for($request, 'uploads') ?: Limit::none());
 
-        // ومع Turnstile مضبوطاً يصير الحد تحدياً حتى سقفه (TurnstileChallenge::ceiling)، فالنموذجان يحلان التحدي قبل المتحكم
-        RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour(TurnstileChallenge::ceiling((int) config('security.password_reset_per_subscriber_per_hour')))
+        RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour((int) config('security.password_reset_per_subscriber_per_hour'))
             ->by('password-reset:'.NetworkPrefix::subscriber($request->ip())));
 
         // تعيين كلمة المرور برمز الرابط: لكل بريد وعنوان، ولكل مشترك سقف أرحب يتسع أيام اختبار مسابقة الطلاب

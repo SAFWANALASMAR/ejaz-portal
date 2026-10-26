@@ -31,8 +31,9 @@ final class TurnstileChallenge implements BotChallenge
     }
 
     /**
-     * حد المحاولات لكل عنوان أو حساب (قرار صفوان، 26 أكتوبر 2026): مع Turnstile مضبوطاً يصير بلوغه تحدياً لا حجباً، فمن
-     * يحل التحدي يتابع حتى سقف أعلى (BOT_CHALLENGE_CEILING_FACTOR ضعفاً) يعود عنده الحجب. وبلا مفتاحيه يبقى الحد كما هو.
+     * حد محاولات الدخول لكل عنوان أو حساب (قرار صفوان، 26 أكتوبر 2026): مع Turnstile مضبوطاً يصير بلوغه تحدياً لا حجباً،
+     * فمن حل التحدي في طلبه (VerifyBotChallenge::PASSED) يتابع حتى سقف أعلى (BOT_CHALLENGE_CEILING_FACTOR ضعفاً) يعود
+     * عنده الحجب. وبلا مفتاحيه يبقى الحد كما هو. ولا يُطبَّق على حد طلبات الاستعادة، لأنه يحمي كلفة الرسائل.
      */
     public static function ceiling(int $max): int
     {
