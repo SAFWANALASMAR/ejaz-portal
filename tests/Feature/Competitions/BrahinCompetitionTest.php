@@ -563,3 +563,26 @@ it('keeps the ranking scope and prizes locked after the last branch is published
             'title' => $competition->title, 'slug' => 'brahin', 'opens_at' => $competition->opens_at, 'closes_at' => $competition->closes_at, 'ranking_scope' => 'category',
         ]))->toThrow(ValidationException::class);
 });
+
+// ── بعد دمج #67: خطوات النشر
+
+it('refreshes the cached round banks after a deploy, so a migration that renames a category is seen at once', function () {
+    studentQuestion($this->round);
+    $before = RoundQuestions::key($this->round->id);
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+
+    expect(RoundQuestions::key($this->round->id))->not->toBe($before);
+});
+
+it('backfills the ranking lock for competitions whose branches were all published before the column existed', function () {
+    $migration = require database_path('migrations/2026_10_27_100300_backfill_competition_ranking_locked_at.php');
+    $published = now()->subDay()->startOfSecond();
+    $this->round->forceFill(['results_published_at' => $published])->save();
+    $open = Competition::factory()->student()->create(['slug' => 'still-running']);
+
+    $migration->up();
+
+    expect($this->competition->fresh()->ranking_locked_at?->equalTo($published))->toBeTrue()
+        ->and($open->fresh()->ranking_locked_at)->toBeNull();
+});
