@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\SubmitExam;
 use App\Contracts\WhatsAppNotifier;
 use App\Enums\EducationStage;
@@ -391,4 +392,13 @@ it('shows a closed exam as closed, and refuses its steps', function () {
 
     $this->get('/competitions/exam/exam')->assertOk()->assertSee(__('competitions.exam.closed'));
     $this->postJson('/competitions/exam/exam/intro/start')->assertForbidden();
+});
+
+it('leaves the draft exam answers out of the personal data export (cloud review, low 4)', function () {
+    examReachQuestions();
+    $first = $this->questions->first();
+    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => examToken($first->id, 'b'), 'go' => 'next']);
+
+    expect(examSubmission()->answers)->toBe([(string) $first->id => 'b'])
+        ->and(app(ExportUserData::class)->handle($this->applicant->fresh())['competition_submissions'][0]['answers'])->toBeNull();
 });
