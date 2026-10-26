@@ -84,17 +84,30 @@ final class AttemptLayout
 
     /**
      * null إن كان بنك الفئة جاهزاً، وإلا أقصى عدد ممكن منه دون العدد، أو -1 لبنك أكبر بدرجات مختلفة.
+     *
+     * يُحسب مرة ويُخزَّن كـ mixedMaxScores، لا مع كل بدء اختبار (اختبار التحمل: كان كل بدء يبني البنك من الذاكرة
+     * المؤقتة مرة ثانية ويعيد البرمجة الديناميكية): المفتاح بإصدار بنك المرحلة وعددها والفئة. والقيمة داخل مصفوفة،
+     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز).
      */
     public static function shortfall(CompetitionRound $round, int $categoryId): ?int
     {
-        $bank = self::bank($round, $categoryId);
-        $reachable = self::reachable(self::units($bank), $round->question_count);
+        /** @var array{0: int|null} $result */
+        $result = Cache::remember(
+            'competition-round-shortfall:'.RoundQuestions::key($round->id).':'.$round->question_count.':'.$categoryId,
+            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
+            function () use ($round, $categoryId): array {
+                $bank = self::bank($round, $categoryId);
+                $reachable = self::reachable(self::units($bank), $round->question_count);
 
-        return match (true) {
-            ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
-            $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
-            default => null,
-        };
+                return [match (true) {
+                    ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
+                    $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
+                    default => null,
+                }];
+            },
+        );
+
+        return $result[0];
     }
 
     /**
