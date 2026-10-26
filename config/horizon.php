@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AdminIdleTimeout;
 use Illuminate\Support\Str;
 
 return [
@@ -83,7 +84,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // ومهلة خمول اللوحة وسقفها المطلق، فلا تفتح جلسة الموقع (120 دقيقة) Horizon بعد خمول اللوحة (الاختبار الأمني 0.14.0)
+    'middleware' => ['web', AdminIdleTimeout::class],
 
     /*
     |--------------------------------------------------------------------------

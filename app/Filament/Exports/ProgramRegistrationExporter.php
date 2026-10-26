@@ -2,10 +2,10 @@
 
 namespace App\Filament\Exports;
 
+use App\Filament\Exports\Concerns\XlsxOnly;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Support\SaudiPhone;
-use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -16,6 +16,8 @@ use Filament\Actions\Exports\Models\Export;
  */
 class ProgramRegistrationExporter extends Exporter
 {
+    use XlsxOnly;
+
     protected static ?string $model = ProgramRegistration::class;
 
     public static function getColumns(): array
@@ -38,11 +40,6 @@ class ProgramRegistrationExporter extends Exporter
     public function getFileDisk(): string
     {
         return (string) config('filesystems.private_disk', 'local');
-    }
-
-    public function getFormats(): array
-    {
-        return [ExportFormat::Xlsx];
     }
 
     public static function getCompletedNotificationBody(Export $export): string

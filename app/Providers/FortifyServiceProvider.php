@@ -89,7 +89,8 @@ class FortifyServiceProvider extends ServiceProvider
             return null;
         }
 
-        if (! $user->is_active || ! Hash::check($password, $user->password)) {
+        // التجزئة قبل حالة الحساب، فلا يرد الموقوف أسرع بزمن تجزئة كامل (الاختبار الأمني 0.14.0)
+        if (! Hash::check($password, $user->password) || ! $user->is_active) {
             return null;
         }
 
