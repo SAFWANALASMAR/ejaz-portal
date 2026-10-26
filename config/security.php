@@ -58,6 +58,10 @@ return [
     'login_failures_per_minute' => (int) env('LOGIN_FAILURES_PER_MINUTE', 1200),
     'login_attempts_per_subscriber_per_minute' => (int) env('LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 300),
 
+    // مع Turnstile مضبوطاً يصير بلوغ حدود الدخول (لكل حساب ومعرّف وعنوان) وحد طلبات الاستعادة لكل عنوان تحدياً لا حجباً،
+    // حتى هذا الضعف من الحد فيعود الحجب (TurnstileChallenge::ceiling، قرار صفوان 26 أكتوبر 2026). وبلا مفتاحيه لا أثر له
+    'bot_challenge_ceiling_factor' => (int) env('BOT_CHALLENGE_CEILING_FACTOR', 5),
+
     // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),

@@ -3,6 +3,7 @@
 namespace App\Auth;
 
 use App\Models\User;
+use App\Services\BotChallenge\TurnstileChallenge;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use App\Support\SchoolNetworkLimits;
@@ -35,7 +36,12 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
      */
     protected function limits(Request $request): array
     {
-        return $this->accountLimits($request) + $this->networkLimits($request);
+        // وبلوغها مع Turnstile مضبوطاً تحدٍّ لا حجب، حتى السقف (TurnstileChallenge::ceiling): فلا يقفل طالبٌ حسابَ زميله
+        // ولا دخولَ مدرسته خلف عنوان واحد بمحاولات خاطئة متعمدة (المراجعة السحابية، م١ وم٢)
+        return array_map(
+            fn (array $limit): array => ['max' => TurnstileChallenge::ceiling($limit['max']), 'decay' => $limit['decay']],
+            $this->accountLimits($request) + $this->networkLimits($request),
+        );
     }
 
     /**

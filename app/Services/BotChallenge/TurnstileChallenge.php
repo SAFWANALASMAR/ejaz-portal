@@ -20,6 +20,25 @@ final class TurnstileChallenge implements BotChallenge
      */
     public function __construct(private string $siteKey, private string $secretKey, private ?string $hostname = null) {}
 
+    /**
+     * Turnstile مضبوط بمفتاحيه، فكل نموذج دخول وطلب استعادة يحل تحدياً قبل المتحكم (VerifyBotChallenge).
+     */
+    public static function configured(): bool
+    {
+        return config('services.bot_challenge.driver') === 'turnstile'
+            && (string) config('services.bot_challenge.turnstile_site_key') !== ''
+            && (string) config('services.bot_challenge.turnstile_secret_key') !== '';
+    }
+
+    /**
+     * حد المحاولات لكل عنوان أو حساب (قرار صفوان، 26 أكتوبر 2026): مع Turnstile مضبوطاً يصير بلوغه تحدياً لا حجباً، فمن
+     * يحل التحدي يتابع حتى سقف أعلى (BOT_CHALLENGE_CEILING_FACTOR ضعفاً) يعود عنده الحجب. وبلا مفتاحيه يبقى الحد كما هو.
+     */
+    public static function ceiling(int $max): int
+    {
+        return self::configured() ? $max * max(1, (int) config('security.bot_challenge_ceiling_factor')) : $max;
+    }
+
     public function siteKey(): string
     {
         return $this->siteKey;
