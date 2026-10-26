@@ -3,6 +3,7 @@
 namespace App\Actions\Accounts;
 
 use App\Enums\MeetingBody;
+use App\Enums\SubmissionStatus;
 use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\BodyMembership;
@@ -76,7 +77,9 @@ class ExportUserData
                     'reference' => $submission->reference,
                     'category' => $submission->category,
                     'region' => $submission->region?->value,
-                    'answers' => (array) $submission->answers,
+                    // ومسودة الاختبار الإلكتروني بلا إجاباتها: مفاتيح الخيارات بترتيب إدخال المسؤول، فتكشف رمز الخيار المعتم
+                    // أثناء الاختبار (المراجعة السحابية، ن٤)
+                    'answers' => $submission->competition->exam_mode && $submission->status === SubmissionStatus::Draft ? null : (array) $submission->answers,
                     'submitted_at' => $date($submission->submitted_at),
                     // وجود المقاطع وبياناتها، لا الملف نفسه (يُطلب من الجمعية)
                     'videos' => $submission->videos->map(fn (SubmissionVideo $video): array => [
@@ -105,14 +108,14 @@ class ExportUserData
                         'size_bytes' => $work->size,
                         'uploaded_at' => $date($work->created_at),
                     ])->all(),
-                    // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات)، والدرجة بعد نشر نتائج المرحلة وحدها
+                    // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات) بعد التسليم وحده، والدرجة بعد نشر نتائج المرحلة وحدها
                     'attempts' => $submission->attempts->map(fn (CompetitionAttempt $attempt): array => [
                         'round' => $attempt->round->name,
                         'reference' => $attempt->reference,
                         'status' => $attempt->status->value,
                         'started_at' => $date($attempt->started_at),
                         'submitted_at' => $date($attempt->submitted_at),
-                        'answers' => $attempt->answers,
+                        'answers' => $attempt->isInProgress() ? null : $attempt->answers,
                         'score' => $attempt->round->resultsPublished() ? (float) $attempt->score + (float) $attempt->essay_score : null,
                     ])->all(),
                 ])->all(),

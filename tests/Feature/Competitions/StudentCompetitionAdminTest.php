@@ -832,3 +832,40 @@ it('rolls the draws index back to unique only when no voided draw was redrawn', 
         ->and($indexes())->toContain('competition_draws_round_category_index')->not->toContain('competition_draws_round_category_unique')
         ->and(Schema::hasColumn('competition_attempts', 'question_count'))->toBeTrue();
 });
+
+it('leaves running attempts untouched when a round is saved without changing its end (cloud review, high 1)', function () {
+    studentQuestion($this->round);
+    $attempt = app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    // موعد مختلف عمّا يُحسب من البدء والمدة والنهاية، فأي إعادة حساب تغيّره
+    $attempt->forceFill(['deadline_at' => now()->addMinutes(7)->startOfSecond()])->save();
+    $deadline = $attempt->fresh()->deadline_at->timestamp;
+
+    $round = $this->round->fresh();
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => 'تصحيح حرف في الاسم', 'starts_at' => $round->starts_at, 'ends_at' => $round->ends_at,
+        'question_count' => $round->question_count, 'duration_minutes' => 30,
+    ]);
+
+    expect($attempt->fresh()->deadline_at->timestamp)->toBe($deadline);
+});
+
+it('keeps a cancelled registration out of the results table, their export and qualification (cloud review, medium 4)', function () {
+    studentQuestion($this->round);
+    $kept = submittedWithScore(1, 3);
+    $cancelled = submittedWithScore(2, 9);
+    app(CorrectStudentRegistration::class)->cancel($this->director, $cancelled->submission, 'انتحال اكتُشف بعد التسليم');
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    $this->actingAs($this->director);
+
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertCanSeeTableRecords([$kept])
+        ->assertCanNotSeeTableRecords([$cancelled]);
+
+    $rows = readXlsx(TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()))->streamedContent());
+    $score = array_search(__('competitions.student.admin.score'), $rows[0], true);
+
+    expect($rows)->toHaveCount(2)
+        ->and([$rows[1][0], $rows[1][$score]])->toBe(['1', '3'])
+        ->and(app(QualifyAttempts::class)->handle($this->director, $this->round, [$kept->id, $cancelled->id]))->toBe(1)
+        ->and($cancelled->fresh()->qualified_at)->toBeNull();
+});

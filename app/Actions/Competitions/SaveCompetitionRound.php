@@ -102,14 +102,14 @@ class SaveCompetitionRound
             ])->save();
 
             // مدّ النهاية يمدّ المحاولات الجارية التي قطعتها النهاية القديمة: الموعد أقرب البدء + المدة والنهاية الجديدة
-            // (مراجعة المشرف). والمسلَّمة لا تتغير
-            foreach ($round->attempts()->where('status', AttemptStatus::InProgress)->lockForUpdate()->get() as $attempt) {
-                $deadline = $attempt->started_at->copy()->addMinutes($round->duration_minutes)->min($round->ends_at);
-
-                if (! $deadline->equalTo($attempt->deadline_at)) {
-                    $attempt->deadline_at = $deadline;
-                    $attempt->save();
-                }
+            // (مراجعة المشرف). والمسلَّمة لا تتغير. وعند تغيّر النهاية وحده، وبأمر واحد في القاعدة بلا تحميل الصفوف ولا
+            // قفلها: حفظ المرحلة أثناء نافذتها كان يقفل كل المحاولات الجارية فيها ويوقف الاختبار (المراجعة السحابية، ع١)
+            if ($endChanged) {
+                DB::update(
+                    'update competition_attempts set deadline_at = least(started_at + make_interval(mins => ?), ?), updated_at = ?
+                    where round_id = ? and status = ? and deadline_at is distinct from least(started_at + make_interval(mins => ?), ?)',
+                    [$round->duration_minutes, $round->ends_at, now(), $round->id, AttemptStatus::InProgress->value, $round->duration_minutes, $round->ends_at],
+                );
             }
 
             return $round;

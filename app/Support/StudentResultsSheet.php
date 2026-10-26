@@ -35,6 +35,8 @@ final class StudentResultsSheet
         }
 
         $full = $actor->can('viewNationalId', $competition);
+        // والتسجيل الملغى خارج الملف وترتيبه، أياً كان الاستعلام الممرَّر
+        $query = (clone $query)->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'));
 
         activity('competitions')->performedOn($competition)->causedBy($actor)
             ->event(ActivityEvent::ResultsExported->value)

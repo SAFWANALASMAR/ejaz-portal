@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
+use App\Actions\Competitions\SaveAttemptAnswers;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
@@ -536,4 +538,19 @@ it('marks a submission automatic only near the deadline, whatever the browser se
     $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/submit', ['auto' => '1']);
 
     expect($attempt->fresh()->auto_submitted)->toBeFalse();
+});
+
+it('leaves the running attempt answers out of the personal data export, and includes them once submitted (cloud review, low 4)', function () {
+    $question = studentQuestion($this->round);
+    $user = registeredStudent($this->competition);
+    $attempt = startedAttempt($user)->setRelation('round', $this->round);
+    app(SaveAttemptAnswers::class)->handle($user, $attempt, 0, answerTokens($attempt, [$question->id => 'a']));
+
+    $answers = fn (): mixed => app(ExportUserData::class)->handle($user->fresh())['competition_submissions'][0]['attempts'][0]['answers'];
+
+    expect($answers())->toBeNull();
+
+    app(SubmitAttempt::class)->handle($user, $attempt->fresh());
+
+    expect($answers())->toBe([(string) $question->id => 'a']);
 });
