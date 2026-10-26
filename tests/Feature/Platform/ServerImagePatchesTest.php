@@ -40,6 +40,8 @@ it('checks the built images in CI, pulling fresh layers', function () {
 
     expect($workflow)->toContain('docker build --pull -t ejaz-php-dev docker/php')
         ->toContain('docker build --pull --target base')
+        ->toContain('docker build --pull --target app -t ejaz-app')
+        ->toContain('docker run --rm --entrypoint php ejaz-app -r "$check"')
         ->toContain('version_compare(PHP_VERSION, "'.MINIMUM_PHP_PATCH.'", "<")')
         ->toContain('session.upload_progress.enabled')
         ->toContain('deploy/php/production.ini:/usr/local/etc/php/conf.d/99-ejaz.ini');

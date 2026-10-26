@@ -165,10 +165,7 @@ class AppServiceProvider extends ServiceProvider
         // البريد الموثق أولاً لوسيط الاستعادة (VerifiedFirstUserProvider)
         Auth::provider('verified-first', fn ($app, array $config): VerifiedFirstUserProvider => new VerifiedFirstUserProvider($app['hash'], $config['model']));
 
-        // المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج، لا عند أول تبرع
-        if ($this->app->isProduction() && config('payments.driver') === 'fake') {
-            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
-        }
+        $this->guardPaymentDriver();
 
         // قواعد كلمة المرور في docs/security.md، وتعريفها في PasswordPolicy (قرار صفوان، 20 أكتوبر 2026)
         Password::defaults(fn () => PasswordPolicy::defaults());
@@ -268,5 +265,17 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $adapter;
+    }
+
+    /**
+     * المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج متى فُعّل الدفع، لا عند أول تبرع. والدفع مؤرشف خلف
+     * PAYMENTS_ENABLED=false (مساراته 404، وصفحة الدفع الوهمية للمحلي والاختبار وحدهما)، فلا يمنع fake الإقلاع
+     * حينها، وإلا تعطّل بناء صورة الإنتاج (package:discover بلا .env) والموقع كله بقالب .env.production.example.
+     */
+    protected function guardPaymentDriver(): void
+    {
+        if ($this->app->isProduction() && config('payments.enabled') && config('payments.driver') === 'fake') {
+            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production while payments are enabled; set moyasar.');
+        }
     }
 }

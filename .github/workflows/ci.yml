@@ -26,10 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: بناء الصورتين
+      - name: بناء الصور
         run: |
           docker build --pull -t ejaz-php-dev docker/php
           docker build --pull --target base -t ejaz-php-base -f deploy/docker/Dockerfile .
+          # صورة الإنتاج كاملة كما ينشرها scripts/deploy-compose.sh (المكتبات والواجهة وإعداد PHP منسوخ فيها)
+          docker build --pull --target app -t ejaz-app -f deploy/docker/Dockerfile .
 
       - name: الإصدار ورفع تقدم الجلسة
         run: |
@@ -39,6 +41,8 @@ jobs:
           docker run --rm ejaz-php-dev php -r "$check"
           # إعداد الإنتاج كما تنسخه مرحلة app إلى الصورة
           docker run --rm -v "$PWD/deploy/php/production.ini:/usr/local/etc/php/conf.d/99-ejaz.ini:ro" ejaz-php-base php -r "$check"
+          # والصورة المنشورة نفسها بإعدادها المنسوخ، بلا نقطة دخولها (تبني ذاكرة لارافيل وتحتاج القاعدة)
+          docker run --rm --entrypoint php ejaz-app -r "$check"
 
       - name: nginx بإعداد الإنتاج
         run: |
