@@ -8,43 +8,58 @@ use App\Models\CompetitionRound;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 /**
  * بنك أسئلة المرحلة ونصوصها من الذاكرة المؤقتة، فلا يُستعلم عنها في كل صفحة لمئات الطلاب معاً
  * (docs/performance.md). والمخزَّن بلا الخيار الصحيح، فلا يصل إلى الذاكرة ولا إلى الصفحة (كـ ExamQuestions).
  * ويُمسح عند كل تغيير في البنك، والبنك مقفل بعد أول محاولة أصلاً.
+ *
+ * المفتاح بإصدار يتغير مع كل تعديل، فالبنك مخزَّن بلا مدة، والمبني منه يُحفظ في ذاكرة العملية لمفتاحه، فلا يُقرأ
+ * ويُبنى مرتين في الطلب الواحد (البدء: الترتيب ثم فحص العدد). ويبقى في كل نداء قراءة صغيرة لرقم الإصدار، فتعديل
+ * من عملية أخرى يُرى فوراً (مراجعة 26 أكتوبر، م٣ ون١).
  */
 final class RoundQuestions
 {
+    /** @var array<int, array{key: string, bank: array{questions: Collection<int, CompetitionQuestion>, passages: Collection<int, CompetitionPassage>}}> */
+    private static array $built = [];
+
     /**
      * @return array{questions: Collection<int, CompetitionQuestion>, passages: Collection<int, CompetitionPassage>}
      */
     public static function load(CompetitionRound $round): array
     {
-        /** @var array{questions: list<array<string, mixed>>, passages: list<array<string, mixed>>} $rows */
-        $rows = Cache::remember(
-            self::key($round->id),
-            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
-            fn (): array => [
-                'questions' => $round->questions()->get()
-                    ->map(fn (CompetitionQuestion $question): array => Arr::except($question->getAttributes(), ['correct_option']))
-                    ->all(),
-                'passages' => $round->passages()->get()->map(fn (CompetitionPassage $passage): array => $passage->getAttributes())->all(),
-            ],
-        );
+        $key = self::key($round->id);
 
-        return [
+        if (isset(self::$built[$round->id]) && self::$built[$round->id]['key'] === $key) {
+            return self::$built[$round->id]['bank'];
+        }
+
+        /** @var array{questions: list<array<string, mixed>>, passages: list<array<string, mixed>>} $rows */
+        $rows = Cache::rememberForever($key, fn (): array => [
+            'questions' => $round->questions()->get()
+                ->map(fn (CompetitionQuestion $question): array => Arr::except($question->getAttributes(), ['correct_option']))
+                ->all(),
+            'passages' => $round->passages()->get()->map(fn (CompetitionPassage $passage): array => $passage->getAttributes())->all(),
+        ]);
+
+        $bank = [
             'questions' => CompetitionQuestion::hydrate($rows['questions'])->keyBy('id'),
             'passages' => CompetitionPassage::hydrate($rows['passages'])->keyBy('id'),
         ];
+        // مفتاح واحد لكل مرحلة، فلا تكبر الذاكرة في عملية طويلة (عامل الطابور) مع كل إصدار
+        self::$built[$round->id] = ['key' => $key, 'bank' => $bank];
+
+        return $bank;
     }
 
     /**
-     * يرفع رقم إصدار المرحلة فيتغير المفتاح، فلا يكتب طلب متأخر البنك القديم بعد المسح (كـ ExamQuestions).
+     * يغيّر رقم إصدار المرحلة فيتغير المفتاح، فلا يكتب طلب متأخر البنك القديم بعد المسح (كـ ExamQuestions).
+     * والرقم عشوائي لا متسلسل: بعد تفريغ الذاكرة المؤقتة لا يعود إصدار قديم فيطابق بنكاً محفوظاً في عملية.
      */
     public static function forget(int $roundId): void
     {
-        Cache::forever(self::versionKey($roundId), self::version($roundId) + 1);
+        Cache::forever(self::versionKey($roundId), Str::random(16));
     }
 
     public static function key(int $roundId): string
@@ -52,9 +67,9 @@ final class RoundQuestions
         return 'competition-round-questions:'.$roundId.':v'.self::version($roundId);
     }
 
-    private static function version(int $roundId): int
+    private static function version(int $roundId): string
     {
-        return (int) Cache::get(self::versionKey($roundId), 0);
+        return (string) Cache::rememberForever(self::versionKey($roundId), fn (): string => Str::random(16));
     }
 
     private static function versionKey(int $roundId): string

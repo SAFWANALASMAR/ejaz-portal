@@ -84,17 +84,28 @@ final class AttemptLayout
 
     /**
      * null إن كان بنك الفئة جاهزاً، وإلا أقصى عدد ممكن منه دون العدد، أو -1 لبنك أكبر بدرجات مختلفة.
+     *
+     * يُحسب مرة لكل إصدار من بنك المرحلة وعدد أسئلتها، لا مع كل بدء (مراجعة 26 أكتوبر، م٣). والقيمة في مصفوفة،
+     * لأن الذاكرة المؤقتة لا تميّز null المخزَّن من الغائب.
      */
     public static function shortfall(CompetitionRound $round, int $categoryId): ?int
     {
-        $bank = self::bank($round, $categoryId);
-        $reachable = self::reachable(self::units($bank), $round->question_count);
+        /** @var array{0: int|null} $cached */
+        $cached = Cache::rememberForever(
+            'competition-round-shortfall:'.RoundQuestions::key($round->id).':'.$round->question_count.':'.$categoryId,
+            function () use ($round, $categoryId): array {
+                $bank = self::bank($round, $categoryId);
+                $reachable = self::reachable(self::units($bank), $round->question_count);
 
-        return match (true) {
-            ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
-            $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
-            default => null,
-        };
+                return [match (true) {
+                    ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
+                    $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
+                    default => null,
+                }];
+            },
+        );
+
+        return $cached[0];
     }
 
     /**

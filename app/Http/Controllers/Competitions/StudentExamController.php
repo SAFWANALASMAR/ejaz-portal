@@ -110,12 +110,16 @@ class StudentExamController extends Controller
         [, $stage] = $this->context($request, $slug, $round);
 
         try {
-            $start->handle($this->user($request), $stage);
+            $attempt = $start->handle($this->user($request), $stage);
         } catch (AuthorizationException $exception) {
             return redirect()->route('competitions.student.round', [$slug, $stage->uuid])->with('error', $exception->getMessage() ?: __('competitions.student.round_closed'));
         }
 
-        return redirect()->route('competitions.student.round', [$slug, $stage->uuid]);
+        // إلى أول وحدة مفتوحة مباشرة لا عبر صفحة المرحلة: طلب أقل لكل طالب في لحظة البدء المشتركة. والمسلَّمة إلى
+        // صفحة المرحلة، والمنتهية وقتها تُسلَّم في صفحة الوحدة قبل العرض
+        return $attempt->isInProgress()
+            ? redirect()->route('competitions.student.unit', [$slug, $stage->uuid, $this->firstOpenUnit($attempt)])
+            : redirect()->route('competitions.student.round', [$slug, $stage->uuid]);
     }
 
     public function unit(Request $request, string $slug, string $round, int $number): View|RedirectResponse
