@@ -176,6 +176,29 @@ it('lets a beneficiary start two-factor setup', function () {
     expect($this->user->fresh()->two_factor_secret)->not->toBeNull();
 });
 
+// الاختبار الشامل 0.14: رمز QR يُبنى من Fortify::username() وهو حقل نموذج الدخول (login) لا عمود، فكان الحساب المقروء
+// من القاعدة (لا المنشأ في الاختبار) يرمي MissingAttributeException خارج الإنتاج (500)، وفي الإنتاج رمزاً بلا اسم حساب
+it('shows the QR code of a pending setup, named by the account identifier', function (array $identifiers, string $label) {
+    $user = User::factory()->create($identifiers);
+
+    $this->actingAs(User::query()->findOrFail($user->getKey()))
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post('/user/two-factor-authentication')
+        ->assertRedirect();
+
+    $this->actingAs(User::query()->findOrFail($user->getKey()))
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get('/account/security')
+        ->assertOk()
+        ->assertSee(__('account.security.scan'))
+        ->assertSee('<svg', false);
+
+    expect(User::query()->findOrFail($user->getKey())->twoFactorQrCodeUrl())->toContain(':'.rawurlencode($label).'?secret=');
+})->with([
+    'username' => [['username' => 'qa_student', 'email' => null, 'phone' => null], 'qa_student'],
+    'email' => [['username' => null, 'email' => 'nora@example.test'], 'nora@example.test'],
+]);
+
 it('exports the user data after password confirmation without secrets', function () {
     $this->actingAs($this->user)->get('/account/data/export')->assertRedirect(route('password.confirm'));
 
