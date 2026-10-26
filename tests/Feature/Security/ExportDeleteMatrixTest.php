@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Models\User;
+use App\Support\CompetitionAccess;
 
 /*
 | مصفوفة التصدير والحذف والاطلاع على الكل (الاختبار الأمني 0.14.0): ما يُخرج بيانات شخصية من اللوحة أو يحذفها، لكل دور،
@@ -11,8 +13,14 @@ use App\Enums\RoleName;
 const ADMINS = ['executive_director', 'technical_admin'];
 
 it('gives each export, delete and view-all right to exactly its reviewed roles', function (string $permission, array $roles) {
+    // صلاحيات مسابقة الطلاب تُفحص بـ CompetitionAccess كما في الشيفرة: لا تمر بـ Gate::after الذي يمنح مديري النظام
+    // كل شيء، فلو فُحصت بـ can() لنجح نصف الحالة دائماً (مراجعة المشرف على 48de09e7)
+    $allows = fn (User $user): bool => str_starts_with($permission, 'competition.')
+        ? CompetitionAccess::allows($user, $permission)
+        : $user->can($permission);
+
     $actual = collect(RoleName::cases())
-        ->filter(fn (RoleName $role) => userWithRole($role)->can($permission))
+        ->filter(fn (RoleName $role) => $allows(userWithRole($role)))
         ->map(fn (RoleName $role) => $role->value)
         ->values()
         ->all();

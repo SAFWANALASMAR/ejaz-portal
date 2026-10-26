@@ -42,6 +42,20 @@ it('lets a school behind one address reset passwords past the everyday cap on an
     $attempt(7)->assertTooManyRequests();
 });
 
+it('keeps the everyday reset-password cap per subscriber outside an exam window', function () {
+    config(['security.password_update_per_subscriber_per_minute' => 3, 'competitions.student.window_limits.password_update_per_subscriber_per_minute' => 6]);
+    $attempt = fn (int $i) => $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.40'])
+        ->post('/reset-password', ['token' => 'x', 'email' => "student{$i}@example.test", 'password' => 'p', 'password_confirmation' => 'p']);
+
+    expect(SchoolNetworkLimits::examWindow())->toBeFalse();
+
+    foreach (range(1, 3) as $i) {
+        expect($attempt($i)->status())->not->toBe(429);
+    }
+
+    $attempt(4)->assertTooManyRequests();
+});
+
 it('imports back a question cell that safeCell quoted, even after leading spaces', function (string $prompt) {
     config(['competitions.student.min_questions' => 1]);
     $manager = userWithRole(RoleName::ProgramManager);
