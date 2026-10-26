@@ -39,13 +39,16 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\StudentQuestionsSheet;
 use App\Support\StudentResultsSheet;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
@@ -709,4 +712,123 @@ it('rejects a certificate background path by its pattern alone', function () {
     } catch (ValidationException $exception) {
         expect($exception->errors()['certificate_background'][0])->toContain(__('competitions.attributes.certificate_background'));
     }
+});
+
+it('keeps the category of a registration once the student has started an attempt', function () {
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition, 11);
+    $submission = CompetitionSubmission::query()->where('user_id', $student->id)->sole();
+    $other = $this->competition->openCategories()->whereKeyNot($submission->category_id)->firstOrFail();
+    $correct = app(CorrectStudentRegistration::class);
+    $data = fn (array $overrides = []): array => ['full_name' => $submission->full_name, 'category_id' => $submission->category_id, 'grade' => $submission->grade, 'region_id' => $submission->region_id, 'reason' => 'تصحيح من المدرسة بعد المراجعة', ...$overrides];
+
+    app(StartAttempt::class)->handle($student, $this->round);
+
+    expect(fn () => $correct->edit($this->director, $submission, $data(['category_id' => $other->id, 'grade' => $other->gradeList()[0] ?? null])))->toThrow(ValidationException::class)
+        ->and($submission->fresh()->category_id)->toBe($submission->category_id)
+        ->and($correct->edit($this->director, $submission, $data(['full_name' => 'اسم مصحح بن مثال تجريبي']))->full_name)->toBe('اسم مصحح بن مثال تجريبي');
+});
+
+it('re-checks the round end on the locked row, refusing to publish from a copy read before the end was extended', function () {
+    studentQuestion($this->round);
+    $attempt = app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    $this->travel(4)->hours();
+    $stale = $this->round->fresh();
+
+    // مدّ النهاية بعد أن قرأ النشرُ المرحلة: النشر يرى النهاية الجديدة على الصف المقفول، فلا يسلّم ولا ينشر
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $this->round->fresh(), [
+        'name' => $stale->name, 'starts_at' => $stale->starts_at, 'ends_at' => now()->addHour(),
+        'question_count' => $stale->question_count, 'duration_minutes' => $stale->duration_minutes,
+    ]);
+
+    expect(fn () => app(PublishRoundResults::class)->handle($this->director, $stale))->toThrow(ValidationException::class)
+        ->and($this->round->fresh()->resultsPublished())->toBeFalse()
+        ->and($attempt->fresh()->isInProgress())->toBeTrue();
+});
+
+it('creates the default rounds when the competition is created, not again after they are all deleted', function () {
+    $data = ['title' => 'مسابقة بلا مراحل', 'slug' => 'no-rounds', 'opens_at' => now()->toDateTimeString(), 'closes_at' => now()->addWeek()->toDateTimeString(), 'student_mode' => true, 'is_published' => false];
+    $competition = app(SaveCompetition::class)->handle($this->director, new Competition, $data);
+
+    expect($competition->rounds()->count())->toBe(4);
+
+    $competition->rounds()->with('competition')->get()->each(fn ($round) => app(DeleteStudentCompetitionItem::class)->handle($this->director, $round));
+    app(SaveCompetition::class)->handle($this->director, $competition->fresh(), $data);
+
+    expect($competition->rounds()->count())->toBe(0);
+});
+
+it('keeps a round start stored with seconds when the panel saves it to the minute', function () {
+    studentQuestion($this->round);
+    $this->round->forceFill(['starts_at' => $this->round->starts_at->copy()->startOfMinute()->addSeconds(37), 'ends_at' => $this->round->ends_at->copy()->startOfMinute()->addSeconds(12)])->save();
+    app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round->fresh());
+    $round = $this->round->fresh();
+
+    $saved = app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => 'اسم آخر', 'starts_at' => $round->starts_at->format('Y-m-d H:i'), 'ends_at' => $round->ends_at->format('Y-m-d H:i'),
+        'question_count' => $round->question_count, 'duration_minutes' => $round->duration_minutes,
+    ]);
+
+    expect($saved->name)->toBe('اسم آخر')
+        ->and($saved->fresh()->starts_at->equalTo($round->starts_at))->toBeTrue()
+        ->and($saved->fresh()->ends_at->equalTo($round->ends_at))->toBeTrue()
+        ->and(fn () => app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $saved->fresh(), [
+            'name' => 'اسم آخر', 'starts_at' => $round->starts_at->copy()->addMinute()->format('Y-m-d H:i'), 'ends_at' => $round->ends_at->format('Y-m-d H:i'),
+            'question_count' => $round->question_count, 'duration_minutes' => $round->duration_minutes,
+        ]))->toThrow(ValidationException::class);
+
+    // ومرحلة جديدة تُحفظ بالدقيقة
+    $new = app(SaveCompetitionRound::class)->handle($this->director, $this->competition, null, [
+        'name' => 'مرحلة', 'starts_at' => now()->addWeek()->setSeconds(45), 'ends_at' => now()->addWeek()->addDay()->setSeconds(10), 'question_count' => 1, 'duration_minutes' => 30,
+    ]);
+    expect($new->fresh()->starts_at->second)->toBe(0)->and($new->fresh()->ends_at->second)->toBe(0);
+});
+
+it('ranks exported results within each round and category, by score whatever the table order', function () {
+    studentQuestion($this->round);
+    $low = submittedWithScore(1, 3);
+    submittedWithScore(2, 9);
+    $second = new CompetitionRound(['name' => 'الثانية', 'sort_order' => 2, 'starts_at' => now()->subMinute(), 'ends_at' => now()->addHours(3), 'question_count' => 1, 'duration_minutes' => 30]);
+    $second->competition_id = $this->competition->id;
+    $second->save();
+    studentQuestion($second);
+    $student = $low->submission->user;
+    $attempt = app(StartAttempt::class)->handle($student, $second);
+    app(SubmitAttempt::class)->handle($student, $attempt);
+    $attempt->forceFill(['score' => 5])->save();
+
+    $rows = readXlsx(TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()->orderBy('competition_attempts.id')))->streamedContent());
+    $round = array_search(__('competitions.student.question_attributes.round_id'), $rows[0], true);
+    $score = array_search(__('competitions.student.admin.score'), $rows[0], true);
+    $ranked = collect(array_slice($rows, 1))->map(fn (array $row) => [$row[$round], $row[0], $row[$score]])->all();
+
+    expect($ranked)->toBe([
+        [$this->round->name, '1', '9'],
+        [$second->name, '1', '5'],
+        [$this->round->name, '2', '3'],
+    ]);
+});
+
+it('rolls the draws index back to unique only when no voided draw was redrawn', function () {
+    $migration = require database_path('migrations/2026_10_26_100000_adjust_student_competition_attempts_and_draws.php');
+    $indexes = fn (): array => collect(DB::select("select indexname from pg_indexes where tablename = 'competition_draws'"))->pluck('indexname')->all();
+
+    // بلا سحب مكرر: يعود الفهرس الفريد، ثم يُعاد الترحيل
+    $migration->down();
+    expect($indexes())->toContain('competition_draws_round_category_unique');
+    $migration->up();
+    expect($indexes())->toContain('competition_draws_round_category_index')->not->toContain('competition_draws_round_category_unique');
+
+    // وبسحب ملغى وإعادته: يتوقف التراجع قبل أي تغيير (سجل السحب لا يُحذف)
+    studentQuestion($this->round);
+    collect([1, 2, 3])->each(fn (int $serial) => submittedWithScore($serial, 7));
+    $this->travel(4)->hours();
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    [$first] = app(RunTieDraw::class)->handle($this->director, $this->round, null, 2);
+    app(VoidTieDraw::class)->handle($this->director, $first, 'أُدخل عدد المراكز خطأً في اللجنة');
+    app(RunTieDraw::class)->handle($this->director, $this->round, null, 1);
+
+    expect(fn () => $migration->down())->toThrow(RuntimeException::class)
+        ->and($indexes())->toContain('competition_draws_round_category_index')->not->toContain('competition_draws_round_category_unique')
+        ->and(Schema::hasColumn('competition_attempts', 'question_count'))->toBeTrue();
 });

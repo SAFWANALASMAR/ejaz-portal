@@ -80,11 +80,14 @@ return [
         // المراحل التي تُنشأ مع المسابقة (قرار المدير: أربع)، وتُضاف وتُحذف من اللوحة
         'default_rounds' => 4,
 
-        // حدود العنوان الواحد أثناء نافذة مسابقة الطلاب (SchoolNetworkLimits)، لمدرسة كاملة خلف عنوان واحد. ومقابلها
-        // خارج النافذة في config/security.php: 120 تسجيلاً في الساعة، و2000 لكل شبكة في اليوم، و50 دخولاً خاطئاً في
-        // ربع ساعة، و300 محاولة دخول في الدقيقة
+        // حدود العنوان الواحد أثناء نوافذ مسابقة الطلاب (SchoolNetworkLimits)، لمدرسة كاملة خلف عنوان واحد: التسجيل
+        // ما دام مفتوحاً، والدخول في أيام الاختبار وحدها. ومقابلها خارج النافذة في config/security.php: 120 تسجيلاً في
+        // الساعة، و5 لكل جهاز، و2000 لكل شبكة في اليوم، و50 دخولاً خاطئاً في ربع ساعة، و300 محاولة دخول في الدقيقة.
+        // والجهاز 40 في الساعة: جهاز المعمل يسجّل فصلاً كاملاً، وحد الجهاز كعكة يحذفها المهاجم فلا يحمي منه أصلاً
+        // (decisions.md، 26 أكتوبر)
         'window_limits' => [
             'registration_per_ip_per_hour' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_IP_PER_HOUR', 600),
+            'registration_per_device_per_hour' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_DEVICE_PER_HOUR', 40),
             'registration_per_network_per_day' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_NETWORK_PER_DAY', 6000),
             'login_failures_per_subscriber' => (int) env('COMPETITION_WINDOW_LOGIN_FAILURES_PER_SUBSCRIBER', 300),
             'login_attempts_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 900),

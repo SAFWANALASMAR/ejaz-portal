@@ -133,6 +133,7 @@ class SaveCompetition
 
             $createdBy = $data['created_by'] ?? null;
             unset($data['created_by']);
+            $wasStudent = $competition->exists && $competition->student_mode;
             $competition->fill($data);
 
             if ($createdBy !== null) {
@@ -145,7 +146,8 @@ class SaveCompetition
                 $competition->openCategories()->sync(array_map('intval', $openCategories));
             }
 
-            if ($competition->student_mode && $competition->rounds()->doesntExist()) {
+            // عند إنشائها مسابقة طلاب (أو تحويلها قبل أي مرحلة) وحده، لا عند كل حفظ بعد حذف مراحلها من اللوحة
+            if ($competition->student_mode && ! $wasStudent && $competition->rounds()->doesntExist()) {
                 $this->createDefaultRounds($competition);
             }
 

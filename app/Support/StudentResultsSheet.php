@@ -16,7 +16,7 @@ use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * تصدير نتائج مسابقة الطلاب إلى إكسل بتصفية الجدول وترتيبه: رقم الهوية وجوال ولي الأمر مخفيان إلا آخر أربعة
+ * تصدير نتائج مسابقة الطلاب إلى إكسل بتصفية الجدول، مرتبة بالدرجة ومرقّمة داخل كل مرحلة وفئة: رقم الهوية وجوال ولي الأمر مخفيان إلا آخر أربعة
  * أرقام، وكاملان لمن يملك الاطلاع الكامل وحده (CompetitionPolicy::viewNationalId). والتصدير عملية تُسجَّل بما
  * صُدّر. ويُكتب صفاً صفاً بدفعات، فلا تمتلئ الذاكرة بعشرات الآلاف.
  */
@@ -64,33 +64,39 @@ final class StudentResultsSheet
                 __('competitions.student.admin.qualified'),
             ]));
 
-            $rank = 0;
+            // الترتيب داخل كل مرحلة وفئة (مراجعة المشرف): بنك كل فئة غير بنك غيرها، والسحب للمتساوين بهما كذلك
+            $ranks = [];
 
-            $query->with(['round', 'submission.studentCategory', 'submission.studentRegion'])->chunk(500, function ($attempts) use ($writer, $full, $fields, &$rank): void {
-                foreach ($attempts as $attempt) {
-                    /** @var CompetitionAttempt $attempt */
-                    $submission = $attempt->submission;
-                    $rank++;
+            // مرتبة بالدرجة أياً كان ترتيب الجدول، فالترتيب في العمود الأول درجةٌ لا موضع في الجدول
+            $query->reorder()
+                ->orderByRaw('COALESCE(competition_attempts.score, 0) + COALESCE(competition_attempts.essay_score, 0) DESC')
+                ->orderBy('competition_attempts.id')
+                ->with(['round', 'submission.studentCategory', 'submission.studentRegion'])->chunk(500, function ($attempts) use ($writer, $full, $fields, &$ranks): void {
+                    foreach ($attempts as $attempt) {
+                        /** @var CompetitionAttempt $attempt */
+                        $submission = $attempt->submission;
+                        $group = $attempt->round_id.':'.$submission->category_id;
+                        $ranks[$group] = ($ranks[$group] ?? 0) + 1;
 
-                    $writer->addRow(self::row([
-                        $rank,
-                        (string) $submission->reference,
-                        (string) $submission->full_name,
-                        (string) ($full ? $submission->national_id : CompetitionSubmission::mask($submission->national_id)),
-                        (string) $submission->studentCategory?->name,
-                        (string) $submission->grade,
-                        (string) $submission->studentRegion?->name,
-                        (string) ($full ? $submission->guardian_phone : CompetitionSubmission::mask($submission->guardian_phone)),
-                        ...$fields->map(fn ($field): string => (string) (((array) $submission->extra)[(string) $field->id] ?? ''))->all(),
-                        $attempt->round->name,
-                        (float) $attempt->score + (float) $attempt->essay_score,
-                        (float) $attempt->max_score,
-                        Dates::display($attempt->submitted_at, withTime: true),
-                        $attempt->auto_submitted ? __('competitions.student.admin.yes') : '',
-                        $attempt->qualified_at !== null ? __('competitions.student.admin.yes') : '',
-                    ]));
-                }
-            });
+                        $writer->addRow(self::row([
+                            $ranks[$group],
+                            (string) $submission->reference,
+                            (string) $submission->full_name,
+                            (string) ($full ? $submission->national_id : CompetitionSubmission::mask($submission->national_id)),
+                            (string) $submission->studentCategory?->name,
+                            (string) $submission->grade,
+                            (string) $submission->studentRegion?->name,
+                            (string) ($full ? $submission->guardian_phone : CompetitionSubmission::mask($submission->guardian_phone)),
+                            ...$fields->map(fn ($field): string => (string) (((array) $submission->extra)[(string) $field->id] ?? ''))->all(),
+                            $attempt->round->name,
+                            (float) $attempt->score + (float) $attempt->essay_score,
+                            (float) $attempt->max_score,
+                            Dates::display($attempt->submitted_at, withTime: true),
+                            $attempt->auto_submitted ? __('competitions.student.admin.yes') : '',
+                            $attempt->qualified_at !== null ? __('competitions.student.admin.yes') : '',
+                        ]));
+                    }
+                });
 
             $writer->close();
         }, 'results-'.$competition->slug.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);

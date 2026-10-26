@@ -25,6 +25,15 @@ return new class extends Migration
 
     public function down(): void
     {
+        // الفهرس الفريد لا يقبل سحباً ملغى وإعادته للمرحلة والفئة نفسيهما، فالتراجع يتوقف قبل أي تغيير إن وُجدا
+        // (مراجعة المشرف)، ولا يُحذف سجل سحب لأجله: يُعاد يدوياً بعد قرار في السحوب المكررة
+        $repeated = DB::table('competition_draws')->select('round_id')->whereNotNull('round_id')
+            ->groupBy('round_id', DB::raw('COALESCE(category_id, 0)'))->havingRaw('count(*) > 1')->exists();
+
+        if ($repeated) {
+            throw new RuntimeException('competition_draws has a voided and a repeated round draw; the unique index cannot be restored.');
+        }
+
         DB::statement('DROP INDEX IF EXISTS competition_draws_round_category_index');
         DB::statement('CREATE UNIQUE INDEX competition_draws_round_category_unique ON competition_draws (round_id, COALESCE(category_id, 0)) WHERE round_id IS NOT NULL');
 

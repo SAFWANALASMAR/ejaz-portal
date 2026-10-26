@@ -117,7 +117,7 @@ class CreateNewUser implements CreatesNewUsers
 
         $limits = [
             'register:'.$subscriber => [SchoolNetworkLimits::limit('registration_per_ip_per_hour'), 3600, 'account.register.too_many'],
-            'register-device:'.self::device() => [(int) config('security.registration_per_device_per_hour'), 3600, 'account.register.too_many'],
+            'register-device:'.self::device() => [SchoolNetworkLimits::limit('registration_per_device_per_hour'), 3600, 'account.register.too_many'],
             'register:all' => [(int) config('security.registration_per_hour'), 3600, 'account.register.busy'],
         ];
 

@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * تصحيح تسجيل في مسابقة الطلاب (مراجعة المطابقة): للمدير التنفيذي والمسؤول التقني وحدهما
  * (competition.correct_registrations)، بسبب مكتوب يُسجَّل في سجل العمليات بلا رقم الهوية:
- * - تحرير: الاسم، والفئة من المفتوحة، والصف من صفوفها، والمنطقة من المفعّلة.
+ * - تحرير: الاسم، والفئة من المفتوحة (قبل أول محاولة وحدها)، والصف من صفوفها، والمنطقة من المفعّلة.
  * - إلغاء: يُحذف التسجيل حذفاً ناعماً ويُفك رقم الهوية (يُمسح الرقم وبصمته)، فيسجّل صاحبه الحقيقي إن كان
  *   الرقم محجوزاً بغير حق، ويخرج الملغى من النتائج. والحساب الملغى تسجيله لا يسجّل في المسابقة نفسها ثانية.
  */
@@ -47,6 +47,11 @@ class CorrectStudentRegistration
         return DB::transaction(function () use ($actor, $submission, $validated): CompetitionSubmission {
             $locked = CompetitionSubmission::query()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
             $before = $locked->only(['full_name', 'category_id', 'grade', 'region_id']);
+
+            // بعد أول محاولة لا تتغير الفئة: المحاولة من بنك فئتها، فتُرتَّب في غيرها بدرجة قصوى مختلفة (مراجعة المشرف)
+            if ((int) $validated['category_id'] !== (int) $locked->category_id && $locked->attempts()->exists()) {
+                throw ValidationException::withMessages(['category_id' => __('competitions.student.admin.category_locked')]);
+            }
 
             $locked->full_name = preg_replace('/\s+/u', ' ', trim((string) $validated['full_name']));
             $locked->category_id = (int) $validated['category_id'];

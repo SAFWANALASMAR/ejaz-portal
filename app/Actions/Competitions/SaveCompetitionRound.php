@@ -47,29 +47,43 @@ class SaveCompetitionRound
             'qualified_only' => ['boolean'],
         ], attributes: __('competitions.student.round_attributes'))->validate();
 
+        // النافذة بالدقيقة (حقل اللوحة بلا ثوانٍ): تُطبَّع عند الحفظ وتُقارن بالدقيقة، فلا يُعد حفظ بلا تغيير
+        // تغييراً للبداية إن خُزنت بثوانٍ من غير اللوحة (مراجعة المشرف)
+        $validated['starts_at'] = Carbon::parse((string) $validated['starts_at'])->startOfMinute();
+        $validated['ends_at'] = Carbon::parse((string) $validated['ends_at'])->startOfMinute();
+
         $saved = DB::transaction(function () use ($competition, $round, $validated): CompetitionRound {
             $round = $round !== null
                 ? CompetitionRound::query()->whereKey($round->id)->lockForUpdate()->firstOrFail()
                 : new CompetitionRound;
 
-            $endsAt = Carbon::parse((string) $validated['ends_at']);
+            $startsAt = $validated['starts_at'];
+            $endsAt = $validated['ends_at'];
+            $startChanged = $round->exists && ! $startsAt->equalTo($round->starts_at->copy()->startOfMinute());
+            $endChanged = $round->exists && ! $endsAt->equalTo($round->ends_at->copy()->startOfMinute());
 
             // بعد نشر النتائج لا تتغير النافذة: تمديدها يفتح الاختبار لطلاب تظهر درجتهم فور التسليم (مراجعة المشرف)
-            if ($round->resultsPublished() && (! Carbon::parse((string) $validated['starts_at'])->equalTo($round->starts_at) || ! $endsAt->equalTo($round->ends_at))) {
+            if ($round->resultsPublished() && ($startChanged || $endChanged)) {
                 throw ValidationException::withMessages(['ends_at' => __('competitions.student.round_published_locked')]);
             }
 
             if ($round->locked()) {
-                $changed = ! Carbon::parse((string) $validated['starts_at'])->equalTo($round->starts_at)
+                $changed = $startChanged
                     || (int) $validated['question_count'] !== $round->question_count
                     || (int) $validated['duration_minutes'] !== $round->duration_minutes
                     // ومن بدأ قُبل بشرط المرحلة حينها، فلا يتغير «للمتأهلين» بعده
                     || (bool) ($validated['qualified_only'] ?? false) !== $round->qualified_only;
 
                 // والنهاية تُمد ولا تُقدَّم: المواعيد النهائية للمحاولات القائمة محسوبة منها، والنشر بعدها
-                if ($changed || $endsAt->lt($round->ends_at)) {
+                if ($changed || ($endChanged && $endsAt->lt($round->ends_at))) {
                     throw ValidationException::withMessages(['starts_at' => __('competitions.student.round_locked')]);
                 }
+            }
+
+            // وما لم يتغير بالدقيقة يبقى كما خُزن بثوانيه، فلا يقصّر الحفظُ المواعيدَ المحسوبة منه
+            if ($round->exists) {
+                $validated['starts_at'] = $startChanged ? $startsAt : $round->starts_at;
+                $validated['ends_at'] = $endChanged ? $endsAt : $round->ends_at;
             }
 
             $round->competition_id = $competition->id;
