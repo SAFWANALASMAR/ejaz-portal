@@ -3,6 +3,7 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\NewPasswordController;
 use App\Http\Controllers\Account\PasswordResetByPhoneController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
@@ -22,7 +23,6 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAssistantEnabled;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 
 /*
@@ -35,9 +35,10 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-reset'])
     ->name('password.email');
 
-// وتعيين كلمة المرور الجديدة برمز الرابط كذلك، بحد: كان بلا حد، فكل طلب تجزئة bcrypt (الاختبار الأمني 0.14.0)
+// وتعيين كلمة المرور الجديدة برمز الرابط كذلك، بحد لكل بريد وعنوان ولكل مشترك وفي زمن ثابت: كان بلا حد، وكل طلب
+// تجزئة bcrypt، وزمنه يكشف الحساب (الاختبار الأمني 0.14.0)
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
-    ->middleware(['guest:'.config('fortify.guard'), 'throttle:10,1'])
+    ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-update'])
     ->name('password.update');
 
 // الاستعادة برمز الجوال (قرار صفوان، 20 أكتوبر 2026): طلب الرمز بحد الاستعادة نفسه، ثم صفحة الرمز وكلمة المرور الجديدة

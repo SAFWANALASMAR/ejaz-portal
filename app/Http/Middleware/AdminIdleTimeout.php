@@ -58,9 +58,15 @@ class AdminIdleTimeout
     /**
      * طلب Livewire كل أفعاله استطلاع آلي ولا تحديث فيه لحقل: لا فعل من المستخدم.
      * وطلب `$commit` المرافق للاستطلاع (المكوّنات الفرعية المربوطة) لا يغيّر الحكم.
+     * وقراءات واجهة Horizon استطلاع آلي كذلك: لوحته تطلبها كل ثوانٍ، فلا يبقى Horizon المتروك مفتوحاً. والنشاط فيه
+     * تحميل صفحته أو إجراء (إعادة مهمة)، لا قراءة.
      */
     private function isAutomaticPoll(Request $request): bool
     {
+        if ($request->isMethod('GET') && $request->is('horizon/api/*')) {
+            return true;
+        }
+
         if (! Livewire::isLivewireRequest()) {
             return false;
         }

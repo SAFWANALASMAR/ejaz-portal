@@ -34,7 +34,8 @@ function exportRow(string $exporter, Model $record): array
 {
     $columns = collect($exporter::getColumns())->mapWithKeys(fn ($column) => [$column->getName() => $column->getName()])->all();
 
-    return (new $exporter(new Export(['exporter' => $exporter]), $columns, []))($record);
+    // Filament يعيد الصف قائمة بترتيب الأعمدة، فيُسمّى كل عمود باسمه
+    return array_combine(array_keys($columns), (new $exporter(new Export(['exporter' => $exporter]), $columns, []))($record));
 }
 
 it('writes every text cell of every export as text, never as a formula', function (string $formula) {
@@ -55,7 +56,8 @@ it('writes every text cell of every export as text, never as a formula', functio
     $live = [];
     foreach ($rows as $export => $row) {
         foreach ($row as $column => $value) {
-            if (is_string($value) && preg_match('/^[=+\-@\t\r]/', $value) === 1) {
+            // التعبير نفسه في safeCell: ولو سبقت العلامةَ فراغاتٌ أو NBSP أو BOM
+            if (is_string($value) && preg_match('/^[\s\x{00A0}\x{FEFF}]*[=+\-@\t\r]/u', $value) === 1) {
                 $live[] = $export.' '.$column;
             }
         }
@@ -65,6 +67,19 @@ it('writes every text cell of every export as text, never as a formula', functio
     expect(collect($rows['requests'])->filter(fn ($value) => is_string($value) && str_starts_with($value, "'"))->count())->toBeGreaterThanOrEqual(3)
         ->and($live)->toBe([]);
 })->with(FORMULAS);
+
+// الجوال يُخزَّن «+966…»، فبعلامة + أول الخلية كان سيُقتبس ('+9665…) أو تحسبه برامج الجداول رقماً: بالصيغة المحلية في كل تصدير
+it('writes the phone in its local form in every export, not quoted and not as a number', function () {
+    $user = User::factory()->create(['phone' => '+966512345678']);
+
+    $phones = [
+        exportRow(ServiceRequestExporter::class, ServiceRequest::factory()->for($user)->create()->load(['opening', 'user', 'assignee']))['user.phone'],
+        exportRow(ProgramRegistrationExporter::class, ProgramRegistration::factory()->for($user)->create()->load(['program', 'user']))['user.phone'],
+        exportRow(SubmissionExporter::class, CompetitionSubmission::factory()->for($user)->create()->load('user'))['user.phone'],
+    ];
+
+    expect($phones)->each->toBe('051 234 5678');
+});
 
 it('quotes a formula after leading spaces in the exports that use safeCell', function () {
     expect(ServiceRequestExporter::safeCell("\u{00A0}=1+1"))->toBe("'\u{00A0}=1+1")

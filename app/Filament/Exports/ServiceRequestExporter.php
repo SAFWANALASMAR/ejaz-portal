@@ -6,6 +6,7 @@ use App\Enums\FormFieldType;
 use App\Enums\ServiceRequestStatus;
 use App\Filament\Exports\Concerns\XlsxOnly;
 use App\Models\ServiceRequest;
+use App\Support\SaudiPhone;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -29,7 +30,8 @@ class ServiceRequestExporter extends Exporter
             ExportColumn::make('opening.kind')->label(__('services.admin.fields.kind'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('user.name')->label(__('services.admin.fields.applicant'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('user.email')->label(__('services.admin.fields.email'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
-            ExportColumn::make('user.phone')->label(__('services.admin.fields.phone')),
+            // بالصيغة المحلية كتصدير البرامج: «+966…» تحسبه برامج الجداول رقماً أو صيغة
+            ExportColumn::make('user.phone')->label(__('services.admin.fields.phone'))->formatStateUsing(fn (?string $state) => SaudiPhone::display($state)),
             ExportColumn::make('status')->label(__('services.admin.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('assignee.name')->label(__('services.admin.fields.assignee'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('submitted_at')->label(__('services.admin.fields.submitted_at'))

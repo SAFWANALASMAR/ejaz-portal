@@ -2,11 +2,14 @@
 
 use App\Actions\Users\ChangeUserRoles;
 use App\Enums\RoleName;
+use App\Http\Controllers\Account\NewPasswordController;
 use App\Http\Middleware\AdminIdleTimeout;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Timebox;
 use PragmaRX\Google2FA\Google2FA;
 
 /*
@@ -26,14 +29,40 @@ it('answers a wrong reset token the same way for a registered and an unknown ema
     expect($known)->toBe($unknown)->and($known)->toBe([__(Password::INVALID_TOKEN)]);
 });
 
-it('rate-limits setting a new password with a reset token', function () {
-    $attempt = fn () => $this->post('/reset-password', ['token' => 'x', 'email' => 'a@example.test', 'password' => 'p', 'password_confirmation' => 'p']);
+// خمس لكل بريد وعنوان، ولا تحجب مدرسةً خلف عنوان واحد: بريد آخر من العنوان نفسه يمر، حتى سقف المشترك الأرحب
+it('rate-limits setting a new password per email and address, with a roomier cap per subscriber', function () {
+    config(['security.password_update_per_subscriber_per_minute' => 7]);
+    $attempt = fn (string $email) => $this->post('/reset-password', ['token' => 'x', 'email' => $email, 'password' => 'p', 'password_confirmation' => 'p']);
 
-    foreach (range(1, 10) as $ignored) {
-        expect($attempt()->status())->not->toBe(429);
+    foreach (range(1, 5) as $ignored) {
+        expect($attempt('a@example.test')->status())->not->toBe(429);
     }
 
-    $attempt()->assertTooManyRequests();
+    $attempt('a@example.test')->assertTooManyRequests();
+    expect($attempt('b@example.test')->status())->not->toBe(429)
+        ->and($attempt('c@example.test')->status())->not->toBe(429);
+
+    $attempt('d@example.test')->assertTooManyRequests();
+});
+
+it('sets a new password in a fixed time, so the time does not tell a registered email', function () {
+    $timebox = new class extends Timebox
+    {
+        /** @var list<int> */
+        public array $calls = [];
+
+        public function call(callable $callback, int $microseconds)
+        {
+            $this->calls[] = $microseconds;
+
+            return $callback($this);
+        }
+    };
+    $this->app->instance(Timebox::class, $timebox);
+
+    $this->post('/reset-password', ['token' => 'x', 'email' => 'nobody@example.test', 'password' => 'p', 'password_confirmation' => 'p']);
+
+    expect($timebox->calls)->toBe([NewPasswordController::MICROSECONDS]);
 });
 
 // كعكة «تذكّرني» صدرت لمستفيد قبل ترقيته إلى دور في اللوحة كانت تفتح /admin بلا كلمة مرور ولا تحقق ثنائي
@@ -53,6 +82,35 @@ it('voids a remember me cookie issued before the account got a panel role', func
 
     $this->withCookie($recaller, $cookie)->get('/admin')->assertRedirect();
     $this->assertGuest();
+});
+
+// والجلسة التي استُعيدت بالكعكة قبل الترقية لا يبطلها تدوير الرمز: تُعلَّم، فلا تبلغ اللوحة ولا Horizon
+it('signs out a session restored by remember me before the promotion, at the panel and Horizon', function (string $path) {
+    $user = User::factory()->create(['email' => 'restored@example.test', 'password' => 'Qx7-strong-Ejaz-pass']);
+    $recaller = Auth::guard('web')->getRecallerName();
+    $cookie = $this->post('/login', ['login' => 'restored@example.test', 'password' => 'Qx7-strong-Ejaz-pass', 'remember' => '1'])
+        ->getCookie($recaller)->getValue();
+
+    // جلسة جديدة بالكعكة وحدها، وهو ما زال مستفيداً
+    $this->flushSession();
+    Auth::forgetGuards();
+    $this->withCookie($recaller, $cookie)->get('/account')->assertOk();
+    expect(session(EnsureTwoFactorIsEnabled::VIA_REMEMBER))->toBeTrue();
+
+    $user->forceFill(User::factory()->withTwoFactor()->make()->only(['two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at']))->save();
+    app(ChangeUserRoles::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user->fresh(), [RoleName::TechnicalAdmin->value]);
+    Auth::forgetGuards();
+
+    $this->get($path)->assertRedirect(route('login'));
+    $this->assertGuest();
+})->with(['panel' => '/admin', 'horizon' => '/horizon']);
+
+it('keeps a password sign-in of the same account out of the remember me mark', function () {
+    User::factory()->create(['email' => 'plain@example.test', 'password' => 'Qx7-strong-Ejaz-pass']);
+
+    $this->post('/login', ['login' => 'plain@example.test', 'password' => 'Qx7-strong-Ejaz-pass', 'remember' => '1']);
+
+    expect(session(EnsureTwoFactorIsEnabled::VIA_REMEMBER))->toBeNull();
 });
 
 it('keeps the remember me cookie of a member whose roles change without a panel role', function () {
@@ -128,6 +186,20 @@ it('invalidates the session on logout, so the old session id signs nobody in', f
     $this->assertGuest();
     expect(session()->getId())->not->toBe($old)
         ->and($user->fresh()->remember_token)->not->toBe($token);
+});
+
+// لوحة Horizon تقرأ واجهتها كل ثوانٍ، فكانت كل قراءة تُعدّ نشاطاً ولا تنتهي الجلسة والصفحة مفتوحة
+it('does not count the Horizon dashboard polls as activity', function () {
+    $idle = now()->subMinutes((int) config('security.admin_idle_minutes') - 1)->getTimestamp();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->withSession([AdminIdleTimeout::SESSION_KEY => $idle]);
+
+    $this->get('/horizon/api/stats');
+
+    expect(session(AdminIdleTimeout::SESSION_KEY))->toBe($idle);
+
+    $this->travel(2)->minutes();
+    $this->get('/horizon/api/stats')->assertRedirect(route('login'));
+    $this->assertGuest();
 });
 
 it('ends an idle Horizon session like the panel', function () {
