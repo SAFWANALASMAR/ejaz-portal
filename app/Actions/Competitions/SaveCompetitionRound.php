@@ -7,6 +7,7 @@ use App\Models\Competition;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionAccess;
+use App\Support\PublicImages;
 use App\Support\SchoolNetworkLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -45,7 +46,14 @@ class SaveCompetitionRound
             'question_count' => ['required', 'integer', 'min:'.config('competitions.student.min_questions'), 'max:'.config('competitions.student.max_questions')],
             'duration_minutes' => ['required', 'integer', 'min:'.config('competitions.student.min_minutes'), 'max:'.config('competitions.student.max_minutes')],
             'qualified_only' => ['boolean'],
+            // الفرع أو المجال وصورته الاختيارية (مطوية «البراهين العلمية»). والصورة اسم عشوائي في مجلدها وحده
+            'branch' => ['nullable', 'string', 'max:200'],
+            'image_path' => ['nullable', 'string', 'max:255', 'regex:#^'.CompetitionRound::IMAGE_DIRECTORY.'/[A-Za-z0-9_-]+\.(jpe?g|png|webp)$#'],
         ], attributes: __('competitions.student.round_attributes'))->validate();
+
+        $imagesBefore = $round?->publicImages()['image_path'] ?? [];
+        $imagesAfter = filled($validated['image_path'] ?? null) ? [(string) $validated['image_path']] : [];
+        PublicImages::prepare($imagesBefore, $imagesAfter, CompetitionRound::IMAGE_DIRECTORY, 'image_path');
 
         // النافذة بالدقيقة (حقل اللوحة بلا ثوانٍ): تُطبَّع عند الحفظ وتُقارن بالدقيقة، فلا يُعد حفظ بلا تغيير
         // تغييراً للبداية إن خُزنت بثوانٍ من غير اللوحة (مراجعة المشرف)
@@ -109,6 +117,7 @@ class SaveCompetitionRound
 
         // نافذة المسابقة تتغير، فتُحسب حدود شبكات المدارس من جديد (SchoolNetworkLimits)
         SchoolNetworkLimits::forget();
+        PublicImages::discard($imagesBefore, $imagesAfter, CompetitionRound::IMAGE_DIRECTORY);
 
         return $saved;
     }

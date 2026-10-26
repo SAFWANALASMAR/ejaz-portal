@@ -32,7 +32,11 @@
         <ul class="divide-y divide-line/70 rounded-xl border border-line/70">
             @foreach ($submission->attempts->sortBy(fn ($attempt) => [$attempt->round->sort_order, $attempt->round->id]) as $attempt)
                 <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                    <span class="font-semibold text-ink">{{ $attempt->round->name }}</span>
+                    <span class="font-semibold text-ink">{{ $attempt->round->name }}
+                        @if ($attempt->reference)
+                            <span class="ms-2 text-xs font-normal text-muted">{{ __('competitions.student.attempt_reference') }}: <span dir="ltr" class="font-semibold text-primary">{{ $attempt->reference }}</span></span>
+                        @endif
+                    </span>
                     @if ($attempt->isInProgress())
                         <span class="text-muted">{{ __('competitions.student.in_progress') }}</span>
                     @elseif ($attempt->round->resultsPublished())

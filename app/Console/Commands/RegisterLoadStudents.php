@@ -58,6 +58,7 @@ class RegisterLoadStudents extends Command
                 'category_id' => $category->id,
                 'grade' => $category->gradeList()[0] ?? null,
                 'region_id' => $region,
+                'gender' => $n % 2 === 0 ? 'female' : 'male',
                 'pledge' => '1',
             ]);
             $registered++;

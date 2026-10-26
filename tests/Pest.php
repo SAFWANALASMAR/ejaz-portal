@@ -298,6 +298,7 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
         'category_id' => $category->id,
         'grade' => 'الأول الثانوي',
         'region_id' => CompetitionRegion::query()->where('is_active', true)->value('id'),
+        'gender' => 'male',
         'pledge' => '1',
         ...$overrides,
     ]);

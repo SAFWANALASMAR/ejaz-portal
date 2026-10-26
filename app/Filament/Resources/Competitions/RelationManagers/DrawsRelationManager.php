@@ -69,12 +69,16 @@ class DrawsRelationManager extends RelationManager
         return $table
             // قائمة المشمولين (قد تبلغ عشرات الآلاف) لا تُقرأ في الجدول، بل في صفحة السحب وحدها
             ->modifyQueryUsing(fn ($query) => $query->with(['executor', 'void.voider', 'void.approver', 'voidRequest'])
-                ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at', 'round_id', 'category_id', 'tie_score']))
+                ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at', 'round_id', 'category_id', 'tie_score', 'gender']))
             ->columns([
                 TextColumn::make('executed_at')->label(__('competitions.draws.executed_at'))->dateTime('Y-m-d H:i'),
                 // سحب المتساوين في مسابقة الطلاب: مرحلته وفئته ودرجة التساوي (RunTieDraw)
-                TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id'))->placeholder('—')
-                    ->description(fn (CompetitionDraw $record): ?string => $record->round_id !== null ? ($record->category->name ?? __('competitions.student.admin.all_categories')).' · '.__('competitions.student.admin.tie_score', ['score' => $record->tie_score]) : null)
+                // وسحب الترتيب التراكمي بلا مرحلة، بجنسه (RunCumulativeTieDraw)
+                TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id'))
+                    ->placeholder(fn (CompetitionDraw $record): string => $record->gender !== null ? __('competitions.student.admin.cumulative_label') : '—')
+                    ->description(fn (CompetitionDraw $record): ?string => $record->round_id !== null || $record->gender !== null
+                        ? implode(' · ', array_filter([$record->gender?->groupLabel(), $record->category->name ?? __('competitions.student.admin.all_categories'), __('competitions.student.admin.tie_score', ['score' => $record->tie_score])]))
+                        : null)
                     ->visible(fn (): bool => (bool) $this->competition()->student_mode),
                 TextColumn::make('executor.name')->label(__('competitions.draws.executor')),
                 TextColumn::make('entrants_count')->label(__('competitions.draws.entrants_count'))->numeric(),
@@ -125,7 +129,7 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.void'))
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (CompetitionDraw $record): bool => $record->round_id === null && $record->void === null && $record->openVoidRequest() === null
+                    ->visible(fn (CompetitionDraw $record): bool => $record->round_id === null && ! $this->competition()->student_mode && $record->void === null && $record->openVoidRequest() === null
                         && (auth()->user()?->can('void', $record) ?? false))
                     // بعد الإلغاء الأول في المسابقة يصير الإلغاء طلباً يعتمده مشرف عام آخر (VoidDraw)
                     ->modalDescription(fn (): string => $this->competition()->draws()->whereHas('void')->exists()
@@ -152,7 +156,7 @@ class DrawsRelationManager extends RelationManager
                     ->label(__('competitions.draws.void'))
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (CompetitionDraw $record): bool => $record->round_id !== null && $record->void === null
+                    ->visible(fn (CompetitionDraw $record): bool => ($record->round_id !== null || $record->gender !== null) && $record->void === null
                         && CompetitionAccess::managesResults(auth()->user() instanceof User ? auth()->user() : null, $this->competition()))
                     ->modalDescription(__('competitions.student.tie_void_confirm'))
                     ->schema([

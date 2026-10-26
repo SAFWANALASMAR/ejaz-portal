@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\AttemptStatus;
+use App\Models\Concerns\FlushesContentCache;
+use App\Models\Contracts\HasPublicImages;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -20,11 +22,32 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon $starts_at
  * @property Carbon $ends_at
  * @property Carbon|null $results_published_at
+ * @property string|null $branch
+ * @property string|null $image_path
  */
-#[Fillable(['name', 'sort_order', 'starts_at', 'ends_at', 'question_count', 'duration_minutes', 'qualified_only'])]
-class CompetitionRound extends Model
+#[Fillable(['name', 'branch', 'image_path', 'sort_order', 'starts_at', 'ends_at', 'question_count', 'duration_minutes', 'qualified_only'])]
+class CompetitionRound extends Model implements HasPublicImages
 {
-    use HasUuids, LogsActivity;
+    // صورة الفرع على القرص العام، فحفظ المرحلة يمسح ذاكرة المحتوى العام كبقية نماذج الصور (ContentAdminTest يحرسه)
+    use FlushesContentCache, HasUuids, LogsActivity;
+
+    /**
+     * صورة المرحلة (الفرع) الاختيارية على القرص العام.
+     */
+    public const IMAGE_DIRECTORY = 'competition-rounds';
+
+    public function imageDirectory(): string
+    {
+        return self::IMAGE_DIRECTORY;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public function publicImages(): array
+    {
+        return ['image_path' => is_string($this->image_path) && $this->image_path !== '' ? [$this->image_path] : []];
+    }
 
     /**
      * @return array<string, string>

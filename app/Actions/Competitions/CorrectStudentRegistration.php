@@ -3,6 +3,7 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\ActivityEvent;
+use App\Enums\StudentGender;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionRegion;
 use App\Models\CompetitionSubmission;
@@ -42,11 +43,12 @@ class CorrectStudentRegistration
             'category_id' => ['required', 'integer', Rule::in($submission->competition->openCategories()->pluck('competition_categories.id')->all())],
             'grade' => $grades === [] ? ['nullable', 'prohibited'] : ['required', 'string', Rule::in($grades)],
             'region_id' => ['required', 'integer', Rule::exists(CompetitionRegion::class, 'id')->where('is_active', true)],
+            'gender' => ['required', Rule::enum(StudentGender::class)],
         ], attributes: [...__('competitions.student.attributes'), 'reason' => __('competitions.student.admin.correction_reason')])->validate();
 
         return DB::transaction(function () use ($actor, $submission, $validated): CompetitionSubmission {
             $locked = CompetitionSubmission::query()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
-            $before = $locked->only(['full_name', 'category_id', 'grade', 'region_id']);
+            $before = $this->snapshot($locked);
 
             // بعد أول محاولة لا تتغير الفئة: المحاولة من بنك فئتها، فتُرتَّب في غيرها بدرجة قصوى مختلفة (مراجعة المشرف)
             if ((int) $validated['category_id'] !== (int) $locked->category_id && $locked->attempts()->exists()) {
@@ -57,15 +59,29 @@ class CorrectStudentRegistration
             $locked->category_id = (int) $validated['category_id'];
             $locked->grade = filled($validated['grade'] ?? null) ? (string) $validated['grade'] : null;
             $locked->region_id = (int) $validated['region_id'];
+            $locked->gender = StudentGender::from((string) $validated['gender']);
             $locked->save();
 
-            $this->log($actor, $locked, 'edit', (string) $validated['reason'], array_keys(array_diff_assoc(
-                array_map('strval', $locked->only(['full_name', 'category_id', 'grade', 'region_id'])),
-                array_map('strval', $before),
-            )));
+            $this->log($actor, $locked, 'edit', (string) $validated['reason'], array_keys(array_diff_assoc($this->snapshot($locked), $before)));
 
             return $locked;
         });
+    }
+
+    /**
+     * الحقول القابلة للتصحيح نصوصاً، لمقارنة ما تغيّر (أسماء الحقول وحدها في السجل).
+     *
+     * @return array<string, string>
+     */
+    private function snapshot(CompetitionSubmission $submission): array
+    {
+        return [
+            'full_name' => (string) $submission->full_name,
+            'category_id' => (string) $submission->category_id,
+            'grade' => (string) $submission->grade,
+            'region_id' => (string) $submission->region_id,
+            'gender' => (string) $submission->gender?->value,
+        ];
     }
 
     /**

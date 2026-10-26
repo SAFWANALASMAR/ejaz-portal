@@ -6,6 +6,7 @@ use App\Enums\EducationStage;
 use App\Enums\ExamStage;
 use App\Enums\QuestionType;
 use App\Enums\SaudiRegion;
+use App\Enums\StudentGender;
 use App\Enums\SubmissionStatus;
 use Database\Factories\CompetitionSubmissionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -35,6 +36,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $intro_watched_at
  * @property Carbon|null $instructions_accepted_at
  * @property array<mixed>|null $extra
+ * @property StudentGender|null $gender
  * @property Carbon|null $certificate_issued_at
  */
 #[Fillable(['category', 'region', 'answers'])]
@@ -73,6 +75,7 @@ class CompetitionSubmission extends Model
             'instructions_accepted_at' => 'datetime',
             'guardian_phone' => 'encrypted',
             'extra' => 'array',
+            'gender' => StudentGender::class,
             'certificate_issued_at' => 'datetime',
         ];
     }

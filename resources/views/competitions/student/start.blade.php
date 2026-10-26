@@ -12,6 +12,9 @@
 
     <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
         <h2 class="text-xl font-bold text-primary">{{ $round->name }}</h2>
+        @if ($round->branch)
+            <p class="font-semibold text-accent">{{ $round->branch }}</p>
+        @endif
 
         <dl class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -24,12 +27,23 @@
             </div>
         </dl>
 
-        <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }} <x-sample /></p>
-        <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
-            @foreach (__('competitions.student.instructions') as $line)
-                <li>{{ $line }}</li>
-            @endforeach
-        </ul>
+        {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة بوسم «مثال تجريبي» --}}
+        @php($alerts = $competition->pageList('guide_alerts'))
+        @if ($alerts !== [])
+            <p class="font-semibold text-ink">{{ __('competitions.student.page.guide_alerts') }}</p>
+            <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
+                @foreach ($alerts as $line)
+                    <li>{{ $line }}</li>
+                @endforeach
+            </ul>
+        @else
+            <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }} <x-sample /></p>
+            <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
+                @foreach (__('competitions.student.instructions') as $line)
+                    <li>{{ $line }}</li>
+                @endforeach
+            </ul>
+        @endif
 
         @error('round')
             <x-alert type="error">{{ $message }}</x-alert>

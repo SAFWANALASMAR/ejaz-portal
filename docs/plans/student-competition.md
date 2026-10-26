@@ -68,3 +68,11 @@
 ## مكتبات جديدة
 
 لا. الإكسل بـ openspout (مع Filament)، والشهادة بـ mPDF (القائمة).
+
+## 9. مطوية «مسابقة البراهين العلمية» (26 أكتوبر 2026)
+
+- **الجداول** (ترحيل `2026_10_27_100000`): `competitions` (`page_content`، `prize_table`، `ranking_scope`، `short_code`)، و`competition_rounds` (`branch`، `image_path`)، و`competition_submissions` (`gender`)، و`competition_attempts` (`reference`)، و`competition_draws` (`gender`).
+- **الصفحة:** نصوص المطوية من اللوحة (`CompetitionPage`)، وجدول الجوائز لكل جنس، ورابط دليل الدخول (`/competitions/{slug}/guide`)، وفي كل فرع اسمه وصورته، وتنبيه «المشاركة في جميع الفروع شرط».
+- **الطالب:** الجنس إلزامي، والضوابط قبل التعهد، و«تنبيهات مهمة» من الدليل مكان التعليمات التجريبية، ورقم المحاولة بعد التسليم، وصفحة «حالة المحاولة» (`.../rounds/{round}/status`).
+- **اللوحة:** تبويبا «نصوص الصفحة» و«الجوائز والترتيب»، والفرع وصورته في المراحل، والجنس في المسجلين والنتائج والتصحيح، وتبويب «الترتيب التراكمي» بتصديره وسحبه، و«الرابط ورمز QR».
+- **البيانات:** `BrahinCompetitionSeeder` من `database/data/brahin-competition.php`.

@@ -95,6 +95,7 @@ class ExportUserData
                         'registered_at' => $date($submission->registered_at),
                         // مسابقة الطلاب
                         'grade' => $submission->grade,
+                        'gender' => $submission->gender?->value,
                         'guardian_phone' => $submission->guardian_phone,
                         'extra' => $submission->extra,
                     ],
@@ -107,6 +108,7 @@ class ExportUserData
                     // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات)، والدرجة بعد نشر نتائج المرحلة وحدها
                     'attempts' => $submission->attempts->map(fn (CompetitionAttempt $attempt): array => [
                         'round' => $attempt->round->name,
+                        'reference' => $attempt->reference,
                         'status' => $attempt->status->value,
                         'started_at' => $date($attempt->started_at),
                         'submitted_at' => $date($attempt->submitted_at),

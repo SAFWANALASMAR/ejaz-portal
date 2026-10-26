@@ -4,6 +4,7 @@ namespace App\Actions\Competitions;
 
 use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
+use App\Enums\RankingScope;
 use App\Enums\RoleName;
 use App\Enums\WorkType;
 use App\Models\Competition;
@@ -13,6 +14,8 @@ use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionMedia;
+use App\Support\CompetitionPage;
+use App\Support\CompetitionShortLink;
 use App\Support\ExamQuestions;
 use App\Support\ImageSanitizer;
 use App\Support\SchoolNetworkLimits;
@@ -66,7 +69,16 @@ class SaveCompetition
         $requested = $data;
         $this->checkLocks($competition, $requested);
 
+        // نصوص الصفحة: القوائم من النموذج نص بأسطر (سطر لكل بند)، فتُحوَّل قبل الفحص
+        if (is_array($data['page_content'] ?? null)) {
+            $data['page_content'] = $this->pageContent($data['page_content']);
+        }
+
         $data = $this->validate($competition, $data);
+
+        if (array_key_exists('prize_table', $data)) {
+            $data['prize_table'] = array_values(array_map(fn (array $row): array => ['male' => (int) ($row['male'] ?? 0), 'female' => (int) ($row['female'] ?? 0)], (array) $data['prize_table']));
+        }
 
         // ما لم يصل من المعايير أو الأسئلة يبقى كما هو
         $criteria = $data['criteria'] ?? null;
@@ -151,6 +163,11 @@ class SaveCompetition
                 $this->createDefaultRounds($competition);
             }
 
+            // رابط مختصر ثابت يُعمَّم على المدارس ورمز QR له (مطوية «البراهين العلمية»)
+            if ($competition->student_mode && $competition->short_code === null) {
+                CompetitionShortLink::assign($competition);
+            }
+
             if ($criteria !== null) {
                 $this->syncCriteria($competition, $criteria);
             }
@@ -184,6 +201,30 @@ class SaveCompetition
         }
 
         return $competition->refresh();
+    }
+
+    /**
+     * نصوص الصفحة بشكلها المخزن: الفقرات نصوص بلا مسافات زائدة، والقوائم بنود (من نص بأسطر أو مصفوفة)،
+     * والفارغ يسقط. ومفتاح غير معروف يبقى فيرفضه الفحص.
+     *
+     * @param  array<mixed>  $content
+     * @return array<mixed>
+     */
+    private function pageContent(array $content): array
+    {
+        foreach ($content as $key => $value) {
+            if (in_array($key, CompetitionPage::listKeys(), true)) {
+                $content[$key] = CompetitionPage::items($value);
+            } elseif (is_string($value)) {
+                $content[$key] = trim($value);
+            }
+
+            if ($content[$key] === '' || $content[$key] === [] || $content[$key] === null) {
+                unset($content[$key]);
+            }
+        }
+
+        return $content;
     }
 
     /**
@@ -272,6 +313,18 @@ class SaveCompetition
             'certificate_background' => ['nullable', 'string', 'max:255', 'regex:#^'.self::CERTIFICATE_DIRECTORY.'/[A-Za-z0-9_-]+\.(jpe?g|png)$#'],
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
+            // مسابقة الطلاب: نصوص الصفحة ودليل الدخول، وجدول الجوائز لكل جنس، ونطاق الترتيب
+            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
+            'page_content.'.CompetitionPage::PARTNER => ['nullable', 'string', 'max:200'],
+            ...collect(CompetitionPage::PARAGRAPHS)->mapWithKeys(fn (string $key): array => ['page_content.'.$key => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX]])->all(),
+            ...collect(CompetitionPage::listKeys())->mapWithKeys(fn (string $key): array => [
+                'page_content.'.$key => ['nullable', 'array', 'max:'.CompetitionPage::ITEMS_MAX],
+                'page_content.'.$key.'.*' => ['string', 'max:'.CompetitionPage::ITEM_MAX],
+            ])->all(),
+            'prize_table' => ['nullable', 'array', 'max:50'],
+            'prize_table.*.male' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'prize_table.*.female' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'ranking_scope' => ['sometimes', Rule::enum(RankingScope::class)],
 
             'reviewers' => ['nullable', 'array', 'max:200'],
             'reviewers.*' => ['integer', 'distinct'],

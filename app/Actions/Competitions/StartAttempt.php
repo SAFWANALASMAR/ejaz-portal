@@ -8,6 +8,7 @@ use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\AttemptLayout;
+use App\Support\SubmissionReference;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +73,9 @@ class StartAttempt
                 // العدد والدرجة القصوى عند البدء، فيُتحقق من تساويهما قبل الترتيب والسحب (RunTieDraw)
                 $attempt->question_count = count($ids);
                 $attempt->max_score = (float) CompetitionQuestion::query()->whereIn('id', $ids)->sum('points');
+                // رقم المحاولة المرجعي يظهر للطالب بعد التسليم وفي حسابه واللوحة (دليل الدخول). والتصادم
+                // بعشرة حروف نادر جداً، فيظهر خطأ قيد فريد ويعيد الطالب الضغط
+                $attempt->reference = SubmissionReference::generate();
                 $attempt->save();
 
                 return $attempt;

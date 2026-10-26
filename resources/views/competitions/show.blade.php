@@ -27,6 +27,7 @@
                 @endforeach
 
                 @if ($competition->student_mode)
+                    @include('competitions.student._page')
                     @include('competitions.student._rounds')
                 @endif
 

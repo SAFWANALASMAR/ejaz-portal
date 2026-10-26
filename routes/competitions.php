@@ -21,6 +21,9 @@ $slug = '[a-z0-9]+(?:-[a-z0-9]+)*';
 
 Route::get('/competitions', [CompetitionController::class, 'index'])->name('competitions.index');
 Route::get('/competitions/{slug}', [CompetitionController::class, 'show'])->where('slug', $slug)->name('competitions.show');
+Route::get('/competitions/{slug}/guide', [CompetitionController::class, 'guide'])->where('slug', $slug)->name('competitions.student.guide');
+// الرابط المختصر الثابت لمسابقة الطلاب (يُعمَّم على المدارس ورمز QR له)
+Route::get('/c/{code}', [CompetitionController::class, 'short'])->where('code', '[a-z0-9]{6,12}')->middleware('throttle:120,1,competition-short')->name('competitions.short');
 
 // التقديم: حساب مسجل، والمشاركة مشاركته وحدها (EntryController والإجراءات).
 // ولكل مسار بادئة في حده: الحد بلا بادئة مفتاحه المستخدم وحده فتشترك فيه المسارات كلها، فيستهلك
@@ -74,6 +77,8 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->where(['slug' => 
         Route::post('/start', [StudentExamController::class, 'start'])->middleware('throttle:20,1,competition-student-start')->name('competitions.student.start');
         Route::get('/units/{number}', [StudentExamController::class, 'unit'])->whereNumber('number')->middleware('throttle:240,1,competition-student-unit')->name('competitions.student.unit');
         Route::post('/units/{number}', [StudentExamController::class, 'save'])->whereNumber('number')->middleware('throttle:240,1,competition-student-save')->name('competitions.student.save');
+        // حالة المحاولة بلا بدء ولا انتقال تلقائي (دليل الدخول: «إذا انقطع الاتصال قبل الإرسال»)
+        Route::get('/status', [StudentExamController::class, 'status'])->middleware('throttle:120,1,competition-student-status')->name('competitions.student.status');
         Route::get('/review', [StudentExamController::class, 'review'])->middleware('throttle:120,1,competition-student-review')->name('competitions.student.review');
         Route::post('/submit', [StudentExamController::class, 'submit'])->middleware('throttle:20,1,competition-student-submit')->name('competitions.student.submit');
     });

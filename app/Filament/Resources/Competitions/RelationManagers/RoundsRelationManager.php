@@ -14,6 +14,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -73,6 +74,10 @@ class RoundsRelationManager extends RelationManager
                 ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
             Toggle::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->helperText(__('competitions.student.admin.qualified_only_hint'))->columnSpanFull()
                 ->disabled(fn (?CompetitionRound $record): bool => $record?->locked() ?? false)->dehydrated(),
+            TextInput::make('branch')->label(__('competitions.student.round_attributes.branch'))->helperText(__('competitions.student.admin.branch_hint'))->maxLength(200)->columnSpanFull(),
+            FileUpload::make('image_path')->label(__('competitions.student.round_attributes.image_path'))
+                ->disk('public')->directory(CompetitionRound::IMAGE_DIRECTORY)->visibility('public')
+                ->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(2048)->columnSpanFull(),
         ]);
     }
 
@@ -93,6 +98,7 @@ class RoundsRelationManager extends RelationManager
             ->description(fn (): string => __('competitions.student.admin.registered_count', ['count' => $this->competition()->submissions()->whereNotNull('registered_at')->count()]))
             ->columns([
                 TextColumn::make('name')->label(__('competitions.student.round_attributes.name'))->weight('bold'),
+                TextColumn::make('branch')->label(__('competitions.student.round_attributes.branch'))->placeholder('—')->wrap()->toggleable(),
                 TextColumn::make('starts_at')->label(__('competitions.student.round_attributes.starts_at'))->dateTime('Y-m-d H:i'),
                 TextColumn::make('ends_at')->label(__('competitions.student.round_attributes.ends_at'))->dateTime('Y-m-d H:i'),
                 TextColumn::make('question_count')->label(__('competitions.student.round_attributes.question_count'))->numeric(),

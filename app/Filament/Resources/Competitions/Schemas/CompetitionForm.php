@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Competitions\Schemas;
 use App\Actions\Competitions\SaveCompetition;
 use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
+use App\Enums\RankingScope;
 use App\Enums\RoleName;
 use App\Enums\WorkType;
 use App\Filament\Forms\ContentFields;
@@ -14,6 +15,7 @@ use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
 use App\Models\User;
 use App\Support\CompetitionMedia;
+use App\Support\CompetitionPage;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -109,6 +111,33 @@ class CompetitionForm
                         ->options(WorkType::class)
                         ->hidden(fn (Get $get): bool => (bool) $get('exam_mode') || (bool) $get('student_mode'))
                         ->columns(3),
+                ]),
+
+                // مسابقة الطلاب: نصوص الصفحة ودليل الدخول (مطوية «البراهين العلمية»). والفحص والتحويل في SaveCompetition
+                Tab::make(__('competitions.student.admin.page_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
+                    TextInput::make('page_content.'.CompetitionPage::PARTNER)->label(__('competitions.student.page.partner'))->maxLength(200)
+                        ->helperText(__('competitions.student.admin.page_hint')),
+                    ...array_map(fn (string $key): Textarea => Textarea::make('page_content.'.$key)->label(__('competitions.student.page.'.$key))
+                        ->rows(3)->maxLength(CompetitionPage::PARAGRAPH_MAX), CompetitionPage::PARAGRAPHS),
+                    ...array_map(fn (string $key): Textarea => self::listField($key), CompetitionPage::LISTS),
+                    ...array_map(fn (string $key): Textarea => self::listField($key)->helperText(__('competitions.student.admin.guide_hint').' '.__('competitions.student.admin.list_hint')), CompetitionPage::GUIDE),
+                ]),
+
+                Tab::make(__('competitions.student.admin.prizes_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
+                    Select::make('ranking_scope')->label(__('competitions.student.admin.ranking_scope'))->helperText(__('competitions.student.admin.ranking_scope_hint'))
+                        ->options(RankingScope::class)->default(RankingScope::All->value)->selectablePlaceholder(false),
+                    Repeater::make('prize_table')
+                        ->label(__('competitions.student.admin.prize_table'))
+                        ->helperText(__('competitions.student.admin.prize_table_hint'))
+                        ->columns(2)
+                        ->maxItems(50)
+                        ->defaultItems(0)
+                        ->reorderable()
+                        ->itemNumbers()
+                        ->schema([
+                            TextInput::make('male')->label(__('competitions.student.admin.prize_male'))->integer()->minValue(0)->maxValue(10000000)->required(),
+                            TextInput::make('female')->label(__('competitions.student.admin.prize_female'))->integer()->minValue(0)->maxValue(10000000)->required(),
+                        ]),
                 ]),
 
                 Tab::make(__('competitions.tabs.criteria'))->hidden(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
@@ -244,6 +273,18 @@ class CompetitionForm
                 'media_path' => $question->media_path,
             ])->values()->all(),
         ];
+    }
+
+    /**
+     * قائمة بنود من نصوص الصفحة في حقل نص: سطر لكل بند، وتُخزَّن مصفوفة (SaveCompetition).
+     */
+    private static function listField(string $key): Textarea
+    {
+        return Textarea::make('page_content.'.$key)
+            ->label(__('competitions.student.page.'.$key))
+            ->helperText(__('competitions.student.admin.list_hint'))
+            ->rows(4)
+            ->formatStateUsing(fn (mixed $state): ?string => is_array($state) ? implode("\n", CompetitionPage::items($state)) : (is_string($state) ? $state : null));
     }
 
     private static function type(Get $get): ?QuestionType

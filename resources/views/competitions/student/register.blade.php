@@ -41,6 +41,13 @@
             </div>
         @endif
 
+        <x-field name="gender" type="select" :label="__('competitions.student.attributes.gender')" required>
+            <option value="">{{ __('competitions.exam.choose') }}</option>
+            @foreach (\App\Enums\StudentGender::cases() as $gender)
+                <option value="{{ $gender->value }}" @selected(old('gender') === $gender->value)>{{ $gender->getLabel() }}</option>
+            @endforeach
+        </x-field>
+
         <x-field name="region_id" type="select" :label="__('competitions.student.attributes.region_id')" required>
             @if ($regions->count() !== 1)
                 <option value="">{{ __('competitions.exam.choose') }}</option>
@@ -66,6 +73,18 @@
                     :maxlength="$field->type === CompetitionFieldType::Text ? 200 : null" />
             @endif
         @endforeach
+
+        {{-- ضوابط المشاركة من نصوص المسابقة (المطوية) قبل التعهد --}}
+        @if ($competition->pageList('rules') !== [])
+            <div class="rounded-xl bg-primary-soft p-4">
+                <p class="font-semibold text-ink">{{ __('competitions.student.page.rules') }}</p>
+                <ul class="mt-2 list-disc space-y-1 ps-5 text-sm leading-7 text-ink">
+                    @foreach ($competition->pageList('rules') as $rule)
+                        <li>{{ $rule }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <div>
             <label class="flex items-start gap-3">

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\CompetitionStatus;
+use App\Enums\RankingScope;
 use App\Enums\SubmissionStatus;
 use App\Enums\WorkType;
 use App\Models\Concerns\Publishable;
+use App\Support\CompetitionPage;
 use Database\Factories\CompetitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,8 +32,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $results_approved_at
  * @property array<mixed>|null $categories
  * @property array<mixed>|null $work_types
+ * @property array<string, mixed>|null $page_content
+ * @property array<mixed>|null $prize_table
+ * @property RankingScope $ranking_scope
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -54,6 +59,9 @@ class Competition extends Model
             'intro_video_seconds' => 'integer',
             'work_types' => 'array',
             'student_mode' => 'boolean',
+            'page_content' => 'array',
+            'prize_table' => 'array',
+            'ranking_scope' => RankingScope::class,
         ];
     }
 
@@ -241,7 +249,7 @@ class Competition extends Model
     {
         // السحب الملغى لا يقفل، فيُصحَّح موعد خاطئ كان سبب الإلغاء
         // وسحب المتساوين في مرحلة من مسابقة الطلاب لا يقفل مواعيد المسابقة (RunTieDraw)
-        return $this->exists && ($this->resultsApproved() || $this->draws()->whereNull('round_id')->whereDoesntHave('void')->exists());
+        return $this->exists && ($this->resultsApproved() || $this->draws()->whereNull('round_id')->whereNull('gender')->whereDoesntHave('void')->exists());
     }
 
     /**
@@ -264,6 +272,51 @@ class Competition extends Model
         }
 
         return array_values(array_filter(array_map(fn ($type): ?WorkType => is_string($type) ? WorkType::tryFrom($type) : null, (array) $this->work_types)));
+    }
+
+    /**
+     * فقرة من نصوص صفحة مسابقة الطلاب (CompetitionPage)، أو null إن لم تُكتب.
+     */
+    public function pageText(string $key): ?string
+    {
+        $value = ((array) $this->page_content)[$key] ?? null;
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
+     * قائمة بنود من نصوص صفحة مسابقة الطلاب (CompetitionPage).
+     *
+     * @return list<string>
+     */
+    public function pageList(string $key): array
+    {
+        return CompetitionPage::items(((array) $this->page_content)[$key] ?? []);
+    }
+
+    public function hasGuide(): bool
+    {
+        return collect(CompetitionPage::GUIDE)->contains(fn (string $key): bool => $this->pageList($key) !== []);
+    }
+
+    /**
+     * جوائز المراكز لكل جنس بترتيبها: المركز من موضعه في الجدول.
+     *
+     * @return list<array{place: int, male: int, female: int}>
+     */
+    public function prizeRows(): array
+    {
+        $prizes = [];
+
+        foreach (array_values((array) $this->prize_table) as $index => $row) {
+            $prizes[] = [
+                'place' => $index + 1,
+                'male' => (int) (is_array($row) ? ($row['male'] ?? 0) : 0),
+                'female' => (int) (is_array($row) ? ($row['female'] ?? 0) : 0),
+            ];
+        }
+
+        return $prizes;
     }
 
     public function getActivitylogOptions(): LogOptions

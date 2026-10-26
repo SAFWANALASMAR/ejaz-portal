@@ -8,6 +8,7 @@ use App\Filament\Resources\Competitions\Pages\CreateCompetition;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ListCompetitions;
 use App\Filament\Resources\Competitions\Pages\ViewCompetition;
+use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\DrawsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\FieldsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\PassagesRelationManager;
@@ -74,6 +75,7 @@ class CompetitionResource extends Resource
             FieldsRelationManager::class,
             RegistrationsRelationManager::class,
             ResultsRelationManager::class,
+            CumulativeRelationManager::class,
             DrawsRelationManager::class,
         ];
     }

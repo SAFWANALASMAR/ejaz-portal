@@ -90,7 +90,7 @@ class AnonymizeUser
 
             // بيانات تسجيل الاختبار تعرّف صاحبها فتُمسح الآن، لا بعد مدة الاحتفاظ. ويبقى الرقم المرجعي والدرجات
             DB::table('competition_submissions')->where('user_id', $user->id)
-                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'extra' => null]);
+                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'gender' => null, 'extra' => null]);
 
             // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
             // المعاملة فلا يضيع ملف إن تراجعت

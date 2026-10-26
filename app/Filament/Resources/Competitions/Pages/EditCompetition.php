@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Competitions\Pages;
 
+use App\Filament\Resources\Competitions\Actions\ShortLinkActions;
 use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Schemas\CompetitionForm;
 use App\Models\Competition;
@@ -17,6 +18,12 @@ class EditCompetition extends EditRecord
 
     protected static string $resource = CompetitionResource::class;
 
+    private function competitionRecord(): Competition
+    {
+        /** @var Competition */
+        return $this->getRecord();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -24,6 +31,7 @@ class EditCompetition extends EditRecord
                 ->label(__('competitions.stats.action'))
                 ->icon('heroicon-o-chart-bar')
                 ->url(fn (): string => CompetitionResource::getUrl('stats', ['record' => $this->getRecord()])),
+            ...ShortLinkActions::make(fn (): Competition => $this->competitionRecord()),
             DeleteAction::make(),
             RestoreAction::make(),
         ];

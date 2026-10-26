@@ -3,6 +3,7 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\CompetitionFieldType;
+use App\Enums\StudentGender;
 use App\Models\Competition;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionField;
@@ -68,6 +69,8 @@ class RegisterStudent
             'grade' => $grades === [] ? ['nullable', 'prohibited'] : ['required', 'string', Rule::in($grades)],
             'region_id' => ['required', 'integer', Rule::exists(CompetitionRegion::class, 'id')->where('is_active', true)],
             'guardian_phone' => ['nullable', 'string', 'max:20', new SaudiMobile],
+            // إلزامي: الجوائز والترتيب لكل جنس (مطوية «البراهين العلمية»)
+            'gender' => ['required', Rule::enum(StudentGender::class)],
             'fields' => ['nullable', 'array'],
             ...$this->fieldRules($fields->all()),
             'pledge' => ['accepted'],
@@ -93,6 +96,7 @@ class RegisterStudent
                 $submission->category_id = (int) $validated['category_id'];
                 $submission->grade = filled($validated['grade'] ?? null) ? (string) $validated['grade'] : null;
                 $submission->region_id = (int) $validated['region_id'];
+                $submission->gender = StudentGender::from((string) $validated['gender']);
                 $submission->guardian_phone = filled($validated['guardian_phone'] ?? null) ? SaudiPhone::normalize((string) $validated['guardian_phone']) : null;
                 $submission->extra = $extra === [] ? null : $extra;
                 $submission->registered_at = now();

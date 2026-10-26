@@ -59,7 +59,7 @@ class StudentExamController extends Controller
         }
 
         try {
-            $register->handle($this->user($request), $competition, $request->only(['full_name', 'national_id', 'category_id', 'grade', 'region_id', 'guardian_phone', 'fields', 'pledge']));
+            $register->handle($this->user($request), $competition, $request->only(['full_name', 'national_id', 'category_id', 'grade', 'region_id', 'gender', 'guardian_phone', 'fields', 'pledge']));
         } catch (AuthorizationException $exception) {
             return redirect()->route('competitions.show', $slug)->with('error', $exception->getMessage() ?: __('competitions.student.registration_closed'));
         }
@@ -88,6 +88,21 @@ class StudentExamController extends Controller
         }
 
         return redirect()->route('competitions.student.unit', [$slug, $stage->uuid, $this->firstOpenUnit($attempt)]);
+    }
+
+    /**
+     * حالة المحاولة (دليل الدخول: «إذا انقطع الاتصال قبل الإرسال، أعد الدخول وتحقق من حالة المحاولة»): لم تبدأ،
+     * أو جارية بوقتها الباقي، أو مسلَّمة برقمها. بلا بدء ولا انتقال تلقائي، والجارية التي انتهى وقتها تُسلَّم أولاً.
+     */
+    public function status(Request $request, string $slug, string $round): View
+    {
+        [$competition, $stage, $submission] = $this->context($request, $slug, $round);
+
+        return view('competitions.student.status', [
+            'competition' => $competition,
+            'round' => $stage,
+            'attempt' => $this->attempt($request, $stage, $submission),
+        ]);
     }
 
     public function start(Request $request, string $slug, string $round, StartAttempt $start): RedirectResponse

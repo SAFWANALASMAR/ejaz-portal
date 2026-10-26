@@ -17,7 +17,9 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\CompetitionShortLink;
 use App\Support\RoundQuestions;
+use Database\Seeders\BrahinCompetitionSeeder;
 use Database\Seeders\CompetitionListsSeeder;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -49,8 +51,10 @@ class CreateDemoStudentCompetition extends Command
 
         (new CompetitionListsSeeder)->run();
         $password = Str::password(20);
+        /** @var array{page_content: array<string, mixed>, prize_table: list<array{male: int, female: int}>, rounds: list<array{name: string, branch: string}>} $brochure */
+        $brochure = require database_path(BrahinCompetitionSeeder::DATA);
 
-        $competition = DB::transaction(function (): Competition {
+        $competition = DB::transaction(function () use ($brochure): Competition {
             Competition::withTrashed()->where('slug', self::SLUG)->get()->each(function (Competition $old): void {
                 CompetitionAttempt::query()->whereIn('round_id', $old->rounds()->select('id'))->delete();
                 $old->submissions()->withTrashed()->forceDelete();
@@ -66,15 +70,21 @@ class CreateDemoStudentCompetition extends Command
                 'is_published' => true,
                 'student_mode' => true,
                 'categories' => [],
+                // نصوص المطوية وجوائزها لعرض أقسام الصفحة ودليل الدخول في اللقطات (BrahinCompetitionSeeder)
+                'page_content' => $brochure['page_content'],
+                'prize_table' => $brochure['prize_table'],
             ]);
             $competition->save();
             $competition->openCategories()->sync(CompetitionCategory::query()->pluck('id')->all());
+            CompetitionShortLink::assign($competition);
 
             return $competition;
         });
 
         $past = $this->round($competition, 'مرحلة تجريبية سابقة', now()->subDays(3), now()->subDays(2), 1);
         $current = $this->round($competition, 'المرحلة التجريبية الحالية', now()->subHour(), now()->addHours(6), 2);
+        $past->forceFill(['branch' => $brochure['rounds'][0]['branch']])->save();
+        $current->forceFill(['branch' => $brochure['rounds'][1]['branch']])->save();
         $this->bank($competition, $past, 3);
         $this->bank($competition, $current, 0);
 
@@ -98,6 +108,7 @@ class CreateDemoStudentCompetition extends Command
                 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id'),
                 'grade' => 'الثالث الثانوي',
                 'region_id' => CompetitionRegion::query()->active()->value('id'),
+                'gender' => 'male',
                 'guardian_phone' => '0550000000',
                 'pledge' => '1',
             ]);

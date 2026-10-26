@@ -55,43 +55,11 @@ class RunTieDraw
                 throw ValidationException::withMessages(['places' => __('competitions.student.draw_before_publish')]);
             }
 
-            $ranked = $this->ranked($locked, $categoryId);
-
-            // الترتيب بالدرجة الخام لا يصح إلا والدرجة القصوى واحدة للجميع
-            if ($ranked->pluck('max')->unique()->count() > 1) {
-                throw ValidationException::withMessages(['places' => __('competitions.student.mixed_max_scores')]);
-            }
-
-            if ($places < 1 || $places >= $ranked->count()) {
-                throw ValidationException::withMessages(['places' => __('competitions.student.draw_places', ['max' => max(0, $ranked->count() - 1)])]);
-            }
-
-            $boundary = (float) $ranked->values()[$places - 1]['total'];
-            $above = $ranked->filter(fn (array $row): bool => $row['total'] > $boundary)->count();
-            /** @var list<string> $tied */
-            $tied = $ranked->filter(fn (array $row): bool => $row['total'] === $boundary)->pluck('reference')->sort()->values()->all();
-            $spots = $places - $above;
-
-            if (count($tied) <= $spots) {
-                throw ValidationException::withMessages(['places' => __('competitions.student.no_tie')]);
-            }
-
-            $seed = bin2hex(random_bytes(32));
-
-            $draw = new CompetitionDraw;
+            $draw = self::record($this->ranked($locked, $categoryId), $places);
             $draw->competition_id = $locked->competition_id;
             $draw->round_id = $locked->id;
             $draw->category_id = $categoryId;
-            $draw->places = $places;
-            $draw->tie_score = $boundary;
-            $draw->seed = $seed;
-            $draw->entrants = $tied;
-            $draw->entrants_hash = DrawSelector::fingerprint($tied);
-            $draw->entrants_count = count($tied);
-            $draw->winners_count = $spots;
-            $draw->winners = DrawSelector::winners($seed, $tied, $spots);
             $draw->executed_by = $actor->id;
-            $draw->executed_at = now();
             $draw->save();
 
             activity('competitions')->performedOn($draw)->causedBy($actor)
@@ -101,6 +69,51 @@ class RunTieDraw
 
             return [$draw, true];
         });
+    }
+
+    /**
+     * سجل السحب بلا حفظ من ترتيب تنازلي بالدرجة: يُحصر المتساوون على حد المراكز ويُسحب منهم بقدر الباقي بالمولّد
+     * الآمن وبذرة وبصمة. لسحب المرحلة هنا، وللترتيب التراكمي (RunCumulativeTieDraw).
+     *
+     * @param  Collection<int, array{reference: string, total: float, max: float}>  $ranked
+     *
+     * @throws ValidationException
+     */
+    public static function record(Collection $ranked, int $places): CompetitionDraw
+    {
+        // الترتيب بالدرجة الخام لا يصح إلا والدرجة القصوى واحدة للجميع
+        if ($ranked->pluck('max')->unique()->count() > 1) {
+            throw ValidationException::withMessages(['places' => __('competitions.student.mixed_max_scores')]);
+        }
+
+        if ($places < 1 || $places >= $ranked->count()) {
+            throw ValidationException::withMessages(['places' => __('competitions.student.draw_places', ['max' => max(0, $ranked->count() - 1)])]);
+        }
+
+        $boundary = (float) $ranked->values()[$places - 1]['total'];
+        $above = $ranked->filter(fn (array $row): bool => $row['total'] > $boundary)->count();
+        /** @var list<string> $tied */
+        $tied = $ranked->filter(fn (array $row): bool => $row['total'] === $boundary)->pluck('reference')->sort()->values()->all();
+        $spots = $places - $above;
+
+        if (count($tied) <= $spots) {
+            throw ValidationException::withMessages(['places' => __('competitions.student.no_tie')]);
+        }
+
+        $seed = bin2hex(random_bytes(32));
+
+        $draw = new CompetitionDraw;
+        $draw->places = $places;
+        $draw->tie_score = $boundary;
+        $draw->seed = $seed;
+        $draw->entrants = $tied;
+        $draw->entrants_hash = DrawSelector::fingerprint($tied);
+        $draw->entrants_count = count($tied);
+        $draw->winners_count = $spots;
+        $draw->winners = DrawSelector::winners($seed, $tied, $spots);
+        $draw->executed_at = now();
+
+        return $draw;
     }
 
     /**

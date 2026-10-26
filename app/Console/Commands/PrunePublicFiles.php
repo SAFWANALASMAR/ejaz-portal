@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Actions\Settings\UpdateSiteSettings;
 use App\Models\Album;
 use App\Models\BoardMember;
+use App\Models\CompetitionRound;
 use App\Models\Contracts\HasPublicImages;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
@@ -34,7 +35,7 @@ class PrunePublicFiles extends Command
      *
      * @var list<class-string<Model&HasPublicImages>>
      */
-    public const MODELS = [Album::class, BoardMember::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, Partner::class, Program::class];
+    public const MODELS = [Album::class, BoardMember::class, CompetitionRound::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, Partner::class, Program::class];
 
     /**
      * فوق هذا العدد، وفوق نصف ملفات المجلدات، يُعد الحذف جماعياً فلا يتم إلا بـ --force.

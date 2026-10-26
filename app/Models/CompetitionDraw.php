@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DrawVoidRequestStatus;
+use App\Enums\StudentGender;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ use LogicException;
  *
  * @property list<string> $entrants
  * @property list<string> $winners
+ * @property StudentGender|null $gender
  * @property Carbon $executed_at
  */
 class CompetitionDraw extends Model
@@ -42,6 +44,7 @@ class CompetitionDraw extends Model
             'entrants_count' => 'integer',
             'winners_count' => 'integer',
             'executed_at' => 'datetime',
+            'gender' => StudentGender::class,
         ];
     }
 

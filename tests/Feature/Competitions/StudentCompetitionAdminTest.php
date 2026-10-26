@@ -675,7 +675,7 @@ it('lets the executive director correct or cancel a registration with a logged r
     expect(fn () => $correct->cancel($this->manager, $submission, 'سبب مكتوب بطوله'))->toThrow(AuthorizationException::class)
         ->and(fn () => $correct->cancel(userWithRole(RoleName::SuperAdmin), $submission, 'سبب مكتوب بطوله'))->toThrow(AuthorizationException::class);
 
-    $correct->edit($this->director, $submission, ['full_name' => 'اسم مصحح بن مثال تجريبي', 'category_id' => $submission->category_id, 'grade' => 'الثالث الثانوي', 'region_id' => $submission->region_id, 'reason' => 'خطأ إملائي في الاسم من المدرسة']);
+    $correct->edit($this->director, $submission, ['full_name' => 'اسم مصحح بن مثال تجريبي', 'category_id' => $submission->category_id, 'grade' => 'الثالث الثانوي', 'region_id' => $submission->region_id, 'gender' => 'male', 'reason' => 'خطأ إملائي في الاسم من المدرسة']);
     expect($submission->fresh()->full_name)->toBe('اسم مصحح بن مثال تجريبي');
 
     $correct->cancel($this->director, $submission->fresh(), 'رقم هوية طالب آخر سُجّل بغير حق');
@@ -720,7 +720,7 @@ it('keeps the category of a registration once the student has started an attempt
     $submission = CompetitionSubmission::query()->where('user_id', $student->id)->sole();
     $other = $this->competition->openCategories()->whereKeyNot($submission->category_id)->firstOrFail();
     $correct = app(CorrectStudentRegistration::class);
-    $data = fn (array $overrides = []): array => ['full_name' => $submission->full_name, 'category_id' => $submission->category_id, 'grade' => $submission->grade, 'region_id' => $submission->region_id, 'reason' => 'تصحيح من المدرسة بعد المراجعة', ...$overrides];
+    $data = fn (array $overrides = []): array => ['full_name' => $submission->full_name, 'category_id' => $submission->category_id, 'grade' => $submission->grade, 'region_id' => $submission->region_id, 'gender' => 'male', 'reason' => 'تصحيح من المدرسة بعد المراجعة', ...$overrides];
 
     app(StartAttempt::class)->handle($student, $this->round);
 

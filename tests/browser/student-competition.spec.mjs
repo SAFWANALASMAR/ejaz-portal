@@ -69,6 +69,14 @@ test.describe('student competition: the student journey', () => {
         await expect(page.getByRole('heading', { name: 'مراحل المسابقة' })).toBeVisible();
         await inspect(page, testInfo, '01-competition', errors);
 
+        // نصوص المطوية وجدول الجوائز، ودليل الدخول صفحةً عامة
+        await expect(page.getByRole('heading', { name: 'الجوائز' })).toBeVisible();
+        await page.getByRole('link', { name: 'دليل الدخول إلى الاختبار' }).click();
+        await page.waitForURL('**/guide');
+        await expect(page.getByRole('heading', { name: 'خطوات الدخول إلى الاختبار' })).toBeVisible();
+        await inspect(page, testInfo, '12-entry-guide', errors);
+        await page.goto(`/competitions/${DEMO.slug}`);
+
         await page.getByRole('link', { name: 'سجّل في المسابقة' }).click();
         await page.waitForURL('**/register');
         await inspect(page, testInfo, '02-register', errors);
@@ -77,6 +85,7 @@ test.describe('student competition: the student journey', () => {
         await page.fill('#field-national_id', nationalId(SERIALS[width]));
         await page.selectOption('#field-category_id', { label: 'المرحلة الثانوية' });
         await page.selectOption('#field-grade', { label: 'الأول الثانوي' });
+        await page.selectOption('#field-gender', 'male');
         await page.fill('#field-guardian_phone', '0551112233');
         await page.check('input[name="pledge"]');
         await Promise.all([page.waitForURL(`**/competitions/${DEMO.slug}`), page.getByRole('button', { name: 'تسجيل', exact: true }).click()]);
@@ -123,6 +132,12 @@ test.describe('student competition: the student journey', () => {
         await expect(page.getByText('تم استلام إجاباتك', { exact: true })).toBeVisible();
         await expect(page.getByText('درجتك')).toHaveCount(0);
         await inspect(page, testInfo, '08-received', errors);
+        // رقم المحاولة المرجعي بعد التسليم، وصفحة حالة المحاولة (دليل الدخول)
+        const reference = (await page.locator('p[dir=ltr].tracking-widest').innerText()).trim();
+        expect(reference).toMatch(/^[A-Z2-9]{10}$/);
+        await page.goto(`/competitions/${DEMO.slug}/rounds/${DEMO.round}/status`);
+        await expect(page.getByText(reference)).toBeVisible();
+        await inspect(page, testInfo, '11-attempt-status', errors);
 
         await page.goto('/account/competitions');
         await expect(page.getByText('المرحلة التجريبية الحالية')).toBeVisible();
@@ -189,7 +204,7 @@ test.describe('student competition: the director journey in the panel', () => {
         await page.waitForLoadState('networkidle');
         await inspect(page, testInfo, '20-admin-rounds', errors);
 
-        for (const [tab, step] of [['بنك الأسئلة', '21-admin-bank'], ['النصوص والمقاطع', '22-admin-passages'], ['حقول التسجيل', '23-admin-fields'], ['المسجلون', '24-admin-registrations'], ['النتائج', '26-admin-results']]) {
+        for (const [tab, step] of [['بنك الأسئلة', '21-admin-bank'], ['النصوص والمقاطع', '22-admin-passages'], ['حقول التسجيل', '23-admin-fields'], ['المسجلون', '24-admin-registrations'], ['النتائج', '26-admin-results'], ['الترتيب التراكمي', '31-admin-cumulative']]) {
             await page.getByRole('tab', { name: tab }).click();
             await page.waitForLoadState('networkidle');
             // محتوى التبويب المختار بعنوانه قبل الفحص واللقطة
@@ -217,6 +232,21 @@ test.describe('student competition: the director journey in the panel', () => {
         await page.getByRole('tab', { name: /الاختبار/ }).click();
         await expect(page.getByText('الفئات المفتوحة في هذا الإطلاق')).toBeVisible();
         await inspect(page, testInfo, '28-admin-form', errors);
+
+        // نصوص الصفحة من المطوية، والجوائز ونطاق الترتيب
+        await page.getByRole('tab', { name: 'نصوص الصفحة' }).click();
+        await expect(page.getByText('الأهداف التفصيلية').first()).toBeVisible();
+        await inspect(page, testInfo, '32-admin-page-texts', errors);
+        await page.getByRole('tab', { name: 'الجوائز والترتيب' }).click();
+        await expect(page.getByText('نطاق الترتيب والجوائز')).toBeVisible();
+        await inspect(page, testInfo, '33-admin-prizes', errors);
+
+        // الرابط المختصر ورمز QR
+        await page.getByRole('button', { name: 'الرابط ورمز QR' }).click();
+        await expect(page.getByRole('dialog').locator('svg').first()).toBeVisible();
+        await page.waitForTimeout(600);
+        await inspect(page, testInfo, '34-admin-short-link', errors);
+        await page.keyboard.press('Escape');
 
         for (const [path, step] of [['/admin/competition-categories', '29-admin-categories'], ['/admin/competition-regions', '30-admin-regions']]) {
             await page.goto(path);

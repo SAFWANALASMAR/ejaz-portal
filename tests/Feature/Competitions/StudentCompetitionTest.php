@@ -49,6 +49,7 @@ function studentForm(array $overrides = []): array
         'grade' => 'الثاني الثانوي',
         'region_id' => test()->makkah->id,
         'guardian_phone' => '0551234567',
+        'gender' => 'male',
         'pledge' => '1',
         ...$overrides,
     ];
@@ -490,6 +491,7 @@ it('clears the student identity, guardian phone, custom fields and certificate w
     expect($fresh->national_id)->toBeNull()
         ->and($fresh->guardian_phone)->toBeNull()
         ->and($fresh->extra)->toBeNull()
+        ->and($fresh->gender)->toBeNull()
         ->and($fresh->certificate_path)->toBeNull()
         ->and($fresh->reference)->not->toBeNull()
         ->and(Storage::disk('local')->exists('competition-certificates/y.pdf'))->toBeFalse();

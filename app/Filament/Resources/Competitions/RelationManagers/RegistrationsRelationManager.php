@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Competitions\RelationManagers;
 
 use App\Actions\Competitions\CorrectStudentRegistration;
 use App\Actions\Competitions\RevealStudentIdentity;
+use App\Enums\StudentGender;
 use App\Filament\Resources\Competitions\RelationManagers\Concerns\RunsStudentCompetitionActions;
 use App\Models\CompetitionField;
 use App\Models\CompetitionRegion;
@@ -71,6 +72,7 @@ class RegistrationsRelationManager extends RelationManager
                 TextColumn::make('full_name')->label(__('competitions.student.attributes.full_name'))->searchable()->wrap(),
                 TextColumn::make('national_id')->label(__('competitions.student.attributes.national_id'))
                     ->state(fn (CompetitionSubmission $record): ?string => CompetitionSubmission::mask($record->national_id))->extraAttributes(['dir' => 'ltr']),
+                TextColumn::make('gender')->label(__('competitions.student.attributes.gender'))->badge()->placeholder('—'),
                 TextColumn::make('studentCategory.name')->label(__('competitions.student.attributes.category_id')),
                 TextColumn::make('grade')->label(__('competitions.student.attributes.grade'))->placeholder('—'),
                 TextColumn::make('studentRegion.name')->label(__('competitions.student.attributes.region_id')),
@@ -81,6 +83,7 @@ class RegistrationsRelationManager extends RelationManager
                 TextColumn::make('registered_at')->label(__('competitions.student.admin.registered_at'))->dateTime('Y-m-d H:i')->sortable(),
             ])
             ->filters([
+                SelectFilter::make('gender')->label(__('competitions.student.attributes.gender'))->options(StudentGender::class),
                 SelectFilter::make('category_id')->label(__('competitions.student.attributes.category_id'))->options(fn (): array => $this->competition()->openCategories()->pluck('name', 'competition_categories.id')->all()),
                 SelectFilter::make('region_id')->label(__('competitions.student.attributes.region_id'))->options(fn (): array => CompetitionRegion::query()->orderBy('sort_order')->pluck('name', 'id')->all()),
                 SelectFilter::make('grade')->label(__('competitions.student.attributes.grade'))->options(fn (): array => $this->gradeOptions()),
@@ -112,7 +115,7 @@ class RegistrationsRelationManager extends RelationManager
                     ->icon('heroicon-o-pencil-square')
                     ->color('gray')
                     ->visible(fn (): bool => $this->allows('competition.correct_registrations'))
-                    ->fillForm(fn (CompetitionSubmission $record): array => $record->only(['full_name', 'category_id', 'grade', 'region_id']))
+                    ->fillForm(fn (CompetitionSubmission $record): array => [...$record->only(['full_name', 'category_id', 'grade', 'region_id']), 'gender' => $record->gender?->value])
                     ->schema([
                         TextInput::make('full_name')->label(__('competitions.student.attributes.full_name'))->required()->maxLength(150),
                         Select::make('category_id')->label(__('competitions.student.attributes.category_id'))->required()
@@ -120,6 +123,7 @@ class RegistrationsRelationManager extends RelationManager
                         Select::make('grade')->label(__('competitions.student.attributes.grade'))->options(fn (): array => $this->gradeOptions()),
                         Select::make('region_id')->label(__('competitions.student.attributes.region_id'))->required()
                             ->options(fn (): array => CompetitionRegion::query()->active()->pluck('name', 'id')->all()),
+                        Select::make('gender')->label(__('competitions.student.attributes.gender'))->required()->options(StudentGender::class),
                         Textarea::make('reason')->label(__('competitions.student.admin.correction_reason'))->required()->minLength(10)->maxLength(500),
                     ])
                     ->action(fn (CompetitionSubmission $record, array $data, Action $action) => $this->attempt(function () use ($record, $data): void {

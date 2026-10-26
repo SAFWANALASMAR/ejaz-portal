@@ -6,6 +6,7 @@ use App\Actions\Competitions\IssueCompetitionCertificates;
 use App\Actions\Competitions\QualifyAttempts;
 use App\Actions\Competitions\RunTieDraw;
 use App\Enums\AttemptStatus;
+use App\Enums\StudentGender;
 use App\Filament\Resources\Competitions\RelationManagers\Concerns\RunsStudentCompetitionActions;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
@@ -59,6 +60,8 @@ class ResultsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id')),
                 TextColumn::make('submission.reference')->label(__('competitions.entry.reference'))->copyable(),
+                TextColumn::make('reference')->label(__('competitions.student.attempt_reference'))->copyable()->placeholder('—')->toggleable(),
+                TextColumn::make('submission.gender')->label(__('competitions.student.attributes.gender'))->badge()->placeholder('—'),
                 TextColumn::make('submission.full_name')->label(__('competitions.student.attributes.full_name'))->wrap(),
                 TextColumn::make('submission.studentCategory.name')->label(__('competitions.student.attributes.category_id')),
                 TextColumn::make('submission.grade')->label(__('competitions.student.attributes.grade'))->placeholder('—'),
@@ -75,13 +78,15 @@ class ResultsRelationManager extends RelationManager
                 SelectFilter::make('status')->label(__('competitions.fields.status'))->options(AttemptStatus::class),
                 Filter::make('student')
                     ->schema([
+                        Select::make('gender')->label(__('competitions.student.attributes.gender'))->options(StudentGender::class),
                         Select::make('category_id')->label(__('competitions.student.attributes.category_id'))->options(fn (): array => $this->competition()->openCategories()->pluck('name', 'competition_categories.id')->all()),
                         Select::make('grade')->label(__('competitions.student.attributes.grade'))->options(fn (): array => $this->gradeOptions()),
                         Select::make('region_id')->label(__('competitions.student.attributes.region_id'))->options(fn (): array => CompetitionRegion::query()->orderBy('sort_order')->pluck('name', 'id')->all()),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query->when(
-                        filled($data['category_id'] ?? null) || filled($data['grade'] ?? null) || filled($data['region_id'] ?? null),
+                        filled($data['gender'] ?? null) || filled($data['category_id'] ?? null) || filled($data['grade'] ?? null) || filled($data['region_id'] ?? null),
                         fn (Builder $query) => $query->whereHas('submission', fn (Builder $query) => $query
+                            ->when(filled($data['gender'] ?? null), fn (Builder $query) => $query->where('gender', $data['gender'] instanceof StudentGender ? $data['gender']->value : (string) $data['gender']))
                             ->when(filled($data['category_id'] ?? null), fn (Builder $query) => $query->where('category_id', (int) $data['category_id']))
                             ->when(filled($data['grade'] ?? null), fn (Builder $query) => $query->where('grade', (string) $data['grade']))
                             ->when(filled($data['region_id'] ?? null), fn (Builder $query) => $query->where('region_id', (int) $data['region_id']))),

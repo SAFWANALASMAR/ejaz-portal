@@ -72,6 +72,7 @@ class PurgeSubmissionPersonalData
                 // بيانات تسجيل مسابقة الطلاب (plans/student-competition.md)
                 'guardian_phone' => null,
                 'grade' => null,
+                'gender' => null,
                 'extra' => null,
             ])->save();
 
