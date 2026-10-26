@@ -22,6 +22,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
+use Laravel\Fortify\Fortify;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -106,6 +108,19 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function identifier(): string
     {
         return $this->username ?? $this->email ?? $this->phone ?? '#'.$this->getKey();
+    }
+
+    /**
+     * رابط رمز QR لتطبيق المصادقة باسم الحساب. وفي Fortify يُسمّى بـ Fortify::username()، وهو هنا حقل نموذج الدخول
+     * (login) لا عمود، فكان يرمي خارج الإنتاج ويُنتج رمزاً بلا اسم فيه (الاختبار الشامل 0.14).
+     */
+    public function twoFactorQrCodeUrl(): string
+    {
+        return app(TwoFactorAuthenticationProvider::class)->qrCodeUrl(
+            (string) config('app.name'),
+            $this->identifier(),
+            Fortify::currentEncrypter()->decrypt($this->two_factor_secret)
+        );
     }
 
     /**
