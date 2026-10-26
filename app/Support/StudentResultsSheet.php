@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ActivityEvent;
+use App\Enums\AttemptStatus;
 use App\Filament\Exports\ServiceRequestExporter;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
@@ -69,8 +70,11 @@ final class StudentResultsSheet
             // الترتيب داخل كل مرحلة وفئة (مراجعة المشرف): بنك كل فئة غير بنك غيرها، والسحب للمتساوين بهما كذلك
             $ranks = [];
 
-            // مرتبة بالدرجة أياً كان ترتيب الجدول، فالترتيب في العمود الأول درجةٌ لا موضع في الجدول
+            // مرتبة بالدرجة أياً كان ترتيب الجدول، فالترتيب في العمود الأول درجةٌ لا موضع في الجدول. والمسلَّمة وحدها
+            // ولتسجيل قائم، فلا تُرتَّب جارية بصفر ولا ملغى بدرجته (المراجعة السحابية، م٤)
             $query->reorder()
+                ->where('competition_attempts.status', AttemptStatus::Submitted)
+                ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'))
                 ->orderByRaw('COALESCE(competition_attempts.score, 0) + COALESCE(competition_attempts.essay_score, 0) DESC')
                 ->orderBy('competition_attempts.id')
                 ->with(['round', 'submission.studentCategory', 'submission.studentRegion'])->chunk(500, function ($attempts) use ($writer, $full, $fields, &$ranks): void {

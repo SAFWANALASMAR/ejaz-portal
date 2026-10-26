@@ -105,14 +105,15 @@ class ExportUserData
                         'size_bytes' => $work->size,
                         'uploaded_at' => $date($work->created_at),
                     ])->all(),
-                    // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات)، والدرجة بعد نشر نتائج المرحلة وحدها
+                    // محاولات مسابقة الطلاب بإجاباته (مفاتيح الخيارات) بعد التسليم وحده، فلا يكشف التصدير أثناء الاختبار مفتاح
+                    // كل خيار (المراجعة السحابية، ن٤). والدرجة بعد نشر نتائج المرحلة وحدها
                     'attempts' => $submission->attempts->map(fn (CompetitionAttempt $attempt): array => [
                         'round' => $attempt->round->name,
                         'reference' => $attempt->reference,
                         'status' => $attempt->status->value,
                         'started_at' => $date($attempt->started_at),
                         'submitted_at' => $date($attempt->submitted_at),
-                        'answers' => $attempt->answers,
+                        'answers' => $attempt->isInProgress() ? null : $attempt->answers,
                         'score' => $attempt->round->resultsPublished() ? (float) $attempt->score + (float) $attempt->essay_score : null,
                     ])->all(),
                 ])->all(),

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
@@ -536,4 +537,30 @@ it('marks a submission automatic only near the deadline, whatever the browser se
     $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/submit', ['auto' => '1']);
 
     expect($attempt->fresh()->auto_submitted)->toBeFalse();
+});
+
+it('leaves the answers of a running attempt out of the personal data export, and includes them once submitted', function () {
+    $question = studentQuestion($this->round);
+    $student = registeredStudent($this->competition);
+    $attempt = startedAttempt($student);
+    $attempt->forceFill(['answers' => [(string) $question->id => 'a']])->save();
+    $exported = fn (): array => app(ExportUserData::class)->handle($student)['competition_submissions'][0]['attempts'][0];
+
+    // مفاتيح الخيارات أثناء الاختبار تكشف ترتيب إدخالها بتصديرات متتالية (المراجعة السحابية، ن٤)
+    expect($exported()['answers'])->toBeNull();
+
+    app(SubmitAttempt::class)->handle($student, $attempt->fresh());
+
+    expect($exported()['answers'])->toBe([(string) $question->id => 'a']);
+});
+
+it('does not flash the national ID or the guardian phone back into the session on a validation error', function () {
+    registeredStudent($this->competition, 7);
+
+    // «رقم الهوية مسجل» من الإجراء: يعيد لارافيل المدخلات إلى الجلسة إلا ما في dontFlash (المراجعة السحابية، ن٣)
+    $this->actingAs(User::factory()->create())->post('/competitions/students/register', studentForm())
+        ->assertSessionHasErrors('national_id')
+        ->assertSessionHasInput('full_name')
+        ->assertSessionMissing('_old_input.national_id')
+        ->assertSessionMissing('_old_input.guardian_phone');
 });

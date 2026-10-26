@@ -54,7 +54,9 @@ class ResultsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion']))
+            // والتسجيل الملغى خارج النتائج كما هو خارج السحب (RunTieDraw::ranked)، فعلاقة submission تشمل المحذوف
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'))
+                ->with(['round', 'submission.studentCategory', 'submission.studentRegion']))
             ->defaultSort('score', 'desc')
             ->poll('30s')
             ->columns([
