@@ -188,6 +188,8 @@ test.describe('student competition: the director journey in the panel', () => {
 
     test('manages rounds, bank, fields, registrations and results', async ({ page }, testInfo) => {
         test.skip(testInfo.project.name === 'tablet', 'الحاسب والجوال يكفيان للوحة (حد محاولات التحقق الثنائي)');
+        // رحلة طويلة بتسعة تبويبات ونوافذ، فمهلتها أطول من الافتراضية (الملاحظة 11 من الاختبار الشامل 0.14)
+        test.setTimeout(240_000);
         const errors = collectErrors(page);
 
         await page.goto('/login');
@@ -206,15 +208,24 @@ test.describe('student competition: the director journey in the panel', () => {
 
         for (const [tab, step] of [['بنك الأسئلة', '21-admin-bank'], ['النصوص والمقاطع', '22-admin-passages'], ['حقول التسجيل', '23-admin-fields'], ['المسجلون', '24-admin-registrations'], ['النتائج', '26-admin-results'], ['الترتيب التراكمي', '31-admin-cumulative']]) {
             await page.getByRole('tab', { name: tab }).click();
+            // التبويب يُحمَّل كسولاً حين تظهر لوحته في الشاشة (Livewire lazy)، وعلى الجوال قد تكون تحت الشاشة بعد محتوى التبويب
+            // السابق الطويل فتبقى «جارٍ التحميل...» (الملاحظة 11 من الاختبار الشامل 0.14). فتُمرَّر إليها قبل الانتظار
+            const loading = page.getByRole('tabpanel', { name: 'جارٍ التحميل...' });
+            if (await loading.count()) {
+                await loading.first().scrollIntoViewIfNeeded();
+            }
             await page.waitForLoadState('networkidle');
             // محتوى التبويب المختار بعنوانه قبل الفحص واللقطة
-            await expect(page.getByRole('tabpanel', { name: new RegExp(`^${tab}`) })).toBeVisible();
+            await expect(page.getByRole('tabpanel', { name: new RegExp(`^${tab}`) })).toBeVisible({ timeout: 15_000 });
             await inspect(page, testInfo, step, errors);
 
             if (tab === 'المسجلون') {
                 await expect(page.getByText(/••••••\d{4}/).first()).toBeVisible();
-                await page.getByRole('button', { name: 'عرض رقم الهوية' }).first().click();
-                await expect(page.getByText('يُسجَّل هذا الاطلاع في سجل العمليات.')).toBeVisible();
+                // النقر قبل أن يفرغ الجدول من تحميله لا يفتح النافذة (الجوال)، فيُعاد حتى تظهر
+                await expect(async () => {
+                    await page.getByRole('button', { name: 'عرض رقم الهوية' }).first().click();
+                    await expect(page.getByText('يُسجَّل هذا الاطلاع في سجل العمليات.')).toBeVisible({ timeout: 3_000 });
+                }).toPass({ timeout: 20_000 });
                 await expect(page.getByRole('dialog').getByText(/\b1\d{9}\b/).first()).toBeVisible();
                 await inspect(page, testInfo, '25-admin-reveal', errors);
                 await page.keyboard.press('Escape');
@@ -242,8 +253,11 @@ test.describe('student competition: the director journey in the panel', () => {
         await inspect(page, testInfo, '33-admin-prizes', errors);
 
         // الرابط المختصر ورمز QR
-        await page.getByRole('button', { name: 'الرابط ورمز QR' }).click();
-        await expect(page.getByRole('dialog').locator('svg').first()).toBeVisible();
+        // الزر معطّل ما دام طلب Livewire جارياً، فالنقر يُعاد حتى تفتح النافذة
+        await expect(async () => {
+            await page.getByRole('button', { name: 'الرابط ورمز QR' }).click({ timeout: 3_000 });
+            await expect(page.getByRole('dialog').locator('svg').first()).toBeVisible({ timeout: 3_000 });
+        }).toPass({ timeout: 20_000 });
         await page.waitForTimeout(600);
         await inspect(page, testInfo, '34-admin-short-link', errors);
         await page.keyboard.press('Escape');
