@@ -25,6 +25,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Number;
 
 /**
  * مراحل مسابقة الطلاب (قرار المدير التنفيذي: أربع مراحل مبدئياً، وعددها يزيد وينقص من اللوحة، ولكل مرحلة
@@ -104,11 +105,17 @@ class RoundsRelationManager extends RelationManager
                 TextColumn::make('question_count')->label(__('competitions.student.round_attributes.question_count'))->numeric(),
                 TextColumn::make('questions_count')->label(__('competitions.student.admin.bank_size'))->numeric()
                     // بنك كل فئة مفتوحة بعدد أسئلة المرحلة تماماً، وإلا لا يبدأ طلابها (AttemptLayout وStartAttempt)
-                    ->description(fn (CompetitionRound $record): string => ($short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()))) === []
-                        ? __('competitions.student.bank_ready')
-                        : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $count < 0
-                            ? __('competitions.student.bank_short_points', ['category' => $name])
-                            : __('competitions.student.bank_short_count', ['category' => $name, 'count' => $count]))->implode('، ')])),
+                    ->description(fn (CompetitionRound $record): string => implode(' ', array_filter([
+                        ($short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()))) === []
+                            ? __('competitions.student.bank_ready')
+                            : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $count < 0
+                                ? __('competitions.student.bank_short_points', ['category' => $name])
+                                : __('competitions.student.bank_short_count', ['category' => $name, 'count' => $count]))->implode('، ')]),
+                        // والدرجة القصوى موحدة بين الفئات حين يُرتَّب المجموع لكل الفئات معاً (StartAttempt يرفض غيرها)
+                        ($mixed = AttemptLayout::mixedMaxScores($record)) !== []
+                            ? __('competitions.student.bank_mixed_max', ['details' => collect($mixed)->map(fn (float $max, string $name): string => $name.' '.Number::format($max, maxPrecision: 2))->implode('، ')])
+                            : null,
+                    ]))),
                 TextColumn::make('duration_minutes')->label(__('competitions.student.round_attributes.duration_minutes'))->numeric(),
                 IconColumn::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->boolean(),
                 TextColumn::make('started_count')->label(__('competitions.student.admin.started'))->numeric(),

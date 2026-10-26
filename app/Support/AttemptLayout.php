@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\QuestionType;
+use App\Enums\RankingScope;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
@@ -93,6 +94,50 @@ final class AttemptLayout
             $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
             default => null,
         };
+    }
+
+    /**
+     * الدرجة القصوى لطالب الفئة في المرحلة إن كان بنكها جاهزاً: مجموع درجات البنك إن ساوى العدد، وإلا العدد × درجة
+     * السؤال الموحدة. أو null لبنك غير جاهز.
+     */
+    public static function maxScore(CompetitionRound $round, int $categoryId): ?float
+    {
+        if (self::shortfall($round, $categoryId) !== null) {
+            return null;
+        }
+
+        $bank = self::bank($round, $categoryId);
+
+        return $bank->count() === $round->question_count
+            ? (float) $bank->sum('points')
+            : (float) $round->question_count * (float) $bank->first()?->points;
+    }
+
+    /**
+     * الدرجات القصوى المختلفة بين الفئات الجاهزة {الفئة: الدرجة} حين يكون الترتيب التراكمي لكل الفئات معاً (مراجعة
+     * المشرف على المطوية): المجاميع تُقارن بين الفئات فيلزم أن تتوحّد الدرجة القصوى لكل فرع. وفارغة إن توحّدت، أو كان
+     * الترتيب لكل فئة على حدة.
+     *
+     * @return array<string, float>
+     */
+    public static function mixedMaxScores(CompetitionRound $round): array
+    {
+        if ($round->competition->ranking_scope === RankingScope::Category) {
+            return [];
+        }
+
+        $scores = [];
+
+        foreach ($round->competition->openCategories()->get() as $category) {
+            /** @var CompetitionCategory $category */
+            $max = self::maxScore($round, $category->id);
+
+            if ($max !== null) {
+                $scores[$category->name] = $max;
+            }
+        }
+
+        return count(array_unique($scores)) > 1 ? $scores : [];
     }
 
     /**

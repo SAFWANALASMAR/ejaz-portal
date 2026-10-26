@@ -49,8 +49,17 @@ class StartAttempt
                     throw new AuthorizationException(__('competitions.student.round_closed'));
                 }
 
+                // والتسجيل مقفول: تصحيح الفئة (CorrectStudentRegistration) يقفله ثم يفحص أول محاولة، فلا يبدأ الطالب
+                // ببنك فئة تتغير معه
+                $submission = CompetitionSubmission::query()->whereKey($submission->id)->lockForUpdate()->firstOrFail();
+
                 if ($locked->qualified_only && ! $this->qualified($locked, $submission)) {
                     throw new AuthorizationException(__('competitions.student.not_qualified'));
+                }
+
+                // الترتيب التراكمي لكل الفئات معاً يقارن المجاميع، فلا بدء والدرجة القصوى تختلف بين الفئات (مراجعة المشرف)
+                if (AttemptLayout::mixedMaxScores($locked) !== []) {
+                    throw ValidationException::withMessages(['round' => __('competitions.student.mixed_category_max')]);
                 }
 
                 $layout = AttemptLayout::build($locked, (int) $submission->category_id);
@@ -73,9 +82,11 @@ class StartAttempt
                 // العدد والدرجة القصوى عند البدء، فيُتحقق من تساويهما قبل الترتيب والسحب (RunTieDraw)
                 $attempt->question_count = count($ids);
                 $attempt->max_score = (float) CompetitionQuestion::query()->whereIn('id', $ids)->sum('points');
-                // رقم المحاولة المرجعي يظهر للطالب بعد التسليم وفي حسابه واللوحة (دليل الدخول). والتصادم
-                // بعشرة حروف نادر جداً، فيظهر خطأ قيد فريد ويعيد الطالب الضغط
-                $attempt->reference = SubmissionReference::generate();
+                // رقم المحاولة المرجعي يظهر للطالب بعد التسليم وفي حسابه واللوحة (دليل الدخول). والتصادم بعشرة حروف
+                // نادر جداً، فيُولَّد غيره قبل الحفظ، ولا يُخلط بالتسجيل المزدوج الذي يلتقطه القيد الفريد أدناه
+                do {
+                    $attempt->reference = SubmissionReference::generate();
+                } while (CompetitionAttempt::query()->where('reference', $attempt->reference)->exists());
                 $attempt->save();
 
                 return $attempt;

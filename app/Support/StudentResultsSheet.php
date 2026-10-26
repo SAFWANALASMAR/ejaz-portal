@@ -78,10 +78,14 @@ final class StudentResultsSheet
                         /** @var CompetitionAttempt $attempt */
                         $submission = $attempt->submission;
                         $group = $attempt->round_id.':'.$submission->category_id;
-                        $ranks[$group] = ($ranks[$group] ?? 0) + 1;
+                        $total = (float) $attempt->score + (float) $attempt->essay_score;
+                        // المتساوون في الدرجة يأخذون الترتيب نفسه، والتالي بعدهم بموضعه (1، 1، 3)
+                        $seen = ($ranks[$group]['seen'] ?? 0) + 1;
+                        $rank = isset($ranks[$group]) && $ranks[$group]['total'] === $total ? $ranks[$group]['rank'] : $seen;
+                        $ranks[$group] = ['seen' => $seen, 'rank' => $rank, 'total' => $total];
 
                         $writer->addRow(self::row([
-                            $ranks[$group],
+                            $rank,
                             (string) $submission->reference,
                             (string) $submission->full_name,
                             (string) ($full ? $submission->national_id : CompetitionSubmission::mask($submission->national_id)),

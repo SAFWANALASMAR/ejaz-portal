@@ -7,6 +7,7 @@ use App\Contracts\BotChallenge;
 use App\Enums\AttemptStatus;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
+use App\Enums\RankingScope;
 use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
@@ -209,6 +210,8 @@ it('asks every student of a category the whole bank of their category and the sh
     collect(range(1, 12))->each(fn () => studentQuestion($this->round));
     $other = studentQuestion($this->round, ['category_id' => $middle->id]);
     $own = studentQuestion($this->round, ['category_id' => $this->secondary->id, 'points' => 3]);
+    // الدرجة القصوى تختلف بين الفئتين (13 و15)، فالترتيب لكل فئة على حدة (StartAttempt يرفضها لكل الفئات معاً)
+    $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
 
     $attempt = startedAttempt(registeredStudent($this->competition));
 

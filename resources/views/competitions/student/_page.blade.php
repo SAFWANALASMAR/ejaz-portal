@@ -66,6 +66,7 @@
                 </tfoot>
             </table>
         </div>
+        <p class="mt-3 font-bold text-primary">{{ __('competitions.student.page.prizes_grand_total', ['amount' => Number::format(array_sum(array_column($prizes, 'male')) + array_sum(array_column($prizes, 'female')))]) }}</p>
     </div>
 @endif
 

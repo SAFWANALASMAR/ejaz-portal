@@ -22,8 +22,9 @@ $slug = '[a-z0-9]+(?:-[a-z0-9]+)*';
 Route::get('/competitions', [CompetitionController::class, 'index'])->name('competitions.index');
 Route::get('/competitions/{slug}', [CompetitionController::class, 'show'])->where('slug', $slug)->name('competitions.show');
 Route::get('/competitions/{slug}/guide', [CompetitionController::class, 'guide'])->where('slug', $slug)->name('competitions.student.guide');
-// الرابط المختصر الثابت لمسابقة الطلاب (يُعمَّم على المدارس ورمز QR له)
-Route::get('/c/{code}', [CompetitionController::class, 'short'])->where('code', '[a-z0-9]{6,12}')->middleware('throttle:120,1,competition-short')->name('competitions.short');
+// الرابط المختصر الثابت لمسابقة الطلاب (يُعمَّم على المدارس ورمز QR له). بلا حد لكل عنوان: مدرسة كاملة خلف عنوان
+// واحد تمسح الرمز يوم الخميس معاً، والتحويل استعلام واحد بفهرس (مراجعة المشرف على المطوية)
+Route::get('/c/{code}', [CompetitionController::class, 'short'])->where('code', '[a-z0-9]{6,12}')->name('competitions.short');
 
 // التقديم: حساب مسجل، والمشاركة مشاركته وحدها (EntryController والإجراءات).
 // ولكل مسار بادئة في حده: الحد بلا بادئة مفتاحه المستخدم وحده فتشترك فيه المسارات كلها، فيستهلك

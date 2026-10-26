@@ -12,6 +12,7 @@ use App\Enums\RoleName;
 use App\Enums\StudentGender;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\RoundsRelationManager;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionCategory;
@@ -21,12 +22,16 @@ use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\CompetitionShortLink;
 use App\Support\CumulativeRanking;
+use App\Support\StudentResultsSheet;
 use Database\Seeders\BrahinCompetitionSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use OpenSpout\Reader\XLSX\Reader;
 
 /*
 | مطوية «مسابقة البراهين العلمية» الرسمية (مهمة المسابقة، البند 9): نصوص الصفحة ودليل الدخول حرفياً، والفروع الأربعة
@@ -331,4 +336,129 @@ it('keeps the seeded rounds on Thursdays in Riyadh time whatever the server cloc
     $first = Competition::query()->where('slug', 'brahin-1448')->sole()->rounds()->firstOrFail();
 
     expect($first->starts_at->copy()->setTimezone((string) config('app.display_timezone'))->format('l H:i'))->toBe('Thursday 00:00');
+});
+
+// ── مراجعة المشرف على المطوية (0ebf0c25)
+
+it('lets a whole school behind one address open the short link at once', function () {
+    $this->competition->forceFill(['short_code' => 'school2'])->save();
+
+    foreach (range(1, 300) as $i) {
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.7'])->get('/c/school2')->assertRedirect(route('competitions.show', 'brahin'));
+    }
+});
+
+it('refuses to start a branch whose maximum score differs between categories when ranking all categories together', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $this->competition->openCategories()->sync([$middle, $secondary]);
+    studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);
+    studentQuestion($this->round, ['category_id' => $secondary, 'points' => 3]);
+    $student = registeredStudent($this->competition);
+
+    expect(fn () => app(StartAttempt::class)->handle($student, $this->round->fresh()))->toThrow(ValidationException::class, __('competitions.student.mixed_category_max'));
+
+    $this->actingAs($this->director);
+    Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertSee(__('competitions.student.bank_mixed_max', ['details' => 'المرحلة المتوسطة 1، المرحلة الثانوية 3']));
+
+    // والترتيب لكل فئة على حدة لا يقارن بين الفئات، فيبدأ
+    $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
+
+    expect(app(StartAttempt::class)->handle($student, $this->round->fresh())->max_score)->toEqual(3);
+});
+
+it('leaves a cumulative group unranked, with a panel warning, when its maximum scores differ', function () {
+    studentQuestion($this->round);
+    $a = registeredStudent($this->competition, 1);
+    $b = registeredStudent($this->competition, 2);
+    branchScore($a, $this->round, 1);
+    branchScore($b, $this->round, 1)->forceFill(['max_score' => 5])->save();
+
+    $ranked = CumulativeRanking::apply(CompetitionSubmission::query(), $this->competition->fresh())->get()->keyBy('user_id');
+
+    expect($ranked[$a->id]->cumulative_rank)->toBeNull()
+        ->and($ranked[$b->id]->cumulative_rank)->toBeNull()
+        ->and(CumulativeRanking::hasMixedMax($this->competition))->toBeTrue();
+
+    $this->actingAs($this->director);
+    Livewire::test(CumulativeRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertSee(__('competitions.student.cumulative_mixed_max'));
+});
+
+it('leaves registrations without a gender out of the prize ranking', function () {
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition);
+    branchScore($student, $this->round, 1);
+    submissionOf($student)->forceFill(['gender' => null])->save();
+
+    $row = CumulativeRanking::apply(CompetitionSubmission::query(), $this->competition->fresh())->sole();
+
+    expect((bool) $row->eligible)->toBeFalse()->and($row->cumulative_rank)->toBeNull();
+});
+
+it('locks the ranking scope and the prize table once a cumulative draw ran or every branch is published', function () {
+    studentQuestion($this->round);
+    $this->competition->forceFill(['prize_table' => [['male' => 100, 'female' => 100]]])->save();
+    $data = fn (array $overrides = []): array => [
+        'title' => $this->competition->title, 'slug' => 'brahin', 'opens_at' => $this->competition->opens_at, 'closes_at' => $this->competition->closes_at,
+        'ranking_scope' => 'all', 'prize_table' => [['male' => '100', 'female' => '100']], ...$overrides,
+    ];
+
+    // قبل النشر يتغير
+    expect(app(SaveCompetition::class)->handle($this->director, $this->competition->fresh(), $data(['prize_table' => [['male' => 200, 'female' => 200]]]))->prizeRows()[0]['male'])->toBe(200);
+    $this->competition->fresh()->forceFill(['prize_table' => [['male' => 100, 'female' => 100]]])->save();
+
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    $competition = $this->competition->fresh();
+
+    expect($competition->cumulativeLocked())->toBeTrue()
+        ->and(fn () => app(SaveCompetition::class)->handle($this->director, $competition, $data(['ranking_scope' => 'category'])))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveCompetition::class)->handle($this->director, $competition, $data(['prize_table' => [['male' => 500, 'female' => 100]]])))->toThrow(ValidationException::class)
+        ->and(app(SaveCompetition::class)->handle($this->director, $competition, $data(['title' => 'عنوان آخر']))->title)->toBe('عنوان آخر');
+});
+
+it('reads the ranking scope from the locked competition when drawing', function () {
+    $stale = $this->competition->fresh();
+    Competition::query()->whereKey($stale->id)->update(['ranking_scope' => RankingScope::Category->value]);
+
+    expect(fn () => app(RunCumulativeTieDraw::class)->handle($this->director, $stale, StudentGender::Male, null, 2))
+        ->toThrow(ValidationException::class, __('competitions.student.cumulative_category_required'));
+});
+
+it('renames the old interested category instead of seeding a fifth one', function () {
+    $migration = require database_path('migrations/2026_10_27_100100_rename_science_enthusiasts_category.php');
+    $new = CompetitionCategory::query()->where('name', 'المهتمون بالثقافة العلمية')->sole();
+    DB::table('competition_category_competition')->where('category_id', $new->id)->delete();
+    $old = CompetitionCategory::query()->forceCreate(['name' => 'المهتمون', 'sort_order' => 4]);
+    $this->competition->openCategories()->attach($old->id);
+
+    $migration->up();
+
+    expect(CompetitionCategory::query()->where('name', 'like', 'المهتمون%')->pluck('id')->all())->toBe([$old->id])
+        ->and($old->fresh()->name)->toBe('المهتمون بالثقافة العلمية');
+});
+
+it('ranks tied scores equally in the results export, and shows the grand prize total', function () {
+    studentQuestion($this->round);
+    collect([[1, 9], [2, 9], [3, 5]])->each(fn (array $row) => branchScore(registeredStudent($this->competition, $row[0]), $this->round, $row[1]));
+    $this->competition->forceFill(['prize_table' => [['male' => 2000, 'female' => 2000], ['male' => 1700, 'female' => 1700]]])->save();
+
+    $path = tempnam(sys_get_temp_dir(), 'r').'.xlsx';
+    file_put_contents($path, TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()))->streamedContent());
+    $reader = new Reader;
+    $reader->open($path);
+    $ranks = [];
+
+    foreach ($reader->getSheetIterator() as $sheet) {
+        foreach ($sheet->getRowIterator() as $row) {
+            $ranks[] = (string) $row->toArray()[0];
+        }
+    }
+
+    $reader->close();
+
+    expect(array_slice($ranks, 1))->toBe(['1', '1', '3']);
+
+    $this->get('/competitions/brahin')->assertSee(__('competitions.student.page.prizes_grand_total', ['amount' => '7,400']));
 });

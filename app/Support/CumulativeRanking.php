@@ -66,9 +66,11 @@ final class CumulativeRanking
             ->select('submission_id')
             ->selectRaw('SUM(COALESCE(score, 0) + COALESCE(essay_score, 0)) AS total, SUM(max_score) AS max_total, COUNT(*) AS rounds_done');
 
-        // عدد صحيح من القاعدة، فلا مدخل من المستخدم في التعبير
-        $eligible = "(COALESCE(t.rounds_done, 0) = {$rounds} AND {$rounds} > 0)";
-        $partition = 's.gender'.($competition->ranking_scope === RankingScope::Category ? ', s.category_id' : '');
+        // عدد صحيح من القاعدة، فلا مدخل من المستخدم في التعبير. والتسجيل بلا جنس (قديم أو مجهّل) خارج ترتيب الجوائز
+        $eligible = "(COALESCE(t.rounds_done, 0) = {$rounds} AND {$rounds} > 0 AND s.gender IS NOT NULL)";
+        $partition = 'PARTITION BY '.$eligible.', s.gender'.($competition->ranking_scope === RankingScope::Category ? ', s.category_id' : '');
+        // لا ترتيب في تقسيم تختلف فيه الدرجة القصوى للمجموع (مراجعة المشرف): المجاميع الخام لا تُقارن حينها، واللوحة تنبّه
+        $uniformMax = "MIN(COALESCE(t.max_total, 0)) OVER ({$partition}) = MAX(COALESCE(t.max_total, 0)) OVER ({$partition})";
 
         return DB::table('competition_submissions as s')
             ->leftJoinSub($totals, 't', 't.submission_id', '=', 's.id')
@@ -78,6 +80,15 @@ final class CumulativeRanking
             ->select('s.*')
             ->selectRaw('COALESCE(t.total, 0) AS cumulative_total, COALESCE(t.max_total, 0) AS cumulative_max, COALESCE(t.rounds_done, 0) AS rounds_done')
             ->selectRaw("{$eligible} AS eligible")
-            ->selectRaw("CASE WHEN {$eligible} THEN RANK() OVER (PARTITION BY {$eligible}, {$partition} ORDER BY COALESCE(t.total, 0) DESC) END AS cumulative_rank");
+            ->selectRaw("({$eligible} AND NOT ({$uniformMax})) AS mixed_max")
+            ->selectRaw("CASE WHEN {$eligible} AND {$uniformMax} THEN RANK() OVER ({$partition} ORDER BY COALESCE(t.total, 0) DESC) END AS cumulative_rank");
+    }
+
+    /**
+     * هل في الترتيب مشاركون في كل الفروع بلا ترتيب لاختلاف الدرجة القصوى في تقسيمهم (تنبيه اللوحة).
+     */
+    public static function hasMixedMax(Competition $competition): bool
+    {
+        return self::apply(CompetitionSubmission::query(), $competition)->where('mixed_max', true)->exists();
     }
 }

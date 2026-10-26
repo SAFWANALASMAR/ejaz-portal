@@ -34,18 +34,19 @@ class RunCumulativeTieDraw
             throw new AuthorizationException;
         }
 
-        if ($competition->ranking_scope === RankingScope::Category && $categoryId === null) {
-            throw ValidationException::withMessages(['category_id' => __('competitions.student.cumulative_category_required')]);
-        }
-
-        // النطاق «كل الفئات»: الترتيب واحد للجنس، فلا فئة في السحب
-        if ($competition->ranking_scope !== RankingScope::Category) {
-            $categoryId = null;
-        }
-
         return DB::transaction(function () use ($actor, $competition, $gender, $categoryId, $places): array {
-            // قفل صف المسابقة يسلسل السحبين المتزامنين والإلغاء
+            // قفل صف المسابقة يسلسل السحبين المتزامنين والإلغاء وحفظ نطاق الترتيب، والنطاق من النسخة المقفولة
             $locked = Competition::query()->whereKey($competition->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->ranking_scope === RankingScope::Category && $categoryId === null) {
+                throw ValidationException::withMessages(['category_id' => __('competitions.student.cumulative_category_required')]);
+            }
+
+            // النطاق «كل الفئات»: الترتيب واحد للجنس، فلا فئة في السحب
+            if ($locked->ranking_scope !== RankingScope::Category) {
+                $categoryId = null;
+            }
+
             $existing = $this->existing($locked, $gender, $categoryId);
 
             if ($existing !== null) {

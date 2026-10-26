@@ -67,6 +67,7 @@
 
 - `APP_KEY`: يُولَّد مرة ويُحفظ في مدير كلمات المرور: `docker compose --env-file .env -f deploy/compose.production.yaml run --rm --no-deps app php artisan key:generate --show`.
 - `APP_URL=https://ejaz.sa`، و`APP_DEBUG=false`، و`SESSION_SECURE_COOKIE=true`.
+  - **قبل طباعة رمز QR لمسابقة الطلاب** («الرابط ورمز QR» في اللوحة): الرمز يُبنى من `APP_URL`، فتأكد أنه رابط الإنتاج النهائي قبل التنزيل والتعميم على المدارس. والرمز المطبوع برابط آخر لا يُصلحه تغيير لاحق.
 - `SEO_INDEXABLE=false` حتى يوم نقل النطاق، ثم `true` في الإنتاج وحده.
 - `TRUSTED_PROXIES`: عناوين موزع الأحمال إن وُجد، وفارغة إن وصل الزوار مباشرة (`security.md`).
 - `DB_PASSWORD` و`REDIS_PASSWORD`: طويلة عشوائية (`openssl rand -base64 32`).

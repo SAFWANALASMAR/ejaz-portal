@@ -204,6 +204,19 @@ class SaveCompetition
     }
 
     /**
+     * صفوف جدول الجوائز أعداداً للمقارنة، بلا اعتبار لنوع القيمة القادمة من النموذج.
+     *
+     * @return list<array{male: int, female: int}>
+     */
+    private static function prizeRows(mixed $table): array
+    {
+        return array_values(array_map(fn (mixed $row): array => [
+            'male' => (int) (is_array($row) ? ($row['male'] ?? 0) : 0),
+            'female' => (int) (is_array($row) ? ($row['female'] ?? 0) : 0),
+        ], is_array($table) ? $table : []));
+    }
+
+    /**
      * نصوص الصفحة بشكلها المخزن: الفقرات نصوص بلا مسافات زائدة، والقوائم بنود (من نص بأسطر أو مصفوفة)،
      * والفارغ يسقط. ومفتاح غير معروف يبقى فيرفضه الفحص.
      *
@@ -265,6 +278,14 @@ class SaveCompetition
 
         if ($competition->scheduleLocked() && $this->changesSchedule($competition, $data)) {
             throw ValidationException::withMessages(['closes_at' => __('competitions.validation.schedule_locked')]);
+        }
+
+        // نطاق الترتيب وجدول الجوائز لا يتغيران بعد سحب تراكمي أو نشر كل الفروع (مراجعة المشرف على المطوية)
+        if ($competition->cumulativeLocked() && (
+            (array_key_exists('ranking_scope', $data) && (string) ($data['ranking_scope'] instanceof RankingScope ? $data['ranking_scope']->value : $data['ranking_scope']) !== $competition->ranking_scope->value)
+            || (array_key_exists('prize_table', $data) && self::prizeRows($data['prize_table']) !== self::prizeRows($competition->prize_table))
+        )) {
+            throw ValidationException::withMessages(['prize_table' => __('competitions.student.cumulative_locked')]);
         }
 
         if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {

@@ -51,6 +51,7 @@ class CumulativeRelationManager extends RelationManager
 
         return $table
             ->modifyQueryUsing(fn (Builder $query) => CumulativeRanking::apply($query, $this->competition())->with(['studentCategory']))
+            ->description(fn (): ?string => CumulativeRanking::hasMixedMax($this->competition()) ? __('competitions.student.cumulative_mixed_max') : null)
             ->defaultSort(fn (Builder $query) => $query->orderByRaw('cumulative_rank ASC NULLS LAST')->orderByDesc('cumulative_total'))
             // على الجوال: الترتيب والاسم والجنس والمجموع، فلا يتجاوز رأس الجدول عرض الشاشة (axe: scrollable-region-focusable)
             ->columns([

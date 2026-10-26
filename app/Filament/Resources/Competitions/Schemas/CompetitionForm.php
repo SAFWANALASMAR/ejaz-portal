@@ -125,7 +125,8 @@ class CompetitionForm
 
                 Tab::make(__('competitions.student.admin.prizes_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
                     Select::make('ranking_scope')->label(__('competitions.student.admin.ranking_scope'))->helperText(__('competitions.student.admin.ranking_scope_hint'))
-                        ->options(RankingScope::class)->default(RankingScope::All->value)->selectablePlaceholder(false),
+                        ->options(RankingScope::class)->default(RankingScope::All->value)->selectablePlaceholder(false)
+                        ->disabled(fn (?Competition $record): bool => $record?->cumulativeLocked() ?? false)->dehydrated(),
                     Repeater::make('prize_table')
                         ->label(__('competitions.student.admin.prize_table'))
                         ->helperText(__('competitions.student.admin.prize_table_hint'))
@@ -134,6 +135,7 @@ class CompetitionForm
                         ->defaultItems(0)
                         ->reorderable()
                         ->itemNumbers()
+                        ->disabled(fn (?Competition $record): bool => $record?->cumulativeLocked() ?? false)->dehydrated()
                         ->schema([
                             TextInput::make('male')->label(__('competitions.student.admin.prize_male'))->integer()->minValue(0)->maxValue(10000000)->required(),
                             TextInput::make('female')->label(__('competitions.student.admin.prize_female'))->integer()->minValue(0)->maxValue(10000000)->required(),

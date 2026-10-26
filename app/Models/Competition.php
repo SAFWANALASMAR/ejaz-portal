@@ -253,6 +253,20 @@ class Competition extends Model
     }
 
     /**
+     * نطاق الترتيب وجدول الجوائز يُقفلان متى سُحب في الترتيب التراكمي (ولو أُلغي السحب) أو نُشرت نتائج كل الفروع،
+     * فلا يتغير على أساسه الترتيب ولا حد المراكز بعد إعلانه (مراجعة المشرف على المطوية).
+     */
+    public function cumulativeLocked(): bool
+    {
+        if (! $this->exists || ! $this->student_mode) {
+            return false;
+        }
+
+        return $this->draws()->whereNull('round_id')->whereNotNull('gender')->exists()
+            || ($this->rounds()->exists() && $this->rounds()->whereNull('results_published_at')->doesntExist());
+    }
+
+    /**
      * @return list<string>
      */
     public function categoryList(): array
