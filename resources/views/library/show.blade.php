@@ -16,19 +16,24 @@
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        @if ($item->section->takesVideoUrl())
+        {{-- المرئية والصوتية برابط يوتيوب (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، والصوتية القديمة بملفها في مشغّل الصوت أدناه --}}
+        @if ($youtube || ($item->section->takesVideoUrl() && ! $item->section->keepsLegacyFile() && filled($item->video_url)))
             <div class="mb-8 overflow-hidden rounded-2xl border border-line/70 bg-ink shadow-xs">
                 @if ($youtube)
-                    {{-- لا يُحمَّل مشغّل يوتيوب حتى يضغط الزائر، فلا يتصل متصفحه بخوادم جوجل قبل ذلك (نظام
-                         حماية البيانات الشخصية). يبنيه resources/js/app.js، وبلا JavaScript يفتح الرابط المقطع في يوتيوب --}}
+                    {{-- لا يُحمَّل مشغّل يوتيوب حتى يضغط الزائر (نظام حماية البيانات الشخصية)، وصورته المصغرة من القرص العام
+                         (FetchYoutubeThumbnail). يبنيه resources/js/app.js، وبلا JavaScript يفتح الرابط المقطع في يوتيوب --}}
                     <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                         data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
-                        class="group flex aspect-video w-full flex-col items-center justify-center gap-3 bg-primary-dark p-6 text-center text-white">
-                        <span class="inline-flex size-20 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-white/20" aria-hidden="true">
+                        class="group relative flex aspect-video w-full flex-col items-center justify-center gap-3 overflow-hidden bg-primary-dark p-6 text-center text-white">
+                        @if ($thumbnail = $item->thumbnailUrl())
+                            <img src="{{ $thumbnail }}" alt="" class="absolute inset-0 size-full object-cover opacity-60">
+                        @endif
+                        <span class="absolute inset-0 bg-primary-dark/40" aria-hidden="true"></span>
+                        <span class="relative inline-flex size-20 items-center justify-center rounded-full bg-white/20 backdrop-blur transition group-hover:bg-white/30" aria-hidden="true">
                             {{ svg('heroicon-s-play', 'size-10') }}
                         </span>
-                        <span class="text-lg font-semibold">{{ __('library.item.play') }}</span>
-                        <span class="text-sm text-white/70">{{ __('library.item.youtube_notice') }}</span>
+                        <span class="relative text-lg font-semibold">{{ __('library.item.play') }}</span>
+                        <span class="relative text-sm text-white/85">{{ __('library.item.youtube_notice') }}</span>
                     </a>
                 @else
                     <video src="{{ $item->video_url }}" controls preload="metadata" class="block aspect-video w-full">{{ __('library.item.no_video') }}</video>

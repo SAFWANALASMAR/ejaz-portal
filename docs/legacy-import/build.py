@@ -188,6 +188,30 @@ values = [{'icon': None, 'title': home[i][6:], 'text': paragraphs(home, after(ho
 values_image = [image_in(line) for line in home[values_i:values_end] if image_in(line)]
 assert len(goal_titles) == 5 and len(goal_images) == 5 and len(values) == 4 and values_image == ['img-2.png']
 
+# الرؤية والرسالة والأهداف والقيم من «الخطة الاستراتيجية لجمعية إعجاز 1447» حرفياً (ص8، وص11، وص9 و10)، بدل نصوص الموقع
+# السابق (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026). وصورة كل هدف من الموقع السابق بعنوانه
+def goal_key(title):
+    return title.rstrip('.').replace('ً', '').rstrip('ا')
+
+
+vision = ['ريادة تعليمية في ضوء براهين الإيمان العلمية.']
+mission = ['الإسهام في تنمية وتطوير المنظومة التعليمية والبحثية لبراهين الإيمان العلمية، عبر مبادرات نوعية، وشراكات فاعلة، وبرامج ودراسات متخصصة، وفق معايير منضبطة وموثوقة.']
+goal_image = {goal_key(title): image for title, image in zip(goal_titles, goal_images)}
+goal_titles = [
+    'تعزيز القيم والانتماء الوطني.',
+    'تجويد نواتج التعلم وتحسين موقع النظام التعليمي عالمياً.',
+    'تنمية وتطوير قُدرات الكوادر التعليمية.',
+    'تطوير منظومة الجامعات والمؤسسات التعليمية والتدريبية.',
+    'تعزيز مشاركة المُجتمع في التعليم والتعلم.',
+]
+goal_images = [goal_image[goal_key(title)] for title in goal_titles]
+values = [
+    {'icon': None, 'title': 'الإحسان والمهنية', 'text': 'نسعى إلى التمسك بأعلى معايير المهنية والقيمية.'},
+    {'icon': None, 'title': 'الابتكار', 'text': 'تبني الابتكار المؤدي إلى التميز لإيجاد بيئة جاذبة ومحفزة للإبداع.'},
+    {'icon': None, 'title': 'التمكين', 'text': 'تمكين الباحثين والكوادر العلمية والتعليمية قيمة وركيزة أساسية نعتز بها.'},
+    {'icon': None, 'title': 'التكامل', 'text': 'التشاركية والتواصل مع الأطراف ذات العلاقة والاستثمار الأمثل للإمكانات وتكامل الطاقات.'},
+]
+
 about = {
     'slug': 'about',
     'title': 'عن الجمعية',
@@ -195,14 +219,14 @@ about = {
     'summary': about_paras[0] if len(about_paras[0]) <= 300 else None,
     'blocks': [
         {'type': 'text', 'data': {'heading': 'من نحن', 'body': html(about_paras)}},
-        {'type': 'text', 'data': {'heading': 'الرســــالة', 'body': html(mission)}},
-        {'type': 'text', 'data': {'heading': 'الرؤيــــة', 'body': html(vision)}},
-        # In the old menu only, with no link and no text
-        {'type': 'text', 'data': {'heading': 'التوجه الاستراتيجي', 'body': html([missing('محتوى التوجه الاستراتيجي')])}},
-        {'type': 'cards', 'data': {'heading': 'الأهداف الاستراتيجية', 'items': [
+        {'type': 'text', 'data': {'heading': 'الرؤية', 'body': html(vision)}},
+        {'type': 'text', 'data': {'heading': 'الرسالة', 'body': html(mission)}},
+        # The old "التوجه الاستراتيجي" heading had no text; the plan's vision, mission, goals and values are that direction
+        # (supervisor's review, 26 Oct 2026), so the empty block is dropped
+        {'type': 'cards', 'data': {'heading': 'أهداف الجمعية', 'items': [
             {'icon': None, 'title': t, 'text': None, 'media': media_slug[img]} for t, img in zip(goal_titles, goal_images)]}},
         {'type': 'image', 'data': {'media': media_slug[values_image[0]]}},
-        {'type': 'cards', 'data': {'heading': 'قيمنا', 'items': values}},
+        {'type': 'cards', 'data': {'heading': 'قيم الجمعية', 'items': values}},
     ],
 }
 
@@ -213,16 +237,21 @@ assert email == 'info@ejaz.sa'
 # The association's approved data (from Safwan, who manages its official accounts, 19 Oct 2026), verbatim. It replaces the
 # archive's address (شارع ثوبان النبوي) and drops its map link, which points there; the new map link is asked of the
 # association (docs/drafts/content-requests.md).
+# Then the association's official data (its leaflet and letterhead, 26 Oct 2026 — task item 8): the address wording, the
+# national short address from the official SPL proof (MALA4207, used for the map link), the WhatsApp number, and the
+# Facebook account under @ejazsa2025 like the others. The WhatsApp channel has no counterpart there, so it stays.
 APPROVED_CONTACT = {
     'phone': '+966 55 055 6758',
-    'address': 'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+    'whatsapp': '+966550556758',
+    'address': 'مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال',
+    'short_address': 'MALA4207',
     'social': {
         'x': 'https://x.com/ejazsa2025',
         'instagram': 'https://instagram.com/ejazsa2025',
         'youtube': 'https://youtube.com/@ejazsa2025',
         'tiktok': 'https://tiktok.com/@ejazsa2025',
         'telegram': 'https://t.me/ejazsa2025',
-        'facebook': 'https://facebook.com/profile.php?id=61595399341851',
+        'facebook': 'https://facebook.com/ejazsa2025',
         'whatsapp': 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
     },
 }
@@ -232,12 +261,23 @@ join_text = join[after(join, "## Let's talk.")].strip()
 join_images = [image_in(line) for line in join if image_in(line)]
 assert join_text.startswith('لطلب الانضمام') and join_images == ['Image-901.png', 'Group-61552.png']
 
-empty_text = [{'type': 'text', 'data': {'heading': None, 'body': html([missing('نص الصفحة')])}}]
+# Short introductions written by the portal team, tagged "مثال تجريبي" until the association sends its text (Safwan's
+# decision, 26 Oct 2026). Untick "is_sample" in the panel once replaced.
+def sample_page(slug, title, text):
+    return {'slug': slug, 'title': title, 'is_sample': True, 'blocks': [{'type': 'text', 'data': {'heading': None, 'body': html([text])}}]}
+
+
+SAMPLE_INTROS = {
+    'inquiries': 'يسعد جمعية إعجاز للدراسات والبحوث العلمية تلقي استفساراتكم واقتراحاتكم حول برامجها ومبادراتها وخدماتها، وتصل إلى الفريق المختص عبر نموذج «الاستفسارات والاقتراحات» في صفحة التواصل، ليتابعها ويرد عليها.',
+    'jobs': 'تتطلع الجمعية إلى استقطاب الكفاءات المهتمة بخدمة الدراسات والبحوث العلمية في الإعجاز العلمي في القرآن الكريم والسنة النبوية. وتُنشر فرص العمل المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.',
+    'volunteering': 'يسهم المتطوعون في تحقيق رسالة الجمعية بالمشاركة في برامجها ومبادراتها وفعالياتها العلمية والتعليمية. وتُنشر فرص التطوع المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.',
+    'reports': 'تحرص الجمعية على الشفافية والإفصاح، وتنشر تقاريرها في قسم الحوكمة، ومنه يُطّلع عليها وتُنزَّل.',
+}
 pages = [
     about,
     {'slug': 'contact', 'title': 'تواصل معنا', 'summary': contact_text,
      'blocks': [{'type': 'text', 'data': {'heading': None, 'body': html([contact_text])}}]},
-    {'slug': 'inquiries', 'title': 'الاستفسارات والاقتراحات', 'blocks': empty_text},
+    sample_page('inquiries', 'الاستفسارات والاقتراحات', SAMPLE_INTROS['inquiries']),
     {'slug': 'assembly-membership', 'title': 'طلب الانضمام للجمعية العمومية', 'summary': join_text,
      'blocks': [
          {'type': 'image', 'data': {'media': media_slug[join_images[0]]}},
@@ -246,9 +286,9 @@ pages = [
          {'type': 'text', 'data': {'heading': 'طلب الانضمام للجمعية العمومية',
                                    'body': f'<p>{join_text}<br><strong><a href="mailto:{email}">{email}</a></strong></p>'}},
      ]},
-    {'slug': 'jobs', 'title': 'التوظيف', 'blocks': empty_text},
-    {'slug': 'volunteering', 'title': 'التطوع', 'blocks': empty_text},
-    {'slug': 'reports', 'title': 'التقارير', 'blocks': empty_text},
+    sample_page('jobs', 'التوظيف', SAMPLE_INTROS['jobs']),
+    sample_page('volunteering', 'التطوع', SAMPLE_INTROS['volunteering']),
+    sample_page('reports', 'التقارير', SAMPLE_INTROS['reports']),
 ]
 
 # ---------------------------------------------------------------- initiatives (short names as in overview.md)

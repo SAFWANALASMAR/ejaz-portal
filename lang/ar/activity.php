@@ -49,6 +49,7 @@ return [
         'two_factor_rotation_refused' => 'رفض استبدال سر التحقق الثنائي المؤكد',
         'logout' => 'خروج',
         'password_reset' => 'تعيين كلمة المرور',
+        'password_set_by_admin' => 'كلمة مرور مؤقتة من الإدارة',
         'other_sessions_ended' => 'الخروج من الأجهزة الأخرى',
         'registered' => 'تسجيل حساب جديد',
         'admin_created' => 'إنشاء مشرف عام من سطر الأوامر',

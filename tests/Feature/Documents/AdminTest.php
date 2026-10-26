@@ -48,7 +48,7 @@ it('opens each screen to its roles and keeps the others out', function () {
     $this->get(ArchiveItemResource::getUrl('index'))->assertOk();
     $this->get(ArchiveItemResource::getUrl('create'))->assertForbidden();
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(ArchiveCategoryResource::getUrl('index'))->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(ArchiveCategoryResource::getUrl('index'))->assertOk();
 
     $editor = userWithRole(RoleName::ContentEditor);
     foreach ([FormTemplateResource::getUrl('index'), FormEntryResource::getUrl('index'), ArchiveItemResource::getUrl('index')] as $url) {

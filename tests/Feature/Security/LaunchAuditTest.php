@@ -38,7 +38,7 @@ it('still opens the area for a board member with two-factor and for an ordinary 
 // F3: لا كعكة «تذكّرني» للأدوار الإدارية، فلا يُعاد الدخول إلى اللوحة بلا كلمة مرور ولا تحقق ثنائي
 it('ignores remember me for an admin role', function () {
     $admin = User::factory()->create(['email' => 'admin@example.test']);
-    $admin->assignRole(RoleName::SuperAdmin->value);
+    $admin->assignRole(RoleName::TechnicalAdmin->value);
     $token = $admin->remember_token;
 
     $response = $this->post('/login', ['login' => 'admin@example.test', 'password' => 'password', 'remember' => '1']);

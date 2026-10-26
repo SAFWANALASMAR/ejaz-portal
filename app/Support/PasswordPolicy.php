@@ -39,9 +39,9 @@ final class PasswordPolicy
      *
      * @return list<mixed>
      */
-    public static function rules(?string $name, ?string $email, ?string $phone, bool $confirmed = true): array
+    public static function rules(?string $name, ?string $email, ?string $phone, bool $confirmed = true, ?string $username = null): array
     {
-        $rules = ['required', 'string', Password::default(), new PasswordWithoutPersonalData($name, $email, $phone)];
+        $rules = ['required', 'string', Password::default(), new PasswordWithoutPersonalData($name, $email, $phone, $username)];
 
         return $confirmed ? [...$rules, 'confirmed'] : $rules;
     }
@@ -53,7 +53,7 @@ final class PasswordPolicy
     public static function satisfiedBy(string $password, User $user): bool
     {
         return Validator::make(['password' => $password], [
-            'password' => [self::structure(), new PasswordWithoutPersonalData($user->name, $user->email, $user->phone)],
+            'password' => [self::structure(), new PasswordWithoutPersonalData($user->name, $user->email, $user->phone, $user->username)],
         ])->passes();
     }
 }

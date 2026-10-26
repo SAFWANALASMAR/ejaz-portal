@@ -2,11 +2,13 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * الأسئلة الشائعة للمساعد: كل العمليات بصلاحية ai_assistant.manage (المشرف العام وحده).
+ * الأسئلة الشائعة للمساعد: كل العمليات بصلاحية ai_assistant.manage (المسؤول التقني)، والمشرف العام يطّلع عليها
+ * (RoleName::overseers).
  */
 class AssistantFaqPolicy extends ModulePolicy
 {
@@ -17,7 +19,7 @@ class AssistantFaqPolicy extends ModulePolicy
 
     protected function allows(User $user, string $action): bool
     {
-        return $user->can('ai_assistant.manage');
+        return $user->can('ai_assistant.manage') || ($action === 'view' && RoleName::isOverseer($user));
     }
 
     public function restore(User $user, Model $record): bool

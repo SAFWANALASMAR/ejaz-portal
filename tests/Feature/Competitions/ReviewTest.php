@@ -160,7 +160,7 @@ it('shows a reviewer only their own assignments, without the applicant personal 
 
     expect($this->reviewerA->can('view', $otherReview))->toBeFalse()
         ->and($this->reviewerA->can('update', $otherReview))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('update', $myReview))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('update', $myReview))->toBeFalse();
 
     $this->actingAs(userWithRole(RoleName::Member))->get(ReviewResource::getUrl('index'))->assertForbidden();
 });

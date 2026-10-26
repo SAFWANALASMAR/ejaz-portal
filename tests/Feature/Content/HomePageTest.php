@@ -11,8 +11,18 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 
+/*
+| مقاطع الرئيسية السابقة (البطل والإحصائيات والاختصارات) مخفية افتراضياً منذ ملاحظات المدير التنفيذي (25 أكتوبر 2026)،
+| فتُظهر هنا لتُختبر كما كانت. ومقاطع المدير في tests/Feature/Director.
+*/
+const HOME_LEGACY_SHOWN = ['show_hero' => true, 'show_stats' => true, 'show_shortcuts' => true];
+
+beforeEach(function () {
+    Setting::put('home', HOME_LEGACY_SHOWN);
+});
+
 it('shows the hero from the site settings', function () {
-    Setting::put('home', [
+    Setting::put('home', [...HOME_LEGACY_SHOWN,
         'hero_title' => 'عنوان الواجهة',
         'hero_text' => 'نص التعريف بالجمعية',
         'hero_button_label' => 'تعرّف على الجمعية',
@@ -35,14 +45,14 @@ it('falls back to the association name, its specialty and the neutral image, wit
 });
 
 it('shows the uploaded hero image', function () {
-    Setting::put('home', ['hero_image' => 'settings/hero.jpg']);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_image' => 'settings/hero.jpg']);
 
     $this->get('/')->assertSee('/storage/settings/hero.jpg', false)
         ->assertDontSee('images/placeholders/architecture.svg', false);
 });
 
 it('never renders an unsafe hero link even if one reaches the database', function () {
-    Setting::put('home', ['hero_button_label' => 'زر ضار', 'hero_button_url' => 'javascript:alert(1)']);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_button_label' => 'زر ضار', 'hero_button_url' => 'javascript:alert(1)']);
 
     $this->get('/')->assertDontSee('javascript:alert(1)', false)->assertDontSee('زر ضار');
 });
@@ -50,21 +60,21 @@ it('never renders an unsafe hero link even if one reaches the database', functio
 it('shows approved statistics with thousands separators, and no strip without them', function () {
     $this->get('/')->assertDontSee(__('home.stats.title'));
 
-    Setting::put('home', ['stats' => [approvedStat()]]);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [approvedStat()]]);
 
     $this->get('/')->assertSee(__('home.stats.title'))->assertSee('25,000+')->assertSee('مستفيد');
 });
 
 it('hides the statistics when switched off, and skips incomplete entries', function () {
-    Setting::put('home', ['show_stats' => false, 'stats' => [approvedStat()]]);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'show_stats' => false, 'stats' => [approvedStat()]]);
     $this->get('/')->assertDontSee('25,000');
 
-    Setting::put('home', ['stats' => [['label' => '', 'value' => 10, 'icon' => 'users'], ['label' => 'بلا رقم', 'value' => 'x']]]);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [['label' => '', 'value' => 10, 'icon' => 'users'], ['label' => 'بلا رقم', 'value' => 'x']]]);
     $this->get('/')->assertDontSee(__('home.stats.title'));
 });
 
 it('draws only the allowed statistic icons', function () {
-    Setting::put('home', ['stats' => [approvedStat(['icon' => '../../evil'])]]);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [approvedStat(['icon' => '../../evil'])]]);
 
     $this->get('/')->assertOk()->assertSee('25,000+');
 });
@@ -89,7 +99,7 @@ it('shows a section shortcut only once its section exists, and none when switche
             ->assertSee('href="'.route($missing[$key]['route']).'"', false);
     }
 
-    Setting::put('home', ['show_shortcuts' => false]);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'show_shortcuts' => false]);
 
     foreach (array_keys(BuildHomePage::SHORTCUTS) as $key) {
         $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
@@ -107,10 +117,10 @@ function changeHomeSettingsSilently(array $home): void
 }
 
 it('serves the home sections from the cache until content changes', function () {
-    Setting::put('home', ['hero_title' => 'العنوان الأول']);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_title' => 'العنوان الأول']);
     $this->get('/')->assertSee('العنوان الأول');
 
-    changeHomeSettingsSilently(['hero_title' => 'عنوان لم يُعتمد']);
+    changeHomeSettingsSilently([...HOME_LEGACY_SHOWN, 'hero_title' => 'عنوان لم يُعتمد']);
     $this->get('/')->assertSee('العنوان الأول')->assertDontSee('عنوان لم يُعتمد');
 
     DB::enableQueryLog();
@@ -140,9 +150,9 @@ it('builds every cached link from the site address, never from the Host header o
 });
 
 it('refreshes the content cache after a deployment without touching the protection limits', function () {
-    Setting::put('home', ['hero_title' => 'قبل النشر']);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_title' => 'قبل النشر']);
     $this->get('/')->assertSee('قبل النشر');
-    changeHomeSettingsSilently(['hero_title' => 'بعد النشر']);
+    changeHomeSettingsSilently([...HOME_LEGACY_SHOWN, 'hero_title' => 'بعد النشر']);
     RateLimiter::hit('login-account:someone', 900);
 
     $this->artisan('ejaz:refresh-content')->assertSuccessful();
@@ -152,7 +162,7 @@ it('refreshes the content cache after a deployment without touching the protecti
 });
 
 it('escapes the texts that come from the settings', function () {
-    Setting::put('home', ['hero_title' => '<script>alert(1)</script>']);
+    Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_title' => '<script>alert(1)</script>']);
 
     $this->get('/')->assertDontSee('<script>alert(1)</script>', false)->assertSee('&lt;script&gt;', false);
 });

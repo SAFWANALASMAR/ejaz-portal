@@ -239,6 +239,6 @@ it('names only published programs and competitions', function () {
 });
 
 it('does not enable the analysis without a provider, a cap and prices', function () {
-    expect(fn () => app(SaveAssistantSettings::class)->handle(userWithRole(RoleName::SuperAdmin), ['analysis_enabled' => true]))
+    expect(fn () => app(SaveAssistantSettings::class)->handle(userWithRole(RoleName::TechnicalAdmin), ['analysis_enabled' => true]))
         ->toThrow(ValidationException::class);
 });

@@ -110,7 +110,7 @@ it('refuses attendance on a deleted program for everyone, and its page to employ
     $registration = ProgramRegistration::factory()->for($program)->create();
     $program->delete();
 
-    foreach ([$this->employee, userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin)] as $actor) {
+    foreach ([$this->employee, userWithRole(RoleName::ProgramManager), userWithRole(RoleName::TechnicalAdmin)] as $actor) {
         expect(fn () => app(RecordProgramAttendance::class)->handle($actor, $program, collect([$registration]), true))
             ->toThrow(AuthorizationException::class);
     }

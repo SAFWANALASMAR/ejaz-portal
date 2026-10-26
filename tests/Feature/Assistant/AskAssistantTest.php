@@ -218,7 +218,7 @@ it('stops generating at the monthly cap and alerts the super admin once', functi
     $fake = enableAssistant(['monthly_cap' => 1]);
     manuscriptsPage();
     AssistantGuide::factory()->create(['title' => 'كيف أزور معرض المخطوطات؟']);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     AssistantUsage::add(1.5);
 
     ask('أين المخطوطات؟')->assertOk()->assertJsonPath('mode', AssistantMode::Guide->value);

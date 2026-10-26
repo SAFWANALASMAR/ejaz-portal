@@ -47,7 +47,7 @@ it('opens each screen to its roles and keeps the others out', function () {
     $this->get(AssemblyFileResource::getUrl('index'))->assertOk();
     $this->get(AssemblyFileResource::getUrl('create'))->assertForbidden();
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(AssemblyMembershipResource::getUrl('create'))->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(AssemblyMembershipResource::getUrl('create'))->assertOk();
 
     foreach ([userWithRole(RoleName::ContentEditor), userWithRole(RoleName::ProgramManager)] as $user) {
         $this->actingAs($user)->get(MeetingResource::getUrl('index'))->assertForbidden();
@@ -122,7 +122,7 @@ it('records attendance, marks the meeting held, and takes the minutes from uploa
 
 it('lets the super admin register a member from the panel', function () {
     $user = User::factory()->create(['name' => 'عضو تجريبي']);
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(CreateAssemblyMembership::class)
         ->fillForm(['user_id' => $user->id, 'status' => 'active', 'joined_on' => '2026-02-01'])

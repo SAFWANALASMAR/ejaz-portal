@@ -52,7 +52,7 @@ it('leaves the image cell of the news table unlinked, so no link is left without
 });
 
 it('leaves the image cells of the other admin tables unlinked too', function (string $page, string $column) {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test($page)->assertTableColumnExists($column, fn (ImageColumn $image): bool => $image->isClickDisabled());
 })->with([

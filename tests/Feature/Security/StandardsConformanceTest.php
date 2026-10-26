@@ -23,7 +23,7 @@ it('refuses a password longer than bcrypt reads, Arabic or Latin, and accepts on
         'phone' => '0512345670',
         'password' => $password,
         'password_confirmation' => $password,
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ]);
 
     $fits

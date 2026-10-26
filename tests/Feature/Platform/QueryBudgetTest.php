@@ -104,13 +104,14 @@ it('keeps the account pages within a fixed number of queries', function (string 
 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
-    'dashboard' => ['/account', 13],
+    // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)
+    'dashboard' => ['/account', 14],
     'programs' => ['/account/programs', 5],
     'requests' => ['/account/requests', 4],
 ]);
 
 it('keeps the program types table to one query for all rows', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expectQueryBudget(
         fn (int $n) => Program::factory()->count($n)->create(['program_type_id' => fn () => ProgramType::factory()->create()->id]),
@@ -120,7 +121,7 @@ it('keeps the program types table to one query for all rows', function () {
 });
 
 it('keeps the archive categories table to one query for all rows', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expectQueryBudget(
         fn (int $n) => ArchiveItem::factory()->count($n)->create(),
@@ -130,7 +131,7 @@ it('keeps the archive categories table to one query for all rows', function () {
 });
 
 it('still hides deleting a program type that has programs, even deleted ones', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $empty = ProgramType::factory()->create();
     $used = ProgramType::factory()->create();
     Program::factory()->create(['program_type_id' => $used->id])->delete();
@@ -141,7 +142,7 @@ it('still hides deleting a program type that has programs, even deleted ones', f
 });
 
 it('still refuses deleting an archive category that has items, even deleted ones', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $empty = ArchiveCategory::factory()->create();
     $used = ArchiveCategory::factory()->create();
     ArchiveItem::factory()->create(['archive_category_id' => $used->id])->delete();

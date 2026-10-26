@@ -2,6 +2,7 @@
 
 namespace App\Auth;
 
+use App\Models\User;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use App\Support\SchoolNetworkLimits;
@@ -12,7 +13,7 @@ use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 /**
  * قفل محاولات الدخول الخاطئة (الدخول الناجح لا يُحسب):
  * - خمس محاولات في الدقيقة لكل حساب وعنوان.
- * - عشر محاولات في ربع ساعة لكل حساب من أي عنوان (قفل مؤقت للحساب).
+ * - عشر محاولات في ربع ساعة لكل معرّف من أي عنوان، ومثلها للحساب نفسه بأي معرّف من معرّفاته (قفل مؤقت للحساب).
  * - لكل شبكة في ربع ساعة: المشترك (عنوان IPv4، أو /64 في IPv6)، والموقع /48 في IPv6،
  *   فلا يخمّن مصدر واحد كلمات مرور حسابات كثيرة. والدخول الناجح لا يمسحه.
  * ومعها حارسان للمعالج في الدقيقة:
@@ -45,11 +46,36 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     private function accountLimits(Request $request): array
     {
         $identifier = LoginIdentifier::normalize($request->input(Fortify::username()));
-
-        return [
+        $limits = [
             'login:'.$identifier.'|'.$request->ip() => ['max' => 5, 'decay' => 60],
             'login-account:'.$identifier => ['max' => 10, 'decay' => 900],
         ];
+
+        // وللحساب نفسه أياً كان معرّفه (اسم المستخدم أو البريد أو الجوال)، فلا تتضاعف المحاولات بتبديل المعرّف
+        // (مراجعة المشرف المبكرة، ٧)
+        $id = $this->accountId($request, $identifier);
+
+        if ($id !== null) {
+            $limits['login-user:'.$id] = ['max' => 10, 'decay' => 900];
+        }
+
+        return $limits;
+    }
+
+    /**
+     * معرّف الحساب صاحب المعرّف، مرة واحدة في الطلب (تُحسب الحدود أكثر من مرة في المحاولة الواحدة).
+     */
+    private function accountId(Request $request, string $identifier): ?int
+    {
+        $key = 'login_rate_limiter.account:'.$identifier;
+
+        if (! $request->attributes->has($key)) {
+            $request->attributes->set($key, User::findByLoginIdentifier($identifier)?->getKey());
+        }
+
+        $id = $request->attributes->get($key);
+
+        return is_int($id) ? $id : null;
     }
 
     /**

@@ -29,7 +29,7 @@ it('answers 404, not a server error, for a non-numeric record in any admin link'
     $uris = adminRecordUris();
     expect(count($uris))->toBeGreaterThan(20);
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     // create مكان المعرّف للمورد الذي لا صفحة إنشاء له، وإلا فهي صفحته
     $defined = collect(Route::getRoutes()->getRoutes())->map(fn (RoutingRoute $route): string => $route->uri())->all();
@@ -48,7 +48,7 @@ it('answers 404, not a server error, for a non-numeric record in any admin link'
 });
 
 it('keeps the 404 for a numeric record that does not exist, and the pages without a create page', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     $this->get('/admin/inquiries/999999')->assertNotFound();
     $this->get('/admin/inquiries/create')->assertNotFound();

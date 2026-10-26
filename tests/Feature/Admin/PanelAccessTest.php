@@ -14,7 +14,7 @@ it('forbids accounts without an administrative role', function () {
 });
 
 it('lets the super admin with two-factor in', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get('/admin')->assertOk();
 });
 
 it('lets every administrative role in', function (RoleName $role) {
@@ -37,7 +37,7 @@ it('requires two-factor for the reviewer, who sees applicants videos and answers
 });
 
 it('blocks deactivated administrators and ends their session', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $admin->forceFill(['is_active' => false])->save();
 
     // اللوحة ترفض فوراً، وأول طلب للموقع ينهي الجلسة
@@ -47,7 +47,7 @@ it('blocks deactivated administrators and ends their session', function () {
 });
 
 it('logs administrators out after the idle limit', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     $this->actingAs($admin)
         ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes(31)->getTimestamp()])
@@ -58,7 +58,7 @@ it('logs administrators out after the idle limit', function () {
 });
 
 it('keeps active administrators signed in', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     $this->actingAs($admin)
         ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes(5)->getTimestamp()])

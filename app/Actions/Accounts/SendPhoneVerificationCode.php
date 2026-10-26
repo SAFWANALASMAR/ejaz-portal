@@ -27,7 +27,7 @@ use Illuminate\Validation\ValidationException;
  *   السابق فيه، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة. وكل رسالة
  *   مرسلة، بلا استبدال ولا تحرير، فلا تضاعف إعادةُ الإرسال حدَّ الشبكة.
  *   IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48.
- * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام عند 70% و90% قبل التوقف.
+ * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام والمسؤول التقني عند 70% و90% قبل التوقف.
  */
 class SendPhoneVerificationCode
 {
@@ -233,7 +233,7 @@ class SendPhoneVerificationCode
             Log::critical("SMS codes reached {$percent}% of the hourly cap.", ['sent' => $sent, 'cap' => $cap]);
 
             Notification::send(
-                User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+                User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
                 new SmsCapWarning((int) $percent, $sent, $cap),
             );
         }

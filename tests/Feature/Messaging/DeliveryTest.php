@@ -104,7 +104,7 @@ it('alerts the super admins once when production has no SMS provider, and keeps 
     Notification::fake();
     Queue::fake();
     app()->detectEnvironment(fn () => 'production');
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $user = User::factory()->create(['phone' => '+966500000123', 'phone_verified_at' => null]);
 
     // التوثيق كما هو: يُولَّد الرمز ويُرسل إلى الطابور
@@ -316,7 +316,7 @@ it('refuses an international number at registration', function () {
         'phone' => '+447700900123',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ])->assertSessionHasErrors('phone');
 
     expect(User::where('email', 'intl@example.test')->exists())->toBeFalse();

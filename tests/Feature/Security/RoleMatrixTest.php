@@ -2,14 +2,20 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\Exceptions\ActionNotResolvableException;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\Page as ResourcePage;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use PHPUnit\Framework\AssertionFailedError;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 use function Livewire\invade;
@@ -260,3 +266,112 @@ it('refuses or allows each panel create and edit screen to each role exactly as 
     expect($checked)->toBeGreaterThan(40)
         ->and($wrong)->toBe([]);
 })->with(fn () => array_map(fn (RoleName $role) => [$role], RoleName::cases()));
+
+// محاولات كتابة فعلية لكل دور (بقايا مراجعة #64، ومهمة لأن المشرف العام صار اطلاعاً فقط — 25 أكتوبر 2026): «حفظ» في شاشة
+// التعديل، و«حذف» في الجدول وفي شاشة التعديل، والحذف الجماعي، على سجل حقيقي من مصنعه، لما لا يحق للدور في الملف المراجَع.
+// وكل محاولة يُتأكد من رفضها بعينه (مراجعة المشرف، 26 أكتوبر 2026): الشاشة لا تُفتح (403 أو 404 أو رفض صلاحية أو مصادقة)،
+// أو تُفتح والإجراء فيها مخفي أو معطّل ثم يُستدعى فلا يُنفَّذ. وأي نتيجة غيرها خطأ باسمها. والسجل كما هو بعد كل المحاولات.
+it('refuses every real save, delete, table and bulk attempt by a role without the right, and leaves the record unchanged', function (RoleName $role) {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $records = roleMatrixRecords();
+    $saved = json_decode((string) file_get_contents(ROLE_MATRIX_FILE), true)[$role->value]['policies'];
+    $this->actingAs(userWithRole($role));
+    $wrong = [];
+    $attempted = 0;
+
+    // null متى رُفضت المحاولة، وإلا وصف ما حدث
+    $refused = function (Closure $mount, ?Closure $hidden, Closure $act): ?string {
+        try {
+            $page = $mount();
+        } catch (AuthorizationException|AuthenticationException) {
+            return null;
+        } catch (HttpExceptionInterface $exception) {
+            return in_array($exception->getStatusCode(), [403, 404], true) ? null : 'HTTP '.$exception->getStatusCode();
+        }
+
+        $status = invade($page)->lastState->getResponse()->status();
+
+        if (in_array($status, [403, 404], true)) {
+            return null;
+        }
+
+        if ($status !== 200 || $hidden === null) {
+            return 'opened ('.$status.')';
+        }
+
+        if ($hidden($page->instance())) {
+            return 'action visible and enabled';
+        }
+
+        try {
+            $act($page);
+        } catch (AuthorizationException|HttpExceptionInterface|AssertionFailedError|ActionNotResolvableException) {
+            // الإجراء الغائب أو المخفي أو المعطّل لا يُنفَّذ، ورفضه بأي من هذه هو المتوقع
+        }
+
+        return null;
+    };
+
+    // الإجراء متاح للدور: موجود، وظاهر، وغير معطّل (وفي الجدول: السجل في قائمته)
+    $available = fn (?Action $action): bool => $action !== null && $action->isVisible() && ! $action->isDisabled();
+
+    foreach (Filament::getPanel('admin')->getResources() as $resource) {
+        $model = $resource::getModel();
+        $record = $records[$model] ?? null;
+        $policy = $saved[class_basename($model)] ?? null;
+
+        if ($record === null || $policy === null || (str_contains($policy, 'u') && str_contains($policy, 'd'))) {
+            continue;
+        }
+
+        $before = $record->fresh()?->getAttributes();
+        $pages = $resource::getPages();
+        $list = ($pages['index'] ?? null)?->getPage();
+        $edit = ($pages['edit'] ?? null)?->getPage();
+        $attempts = [];
+
+        if ($list !== null && ! str_contains($policy, 'd')) {
+            $row = TestAction::make('delete')->table($record);
+            $bulk = TestAction::make('delete')->table()->bulk();
+            $attempts['table delete'] = [fn () => Livewire::test($list),
+                fn ($page): bool => $page->getTableRecord((string) $record->getKey()) !== null && $available($page->getTable()->getAction('delete')?->record($record)),
+                fn ($page) => $page->callAction($row)];
+            $attempts['bulk delete'] = [fn () => Livewire::test($list),
+                fn ($page): bool => $page->getTableRecord((string) $record->getKey()) !== null && $available($page->getTable()->getBulkAction('delete')),
+                // وجدول بلا حذف جماعي لا يُستدعى فيه (يرجع Filament إلى إجراء الصف بلا سجل)
+                fn ($page) => $page->instance()->getTable()->getBulkAction('delete') === null ? null : $page->selectTableRecords([$record->getKey()])->callAction($bulk)];
+        }
+
+        if ($edit !== null) {
+            $mount = fn () => Livewire::test($edit, ['record' => $record->getRouteKey()]);
+
+            if (! str_contains($policy, 'u')) {
+                // بلا حق التعديل لا تُفتح شاشة التعديل أصلاً
+                $attempts['save'] = [$mount, null, fn ($page) => $page->call('save')];
+            }
+
+            if (! str_contains($policy, 'd')) {
+                $attempts['edit delete'] = [$mount, fn ($page): bool => $available($page->getAction('delete')), fn ($page) => $page->callAction('delete')];
+            }
+        }
+
+        foreach ($attempts as $name => [$mount, $hidden, $act]) {
+            $attempted++;
+
+            if (($outcome = $refused($mount, $hidden, $act)) !== null) {
+                $wrong[class_basename($model).' '.$name] = $outcome;
+            }
+        }
+
+        $after = $record->fresh()?->getAttributes();
+
+        if (! str_contains($policy, 'd') && $after === null) {
+            $wrong[class_basename($model)] = 'deleted';
+        } elseif (! str_contains($policy, 'u') && $after !== null && $after != $before) {
+            $wrong[class_basename($model)] = 'updated';
+        }
+    }
+
+    expect($attempted)->toBeGreaterThan(0)
+        ->and($wrong)->toBe([]);
+})->with(fn () => array_map(fn (RoleName $role) => [$role], array_values(array_filter(RoleName::cases(), fn (RoleName $role): bool => ! in_array($role, RoleName::administrators(), true)))));

@@ -15,6 +15,10 @@ use Livewire\Livewire;
  * قرار صفوان (10 أكتوبر 2026): المتجر المعتمد على سلة https://ejaz.org.sa، والدفع الداخلي مؤرشف خلف
  * مفتاح معطّل. docs/plans/store-salla.md
  */
+beforeEach(function () {
+    showLegacyHomeSections();
+});
+
 it('sends /store to the approved Salla store by default', function () {
     $this->get('/store')->assertRedirect('https://ejaz.org.sa');
 });
@@ -83,7 +87,7 @@ it('keeps the internal store, donations and payments archived while the switch i
 });
 
 it('hides the payments resource and the donations settings while the switch is off', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     $this->get(PaymentResource::getUrl('index'))->assertForbidden();
     $this->get(SiteSettings::getUrl())->assertOk()

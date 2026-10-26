@@ -155,23 +155,26 @@ it('keeps board meetings and files from an assembly member, and job files from s
 });
 
 // إجراءات Livewire في اللوحة: الشاشة لا تُفتح لغير المخوّل، فلا يصل إلى «حفظ» ولا «حذف»، والسجل كما هو.
-// ومنها IDOR كتابة لدورين: المدير التنفيذي على حساب المشرف العام، والمحكّم على تحكيم غيره
+// ومنها IDOR كتابة: المشرف العام للاطلاع لا يعدّل حساباً، والمحكّم لا يعدّل تحكيم غيره
 it('refuses panel Livewire actions to a role without the permission and on a record that is not theirs', function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
-    $superAdmin = userWithRole(RoleName::SuperAdmin, ['name' => 'المشرف الأصلي']);
+    $superAdmin = userWithRole(RoleName::TechnicalAdmin, ['name' => 'المشرف الأصلي']);
     $director = userWithRole(RoleName::ExecutiveDirector);
     $staff = userWithRole(RoleName::Accountant, ['name' => 'موظف']);
 
-    // المدير التنفيذي: حساب المشرف العام خارج نطاقه (404)، ولا يُبدَّل سجل نموذج يملكه إلى حسابه (الخاصية مقفلة)
+    // المشرف العام للاطلاع وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026): لا يفتح تعديل حساب
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertForbidden();
+
+    // والمدير التنفيذي أدمن كامل، ولا يُبدَّل سجل نموذج يملكه إلى حساب آخر (الخاصية مقفلة)
     $this->actingAs($director);
-    Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertNotFound();
     expect(fn () => Livewire::test(EditUser::class, ['record' => $staff->getRouteKey()])->set('record', $superAdmin->getKey())->fillForm(['name' => 'مخترَق'])->call('save'))
         ->toThrow(CannotUpdateLockedPropertyException::class);
 
     // السكرتير بلا صلاحية المستخدمين (403)، والمشرف العام يفتحه (شاهد إيجابي)
     $this->actingAs(userWithRole(RoleName::Secretary));
     Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertForbidden();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertOk();
     expect($superAdmin->fresh()->name)->toBe('المشرف الأصلي');
 

@@ -20,7 +20,9 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Rules\PlainText;
 use App\Rules\SafeUrl;
+use App\Rules\SaudiMobile;
 use App\Rules\VideoUrl;
+use App\Support\NationalAddress;
 use App\Support\RedirectMap;
 use App\Support\RichText;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -209,6 +211,15 @@ class ImportLegacyContent
             ? [...$fields, 'slug' => $values['slug'], 'is_published' => false]
             : array_filter($fields, fn (mixed $value, string $field): bool => filled($value) && blank($existing->getAttribute($field)), ARRAY_FILTER_USE_BOTH);
 
+        // والنص المثال يُملأ في مسودة فارغة مع وسمه، ووسم مسودة لها نصها لا يتغير
+        if ($existing !== null) {
+            unset($fields['is_sample']);
+
+            if (($values['is_sample'] ?? false) === true && isset($fields['blocks'])) {
+                $fields['is_sample'] = true;
+            }
+        }
+
         try {
             if (filled($values['file'] ?? null) && blank($existing?->getAttribute('file'))) {
                 $fields['file'] = $this->copyFile($section, $values, $base);
@@ -229,7 +240,7 @@ class ImportLegacyContent
 
             $saved = match ($section) {
                 'documents' => $this->saveDocument->handle($actor, $existing instanceof Document ? $existing : new Document, $fields),
-                'library' => $this->saveLibraryItem->handle($actor, $existing instanceof LibraryItem ? $existing : new LibraryItem, $fields),
+                'library' => $this->saveLibraryItem->handle($actor, $existing instanceof LibraryItem ? $existing : new LibraryItem, $fields, legacyFile: true),
                 default => $this->saveContent->handle($actor, $existing ?? new $class, $fields),
             };
         } catch (ValidationException $exception) {
@@ -391,6 +402,9 @@ class ImportLegacyContent
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9 ]+$/'],
             'address' => ['nullable', 'string', 'max:300', new PlainText(multiline: true)],
             'map_url' => ['nullable', 'string', 'max:1000', new SafeUrl(allowInternal: false)],
+            // البيانات الرسمية (26 أكتوبر 2026): العنوان الوطني المختصر لرابط الخريطة، ورقم واتساب لزره
+            'short_address' => ['nullable', 'string', 'regex:'.NationalAddress::PATTERN],
+            'whatsapp' => ['nullable', 'string', new SaudiMobile],
             'social' => ['nullable', 'array:'.implode(',', SiteSettings::SOCIAL)],
             'social.*' => ['nullable', 'string', 'max:500', new SafeUrl(allowInternal: false)],
         ];
@@ -473,7 +487,8 @@ class ImportLegacyContent
 
         $librarySection = $section === 'library' ? LibrarySection::from((string) $values['section']) : null;
 
-        if ($librarySection?->takesVideoUrl()) {
+        // والصوتية من الموقع السابق ملفات تبقى تعمل (LibrarySection::keepsLegacyFile)
+        if ($librarySection?->takesVideoUrl() && ! $librarySection->keepsLegacyFile()) {
             throw ValidationException::withMessages(['file' => __('import.errors.video_file')]);
         }
 
@@ -656,6 +671,8 @@ class ImportLegacyContent
                 'slug' => $slug,
                 'title' => ['required', 'string', 'max:160', new PlainText],
                 'summary' => $summary,
+                // نص كتبه فريق البوابة مكان محتوى ناقص (قرار صفوان، 26 أكتوبر 2026)
+                'is_sample' => ['sometimes', 'boolean'],
                 ...$blocks,
                 ...$legacy,
             ],

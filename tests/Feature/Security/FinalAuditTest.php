@@ -156,7 +156,7 @@ it('logs only the SQLSTATE of a real PostgreSQL error, and masks the bound value
 
     try {
         match ($case) {
-            'unique' => DB::table('users')->insert(['name' => 'x', 'email' => 'dupe@example.test', 'password' => 'secret-hash-value', 'created_at' => now(), 'updated_at' => now()]),
+            'unique' => DB::table('users')->insert(['name' => 'x', 'email' => 'dupe@example.test', 'email_verified_at' => now(), 'password' => 'secret-hash-value', 'created_at' => now(), 'updated_at' => now()]),
             'uuid' => DB::select('select * from service_requests where uuid = ?::uuid', ['secret-typed-value']),
         };
         $this->fail('the query did not fail');
@@ -179,7 +179,7 @@ it('logs only the SQLSTATE of a real PostgreSQL error, and masks the bound value
 // host it was saved for» و«asks for the key again before sending a saved key to another provider or host»)
 it('accepts only the exact provider hosts allowed on the server, whatever form an internal address takes', function (string $url) {
     config(['assistant.allowed_hosts' => ['api.anthropic.com', 'api.openai.com']]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect(fn () => app(SaveAssistantSettings::class)->handle($admin, ['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => $url, 'api_key' => 'sk-x']))
         ->toThrow(ValidationException::class);
@@ -255,7 +255,7 @@ it('lets inline styles through the production CSP, with no style nonce that woul
     app()->detectEnvironment(fn () => 'production');
 
     foreach ([
-        [userWithRole(RoleName::SuperAdmin), '/admin/messaging-channels'],
+        [userWithRole(RoleName::TechnicalAdmin), '/admin/messaging-channels'],
         [null, '/'],
     ] as [$user, $uri]) {
         $response = $user ? $this->actingAs($user)->get($uri) : $this->get($uri);

@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Actions\Assistant\SaveAssistantSettings;
 use App\Actions\Assistant\TestAssistantConnection;
 use App\Enums\AssistantProvider;
+use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\AssistantSettings;
 use App\Models\AssistantUsage;
 use App\Models\User;
@@ -38,6 +39,8 @@ use UnitEnum;
  */
 class AssistantSettingsPage extends Page
 {
+    use ReadableByOverseers;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
     protected static ?int $navigationSort = 10;
@@ -47,7 +50,7 @@ class AssistantSettingsPage extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
-    public static function canAccess(): bool
+    protected static function canWrite(): bool
     {
         return auth()->user()?->can('ai_assistant.manage') ?? false;
     }
@@ -88,6 +91,7 @@ class AssistantSettingsPage extends Page
 
         return $schema
             ->statePath('data')
+            ->disabled(fn (): bool => ! static::canWrite())
             ->components([
                 Tabs::make()->tabs([
                     Tab::make(__('assistant.admin.settings.tabs.general'))->schema([
@@ -166,13 +170,15 @@ class AssistantSettingsPage extends Page
                     Actions::make([
                         Action::make('save')->label(__('site.save'))->submit('save')->keyBindings(['mod+s']),
                         Action::make('test')->label(__('assistant.admin.settings.test'))->color('gray')->action('testConnection'),
-                    ]),
+                    ])->visible(fn (): bool => static::canWrite()),
                 ]),
         ]);
     }
 
     public function save(SaveAssistantSettings $action): void
     {
+        $this->authorizeWrite();
+
         /** @var User $user */
         $user = auth()->user();
 
@@ -190,6 +196,8 @@ class AssistantSettingsPage extends Page
 
     public function testConnection(TestAssistantConnection $action): void
     {
+        $this->authorizeWrite();
+
         /** @var User $user */
         $user = auth()->user();
 

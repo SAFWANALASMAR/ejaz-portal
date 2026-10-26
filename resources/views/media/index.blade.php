@@ -1,16 +1,11 @@
 {{--
-    المركز الإعلامي (الصورة 05): رأس القسم، ثم بلاطات الأخبار ومكتبة الصور ومكتبة الفيديو والشركاء،
-    ثم «قياس الرضا» بعرض كامل متى بُنيت وحدته، ثم أحدث الأخبار. (تُخزَّن نصاً — MediaController)
+    المركز الإعلامي: الأخبار والإعلانات وحدهما (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، ثم أحدث الأخبار. والمكتبة
+    المرئية في «مكتبة إعجاز»، ومكتبة الصور والشركاء باقيتان بروابطهما بلا بلاطة. (تُخزَّن نصاً — MediaController)
 --}}
 @php
-    use Illuminate\Support\Facades\Route;
-
-    // مكتبة الفيديو هي المكتبة المرئية نفسها، فلا تُدار المقاطع في مكانين (decisions.md)
     $tiles = [
         ['key' => 'news', 'icon' => 'newspaper', 'url' => route('media.news.index')],
-        ['key' => 'albums', 'icon' => 'photo', 'url' => route('media.albums.index')],
-        ['key' => 'videos', 'icon' => 'play-circle', 'url' => route('library.section', 'videos')],
-        ['key' => 'partners', 'icon' => 'building-office-2', 'url' => route('media.partners')],
+        ['key' => 'announcements', 'icon' => 'megaphone', 'url' => route('media.announcements')],
     ];
 @endphp
 

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
@@ -9,7 +10,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرفين العامين عند منح دور المشرف العام أو سحبه، حتى يُكتشف أي منح غير متوقع.
+ * تنبيه المشرف العام والمسؤول التقني عند منح أحد دوريهما أو سحبه، حتى يُكتشف أي منح غير متوقع.
  * يدخل الطابور بعد اعتماد المعاملة أياً كان الاتصال، فلا يلتقطه عامل قبل حفظ الحساب.
  */
 class SuperAdminRoleChanged extends Notification implements ShouldQueueAfterCommit
@@ -19,7 +20,8 @@ class SuperAdminRoleChanged extends Notification implements ShouldQueueAfterComm
     public function __construct(
         public readonly User $user,
         public readonly bool $granted,
-        public readonly User $by,
+        public readonly ?User $by,
+        public readonly RoleName $role = RoleName::SuperAdmin,
     ) {}
 
     /**
@@ -35,9 +37,9 @@ class SuperAdminRoleChanged extends Notification implements ShouldQueueAfterComm
         $key = $this->granted ? 'granted' : 'revoked';
 
         return (new MailMessage)
-            ->subject(__('users.super_admin_mail.'.$key.'_subject'))
+            ->subject(__('users.super_admin_mail.'.$key.'_subject', ['role' => $this->role->getLabel()]))
             ->greeting(__('account.mail.greeting'))
-            ->line(__('users.super_admin_mail.'.$key.'_line', ['user' => $this->user->email, 'by' => $this->by->email]))
+            ->line(__('users.super_admin_mail.'.$key.'_line', ['user' => $this->user->identifier(), 'by' => $this->by?->identifier() ?? __('users.super_admin_mail.console'), 'role' => $this->role->getLabel()]))
             ->line(__('users.super_admin_mail.check'))
             ->salutation(__('account.mail.salutation'));
     }

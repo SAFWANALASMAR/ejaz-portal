@@ -73,7 +73,7 @@ it('sends guests to log in, keeps placeholders in names literal, and drops certi
     $this->get(route('account.programs.certificate', $registration))->assertRedirect(route('login'));
 
     $this->user->forceFill(['deletion_requested_at' => now()])->save();
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->user);
 
     expect($registration->fresh()->certificate_path)->toBeNull()
         ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
@@ -88,7 +88,7 @@ it('keeps a certificate and its path when the disk cannot delete it, so no file 
 
     $this->user->forceFill(['deletion_requested_at' => now()])->save();
 
-    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user))->toThrow(RuntimeException::class);
+    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->user))->toThrow(RuntimeException::class);
 
     // الإخفاء كله ينتظر إعادة المحاولة، والشهادة ومسارها كما هما
     expect($this->registration->fresh()->certificate_path)->toBe($path)
