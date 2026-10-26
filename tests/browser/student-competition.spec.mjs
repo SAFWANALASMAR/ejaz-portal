@@ -61,6 +61,8 @@ test.describe('student competition: the student journey', () => {
     test.skip(!DEMO, 'يحتاج مسابقة تجريبية: STUDENT_COMPETITION من ejaz:demo-student-competition --json');
 
     test('registers, takes the timed exam and sees only "answers received"', async ({ page }, testInfo) => {
+        // رحلة كاملة من التسجيل إلى التسليم ثم الحساب، تأخذ نحو دقيقة ونصف، فمهلتها أطول من الافتراضية
+        test.setTimeout(180_000);
         const errors = collectErrors(page);
         const width = testInfo.project.name;
         await login(page, DEMO.students[width], DEMO.password);
@@ -209,14 +211,16 @@ test.describe('student competition: the director journey in the panel', () => {
         for (const [tab, step] of [['بنك الأسئلة', '21-admin-bank'], ['النصوص والمقاطع', '22-admin-passages'], ['حقول التسجيل', '23-admin-fields'], ['المسجلون', '24-admin-registrations'], ['النتائج', '26-admin-results'], ['الترتيب التراكمي', '31-admin-cumulative']]) {
             await page.getByRole('tab', { name: tab }).click();
             // التبويب يُحمَّل كسولاً حين تظهر لوحته في الشاشة (Livewire lazy)، وعلى الجوال قد تكون تحت الشاشة بعد محتوى التبويب
-            // السابق الطويل فتبقى «جارٍ التحميل...» (الملاحظة 11 من الاختبار الشامل 0.14). فتُمرَّر إليها قبل الانتظار
+            // السابق الطويل فتبقى «جارٍ التحميل...» (الملاحظة 11 من الاختبار الشامل 0.14). فتُمرَّر إليها ما دامت تُحمَّل، حتى
+            // يظهر محتوى التبويب المختار بعنوانه قبل الفحص واللقطة (ولو تأخر التحميل تحت حمل الجهاز)
             const loading = page.getByRole('tabpanel', { name: 'جارٍ التحميل...' });
-            if (await loading.count()) {
-                await loading.first().scrollIntoViewIfNeeded();
-            }
+            await expect(async () => {
+                if (await loading.count()) {
+                    await loading.first().scrollIntoViewIfNeeded({ timeout: 3_000 });
+                }
+                await expect(page.getByRole('tabpanel', { name: new RegExp(`^${tab}`) })).toBeVisible({ timeout: 5_000 });
+            }).toPass({ timeout: 45_000 });
             await page.waitForLoadState('networkidle');
-            // محتوى التبويب المختار بعنوانه قبل الفحص واللقطة
-            await expect(page.getByRole('tabpanel', { name: new RegExp(`^${tab}`) })).toBeVisible({ timeout: 15_000 });
             await inspect(page, testInfo, step, errors);
 
             if (tab === 'المسجلون') {
