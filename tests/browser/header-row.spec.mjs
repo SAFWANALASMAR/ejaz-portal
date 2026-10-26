@@ -54,8 +54,8 @@ for (const width of WIDTHS) {
     });
 }
 
-// الخط الأصغر قليلاً دون 1440 وحده، وما فوقه كما كان
-for (const [width, size] of [[1280, '13.5px'], [1440, '14.5px'], [1920, '14.5px']]) {
+// الخط الأصغر قليلاً دون 1440 وحده، وما فوقه كما كان. و1240 أول ظهور القائمة (--breakpoint-nav) و1439 آخر الخط الأصغر
+for (const [width, size] of [[1240, '13.5px'], [1280, '13.5px'], [1439, '13.5px'], [1440, '14.5px'], [1920, '14.5px']]) {
     test(`uses ${size} menu text at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
