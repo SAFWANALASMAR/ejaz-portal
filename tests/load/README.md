@@ -142,3 +142,27 @@ k6 run \
 ## التقرير
 
 يُحفظ في `docs/load-tests/<التاريخ>.md`: الإعداد، والأرقام، وما فشل، والإجراء.
+
+---
+
+## مسابقة الطلاب: بدء جماعي (`student-exam.js`)
+
+طلاب يبدؤون الاختبار في لحظة واحدة، كبداية نافذة مرحلة في معامل المدارس (`plans/student-competition.md`). كل طالب يدخل، وينتظر لحظة البدء المشتركة (`START_AT`، ثوانٍ منذ 1970)، ثم «ابدأ الاختبار»، ثم يجيب كل الصفحات على مهل (`ANSWER_SECONDS`)، ثم يسلّم.
+
+1. مسابقة طلاب منشورة بمرحلة جارية وبنك أسئلة لفئتها المفتوحة الأولى.
+2. `php artisan ejaz:load-accounts 300` ثم `php artisan ejaz:load-students <slug> 300` (المحلية والتجريبية وحدهما، وأرقام هوية بصيغة صحيحة في مدى يبدأ بـ 19).
+3. حد الدخول لكل عنوان (`LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE`) يُرفع للتشغيل من مولّد واحد، أو تُوزَّع الدخولات على دقائق قبل `START_AT`. وحدود الاختبار نفسها لكل حساب لا لكل عنوان، فلا تُرفع.
+
+```bash
+k6 run -e BASE_URL=http://localhost:8140 -e PASSWORD="$LOAD_PASSWORD" -e COMPETITION=<slug> -e ROUND=<uuid> \
+       -e STUDENTS=300 -e LOGIN_SPREAD=240 -e START_AT=$(( $(date +%s) + 300 )) tests/load/student-exam.js
+```
+
+ولإعادة التشغيل بحسابات لم تبدأ المرحلة بعد: `-e ACCOUNT_OFFSET=300` يبدأ من الحساب 301 (بعد `ejaz:load-students` بعدد أكبر).
+
+بعده: محاولة واحدة لكل طالب، وكلها مسلَّمة ومصححة (الناتجان 300 ثم صفر):
+
+```sql
+select count(*) from competition_attempts where status = 'submitted' and score is not null;
+select count(*) from (select round_id, submission_id from competition_attempts group by 1, 2 having count(*) > 1) d;
+```

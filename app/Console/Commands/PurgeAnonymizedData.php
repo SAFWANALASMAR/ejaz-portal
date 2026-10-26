@@ -82,7 +82,8 @@ class PurgeAnonymizedData extends Command
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             // (ومشاركة الاختبار بلا منطقة، ومسودة الأعمال بلا إجابات، فيُنظر في بيانات التسجيل والأعمال أيضاً)
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos')->orWhereHas('works')
-                ->orWhereNotNull('full_name')->orWhereNotNull('contact_email')->orWhereNotNull('national_id_hash'))
+                ->orWhereNotNull('full_name')->orWhereNotNull('contact_email')->orWhereNotNull('national_id_hash')
+                ->orWhereNotNull('guardian_phone')->orWhereNotNull('extra'))
             ->lazyById()
             ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purgeSubmission->handle($submission)));
 

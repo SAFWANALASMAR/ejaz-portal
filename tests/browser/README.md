@@ -202,3 +202,17 @@ docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="
 - بلا `ADMIN_STATS_CREDENTIALS` يُتخطى الملف. ومع `admin-spa.spec.mjs` في تشغيل واحد يُمرَّر المتغيران من `$creds` نفسه، وآخر نافذة للرمز في ملف مشترك.
 - كل عرض دخول بالتحقق الثنائي، والحساب نفسه لا يتجاوز عشر محاولات في ربع ساعة (`two-factor` في `FortifyServiceProvider`). فإن تكرر التشغيل ورُدّ بـ 429، فيُنتظر ربع ساعة.
 - الأرقام في اللقطات من قاعدة التطوير كما هي، والزيارات من تصفح حقيقي لها. ولا تُدخل أرقام ولا أيام زيارات تجريبية في قيت ولا في بذرة.
+
+## مسابقة الطلاب
+
+`student-competition.spec.mjs` على العروض الثلاثة: رحلة الطالب كاملة (صفحة المسابقة، والتسجيل، والبدء، والصفحات بالعداد والنص والمقطع، والمراجعة، والتسليم، و«تم استلام إجاباتك»، و«مشاركاتي» بلا درجة قبل النشر وبها بعده)، ورحلة المدير في اللوحة على الحاسب والجوال (المراحل، والبنك، والنصوص، والحقول، والمسجلون والاطلاع على رقم الهوية، والنتائج، ونافذة السحب، والنموذج، والقائمتان). وفي كل صفحة: الاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe. واللقطات في `docs/reviews/screenshots/2026-10-25-competition/`.
+
+يحتاج المشرف التجريبي أولاً ثم المسابقة التجريبية (تمنح المشرف دور المدير التنفيذي للاطلاع على رقم الهوية)، و`COMPETITION_NATIONAL_ID_HMAC_KEY` في `.env`. وكل تشغيل يبدأ المسابقة التجريبية من جديد:
+
+```bash
+admin=$(docker compose exec -T app php artisan ejaz:demo-user --admin --json)
+demo=$(docker compose exec -T app php artisan ejaz:demo-student-competition --json)
+
+docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="$admin" -e STUDENT_COMPETITION="$demo" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs student-competition.spec.mjs
+```
