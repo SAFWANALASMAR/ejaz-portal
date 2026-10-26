@@ -141,8 +141,9 @@ class ImportStudentQuestions
                         continue;
                     }
 
-                    // والخلية التي حماها التصدير من الصيغ بفاصلة عليا (ServiceRequestExporter::safeCell) تعود كما كانت
-                    $cells = array_map(fn (mixed $value): string => (string) preg_replace("/^'(?=[=+\\-@\\t\\r])/", '', trim(is_scalar($value) ? (string) $value : '')), $row->toArray());
+                    // والخلية التي حماها التصدير من الصيغ بفاصلة عليا (ServiceRequestExporter::safeCell) تعود كما كانت، ولو
+                    // سبقت علامتَها فراغاتٌ أو NBSP أو BOM كما يقتبسها safeCell (الاختبار الأمني 0.14.0)
+                    $cells = array_map(fn (mixed $value): string => (string) preg_replace("/^'(?=[\\s\\x{00A0}\\x{FEFF}]*[=+\\-@\\t\\r])/u", '', trim(is_scalar($value) ? (string) $value : '')), $row->toArray());
 
                     if (implode('', $cells) === '') {
                         continue;

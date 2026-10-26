@@ -91,6 +91,8 @@ return [
             'registration_per_network_per_day' => (int) env('COMPETITION_WINDOW_REGISTRATION_PER_NETWORK_PER_DAY', 6000),
             'login_failures_per_subscriber' => (int) env('COMPETITION_WINDOW_LOGIN_FAILURES_PER_SUBSCRIBER', 300),
             'login_attempts_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 900),
+            // تعيين كلمة المرور برمز الرابط (password-update) أيام الاختبار، كالدخول (الاختبار الأمني 0.14.0)
+            'password_update_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_PASSWORD_UPDATE_PER_SUBSCRIBER_PER_MINUTE', 600),
         ],
 
         // سقف الحرف في إجابة المقالي
