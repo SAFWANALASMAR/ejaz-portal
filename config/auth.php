@@ -66,7 +66,7 @@ return [
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'verified-first', // البريد الموثق أولاً للاستعادة (App\Auth\VerifiedFirstUserProvider)
             'model' => env('AUTH_MODEL', User::class),
         ],
 

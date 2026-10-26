@@ -8,8 +8,18 @@
 
 <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate
     class="group flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
-    @if ($item->thumbnail)
-        <img src="{{ Storage::disk('public')->url($item->thumbnail) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover">
+    {{-- المرفوعة، وإلا صورة مقطع يوتيوب المصغرة (LibraryItem::thumbnailUrl) --}}
+    @if ($thumbnail = $item->thumbnailUrl())
+        <span class="relative block">
+            <img src="{{ $thumbnail }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="aspect-[16/10] w-full bg-primary-soft object-cover">
+            @if ($item->youtubeId())
+                <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                    <span class="inline-flex size-14 items-center justify-center rounded-full bg-primary-dark/80 text-white shadow-lg transition group-hover:bg-primary">
+                        {{ svg('heroicon-s-play', 'size-7') }}
+                    </span>
+                </span>
+            @endif
+        </span>
     @else
         <span class="flex aspect-[16/10] w-full items-center justify-center bg-primary-soft text-primary/70" aria-hidden="true">
             {{ svg('heroicon-o-'.$item->section->icon(), 'size-14') }}

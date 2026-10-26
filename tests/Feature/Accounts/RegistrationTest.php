@@ -11,6 +11,7 @@ use Illuminate\Testing\TestResponse;
 use Tests\Fakes\FakeSmsGateway;
 
 beforeEach(function () {
+    enableVerification();
     $this->sms = FakeSmsGateway::swap();
     Notification::fake();
 });
@@ -26,7 +27,7 @@ function registrationData(array $overrides = []): array
         'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
-        'privacy' => '1',
+        'username' => uniqueUsername(), 'privacy' => '1',
         ...$overrides,
     ];
 }
@@ -106,7 +107,7 @@ it('still caps registrations per address at the configured limit', function () {
 
     registerNumber(1)->assertSessionHasNoErrors();
     registerNumber(2)->assertSessionHasNoErrors();
-    registerNumber(3)->assertSessionHasErrors('email');
+    registerNumber(3)->assertSessionHasErrors(['username' => __('account.register.too_many')]);
 
     expect(User::count())->toBe(2);
 });
@@ -119,7 +120,7 @@ it('counts probes of taken emails and phones toward the cap, so accounts cannot 
     registerNumber(1)->assertSessionHasErrors('email');
     registerNumber(2)->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
 
-    registerNumber(3)->assertSessionHasErrors(['email' => __('account.register.too_many')]);
+    registerNumber(3)->assertSessionHasErrors(['username' => __('account.register.too_many')]);
     expect(User::count())->toBe(2);
 });
 
@@ -131,7 +132,7 @@ it('counts each visitor behind a trusted load balancer separately', function () 
 
     registerNumber(1, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.10'])->assertSessionHasNoErrors();
     registerNumber(2, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.20'])->assertSessionHasNoErrors();
-    registerNumber(3, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.10'])->assertSessionHasErrors('email');
+    registerNumber(3, [...$balancer, 'HTTP_X_FORWARDED_FOR' => '203.0.113.10'])->assertSessionHasErrors(['username' => __('account.register.too_many')]);
 
     TrustProxies::flushState();
 });
@@ -140,7 +141,7 @@ it('counts IPv6 registrations per subscriber network, not per address', function
     config(['security.registration_per_ip_per_hour' => 1]);
 
     registerNumber(1, ['REMOTE_ADDR' => '2001:db8:abcd:1::5'])->assertSessionHasNoErrors();
-    registerNumber(2, ['REMOTE_ADDR' => '2001:db8:abcd:1::9'])->assertSessionHasErrors('email');
+    registerNumber(2, ['REMOTE_ADDR' => '2001:db8:abcd:1::9'])->assertSessionHasErrors(['username' => __('account.register.too_many')]);
     registerNumber(3, ['REMOTE_ADDR' => '2001:db8:abcd:2::5'])->assertSessionHasNoErrors();
 });
 

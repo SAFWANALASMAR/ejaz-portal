@@ -40,12 +40,17 @@ class MenuSeeder extends Seeder
                 ['label' => 'خدماتنا الإلكترونية', 'url' => '/services'],
             ]],
             ['label' => 'المبادرات', 'url' => '/initiatives'],
+            // المركز الإعلامي: الأخبار والإعلانات وحدهما، و«مكتبة إعجاز» بفروعها الأربعة عنصر مستقل (ملاحظات المدير التنفيذي،
+            // 25 أكتوبر 2026). ومكتبة الصور والشركاء باقيتان بروابطهما، وتُضافان من «القائمة» متى أُريد
             ['label' => 'المركز الإعلامي', 'url' => '/media', 'children' => [
                 ['label' => 'الأخبار', 'url' => '/media/news'],
-                ['label' => 'مكتبة إعجاز', 'url' => '/library'],
-                ['label' => 'مكتبة الصور', 'url' => '/media/albums'],
-                ['label' => 'مكتبة الفيديو', 'url' => '/library/videos'],
-                ['label' => 'الشركاء', 'url' => '/media/partners'],
+                ['label' => 'الإعلانات', 'url' => '/media/announcements'],
+            ]],
+            ['label' => 'مكتبة إعجاز', 'url' => '/library', 'children' => [
+                ['label' => 'المكتبة المرئية', 'url' => '/library/videos'],
+                ['label' => 'المكتبة الصوتية', 'url' => '/library/audio'],
+                ['label' => 'الكتب', 'url' => '/library/books'],
+                ['label' => 'الأبحاث والدراسات', 'url' => '/library/research'],
             ]],
             ['label' => 'الحوكمة', 'url' => '/governance'],
             // المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه، ويفتح في تبويب جديد

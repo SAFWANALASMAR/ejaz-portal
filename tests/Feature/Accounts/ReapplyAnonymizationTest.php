@@ -13,7 +13,7 @@ use Spatie\Activitylog\Models\Activity;
 */
 
 beforeEach(function () {
-    $this->admin = userWithRole(RoleName::SuperAdmin, ['email' => 'admin@example.test']);
+    $this->admin = userWithRole(RoleName::TechnicalAdmin, ['email' => 'admin@example.test']);
     // كما في النسخة: قبل طلب الحذف
     $this->restored = User::factory()->create(['name' => 'اسم عاد من النسخة', 'email' => 'back@example.test', 'phone' => '+966512345678']);
 });

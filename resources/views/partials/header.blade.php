@@ -9,7 +9,8 @@
 @php($menu = $siteMenu ?? collect())
 
 <header data-site-header class="sticky top-0 z-40 border-b border-line/60 bg-white/95 backdrop-blur transition-shadow data-scrolled:shadow-md">
-    <div class="container-page flex h-20 items-center justify-between gap-4">
+    {{-- أعرض من محتوى الصفحة، لتتسع القائمة بجانب الشعار الكامل ومخطوطته (ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
+    <div class="container-page flex h-20 max-w-[88rem] items-center justify-between gap-4">
         <x-brand />
 
         <nav data-main-nav class="hidden min-w-0 flex-1 justify-center nav:flex" aria-label="{{ __('site.main_navigation') }}">
@@ -20,8 +21,8 @@
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @class([
-                                    'relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2 text-[15px] font-medium transition hover:text-accent-dark',
-                                    'text-accent-dark after:absolute after:inset-x-2.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
+                                    'relative flex shrink-0 items-center gap-1 whitespace-nowrap px-1.5 py-2 text-[14.5px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-1.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
@@ -40,8 +41,8 @@
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 @if ($current) aria-current="page" @endif
                                 @class([
-                                    'relative block shrink-0 whitespace-nowrap px-2.5 py-2 text-[15px] font-medium transition hover:text-accent-dark',
-                                    'text-accent-dark after:absolute after:inset-x-2.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
+                                    'relative block shrink-0 whitespace-nowrap px-1.5 py-2 text-[14.5px] font-medium transition hover:text-accent-dark',
+                                    'text-accent-dark after:absolute after:inset-x-1.5 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-accent' => $current,
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}

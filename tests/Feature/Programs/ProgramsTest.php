@@ -76,6 +76,7 @@ it('registers a verified user with the extra fields, confirms by email, and refu
 });
 
 it('asks guests to log in and unverified users to verify before registering', function () {
+    enableVerification();
     $this->get('/programs/research-skills/register')->assertRedirect(route('login'));
     $this->actingAs(User::factory()->unverified()->create())->get('/programs/research-skills/register')->assertRedirect(route('verification.notice'));
 });
@@ -180,7 +181,7 @@ it('releases the seats of an anonymized account to the waitlist and stops its re
     $next = ProgramRegistration::factory()->waitlisted()->for($this->program)->create();
     $gone->user->forceFill(['deletion_requested_at' => now()])->save();
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $gone->user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $gone->user);
 
     expect($gone->fresh()->status)->toBe(RegistrationStatus::Cancelled)
         ->and($next->fresh()->status)->toBe(RegistrationStatus::Confirmed);
@@ -192,6 +193,7 @@ it('releases the seats of an anonymized account to the waitlist and stops its re
 });
 
 it('refuses registering an unverified or inactive account even outside the route', function () {
+    enableVerification();
     expect(fn () => app(RegisterForProgram::class)->handle(User::factory()->unverified()->create(), $this->program, []))->toThrow(AuthorizationException::class);
 
     $inactive = User::factory()->create();

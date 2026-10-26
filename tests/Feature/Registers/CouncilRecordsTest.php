@@ -63,7 +63,7 @@ function bodyMember(MeetingBody $body, ?Committee $committee = null, array $attr
     return $user;
 }
 
-it('lets the secretary alone manage committees and memberships, the director and the board read', function () {
+it('lets the secretary and the administrators manage committees and memberships, the super admin and the board read', function () {
     $committee = app(SaveCommittee::class)->handle($this->secretary, new Committee, ['name' => 'لجنة تجريبية', 'description' => null]);
     $membership = app(SaveBodyMembership::class)->handle($this->secretary, new BodyMembership, [
         'body' => 'committee', 'committee_id' => $committee->id, 'user_id' => User::factory()->create()->id,
@@ -73,7 +73,7 @@ it('lets the secretary alone manage committees and memberships, the director and
     expect($membership->isActive())->toBeTrue()
         ->and(Activity::where('subject_type', BodyMembership::class)->where('event', 'created')->exists())->toBeTrue();
 
-    foreach ([$this->director, userWithRole(RoleName::BoardMember)] as $reader) {
+    foreach ([userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $reader) {
         expect($reader->can('viewAny', Committee::class))->toBeTrue()
             ->and($reader->can('view', $membership))->toBeTrue()
             ->and(fn () => app(SaveCommittee::class)->handle($reader, new Committee, ['name' => 'لجنة']))->toThrow(AuthorizationException::class);
@@ -178,7 +178,7 @@ it('shows each body to its members, everything to the secretary and the director
     expect($boardUser->can('view', $committee))->toBeTrue()
         ->and(Meeting::query()->visibleTo($boardUser)->count())->toBe(3);
 
-    expect($this->director->can('update', $assembly))->toBeFalse()
+    expect(userWithRole(RoleName::SuperAdmin)->can('update', $assembly))->toBeFalse()
         ->and(userWithRole(RoleName::ContentEditor)->can('view', $assembly))->toBeFalse();
 });
 
@@ -211,7 +211,7 @@ it('records agenda items with decisions, assignees, due dates and execution stat
     app(SaveAgendaItem::class)->handle($this->secretary, $meeting, $item, ['position' => 1, 'title' => 'بند تجريبي', 'status' => 'completed']);
     expect($item->fresh()->status)->toBe(AgendaItemStatus::Completed);
 
-    foreach ([$this->director, userWithRole(RoleName::BoardMember)] as $reader) {
+    foreach ([userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $reader) {
         expect(fn () => app(SaveAgendaItem::class)->handle($reader, $meeting, new MeetingAgendaItem, ['position' => 2, 'title' => 'بند']))->toThrow(AuthorizationException::class)
             ->and($reader->can('view', $item))->toBeTrue();
     }

@@ -121,28 +121,27 @@ it('never publishes an item without its content, from the form or the action, bu
     $this->get('/library/videos/embryo-stages')->assertNotFound();
 });
 
-it('stores a real audio file in the private disk, and refuses one that is not audio', function () {
+it('takes audio by a YouTube link and refuses a new audio file, while a file from the old site keeps playing', function () {
     $this->actingAs($this->editor);
-    $audio = fn (UploadedFile $file): array => libraryForm(['section' => LibrarySection::Audio->value, 'file' => [$file]]);
+
+    // ملاحظات المدير التنفيذي (25 أكتوبر 2026): الصوتيات بروابط يوتيوب
+    Storage::disk('local')->put('library/new.mp3', mp3Contents());
+
+    expect(fn () => app(SaveLibraryItem::class)->handle($this->editor, new LibraryItem, libraryForm(['section' => LibrarySection::Audio->value, 'video_url' => null, 'file' => 'library/new.mp3'])))
+        ->toThrow(ValidationException::class, __('library.validation.audio_by_link'));
 
     Livewire::test(CreateLibraryItem::class)
-        ->fillForm($audio(UploadedFile::fake()->createWithContent('lecture.mp3', 'نص عادي وليس صوتاً')))
-        ->call('create')
-        ->assertHasFormErrors(['file']);
-
-    Livewire::test(CreateLibraryItem::class)
-        ->fillForm($audio(UploadedFile::fake()->createWithContent('lecture.mp3', mp3Contents())))
+        ->fillForm(libraryForm(['section' => LibrarySection::Audio->value]))
         ->call('create')
         ->assertHasNoFormErrors();
 
-    $item = LibraryItem::sole();
+    expect(LibraryItem::sole())->file->toBeNull()->video_url->toBe('https://www.youtube.com/watch?v=abcdefghijk');
 
-    expect($item->file)->toStartWith('library/')->toEndWith('.mp3')
-        ->and($item->video_url)->toBeNull()
-        ->and($item->file_size)->toBe(strlen(mp3Contents()))
-        ->and(Storage::disk('local')->allFiles('library'))->toBe([$item->file]);
+    // وملف الموقع السابق يبقى يعمل
+    Storage::disk('local')->put('library/lecture.mp3', mp3Contents());
+    LibraryItem::factory()->audio()->create(['file' => 'library/lecture.mp3', 'slug' => 'old-lecture', 'video_url' => null]);
 
-    $this->get('/library/audio/embryo-stages/file')->assertOk()->assertHeader('Content-Type', 'audio/mpeg');
+    $this->get('/library/audio/old-lecture/file')->assertOk()->assertHeader('Content-Type', 'audio/mpeg');
 });
 
 it('accepts a real PDF for a study, and refuses one with active content', function () {
@@ -251,7 +250,7 @@ it('soft deletes and restores an item with its file, and never deletes it for go
     Livewire::test(ListLibraryItems::class)->filterTable('trashed', true)->callAction(TestAction::make('restore')->table($item));
 
     expect($item->fresh()->trashed())->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('forceDelete', $item))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('forceDelete', $item))->toBeFalse();
     $this->get('/library/books/kept')->assertOk();
 });
 
@@ -279,7 +278,8 @@ it('checks everything again when the action is called directly, not only in the 
     LibraryItem::factory()->video()->create(['thumbnail' => 'library/taken.jpg'])->delete();
     $save = fn (array $data) => app(SaveLibraryItem::class)->handle($this->editor, new LibraryItem, libraryForm($data));
 
-    expect(fn () => $save(['section' => LibrarySection::Audio->value, 'file' => 'library/fake.mp3']))
+    // ملف صوتي من الموقع السابق يُفحص كذلك (ImportLegacyContent)
+    expect(fn () => app(SaveLibraryItem::class)->handle($this->editor, new LibraryItem, libraryForm(['section' => LibrarySection::Audio->value, 'video_url' => null, 'file' => 'library/fake.mp3']), legacyFile: true))
         ->toThrow(ValidationException::class, __('validation.audio_file'))
         ->and(Storage::disk('local')->exists('library/fake.mp3'))->toBeFalse()
         // PDF بامتداد آخر لا يُقبل، فلا يصل الزائر ملف باسم مضلل

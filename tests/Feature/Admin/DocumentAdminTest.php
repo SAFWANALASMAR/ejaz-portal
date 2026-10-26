@@ -191,7 +191,7 @@ it('soft deletes and restores a document, keeping its file, and never deletes it
     Livewire::test(ListDocuments::class)->filterTable('trashed', true)->callAction(TestAction::make('restore')->table($document));
 
     expect($document->fresh()->trashed())->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('forceDelete', $document))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('forceDelete', $document))->toBeFalse();
     $this->get('/governance/kept')->assertOk();
 });
 

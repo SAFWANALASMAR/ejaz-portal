@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرف العام بتتابع رموز التحقق الثنائي الخاطئة على حساب في اليوم (WarnRepeatedTwoFactorFailures).
+ * تنبيه المشرف العام والمسؤول التقني بتتابع رموز التحقق الثنائي الخاطئة على حساب في اليوم (WarnRepeatedTwoFactorFailures).
  * برقم الحساب وحده، بلا بريده ولا رمز ولا عنوان، والتفصيل في السجل الأمني (أقل بيانات شخصية في البريد).
  */
 class TwoFactorFailuresWarning extends Notification implements ShouldQueueAfterCommit

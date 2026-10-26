@@ -2,7 +2,6 @@
 
 namespace App\Actions\Services;
 
-use App\Enums\RoleName;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -43,9 +42,7 @@ class AssignServiceRequest
         return User::query()
             ->where('is_active', true)
             ->whereNull('anonymized_at')
-            ->where(fn ($query) => $query
-                ->permission('requests.update')
-                ->orWhereHas('roles', fn ($roles) => $roles->where('name', RoleName::SuperAdmin->value)))
+            ->permission('requests.update')
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();

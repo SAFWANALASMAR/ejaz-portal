@@ -17,14 +17,14 @@ function navigateHeaders(): array
 it('turns on SPA mode for the admin panel', function () {
     expect(Filament::getPanel('admin')->hasSpaMode())->toBeTrue();
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))
         ->get('/admin/users')
         ->assertOk()
         ->assertSee('href="'.url('/admin/menu-items').'" wire:navigate', false);
 });
 
 it('loads every link outside the panel fully, and keeps panel links in SPA', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get('/admin')->assertOk();
 
     // روابط اللوحة نفسها
     expect(FilamentView::hasSpaMode(url('/admin/users')))->toBeTrue()
@@ -56,7 +56,7 @@ it('loads every link outside the panel fully, and keeps panel links in SPA', fun
 });
 
 it('leaves the panel with a full page load when the idle limit ends a navigation', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     $response = $this->actingAs($admin)
         ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes(31)->getTimestamp()])
@@ -71,7 +71,7 @@ it('leaves the panel with a full page load when the idle limit ends a navigation
 });
 
 it('keeps the plain redirect outside SPA navigation', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))
         ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes(31)->getTimestamp()])
         ->get('/admin/users')
         ->assertRedirect(route('login'));
@@ -80,7 +80,7 @@ it('keeps the plain redirect outside SPA navigation', function () {
 });
 
 it('keeps navigating inside the panel while the administrator is active', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))
         ->withSession([AdminIdleTimeout::SESSION_KEY => now()->subMinutes(5)->getTimestamp()])
         ->get('/admin/users', navigateHeaders())
         ->assertOk()
@@ -91,7 +91,7 @@ it('keeps navigating inside the panel while the administrator is active', functi
 
 it('sends a sensitive role without two-factor to the security page with a full load', function () {
     $user = User::factory()->create();
-    $user->assignRole(RoleName::SuperAdmin->value);
+    $user->assignRole(RoleName::TechnicalAdmin->value);
 
     $this->actingAs($user)
         ->get('/admin/users', navigateHeaders())
@@ -101,7 +101,7 @@ it('sends a sensitive role without two-factor to the security page with a full l
 });
 
 it('shows the refusal of a deactivated administrator with a full load', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $admin->forceFill(['is_active' => false])->save();
 
     // اللوحة ترفضه (PanelAccessTest)، فتُحمَّل صفحة الرفض نفسها تحميلاً كاملاً لا داخل قالب اللوحة
@@ -112,7 +112,7 @@ it('shows the refusal of a deactivated administrator with a full load', function
 });
 
 it('reloads an error page fully instead of placing it inside the panel', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $url = url('/admin/users/999999/edit');
 
     // سجل غير موجود (حذفه زميل مثلاً): الصفحة نفسها بتحميل كامل، فيعرض الخادم خطأها بقالبه
@@ -135,7 +135,7 @@ it('creates a local super admin with two-factor for the panel browser test', fun
 
     $admin = User::query()->where('email', 'demo.admin@ejaz.test')->sole();
 
-    expect($admin->hasRole(RoleName::SuperAdmin->value))->toBeTrue()
+    expect($admin->hasRole(RoleName::TechnicalAdmin->value))->toBeTrue()
         ->and($admin->hasEnabledTwoFactorAuthentication())->toBeTrue();
 
     // نموذج بحقل توقيع واحد، ولا يتكرر بإعادة التشغيل

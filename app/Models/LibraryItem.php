@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -80,16 +81,29 @@ class LibraryItem extends Model implements HasPublicImages
     }
 
     /**
-     * للقسم مصدره: رابط المقطع للمرئية، والملف لما سواها. ولا يُنشر عنصر بلا مصدر.
+     * للقسم مصدره: رابط المقطع للمرئية والصوتية، والملف للكتب والأبحاث، والصوتية القديمة بملفها. ولا يُنشر عنصر بلا مصدر.
      */
     public function hasSource(): bool
     {
-        return $this->section->takesVideoUrl() ? filled($this->video_url) : filled($this->file);
+        if ($this->section->takesVideoUrl()) {
+            return filled($this->video_url) || ($this->section->keepsLegacyFile() && filled($this->file));
+        }
+
+        return filled($this->file);
     }
 
     public function youtubeId(): ?string
     {
         return VideoUrl::youtubeId($this->video_url);
+    }
+
+    /**
+     * الصورة المصغرة من القرص العام: المرفوعة، أو صورة مقطع يوتيوب التي جلبها الخادم (FetchYoutubeThumbnail)، فلا يتصل
+     * متصفح الزائر بجوجل قبل ضغطه (قرار 7 أكتوبر 2026). وإلا لا شيء.
+     */
+    public function thumbnailUrl(): ?string
+    {
+        return filled($this->thumbnail) ? Storage::disk('public')->url($this->thumbnail) : null;
     }
 
     public function fileExtension(): string

@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AnnouncementKind;
+use App\Models\Announcement;
 use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Survey;
 use App\Support\ContentCache;
+use App\Support\HomeContent;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\HtmlString;
 
@@ -33,6 +37,23 @@ class MediaController extends Controller
         $html = str_replace(self::SURVEY_SLOT, $tile, $html);
 
         return view('content.page', ['title' => __('media.title'), 'summary' => null, 'html' => new HtmlString($html)]);
+    }
+
+    /**
+     * الإعلانات المنشورة في مدة عرضها (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). مخزنة مؤقتاً كالرئيسية، فما انتهت مدته
+     * يختفي خلال ساعة على الأكثر.
+     */
+    public function announcements(Request $request): View
+    {
+        // التصفية بالنوع من القائمة المسموحة وحدها، وما سواها «الكل»
+        $kind = AnnouncementKind::tryFrom((string) $request->query('kind'));
+
+        $html = ContentCache::remember('media.announcements.'.($kind->value ?? 'all'), fn (): string => view('media.announcements.index', [
+            'announcements' => Announcement::query()->current()->when($kind, fn ($query) => $query->where('kind', $kind))->get(),
+            'kind' => $kind,
+        ])->render());
+
+        return view('content.page', ['title' => HomeContent::text('announcements', 'title'), 'summary' => null, 'html' => new HtmlString($html)]);
     }
 
     public function partners(): View

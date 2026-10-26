@@ -6,6 +6,7 @@ use App\Enums\LibrarySection;
 use App\Enums\PartnerKind;
 use App\Enums\SiteIcon;
 use App\Filament\Pages\SiteSettings;
+use App\Models\Announcement;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
@@ -13,6 +14,7 @@ use App\Models\Partner;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
 use App\Rules\VideoUrl;
+use App\Support\HomeContent;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Route;
@@ -46,13 +48,30 @@ class BuildHomePage
     public const VIDEOS = 3;
 
     /**
+     * عناوين الأخبار في الشريط المتحرك.
+     */
+    public const TICKER_NEWS = 10;
+
+    /**
+     * الإعلانات في شريطها، والبقية في صفحة الإعلانات.
+     */
+    public const ANNOUNCEMENTS = 12;
+
+    /**
+     * الرئيسية بترتيب المدير التنفيذي (ملاحظاته عبر صفوان، 25 أكتوبر 2026): كلمة خادم الحرمين الشريفين، ثم كلمة رئيس مجلس
+     * الإدارة، ثم المبررات، ثم القيم الأربع (content — HomeContent)، ثم شريط الأخبار، ثم شريط الإعلانات، ثم قنوات التواصل.
+     * والمقاطع السابقة (البطل والإحصائيات والاختصارات والمقطع والمبادرات والمرئيات والشركاء) باقية تُظهر من الإعدادات،
+     * ومخفية ما لم تُظهر صراحة.
+     *
      * @return array{
-     *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
+     *     content: array<string, mixed>,
+     *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null}|null,
      *     video: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
      *     shortcuts: list<array{key: string, icon: string, url: string, external: bool}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
+     *     announcements: Collection<int, Announcement>,
      *     videos: Collection<int, LibraryItem>,
      *     accounts: list<array{network: string, url: string}>,
      *     partners: Collection<int, Partner>,
@@ -64,20 +83,22 @@ class BuildHomePage
         $home = Setting::group('home');
 
         return [
-            'hero' => self::hero($home),
+            'content' => HomeContent::resolved(),
+            'hero' => self::shows($home, 'hero', false) ? self::hero($home) : null,
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
-            'video' => VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null),
-            'stats' => self::shows($home, 'stats') ? self::stats($home) : [],
-            'shortcuts' => self::shows($home, 'shortcuts') ? self::shortcuts() : [],
+            'video' => self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
+            'stats' => self::shows($home, 'stats', false) ? self::stats($home) : [],
+            'shortcuts' => self::shows($home, 'shortcuts', false) ? self::shortcuts() : [],
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
-            'initiatives' => self::shows($home, 'initiatives') ? Initiative::query()->published()->limit(3)->get() : new Collection,
-            // مفتاح «أحدث البرامج والأخبار»: الأخبار الآن، والبرامج مع وحدتها في المرحلة 3
-            'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(3)->get() : new Collection,
-            'videos' => self::shows($home, 'videos') ? self::videos() : new Collection,
+            'initiatives' => self::shows($home, 'initiatives', false) ? Initiative::query()->published()->limit(3)->get() : new Collection,
+            // مفتاح «آخر الأخبار»: عناوين أحدث المنشور في الشريط المتحرك
+            'news' => self::shows($home, 'latest') ? NewsArticle::query()->published()->newestFirst()->limit(self::TICKER_NEWS)->get() : new Collection,
+            'announcements' => self::shows($home, 'announcements') ? Announcement::query()->current()->limit(self::ANNOUNCEMENTS)->get() : new Collection,
+            'videos' => self::shows($home, 'videos', false) ? self::videos() : new Collection,
             'accounts' => self::shows($home, 'accounts') ? self::accounts() : [],
             // اثنا عشر شريكاً واثنا عشر راعياً كلٌّ باستعلامه، فلا يحجب أحدهما الآخر، والبقية في صفحة الشركاء
-            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
-            'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
+            'partners' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
+            'sponsors' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
     }
 
@@ -123,13 +144,13 @@ class BuildHomePage
     }
 
     /**
-     * المقطع ظاهر ما لم يُعطَّل صراحة من الإعدادات.
+     * المقطع كما ضُبط في الإعدادات، وإلا افتراضه: مقاطع المدير التنفيذي ظاهرة، والسابقة مخفية.
      *
      * @param  array<string, mixed>  $home
      */
-    private static function shows(array $home, string $section): bool
+    private static function shows(array $home, string $section, bool $default = true): bool
     {
-        return (bool) ($home['show_'.$section] ?? true);
+        return (bool) ($home['show_'.$section] ?? $default);
     }
 
     /**

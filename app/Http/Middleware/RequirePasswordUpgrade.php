@@ -26,10 +26,15 @@ class RequirePasswordUpgrade
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->password_upgrade_required_at === null || $request->routeIs(...self::ALLOWED)) {
+        $user = $request->user();
+
+        // وكلمة مرور عيّنتها الإدارة من اللوحة (ResetPasswordByAdmin) تُغيَّر بالطريقة نفسها
+        if (($user?->password_upgrade_required_at === null && $user?->password_set_by_admin_at === null) || $request->routeIs(...self::ALLOWED)) {
             return $next($request);
         }
 
-        return redirect()->to(route('account.profile').'#password')->with('status', __('account.password_rules.upgrade_required'));
+        $message = $user->password_set_by_admin_at !== null ? 'account.password_rules.set_by_admin' : 'account.password_rules.upgrade_required';
+
+        return redirect()->to(route('account.profile').'#password')->with('status', __($message));
     }
 }

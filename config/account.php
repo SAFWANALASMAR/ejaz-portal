@@ -50,6 +50,8 @@ return [
             'icon' => 'user-group',
             'active' => ['assembly.*'],
             'can' => 'accessAssemblyArea',
+            // مؤجلة بقرار المدير التنفيذي (AccountSettings::showsDeferredPortals)
+            'deferred' => true,
         ],
         [
             'route' => 'account.competitions',
@@ -78,13 +80,6 @@ return [
         ],
     ],
 
-    // ترتيب بطاقات الرئيسية (الصورة 04)، ويختلف عن ترتيب القائمة الجانبية أعلاه. وما لم يُذكر هنا
-    // يأتي بعدها بترتيب القائمة (ومنه «مسابقاتي»)
-    'cards' => [
-        'account.programs.index',
-        'account.profile',
-        'assembly.index',
-        'account.requests.index',
-    ],
+    // بطاقات رئيسية لوحة المستفيد وترتيبها تُدار من اللوحة (App\Models\AccountCard — ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
 
 ];

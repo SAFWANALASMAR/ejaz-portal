@@ -126,7 +126,7 @@ it('does not count crawlers, monitors and previewers that name themselves', func
 ]);
 
 it('does not count the admin panel, its print view of a filled form, or Horizon', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     $this->get('/admin', asBrowser())->assertOk();
     $this->get('/horizon', asBrowser())->assertOk();

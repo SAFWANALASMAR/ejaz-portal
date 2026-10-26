@@ -54,7 +54,7 @@ it('hides drafts from staff, even the super admin', function () {
     Livewire::test(ListServiceRequests::class)->assertCanSeeTableRecords([$sent])->assertCanNotSeeTableRecords([$draft]);
     $this->get(ServiceRequestResource::getUrl('view', ['record' => $draft]))->assertNotFound();
 
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     expect($admin->can('view', $draft))->toBeFalse()
         ->and($admin->can('update', $draft))->toBeFalse()
         ->and($admin->can('view', $sent))->toBeTrue();
@@ -149,7 +149,7 @@ it('grants assembly membership on acceptance by the super admin only, and logs t
         ->toThrow(AuthorizationException::class);
     expect($request->user->fresh()->hasRole(RoleName::AssemblyMember->value))->toBeFalse();
 
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(ChangeServiceRequestStatus::class)->handle($admin, $request, ServiceRequestStatus::Accepted);
 
     expect($request->fresh()->status)->toBe(ServiceRequestStatus::Accepted)
@@ -202,7 +202,7 @@ it('exports submitted requests to Excel on the private disk for the requester on
 });
 
 it('hides the export from staff without the export permission', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Livewire::test(ListServiceRequests::class)->assertActionVisible('export');
 
     expect(userWithRole(RoleName::ContentEditor)->can('export', ServiceRequest::class))->toBeFalse();
@@ -255,7 +255,7 @@ it('refuses granting membership to an inactive or anonymized applicant', functio
     $request = ServiceRequest::factory()->for($opening)->status(ServiceRequestStatus::UnderReview)->create();
     $request->user->forceFill(['is_active' => false])->save();
 
-    expect(fn () => app(ChangeServiceRequestStatus::class)->handle(userWithRole(RoleName::SuperAdmin), $request, ServiceRequestStatus::Accepted))
+    expect(fn () => app(ChangeServiceRequestStatus::class)->handle(userWithRole(RoleName::TechnicalAdmin), $request, ServiceRequestStatus::Accepted))
         ->toThrow(ValidationException::class);
     expect($request->user->fresh()->hasRole(RoleName::AssemblyMember->value))->toBeFalse();
 });

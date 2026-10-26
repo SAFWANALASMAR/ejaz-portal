@@ -38,7 +38,7 @@
 ### الأسبوع الأول (قبل الإطلاق بأسبوع)
 
 1. **اليوم ١:** إنشاء الخادم والحاويتين، وتثبيت Docker، واستنساخ المستودع، و`.env` من `.env.production.example` بـ `APP_ENV=staging` و`APP_URL=https://staging.ejaz.sa` و`SITE_HOST=staging.ejaz.sa` (نطاق nginx) و`SEO_INDEXABLE=false` و`SESSION_SECURE_COOKIE=true` و`SMS_DRIVER=log` وبريد وهمي. وبـ `APP_ENV=staging` تصدر شهادة الحضور بالقالب المؤقت للتجربة، أما `production` (يوم اختبار التحمل على خادم الإنتاج) فلا تصدر حتى `PROGRAM_CERTIFICATE_TEMPLATE_READY=true` (`decisions.md` — 19 أكتوبر 2026).
-2. **اليوم ١:** أول نشر بـ `scripts/deploy-compose.sh <وسم>`، ثم المشرف بـ `ejaz:create-admin`، ثم بذور المحتوى والتحويلات (`deploy.md`).
+2. **اليوم ١:** أول نشر بـ `scripts/deploy-compose.sh <وسم>`، ثم المسؤول التقني بـ `ejaz:create-admin`، ثم بذور المحتوى والتحويلات (`deploy.md`).
 3. **اليوم ٢:** التخزين: رفع وثيقة PDF وملف صوت من اللوحة، وتنزيلهما من الموقع. ورفع مقطع مسابقة مباشرة من المتصفح (`COMPETITION_VIDEO_UPLOAD=s3`) حتى «جاهز». وإن رفض المزود الأجزاء: `AWS_REQUEST_CHECKSUM_CALCULATION=when_required` وإعادة التجربة.
 4. **اليوم ٢:** النسخ: `ejaz-backup.service` يدوياً، ثم تجربة الاستعادة كاملة (`scripts/restore.md`) وتسجيل زمنها. بزوج مفاتيح GPG للتجريبي وحده، لا بمفتاح الجمعية.
 5. **اليوم ٣:** المراقبة: `ejaz:health` من المؤقت، وإيقاف المجدول عمداً حتى يفشل الفحص، ثم إعادته. وفحص خارجي لـ `/up`.

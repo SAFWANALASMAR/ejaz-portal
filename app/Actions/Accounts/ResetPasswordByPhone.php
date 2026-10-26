@@ -67,7 +67,7 @@ class ResetPasswordByPhone
         // يفرق ردها ولا توقيتها بين رقم مسجل وغيره. وكلمة المرور المرفوضة لا تستهلك الرمز ولا تعدّ محاولة
         $this->verify->consume($user, (string) $input['code'], SendPhoneVerificationCode::RESET, $messages,
             function () use ($input, $user): void {
-                Validator::make($input, ['password' => PasswordPolicy::rules($user->name, $user->email, $user->phone)])->validate();
+                Validator::make($input, ['password' => PasswordPolicy::rules($user->name, $user->email, $user->phone, username: $user->username)])->validate();
             });
 
         $this->reset->reset($user, [

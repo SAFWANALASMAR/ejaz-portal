@@ -2,7 +2,7 @@
     <form method="POST" action="{{ route('login.store') }}" class="space-y-4" novalidate>
         @csrf
 
-        <x-field name="login" :label="__('account.login.identifier')" :placeholder="__('account.login.identifier')" icon="envelope" hide-label
+        <x-field name="login" :label="__('account.login.identifier')" :placeholder="__('account.login.identifier')" icon="user" hide-label
             autocomplete="username" dir="auto" required autofocus />
 
         <x-field name="password" type="password" :label="__('account.login.password')" :placeholder="__('account.login.password')" icon="lock-closed" hide-label

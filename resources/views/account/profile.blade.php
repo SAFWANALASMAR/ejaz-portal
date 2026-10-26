@@ -10,10 +10,15 @@
             @csrf
             @method('PUT')
 
-            <x-field name="name" :label="__('account.register.name')" :value="$user->name" bag="updateProfileInformation" autocomplete="name" required class="md:col-span-2" />
-            <x-field name="email" type="email" :label="__('account.register.email')" :value="$user->email" bag="updateProfileInformation" autocomplete="email" dir="ltr" required />
-            <x-field name="phone" type="tel" :label="__('account.register.phone')" :value="\App\Support\SaudiPhone::display($user->phone)" bag="updateProfileInformation"
-                autocomplete="tel" inputmode="tel" dir="ltr" required />
+            <x-field name="name" :label="__('account.register.name')" :value="$user->name" bag="updateProfileInformation" autocomplete="name" required />
+            @if ($user->username !== null)
+                <x-field name="username_display" :label="__('account.profile.username')" :value="$user->username" :hint="__('account.profile.username_hint')"
+                    dir="ltr" readonly disabled />
+            @endif
+            {{-- البريد والجوال اختياريان (ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
+            <x-field name="email" type="email" :label="__('account.register.email')" :value="$user->email" :hint="__('account.register.email_hint')" bag="updateProfileInformation" autocomplete="email" dir="ltr" />
+            <x-field name="phone" type="tel" :label="__('account.register.phone')" :value="\App\Support\SaudiPhone::display($user->phone)" :hint="__('account.register.phone_hint')" bag="updateProfileInformation"
+                autocomplete="tel" inputmode="tel" dir="ltr" />
             <x-field name="current_password" id="profile-current-password" type="password" :label="__('account.profile.confirm_password')" :hint="__('account.profile.confirm_password_hint')"
                 bag="updateProfileInformation" autocomplete="current-password" dir="ltr" class="md:col-span-2" />
 
@@ -21,6 +26,21 @@
                 <x-button>{{ __('site.save') }}</x-button>
             </div>
         </form>
+
+        {{-- التوثيق باختيار صاحب الحساب ولو كان مطفأً شرطاً: به يستعيد كلمة المرور بنفسه --}}
+        @if (($user->email !== null && ! $user->hasVerifiedEmail()) || ($user->phone !== null && ! $user->hasVerifiedPhone()))
+            <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-5 text-sm">
+                @if ($user->email !== null && ! $user->hasVerifiedEmail())
+                    <form method="POST" action="{{ route('verification.send') }}">
+                        @csrf
+                        <x-button variant="outline" size="sm">{{ __('account.profile.verify_email') }}</x-button>
+                    </form>
+                @endif
+                @if ($user->phone !== null && ! $user->hasVerifiedPhone())
+                    <x-button variant="outline" size="sm" :href="route('account.phone.verify')">{{ __('account.profile.verify_phone') }}</x-button>
+                @endif
+            </div>
+        @endif
     </x-card>
 
     <x-card>

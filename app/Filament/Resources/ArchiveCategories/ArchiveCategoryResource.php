@@ -46,7 +46,7 @@ class ArchiveCategoryResource extends Resource
             CheckboxList::make('roles')
                 ->label(__('documents.fields.roles'))
                 ->helperText(__('documents.fields.roles_hint'))
-                ->options(collect(RoleName::panelRoles())->reject(fn (RoleName $role): bool => $role === RoleName::SuperAdmin)->mapWithKeys(fn (RoleName $role): array => [$role->value => $role->getLabel()])->all())
+                ->options(collect(RoleName::panelRoles())->reject(fn (RoleName $role): bool => in_array($role, RoleName::overseers(), true))->mapWithKeys(fn (RoleName $role): array => [$role->value => $role->getLabel()])->all())
                 ->columns(2)
                 ->columnSpanFull(),
         ]);

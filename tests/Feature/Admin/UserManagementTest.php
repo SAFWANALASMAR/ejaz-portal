@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
-beforeEach(fn () => $this->admin = userWithRole(RoleName::SuperAdmin));
+beforeEach(fn () => $this->admin = userWithRole(RoleName::TechnicalAdmin));
 
 it('keeps the users screen for those allowed to see personal data', function () {
     $this->actingAs($this->admin)->get(UserResource::getUrl('index'))->assertOk();
@@ -201,7 +201,7 @@ it('lets only the super admin change roles, and logs the change', function () {
         ->and($log->properties['new'])->toBe([RoleName::Secretary->value]);
 
     $editor = userWithRole(RoleName::ContentEditor);
-    expect(fn () => app(ChangeUserRoles::class)->handle($editor, $member, [RoleName::SuperAdmin->value]))
+    expect(fn () => app(ChangeUserRoles::class)->handle($editor, $member, [RoleName::TechnicalAdmin->value]))
         ->toThrow(AuthorizationException::class);
 });
 
@@ -254,6 +254,7 @@ it('keeps the verification when the phone and email do not change', function () 
 });
 
 it('sends the email verification only when the email changes', function () {
+    enableVerification();
     Notification::fake();
     $member = User::factory()->unverified()->create(['email' => 'member@example.test']);
 
@@ -272,12 +273,12 @@ it('keeps role assignment for the super admin even if the permission file is cha
     $member = User::factory()->create();
     $member->assignRole(RoleName::Member->value);
 
-    expect(fn () => app(ChangeUserRoles::class)->handle($secretary, $secretary, [RoleName::SuperAdmin->value]))
+    expect(fn () => app(ChangeUserRoles::class)->handle($secretary, $secretary, [RoleName::TechnicalAdmin->value]))
         ->toThrow(AuthorizationException::class)
         ->and(fn () => app(ChangeUserRoles::class)->handle($secretary, $member, [RoleName::ContentEditor->value]))
         ->toThrow(AuthorizationException::class);
 
-    expect($secretary->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeFalse();
+    expect($secretary->fresh()->hasRole(RoleName::TechnicalAdmin->value))->toBeFalse();
 });
 
 it('lets only the super admin edit accounts that hold an administrative role', function () {
@@ -308,15 +309,15 @@ it('does not let the super admin remove their own role', function () {
     expect(fn () => app(ChangeUserRoles::class)->handle($this->admin, $this->admin, [RoleName::Member->value]))
         ->toThrow(AuthorizationException::class);
 
-    expect($this->admin->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeTrue();
+    expect($this->admin->fresh()->hasRole(RoleName::TechnicalAdmin->value))->toBeTrue();
 });
 
 it('emails every super admin when the super admin role is granted or revoked', function () {
     Notification::fake();
-    $other = userWithRole(RoleName::SuperAdmin);
+    $other = userWithRole(RoleName::TechnicalAdmin);
     $member = User::factory()->create();
 
-    app(ChangeUserRoles::class)->handle($this->admin, $member, [RoleName::SuperAdmin->value]);
+    app(ChangeUserRoles::class)->handle($this->admin, $member, [RoleName::TechnicalAdmin->value]);
     app(ChangeUserRoles::class)->handle($this->admin, $member, [RoleName::Member->value]);
 
     Notification::assertSentTo($other, SuperAdminRoleChanged::class, fn ($mail) => $mail->granted);
@@ -327,14 +328,14 @@ it('emails every super admin when the super admin role is granted or revoked', f
 
 it('tells a super admin when another removes their role, and names both in the mail', function () {
     Notification::fake();
-    $victim = userWithRole(RoleName::SuperAdmin, ['email' => 'victim@example.test']);
+    $victim = userWithRole(RoleName::TechnicalAdmin, ['email' => 'victim@example.test']);
 
     app(ChangeUserRoles::class)->handle($this->admin, $victim, [RoleName::Member->value]);
 
     Notification::assertSentTo($victim, SuperAdminRoleChanged::class, function (SuperAdminRoleChanged $alert) use ($victim) {
         $mail = $alert->toMail($victim);
 
-        expect($mail->subject)->toBe(__('users.super_admin_mail.revoked_subject'))
+        expect($mail->subject)->toBe(__('users.super_admin_mail.revoked_subject', ['role' => RoleName::TechnicalAdmin->getLabel()]))
             ->and((string) $mail->render())->toContain('victim@example.test')->toContain($this->admin->email);
 
         return true;
@@ -380,7 +381,7 @@ it('explains in the form why the super admin cannot remove their own role', func
         ->call('save');
 
     expect($component->errors()->first('data.roles'))->toBe(__('users.cannot_demote_self'))
-        ->and($this->admin->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeTrue();
+        ->and($this->admin->fresh()->hasRole(RoleName::TechnicalAdmin->value))->toBeTrue();
 });
 
 it('does not let anyone deactivate their own account', function () {

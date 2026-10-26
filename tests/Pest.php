@@ -8,15 +8,18 @@ use App\Models\AssistantSettings;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\Meeting;
+use App\Models\Setting;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Services\Assistant\FakeAiAssistant;
+use App\Support\AccountSettings;
 use App\Support\ContentCache;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -50,6 +53,43 @@ function userWithRole(RoleName $role, array $attributes = []): User
     $user->assignRole($role->value);
 
     return $user;
+}
+
+/**
+ * توثيق البريد والجوال شرطاً كما كان قبل تأجيله (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، لاختبارات
+ * مساراته. والبوابات المؤجلة تبقى كما هي ما لم تُمرَّر.
+ */
+function enableVerification(bool $showDeferredPortals = false): void
+{
+    Setting::put(AccountSettings::KEY, ['verification' => true, 'show_deferred_portals' => $showDeferredPortals]);
+}
+
+/**
+ * بوابتا المجلس والموظفين والجمعية العمومية في حساب المستخدم ظاهرة، لاختبارات ما فيها.
+ */
+function showDeferredPortals(): void
+{
+    Setting::put(AccountSettings::KEY, ['verification' => AccountSettings::verificationEnabled(), 'show_deferred_portals' => true]);
+}
+
+/**
+ * مقاطع الرئيسية السابقة (البطل والإحصائيات والاختصارات والمقطع والمبادرات والمرئيات والشركاء) ظاهرة، لاختباراتها. مخفية
+ * افتراضياً منذ ملاحظات المدير التنفيذي (25 أكتوبر 2026).
+ *
+ * @param  array<string, mixed>  $home
+ */
+function showLegacyHomeSections(array $home = []): void
+{
+    Setting::put('home', ['show_hero' => true, 'show_video' => true, 'show_stats' => true, 'show_shortcuts' => true,
+        'show_initiatives' => true, 'show_videos' => true, 'show_partners' => true, ...Setting::group('home'), ...$home]);
+}
+
+/**
+ * اسم مستخدم فريد صالح للتسجيل (Username::PATTERN).
+ */
+function uniqueUsername(): string
+{
+    return 'u'.strtolower(Str::random(12));
 }
 
 /**

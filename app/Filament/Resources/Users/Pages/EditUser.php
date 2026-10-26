@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\SaudiPhone;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class EditUser extends EditRecord
 {
@@ -33,12 +34,18 @@ class EditUser extends EditRecord
         /** @var User $actor */
         $actor = auth()->user();
         /** @var User $record */
-        app(UpdateUserAccount::class)->handle($actor, $record, [
-            'name' => (string) $data['name'],
-            'email' => (string) $data['email'],
-            'phone' => filled($data['phone'] ?? null) ? SaudiPhone::normalize((string) $data['phone']) : null,
-            'is_active' => (bool) ($data['is_active'] ?? $record->is_active),
-        ], array_key_exists('roles', $data) ? array_values((array) $data['roles']) : null);
+        try {
+            app(UpdateUserAccount::class)->handle($actor, $record, [
+                'name' => (string) $data['name'],
+                'email' => filled($data['email'] ?? null) ? (string) $data['email'] : null,
+                'phone' => filled($data['phone'] ?? null) ? SaudiPhone::normalize((string) $data['phone']) : null,
+                'is_active' => (bool) ($data['is_active'] ?? $record->is_active),
+            ], array_key_exists('roles', $data) ? array_values((array) $data['roles']) : null);
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages(
+                collect($exception->errors())->mapWithKeys(fn (array $messages, string $key) => ['data.'.$key => $messages])->all(),
+            );
+        }
 
         return $record->refresh();
     }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Actions\Users\AnonymizeUser;
+use App\Actions\Users\ResetPasswordByAdmin;
 use App\Actions\Users\SendStaffInvitation;
 use App\Enums\RoleName;
 use App\Models\User;
@@ -33,9 +34,12 @@ class UsersTable
         return preg_match('/^[\s+\-()]*\d[\d\s+\-()]*$/', Digits::latin((string) $search)) === 1;
     }
 
-    private static function superAdmin(): bool
+    /**
+     * المشرف العام والمسؤول التقني: يطّلعان على كل الحسابات (RoleName::overseers).
+     */
+    private static function overseer(): bool
     {
-        return auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false;
+        return auth()->user() instanceof User && RoleName::isOverseer(auth()->user());
     }
 
     public static function configure(Table $table): Table
@@ -47,6 +51,11 @@ class UsersTable
                 TextColumn::make('name')
                     ->label(__('users.fields.name'))
                     ->searchable(),
+                TextColumn::make('username')
+                    ->label(__('users.fields.username'))
+                    ->searchable()
+                    ->placeholder('—')
+                    ->extraAttributes(['dir' => 'ltr']),
                 TextColumn::make('email')
                     ->label(__('users.fields.email'))
                     ->searchable()
@@ -69,13 +78,13 @@ class UsersTable
                 IconColumn::make('is_active')
                     ->label(__('users.fields.is_active'))
                     ->boolean(),
-                // يكشف أي الحسابات الإدارية بلا تحقق ثنائي: للمشرف العام وحده، ولو مُنحت users.view لغيره
+                // يكشف أي الحسابات الإدارية بلا تحقق ثنائي: للمشرف العام والمسؤول التقني، ولو مُنحت users.view لغيرهما
                 // (المدير التنفيذي في حسابات الموظفين)
                 IconColumn::make('two_factor')
                     ->label(__('users.fields.two_factor'))
                     ->state(fn (User $record): bool => $record->two_factor_confirmed_at !== null)
                     ->boolean()
-                    ->visible(fn (): bool => self::superAdmin())
+                    ->visible(fn (): bool => self::overseer())
                     ->toggleable(),
                 TextColumn::make('last_login_at')
                     ->label(__('users.fields.last_login_at'))
@@ -86,8 +95,8 @@ class UsersTable
                     ->dateTime('Y-m-d')
                     ->badge()
                     ->color('danger')
-                    // طلبات الحذف يعالجها المشرف العام وحده
-                    ->visible(fn (): bool => self::superAdmin())
+                    // طلبات الحذف يطّلع عليها المشرف العام ويعالجها المسؤول التقني
+                    ->visible(fn (): bool => self::overseer())
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('users.fields.created_at'))
@@ -104,11 +113,28 @@ class UsersTable
                     ->label(__('users.fields.is_active')),
                 Filter::make('deletion_requested')
                     ->label(__('users.filters.deletion_requested'))
-                    ->visible(fn (): bool => self::superAdmin())
+                    ->visible(fn (): bool => self::overseer())
                     ->query(fn (Builder $query) => $query->whereNotNull('deletion_requested_at')->whereNull('anonymized_at')),
             ])
             ->recordActions([
                 EditAction::make(),
+                // لمن لا بريد موثقاً له ولا جوالاً (ملاحظات المدير التنفيذي، 25 أكتوبر 2026): كلمة مؤقتة تُعرض مرة واحدة
+                Action::make('resetPassword')
+                    ->label(__('users.reset_password.action'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->requiresConfirmation()
+                    ->modalHeading(__('users.reset_password.heading'))
+                    ->modalDescription(__('users.reset_password.description'))
+                    ->visible(fn (User $record) => auth()->user()?->can('resetPassword', $record) ?? false)
+                    ->action(function (User $record, ResetPasswordByAdmin $reset): void {
+                        /** @var User $actor */
+                        $actor = auth()->user();
+
+                        Notification::make()->success()->persistent()
+                            ->title(__('users.reset_password.done'))
+                            ->body(__('users.reset_password.password', ['password' => $reset->handle($actor, $record)]))
+                            ->send();
+                    }),
                 Action::make('resendInvitation')
                     ->label(__('users.invitation.resend'))
                     ->icon(Heroicon::OutlinedEnvelope)

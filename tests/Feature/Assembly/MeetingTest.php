@@ -287,6 +287,6 @@ it('keeps a board member to reading meetings, and keeps a held meeting from bein
         ->and($board->can('create', Meeting::class))->toBeFalse()
         ->and($board->can('update', $held))->toBeFalse()
         ->and($this->secretary->can('delete', $held))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $held))->toBeFalse()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $held))->toBeFalse()
         ->and($this->secretary->can('delete', Meeting::factory()->create()))->toBeTrue();
 });
