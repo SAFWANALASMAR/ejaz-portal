@@ -110,7 +110,7 @@
 - **القاعدة في `security.md` «تحديث PHP وnginx»:** متابعة php.net/archive، ورقع PHP وnginx وPostgreSQL وRedis الأمنية خلال 48 ساعة، ومراجعة شهرية لفروعها المدعومة.
 - **صورة الإنتاج لم تكن تُبنى، والموقع لم يكن يقلع بقالب الإنتاج (حرج، كشفه فحص `--target app` الجديد):**
   - حارس `PAYMENT_DRIVER=fake` في الإقلاع (من 8 أكتوبر) كان يرفض الإنتاج أياً كان. فكان يُسقط `package:discover` أثناء البناء (بلا `.env` فالبيئة إنتاج)، ويُسقط كل طلب بقالب `.env.production.example` (`PAYMENTS_ENABLED=false` و`PAYMENT_DRIVER=fake`).
-  - صار يرفض `fake` في الإنتاج متى فُعّل الدفع وحده (`AppServiceProvider::guardPaymentDriver`، و`PaymentDriverGuardTest`). والدفع المؤرشف مساراته 404، وصفحة الدفع الوهمية للمحلي والاختبار وحدهما.
+  - صار **قائمة سماح** تُفحص متى فُعّل الدفع وحده (`AppServiceProvider::guardPaymentDriver`، و`PaymentDriverGuardTest`): في الإنتاج لا يقلع إلا بـ `PAYMENT_DRIVER=moyasar`، وبـ `MOYASAR_SECRET_KEY` و`PAYMENT_WEBHOOK_SECRET` غير فارغين (مراجعة المشرف على `2ca47cdd`). والدفع المؤرشف لا يُفحص: مساراته 404، وصفحة الدفع الوهمية للمحلي والاختبار وحدهما.
   - ومهمة «صور الخادم» تبني صورة الإنتاج كاملة (`--target app`) وتفحص PHP فيها، فلا يعود هذا دون أن يظهر.
 
 ### ملاحظات الترقية من 0.13.0
