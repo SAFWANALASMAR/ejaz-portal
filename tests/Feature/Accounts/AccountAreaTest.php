@@ -199,6 +199,27 @@ it('shows the QR code of a pending setup, named by the account identifier', func
     'email' => [['username' => null, 'email' => 'nora@example.test'], 'nora@example.test'],
 ]);
 
+// من #71 (65860c5c)، والحساب مقروء من القاعدة كما في الدخول الفعلي
+it('shows the QR code to an administrator setting up two-factor on first sign-in', function () {
+    // حساب إدارة بلا مفتاح بعد: يبدأ الربط من صفحة الأمان ويرى رمز QR باسم حسابه
+    $admin = userWithRole(RoleName::Secretary, ['email' => 'secretary@example.test']);
+    $admin->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+    $admin = User::query()->findOrFail($admin->getKey());
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post('/user/two-factor-authentication')
+        ->assertRedirect();
+
+    $this->actingAs(User::query()->findOrFail($admin->getKey()))
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get('/account/security')
+        ->assertOk()
+        ->assertSee('<svg', false);
+
+    expect(urldecode($admin->fresh()->twoFactorQrCodeUrl()))->toContain('secretary@example.test');
+});
+
 it('exports the user data after password confirmation without secrets', function () {
     $this->actingAs($this->user)->get('/account/data/export')->assertRedirect(route('password.confirm'));
 
