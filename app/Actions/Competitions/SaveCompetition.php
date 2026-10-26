@@ -114,6 +114,7 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
+        $rankingBefore = [$competition->ranking_scope, $this->openCategoryIds($competition)];
 
         // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
         $background = $data['certificate_background'] ?? null;
@@ -194,8 +195,9 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
-        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)
-        if ($competition->student_mode) {
+        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)،
+        // فيُمسح إن تغيّر أحدهما وحده: تعديل نص الصفحة أو الجوائز أثناء النافذة لا يفرّغ البنوك على الطلاب كلهم (ن١)
+        if ($competition->student_mode && $rankingBefore !== [$competition->ranking_scope, $this->openCategoryIds($competition)]) {
             $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
         }
         SchoolNetworkLimits::forget();
@@ -206,6 +208,18 @@ class SaveCompetition
         }
 
         return $competition->refresh();
+    }
+
+    /**
+     * معرّفات الفئات المفتوحة مرتبة للمقارنة قبل الحفظ وبعده.
+     *
+     * @return list<int>
+     */
+    private function openCategoryIds(Competition $competition): array
+    {
+        return $competition->exists
+            ? $competition->openCategories()->allRelatedIds()->map(fn (mixed $id): int => (int) $id)->sort()->values()->all()
+            : [];
     }
 
     /**

@@ -12,15 +12,19 @@ const format = (seconds) => {
 };
 
 // الوقت الباقي من الخادم (لا من ساعة الجهاز) يُعدّ تنازلياً، ويُعلَن في الدقائق الخمس الأخيرة. وعند انتهائه يُرسل
-// نموذج الصفحة بالتسليم الآلي، فتُحفظ إجابات الوحدة الحالية ثم تُسلَّم المحاولة
+// نموذج الصفحة بالتسليم الآلي، فتُحفظ إجابات الوحدة الحالية ثم تُسلَّم المحاولة. والإرسال بعد تأخير عشوائي حتى
+// data-exam-auto-spread ثانية، داخل هامش الشبكة: من بدؤوا في آخر النافذة يشتركون في موعد واحد، فلا يصل
+// تسليمهم كله في الثانية نفسها (مراجعة 26 أكتوبر، ن٢)
 function timer(element, signal) {
     const total = Number(element.dataset.examTimer);
+    const spread = Number(element.dataset.examAutoSpread || 0);
     const output = element.querySelector('[data-exam-timer-value]');
     const alert = element.querySelector('[data-exam-timer-alert]');
     const form = document.querySelector('form[data-exam-autosubmit]');
     const started = performance.now();
     let warned = false;
     let sent = false;
+    let delay;
 
     const tick = () => {
         const left = Math.max(0, Math.round(total - (performance.now() - started) / 1000));
@@ -40,21 +44,26 @@ function timer(element, signal) {
 
         if (left === 0 && !sent && form) {
             sent = true;
-            const go = form.querySelector('[data-exam-auto-go]');
+            delay = window.setTimeout(() => {
+                const go = form.querySelector('[data-exam-auto-go]');
 
-            if (go) {
-                go.disabled = false;
-                go.value = 'submit';
-            }
+                if (go) {
+                    go.disabled = false;
+                    go.value = 'submit';
+                }
 
-            form.querySelector('input[name="auto"]')?.setAttribute('value', '1');
-            form.submit();
+                form.querySelector('input[name="auto"]')?.setAttribute('value', '1');
+                form.submit();
+            }, Math.random() * spread * 1000);
         }
     };
 
     tick();
     const interval = window.setInterval(tick, 1000);
-    signal.addEventListener('abort', () => window.clearInterval(interval));
+    signal.addEventListener('abort', () => {
+        window.clearInterval(interval);
+        window.clearTimeout(delay);
+    });
 }
 
 // قائمة الصف تُظهر صفوف الفئة المختارة وحدها، وتُخفى إن لم تكن لها صفوف

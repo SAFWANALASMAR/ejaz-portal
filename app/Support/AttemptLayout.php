@@ -87,14 +87,14 @@ final class AttemptLayout
      *
      * يُحسب مرة ويُخزَّن كـ mixedMaxScores، لا مع كل بدء اختبار (اختبار التحمل: كان كل بدء يبني البنك من الذاكرة
      * المؤقتة مرة ثانية ويعيد البرمجة الديناميكية): المفتاح بإصدار بنك المرحلة وعددها والفئة. والقيمة داخل مصفوفة،
-     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز).
+     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز). وبلا مدة كالبنك، لأن المفتاح يتغير مع كل تعديل، فلا
+     * تنتهي مدته في نافذة أطول منها على كل الطلاب معاً (مراجعة 26 أكتوبر، ن١).
      */
     public static function shortfall(CompetitionRound $round, int $categoryId): ?int
     {
         /** @var array{0: int|null} $result */
-        $result = Cache::remember(
+        $result = Cache::rememberForever(
             'competition-round-shortfall:'.RoundQuestions::key($round->id).':'.$round->question_count.':'.$categoryId,
-            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
             function () use ($round, $categoryId): array {
                 $bank = self::bank($round, $categoryId);
                 $reachable = self::reachable(self::units($bank), $round->question_count);
