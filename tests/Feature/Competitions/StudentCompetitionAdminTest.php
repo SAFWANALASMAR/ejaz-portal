@@ -329,23 +329,26 @@ it('shows the full national ID only to the competition creator and the executive
     expect(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(3);
 });
 
-it('exports results with the national ID masked unless the exporter may see it in full', function () {
+it('exports results with the national ID masked by default, and in full only on the full export', function () {
     studentQuestion($this->round);
     submittedWithScore(6, 4);
     $query = fn () => $this->competition->attempts()->getQuery();
 
-    $content = fn (User $user): string => TestResponse::fromBaseResponse(StudentResultsSheet::download($user, $this->competition, $query()))->streamedContent();
-    // من يدير النتائج بلا الاطلاع الكامل على الهوية (صلاحية مفردة)، ومسؤول برامج ليس منشئها لا يصدّر أصلاً
+    $content = fn (User $user, bool $full = false): string => TestResponse::fromBaseResponse(StudentResultsSheet::download($user, $this->competition, $query(), $full, 'password'))->streamedContent();
+    // من يدير النتائج بلا الاطلاع الكامل على الهوية (صلاحية مفردة)، ومسؤول برامج ليس منشئها لا يصدّر أصلاً. والمدير
+    // التنفيذي مقنّع في التصدير العادي أيضاً (ملاحظة الاختبار الشامل 10)، وكامل في التصدير الكامل بكلمة المرور
     $resultsOnly = User::factory()->create();
     $resultsOnly->givePermissionTo('competition.manage_results');
     $masked = readXlsx($content($resultsOnly));
-    $full = readXlsx($content($this->director));
+    $directorDefault = readXlsx($content($this->director));
+    $full = readXlsx($content($this->director, true));
 
     expect(fn () => StudentResultsSheet::download(userWithRole(RoleName::ProgramManager), $this->competition, $query()))->toThrow(AuthorizationException::class)
         ->and($masked)->toHaveCount(2)
         ->and(implode(' ', $masked[1]))->not->toContain(studentNationalId(6))->toContain(substr(studentNationalId(6), -4))
+        ->and(implode(' ', $directorDefault[1]))->not->toContain(studentNationalId(6))
         ->and(implode(' ', $full[1]))->toContain(studentNationalId(6))
-        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(2);
+        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(3);
 });
 
 it('issues certificates to participants who submitted, generating a PDF each', function () {

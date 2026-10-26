@@ -6,6 +6,7 @@ use App\Models\Competition;
 use App\Models\User;
 use App\Support\CompetitionAccess;
 use Closure;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -84,5 +85,17 @@ trait RunsStudentCompetitionActions
         $user = auth()->user();
 
         return CompetitionAccess::managesResults($user, $this->competition());
+    }
+
+    /**
+     * كلمة المرور الحالية للتصدير الكامل برقم الهوية (NationalIdExport يفحصها ويقفل تخمينها).
+     */
+    protected static function passwordField(): TextInput
+    {
+        return TextInput::make('password')
+            ->label(__('competitions.student.admin.export_full_password'))
+            ->password()
+            ->required()
+            ->autocomplete('current-password');
     }
 }

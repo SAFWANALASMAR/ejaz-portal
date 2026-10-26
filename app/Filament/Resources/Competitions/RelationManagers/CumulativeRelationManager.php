@@ -10,6 +10,7 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Support\CumulativeRanking;
 use App\Support\CumulativeRankingSheet;
+use App\Support\NationalIdExport;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -77,6 +78,18 @@ class CumulativeRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => $this->managesResults())
                     ->action(fn (): StreamedResponse => CumulativeRankingSheet::download($this->actor(), $this->competition(), $this->getFilteredSortedTableQuery())),
+                // رقم الهوية كاملاً: لمديري النظام وحدهم (NationalIdExport)، بكلمة المرور في كل مرة
+                Action::make('export_cumulative_full')
+                    ->label(__('competitions.student.admin.export_cumulative_full'))
+                    ->icon('heroicon-o-identification')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->managesResults() && NationalIdExport::allows($this->actor()))
+                    ->modalDescription(__('competitions.student.admin.export_full_hint'))
+                    ->schema([self::passwordField()])
+                    ->action(fn (array $data, Action $action): ?StreamedResponse => $this->attempt(
+                        fn (): StreamedResponse => CumulativeRankingSheet::download($this->actor(), $this->competition(), $this->getFilteredSortedTableQuery(), full: true, password: (string) ($data['password'] ?? '')),
+                        fn () => $action->halt(),
+                    )),
                 Action::make('cumulative_draw')
                     ->label(__('competitions.student.admin.cumulative_draw'))
                     ->icon('heroicon-o-sparkles')
