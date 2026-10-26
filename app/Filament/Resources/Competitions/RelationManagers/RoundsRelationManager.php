@@ -105,17 +105,19 @@ class RoundsRelationManager extends RelationManager
                 TextColumn::make('question_count')->label(__('competitions.student.round_attributes.question_count'))->numeric(),
                 TextColumn::make('questions_count')->label(__('competitions.student.admin.bank_size'))->numeric()
                     // بنك كل فئة مفتوحة بعدد أسئلة المرحلة تماماً، وإلا لا يبدأ طلابها (AttemptLayout وStartAttempt)
-                    ->description(fn (CompetitionRound $record): string => implode(' ', array_filter([
-                        ($short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()))) === []
-                            ? __('competitions.student.bank_ready')
-                            : __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $count < 0
+                    // فحص الجاهزية قبل النافذة: «جاهز» حين تكتمل البنوك وتتوحّد الدرجة القصوى بين الفئات (حين يُرتَّب المجموع لكل
+                    // الفئات معاً، StartAttempt يرفض غيرها)، وإلا ما ينقص وحده، بلا رسالتين متناقضتين
+                    ->description(function (CompetitionRound $record): string {
+                        $short = AttemptLayout::shortfalls($record->setRelation('competition', $this->competition()));
+                        $mixed = AttemptLayout::mixedMaxScores($record);
+
+                        return implode(' ', array_filter([
+                            $short !== [] ? __('competitions.student.bank_short', ['details' => collect($short)->map(fn (int $count, string $name): string => $count < 0
                                 ? __('competitions.student.bank_short_points', ['category' => $name])
-                                : __('competitions.student.bank_short_count', ['category' => $name, 'count' => $count]))->implode('، ')]),
-                        // والدرجة القصوى موحدة بين الفئات حين يُرتَّب المجموع لكل الفئات معاً (StartAttempt يرفض غيرها)
-                        ($mixed = AttemptLayout::mixedMaxScores($record)) !== []
-                            ? __('competitions.student.bank_mixed_max', ['details' => collect($mixed)->map(fn (float $max, string $name): string => $name.' '.Number::format($max, maxPrecision: 2))->implode('، ')])
-                            : null,
-                    ]))),
+                                : __('competitions.student.bank_short_count', ['category' => $name, 'count' => $count]))->implode('، ')]) : null,
+                            $mixed !== [] ? __('competitions.student.bank_mixed_max', ['details' => collect($mixed)->map(fn (float $max, string $name): string => $name.' '.Number::format($max, maxPrecision: 2))->implode('، ')]) : null,
+                        ])) ?: __('competitions.student.bank_ready');
+                    }),
                 TextColumn::make('duration_minutes')->label(__('competitions.student.round_attributes.duration_minutes'))->numeric(),
                 IconColumn::make('qualified_only')->label(__('competitions.student.round_attributes.qualified_only'))->boolean(),
                 TextColumn::make('started_count')->label(__('competitions.student.admin.started'))->numeric(),

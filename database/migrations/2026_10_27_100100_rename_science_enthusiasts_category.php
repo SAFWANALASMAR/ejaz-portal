@@ -5,14 +5,19 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * فئة «المهتمون» صار اسمها «المهتمون بالثقافة العلمية» كالمطوية (CompetitionListsSeeder يبحث بالاسم)، فيُعاد تسمية
- * الصف القائم بدل أن ينشئ البذر فئة خامسة (مراجعة المشرف على المطوية). وإن وُجدت الخامسة من بذر سابق بلا استعمال
- * (لا مسابقة مفتوحة لها ولا تسجيل ولا سؤال) حُذفت، وإلا بقيت الاثنتان للمسؤول.
+ * الصف القائم بدل فئة خامسة (مراجعة المشرف على المطوية). وإن وُجدت الخامسة من بذر سابق دُمجت في القديمة: يُنقل إليها
+ * فتحُ المسابقات والتسجيلات والأسئلة والنصوص، ثم تُحذف الجديدة. إلا إن أشار إليها سجل سحب (ثابت لا يُعدَّل)، فتبقيان.
  */
 return new class extends Migration
 {
     private const OLD = 'المهتمون';
 
     private const NEW = 'المهتمون بالثقافة العلمية';
+
+    /**
+     * الجداول التي تشير إلى الفئة ويُنقل فيها المعرّف.
+     */
+    private const REFERENCES = ['competition_submissions', 'competition_questions', 'competition_passages'];
 
     public function up(): void
     {
@@ -24,14 +29,28 @@ return new class extends Migration
 
         $new = DB::table('competition_categories')->where('name', self::NEW)->value('id');
 
-        if ($new !== null && ! $this->used((int) $new)) {
+        if ($new !== null) {
+            if (DB::table('competition_draws')->where('category_id', $new)->exists()) {
+                return;
+            }
+
+            // فتح المسابقات: يُضاف للقديمة ما ليس لها، ثم تُحذف روابط الجديدة
+            $opened = DB::table('competition_category_competition')->where('category_id', $new)->pluck('competition_id');
+
+            foreach ($opened as $competitionId) {
+                DB::table('competition_category_competition')->insertOrIgnore(['competition_id' => $competitionId, 'category_id' => $old]);
+            }
+
+            DB::table('competition_category_competition')->where('category_id', $new)->delete();
+
+            foreach (self::REFERENCES as $table) {
+                DB::table($table)->where('category_id', $new)->update(['category_id' => $old]);
+            }
+
             DB::table('competition_categories')->where('id', $new)->delete();
-            $new = null;
         }
 
-        if ($new === null) {
-            DB::table('competition_categories')->where('id', $old)->update(['name' => self::NEW]);
-        }
+        DB::table('competition_categories')->where('id', $old)->update(['name' => self::NEW]);
     }
 
     public function down(): void
@@ -39,12 +58,5 @@ return new class extends Migration
         if (DB::table('competition_categories')->where('name', self::OLD)->doesntExist()) {
             DB::table('competition_categories')->where('name', self::NEW)->update(['name' => self::OLD]);
         }
-    }
-
-    private function used(int $id): bool
-    {
-        return DB::table('competition_category_competition')->where('category_id', $id)->exists()
-            || DB::table('competition_submissions')->where('category_id', $id)->exists()
-            || DB::table('competition_questions')->where('category_id', $id)->exists();
     }
 };

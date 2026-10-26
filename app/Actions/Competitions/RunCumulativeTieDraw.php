@@ -72,6 +72,10 @@ class RunCumulativeTieDraw
             $draw->executed_by = $actor->id;
             $draw->save();
 
+            if ($locked->ranking_locked_at === null) {
+                $locked->forceFill(['ranking_locked_at' => now()])->save();
+            }
+
             activity('competitions')->performedOn($draw)->causedBy($actor)
                 ->event(ActivityEvent::TieDrawExecuted->value)
                 ->withProperties(['cumulative' => true, 'gender' => $gender->value, 'category_id' => $categoryId, 'entrants_hash' => $draw->entrants_hash])

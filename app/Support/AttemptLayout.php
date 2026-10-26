@@ -8,6 +8,7 @@ use App\Models\CompetitionCategory;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Random\Randomizer;
 
 /**
@@ -118,6 +119,9 @@ final class AttemptLayout
      * المشرف على المطوية): المجاميع تُقارن بين الفئات فيلزم أن تتوحّد الدرجة القصوى لكل فرع. وفارغة إن توحّدت، أو كان
      * الترتيب لكل فئة على حدة.
      *
+     * يُحسب مرة ويُخزَّن (مراجعة المشرف على 0b788d7f)، لا مع كل بدء اختبار: المفتاح بإصدار بنك المرحلة (يتغير مع كل
+     * تعديل فيه، ومع حفظ المسابقة لأن الفئات المفتوحة منها — SaveCompetition)، وبعدد أسئلتها.
+     *
      * @return array<string, float>
      */
     public static function mixedMaxScores(CompetitionRound $round): array
@@ -126,18 +130,25 @@ final class AttemptLayout
             return [];
         }
 
-        $scores = [];
+        /** @var array<string, float> */
+        return Cache::remember(
+            'competition-round-mixed-max:'.RoundQuestions::key($round->id).':'.$round->question_count,
+            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
+            function () use ($round): array {
+                $scores = [];
 
-        foreach ($round->competition->openCategories()->get() as $category) {
-            /** @var CompetitionCategory $category */
-            $max = self::maxScore($round, $category->id);
+                foreach ($round->competition->openCategories()->get() as $category) {
+                    /** @var CompetitionCategory $category */
+                    $max = self::maxScore($round, $category->id);
 
-            if ($max !== null) {
-                $scores[$category->name] = $max;
-            }
-        }
+                    if ($max !== null) {
+                        $scores[$category->name] = $max;
+                    }
+                }
 
-        return count(array_unique($scores)) > 1 ? $scores : [];
+                return count(array_unique($scores)) > 1 ? $scores : [];
+            },
+        );
     }
 
     /**

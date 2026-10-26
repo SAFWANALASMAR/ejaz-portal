@@ -35,6 +35,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<string, mixed>|null $page_content
  * @property array<mixed>|null $prize_table
  * @property RankingScope $ranking_scope
+ * @property Carbon|null $ranking_locked_at
  */
 #[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope'])]
 class Competition extends Model
@@ -62,6 +63,7 @@ class Competition extends Model
             'page_content' => 'array',
             'prize_table' => 'array',
             'ranking_scope' => RankingScope::class,
+            'ranking_locked_at' => 'datetime',
         ];
     }
 
@@ -254,7 +256,8 @@ class Competition extends Model
 
     /**
      * نطاق الترتيب وجدول الجوائز يُقفلان متى سُحب في الترتيب التراكمي (ولو أُلغي السحب) أو نُشرت نتائج كل الفروع،
-     * فلا يتغير على أساسه الترتيب ولا حد المراكز بعد إعلانه (مراجعة المشرف على المطوية).
+     * فلا يتغير على أساسه الترتيب ولا حد المراكز بعد إعلانه (مراجعة المشرف على المطوية). ولحظة القفل تُسجَّل
+     * (ranking_locked_at)، فلا تفكه إضافة مرحلة بعد نشر كل الفروع.
      */
     public function cumulativeLocked(): bool
     {
@@ -262,7 +265,8 @@ class Competition extends Model
             return false;
         }
 
-        return $this->draws()->whereNull('round_id')->whereNotNull('gender')->exists()
+        return $this->ranking_locked_at !== null
+            || $this->draws()->whereNull('round_id')->whereNotNull('gender')->exists()
             || ($this->rounds()->exists() && $this->rounds()->whereNull('results_published_at')->doesntExist());
     }
 

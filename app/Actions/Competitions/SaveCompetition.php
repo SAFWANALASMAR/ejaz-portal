@@ -18,6 +18,7 @@ use App\Support\CompetitionPage;
 use App\Support\CompetitionShortLink;
 use App\Support\ExamQuestions;
 use App\Support\ImageSanitizer;
+use App\Support\RoundQuestions;
 use App\Support\SchoolNetworkLimits;
 use App\Support\VideoProbe;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -193,6 +194,10 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
+        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)
+        if ($competition->student_mode) {
+            $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
+        }
         SchoolNetworkLimits::forget();
 
         // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص

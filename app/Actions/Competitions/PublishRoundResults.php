@@ -4,6 +4,7 @@ namespace App\Actions\Competitions;
 
 use App\Enums\ActivityEvent;
 use App\Enums\AttemptStatus;
+use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\User;
@@ -62,6 +63,11 @@ class PublishRoundResults
 
             $locked->results_published_at = now();
             $locked->save();
+
+            // نشر آخر فرع يقفل نطاق الترتيب وجدول الجوائز، ولا تفكه مرحلة تُضاف بعده (Competition::cumulativeLocked)
+            if (CompetitionRound::query()->where('competition_id', $locked->competition_id)->whereNull('results_published_at')->doesntExist()) {
+                Competition::query()->whereKey($locked->competition_id)->whereNull('ranking_locked_at')->update(['ranking_locked_at' => now()]);
+            }
 
             activity('competitions')->performedOn($locked)->causedBy($actor)
                 ->event(ActivityEvent::RoundResultsPublished->value)

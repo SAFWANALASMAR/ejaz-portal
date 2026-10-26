@@ -488,7 +488,7 @@ it('clears the student identity, guardian phone, custom fields and certificate w
     $submission->forceFill(['certificate_path' => 'competition-certificates/y.pdf'])->save();
 
     $student->forceFill(['deletion_requested_at' => now()])->save();
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $student);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $student);
 
     $fresh = $submission->fresh();
     expect($fresh->national_id)->toBeNull()

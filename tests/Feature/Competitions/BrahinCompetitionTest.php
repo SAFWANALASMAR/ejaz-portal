@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\Competitions\CorrectStudentRegistration;
+use App\Actions\Competitions\PublishRoundResults;
+use App\Actions\Competitions\RevealStudentIdentity;
 use App\Actions\Competitions\RunCumulativeTieDraw;
 use App\Actions\Competitions\SaveCompetition;
 use App\Actions\Competitions\SaveCompetitionRound;
@@ -20,10 +22,13 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\AttemptLayout;
 use App\Support\CompetitionShortLink;
 use App\Support\CumulativeRanking;
+use App\Support\RoundQuestions;
 use App\Support\StudentResultsSheet;
 use Database\Seeders\BrahinCompetitionSeeder;
+use Database\Seeders\MenuSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -426,17 +431,22 @@ it('reads the ranking scope from the locked competition when drawing', function 
         ->toThrow(ValidationException::class, __('competitions.student.cumulative_category_required'));
 });
 
-it('renames the old interested category instead of seeding a fifth one', function () {
+it('merges a seeded fifth interested category into the old one, moving what uses it', function () {
     $migration = require database_path('migrations/2026_10_27_100100_rename_science_enthusiasts_category.php');
     $new = CompetitionCategory::query()->where('name', 'المهتمون بالثقافة العلمية')->sole();
-    DB::table('competition_category_competition')->where('category_id', $new->id)->delete();
     $old = CompetitionCategory::query()->forceCreate(['name' => 'المهتمون', 'sort_order' => 4]);
+    // الجديدة مفتوحة في المسابقة، ولها تسجيل وسؤال، والقديمة مفتوحة أيضاً
     $this->competition->openCategories()->attach($old->id);
+    $student = registeredStudent($this->competition, 1, ['category_id' => $new->id, 'grade' => null]);
+    $question = studentQuestion($this->round, ['category_id' => $new->id]);
 
     $migration->up();
 
     expect(CompetitionCategory::query()->where('name', 'like', 'المهتمون%')->pluck('id')->all())->toBe([$old->id])
-        ->and($old->fresh()->name)->toBe('المهتمون بالثقافة العلمية');
+        ->and($old->fresh()->name)->toBe('المهتمون بالثقافة العلمية')
+        ->and(submissionOf($student)->category_id)->toBe($old->id)
+        ->and($question->fresh()->category_id)->toBe($old->id)
+        ->and(DB::table('competition_category_competition')->where('competition_id', $this->competition->id)->where('category_id', $old->id)->count())->toBe(1);
 });
 
 it('ranks tied scores equally in the results export, and shows the grand prize total', function () {
@@ -461,4 +471,95 @@ it('ranks tied scores equally in the results export, and shows the grand prize t
     expect(array_slice($ranks, 1))->toBe(['1', '1', '3']);
 
     $this->get('/competitions/brahin')->assertSee(__('competitions.student.page.prizes_grand_total', ['amount' => '7,400']));
+});
+
+// ── بعد دمج ملاحظات المدير التنفيذي (#66) ومراجعة المشرف على 0b788d7f
+
+it('lets a student with a username alone, no email and no phone, register in the competition and take a branch', function () {
+    studentQuestion($this->round);
+
+    $this->post('/register', [
+        'name' => 'طالب المعمل', 'username' => 'lab.student7', 'password' => 'Thursday-Exam-Key-2026', 'password_confirmation' => 'Thursday-Exam-Key-2026', 'privacy' => '1',
+    ])->assertSessionHasNoErrors();
+
+    $student = User::query()->where('username', 'lab.student7')->sole();
+    expect($student->email)->toBeNull()->and($student->phone)->toBeNull();
+
+    $this->actingAs($student)->get('/competitions/brahin/register')->assertOk();
+    $this->post('/competitions/brahin/register', [
+        'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(31), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id'),
+        'grade' => 'الأول الثانوي', 'region_id' => CompetitionRegion::query()->active()->value('id'), 'gender' => 'male', 'pledge' => '1',
+    ])->assertSessionHasNoErrors();
+
+    $this->post('/competitions/brahin/rounds/'.$this->round->uuid.'/start')->assertRedirect();
+
+    expect(CompetitionAttempt::query()->where('user_id', $student->id)->exists())->toBeTrue();
+});
+
+it('gives the technical admin the full national ID and the results operations, and keeps the super admin read-only', function () {
+    studentQuestion($this->round);
+    $technical = userWithRole(RoleName::TechnicalAdmin);
+    $super = userWithRole(RoleName::SuperAdmin);
+    $submission = submissionOf(registeredStudent($this->competition, 3));
+
+    expect($technical->checkPermissionTo('competition.view_national_id'))->toBeTrue()
+        ->and($technical->checkPermissionTo('competition.manage_results'))->toBeTrue()
+        ->and(app(RevealStudentIdentity::class)->handle($technical, $submission)['national_id'])->toBe(studentNationalId(3))
+        ->and(fn () => app(RevealStudentIdentity::class)->handle($super, $submission))->toThrow(AuthorizationException::class);
+
+    $this->travel(4)->hours();
+    expect(app(PublishRoundResults::class)->handle($technical, $this->round)->resultsPublished())->toBeTrue();
+
+    // والمشرف العام اطلاع على حفظ المسابقة نفسها: لا إنشاء ولا تعديل
+    $data = ['title' => 'محاولة', 'slug' => 'super-try', 'opens_at' => now()->toDateTimeString(), 'closes_at' => now()->addWeek()->toDateTimeString(), 'student_mode' => true];
+    expect(fn () => app(SaveCompetition::class)->handle($super, new Competition, $data))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(SaveCompetition::class)->handle($super, $this->competition->fresh(), [...$data, 'slug' => 'brahin']))->toThrow(AuthorizationException::class);
+});
+
+it('reaches the competitions from the main menu and the account card', function () {
+    $this->seed(MenuSeeder::class);
+    $student = registeredStudent($this->competition);
+
+    $this->get('/')->assertSee('href="'.url('/competitions').'"', false)->assertSee('المسابقات');
+    $this->actingAs($student)->get(route('account.dashboard'))->assertSee(route('account.competitions'), false)->assertSee(__('competitions.account.nav'));
+});
+
+it('computes the category maximum check once and keeps it until the bank changes', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $this->competition->openCategories()->sync([$middle, $secondary]);
+    studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);
+    $other = studentQuestion($this->round, ['category_id' => $secondary, 'points' => 3]);
+    $round = $this->round->fresh();
+
+    expect(AttemptLayout::mixedMaxScores($round))->not->toBe([]);
+
+    // تعديل مباشر بلا مسح للذاكرة لا يُرى، ومسحها مع كل تعديل في البنك (SaveStudentQuestion) يعيد الحساب
+    $other->forceFill(['points' => 1])->save();
+    expect(AttemptLayout::mixedMaxScores($round))->not->toBe([]);
+
+    RoundQuestions::forget($round->id);
+    expect(AttemptLayout::mixedMaxScores($round))->toBe([]);
+
+    $this->actingAs($this->director);
+    Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertSee(__('competitions.student.bank_ready'));
+});
+
+it('keeps the ranking scope and prizes locked after the last branch is published, even when a branch is added', function () {
+    studentQuestion($this->round);
+    $this->travel(4)->hours();
+    app(PublishRoundResults::class)->handle($this->director, $this->round);
+
+    expect($this->competition->fresh()->ranking_locked_at)->not->toBeNull();
+
+    $added = new CompetitionRound(['name' => 'فرع مضاف', 'sort_order' => 9, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDays(2), 'question_count' => 1, 'duration_minutes' => 30]);
+    $added->competition_id = $this->competition->id;
+    $added->save();
+    $competition = $this->competition->fresh();
+
+    expect($competition->cumulativeLocked())->toBeTrue()
+        ->and(fn () => app(SaveCompetition::class)->handle($this->director, $competition, [
+            'title' => $competition->title, 'slug' => 'brahin', 'opens_at' => $competition->opens_at, 'closes_at' => $competition->closes_at, 'ranking_scope' => 'category',
+        ]))->toThrow(ValidationException::class);
 });

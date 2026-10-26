@@ -27,8 +27,8 @@ function schoolRegistration(int $i): array
 {
     return [
         'name' => 'طالب المدرسة '.$i,
-        'email' => "school{$i}@example.test",
-        'phone' => '05'.str_pad((string) (40000000 + $i), 8, '0', STR_PAD_LEFT),
+        // طالب المعمل باسم مستخدم وحده، بلا بريد ولا جوال (ملاحظات المدير التنفيذي)
+        'username' => 'school'.$i,
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
         'privacy' => '1',
@@ -60,13 +60,13 @@ it('lets forty students register from one lab device behind one public school ad
     }
 
     // جهاز المعمل بلغ حده الموسّع (40 في الساعة)
-    schoolRequest(labDevice: true)->post('/register', schoolRegistration(41))->assertSessionHasErrors('email');
-    expect(User::query()->where('email', 'like', 'school%')->count())->toBe(40);
+    schoolRequest(labDevice: true)->post('/register', schoolRegistration(41))->assertSessionHasErrors('username');
+    expect(User::query()->where('username', 'like', 'school%')->count())->toBe(40);
 
     // كل طالب يخطئ مرة ثم يدخل: أربعون خطأً من العنوان نفسه فوق الحد الأساسي (20)
     foreach (range(1, 40) as $i) {
-        schoolRequest()->post('/login', ['login' => "school{$i}@example.test", 'password' => 'Wrong-Password-2026']);
-        schoolRequest()->post('/login', ['login' => "school{$i}@example.test", 'password' => 'Long-Enough-Pass-2026'])->assertSessionHasNoErrors();
+        schoolRequest()->post('/login', ['login' => 'school'.$i, 'password' => 'Wrong-Password-2026']);
+        schoolRequest()->post('/login', ['login' => 'school'.$i, 'password' => 'Long-Enough-Pass-2026'])->assertSessionHasNoErrors();
         expect(auth()->check())->toBeTrue();
         auth()->logout();
     }
@@ -81,7 +81,7 @@ it('widens the daily network limit for a school network while registration is op
         auth()->logout();
     }
 
-    expect(User::query()->where('email', 'like', 'school%')->count())->toBe(40);
+    expect(User::query()->where('username', 'like', 'school%')->count())->toBe(40);
 });
 
 it('keeps the base daily network limit outside the registration window', function () {
@@ -96,8 +96,8 @@ it('keeps the base daily network limit outside the registration window', functio
         auth()->logout();
     }
 
-    schoolRequest('198.51.100.31')->post('/register', schoolRegistration(31))->assertSessionHasErrors('email');
-    expect(User::query()->where('email', 'like', 'school%')->count())->toBe(30);
+    schoolRequest('198.51.100.31')->post('/register', schoolRegistration(31))->assertSessionHasErrors('username');
+    expect(User::query()->where('username', 'like', 'school%')->count())->toBe(30);
 });
 
 it('keeps the base sign-in limits during the registration weeks, widening them on exam days only', function () {
