@@ -29,6 +29,9 @@ async function expectNoAxeViolations(page, path) {
     test.skip(response?.status() === 403, `${path} لغير صاحب الصلاحية`);
 
     await page.evaluate(() => document.fonts.ready);
+    // مقاطع الرئيسية تظهر بالتمرير (resources/js/home.js): تُظهر كلها قبل الفحص، وإلا قاس axe تباين نص في منتصف ظهوره
+    await page.evaluate(() => document.querySelectorAll('[data-reveal]').forEach((element) => element.setAttribute('data-revealed', '')));
+    await page.waitForTimeout(800);
 
     const { violations } = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
