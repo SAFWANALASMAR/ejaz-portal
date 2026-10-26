@@ -19,7 +19,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property QuestionMedia|null $media_type
  * @property array<mixed>|null $options
  */
-#[Fillable(['type', 'prompt', 'options', 'correct_option', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order', 'context_text', 'media_type', 'media_path'])]
+#[Fillable(['type', 'prompt', 'options', 'correct_option', 'points', 'is_required', 'max_video_seconds', 'max_video_mb', 'sort_order', 'context_text', 'media_type', 'media_path', 'round_id', 'category_id', 'passage_id'])]
 #[Hidden(['correct_option'])]
 class CompetitionQuestion extends Model
 {
@@ -48,6 +48,36 @@ class CompetitionQuestion extends Model
     public function competition(): BelongsTo
     {
         return $this->belongsTo(Competition::class);
+    }
+
+    /**
+     * مرحلة السؤال في مسابقة الطلاب.
+     *
+     * @return BelongsTo<CompetitionRound, $this>
+     */
+    public function round(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionRound::class, 'round_id');
+    }
+
+    /**
+     * فئته، أو null لكل الفئات.
+     *
+     * @return BelongsTo<CompetitionCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionCategory::class, 'category_id');
+    }
+
+    /**
+     * النص أو المقطع الذي يُبنى عليه السؤال.
+     *
+     * @return BelongsTo<CompetitionPassage, $this>
+     */
+    public function passage(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionPassage::class, 'passage_id');
     }
 
     /**

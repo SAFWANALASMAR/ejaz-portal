@@ -9,6 +9,7 @@ use App\Notifications\RegistrationCapReached;
 use App\Rules\SaudiMobile;
 use App\Support\NetworkPrefix;
 use App\Support\SaudiPhone;
+use App\Support\SchoolNetworkLimits;
 use App\Support\Username;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
@@ -130,13 +131,13 @@ class CreateNewUser implements CreatesNewUsers
         $subscriber = NetworkPrefix::subscriber($ip);
 
         $limits = [
-            'register:'.$subscriber => [(int) config('security.registration_per_ip_per_hour'), 3600, 'account.register.too_many'],
-            'register-device:'.self::device() => [(int) config('security.registration_per_device_per_hour'), 3600, 'account.register.too_many'],
+            'register:'.$subscriber => [SchoolNetworkLimits::limit('registration_per_ip_per_hour'), 3600, 'account.register.too_many'],
+            'register-device:'.self::device() => [SchoolNetworkLimits::limit('registration_per_device_per_hour'), 3600, 'account.register.too_many'],
             'register:all' => [(int) config('security.registration_per_hour'), 3600, 'account.register.busy'],
         ];
 
         if ($ip !== null && NetworkPrefix::isPublic($ip)) {
-            $limits['register-net:'.NetworkPrefix::prefix($ip, NetworkPrefix::isIpv6($ip) ? 48 : 24)] = [(int) config('security.registration_per_network_per_day'), 86400, 'account.register.too_many'];
+            $limits['register-net:'.NetworkPrefix::prefix($ip, NetworkPrefix::isIpv6($ip) ? 48 : 24)] = [SchoolNetworkLimits::limit('registration_per_network_per_day'), 86400, 'account.register.too_many'];
         }
 
         return $limits;

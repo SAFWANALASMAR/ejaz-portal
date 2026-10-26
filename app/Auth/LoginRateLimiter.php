@@ -5,6 +5,7 @@ namespace App\Auth;
 use App\Models\User;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
+use App\Support\SchoolNetworkLimits;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
@@ -87,7 +88,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         $ip = NetworkPrefix::normalize($request->ip());
 
         $limits = [
-            'login-network:'.NetworkPrefix::subscriber($ip) => ['max' => (int) config('security.login_failures_per_subscriber'), 'decay' => 900],
+            'login-network:'.NetworkPrefix::subscriber($ip) => ['max' => SchoolNetworkLimits::limit('login_failures_per_subscriber'), 'decay' => 900],
         ];
 
         if ($ip !== null && NetworkPrefix::isIpv6($ip)) {
@@ -124,7 +125,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
      */
     private function attemptLimits(Request $request): array
     {
-        $max = (int) config('security.login_attempts_per_subscriber_per_minute');
+        $max = SchoolNetworkLimits::limit('login_attempts_per_subscriber_per_minute');
 
         return $max > 0
             ? ['login-attempts:'.NetworkPrefix::subscriber(NetworkPrefix::normalize($request->ip())) => ['max' => $max, 'decay' => 60]]

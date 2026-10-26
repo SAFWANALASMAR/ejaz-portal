@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DrawVoidRequestStatus;
+use App\Enums\StudentGender;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ use LogicException;
  *
  * @property list<string> $entrants
  * @property list<string> $winners
+ * @property StudentGender|null $gender
  * @property Carbon $executed_at
  */
 class CompetitionDraw extends Model
@@ -42,6 +44,7 @@ class CompetitionDraw extends Model
             'entrants_count' => 'integer',
             'winners_count' => 'integer',
             'executed_at' => 'datetime',
+            'gender' => StudentGender::class,
         ];
     }
 
@@ -65,6 +68,24 @@ class CompetitionDraw extends Model
     public function competition(): BelongsTo
     {
         return $this->belongsTo(Competition::class)->withTrashed();
+    }
+
+    /**
+     * مرحلة سحب المتساوين في مسابقة الطلاب (RunTieDraw)، أو null لسحب المسابقة كلها.
+     *
+     * @return BelongsTo<CompetitionRound, $this>
+     */
+    public function round(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionRound::class, 'round_id');
+    }
+
+    /**
+     * @return BelongsTo<CompetitionCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CompetitionCategory::class, 'category_id');
     }
 
     /**

@@ -91,7 +91,7 @@ function roleMatrixUri(Route $route, array $records): string
             return (string) $record->getRouteKey();
         }
 
-        return str_contains($m[1].($m[2] ?? ''), 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment'], true) ? (string) Str::uuid() : '1';
+        return str_contains($m[1].($m[2] ?? ''), 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment', 'round', 'submission'], true) ? (string) Str::uuid() : '1';
     }, $route->uri()), '/');
 }
 

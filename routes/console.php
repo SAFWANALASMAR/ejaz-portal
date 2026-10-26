@@ -26,6 +26,9 @@ Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 // طلبات إلغاء السحب التي لم يقرر فيها مشرف عام آخر خلال سبعة أيام تسقط، ويبقى السحب (docs/decisions.md)
 Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 
+// التسليم الآلي لمحاولات مسابقة الطلاب التي انتهى وقتها ولم يعد صاحبها (docs/plans/student-competition.md)
+Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping()->onOneServer();
+
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 
