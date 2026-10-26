@@ -13,6 +13,7 @@ class NeutralPasswordResetResponse extends FailedPasswordResetResponse
 {
     public function __construct(string $status)
     {
-        parent::__construct(Password::INVALID_TOKEN);
+        // «البريد غير مسجل» يصير «الرابط غير صالح»، وما سواه كما هو
+        parent::__construct($status === Password::INVALID_USER ? Password::INVALID_TOKEN : $status);
     }
 }
