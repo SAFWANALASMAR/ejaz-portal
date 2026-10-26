@@ -88,6 +88,8 @@ class SaveCompetitionRound
                 }
             }
 
+            $extended = $endChanged && $endsAt->gt($round->ends_at);
+
             // وما لم يتغير بالدقيقة يبقى كما خُزن بثوانيه، فلا يقصّر الحفظُ المواعيدَ المحسوبة منه
             if ($round->exists) {
                 $validated['starts_at'] = $startChanged ? $startsAt : $round->starts_at;
@@ -102,13 +104,15 @@ class SaveCompetitionRound
             ])->save();
 
             // مدّ النهاية يمدّ المحاولات الجارية التي قطعتها النهاية القديمة: الموعد أقرب البدء + المدة والنهاية الجديدة
-            // (مراجعة المشرف). والمسلَّمة لا تتغير. وعند تغيّر النهاية وحده، وبأمر واحد في القاعدة بلا تحميل الصفوف ولا
-            // قفلها: حفظ المرحلة أثناء نافذتها كان يقفل كل المحاولات الجارية فيها ويوقف الاختبار (المراجعة السحابية، ع١)
-            if ($endChanged) {
+            // (مراجعة المشرف). والمسلَّمة لا تتغير. وبلا تمديد لا تُلمس، وهو أمر واحد في القاعدة بلا تحميل الصفوف: حفظ
+            // المرحلة أثناء نافذتها لا يقفل آلاف المحاولات الجارية ولا يحمّلها (المراجعة السحابية، ع١)
+            if ($extended) {
+                $deadline = 'LEAST(started_at + make_interval(mins => ?::int), ?::timestamp)';
+                $bindings = [$round->duration_minutes, $round->ends_at->toDateTimeString()];
+
                 DB::update(
-                    'update competition_attempts set deadline_at = least(started_at + make_interval(mins => ?), ?), updated_at = ?
-                    where round_id = ? and status = ? and deadline_at is distinct from least(started_at + make_interval(mins => ?), ?)',
-                    [$round->duration_minutes, $round->ends_at, now(), $round->id, AttemptStatus::InProgress->value, $round->duration_minutes, $round->ends_at],
+                    "UPDATE competition_attempts SET deadline_at = {$deadline}, updated_at = ? WHERE round_id = ? AND status = ? AND deadline_at < {$deadline}",
+                    [...$bindings, now()->toDateTimeString(), $round->id, AttemptStatus::InProgress->value, ...$bindings],
                 );
             }
 

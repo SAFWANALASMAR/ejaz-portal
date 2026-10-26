@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ActivityEvent;
+use App\Enums\AttemptStatus;
 use App\Filament\Exports\ServiceRequestExporter;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
@@ -35,8 +36,10 @@ final class StudentResultsSheet
         }
 
         $full = $actor->can('viewNationalId', $competition);
-        // والتسجيل الملغى خارج الملف وترتيبه، أياً كان الاستعلام الممرَّر
-        $query = (clone $query)->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'));
+        // والمسلَّمة لتسجيل قائم وحدها في الملف وترتيبه وعدد السجل، أياً كان الاستعلام الممرَّر: لا الملغى بدرجته، ولا
+        // الجارية بصفر (المراجعة السحابية، م٤)
+        $query = (clone $query)->where('competition_attempts.status', AttemptStatus::Submitted)
+            ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'));
 
         activity('competitions')->performedOn($competition)->causedBy($actor)
             ->event(ActivityEvent::ResultsExported->value)

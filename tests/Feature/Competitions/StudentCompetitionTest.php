@@ -554,3 +554,14 @@ it('leaves the running attempt answers out of the personal data export, and incl
 
     expect($answers())->toBe([(string) $question->id => 'a']);
 });
+
+it('does not flash the national ID or the guardian phone back into the session on a validation error', function () {
+    registeredStudent($this->competition, 7);
+
+    // «رقم الهوية مسجل» من الإجراء: يعيد لارافيل المدخلات إلى الجلسة إلا ما في dontFlash (المراجعة السحابية، ن٣)
+    $this->actingAs(User::factory()->create())->post('/competitions/students/register', studentForm())
+        ->assertSessionHasErrors('national_id')
+        ->assertSessionHasInput('full_name')
+        ->assertSessionMissing('_old_input.national_id')
+        ->assertSessionMissing('_old_input.guardian_phone');
+});
