@@ -6,7 +6,7 @@
 <section class="bg-surface py-12 lg:py-16" aria-labelledby="home-announcements">
     <div class="container-page">
         <div class="flex items-end justify-between gap-4">
-            <x-section-heading id="home-announcements">{{ __('home.ticker.announcements') }}</x-section-heading>
+            <x-section-heading id="home-announcements">{{ $tickers['announcements'] }}</x-section-heading>
             <div class="flex items-center gap-3">
                 <button type="button" data-ticker-toggle="home-announcements-ticker" aria-pressed="false" data-label-pause="{{ __('home.ticker.pause') }}" data-label-play="{{ __('home.ticker.play') }}"
                     aria-label="{{ __('home.ticker.pause') }}" class="inline-flex rounded-full border border-line bg-white p-2 text-muted hover:text-ink">

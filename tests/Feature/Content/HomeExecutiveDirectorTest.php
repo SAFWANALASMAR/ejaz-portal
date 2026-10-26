@@ -58,7 +58,7 @@ it('shows up to three chosen published YouTube videos, playing only on request',
 });
 
 it('shows the official accounts from the site settings, and no section without them', function () {
-    $this->get('/')->assertDontSee(__('home.accounts.title'));
+    $this->get('/')->assertDontSee(__('home.sections.channels.title'));
 
     Setting::put('contact', ['social' => ['x' => 'https://x.com/example', 'youtube' => 'https://www.youtube.com/@example', 'instagram' => 'http://insecure.example']]);
 
@@ -66,7 +66,7 @@ it('shows the official accounts from the site settings, and no section without t
     // المقطع وحده، فالتذييل يعرض الحسابات أيضاً
     $section = (string) str($html)->after('aria-labelledby="home-accounts"')->before('</section>');
 
-    expect($html)->toContain(__('home.accounts.title'))
+    expect($html)->toContain(__('home.sections.channels.title'))
         ->and($section)->toContain(__('settings.social.x'))
         ->toContain(__('settings.social.youtube'))
         ->toContain('href="https://x.com/example"')
@@ -101,7 +101,7 @@ it('hides the videos and accounts sections when switched off', function () {
 
     $this->get('/')->assertOk()
         ->assertDontSee(__('home.videos.title'))
-        ->assertDontSee(__('home.accounts.title'));
+        ->assertDontSee(__('home.sections.channels.title'));
 });
 
 it('opens the courses and programs hub with training courses, scientific councils and competitions', function () {

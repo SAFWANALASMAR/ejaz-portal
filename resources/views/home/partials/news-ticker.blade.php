@@ -7,7 +7,7 @@
     <div class="container-page flex items-center gap-3 py-3 sm:gap-4">
         <h2 id="home-news-ticker" class="flex shrink-0 items-center gap-2 rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white">
             {{ svg('heroicon-o-newspaper', 'size-4', ['aria-hidden' => 'true']) }}
-            {{ __('home.ticker.news') }}
+            {{ $tickers['news'] }}
         </h2>
 
         <div id="home-news-ticker-strip" class="ticker min-w-0 flex-1" data-ticker style="--ticker-duration: {{ max(30, $news->count() * 9) }}s">

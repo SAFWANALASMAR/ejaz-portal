@@ -9,8 +9,13 @@
     <div class="container-page relative">
         <div class="mx-auto max-w-xl text-center">
             <span class="mx-auto block h-1 w-12 rounded-full bg-accent-light" aria-hidden="true"></span>
-            <h2 id="home-accounts" class="mt-3 text-2xl font-bold sm:text-3xl">{{ __('home.accounts.title') }}</h2>
-            <p class="mt-2 text-white/80">{{ __('home.accounts.intro') }}</p>
+            <h2 id="home-accounts" class="mt-3 text-2xl font-bold sm:text-3xl">{{ $channels['title'] }}</h2>
+            <p class="mt-2 text-white/80">
+                {{ $channels['intro'] }}
+                @if (\App\Support\HomeContent::isSample('channels', 'intro'))
+                    <x-sample class="ms-1" />
+                @endif
+            </p>
         </div>
 
         <ul class="mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">

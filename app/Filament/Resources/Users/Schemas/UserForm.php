@@ -96,8 +96,10 @@ class UserForm
             $exists = User::query()
                 ->where($column, $normalize($value))
                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
-                // الجوال والبريد يتفردان على الموثق وحده (decisions.md — 14 أكتوبر 2026، و26 أكتوبر للبريد)
-                ->whereNotNull($column.'_verified_at')
+                // الجوال والبريد يتفردان على الموثق وحده (decisions.md — 14 أكتوبر 2026، و26 أكتوبر للبريد)، والبريد أيضاً على
+                // الحساب القديم بلا اسم مستخدم، فهو معرّف دخوله الوحيد (User::emailTakenRule)
+                ->where(fn ($query) => $query->whereNotNull($column.'_verified_at')
+                    ->when($column === 'email', fn ($query) => $query->orWhereNull('username')))
                 ->exists();
 
             if ($exists) {

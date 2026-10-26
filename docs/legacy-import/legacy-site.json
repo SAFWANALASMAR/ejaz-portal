@@ -929,13 +929,6 @@
           }
         },
         {
-          "type": "text",
-          "data": {
-            "heading": "التوجه الاستراتيجي",
-            "body": "<p>【ناقص: محتوى التوجه الاستراتيجي】</p>"
-          }
-        },
-        {
           "type": "cards",
           "data": {
             "heading": "أهداف الجمعية",
@@ -1026,7 +1019,16 @@
     {
       "slug": "inquiries",
       "title": "الاستفسارات والاقتراحات",
-      "blocks": []
+      "is_sample": true,
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>يسعد جمعية إعجاز للدراسات والبحوث العلمية تلقي استفساراتكم واقتراحاتكم حول برامجها ومبادراتها وخدماتها، وتصل إلى الفريق المختص عبر نموذج «الاستفسارات والاقتراحات» في صفحة التواصل، ليتابعها ويرد عليها.</p>"
+          }
+        }
+      ]
     },
     {
       "slug": "assembly-membership",
@@ -1057,17 +1059,44 @@
     {
       "slug": "jobs",
       "title": "التوظيف",
-      "blocks": []
+      "is_sample": true,
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>تتطلع الجمعية إلى استقطاب الكفاءات المهتمة بخدمة الدراسات والبحوث العلمية في الإعجاز العلمي في القرآن الكريم والسنة النبوية. وتُنشر فرص العمل المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.</p>"
+          }
+        }
+      ]
     },
     {
       "slug": "volunteering",
       "title": "التطوع",
-      "blocks": []
+      "is_sample": true,
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>يسهم المتطوعون في تحقيق رسالة الجمعية بالمشاركة في برامجها ومبادراتها وفعالياتها العلمية والتعليمية. وتُنشر فرص التطوع المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.</p>"
+          }
+        }
+      ]
     },
     {
       "slug": "reports",
       "title": "التقارير",
-      "blocks": []
+      "is_sample": true,
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "heading": null,
+            "body": "<p>تحرص الجمعية على الشفافية والإفصاح، وتنشر تقاريرها في قسم الحوكمة، ومنه يُطّلع عليها وتُنزَّل.</p>"
+          }
+        }
+      ]
     }
   ],
   "initiatives": [
@@ -1672,14 +1701,16 @@
     "contact": {
       "email": "info@ejaz.sa",
       "phone": "+966 55 055 6758",
-      "address": "مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى",
+      "whatsapp": "+966550556758",
+      "address": "مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال",
+      "short_address": "MALA4207",
       "social": {
         "x": "https://x.com/ejazsa2025",
         "instagram": "https://instagram.com/ejazsa2025",
         "youtube": "https://youtube.com/@ejazsa2025",
         "tiktok": "https://tiktok.com/@ejazsa2025",
         "telegram": "https://t.me/ejazsa2025",
-        "facebook": "https://facebook.com/profile.php?id=61595399341851",
+        "facebook": "https://facebook.com/ejazsa2025",
         "whatsapp": "https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U"
       }
     }

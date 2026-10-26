@@ -51,7 +51,12 @@ final class AccountNavigation
             ->orderBy('id')
             ->get()
             ->filter(fn (AccountCard $card): bool => $card->route === null || in_array($card->route, $sections, true))
-            ->filter(fn (AccountCard $card): bool => $card->audience !== AccountCardAudience::Panel || $panel)
+            ->filter(fn (AccountCard $card): bool => match ($card->audience) {
+                AccountCardAudience::Panel => $panel,
+                // أصحاب الأدوار المختارة وحدهم (مراجعة المشرف، 26 أكتوبر 2026)
+                AccountCardAudience::Roles => $user->hasAnyRole(array_values(array_filter((array) $card->roles, 'is_string'))),
+                default => true,
+            })
             ->map(fn (AccountCard $card): ?array => ($href = $card->href()) === null ? null : [
                 'route' => $card->route,
                 'href' => $href,

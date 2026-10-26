@@ -133,16 +133,19 @@ it('applies the archive corrections: audio order and titles, videos, documents, 
         ->and(Storage::disk('public')->exists($home['hero_image']))->toBeTrue()
         ->and($contact['email'])->toBe('info@ejaz.sa')
         ->and($contact['phone'])->toBe('+966 55 055 6758')
-        ->and($contact['address'])->toBe('مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى')
+        ->and($contact['address'])->toBe('مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال')
         // رابط الخريطة القديم يشير إلى العنوان القديم، فلا يُنقل حتى يصل رابط العنوان المعتمد
         ->and($contact)->not->toHaveKey('map_url')
+        // والبيانات الرسمية (البند 8، 26 أكتوبر 2026): العنوان الوطني المختصر لرابط الخريطة، ورقم واتساب
+        ->and($contact['short_address'])->toBe('MALA4207')
+        ->and($contact['whatsapp'])->toBe('+966550556758')
         ->and($contact['social'])->toBe([
             'x' => 'https://x.com/ejazsa2025',
             'instagram' => 'https://instagram.com/ejazsa2025',
             'youtube' => 'https://youtube.com/@ejazsa2025',
             'tiktok' => 'https://tiktok.com/@ejazsa2025',
             'telegram' => 'https://t.me/ejazsa2025',
-            'facebook' => 'https://facebook.com/profile.php?id=61595399341851',
+            'facebook' => 'https://facebook.com/ejazsa2025',
             'whatsapp' => 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
         ]);
 
@@ -309,14 +312,14 @@ it('keeps the missing marks in the import file only where the association has no
     $data = json_decode((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), true);
     $marks = substr_count((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), '【ناقص');
 
-    // اثنتان كما في README: نص التوجه الاستراتيجي، وعنوان صوتية واحد. وصفحات الاستفسارات والتوظيف والتطوع والتقارير
-    // بعناوينها وحدها (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+    // واحدة كما في README: عنوان صوتية. وصفحات الاستفسارات والتوظيف والتطوع والتقارير بفقرة «مثال تجريبي»
+    // (قرار صفوان، 26 أكتوبر 2026)، و«التوجه الاستراتيجي» الفارغ محذوف
     $pages = collect($data['pages'])->filter(fn (array $page): bool => str_contains((string) json_encode($page, JSON_UNESCAPED_UNICODE), '【ناقص'))->pluck('slug')->sort()->values()->all();
     $library = collect($data['library'])->filter(fn (array $item): bool => str_contains($item['title'], '【ناقص'))->pluck('slug')->all();
     $media = collect($data['media'])->reject(fn (array $item): bool => $item['is_decorative']);
 
-    expect($marks)->toBe(2)
-        ->and($pages)->toBe(['about'])
+    expect($marks)->toBe(1)
+        ->and($pages)->toBe([])
         ->and($library)->toBe(['audio-02'])
         ->and($media)->toHaveCount(45)
         ->and($media->filter(fn (array $item): bool => blank($item['alt']) || str_contains($item['alt'], '【'))->all())->toBe([]);
@@ -329,14 +332,14 @@ it('shows the approved contact details on the contact page, the footer and the p
         ->assertSee('+966 55 055 6758')
         ->assertSee('tel:+966550556758', false)
         ->assertSee('mailto:info@ejaz.sa', false)
-        ->assertSee('مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى')
+        ->assertSee('مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال')
         ->assertDontSee(__('contact.info.missing'))
         ->assertSee('https://t.me/ejazsa2025', false)
         ->assertSee(__('settings.social.telegram'))
         ->assertSee(__('site.license'));
 
     expect(FormEntryLayout::letterhead()['contact'])->toBe([
-        'address' => 'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+        'address' => 'مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال',
         'phone' => '+966 55 055 6758',
         'email' => 'info@ejaz.sa',
     ]);

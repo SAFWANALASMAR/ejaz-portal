@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AccountCards;
 
 use App\Enums\AccountCardAudience;
+use App\Enums\RoleName;
 use App\Enums\SiteIcon;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\AccountCards\Pages\CreateAccountCard;
@@ -19,6 +20,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -60,10 +62,25 @@ class AccountCardResource extends Resource
                     ->extraInputAttributes(['dir' => 'ltr'])
                     ->columnSpanFull(),
                 Select::make('audience')->label(__('account_cards.fields.audience'))->options(AccountCardAudience::class)
-                    ->default(AccountCardAudience::Everyone)->required()->native(false),
+                    ->default(AccountCardAudience::Everyone)->required()->native(false)->live(),
+                // لأصحاب أدوار مختارة (مراجعة المشرف، 26 أكتوبر 2026)
+                Select::make('roles')->label(__('account_cards.fields.roles'))->helperText(__('account_cards.fields.roles_hint'))
+                    ->multiple()->native(false)
+                    ->options(collect(RoleName::cases())->mapWithKeys(fn (RoleName $role): array => [$role->value => $role->getLabel()])->all())
+                    ->rule('array')
+                    ->visible(fn (Get $get): bool => self::audience($get('audience')) === AccountCardAudience::Roles)
+                    ->required(fn (Get $get): bool => self::audience($get('audience')) === AccountCardAudience::Roles)
+                    ->dehydrateStateUsing(fn (mixed $state, Get $get): ?array => self::audience($get('audience')) === AccountCardAudience::Roles
+                        ? array_values(array_intersect((array) $state, RoleName::values(RoleName::cases())))
+                        : null),
                 Toggle::make('is_visible')->label(__('account_cards.fields.is_visible'))->default(true),
             ]),
         ]);
+    }
+
+    private static function audience(mixed $state): ?AccountCardAudience
+    {
+        return $state instanceof AccountCardAudience ? $state : AccountCardAudience::tryFrom(is_string($state) ? $state : '');
     }
 
     public static function table(Table $table): Table

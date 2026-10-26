@@ -13,7 +13,9 @@
     $map = is_string($contact['map_url'] ?? null) && SafeUrl::isSafe($contact['map_url'], allowInternal: false)
         ? $contact['map_url']
         : \App\Support\NationalAddress::mapUrl(is_string($contact['short_address'] ?? null) ? $contact['short_address'] : null);
-    $hasInfo = filled($email) || filled($phone) || filled($address) || $map !== null;
+    // زر واتساب من رقمه في الإعدادات (البيانات الرسمية، 26 أكتوبر 2026)
+    $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
+    $hasInfo = filled($email) || filled($phone) || filled($address) || $map !== null || $whatsapp !== null;
     // بلا بيانات تبقى البطاقة بعلامة 【ناقص】 في التطوير، ولا تظهر فارغة للزوار في الإنتاج
     $showInfo = $hasInfo || ! app()->isProduction();
 @endphp
@@ -63,6 +65,18 @@
                             </a>
                         </p>
                     @endif
+                    @if ($whatsapp !== null)
+                        <p class="mt-4">
+                            <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" data-whatsapp
+                                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-semibold text-white transition hover:bg-primary-dark">
+                                <x-social-icon network="whatsapp" class="size-5" />
+                                {{ __('contact.info.whatsapp') }}
+                                <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                            </a>
+                        </p>
+                    @endif
+                    {{-- رقم الترخيص من «محتوى الرئيسية» كالتذييل --}}
+                    <p class="mt-5 border-t border-line/70 pt-4 text-sm text-muted">{{ \App\Support\HomeContent::text('footer', 'license') }}</p>
                 @else
                     <p class="mt-4"><x-missing :what="__('contact.info.missing')" /></p>
                 @endif

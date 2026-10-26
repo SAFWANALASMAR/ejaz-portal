@@ -1,7 +1,8 @@
 {{--
-    المبررات (الخطة الاستراتيجية ص7 — ملاحظات المدير التنفيذي، 25 أكتوبر 2026): «إعجاز» بخط كبير تملؤه صورة المقطع،
-    وبجانبه نص المبررات حرفياً، ثم «ولأجل تحقيق هذه الرؤية تأسست:» واسم الجمعية. والكلمة الكبيرة زخرفة، فلا يقرؤها قارئ
-    الشاشة والعنوان «المبررات» قبلها. النصوص والصورة من اللوحة (App\Support\HomeContent).
+    المبررات (الخطة الاستراتيجية ص7 — ملاحظات المدير التنفيذي، 25 أكتوبر 2026): مخطوطة اسم الجمعية بحجم كبير فوق صورة
+    المقطع، بملف المخطوطة نفسه الذي في الرأس لا بخط الويب (مراجعة المشرف، 26 أكتوبر 2026)، وبجانبها نص المبررات حرفياً، ثم
+    «ولأجل تحقيق هذه الرؤية تأسست:» واسم الجمعية. والمخطوطة زخرفة، فلا يقرؤها قارئ الشاشة واسم الجمعية مكتوب بعدها.
+    النصوص والصورة والمخطوطة من اللوحة (App\Support\HomeContent).
 --}}
 <section class="relative overflow-hidden bg-white py-14 lg:py-20" aria-labelledby="home-rationale">
     <div class="container-page grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -9,7 +10,8 @@
             <div class="relative overflow-hidden rounded-[2rem] bg-primary-dark shadow-xl">
                 <img src="{{ $rationale['image'] }}" alt="{{ $rationale['image_alt'] }}" loading="lazy" class="aspect-[4/3] w-full object-cover opacity-80">
                 <span class="absolute inset-0 bg-linear-to-t from-primary-dark via-primary-dark/40 to-transparent" aria-hidden="true"></span>
-                <span class="absolute inset-x-0 bottom-0 px-6 pb-4 text-center text-[clamp(4.5rem,16vw,9rem)] leading-none font-extrabold text-white drop-shadow-lg" aria-hidden="true">{{ $rationale['wordmark'] }}</span>
+                <img src="{{ \App\Support\HomeContent::brand('calligraphy_white') }}" alt="" aria-hidden="true" loading="lazy" data-rationale-calligraphy
+                    class="absolute inset-x-0 bottom-0 mx-auto w-[88%] px-4 pb-6 drop-shadow-lg sm:pb-8">
             </div>
             <span class="absolute -bottom-4 -start-4 -z-0 h-24 w-24 rounded-3xl bg-secondary-soft" aria-hidden="true"></span>
         </div>

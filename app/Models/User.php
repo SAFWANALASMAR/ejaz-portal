@@ -20,6 +20,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -168,13 +170,28 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * يُسقط البريد أو الجوال عن الحسابات غير الموثقة التي تحمله، حين يأخذه حساب موثق (التوثيق، أو إنشاء حساب موظف).
+     * يُسقط البريد أو الجوال عن الحسابات غير الموثقة التي تحمله، حين يأخذه حساب موثق (التوثيق، أو إنشاء حساب موظف). ولا
+     * يُسقط عن حساب لا معرّف دخول آخر له (الحسابات القديمة بلا اسم مستخدم)، فلا يُغلق.
      */
     public static function releaseFromUnverified(string $column, string $value, int|string|null $except = null): void
     {
+        $other = $column === 'email' ? 'phone' : 'email';
+
         self::query()->where($column, $value)->whereNull($column.'_verified_at')
+            ->where(fn ($query) => $query->whereNotNull('username')->orWhereNotNull($other))
             ->when($except !== null, fn ($query) => $query->whereKeyNot($except))
             ->update([$column => null]);
+    }
+
+    /**
+     * البريد مأخوذ إن حمله حساب موثق البريد، أو حساب قديم بلا اسم مستخدم: بريده معرّف دخوله الوحيد، فلو أخذه غيره لم يعرف
+     * صاحبه من يُدخل (soleHolder) فيُغلق حسابه (مراجعة المشرف، M1 — 26 أكتوبر 2026).
+     */
+    public static function emailTakenRule(int|string|null $ignore = null): Unique
+    {
+        return Rule::unique(self::class, 'email')
+            ->where(fn ($query) => $query->whereNotNull('email_verified_at')->orWhereNull('username'))
+            ->ignore($ignore);
     }
 
     /**

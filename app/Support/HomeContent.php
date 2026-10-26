@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Storage;
  * وكلمة رئيس مجلس الإدارة، والمبررات، والقيم الأربع. نصوصها الأصلية منقولة حرفياً في lang/ar/home.php (sections)،
  * وصورها في public/images/home، وكل نص وصورة يُستبدل من اللوحة («محتوى الرئيسية» — UpdateHomeContent) ويُحفظ في
  * الإعدادات (المفتاح home_sections). فما لم يُعدَّل يبقى على الأصل.
+ *
+ * ومعها النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026): عنوانا شريطي الأخبار والإعلانات، وعنوان «قنوات التواصل»
+ * ومقدمتها، وعنوان صفحة الإعلانات ومقدمتها، ونصوص التذييل. وملفات الشعار والمخطوطة في الرأس والتذييل والمبررات.
  */
 final class HomeContent
 {
@@ -21,16 +24,30 @@ final class HomeContent
     public const VALUES = 4;
 
     /**
-     * النصوص لكل مقطع، وما يُكتب في سطور متعددة منها.
+     * النصوص لكل مقطع.
      *
      * @var array<string, list<string>>
      */
     public const TEXTS = [
         'king' => ['heading', 'text', 'signature_title', 'signature_name'],
         'chairman' => ['heading', 'excerpt', 'full', 'name', 'title'],
-        'rationale' => ['heading', 'wordmark', 'text', 'lead', 'outcome'],
+        'rationale' => ['heading', 'text', 'lead', 'outcome'],
         'values' => ['heading'],
+        'tickers' => ['news', 'announcements'],
+        'channels' => ['title', 'intro'],
+        'announcements' => ['title', 'intro'],
+        'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights'],
     ];
+
+    /**
+     * النصوص الطويلة (حد 6000 حرف، وغيرها 300).
+     */
+    public const LONG = ['full', 'text', 'excerpt'];
+
+    /**
+     * نصوص كتبناها مكان محتوى ناقص من الجمعية، فتُوسم «مثال تجريبي» ما لم تُستبدل من اللوحة (قرار صفوان، 26 أكتوبر 2026).
+     */
+    public const SAMPLE = ['channels.intro', 'announcements.intro'];
 
     /**
      * صور المقاطع (المسار على القرص العام) بأصلها في public/images/home.
@@ -44,14 +61,21 @@ final class HomeContent
     ];
 
     /**
+     * ملفات الشعار (الأعمدة) والمخطوطة بلونيها، بأصلها في public/images/brand، وتُستبدل من اللوحة متى وصلت ملفات أفضل.
+     *
+     * @var array<string, string>
+     */
+    public const BRAND = [
+        'mark' => 'images/brand/logo-mark.png',
+        'mark_white' => 'images/brand/logo-mark-white.png',
+        'calligraphy' => 'images/brand/logo-calligraphy.png',
+        'calligraphy_white' => 'images/brand/logo-calligraphy-white.png',
+    ];
+
+    /**
      * المحتوى للعرض: المحفوظ من اللوحة، وإلا الأصل.
      *
-     * @return array{
-     *     king: array{heading: string, text: string, signature_title: string, signature_name: string, image: string, image_alt: string},
-     *     chairman: array{heading: string, excerpt: string, full: string, name: string, title: string, image: string, image_alt: string},
-     *     rationale: array{heading: string, wordmark: string, text: string, lead: string, outcome: string, image: string, image_alt: string},
-     *     values: array{heading: string, items: list<array{title: string, text: string, image: string}>},
-     * }
+     * @return array<string, array<string, mixed>>
      */
     public static function resolved(): array
     {
@@ -60,31 +84,56 @@ final class HomeContent
 
         foreach (self::TEXTS as $section => $keys) {
             foreach ($keys as $key) {
-                $content[$section][$key] = self::text($stored[$section][$key] ?? null) ?? (string) __('home.sections.'.$section.'.'.$key);
+                $content[$section][$key] = self::clean($stored[$section][$key] ?? null) ?? self::default($section, $key);
             }
         }
 
         foreach (self::IMAGES as $section => $default) {
-            $path = self::text($stored[$section]['image'] ?? null);
+            $path = self::clean($stored[$section]['image'] ?? null);
             $content[$section]['image'] = $path !== null ? Storage::disk('public')->url($path) : asset($default);
-            $content[$section]['image_alt'] = self::text($stored[$section]['image_alt'] ?? null) ?? (string) __('home.sections.'.$section.'.image_alt');
+            $content[$section]['image_alt'] = self::clean($stored[$section]['image_alt'] ?? null) ?? (string) __('home.sections.'.$section.'.image_alt');
         }
 
         $content['values']['items'] = [];
 
         foreach (range(0, self::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);
-            $path = self::text($item['image'] ?? null);
+            $path = self::clean($item['image'] ?? null);
 
             $content['values']['items'][] = [
-                'title' => self::text($item['title'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.title'),
-                'text' => self::text($item['text'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.text'),
+                'title' => self::clean($item['title'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.title'),
+                'text' => self::clean($item['text'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.text'),
                 'image' => $path !== null ? Storage::disk('public')->url($path) : asset('images/home/value-'.($index + 1).'.jpg'),
             ];
         }
 
-        /** @var array{king: array{heading: string, text: string, signature_title: string, signature_name: string, image: string, image_alt: string}, chairman: array{heading: string, excerpt: string, full: string, name: string, title: string, image: string, image_alt: string}, rationale: array{heading: string, wordmark: string, text: string, lead: string, outcome: string, image: string, image_alt: string}, values: array{heading: string, items: list<array{title: string, text: string, image: string}>}} $content */
         return $content;
+    }
+
+    /**
+     * نص واحد للعرض خارج الرئيسية (التذييل، وصفحة الإعلانات): المحفوظ، وإلا الأصل.
+     */
+    public static function text(string $section, string $key): string
+    {
+        return self::clean(Setting::group(self::KEY)[$section][$key] ?? null) ?? self::default($section, $key);
+    }
+
+    /**
+     * النص «مثال تجريبي» ما دام الأصل الذي كتبناه لم يُستبدل من اللوحة.
+     */
+    public static function isSample(string $section, string $key): bool
+    {
+        return in_array($section.'.'.$key, self::SAMPLE, true) && self::clean(Setting::group(self::KEY)[$section][$key] ?? null) === null;
+    }
+
+    /**
+     * رابط ملف الشعار أو المخطوطة: المرفوع من اللوحة، وإلا الأصل.
+     */
+    public static function brand(string $key): string
+    {
+        $path = self::clean(Setting::group(self::KEY)['brand'][$key] ?? null);
+
+        return $path !== null ? Storage::disk('public')->url($path) : asset(self::BRAND[$key]);
     }
 
     /**
@@ -105,11 +154,15 @@ final class HomeContent
             $paths[] = is_array($item) ? ($item['image'] ?? null) : null;
         }
 
+        foreach (array_keys(self::BRAND) as $key) {
+            $paths[] = $stored['brand'][$key] ?? null;
+        }
+
         return array_values(array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''));
     }
 
     /**
-     * فقرات النص الطويل (كلمة رئيس المجلس كاملة): سطر فارغ أو أكثر بين كل فقرتين.
+     * فقرات النص الطويل (كلمة رئيس المجلس): سطر لكل فقرة.
      *
      * @return list<string>
      */
@@ -118,7 +171,12 @@ final class HomeContent
         return array_values(array_filter(array_map('trim', preg_split('/\R/u', $text) ?: []), fn (string $line): bool => $line !== ''));
     }
 
-    private static function text(mixed $value): ?string
+    private static function default(string $section, string $key): string
+    {
+        return (string) __('home.sections.'.$section.'.'.$key);
+    }
+
+    private static function clean(mixed $value): ?string
     {
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }

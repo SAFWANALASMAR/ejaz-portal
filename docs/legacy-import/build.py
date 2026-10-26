@@ -221,8 +221,8 @@ about = {
         {'type': 'text', 'data': {'heading': 'من نحن', 'body': html(about_paras)}},
         {'type': 'text', 'data': {'heading': 'الرؤية', 'body': html(vision)}},
         {'type': 'text', 'data': {'heading': 'الرسالة', 'body': html(mission)}},
-        # In the old menu only, with no link and no text
-        {'type': 'text', 'data': {'heading': 'التوجه الاستراتيجي', 'body': html([missing('محتوى التوجه الاستراتيجي')])}},
+        # The old "التوجه الاستراتيجي" heading had no text; the plan's vision, mission, goals and values are that direction
+        # (supervisor's review, 26 Oct 2026), so the empty block is dropped
         {'type': 'cards', 'data': {'heading': 'أهداف الجمعية', 'items': [
             {'icon': None, 'title': t, 'text': None, 'media': media_slug[img]} for t, img in zip(goal_titles, goal_images)]}},
         {'type': 'image', 'data': {'media': media_slug[values_image[0]]}},
@@ -237,16 +237,21 @@ assert email == 'info@ejaz.sa'
 # The association's approved data (from Safwan, who manages its official accounts, 19 Oct 2026), verbatim. It replaces the
 # archive's address (شارع ثوبان النبوي) and drops its map link, which points there; the new map link is asked of the
 # association (docs/drafts/content-requests.md).
+# Then the association's official data (its leaflet and letterhead, 26 Oct 2026 — task item 8): the address wording, the
+# national short address from the official SPL proof (MALA4207, used for the map link), the WhatsApp number, and the
+# Facebook account under @ejazsa2025 like the others. The WhatsApp channel has no counterpart there, so it stays.
 APPROVED_CONTACT = {
     'phone': '+966 55 055 6758',
-    'address': 'مكة المكرمة - برج الساعة (أبراج البيت المقابلة للمسجد الحرام) - الدور التاسع بجوار المصلى',
+    'whatsapp': '+966550556758',
+    'address': 'مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال',
+    'short_address': 'MALA4207',
     'social': {
         'x': 'https://x.com/ejazsa2025',
         'instagram': 'https://instagram.com/ejazsa2025',
         'youtube': 'https://youtube.com/@ejazsa2025',
         'tiktok': 'https://tiktok.com/@ejazsa2025',
         'telegram': 'https://t.me/ejazsa2025',
-        'facebook': 'https://facebook.com/profile.php?id=61595399341851',
+        'facebook': 'https://facebook.com/ejazsa2025',
         'whatsapp': 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
     },
 }
@@ -256,13 +261,23 @@ join_text = join[after(join, "## Let's talk.")].strip()
 join_images = [image_in(line) for line in join if image_in(line)]
 assert join_text.startswith('لطلب الانضمام') and join_images == ['Image-901.png', 'Group-61552.png']
 
-# صفحات بعناوينها وحدها حتى يُضاف محتواها من اللوحة (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026)
-empty_text = []
+# Short introductions written by the portal team, tagged "مثال تجريبي" until the association sends its text (Safwan's
+# decision, 26 Oct 2026). Untick "is_sample" in the panel once replaced.
+def sample_page(slug, title, text):
+    return {'slug': slug, 'title': title, 'is_sample': True, 'blocks': [{'type': 'text', 'data': {'heading': None, 'body': html([text])}}]}
+
+
+SAMPLE_INTROS = {
+    'inquiries': 'يسعد جمعية إعجاز للدراسات والبحوث العلمية تلقي استفساراتكم واقتراحاتكم حول برامجها ومبادراتها وخدماتها، وتصل إلى الفريق المختص عبر نموذج «الاستفسارات والاقتراحات» في صفحة التواصل، ليتابعها ويرد عليها.',
+    'jobs': 'تتطلع الجمعية إلى استقطاب الكفاءات المهتمة بخدمة الدراسات والبحوث العلمية في الإعجاز العلمي في القرآن الكريم والسنة النبوية. وتُنشر فرص العمل المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.',
+    'volunteering': 'يسهم المتطوعون في تحقيق رسالة الجمعية بالمشاركة في برامجها ومبادراتها وفعالياتها العلمية والتعليمية. وتُنشر فرص التطوع المتاحة في «خدماتنا الإلكترونية»، ويُقدَّم عليها من حسابك في البوابة.',
+    'reports': 'تحرص الجمعية على الشفافية والإفصاح، وتنشر تقاريرها في قسم الحوكمة، ومنه يُطّلع عليها وتُنزَّل.',
+}
 pages = [
     about,
     {'slug': 'contact', 'title': 'تواصل معنا', 'summary': contact_text,
      'blocks': [{'type': 'text', 'data': {'heading': None, 'body': html([contact_text])}}]},
-    {'slug': 'inquiries', 'title': 'الاستفسارات والاقتراحات', 'blocks': empty_text},
+    sample_page('inquiries', 'الاستفسارات والاقتراحات', SAMPLE_INTROS['inquiries']),
     {'slug': 'assembly-membership', 'title': 'طلب الانضمام للجمعية العمومية', 'summary': join_text,
      'blocks': [
          {'type': 'image', 'data': {'media': media_slug[join_images[0]]}},
@@ -271,9 +286,9 @@ pages = [
          {'type': 'text', 'data': {'heading': 'طلب الانضمام للجمعية العمومية',
                                    'body': f'<p>{join_text}<br><strong><a href="mailto:{email}">{email}</a></strong></p>'}},
      ]},
-    {'slug': 'jobs', 'title': 'التوظيف', 'blocks': empty_text},
-    {'slug': 'volunteering', 'title': 'التطوع', 'blocks': empty_text},
-    {'slug': 'reports', 'title': 'التقارير', 'blocks': empty_text},
+    sample_page('jobs', 'التوظيف', SAMPLE_INTROS['jobs']),
+    sample_page('volunteering', 'التطوع', SAMPLE_INTROS['volunteering']),
+    sample_page('reports', 'التقارير', SAMPLE_INTROS['reports']),
 ]
 
 # ---------------------------------------------------------------- initiatives (short names as in overview.md)

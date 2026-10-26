@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\RoleName;
 use App\Models\Meeting;
@@ -13,8 +14,9 @@ use App\Support\PortalStats;
  * ما يزيد في رئيسية حساب المشرف العام (لوحته — ملاحظات المدير التنفيذي عبر صفوان، 25 أكتوبر 2026):
  * - إحصائيات عامة للاطلاع: البرامج، والتسجيل، والجمعية العمومية، والاجتماعات، والمشاركات. من المحسوب في الخلفية
  *   (PortalStats)، فلا استعلام عدّ في كل زيارة، ولا تظهر قبل أول حساب.
- * - اجتماع تيمز القادم أو الجاري لمن يحضره (MeetingPolicy::attend)، والجمعية العمومية مؤجلة لغير المشرف العام والمسؤول
- *   التقني حتى تُظهر من اللوحة (AccountSettings).
+ * - اجتماع تيمز القادم أو الجاري: للجمعية العمومية لمن يحضره (MeetingPolicy::attend)، ولمجلس الإدارة واللجان لمن يراها
+ *   (Meeting::visibleTo، والمشرف العام اطلاعاً — مراجعة المشرف، 26 أكتوبر 2026). والزر مؤجل لغير الرقباء حتى تُظهر
+ *   البوابات المؤجلة من اللوحة (AccountSettings).
  */
 class BuildOversight
 {
@@ -58,14 +60,18 @@ class BuildOversight
 
     private static function nextMeeting(User $user): ?Meeting
     {
-        $meeting = Meeting::query()
-            ->generalAssembly()
+        $upcoming = fn () => Meeting::query()->with('committee')
             ->where('status', MeetingStatus::Scheduled->value)
             ->whereNotNull('online_join_url')
             ->where('starts_at', '>', now()->subHours(self::RUNNING_HOURS))
-            ->orderBy('starts_at')
-            ->first();
+            ->orderBy('starts_at');
 
-        return $meeting !== null && $user->can('attend', $meeting) ? $meeting : null;
+        $assembly = $upcoming()->generalAssembly()->first();
+        $council = $upcoming()->where('body', '!=', MeetingBody::GeneralAssembly->value)->visibleTo($user)->first();
+
+        return collect([$assembly !== null && $user->can('attend', $assembly) ? $assembly : null, $council])
+            ->filter()
+            ->sortBy(fn (Meeting $meeting) => $meeting->starts_at)
+            ->first();
     }
 }

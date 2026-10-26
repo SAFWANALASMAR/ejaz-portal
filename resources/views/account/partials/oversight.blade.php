@@ -9,7 +9,7 @@
                 {{ svg('heroicon-o-video-camera', 'size-6') }}
             </span>
             <div>
-                <p class="text-sm font-semibold text-accent-dark">{{ __('account.oversight.next_meeting') }}</p>
+                <p class="text-sm font-semibold text-accent-dark">{{ __('account.oversight.next_meeting', ['body' => $oversight['meeting']->committee?->name ?? $oversight['meeting']->body->getLabel()]) }}</p>
                 <h2 class="mt-1 text-lg font-bold text-ink">{{ $oversight['meeting']->title }}</h2>
                 <p class="mt-1 text-sm text-muted">{{ \App\Support\Dates::display($oversight['meeting']->starts_at, withTime: true) }}</p>
             </div>

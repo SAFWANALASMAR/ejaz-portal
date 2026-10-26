@@ -29,7 +29,8 @@ function footerLink(string $html, string $label): string
 {
     $footer = (string) str($html)->after('<footer');
 
-    preg_match('#<a\s[^>]*>\s*'.preg_quote($label, '#').'\s*</a>#u', $footer, $match);
+    // وفي الرابط أيقونة قبل نصه (التذييل الجديد — 26 أكتوبر 2026)
+    preg_match('#<a\s[^>]*>(?:(?!</a>).)*?'.preg_quote($label, '#').'\s*</a>#us', $footer, $match);
 
     return $match[0] ?? '';
 }

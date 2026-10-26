@@ -78,6 +78,8 @@ class UserPolicy extends ModulePolicy
     public function resetPassword(User $user, User $record): bool
     {
         return $user->isNot($record)
+            // ولا لحساب رقيب (المشرف العام ومديرو النظام): يستعيد كلمة مروره ببريده الموثق (مراجعة المشرف، 26 أكتوبر 2026)
+            && ! RoleName::isOverseer($record)
             && $record->anonymized_at === null
             && ! $record->hasVerifiedEmail()
             && ! $record->hasVerifiedPhone()

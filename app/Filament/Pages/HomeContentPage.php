@@ -83,6 +83,10 @@ class HomeContentPage extends Page
             $data[$section]['image_alt'] = $stored[$section]['image_alt'] ?? __('home.sections.'.$section.'.image_alt');
         }
 
+        foreach (array_keys(HomeContent::BRAND) as $key) {
+            $data['brand'][$key] = $stored['brand'][$key] ?? null;
+        }
+
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);
             $data['values']['items'][] = [
@@ -121,7 +125,6 @@ class HomeContentPage extends Page
                 ]),
                 Section::make(__('home.sections.rationale.heading'))->columns(2)->schema([
                     TextInput::make('rationale.heading')->label(__('settings.home_content.heading'))->maxLength(300),
-                    TextInput::make('rationale.wordmark')->label(__('settings.home_content.wordmark'))->maxLength(300),
                     Textarea::make('rationale.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('rationale.lead')->label(__('settings.home_content.lead'))->maxLength(300),
                     TextInput::make('rationale.outcome')->label(__('settings.home_content.outcome'))->maxLength(300),
@@ -140,6 +143,28 @@ class HomeContentPage extends Page
                             self::image('image', 'values')->columnSpanFull(),
                         ]),
                 ]),
+                // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
+                Section::make(__('settings.home_content.interface'))->columns(2)->schema([
+                    TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),
+                    TextInput::make('tickers.announcements')->label(__('settings.home_content.tickers_announcements'))->maxLength(300),
+                    TextInput::make('channels.title')->label(__('settings.home_content.channels_title'))->maxLength(300),
+                    TextInput::make('channels.intro')->label(__('settings.home_content.channels_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                    TextInput::make('announcements.title')->label(__('settings.home_content.announcements_title'))->maxLength(300),
+                    TextInput::make('announcements.intro')->label(__('settings.home_content.announcements_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                ]),
+                Section::make(__('settings.home_content.footer'))->columns(2)->schema([
+                    Textarea::make('footer.about')->label(__('settings.home_content.footer_about'))->rows(2)->maxLength(300)->columnSpanFull(),
+                    TextInput::make('footer.supervision')->label(__('settings.home_content.footer_supervision'))->maxLength(300),
+                    TextInput::make('footer.license')->label(__('settings.home_content.footer_license'))->maxLength(300),
+                    TextInput::make('footer.quick_links')->label(__('settings.home_content.footer_quick_links'))->maxLength(300),
+                    TextInput::make('footer.contact')->label(__('settings.home_content.footer_contact'))->maxLength(300),
+                    TextInput::make('footer.channels')->label(__('settings.home_content.footer_channels'))->maxLength(300),
+                    TextInput::make('footer.rights')->label(__('settings.home_content.footer_rights'))->maxLength(300),
+                ]),
+                // ملفات الشعار والمخطوطة (HomeContent::BRAND): PNG أو WebP بخلفية شفافة، وفارغة تعني الأصل
+                Section::make(__('settings.home_content.brand'))->description(__('settings.home_content.brand_hint'))->columns(2)->schema(
+                    array_map(fn (string $key): FileUpload => self::brandImage($key), array_keys(HomeContent::BRAND)),
+                ),
             ]);
     }
 
@@ -173,6 +198,18 @@ class HomeContentPage extends Page
         }
 
         Notification::make()->success()->title(__('settings.saved'))->send();
+    }
+
+    /**
+     * ملف الشعار أو المخطوطة: PNG أو WebP لتبقى الخلفية شفافة، لا SVG (docs/security.md). وفارغ يعني الأصل.
+     */
+    private static function brandImage(string $key): FileUpload
+    {
+        return self::image('brand.'.$key, 'brand')
+            ->label(__('settings.home_content.brand_'.$key))
+            ->helperText(null)
+            ->acceptedFileTypes(['image/png', 'image/webp'])
+            ->maxSize(2048);
     }
 
     /**

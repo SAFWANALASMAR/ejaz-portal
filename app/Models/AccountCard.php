@@ -18,9 +18,10 @@ use Spatie\Activitylog\Support\LogOptions;
  * الإدارة (url). تُدار من اللوحة (AccountCardResource)، وتُعرض بـ AccountNavigation::cards.
  *
  * @property AccountCardAudience $audience
+ * @property list<string>|null $roles
  * @property SiteIcon $icon
  */
-#[Fillable(['title', 'description', 'icon', 'url', 'audience', 'sort', 'is_visible'])]
+#[Fillable(['title', 'description', 'icon', 'url', 'audience', 'roles', 'sort', 'is_visible'])]
 class AccountCard extends Model
 {
     /** @use HasFactory<AccountCardFactory> */
@@ -34,6 +35,7 @@ class AccountCard extends Model
         return [
             'icon' => SiteIcon::class,
             'audience' => AccountCardAudience::class,
+            'roles' => 'array',
             'sort' => 'integer',
             'is_visible' => 'boolean',
         ];

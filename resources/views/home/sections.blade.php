@@ -16,11 +16,11 @@
 @include('home.partials.values', ['values' => $content['values']])
 
 @if ($news->isNotEmpty())
-    @include('home.partials.news-ticker', ['news' => $news])
+    @include('home.partials.news-ticker', ['news' => $news, 'tickers' => $content['tickers']])
 @endif
 
 @if ($announcements->isNotEmpty())
-    @include('home.partials.announcements', ['announcements' => $announcements])
+    @include('home.partials.announcements', ['announcements' => $announcements, 'tickers' => $content['tickers']])
 @endif
 
 @if ($stats !== [])
@@ -48,5 +48,5 @@
 @endif
 
 @if ($accounts !== [])
-    @include('home.partials.accounts', ['accounts' => $accounts])
+    @include('home.partials.accounts', ['accounts' => $accounts, 'channels' => $content['channels']])
 @endif

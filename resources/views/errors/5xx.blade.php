@@ -25,7 +25,7 @@
 
     <header class="border-b border-line/70 bg-white">
         <div class="container-page flex h-20 items-center">
-            <x-brand />
+            <x-brand static />
         </div>
     </header>
 

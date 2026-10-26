@@ -1,6 +1,7 @@
 {{--
     كلمة رئيس مجلس الإدارة (الخطة الاستراتيجية ص4 — ملاحظات المدير التنفيذي، 25 أكتوبر 2026): بشكل شريط كلمة خادم الحرمين
-    الشريفين، بحركة دخول عند الظهور (data-reveal، وبلا حركة لمن طلب تقليلها). أول فقرة من المقدمة، و«اقرأ الكلمة كاملة»
+    الشريفين، بحركة دخول عند الظهور (data-reveal، وبلا حركة لمن طلب تقليلها). الافتتاح ثم أول فقرة فعلية من المقدمة
+    (قرار صفوان، 26 أكتوبر 2026)، و«اقرأ الكلمة كاملة»
     يعرضها كلها في نافذة (<dialog>)، وبلا سكربت تبقى في <details> تحتها.
 --}}
 @php($paragraphs = \App\Support\HomeContent::paragraphs($chairman['full']))
@@ -15,7 +16,11 @@
                 {{ $chairman['heading'] }}
             </h2>
 
-            <p class="mt-6 text-xl leading-[2] font-medium text-white/95 sm:text-2xl sm:leading-[2]">{{ $chairman['excerpt'] }}</p>
+            <div class="mt-6 space-y-3 text-lg leading-[2] font-medium text-white/95 sm:text-xl sm:leading-[2]">
+                @foreach (\App\Support\HomeContent::paragraphs($chairman['excerpt']) as $excerptParagraph)
+                    <p>{{ $excerptParagraph }}</p>
+                @endforeach
+            </div>
 
             <div class="mt-6 border-s-4 border-accent-light ps-4">
                 <p class="text-lg font-bold">{{ $chairman['name'] }}</p>

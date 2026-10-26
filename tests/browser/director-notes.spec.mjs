@@ -89,6 +89,17 @@ test.describe('director notes: guest screens', () => {
         await expect(page.locator('#chairman-word')).toBeVisible();
         await expect(page.locator('#chairman-word')).toContainText('النمل:93');
     });
+
+    // المراجعة النهائية (26 أكتوبر 2026): التذييل بهويته، والمخطوطة في المبررات، والمقتطف بفقرته الفعلية
+    test('the footer carries the identity, and the rationale the calligraphy file', async ({ page }) => {
+        await page.goto('/');
+        const footer = page.locator('[data-site-footer]');
+        await expect(footer).toBeVisible();
+        await expect(footer.locator('img[alt]').first()).toBeAttached();
+        await expect(footer).toContainText('رقم الترخيص');
+        await expect(page.locator('[data-rationale-calligraphy]')).toBeAttached();
+        await expect(page.locator('#home-chairman').locator('..')).toContainText('فإن القرآن الكريم كلام الله المُعجز');
+    });
 });
 
 test.describe('director notes: super admin dashboard', () => {

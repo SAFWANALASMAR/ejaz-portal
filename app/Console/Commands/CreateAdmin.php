@@ -68,6 +68,13 @@ class CreateAdmin extends Command
             return self::SUCCESS;
         }
 
+        // بريد يحمله حساب غير موثق لا يُنتزع منه بصمت (مراجعة المشرف، 26 أكتوبر 2026): يوثّقه صاحبه أو يُغيَّر من اللوحة
+        if ($email !== '' && User::query()->where('email', $email)->exists()) {
+            $this->error('البريد يحمله حساب غير موثق. ليوثّقه صاحبه، أو يُغيَّر بريد ذلك الحساب من لوحة الإدارة، ثم أعد الأمر.');
+
+            return self::FAILURE;
+        }
+
         $name = (string) $this->ask('الاسم الكامل');
         $password = (string) $this->secret('كلمة المرور ('.__('account.password_rules.summary').')');
         $confirmation = (string) $this->secret('أعد كتابة كلمة المرور');
@@ -76,7 +83,7 @@ class CreateAdmin extends Command
             ['name' => $name, 'email' => $email, 'password' => $password, 'password_confirmation' => $confirmation],
             [
                 'name' => ['required', 'string', 'min:3', 'max:120'],
-                'email' => ['required', 'email:rfc', 'max:255', Rule::unique(User::class)->whereNotNull('email_verified_at')],
+                'email' => ['required', 'email:rfc', 'max:255', Rule::unique(User::class)],
                 'password' => PasswordPolicy::rules($name, $email, null),
             ],
         );
@@ -89,8 +96,6 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
-        // البريد يُنشأ موثقاً، فيفقده ما يحمله من حسابات غير موثقة (أحقية الموثق — User::markEmailAsVerified)
-        User::releaseFromUnverified('email', $email);
         $overseers = ChangeUserRoles::activeOverseers();
 
         $user = User::create(['name' => $name, 'email' => $email, 'password' => $password]);

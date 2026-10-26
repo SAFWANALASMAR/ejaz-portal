@@ -10,12 +10,14 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Rules\PlainText;
 use App\Rules\SafeUrl;
+use App\Rules\SaudiMobile;
 use App\Rules\StoreUrl;
 use App\Rules\VideoUrl;
 use App\Support\AccountSettings;
 use App\Support\NationalAddress;
 use App\Support\PortalStats;
 use App\Support\Retention;
+use App\Support\SaudiPhone;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -122,6 +124,13 @@ class SiteSettings extends Page
                     Tab::make(__('settings.tabs.contact'))->schema([
                         TextInput::make('contact.email')->label(__('settings.contact.email'))->email()->maxLength(255),
                         TextInput::make('contact.phone')->label(__('settings.contact.phone'))->tel()->maxLength(20),
+                        // زر واتساب في التذييل وصفحة التواصل (WhatsApp::link)
+                        TextInput::make('contact.whatsapp')->label(__('settings.contact.whatsapp'))
+                            ->helperText(__('settings.contact.whatsapp_hint'))
+                            ->tel()->maxLength(20)
+                            ->rule(new SaudiMobile)
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? (SaudiPhone::normalize($state) ?? $state) : null)
+                            ->extraInputAttributes(['dir' => 'ltr']),
                         Textarea::make('contact.address')->label(__('settings.contact.address'))->rows(2)->maxLength(300),
                         // يولّد رابط الخريطة ما لم يُدخل رابطها صراحة (NationalAddress)
                         TextInput::make('contact.short_address')->label(__('settings.contact.short_address'))

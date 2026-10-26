@@ -8,6 +8,7 @@ use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Survey;
 use App\Support\ContentCache;
+use App\Support\HomeContent;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -52,7 +53,7 @@ class MediaController extends Controller
             'kind' => $kind,
         ])->render());
 
-        return view('content.page', ['title' => __('announcements.title'), 'summary' => null, 'html' => new HtmlString($html)]);
+        return view('content.page', ['title' => HomeContent::text('announcements', 'title'), 'summary' => null, 'html' => new HtmlString($html)]);
     }
 
     public function partners(): View

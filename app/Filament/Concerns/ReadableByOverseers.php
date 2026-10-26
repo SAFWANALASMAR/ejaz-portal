@@ -31,4 +31,19 @@ trait ReadableByOverseers
     {
         abort_unless(static::canWrite(), 403);
     }
+
+    /**
+     * ورفع الملفات المؤقت من المتصفح ($wire.upload()) لمن يحفظ وحده، فلا يرفع المشرف العام ملفات إلى التخزين المؤقت وحقولها
+     * معطّلة له (مراجعة المشرف، 26 أكتوبر 2026). الأصل في WithFileUploads عبر InteractsWithSchemas في صفحة Filament.
+     *
+     * @param  string  $name
+     * @param  array<mixed>  $fileInfo
+     * @param  bool  $isMultiple
+     */
+    public function _startUpload($name, $fileInfo, $isMultiple): void
+    {
+        $this->authorizeWrite();
+
+        parent::_startUpload($name, $fileInfo, $isMultiple);
+    }
 }

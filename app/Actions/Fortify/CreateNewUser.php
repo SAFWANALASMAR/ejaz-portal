@@ -67,7 +67,7 @@ class CreateNewUser implements CreatesNewUsers
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'username' => [...Username::rules(), Rule::unique(User::class, 'username')],
-            'email' => ['nullable', 'string', 'email:rfc', 'max:255', Rule::unique(User::class)->whereNotNull('email_verified_at')],
+            'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule()],
             // التفرد على الأرقام الموثقة وحدها، فلا يحجز حساب غير موثق رقم غيره (decisions.md — 14 أكتوبر 2026)
             'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique(User::class)->whereNotNull('phone_verified_at')],
             'password' => $this->passwordRules(

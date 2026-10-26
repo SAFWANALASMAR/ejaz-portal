@@ -34,8 +34,13 @@ class UpdateHomeContent
 
         foreach (HomeContent::TEXTS as $section => $keys) {
             foreach ($keys as $key) {
-                $rules[$section.'.'.$key] = ['nullable', 'string', 'max:'.(in_array($key, ['full', 'text', 'excerpt'], true) ? 6000 : 300), new PlainText];
+                $long = in_array($key, HomeContent::LONG, true);
+                $rules[$section.'.'.$key] = ['nullable', 'string', 'max:'.($long ? 6000 : 300), new PlainText(multiline: $long)];
             }
+        }
+
+        foreach (array_keys(HomeContent::BRAND) as $key) {
+            $rules['brand.'.$key] = ['nullable', 'string', 'max:255'];
         }
 
         foreach (array_keys(HomeContent::IMAGES) as $section) {
