@@ -55,6 +55,16 @@ class UpdateHomeContent
 
         $validated = Validator::make($content, $rules)->validate();
 
+        // النص المطابق لأصله لا يُخزَّن: الصفحة تعرض الأصل في حقوله، فحفظها لسبب آخر لا يجعله نصاً معتمداً، فيبقى وسم
+        // «مثال تجريبي» على ما كتبه فريق البوابة، ويتبع العرض أي تحديث لأصله (مراجعة المشرف الأخيرة على #66)
+        foreach (HomeContent::TEXTS as $section => $keys) {
+            foreach ($keys as $key) {
+                if (HomeContent::isDefault($section, $key, $validated[$section][$key] ?? null)) {
+                    $validated[$section][$key] = null;
+                }
+            }
+        }
+
         $before = HomeContent::imagePaths(Setting::group(HomeContent::KEY));
         $after = HomeContent::imagePaths($validated);
 

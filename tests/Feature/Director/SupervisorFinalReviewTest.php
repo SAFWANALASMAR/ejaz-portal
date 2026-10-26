@@ -318,3 +318,49 @@ it('carries the official data in the import file', function () {
         'address' => 'مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال'])
         ->and(collect($contact['social'])->except('whatsapp')->every(fn (string $url): bool => str_contains($url, 'ejazsa2025')))->toBeTrue();
 });
+
+// مراجعة المشرف الأخيرة على #66: الصفحة تعرض الأصل في حقوله، فحفظ حقل آخر لا يجعل النص المثال نصاً معتمداً
+it('keeps the «مثال تجريبي» tag after saving the home content page for another field', function () {
+    Setting::put('contact', ['social' => ['x' => 'https://x.com/ejazsa2025']]);
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(HomeContentPage::class)
+        ->assertFormSet(['channels.intro' => __('home.sections.channels.intro')])
+        ->fillForm(['king.heading' => 'عنوان معدّل'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $stored = Setting::group(HomeContent::KEY);
+    expect($stored['king']['heading'])->toBe('عنوان معدّل')
+        ->and($stored['channels']['intro'] ?? null)->toBeNull()
+        ->and($stored['announcements']['intro'] ?? null)->toBeNull()
+        // والمقتطف بأصله لا يُخزَّن، فيتبع أي تحديث لأصله
+        ->and($stored['chairman']['excerpt'] ?? null)->toBeNull()
+        ->and(HomeContent::isSample('channels', 'intro'))->toBeTrue()
+        ->and(HomeContent::isSample('announcements', 'intro'))->toBeTrue();
+
+    expect((string) $this->get('/')->getContent())->toContain(__('site.sample'));
+    $this->get('/media/announcements')->assertSee(__('site.sample'));
+});
+
+it('keeps the footer texts in the wording the site had before', function () {
+    expect(__('home.sections.footer.about'))->toBe(__('site.tagline'))
+        ->and(__('home.sections.footer.supervision'))->toBe(__('site.footer.supervision'))
+        ->and(__('home.sections.footer.license'))->toBe(__('site.license'));
+});
+
+it('keeps the transparency of an uploaded logo or calligraphy file', function () {
+    Storage::fake('public');
+    $image = imagecreatetruecolor(20, 10);
+    imagesavealpha($image, true);
+    imagefill($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+    ob_start();
+    imagepng($image);
+    Storage::disk('public')->put('settings/calligraphy.png', (string) ob_get_clean());
+
+    saveHomeContent(userWithRole(RoleName::ContentEditor), ['brand' => ['calligraphy' => 'settings/calligraphy.png']]);
+
+    $saved = imagecreatefromstring((string) Storage::disk('public')->get('settings/calligraphy.png'));
+    expect($saved)->not->toBeFalse()
+        ->and(imagecolorsforindex($saved, imagecolorat($saved, 5, 5))['alpha'])->toBe(127);
+});

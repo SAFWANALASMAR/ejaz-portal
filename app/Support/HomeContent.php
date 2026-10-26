@@ -171,6 +171,16 @@ final class HomeContent
         return array_values(array_filter(array_map('trim', preg_split('/\R/u', $text) ?: []), fn (string $line): bool => $line !== ''));
     }
 
+    /**
+     * النص هو الأصل نفسه (بلا فرق في المسافات حوله ولا في نوع فواصل الأسطر)، فلا يُخزَّن (UpdateHomeContent).
+     */
+    public static function isDefault(string $section, string $key, mixed $value): bool
+    {
+        $normalize = fn (string $text): string => trim(str_replace(["\r\n", "\r"], "\n", $text));
+
+        return is_string($value) && $normalize($value) === $normalize(self::default($section, $key));
+    }
+
     private static function default(string $section, string $key): string
     {
         return (string) __('home.sections.'.$section.'.'.$key);
