@@ -125,8 +125,8 @@ class SaveRegisterEntry
             throw ValidationException::withMessages(['attachments' => __('validation.file_in_use')]);
         }
 
-        $size = PrivateUpload::check(RegisterEntry::disk(), RegisterEntry::DIRECTORY, $path, 'attachments', __('registers.validation.invalid_file'))['size'];
+        $checked = PrivateUpload::check(RegisterEntry::disk(), RegisterEntry::DIRECTORY, $path, 'attachments', __('registers.validation.invalid_file'));
 
-        return ['path' => $path, 'name' => str_replace(['/', '\\'], '-', $file['name']), 'size' => $size];
+        return ['path' => $path, 'name' => PrivateUpload::downloadName((string) $file['name'], $checked['extension']), 'size' => $checked['size']];
     }
 }

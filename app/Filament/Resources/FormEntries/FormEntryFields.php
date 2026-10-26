@@ -106,7 +106,11 @@ final class FormEntryFields
                 ->limit(20)
                 ->pluck('name', 'id')
                 ->all())
-            ->getOptionLabelUsing(fn (mixed $value): ?string => User::query()->whereKey($value)->value('name'))
+            // اسم من جمهور النموذج وحده، أو صاحب المحفوظ: دالة الاسم تُستدعى من المتصفح برقم أي حساب، فكانت تسرد أسماء
+            // الحسابات كلها بالأرقام المتتالية (الاختبار الأمني 0.14.0)
+            ->getOptionLabelUsing(fn (mixed $value, ?FormEntry $record): ?string => ((string) $record?->person_id === (string) $value
+                ? User::query()
+                : $audience->people())->whereKey($value)->value('name'))
             ->columnSpanFull();
     }
 

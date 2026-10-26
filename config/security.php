@@ -62,6 +62,11 @@ return [
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),
 
+    // تعيين كلمة المرور الجديدة برمز الرابط في الدقيقة: خمس لكل بريد وعنوان، وسقف أرحب لكل مشترك يتسع لمدرسة كاملة
+    // خلف عنوان واحد (مراجعة المشرف على الاختبار الأمني 0.14.0). ويُربط بحدود شبكات المدارس بعد دمج مسابقة الطلاب
+    'password_update_per_identity_per_minute' => (int) env('PASSWORD_UPDATE_PER_IDENTITY_PER_MINUTE', 5),
+    'password_update_per_subscriber_per_minute' => (int) env('PASSWORD_UPDATE_PER_SUBSCRIBER_PER_MINUTE', 120),
+
     // حدان لكل شبكة في الساعة، حتى لا يستنزف مصدر واحد السقف العام:
     // - المعلّق (pending): رموز أُرسلت ولم يُتحقق منها. الرمز الجديد للمستخدم نفسه يحل محل
     //   السابق، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة كالمدارس والجوال.

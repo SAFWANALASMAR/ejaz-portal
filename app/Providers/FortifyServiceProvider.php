@@ -11,15 +11,21 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Auth\CurrentPasswordLimiter;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
+use App\Http\Responses\NeutralPasswordResetResponse;
 use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\NetworkPrefix;
 use App\Support\PasswordPolicy;
+use App\Support\SchoolNetworkLimits;
 use App\Support\UploadLimits;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +33,7 @@ use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFact
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication as BaseEnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetResponse;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
@@ -44,6 +51,8 @@ class FortifyServiceProvider extends ServiceProvider
         // رسالة واحدة لطلب الاستعادة سواء وُجد البريد أم لا
         $this->app->bind(FailedPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
+        // ورسالة واحدة لرمز خاطئ في تعيين كلمة المرور الجديدة، للبريد المسجل وغيره
+        $this->app->bind(FailedPasswordResetResponse::class, NeutralPasswordResetResponse::class);
         $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
         $this->app->bind(BaseDisableTwoFactorAuthentication::class, DisableTwoFactorAuthentication::class);
         $this->app->bind(BaseEnableTwoFactorAuthentication::class, EnableTwoFactorAuthentication::class);
@@ -55,6 +64,16 @@ class FortifyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // الدخول بكعكة «تذكّرني» يُعلَّم في الجلسة، فلا تبلغ به ما يشترط التحقق الثنائي (EnsureTwoFactorIsEnabled):
+        // جلسة استُعيدت بالكعكة قبل ترقية الحساب إلى دور في اللوحة لا يبطلها تدوير الرمز (مراجعة المشرف على 0.14.0)
+        Event::listen(Login::class, function (Login $event): void {
+            if ($event->guard === 'web') {
+                Auth::guard('web')->viaRemember()
+                    ? session()->put(EnsureTwoFactorIsEnabled::VIA_REMEMBER, true)
+                    : session()->forget(EnsureTwoFactorIsEnabled::VIA_REMEMBER);
+            }
+        });
+
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
@@ -85,7 +104,8 @@ class FortifyServiceProvider extends ServiceProvider
             return null;
         }
 
-        if (! $user->is_active || ! Hash::check($password, $user->password)) {
+        // التجزئة قبل حالة الحساب، فلا يرد الموقوف أسرع بزمن تجزئة كامل (الاختبار الأمني 0.14.0)
+        if (! Hash::check($password, $user->password) || ! $user->is_active) {
             return null;
         }
 
@@ -161,6 +181,15 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour((int) config('security.password_reset_per_subscriber_per_hour'))
             ->by('password-reset:'.NetworkPrefix::subscriber($request->ip())));
+
+        // تعيين كلمة المرور برمز الرابط: لكل بريد وعنوان، ولكل مشترك سقف أرحب يتسع أيام اختبار مسابقة الطلاب
+        // (SchoolNetworkLimits)، فلا تحجب مدرسةٌ خلف عنوان واحد طلابَها
+        RateLimiter::for('password-update', fn (Request $request): array => [
+            Limit::perMinute((int) config('security.password_update_per_identity_per_minute'))
+                ->by('password-update:'.mb_strtolower(trim((string) (is_string($request->input('email')) ? $request->input('email') : ''))).'|'.$request->ip()),
+            Limit::perMinute(SchoolNetworkLimits::limit('password_update_per_subscriber_per_minute'))
+                ->by('password-update-net:'.NetworkPrefix::subscriber($request->ip())),
+        ]);
 
         // إشعارات تسليم واتساب: لكل مشترك (عنوان IPv4، أو /64 في IPv6). واسع لأن Meta ترسل من عناوين قليلة،
         // وحتى ثلاثة إشعارات لكل رسالة (routes/messaging.php)

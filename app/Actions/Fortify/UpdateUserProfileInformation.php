@@ -9,6 +9,7 @@ use App\Rules\SaudiMobile;
 use App\Support\AccountSettings;
 use App\Support\SaudiPhone;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -45,6 +46,14 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             throw ValidationException::withMessages(['email' => __('account.profile.identifier_required')])->errorBag('updateProfileInformation');
         }
 
+        // رد «مأخوذ» يكشف بريد غيره أو جواله الموثق، فخمس قيم مأخوذة في الساعة لكل حساب، ثم رسالة الانتظار قبل أي فحص
+        // (الاختبار الأمني 0.14.0: كان بلا حد، فيتجاوز حدود التسجيل الموضوعة لهذا الخطر نفسه)
+        $takenKey = 'profile-taken:'.$user->id;
+
+        if (($emailChanged || $phoneChanged) && RateLimiter::tooManyAttempts($takenKey, 5)) {
+            throw ValidationException::withMessages(['email' => __('account.profile.taken_throttled')])->errorBag('updateProfileInformation');
+        }
+
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule($user->id)],
@@ -56,6 +65,10 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         if ($validator->fails()) {
             if ($validator->errors()->has('current_password')) {
                 CurrentPasswordLimiter::failed($user);
+            }
+
+            if (isset($validator->failed()['email']['Unique']) || isset($validator->failed()['phone']['Unique'])) {
+                RateLimiter::hit($takenKey, 3600);
             }
 
             throw (new ValidationException($validator))->errorBag('updateProfileInformation');

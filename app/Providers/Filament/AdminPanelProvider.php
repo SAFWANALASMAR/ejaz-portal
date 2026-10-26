@@ -10,6 +10,7 @@ use App\Http\Middleware\LeavePanelWithFullPageLoad;
 use App\Http\Middleware\RejectMalformedAdminRecord;
 use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Http\Middleware\SecurityHeaders;
+use Filament\Actions\Exports\ExportColumn;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\FileUpload;
 use Filament\Http\Middleware\Authenticate;
@@ -53,6 +54,10 @@ class AdminPanelProvider extends PanelProvider
         // خلية فارغة في صف قابل للنقر تصير رابطاً بلا نص (axe: link-name)، فلكل عمود نصي علامة الفراغ نفسها
         // المستعملة في الجداول، ويغيّرها العمود متى شاء
         TextColumn::configureUsing(fn (TextColumn $column) => $column->placeholder('—'));
+
+        // كل عمود تصدير محمي من حقن الصيغ ولو نُسي له safeCell (كان «المسؤول» في تصدير الطلبات بلا حماية — الاختبار
+        // الأمني 0.14.0). وsafeCell في الأعمدة يتخطى الفراغات قبل علامة الصيغة أيضاً
+        ExportColumn::configureUsing(fn (ExportColumn $column) => $column->preventFormulaInjection());
     }
 
     public function panel(Panel $panel): Panel
