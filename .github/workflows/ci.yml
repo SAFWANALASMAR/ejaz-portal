@@ -17,6 +17,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # صور الخادم كما تُبنى (docs/security.md «تحديث PHP وnginx»)، بـ --pull فلا تُقبل طبقة قديمة من ذاكرة المشغّل:
+  # PHP للتطوير والإنتاج على الرقعة 8.4.27 فأحدث ورفع تقدم الجلسة مطفأ، وnginx بالوسم الذي في Dockerfile
+  # (فرع مستقر يتلقى الرقع) بـ nginx -t بلا تحذير ورؤوس الحماية حاضرة (tests/nginx/run.sh)
+  php-image:
+    name: صور الخادم (الرقع الأمنية)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: بناء الصورتين
+        run: |
+          docker build --pull -t ejaz-php-dev docker/php
+          docker build --pull --target base -t ejaz-php-base -f deploy/docker/Dockerfile .
+
+      - name: الإصدار ورفع تقدم الجلسة
+        run: |
+          check='if (version_compare(PHP_VERSION, "8.4.27", "<")) { fwrite(STDERR, "PHP ".PHP_VERSION." أقدم من 8.4.27\n"); exit(1); }
+          if (filter_var(ini_get("session.upload_progress.enabled"), FILTER_VALIDATE_BOOLEAN)) { fwrite(STDERR, "session.upload_progress.enabled مفعّل\n"); exit(1); }
+          echo "PHP ", PHP_VERSION, "، ورفع تقدم الجلسة مطفأ\n";'
+          docker run --rm ejaz-php-dev php -r "$check"
+          # إعداد الإنتاج كما تنسخه مرحلة app إلى الصورة
+          docker run --rm -v "$PWD/deploy/php/production.ini:/usr/local/etc/php/conf.d/99-ejaz.ini:ro" ejaz-php-base php -r "$check"
+
+      - name: nginx بإعداد الإنتاج
+        run: |
+          image="$(sed -n 's/^FROM \(nginx:[^ ]*\) AS web$/\1/p' deploy/docker/Dockerfile)"
+          [ -n "$image" ] || { echo "::error::لا مرحلة web بصورة nginx في deploy/docker/Dockerfile"; exit 1; }
+          docker pull -q "$image"
+          bash tests/nginx/run.sh "$image"
+
   quality:
     name: الجودة والاختبارات
     runs-on: ubuntu-latest

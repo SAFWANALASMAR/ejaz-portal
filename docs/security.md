@@ -74,6 +74,21 @@
 
 - `composer audit` و`npm audit` في الفحص الآلي، وتحديثات أمنية أسبوعية عبر Dependabot.
 - لا مكتبة جديدة دون مراجعة: مصدرها، ونشاط صيانتها، وضرورتها، وتُسجَّل في `decisions.md`.
+- **تحديث PHP وnginx** (أمر المشرف، 26 أكتوبر 2026، بعد الإصدار الأمني الحرج PHP 8.4.27 في 21 أكتوبر، وبعد ثغرات nginx في 2026 والفرع 1.27 منتهٍ بلا رقع):
+  - **الرقع الأمنية خلال 48 ساعة** من صدورها لكل مكوّن في الصور: PHP، وnginx، وPostgreSQL، وRedis.
+  - **متابعة PHP:** أرشيف الإصدارات `https://www.php.net/archive/` (أو خلاصته `https://www.php.net/feed.atom`) مرتين في الأسبوع على الأقل، ووسم `security` في `https://www.php.net/releases/index.php?json&version=8.4`.
+  - **رقعة PHP:**
+    - تُرفع في `deploy/docker/Dockerfile` و`docker/php/Dockerfile`، والحد الأدنى في `.github/workflows/ci.yml` و`tests/Feature/Platform/ServerImagePatchesTest.php`.
+    - ثم إصدار وتحديث بـ `--pull` (`deploy.md` «رابعاً»).
+    - ومعها توصياته المؤقتة في `deploy/php/production.ini` و`docker/php/php.ini`.
+  - **وسم PHP مثبّت برقم الرقعة** (`php:8.4.27-fpm-bookworm`)، لا الوسم المتحرك `php:8.4-...`، فلا تبقى صورة بُنيت قبل الإصلاح على نسخة مصابة دون أن تظهر في الفحص.
+  - **nginx على الفرع المستقر المدعوم** (`nginx:1.30-alpine`)، لا على فرع منتهٍ. والوسم بالفرع يأخذ رقعه بـ `build --pull`، ورقعة أمنية فيه تعني نشراً جديداً بـ `--pull` خلال 48 ساعة. ومتى صدر فرع مستقر جديد وانتهى دعم القديم، يُنقل إليه في فرع بفحص `tests/nginx/run.sh`.
+  - **PostgreSQL 17 وRedis 7 مدعومان** (Redis 7.2 و7.4 حتى 2029): يكفي إعادة البناء والسحب بـ `--pull` لأحدث رقعة.
+  - **مراجعة شهرية** لفروع PHP وnginx وPostgreSQL وRedis المدعومة وتواريخ انتهاء دعمها، ويُسجَّل الانتقال قبل الانتهاء في `roadmap.md`.
+  - **الفحص الآلي** (مهمة «صور الخادم»):
+    - يبني صورتي PHP بـ `--pull`، ويفشل إن كانت النسخة أقل من الحد الأدنى أو كان `session.upload_progress.enabled` مفعّلاً.
+    - ويشغّل nginx بالوسم الذي في `Dockerfile` وبإعداد الإنتاج: `nginx -t` بلا تحذير، ورؤوس الحماية وCSP حاضرة (`tests/nginx/run.sh`).
+  - **`session.upload_progress.enabled = 0`:** بتوصية php.net المؤقتة (23 أكتوبر 2026، CVE-2026-115560) حتى رقعة تصلحها، ولا تستعمله البوابة.
 
 ## النسخ الاحتياطي
 

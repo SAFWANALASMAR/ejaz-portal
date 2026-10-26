@@ -1,5 +1,6 @@
 # صورة PHP لبيئة التطوير المحلية — بوابة جمعية إعجاز
-FROM php:8.4-cli-bookworm
+# رقعة مثبّتة كصورة الإنتاج (deploy/docker/Dockerfile، docs/security.md «تحديث PHP وnginx»)
+FROM php:8.4.27-cli-bookworm
 
 ARG UID=1000
 ARG GID=1000
