@@ -58,6 +58,18 @@ return [
     'login_failures_per_minute' => (int) env('LOGIN_FAILURES_PER_MINUTE', 1200),
     'login_attempts_per_subscriber_per_minute' => (int) env('LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 300),
 
+    // التحدي بدل الحجب (قرار صفوان، 27 أكتوبر 2026 — م١ وم٢ في مراجعة 0.14 السحابية): متى ضُبط Turnstile واجتازه
+    // صاحب المحاولة، لا تحجبه حدود الحساب (خمس في الدقيقة لكل معرّف وعنوان، وعشر في ربع ساعة للمعرّف وللحساب) ولا حدود
+    // الشبكة أعلاه، فيدخل من يملك كلمة المرور الصحيحة ولو خلف عنوان مدرسته أو بعد محاولات غيره على حسابه. ويبقى الحجب
+    // عند هذه السقوف الصارمة ولو حُل التحدي، فلا يتسع التخمين بلا نهاية. وبلا مفتاحي Turnstile تبقى الحدود أعلاه حاجبة كما
+    // كانت. ولا يُستعمل السقف إن كان أدنى من الحد (أيام الاختبار ترفع حد المشترك إلى 300)
+    'login_challenge_max_per_identity_ip_per_minute' => (int) env('LOGIN_CHALLENGE_MAX_PER_IDENTITY_IP_PER_MINUTE', 20),
+    'login_challenge_max_per_account' => (int) env('LOGIN_CHALLENGE_MAX_PER_ACCOUNT', 50),
+    'login_challenge_max_per_subscriber' => (int) env('LOGIN_CHALLENGE_MAX_PER_SUBSCRIBER', 1000),
+    'login_challenge_max_per_ipv6_site' => (int) env('LOGIN_CHALLENGE_MAX_PER_IPV6_SITE', 3000),
+    // تنبيه صاحب الحساب بالتحدي (LoginChallengeOnAccount) بالرسالة النصية: سقف يومي للبوابة كلها، وبعده بالبريد وحده
+    'login_challenge_sms_per_day' => (int) env('LOGIN_CHALLENGE_SMS_PER_DAY', 200),
+
     // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),

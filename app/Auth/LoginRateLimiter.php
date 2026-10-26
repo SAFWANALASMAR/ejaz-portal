@@ -2,11 +2,14 @@
 
 namespace App\Auth;
 
+use App\Http\Middleware\VerifyBotChallenge;
 use App\Models\User;
+use App\Notifications\LoginChallengeOnAccount;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use App\Support\SchoolNetworkLimits;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
@@ -23,6 +26,10 @@ use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
  *
  * يعمل القفل في EnsureLoginIsNotThrottled قبل فحص كلمة المرور، فالمحجوب لا يكلّف تجزئة.
  * المفتاح هو المعرّف الموحَّد، فلا يتجاوز القفلَ تغييرُ صيغة الرقم (docs/decisions.md).
+ *
+ * التحدي بدل الحجب (قرار صفوان، 27 أكتوبر 2026): من اجتاز Turnstile في طلبه (VerifyBotChallenge::PASSED) لا تحجبه
+ * حدود الحساب والشبكة، بل سقوفها الصارمة (hard)، فلا يحجب طالبٌ مدرسته ولا زميلٌ حساب منافسه عمن يملك كلمة المرور.
+ * وبلا مفتاحي Turnstile لا يُعلَّم الطلب، فتبقى الحدود حاجبة كما كانت. والسقف العام وحد كل المحاولات حاجبان دائماً.
  */
 class LoginRateLimiter extends FortifyLoginRateLimiter
 {
@@ -31,7 +38,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     /**
      * كل الحدود: حدود الحساب ثم حدود الشبكة.
      *
-     * @return array<string, array{max: int, decay: int}>
+     * @return array<string, array{max: int, hard: int, decay: int}>
      */
     protected function limits(Request $request): array
     {
@@ -41,14 +48,15 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     /**
      * حدود الحساب، يمسحها الدخول الناجح.
      *
-     * @return array<string, array{max: int, decay: int}>
+     * @return array<string, array{max: int, hard: int, decay: int}>
      */
     private function accountLimits(Request $request): array
     {
         $identifier = LoginIdentifier::normalize($request->input(Fortify::username()));
+        $hard = (int) config('security.login_challenge_max_per_account');
         $limits = [
-            'login:'.$identifier.'|'.$request->ip() => ['max' => 5, 'decay' => 60],
-            'login-account:'.$identifier => ['max' => 10, 'decay' => 900],
+            'login:'.$identifier.'|'.$request->ip() => ['max' => 5, 'hard' => (int) config('security.login_challenge_max_per_identity_ip_per_minute'), 'decay' => 60],
+            'login-account:'.$identifier => ['max' => 10, 'hard' => $hard, 'decay' => 900],
         ];
 
         // وللحساب نفسه أياً كان معرّفه (اسم المستخدم أو البريد أو الجوال)، فلا تتضاعف المحاولات بتبديل المعرّف
@@ -56,7 +64,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         $id = $this->accountId($request, $identifier);
 
         if ($id !== null) {
-            $limits['login-user:'.$id] = ['max' => 10, 'decay' => 900];
+            $limits['login-user:'.$id] = ['max' => 10, 'hard' => $hard, 'decay' => 900];
         }
 
         return $limits;
@@ -81,21 +89,38 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
     /**
      * حدود الشبكة للمحاولات الخاطئة، لا يمسحها الدخول الناجح حتى لا يصفّرها المهاجم بحسابه.
      *
-     * @return array<string, array{max: int, decay: int}>
+     * @return array<string, array{max: int, hard: int, decay: int}>
      */
     private function networkLimits(Request $request): array
     {
         $ip = NetworkPrefix::normalize($request->ip());
 
         $limits = [
-            'login-network:'.NetworkPrefix::subscriber($ip) => ['max' => SchoolNetworkLimits::limit('login_failures_per_subscriber'), 'decay' => 900],
+            'login-network:'.NetworkPrefix::subscriber($ip) => ['max' => SchoolNetworkLimits::limit('login_failures_per_subscriber'), 'hard' => (int) config('security.login_challenge_max_per_subscriber'), 'decay' => 900],
         ];
 
         if ($ip !== null && NetworkPrefix::isIpv6($ip)) {
-            $limits['login-network:'.NetworkPrefix::prefix($ip, 48)] = ['max' => (int) config('security.login_failures_per_ipv6_site'), 'decay' => 900];
+            $limits['login-network:'.NetworkPrefix::prefix($ip, 48)] = ['max' => (int) config('security.login_failures_per_ipv6_site'), 'hard' => (int) config('security.login_challenge_max_per_ipv6_site'), 'decay' => 900];
         }
 
         return $limits;
+    }
+
+    /**
+     * الحدود الحاجبة لهذا الطلب: حدود الحساب والشبكة، بسقوفها الصارمة لمن اجتاز التحدي، ثم السقف العام وحد كل المحاولات.
+     *
+     * @return array<string, array{max: int, decay: int}>
+     */
+    private function blockingLimits(Request $request): array
+    {
+        $challenged = $request->attributes->get(VerifyBotChallenge::PASSED) === true;
+        $limits = [];
+
+        foreach ($this->limits($request) as $key => $limit) {
+            $limits[$key] = ['max' => $challenged ? max($limit['max'], $limit['hard']) : $limit['max'], 'decay' => $limit['decay']];
+        }
+
+        return $limits + $this->portalLimits() + $this->attemptLimits($request);
     }
 
     /**
@@ -139,7 +164,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
      */
     public function tooManyAttempts($request): bool
     {
-        foreach ($this->limits($request) + $this->portalLimits() + $this->attemptLimits($request) as $key => $limit) {
+        foreach ($this->blockingLimits($request) as $key => $limit) {
             if ($this->limiter->tooManyAttempts($key, $limit['max'])) {
                 return true;
             }
@@ -162,6 +187,39 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         foreach ($this->limits($request) + $this->portalLimits() as $key => $limit) {
             $this->limiter->hit($key, $limit['decay']);
         }
+
+        $this->noticeChallengedAccount($request);
+    }
+
+    /**
+     * صاحب الحساب يُنبَّه حين تبلغ المحاولات الخاطئة حد حسابه فيصير دخوله بالتحدي، مرة في اليوم. بعد الرد (defer)،
+     * فلا يفرق زمن الرد بين حساب موجود وغيره: الفحص كله بعد الرد، ويُسجَّل لكل معرّف. و always لأن رد المحاولة الخاطئة
+     * 422، ولارافيل يُسقط المؤجَّل بعد رد خطأ بدونه. ولا تنبيه بلا التحدي: الحجب فيه كما كان.
+     */
+    private function noticeChallengedAccount(Request $request): void
+    {
+        if ($request->attributes->get(VerifyBotChallenge::PASSED) !== true) {
+            return;
+        }
+
+        $id = $this->accountId($request, LoginIdentifier::normalize($request->input(Fortify::username())));
+        $limits = $this->accountLimits($request);
+
+        defer(function () use ($id, $limits): void {
+            if ($id === null) {
+                return;
+            }
+
+            foreach ($limits as $key => $limit) {
+                if ($limit['decay'] === 900 && $this->limiter->attempts($key) >= $limit['max']) {
+                    if (Cache::add('login-challenge-notice:'.$id, true, 86400)) {
+                        User::query()->find($id)?->notify(new LoginChallengeOnAccount);
+                    }
+
+                    return;
+                }
+            }
+        }, always: true);
     }
 
     /**
@@ -172,7 +230,7 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         // مدة الانتظار من الحد الذي بُلغ فعلاً، لا من أطول الحدود
         $waits = [];
 
-        foreach ($this->limits($request) + $this->portalLimits() + $this->attemptLimits($request) as $key => $limit) {
+        foreach ($this->blockingLimits($request) as $key => $limit) {
             if ($this->limiter->tooManyAttempts($key, $limit['max'])) {
                 $waits[] = $this->limiter->availableIn($key);
             }
