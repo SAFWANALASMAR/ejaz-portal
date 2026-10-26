@@ -200,11 +200,14 @@ Hostinger لا يبيع تخزين كائنات متوافقاً مع S3، وا�
 scp scripts/server-bootstrap.sh root@<IP>:/root/
 ssh root@<IP>
 less /root/server-bootstrap.sh                      # يُقرأ قبل تشغيله
-ADMIN_USER=ejaz ADMIN_CIDR=<عنوان الإدارة>/32 bash /root/server-bootstrap.sh   # ADMIN_CIDR اختياري
-passwd ejaz                                         # كلمة مرور sudo، في مدير كلمات المرور
+ADMIN_USER=ejaz ADMIN_CIDR=<عنوان الإدارة>/32 bash /root/server-bootstrap.sh   # ADMIN_CIDR اختياري، ويسأل عن كلمة مرور sudo
 ```
 
 ثم من نافذة جديدة قبل إغلاق جلسة root: `ssh ejaz@<IP>`، ثم `sudo -v` و`docker ps`. ومن هنا كل شيء بالمستخدم `ejaz`.
+
+- السكربت يطلب كلمة مرور sudo للمستخدم في الطرفية قبل إغلاق دخول root، ولا يُغلقه بدونها. وفي تشغيل بلا طرفية يُنشئ المستخدم ويتوقف قبل SSH: `passwd ejaz` ثم يُعاد تشغيله.
+- `ADMIN_CIDR` يُرفض إن لم يكن عنوان جلستك داخله (أو يطلب تأكيداً في الطرفية)، فلا تُقفل خارج الخادم.
+- إعادة التشغيل بـ `ADMIN_CIDR` مختلف تضيف قاعدة 22 جديدة ولا تحذف القديمة: بعد الدخول بالجديدة `sudo ufw status numbered`، ثم `sudo ufw delete <رقم القاعدة القديمة>`، ثم يُعدَّل جدار hPanel مثلها.
 
 **٣. لقطة في hPanel** بعد التجهيز («قبل المشروع»)، فإن أخطأت خطوة لاحقة رجعت إليها.
 
@@ -247,6 +250,7 @@ AWS_ENDPOINT=
 ```
 
 - كل قيمة بين `<...>` تُستبدل أو تُفرغ، فلا يبقى في `.env` نص فيه مسافة بلا علامات اقتباس.
+- `LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=` الفارغ يرجع إلى القرص الافتراضي `FILESYSTEM_DISK=local` (Livewire يقرؤه بـ `?:`، فالنص الفارغ لا يصير اسم قرص). مجرَّب: `FileUploadConfiguration::disk()` يرد `local`.
 - و`COMPETITION_NATIONAL_ID_HMAC_KEY` بقيمة `openssl rand -base64 48` (`CHANGELOG.md` 0.14.0).
 - والبريد من مايكروسوفت 365 (شروطه في `cutover.md` «ما تحتاجه الجمعية يوم النشر»):
 
@@ -287,7 +291,8 @@ cd /opt/ejaz && docker compose --env-file .env -f deploy/compose.production.yaml
   - وهذه الشهادة لا تتجدد آلياً، فتُستبدل بعد النقل.
 - **بعد النقل** (`cutover.md`): شهادة بتحدي HTTP تتجدد وحدها:
   - `sudo certbot certonly --webroot -w /var/lib/ejaz/acme -d ejaz.sa -d www.ejaz.sa --force-renewal`
-  - ثم `sudo certbot renew --dry-run` بلا خطأ.
+  - ثم خطاف النسخ يدوياً، لأن certbot لا يشغّل خطافات `renewal-hooks/deploy` إلا في `renew`: `sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/ejaz.sa sh /etc/letsencrypt/renewal-hooks/deploy/ejaz.sh`، ثم `curl -vI https://ejaz.sa 2>&1 | grep -i "issuer"` يعرض Let's Encrypt.
+  - ثم `sudo certbot renew --dry-run` بلا خطأ (التجديدات بعدها تشغّل الخطاف وحدها).
 
 **٦. مفتاح النسخ والوحدات:** «أولاً» الخطوتان 8 و9 كما هما (`/etc/ejaz/backup-public.asc`، ثم `deploy/systemd/compose/`). ومؤقت النسخ لا يُفعَّل قبل أول نسخة يدوية (الخطوة ٩).
 

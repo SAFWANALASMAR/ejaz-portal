@@ -133,6 +133,7 @@ curl -sI --resolve ejaz.sa:443:<IP Hostinger> https://ejaz.sa/<رابط قديم
 1. نسخة أخيرة من الموقع القديم ونسخة من البوابة (`sudo systemctl start ejaz-backup.service`).
 2. في hosting.com: `A` لـ `ejaz.sa` إلى عنوان Hostinger، و`www` إليه (أو `CNAME` إلى `ejaz.sa`). و`AAAA` القديم يُحذف أو يُوجَّه إلى IPv6 الخادم الجديد، لا يبقى على hosting.com (وإلا وصل زوار IPv6 إلى الموقع القديم).
 3. ثم «يوم النقل» أعلاه من الخطوة 2 (`SEO_INDEXABLE=true`) إلى 8، وفيها: الشهادة بتحدي HTTP التي تتجدد وحدها (`deploy.md` «Hostinger KVM» الخطوة ٥).
+   - **رمز QR للمسابقة** يُنزَّل ويُطبع بعد هذا وحده: `APP_URL=https://ejaz.sa` في `.env` وذاكرة الإعدادات معادة (`CHANGELOG.md` 0.14.0 «بعد النشر» الخطوة 4)، ثم يُمسح الرمز بجوال فيفتح `https://ejaz.sa/c/...`.
 4. **فحص البريد بعد التغيير** (لم يتغير شيء فيه، ويُتأكد):
 
 ```bash
