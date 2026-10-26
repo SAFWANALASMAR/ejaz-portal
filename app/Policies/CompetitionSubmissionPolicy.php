@@ -23,7 +23,8 @@ class CompetitionSubmissionPolicy
 
     public function update(User $user, CompetitionSubmission $submission): bool
     {
-        return $this->owns($user, $submission) && $submission->isDraft() && ! $submission->trashed();
+        // تسجيل مسابقة الطلاب لا يُعدَّل بنموذج المشاركة ولا رحلة الاختبار القديمة (plans/student-competition.md)
+        return $this->owns($user, $submission) && $submission->isDraft() && ! $submission->trashed() && ! $submission->competition->student_mode;
     }
 
     public function create(User $user): bool

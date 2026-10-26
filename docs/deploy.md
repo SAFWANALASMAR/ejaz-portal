@@ -69,6 +69,7 @@
 
 - `APP_KEY`: يُولَّد مرة ويُحفظ في مدير كلمات المرور: `docker compose --env-file .env -f deploy/compose.production.yaml run --rm --no-deps app php artisan key:generate --show`.
 - `APP_URL=https://ejaz.sa`، و`APP_DEBUG=false`، و`SESSION_SECURE_COOKIE=true`.
+  - **قبل طباعة رمز QR لمسابقة الطلاب** («الرابط ورمز QR» في اللوحة): الرمز يُبنى من `APP_URL`، فتأكد أنه رابط الإنتاج النهائي قبل التنزيل والتعميم على المدارس. والرمز المطبوع برابط آخر لا يُصلحه تغيير لاحق.
 - `SEO_INDEXABLE=false` حتى يوم نقل النطاق، ثم `true` في الإنتاج وحده.
 - `TRUSTED_PROXIES`: عناوين موزع الأحمال إن وُجد، وفارغة إن وصل الزوار مباشرة (`security.md`).
 - `DB_PASSWORD` و`REDIS_PASSWORD`: طويلة عشوائية (`openssl rand -base64 32`).
@@ -119,7 +120,7 @@ $DC ps                                         # كل الخدمات healthy
 5. وضع الصيانة.
 6. `migrate --force` ثم `db:seed --class=AccessSeeder --force` (الأدوار ثم مزامنة الصلاحيات من `config/permissions.php`، آمن للتكرار) بالصورة الجديدة.
 7. يبدّل الحاويات. وكل حاوية تبني عند بدئها ذاكرة الإعدادات والمسارات والقوالب والأحداث وFilament. وHorizon ينهي مهامه الجارية قبل توقفه.
-8. `ejaz:refresh-content` (ذاكرة المحتوى العام وحدها)، ثم رفع الصيانة.
+8. `ejaz:refresh-content` (ذاكرة المحتوى العام، وبنوك مراحل مسابقة الطلاب وفحص درجتها القصوى، فلا يبقى بعد ترحيل يغيّر الفئات أو الأسئلة مباشرة بنكٌ مخزن قديم)، ثم رفع الصيانة. ولا `cache:clear`.
 9. فحص `/up` و`ejaz:health`.
 
 **ممنوع في الإنتاج:** `cache:clear` و`optimize:clear` (يصفّران قفل الدخول وحدود الرسائل ورموز التحقق — `security.md`)، و`migrate:fresh`، و`db:seed` بلا `--class`، و`docker compose down -v` (يحذف القاعدة).

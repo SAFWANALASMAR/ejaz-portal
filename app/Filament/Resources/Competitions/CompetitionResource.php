@@ -8,7 +8,14 @@ use App\Filament\Resources\Competitions\Pages\CreateCompetition;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\Pages\ListCompetitions;
 use App\Filament\Resources\Competitions\Pages\ViewCompetition;
+use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\DrawsRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\FieldsRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\PassagesRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\QuestionBankRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\RegistrationsRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\ResultsRelationManager;
+use App\Filament\Resources\Competitions\RelationManagers\RoundsRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\SubmissionsRelationManager;
 use App\Filament\Resources\Competitions\Schemas\CompetitionForm;
 use App\Filament\Resources\Competitions\Tables\CompetitionsTable;
@@ -62,6 +69,13 @@ class CompetitionResource extends Resource
     {
         return [
             SubmissionsRelationManager::class,
+            RoundsRelationManager::class,
+            QuestionBankRelationManager::class,
+            PassagesRelationManager::class,
+            FieldsRelationManager::class,
+            RegistrationsRelationManager::class,
+            ResultsRelationManager::class,
+            CumulativeRelationManager::class,
             DrawsRelationManager::class,
         ];
     }

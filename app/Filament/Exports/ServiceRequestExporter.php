@@ -4,8 +4,9 @@ namespace App\Filament\Exports;
 
 use App\Enums\FormFieldType;
 use App\Enums\ServiceRequestStatus;
+use App\Filament\Exports\Concerns\XlsxOnly;
 use App\Models\ServiceRequest;
-use Filament\Actions\Exports\Enums\ExportFormat;
+use App\Support\SaudiPhone;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ServiceRequestExporter extends Exporter
 {
+    use XlsxOnly;
+
     protected static ?string $model = ServiceRequest::class;
 
     public static function getColumns(): array
@@ -27,9 +30,10 @@ class ServiceRequestExporter extends Exporter
             ExportColumn::make('opening.kind')->label(__('services.admin.fields.kind'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('user.name')->label(__('services.admin.fields.applicant'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('user.email')->label(__('services.admin.fields.email'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
-            ExportColumn::make('user.phone')->label(__('services.admin.fields.phone')),
+            // بالصيغة المحلية كتصدير البرامج: «+966…» تحسبه برامج الجداول رقماً أو صيغة
+            ExportColumn::make('user.phone')->label(__('services.admin.fields.phone'))->formatStateUsing(fn (?string $state) => SaudiPhone::display($state)),
             ExportColumn::make('status')->label(__('services.admin.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
-            ExportColumn::make('assignee.name')->label(__('services.admin.fields.assignee')),
+            ExportColumn::make('assignee.name')->label(__('services.admin.fields.assignee'))->formatStateUsing(fn (?string $state) => self::safeCell($state)),
             ExportColumn::make('submitted_at')->label(__('services.admin.fields.submitted_at'))
                 ->formatStateUsing(fn ($state) => $state?->setTimezone(config('app.display_timezone'))->format('Y-m-d H:i')),
             ExportColumn::make('answers')->label(__('services.admin.fields.answers'))
@@ -45,11 +49,6 @@ class ServiceRequestExporter extends Exporter
     public function getFileDisk(): string
     {
         return ServiceRequest::disk();
-    }
-
-    public function getFormats(): array
-    {
-        return [ExportFormat::Xlsx];
     }
 
     public static function getCompletedNotificationBody(Export $export): string
@@ -76,10 +75,11 @@ class ServiceRequestExporter extends Exporter
     }
 
     /**
-     * نص يبدأ بـ = أو + أو - أو @ يُقرأ صيغةً إن حُفظ الملف CSV، فيُسبق بعلامة اقتباس.
+     * نص يبدأ بـ = أو + أو - أو @ يُقرأ صيغةً إن حُفظ الملف CSV، فيُسبق بعلامة اقتباس. ولو سبقته فراغات (برامج الجداول
+     * تتجاهلها فتنفّذ الصيغة)، كما في نتائج الاستبيان.
      */
     public static function safeCell(?string $value): ?string
     {
-        return $value !== null && preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
+        return $value !== null && preg_match('/^[\s\x{00A0}\x{FEFF}]*[=+\-@\t\r]/u', $value) === 1 ? "'".$value : $value;
     }
 }

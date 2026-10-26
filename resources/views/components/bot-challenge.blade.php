@@ -3,9 +3,9 @@
     2026)، كالاستبيان. لا يظهر إلا متى ضُبط مفتاح الموقع (BotChallenge::siteKey)، والمشغّل الوهمي في التطوير والاختبارات
     بلا مفتاح. والخادم يتحقق من رمزه، وسكربته مرة واحدة في الصفحة ولو تعددت النماذج.
 --}}
-@props(['action'])
+@props(['action', 'signedIn' => false])
 
-@php($siteKey = auth()->guest() ? app(\App\Contracts\BotChallenge::class)->siteKey() : null)
+@php($siteKey = auth()->guest() || $signedIn ? app(\App\Contracts\BotChallenge::class)->siteKey() : null)
 
 @if ($siteKey)
     <div class="cf-turnstile" data-sitekey="{{ $siteKey }}" data-action="{{ $action }}" data-language="ar"></div>

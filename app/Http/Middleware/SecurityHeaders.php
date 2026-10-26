@@ -85,7 +85,7 @@ class SecurityHeaders
 
         // عنصر التحدي ضد الآليات في صفحات نماذجه وحدها، متى كان مشغّله turnstile، فلا يتسع ما تسمح به الصفحات الأخرى
         // (docs/decisions.md): الاستبيان والتبرع، والدخول والتسجيل والاستعادة (قرار صفوان، 20 أكتوبر 2026)
-        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate', 'login', 'register', 'password.request')) {
+        if (config('services.bot_challenge.driver') === 'turnstile' && $request->routeIs('surveys.show', 'donate', 'login', 'register', 'password.request', 'competitions.student.register')) {
             $directives['script-src'] = [...$directives['script-src'], ...config('security.csp.challenge_src')];
             $directives['frame-src'] = [...$directives['frame-src'], ...config('security.csp.challenge_src')];
         }

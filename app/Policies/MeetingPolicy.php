@@ -47,7 +47,8 @@ class MeetingPolicy extends ModulePolicy
 
     public function cancel(User $user, Meeting $meeting): bool
     {
-        return $meeting->status === MeetingStatus::Scheduled && $this->allows($user, 'update');
+        // والجهة كالتعديل والحذف: من يعدّل بلا view_all لا يلغي اجتماع لجنة لا يراها (الاختبار الأمني 0.14.0)
+        return $meeting->status === MeetingStatus::Scheduled && $this->allows($user, 'update') && $meeting->isVisibleTo($user);
     }
 
     /**
@@ -63,7 +64,7 @@ class MeetingPolicy extends ModulePolicy
      */
     public function markHeld(User $user, Meeting $meeting): bool
     {
-        return $meeting->status === MeetingStatus::Scheduled && $meeting->starts_at->isPast() && $this->allows($user, 'update');
+        return $meeting->status === MeetingStatus::Scheduled && $meeting->starts_at->isPast() && $this->allows($user, 'update') && $meeting->isVisibleTo($user);
     }
 
     public function recordAttendance(User $user, Meeting $meeting): bool

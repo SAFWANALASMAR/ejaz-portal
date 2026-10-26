@@ -5,8 +5,10 @@ namespace App\Actions\Users;
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
 use App\Enums\MembershipStatus;
+use App\Jobs\GenerateCompetitionCertificate;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\AssemblyMembership;
+use App\Models\CompetitionSubmission;
 use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -14,6 +16,7 @@ use App\Support\LoginIdentifier;
 use App\Support\Username;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
@@ -95,7 +98,13 @@ class AnonymizeUser
 
             // بيانات تسجيل الاختبار تعرّف صاحبها فتُمسح الآن، لا بعد مدة الاحتفاظ. ويبقى الرقم المرجعي والدرجات
             DB::table('competition_submissions')->where('user_id', $user->id)
-                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null]);
+                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'gender' => null, 'extra' => null]);
+
+            // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
+            // المعاملة فلا يضيع ملف إن تراجعت
+            $certificates = CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();
+            CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->update(['certificate_path' => null, 'certificate_issued_at' => null]);
+            DB::afterCommit(fn () => Storage::disk(GenerateCompetitionCertificate::disk())->delete($certificates));
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
             AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);

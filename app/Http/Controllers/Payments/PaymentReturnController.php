@@ -16,6 +16,9 @@ class PaymentReturnController extends Controller
 {
     public function __invoke(Payment $payment, SyncPaymentWithGateway $sync): View
     {
+        // عملية حساب لصاحبها وحده، ولو عُرف معرّفها من سجل المتصفح أو رابط مشارَك. وتبرع الزائر بمعرّفه (الاختبار الأمني 0.14.0)
+        abort_if($payment->user_id !== null && $payment->user_id !== auth()->id(), 404);
+
         return view('payments.show', [
             'payment' => $sync->handle($payment),
             // زر «المحاولة مرة أخرى» لا يظهر إن عُطّل التبرع من اللوحة
