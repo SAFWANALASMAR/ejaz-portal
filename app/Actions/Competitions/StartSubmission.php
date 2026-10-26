@@ -20,6 +20,11 @@ class StartSubmission
      */
     public function handle(User $user, Competition $competition): CompetitionSubmission
     {
+        // مسابقة الطلاب تسجيلها ومحاولاتها في مساراتها (RegisterStudent وStartAttempt)، لا في نموذج المشاركة
+        if ($competition->student_mode) {
+            throw new AuthorizationException;
+        }
+
         $existing = $this->existing($user, $competition);
 
         if ($existing !== null) {

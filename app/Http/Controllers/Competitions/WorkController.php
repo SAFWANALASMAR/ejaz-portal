@@ -23,7 +23,7 @@ class WorkController extends Controller
 {
     public function store(Request $request, string $slug, AddSubmissionWork $add): RedirectResponse
     {
-        $competition = Competition::query()->published()->where('slug', $slug)->firstOrFail();
+        $competition = Competition::query()->published()->where('student_mode', false)->where('slug', $slug)->firstOrFail();
 
         /** @var CompetitionSubmission $submission */
         $submission = $competition->submissions()->where('user_id', $this->user($request)->id)->firstOrFail();

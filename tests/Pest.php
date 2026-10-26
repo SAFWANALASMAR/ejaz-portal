@@ -1,11 +1,17 @@
 <?php
 
+use App\Actions\Competitions\RegisterStudent;
 use App\Contracts\AiAssistant;
+use App\Enums\QuestionType;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
 use App\Models\AssistantSettings;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
+use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRegion;
+use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\Meeting;
 use App\Models\Setting;
@@ -14,6 +20,7 @@ use App\Models\User;
 use App\Services\Assistant\FakeAiAssistant;
 use App\Support\AccountSettings;
 use App\Support\ContentCache;
+use App\Support\RoundQuestions;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -267,4 +274,73 @@ function teamsEvent(Meeting $meeting, array $extra = []): array
     $at = fn ($time): array => ['dateTime' => $time->copy()->utc()->format('Y-m-d\TH:i:s').'.0000000', 'timeZone' => 'UTC'];
 
     return ['subject' => $meeting->title, 'start' => $at($meeting->starts_at), 'end' => $at($meeting->ends_at ?? $meeting->starts_at->copy()->addHour()), ...$extra];
+}
+
+/**
+ * رقم هوية سعودي صحيح الصيغة ورقم التحقق من رقم تسلسلي (مسابقة الطلاب).
+ */
+function studentNationalId(int $serial): string
+{
+    $body = '1'.str_pad((string) $serial, 8, '0', STR_PAD_LEFT);
+    $sum = 0;
+
+    foreach (str_split($body) as $position => $digit) {
+        $number = (int) $digit * ($position % 2 === 0 ? 2 : 1);
+        $sum += $number > 9 ? $number - 9 : $number;
+    }
+
+    return $body.((10 - $sum % 10) % 10);
+}
+
+/**
+ * سؤال اختيار في بنك مرحلة من مسابقة الطلاب، الصحيح فيه الخيار b، أو صح وخطأ الصحيح فيه «صح». ويُضبط عدد أسئلة
+ * المرحلة على بنك الطالب الافتراضي (registeredStudent: المرحلة الثانوية)، لأن البنك بالعدد تماماً شرط البدء.
+ * والاختبار الذي يختبر البنك الناقص أو الزائد يضبط العدد بنفسه بعده.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function studentQuestion(CompetitionRound $round, array $attributes = []): CompetitionQuestion
+{
+    $question = new CompetitionQuestion([
+        'round_id' => $round->id,
+        'type' => QuestionType::MultipleChoice,
+        'prompt' => 'سؤال تجريبي '.Str::random(6),
+        'options' => [['key' => 'a', 'label' => 'خيار أ'], ['key' => 'b', 'label' => 'خيار ب'], ['key' => 'c', 'label' => 'خيار ج'], ['key' => 'd', 'label' => 'خيار د']],
+        'correct_option' => 'b',
+        'points' => 1,
+        'is_required' => false,
+        ...$attributes,
+    ]);
+    $question->competition_id = $round->competition_id;
+    $question->save();
+
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $round->forceFill(['question_count' => $round->questions()->where(fn ($query) => $query->whereNull('category_id')->orWhere('category_id', $secondary))->count()])->save();
+    RoundQuestions::forget($round->id);
+
+    return $question;
+}
+
+/**
+ * تسجيل طالب في مسابقة الطلاب بحساب بلا جوال موثّق، عبر الإجراء نفسه.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function registeredStudent(Competition $competition, int $serial = 1, array $overrides = []): User
+{
+    $user = User::factory()->create(['phone' => null, 'phone_verified_at' => null]);
+    $category = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->firstOrFail();
+
+    app(RegisterStudent::class)->handle($user, $competition, [
+        'full_name' => 'طالب تجريبي بن مثال',
+        'national_id' => studentNationalId($serial),
+        'category_id' => $category->id,
+        'grade' => 'الأول الثانوي',
+        'region_id' => CompetitionRegion::query()->where('is_active', true)->value('id'),
+        'gender' => 'male',
+        'pledge' => '1',
+        ...$overrides,
+    ]);
+
+    return $user;
 }

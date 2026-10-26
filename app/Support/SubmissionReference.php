@@ -20,13 +20,7 @@ final class SubmissionReference
     public static function assign(CompetitionSubmission $submission): void
     {
         for ($attempt = 1; ; $attempt++) {
-            $reference = '';
-
-            for ($i = 0; $i < 10; $i++) {
-                $reference .= self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)];
-            }
-
-            $submission->reference = $reference;
+            $submission->reference = self::generate();
 
             try {
                 DB::transaction(fn () => $submission->save());
@@ -38,5 +32,19 @@ final class SubmissionReference
                 }
             }
         }
+    }
+
+    /**
+     * رقم مرجعي جديد بلا حفظ: للمشاركة هنا، ولمحاولة مسابقة الطلاب (StartAttempt).
+     */
+    public static function generate(): string
+    {
+        $reference = '';
+
+        for ($i = 0; $i < 10; $i++) {
+            $reference .= self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)];
+        }
+
+        return $reference;
     }
 }

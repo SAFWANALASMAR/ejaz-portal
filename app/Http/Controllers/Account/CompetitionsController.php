@@ -20,7 +20,7 @@ class CompetitionsController extends Controller
 
         $submissions = CompetitionSubmission::query()
             ->where('user_id', $user->id)
-            ->with('competition')
+            ->with(['competition', 'attempts.round'])
             ->latest()
             ->paginate(20);
 

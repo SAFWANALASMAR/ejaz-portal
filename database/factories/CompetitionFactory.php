@@ -4,6 +4,9 @@ namespace Database\Factories;
 
 use App\Enums\QuestionType;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
+use App\Models\CompetitionRound;
+use Database\Seeders\CompetitionListsSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -78,6 +81,30 @@ class CompetitionFactory extends Factory
                 ]);
             }
         });
+    }
+
+    /**
+     * مسابقة الطلاب (docs/plans/student-competition.md): قائمتا الفئات والمناطق من بذرتهما، والفئات كلها مفتوحة،
+     * ومرحلة جارية الآن بعشرة أسئلة وثلاثين دقيقة، بلا أسئلة (يضيفها الاختبار بما يحتاج).
+     */
+    public function student(): static
+    {
+        return $this->state(['student_mode' => true, 'categories' => []])
+            ->afterCreating(function (Competition $competition): void {
+                (new CompetitionListsSeeder)->run();
+                $competition->openCategories()->sync(CompetitionCategory::query()->pluck('id')->all());
+
+                $round = new CompetitionRound([
+                    'name' => 'المرحلة الأولى',
+                    'sort_order' => 1,
+                    'starts_at' => now()->subHour(),
+                    'ends_at' => now()->addHours(3),
+                    'question_count' => 10,
+                    'duration_minutes' => 30,
+                ]);
+                $round->competition_id = $competition->id;
+                $round->save();
+            });
     }
 
     /**

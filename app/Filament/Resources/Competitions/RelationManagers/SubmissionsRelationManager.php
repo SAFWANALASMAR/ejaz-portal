@@ -44,7 +44,9 @@ class SubmissionsRelationManager extends RelationManager
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
-        return auth()->user()?->can('viewAny', CompetitionSubmission::class) ?? false;
+        // مسابقة الطلاب بمسجليها ونتائجها في صفحتيهما (RegistrationsRelationManager وResultsRelationManager)
+        /** @var Competition $ownerRecord */
+        return ! $ownerRecord->student_mode && (auth()->user()?->can('viewAny', CompetitionSubmission::class) ?? false);
     }
 
     public function table(Table $table): Table
