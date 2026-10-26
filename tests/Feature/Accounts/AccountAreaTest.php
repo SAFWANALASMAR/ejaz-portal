@@ -176,6 +176,25 @@ it('lets a beneficiary start two-factor setup', function () {
     expect($this->user->fresh()->two_factor_secret)->not->toBeNull();
 });
 
+it('shows the QR code to an administrator setting up two-factor on first sign-in', function () {
+    // حساب إدارة بلا مفتاح بعد: يبدأ الربط من صفحة الأمان ويرى رمز QR باسم حسابه
+    $admin = userWithRole(RoleName::Secretary, ['email' => 'secretary@example.test']);
+    $admin->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post('/user/two-factor-authentication')
+        ->assertRedirect();
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get('/account/security')
+        ->assertOk()
+        ->assertSee('<svg', false);
+
+    expect(urldecode($admin->fresh()->twoFactorQrCodeUrl()))->toContain('secretary@example.test');
+});
+
 it('exports the user data after password confirmation without secrets', function () {
     $this->actingAs($this->user)->get('/account/data/export')->assertRedirect(route('password.confirm'));
 
