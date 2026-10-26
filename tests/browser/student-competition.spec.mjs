@@ -222,11 +222,17 @@ test.describe('student competition: the director journey in the panel', () => {
             if (tab === 'المسجلون') {
                 await expect(page.getByText(/••••••\d{4}/).first()).toBeVisible();
                 // النقر قبل أن يفرغ الجدول من تحميله لا يفتح النافذة (الجوال)، فيُعاد حتى تظهر
+                // ولا يُعاد النقر والنافذة تُفتح، فتحجبه
+                const revealed = page.getByText('يُسجَّل هذا الاطلاع في سجل العمليات.');
                 await expect(async () => {
-                    await page.getByRole('button', { name: 'عرض رقم الهوية' }).first().click();
-                    await expect(page.getByText('يُسجَّل هذا الاطلاع في سجل العمليات.')).toBeVisible({ timeout: 3_000 });
-                }).toPass({ timeout: 20_000 });
+                    if (!(await revealed.isVisible())) {
+                        await page.getByRole('button', { name: 'عرض رقم الهوية' }).first().click({ timeout: 3_000 });
+                    }
+                    await expect(revealed).toBeVisible({ timeout: 5_000 });
+                }).toPass({ timeout: 30_000 });
                 await expect(page.getByRole('dialog').getByText(/\b1\d{9}\b/).first()).toBeVisible();
+                // تنتهي حركة فتح النافذة (شفافية متدرجة) قبل فحص التباين، كنافذة السحب
+                await page.waitForTimeout(600);
                 await inspect(page, testInfo, '25-admin-reveal', errors);
                 await page.keyboard.press('Escape');
             }
@@ -253,10 +259,14 @@ test.describe('student competition: the director journey in the panel', () => {
         await inspect(page, testInfo, '33-admin-prizes', errors);
 
         // الرابط المختصر ورمز QR
-        // الزر معطّل ما دام طلب Livewire جارياً، فالنقر يُعاد حتى تفتح النافذة
+        // الزر معطّل ما دام طلب Livewire جارياً، فالنقر يُعاد حتى تفتح النافذة (ولا يُعاد وهي مفتوحة). والنافذة بعنوانها، لا
+        // بأول «dialog» (لوحة المساعد الذكي dialog أيضاً حين يُشغَّل)
+        const shortLink = page.locator('.fi-modal-window').filter({ hasText: 'رابط ثابت مختصر للمسابقة' });
         await expect(async () => {
-            await page.getByRole('button', { name: 'الرابط ورمز QR' }).click({ timeout: 3_000 });
-            await expect(page.getByRole('dialog').locator('svg').first()).toBeVisible({ timeout: 3_000 });
+            if (!(await shortLink.isVisible())) {
+                await page.getByRole('button', { name: 'الرابط ورمز QR' }).click({ timeout: 3_000 });
+            }
+            await expect(shortLink.locator('svg').first()).toBeVisible({ timeout: 3_000 });
         }).toPass({ timeout: 20_000 });
         await page.waitForTimeout(600);
         await inspect(page, testInfo, '34-admin-short-link', errors);
