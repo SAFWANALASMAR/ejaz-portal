@@ -21,6 +21,8 @@ class ContentPageForm
                 ContentFields::slug()->disabled(fn (?Page $record): bool => in_array($record?->slug, Page::LOCKED_SLUGS, true)),
                 Textarea::make('summary')->label(__('pages.fields.summary'))->helperText(__('pages.fields.summary_hint'))->rows(2)->maxLength(300)->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
+                // يُطفأ متى اعتُمد نص الجمعية (قرار صفوان، 26 أكتوبر 2026)
+                Toggle::make('is_sample')->label(__('pages.fields.is_sample'))->helperText(__('pages.fields.is_sample_hint')),
             ]),
             ContentFields::blocks(Page::IMAGE_DIRECTORY),
         ]);

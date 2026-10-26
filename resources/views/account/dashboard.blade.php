@@ -4,45 +4,58 @@
 @endphp
 
 <x-layouts.account :title="__('account.dashboard.title')" welcome>
-    @unless ($user->hasVerifiedEmail())
-        <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
-            <span>{{ __('account.dashboard.verify_email') }}</span>
-            <form method="POST" action="{{ route('verification.send') }}">
-                @csrf
-                <x-button variant="link">{{ __('account.dashboard.resend_email') }}</x-button>
-            </form>
-        </x-alert>
-    @endunless
+    {{-- تنبيها التوثيق متى فُعّل من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
+    @if (\App\Support\AccountSettings::verificationEnabled())
+        @if ($user->email !== null && ! $user->hasVerifiedEmail())
+            <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
+                <span>{{ __('account.dashboard.verify_email') }}</span>
+                <form method="POST" action="{{ route('verification.send') }}">
+                    @csrf
+                    <x-button variant="link">{{ __('account.dashboard.resend_email') }}</x-button>
+                </form>
+            </x-alert>
+        @endif
 
-    @unless ($user->hasVerifiedPhone())
-        <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
-            <span>{{ __('account.dashboard.verify_phone') }}</span>
-            <x-button variant="link" :href="route('account.phone.verify')">{{ __('account.dashboard.verify_now') }}</x-button>
-        </x-alert>
-    @endunless
+        @if ($user->phone !== null && ! $user->hasVerifiedPhone())
+            <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
+                <span>{{ __('account.dashboard.verify_phone') }}</span>
+                <x-button variant="link" :href="route('account.phone.verify')">{{ __('account.dashboard.verify_now') }}</x-button>
+            </x-alert>
+        @endif
+    @endif
 
     @include('account.partials.attention', ['summary' => $summary])
 
+    @include('account.partials.oversight', ['oversight' => $oversight])
+
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        @foreach (\App\Support\AccountNavigation::cards($user) as $link)
-            <a href="{{ route($link['route']) }}" @navigate(route($link['route']))
+        {{-- البطاقات من اللوحة (AccountCard): ومنها لوحة الإدارة لمن يدخلها، تحميلاً كاملاً (SpaLink) --}}
+        @foreach (\App\Support\AccountNavigation::cards($user) as $card)
+            <a href="{{ $card['href'] }}" @if ($card['external']) target="_blank" rel="noopener noreferrer" @else @navigate($card['href']) @endif
                 class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <span class="flex items-start gap-4">
-                    <span class="text-accent">{{ svg('heroicon-o-'.$link['icon'], 'size-9') }}</span>
+                    <span class="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white">
+                        {{ svg('heroicon-o-'.$card['icon'], 'size-7', ['aria-hidden' => 'true']) }}
+                    </span>
                     <span>
                         <span class="flex items-center gap-2 text-lg font-bold text-ink">
-                            {{ __($link['label']) }}
-                            @if (($counts[$link['route']] ?? 0) > 0)
-                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-accent px-2 text-sm font-semibold text-white">{{ number_format($counts[$link['route']]) }}</span>
+                            {{ $card['title'] }}
+                            @if (($counts[$card['route']] ?? 0) > 0)
+                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-accent px-2 text-sm font-semibold text-white">{{ number_format($counts[$card['route']]) }}</span>
                             @endif
                         </span>
-                        <span class="mt-1 block text-sm leading-6 text-muted">{{ __($link['description']) }}</span>
+                        @if (filled($card['description']))
+                            <span class="mt-1 block text-sm leading-6 text-muted">{{ $card['description'] }}</span>
+                        @endif
                     </span>
                 </span>
-                <span class="mt-5 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark">
-                    {{ svg('heroicon-o-arrow-left', 'size-4') }}
+                <span class="mt-5 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
+                    {{ svg($card['external'] ? 'heroicon-o-arrow-up-left' : 'heroicon-o-arrow-left', 'size-4') }}
                 </span>
+                @if ($card['external'])
+                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                @endif
             </a>
         @endforeach
     </div>

@@ -6,6 +6,7 @@ use App\Auth\CurrentPasswordLimiter;
 use App\Models\User;
 use App\Notifications\ContactDetailsChanged;
 use App\Rules\SaudiMobile;
+use App\Support\AccountSettings;
 use App\Support\SaudiPhone;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
@@ -26,8 +27,10 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      */
     public function update(User $user, array $input): void
     {
-        $input['email'] = mb_strtolower(trim((string) ($input['email'] ?? '')));
-        $input['phone'] = SaudiPhone::normalize(is_string($input['phone'] ?? null) ? $input['phone'] : null) ?? ($input['phone'] ?? null);
+        // البريد والجوال اختياريان (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        $input['email'] = mb_strtolower(trim((string) ($input['email'] ?? ''))) ?: null;
+        $phone = is_string($input['phone'] ?? null) && trim($input['phone']) !== '' ? $input['phone'] : null;
+        $input['phone'] = $phone === null ? null : (SaudiPhone::normalize($phone) ?? $phone);
 
         $emailChanged = $input['email'] !== $user->email;
         $phoneChanged = $input['phone'] !== $user->phone;
@@ -37,10 +40,15 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             CurrentPasswordLimiter::ensureNotLocked($user, 'current_password', 'updateProfileInformation');
         }
 
+        // معرّف دخول واحد على الأقل يبقى لمن لا اسم مستخدم له، فلا يُغلق حسابه بإفراغ البريد والجوال (مراجعة المشرف المبكرة، ٢)
+        if ($user->username === null && $input['email'] === null && $input['phone'] === null) {
+            throw ValidationException::withMessages(['email' => __('account.profile.identifier_required')])->errorBag('updateProfileInformation');
+        }
+
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
-            'email' => ['required', 'string', 'email:rfc', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['required', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)->whereNotNull('phone_verified_at')],
+            'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule($user->id)],
+            'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)->whereNotNull('phone_verified_at')],
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
         ]);
 
@@ -67,12 +75,16 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
         ])->save();
 
-        if ($emailChanged || $phoneChanged) {
+        if (($emailChanged || $phoneChanged) && $previousEmail !== null) {
             Notification::route('mail', $previousEmail)->notify(new ContactDetailsChanged($emailChanged, $phoneChanged));
         }
 
-        if ($emailChanged) {
-            $user->sendEmailVerificationNotification();
+        if ($emailChanged && $input['email'] !== null) {
+            // رابط التوثيق الآلي متى كان التوثيق مفعّلاً من اللوحة، وإلا يطلبه صاحب الحساب من «بياناتي»
+            if (AccountSettings::verificationEnabled()) {
+                $user->sendEmailVerificationNotification();
+            }
+
             session()->flash('status', __('account.profile.email_changed'));
         } elseif ($phoneChanged) {
             session()->flash('status', __('account.profile.phone_changed'));

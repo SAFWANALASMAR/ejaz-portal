@@ -3,22 +3,25 @@
 namespace App\Actions\Users;
 
 use App\Models\User;
+use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * تعديل حساب من لوحة الإدارة. لا يوقف أحد حسابه هو، وتغيير البريد أو الجوال يُسقط توثيقه،
- * والأدوار لا تتغير إلا عبر ChangeUserRoles (للمشرف العام).
+ * والأدوار لا تتغير إلا عبر ChangeUserRoles. والبريد والجوال اختياريان (ملاحظات المدير التنفيذي، 25 أكتوبر 2026).
  */
 class UpdateUserAccount
 {
     public function __construct(private ChangeUserRoles $changeRoles) {}
 
     /**
-     * @param  array{name: string, email: string, phone?: ?string, is_active?: bool}  $data
+     * @param  array{name: string, email?: ?string, phone?: ?string, is_active?: bool}  $data
      * @param  list<string>|null  $roles  null = لا تغيير في الأدوار
      *
      * @throws AuthorizationException
+     * @throws ValidationException
      */
     public function handle(User $actor, User $user, array $data, ?array $roles = null): void
     {
@@ -28,16 +31,23 @@ class UpdateUserAccount
         }
 
         $isActive = $data['is_active'] ?? $user->is_active;
-        $emailChanged = mb_strtolower($data['email']) !== $user->email;
+        $email = filled($data['email'] ?? null) ? mb_strtolower(trim((string) $data['email'])) : null;
+        $emailChanged = $email !== $user->email;
 
         // حماية النفس تُفحص صراحة في الإجراء أيضاً (دفاع إضافي فوق السياسة)
         if ($actor->is($user) && ! $isActive) {
             throw new AuthorizationException(__('users.cannot_deactivate_self'));
         }
 
-        DB::transaction(function () use ($actor, $user, $data, $roles, $isActive): void {
-            $email = mb_strtolower($data['email']);
-            $phone = $data['phone'] ?? null;
+        $phone = filled($data['phone'] ?? null) ? $data['phone'] : null;
+
+        // معرّف دخول واحد على الأقل يبقى، فلا يُغلق الحساب نهائياً بإفراغ البريد والجوال ممن لا اسم مستخدم له
+        // (مراجعة المشرف المبكرة، ٢)
+        if ($user->username === null && $email === null && $phone === null) {
+            throw ValidationException::withMessages(['email' => __('users.identifier_required')]);
+        }
+
+        DB::transaction(function () use ($actor, $user, $data, $roles, $isActive, $email, $phone): void {
 
             // البريد أو الجوال الجديد لا يرث توثيق القديم، وتوثيق الجوال أساس التقديم في المسابقات
             $user->forceFill([
@@ -54,8 +64,8 @@ class UpdateUserAccount
             }
         });
 
-        // البريد الجديد يُوثَّق؛ وتعديل الاسم مثلاً لا يعيد إرسال التوثيق
-        if ($emailChanged) {
+        // البريد الجديد يُوثَّق متى كان التوثيق مفعّلاً من اللوحة؛ وتعديل الاسم مثلاً لا يعيد إرسال التوثيق
+        if ($emailChanged && $email !== null && AccountSettings::verificationEnabled()) {
             $user->sendEmailVerificationNotification();
         }
     }

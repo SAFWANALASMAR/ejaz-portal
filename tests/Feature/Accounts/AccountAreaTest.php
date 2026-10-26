@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
+    enableVerification();
     $this->user = User::factory()->create([
         'name' => 'سارة أحمد',
         'email' => 'sara@example.test',

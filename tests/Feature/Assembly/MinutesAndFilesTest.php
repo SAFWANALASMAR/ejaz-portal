@@ -69,7 +69,7 @@ it('lets a board member approve minutes, never the one who uploaded them, and lo
         ->and($held->minutes_approved_by)->toBe($this->board->id)
         ->and(Activity::where('event', 'minutes_approved')->sole()->causer_id)->toBe($this->board->id)
         // المعتمد لا يُستبدل ولا يُعاد اعتماده، والمشرف العام منهم
-        ->and(fn () => app(UploadMeetingMinutes::class)->handle(userWithRole(RoleName::SuperAdmin), $held, storedPrivateFile(Meeting::MINUTES_DIRECTORY)))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(UploadMeetingMinutes::class)->handle(userWithRole(RoleName::TechnicalAdmin), $held, storedPrivateFile(Meeting::MINUTES_DIRECTORY)))->toThrow(AuthorizationException::class)
         ->and(fn () => app(ApproveMeetingMinutes::class)->handle($this->board, $held))->toThrow(AuthorizationException::class);
 });
 

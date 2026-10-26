@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Actions\Settings\UpdateSiteSettings;
 use App\Models\Album;
+use App\Models\Announcement;
 use App\Models\BoardMember;
 use App\Models\Contracts\HasPublicImages;
 use App\Models\Initiative;
@@ -14,6 +15,7 @@ use App\Models\Page;
 use App\Models\Partner;
 use App\Models\Program;
 use App\Models\Setting;
+use App\Support\HomeContent;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -34,7 +36,7 @@ class PrunePublicFiles extends Command
      *
      * @var list<class-string<Model&HasPublicImages>>
      */
-    public const MODELS = [Album::class, BoardMember::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, Partner::class, Program::class];
+    public const MODELS = [Album::class, Announcement::class, BoardMember::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, Partner::class, Program::class];
 
     /**
      * فوق هذا العدد، وفوق نصف ملفات المجلدات، يُعد الحذف جماعياً فلا يتم إلا بـ --force.
@@ -133,6 +135,10 @@ class PrunePublicFiles extends Command
         if (is_string($hero) && $hero !== '') {
             $paths[] = $hero;
         }
+
+        // وصور «محتوى الرئيسية» (HomeContent) في مجلد الإعدادات نفسه
+        $sections = Setting::query()->where('key', HomeContent::KEY)->value('value');
+        array_push($paths, ...HomeContent::imagePaths(is_array($sections) ? $sections : []));
 
         return [...$paths, ...MediaAsset::query()->whereNotNull('web_path')->pluck('web_path')->all()];
     }

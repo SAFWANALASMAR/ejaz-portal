@@ -153,7 +153,7 @@ it('purges entries of a deleted account in a competition removed from the panel 
 });
 
 it('lets only the super admin set the retention period, within limits', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $editor = userWithRole(RoleName::ContentEditor);
 
     expect(fn () => app(UpdateSiteSettings::class)->handle($editor, ['retention' => ['days' => 1]]))->toThrow(AuthorizationException::class)
@@ -297,7 +297,7 @@ it('clears the exam registration details at once when the account is anonymized,
     $entry = CompetitionSubmission::factory()->submitted()->create(['competition_id' => $this->competition->id, 'user_id' => $user->id]);
     $entry->forceFill(['full_name' => 'اسم تجريبي', 'contact_email' => 'test@example.test'])->save();
 
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
 
     $entry->refresh();
     expect($entry->full_name)->toBeNull()

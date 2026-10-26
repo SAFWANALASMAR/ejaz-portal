@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Actions\Settings\TestOnlineMeetingsConnection;
 use App\Actions\Settings\UpdateOnlineMeetingSettings;
+use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\Meeting;
 use App\Models\Setting;
 use App\Models\User;
@@ -33,6 +34,8 @@ use UnitEnum;
  */
 class OnlineMeetingsSettings extends Page
 {
+    use ReadableByOverseers;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedVideoCamera;
 
     protected static ?int $navigationSort = 91;
@@ -40,7 +43,7 @@ class OnlineMeetingsSettings extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
-    public static function canAccess(): bool
+    protected static function canWrite(): bool
     {
         return auth()->user()?->can('online_meetings.update') ?? false;
     }
@@ -77,6 +80,7 @@ class OnlineMeetingsSettings extends Page
     {
         return $schema
             ->statePath('data')
+            ->disabled(fn (): bool => ! static::canWrite())
             ->components([
                 // بغير المشغّل graph لا يُستعمل هذا الإعداد أصلاً (fake للتطوير، ويُطفأ في الإنتاج)
                 Section::make(__('settings.online_meetings.driver_warning'))
@@ -128,13 +132,15 @@ class OnlineMeetingsSettings extends Page
                             ->icon(Heroicon::OutlinedSignal)
                             ->color('gray')
                             ->action('testConnection'),
-                    ]),
+                    ])->visible(fn (): bool => static::canWrite()),
                 ]),
         ]);
     }
 
     public function save(UpdateOnlineMeetingSettings $action): void
     {
+        $this->authorizeWrite();
+
         try {
             /** @var array<string, mixed> $state */
             $state = $this->form->getState();
@@ -167,6 +173,8 @@ class OnlineMeetingsSettings extends Page
 
     public function testConnection(TestOnlineMeetingsConnection $action): void
     {
+        $this->authorizeWrite();
+
         // الاختبار للمحفوظ، والسر المكتوب قبل الحفظ لا يعود إلى المتصفح
         $this->data['client_secret'] = null;
 

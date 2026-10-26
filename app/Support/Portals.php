@@ -23,6 +23,11 @@ use Filament\Resources\Resource as FilamentResource;
 final class Portals
 {
     /**
+     * البوابات المؤجلة بقرار المدير التنفيذي (AccountSettings::showsDeferredPortals — 25 أكتوبر 2026).
+     */
+    public const DEFERRED = ['board', 'employees'];
+
+    /**
      * @return array<string, array{roles: list<RoleName>, items: array<string, class-string<FilamentResource>|null>}>
      */
     public static function definitions(): array
@@ -59,6 +64,11 @@ final class Portals
 
         foreach (self::definitions() as $key => $portal) {
             if (! $user->hasAnyRole(RoleName::values($portal['roles']))) {
+                continue;
+            }
+
+            // بوابتا مجلس الإدارة والموظفين مؤجلتان بقرار المدير التنفيذي حتى تُظهرا من اللوحة، والصلاحيات كما هي
+            if (in_array($key, self::DEFERRED, true) && ! AccountSettings::showsDeferredPortals()) {
                 continue;
             }
 

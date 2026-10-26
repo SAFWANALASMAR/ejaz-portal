@@ -75,7 +75,7 @@ it('opens the area to members, the board, the secretary and the super admin, and
     'member' => fn () => null,
     'board member' => fn () => userWithRole(RoleName::BoardMember),
     'secretary' => fn () => userWithRole(RoleName::Secretary),
-    'super admin' => fn () => userWithRole(RoleName::SuperAdmin),
+    'super admin' => fn () => userWithRole(RoleName::TechnicalAdmin),
 ]);
 
 it('shows the section page to everyone, with the tiles fitting who looks', function () {
@@ -151,6 +151,8 @@ it('hides board files from members, and serves files only by a valid signed link
 });
 
 it('puts the assembly in the account menu and cards only for those who reach it, in the order of image 04', function () {
+    // مؤجلة بقرار المدير التنفيذي حتى تُظهر من اللوحة (AccountSettings)
+    showDeferredPortals();
     expect(AccountNavigation::for(User::factory()->create())->pluck('route')->all())->not->toContain('assembly.index');
 
     expect(AccountNavigation::for($this->member)->pluck('route')->all())

@@ -198,7 +198,7 @@ it('shows the entries saved in a person file on their admin page', function () {
     $mine = FormEntry::factory()->create(['person_id' => $employee->id]);
     $other = FormEntry::factory()->create(['person_id' => User::factory()->create()->id]);
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(FormEntriesRelationManager::class, ['ownerRecord' => $employee, 'pageClass' => EditUser::class])
         ->assertOk()

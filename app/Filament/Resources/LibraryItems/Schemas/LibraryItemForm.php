@@ -45,21 +45,29 @@ class LibraryItemForm
                     ->label(__('library.fields.thumbnail'))
                     ->helperText(__('content.image_hint'))
                     ->columnSpanFull(),
+                // المرئية والصوتية برابط يوتيوب، فلا تأخذ من سعة التخزين (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). وما حُفظ من
+                // روابط ملفات قديمة يبقى يعمل في الموقع، والجديد يوتيوب
                 TextInput::make('video_url')
-                    ->label(__('library.fields.video_url'))
-                    ->helperText(__('library.fields.video_url_hint'))
+                    ->label(__('library.fields.youtube_url'))
+                    ->helperText(__('library.fields.youtube_url_hint'))
                     ->maxLength(VideoUrl::MAX_LENGTH)
-                    ->rules([new VideoUrl])
-                    ->required(fn (Get $get): bool => (bool) $get('is_published'))
+                    ->rule(fn (?LibraryItem $record) => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                        if (filled($value) && $value !== $record?->video_url) {
+                            (new VideoUrl(youtubeOnly: true))->validate($attribute, $value, $fail);
+                        }
+                    })
+                    ->required(fn (Get $get, ?LibraryItem $record): bool => (bool) $get('is_published') && blank($record?->file))
                     ->visible(fn (Get $get): bool => self::section($get)?->takesVideoUrl() ?? false)
                     ->extraInputAttributes(['dir' => 'ltr'])
                     ->columnSpanFull(),
-                // في القرص الخاص، ويُقدَّم عبر مسار يفحص النشر (LibraryController)
+                // في القرص الخاص، ويُقدَّم عبر مسار يفحص النشر (LibraryController). والصوتية القديمة يبقى ملفها ظاهراً
+                // فيُحذف، ولا يُرفع جديد (SaveLibraryItem)
                 FileUpload::make('file')
                     ->label(fn (Get $get): string => self::section($get)?->takesPdf() ? __('library.fields.pdf') : __('library.fields.audio'))
-                    ->helperText(fn (Get $get): string => self::section($get)?->takesPdf() ? __('library.fields.pdf_hint') : __('library.fields.audio_hint'))
-                    ->required(fn (Get $get): bool => (bool) $get('is_published'))
-                    ->visible(fn (Get $get): bool => self::section($get) !== null && ! self::section($get)->takesVideoUrl())
+                    ->helperText(fn (Get $get): string => self::section($get)?->takesPdf() ? __('library.fields.pdf_hint') : __('library.fields.audio_legacy_hint'))
+                    ->required(fn (Get $get): bool => (bool) $get('is_published') && (self::section($get)?->takesPdf() ?? false))
+                    ->visible(fn (Get $get, ?LibraryItem $record): bool => self::section($get) !== null
+                        && (! self::section($get)->takesVideoUrl() || (self::section($get)->keepsLegacyFile() && filled($record?->file))))
                     ->disk(LibraryItem::disk())
                     ->directory(LibraryItem::FILE_DIRECTORY)
                     ->visibility('private')

@@ -9,11 +9,11 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
  * كلمة مرور لا تحوي بيانات صاحبها (قرار صفوان، 20 أكتوبر 2026): جزءاً من الاسم طوله 3 أحرف فأكثر، ولا ما قبل @ في
- * البريد، ولا رقم الجوال الوطني (9 أرقام). بلا حساسية لحالة الأحرف، وبعد توحيد الأرقام العربية.
+ * البريد، ولا رقم الجوال الوطني (9 أرقام)، ولا اسم المستخدم ولا جزءاً منه. بلا حساسية لحالة الأحرف، وبعد توحيد الأرقام العربية.
  */
 class PasswordWithoutPersonalData implements ValidationRule
 {
-    public function __construct(private ?string $name = null, private ?string $email = null, private ?string $phone = null) {}
+    public function __construct(private ?string $name = null, private ?string $email = null, private ?string $phone = null, private ?string $username = null) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -38,6 +38,10 @@ class PasswordWithoutPersonalData implements ValidationRule
     private function fragments(): array
     {
         $fragments = preg_split('/[\s\-_.]+/u', mb_strtolower(trim((string) $this->name))) ?: [];
+
+        // اسم المستخدم كاملاً وأجزاؤه (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        $username = mb_strtolower(trim((string) $this->username));
+        $fragments = [...$fragments, $username, ...(preg_split('/[._]+/', $username) ?: [])];
 
         $local = mb_strtolower((string) strstr((string) $this->email, '@', true));
         $fragments[] = $local;

@@ -4,7 +4,6 @@ namespace App\Actions\Services;
 
 use App\Actions\Assembly\SaveAssemblyMembership;
 use App\Enums\OpeningKind;
-use App\Enums\RoleName;
 use App\Enums\ServiceRequestStatus;
 use App\Models\ServiceRequest;
 use App\Models\User;
@@ -35,8 +34,8 @@ class ChangeServiceRequestStatus
 
         $grantsMembership = $to === ServiceRequestStatus::Accepted && $request->opening->kind === OpeningKind::Membership;
 
-        if ($grantsMembership && ! $actor->hasRole(RoleName::SuperAdmin->value)) {
-            throw new AuthorizationException(__('services.membership_accept_super_admin'));
+        if ($grantsMembership && ! $actor->can('assembly_members.create')) {
+            throw new AuthorizationException(__('services.membership_accept_admin'));
         }
 
         // لا تُمنح أدوار لحساب موقوف أو أُخفيت بياناته (docs/roles-permissions.md)

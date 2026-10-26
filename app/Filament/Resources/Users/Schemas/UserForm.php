@@ -29,10 +29,20 @@ class UserForm
                             ->minLength(3)
                             ->maxLength(120)
                             ->columnSpanFull(),
+                        // اسم المستخدم يختاره صاحب الحساب عند التسجيل، ويظهر هنا للاطلاع
+                        TextInput::make('username')
+                            ->label(__('users.fields.username'))
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->hiddenOn('create')
+                            ->extraInputAttributes(['dir' => 'ltr'])
+                            ->columnSpanFull(),
+                        // البريد اختياري في حساب المستفيد (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، وإلزامي لحساب ينشئه
+                        // المشرف لأن دعوة تعيين كلمة المرور تصل إليه
                         TextInput::make('email')
                             ->label(__('users.fields.email'))
                             ->email()
-                            ->required()
+                            ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255)
                             ->extraInputAttributes(['dir' => 'ltr'])
                             ->rule(fn (?User $record) => self::uniqueRule('email', $record, fn (string $value) => mb_strtolower(trim($value)))),
@@ -53,19 +63,17 @@ class UserForm
                         CheckboxList::make('roles')
                             ->label(__('users.fields.roles'))
                             ->helperText(__('users.fields.roles_hint'))
-                            // ما يمنحه المنفّذ وحده (RoleName::assignableBy): المشرف العام كلها عدا عضوية الجمعية
-                            // العمومية (من سجل الأعضاء وحده)، والمدير التنفيذي أدوار الموظفين
+                            // ما يمنحه المنفّذ وحده (RoleName::assignableBy): مديرو النظام كلها عدا عضوية الجمعية
+                            // العمومية (من سجل الأعضاء وحده)
                             ->options(fn () => collect(auth()->user() instanceof User ? RoleName::assignableBy(auth()->user()) : [])->mapWithKeys(fn (RoleName $role) => [$role->value => $role->getLabel()])->all())
                             ->columns(2)
                             ->columnSpanFull()
-                            // حساب الموظف عند غير المشرف العام يحمل وظيفة (CreateStaffUser يفرضه أيضاً)
-                            ->required(fn () => ! (auth()->user()?->hasRole(RoleName::SuperAdmin->value) ?? false))
                             ->visible(fn () => auth()->user()?->can('assignRoles', User::class) ?? false)
                             // ChangeUserRoles يمنع ذلك أيضاً؛ وهنا رسالة واضحة بدل خطأ 403
                             ->rule(fn (?User $record) => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
-                                $super = RoleName::SuperAdmin->value;
+                                $administrators = RoleName::values(RoleName::administrators());
 
-                                if ($record?->is(auth()->user()) && $record->hasRole($super) && ! in_array($super, (array) $value, true)) {
+                                if ($record?->is(auth()->user()) && $record->hasAnyRole($administrators) && array_intersect($administrators, (array) $value) === []) {
                                     $fail(__('users.cannot_demote_self'));
                                 }
                             }),
@@ -88,8 +96,10 @@ class UserForm
             $exists = User::query()
                 ->where($column, $normalize($value))
                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
-                // الجوال يتفرد على الأرقام الموثقة وحدها (decisions.md — 14 أكتوبر 2026)
-                ->when($column === 'phone', fn ($query) => $query->whereNotNull('phone_verified_at'))
+                // الجوال والبريد يتفردان على الموثق وحده (decisions.md — 14 أكتوبر 2026، و26 أكتوبر للبريد)، والبريد أيضاً على
+                // الحساب القديم بلا اسم مستخدم، فهو معرّف دخوله الوحيد (User::emailTakenRule)
+                ->where(fn ($query) => $query->whereNotNull($column.'_verified_at')
+                    ->when($column === 'email', fn ($query) => $query->orWhereNull('username')))
                 ->exists();
 
             if ($exists) {

@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرف العام: رسالة لم تُرسل في الإنتاج لأن مزود قناتها غير مضبوط (رموز التحقق مثلاً).
+ * تنبيه المشرف العام والمسؤول التقني: رسالة لم تُرسل في الإنتاج لأن مزود قناتها غير مضبوط (رموز التحقق مثلاً).
  */
 class MessagingNotConfigured extends Notification implements ShouldQueueAfterCommit
 {

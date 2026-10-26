@@ -11,6 +11,7 @@ use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
+use App\Support\Username;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -38,15 +39,17 @@ class AnonymizeUser
 
         $oldEmail = $user->email;
         $oldPhone = $user->phone;
+        $oldUsername = $user->username;
         $emailVerified = $user->email_verified_at !== null;
 
-        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone, $emailVerified): void {
+        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone, $oldUsername, $emailVerified): void {
             // الحفظ دون التسجيل الآلي، وإلا كتب السجل القيم القديمة من جديد
             activity()->withoutLogging(function () use ($user): void {
                 $user->syncRoles([]);
 
                 $user->forceFill([
                     'name' => __('users.anonymized_name'),
+                    'username' => null,
                     'email' => 'deleted-'.$user->id.'@deleted.invalid',
                     'phone' => null,
                     'email_verified_at' => null,
@@ -61,7 +64,12 @@ class AnonymizeUser
                 ])->save();
             });
 
-            $this->scrubActivityLog($user, $oldEmail, $oldPhone);
+            $this->scrubActivityLog($user, $oldEmail, $oldPhone, $oldUsername);
+
+            // اسمه لا يُحرَّر لغيره، فلا يُنتحل صاحبه السابق (Username::retire — مراجعة المشرف المبكرة، ١٧)
+            if ($oldUsername !== null) {
+                Username::retire($oldUsername);
+            }
 
             // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله ونصها
             // (Inquiry::FREE_TEXT)، بلا تسجيل. ويبقى رقمها ونوعها وحالتها وتاريخها للإحصاء
@@ -117,9 +125,9 @@ class AnonymizeUser
      * يبقى من السجل ما حدث ومتى ومن نفّذه، وتُمسح منه هوية صاحب الحساب:
      * قيم الحقول في سجلاته، والعنوان ونوع المتصفح، وبصمة معرّف الدخول.
      */
-    private function scrubActivityLog(User $user, ?string $oldEmail, ?string $oldPhone): void
+    private function scrubActivityLog(User $user, ?string $oldEmail, ?string $oldPhone, ?string $oldUsername = null): void
     {
-        $hashes = array_values(array_filter([LoginIdentifier::hash($oldEmail), LoginIdentifier::hash($oldPhone)]));
+        $hashes = array_values(array_filter([LoginIdentifier::hash($oldEmail), LoginIdentifier::hash($oldPhone), LoginIdentifier::hash($oldUsername)]));
 
         Activity::query()
             ->where(fn ($query) => $query

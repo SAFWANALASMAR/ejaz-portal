@@ -20,6 +20,10 @@ function storedDocument(array $attributes = []): Document
     return $document;
 }
 
+beforeEach(function () {
+    showLegacyHomeSections();
+});
+
 it('lists the published documents under the category tiles, newest first', function () {
     storedDocument(['title' => 'اللائحة الأقدم', 'issued_at' => '2024-01-10']);
     storedDocument(['title' => 'التقرير الأحدث', 'issued_at' => '2026-03-01', 'category' => DocumentCategory::AnnualReports]);
