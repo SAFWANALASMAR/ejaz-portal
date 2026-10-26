@@ -149,7 +149,8 @@ class AnonymizeUser
 
                 $log->forceFill([
                     'attribute_changes' => $aboutUser ? null : $log->attribute_changes,
-                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash']),
+                    // exported_by: اسم المصدِّر في سجل تصدير نتائج مسابقة الطلاب (NationalIdExport)
+                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash', 'exported_by']),
                 ])->saveQuietly();
             });
     }

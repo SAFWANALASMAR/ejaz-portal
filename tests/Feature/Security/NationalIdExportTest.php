@@ -3,6 +3,7 @@
 use App\Actions\Competitions\SaveCompetitionField;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
@@ -113,8 +114,21 @@ it('refuses the full export to whoever lacks competition.export_national_id, wha
         ->and(NationalIdExport::allows($super))->toBeFalse()
         ->and(NationalIdExport::allows($this->director))->toBeTrue()
         ->and(NationalIdExport::allows(userWithRole(RoleName::TechnicalAdmin)))->toBeTrue()
-        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(0);
+        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(0)
+        // المشرف العام يُرد قبلها بإدارة النتائج، فلا يبلغ التصدير الكامل
+        ->and(deniedNationalIdExports())->toBe(['permission' => 4]);
 });
+
+/**
+ * المحاولات المرفوضة للتصدير الكامل في السجل، بعددها لكل سبب.
+ *
+ * @return array<string, int>
+ */
+function deniedNationalIdExports(): array
+{
+    return Activity::query()->where('event', 'national_id_export_denied')->get()
+        ->countBy(fn (Activity $log): string => (string) $log->properties['reason'])->all();
+}
 
 it('requires the current password for every full export, and locks guessing after five wrong tries', function () {
     foreach (nationalIdExports($this->competition) as $export) {
@@ -125,7 +139,8 @@ it('requires the current password for every full export, and locks guessing afte
     // أربع خاطئة في المجموع حتى الآن، والخامسة تقفل: فلا تمر الصحيحة بعدها
     expect(fn () => nationalIdExports($this->competition)['results']($this->director, true, 'wrong'))->toThrow(ValidationException::class, __('auth.password'))
         ->and(fn () => nationalIdExports($this->competition)['results']($this->director, true, 'password'))->toThrow(ValidationException::class)
-        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(0);
+        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(0)
+        ->and(deniedNationalIdExports())->toBe(['password' => 5, 'locked' => 1]);
 });
 
 it('exports the national ID and guardian phone in full with the password, recording the row count and the exporter', function () {
@@ -147,6 +162,14 @@ it('exports the national ID and guardian phone in full with the password, record
             ->and($log->properties['rows'])->toBe(2)
             ->and($log->properties['exported_by'])->toBe($this->director->name);
     }
+
+    // اسم المصدِّر يُمسح من السجل مع إخفاء هوية حسابه، ويبقى ما صُدّر وعدده
+    $this->director->forceFill(['deletion_requested_at' => now()])->save();
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->director);
+
+    expect(Activity::query()->where('event', 'competition_results_exported')->get()
+        ->map(fn (Activity $log): array => [$log->properties->has('exported_by'), $log->properties['rows']])->all())
+        ->toBe([[false, 2], [false, 2]]);
 });
 
 it('writes every text cell of the full export as text, not as a formula', function () {

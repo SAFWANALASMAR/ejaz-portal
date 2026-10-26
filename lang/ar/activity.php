@@ -75,6 +75,7 @@ return [
         'certificates_issued' => 'إصدار شهادات مسابقة الطلاب',
         'national_id_viewed' => 'اطلاع كامل على رقم هوية طالب',
         'competition_results_exported' => 'تصدير نتائج مسابقة الطلاب',
+        'national_id_export_denied' => 'رفض تصدير برقم الهوية كاملاً',
         'registration_corrected' => 'تصحيح تسجيل في مسابقة الطلاب (تحرير أو إلغاء)',
         'survey_results_exported' => 'تصدير نتائج استبيان',
         'payment_refunded' => 'استرداد مبلغ عملية دفع',

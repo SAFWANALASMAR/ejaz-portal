@@ -37,7 +37,7 @@ final class StudentResultsSheet
         }
 
         if ($full) {
-            NationalIdExport::authorizeFull($actor, $password);
+            NationalIdExport::authorizeFull($actor, $competition, $password);
         }
 
         activity('competitions')->performedOn($competition)->causedBy($actor)
