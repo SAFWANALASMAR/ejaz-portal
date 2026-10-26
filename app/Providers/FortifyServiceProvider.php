@@ -12,6 +12,7 @@ use App\Auth\CurrentPasswordLimiter;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
+use App\Http\Responses\NeutralPasswordResetResponse;
 use App\Http\Responses\PortalLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Models\User;
@@ -27,6 +28,7 @@ use Laravel\Fortify\Actions\DisableTwoFactorAuthentication as BaseDisableTwoFact
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication as BaseEnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetResponse;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
@@ -44,6 +46,8 @@ class FortifyServiceProvider extends ServiceProvider
         // رسالة واحدة لطلب الاستعادة سواء وُجد البريد أم لا
         $this->app->bind(FailedPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, NeutralPasswordResetLinkResponse::class);
+        // ورسالة واحدة لرمز خاطئ في تعيين كلمة المرور الجديدة، للبريد المسجل وغيره
+        $this->app->bind(FailedPasswordResetResponse::class, NeutralPasswordResetResponse::class);
         $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
         $this->app->bind(BaseDisableTwoFactorAuthentication::class, DisableTwoFactorAuthentication::class);
         $this->app->bind(BaseEnableTwoFactorAuthentication::class, EnableTwoFactorAuthentication::class);

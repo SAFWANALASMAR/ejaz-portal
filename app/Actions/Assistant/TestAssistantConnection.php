@@ -8,6 +8,7 @@ use App\Services\Assistant\AssistantProviderException;
 use App\Services\Assistant\AssistantProviders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -22,12 +23,17 @@ class TestAssistantConnection
      * @return bool|null null إن نقصت الإعدادات
      *
      * @throws AuthorizationException
-     * @throws ValidationException
+     * @throws ValidationException وأكثر من خمسة اختبارات في الدقيقة
      */
     public function handle(User $actor, array $data): ?bool
     {
         if (! $actor->can('ai_assistant.manage')) {
             throw new AuthorizationException;
+        }
+
+        // كل اختبار طلب مدفوع إلى المزود، فخمسة في الدقيقة كاختبار تيمز (الاختبار الأمني 0.14.0)
+        if (! RateLimiter::attempt('assistant-test:'.$actor->id, 5, fn (): bool => true)) {
+            throw ValidationException::withMessages(['provider' => __('assistant.admin.settings.test_throttled')]);
         }
 
         $validated = SaveAssistantSettings::validate($data);

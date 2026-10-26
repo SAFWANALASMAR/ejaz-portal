@@ -56,6 +56,7 @@ class CreateAdmin extends Command
             $before = $existing->getRoleNames()->sort()->values()->all();
             $existing->assignRole($role->value);
             $after = $existing->getRoleNames()->sort()->values()->all();
+            ChangeUserRoles::voidRememberOnPanelGrant($existing, $before, $after);
 
             activity('users')->performedOn($existing)->event(ActivityEvent::RolesChanged->value)
                 ->withProperties(['old' => $before, 'new' => $after])

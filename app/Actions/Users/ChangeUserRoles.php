@@ -10,6 +10,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 /**
  * منح الأدوار وسحبها (UserPolicy::assignRoles): لمديري النظام (RoleName::assignableBy). ويُسجَّل كل تغيير بالأدوار قبل
@@ -72,6 +73,8 @@ class ChangeUserRoles
 
             $after = $user->getRoleNames()->sort()->values()->all();
 
+            self::voidRememberOnPanelGrant($user, $before, $after);
+
             if ($before !== $after) {
                 activity('users')
                     ->causedBy($actor)
@@ -105,6 +108,23 @@ class ChangeUserRoles
         foreach ($watched as $role) {
             Notification::send($recipients, new SuperAdminRoleChanged($user, granted: in_array($role, $after, true), by: $actor, role: RoleName::from($role)));
         }
+    }
+
+    /**
+     * دور جديد في اللوحة يُبطل كعكة «تذكّرني» القائمة: صدرت قبل الترقية، ولا «تذكّرني» للأدوار الإدارية، فكانت تفتح
+     * اللوحة بلا كلمة مرور ولا تحقق ثنائي (الاختبار الأمني 0.14.0). ومنه أمر ejaz:create-admin لحساب قائم.
+     *
+     * @param  list<string>  $before
+     * @param  list<string>  $after
+     */
+    public static function voidRememberOnPanelGrant(User $user, array $before, array $after): void
+    {
+        if (array_diff(array_intersect($after, RoleName::values(RoleName::panelRoles())), $before) === []) {
+            return;
+        }
+
+        $user->setRememberToken(Str::random(60));
+        $user->saveQuietly();
     }
 
     /**

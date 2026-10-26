@@ -182,6 +182,30 @@ class CompetitionSubmission extends Model
     }
 
     /**
+     * قيمة الخيار في صفحة السؤال: رمز معتم لهذا المتقدم والسؤال، لا المفتاح، فلا يكشف المفتاح موضع الخيار في إدخال
+     * المسؤول بعد الخلط (وقد يضع الصحيح أولاً عادةً). ويُرد إلى مفتاحه عند الحفظ (optionKey). كما في محاولة مسابقة
+     * الطلاب (الاختبار الأمني 0.14.0).
+     */
+    public function optionToken(int $questionId, string $key): string
+    {
+        return substr(hash_hmac('sha256', $questionId.'|'.$key, $this->uuid.'|'.config('app.key')), 0, 12);
+    }
+
+    /**
+     * مفتاح الخيار من رمزه بين خيارات السؤال، أو null.
+     */
+    public function optionKey(CompetitionQuestion $question, string $token): ?string
+    {
+        foreach ($question->optionKeys() as $key) {
+            if (hash_equals($this->optionToken($question->id, $key), $token)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * الحالة ووقت الإرسال والرقم المرجعي وحدها، لا الإجابات ولا بيانات المتقدم.
      */
     public function getActivitylogOptions(): LogOptions
