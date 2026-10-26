@@ -18,6 +18,7 @@ use App\Filament\Resources\Competitions\RelationManagers\RoundsRelationManager;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionCategory;
+use App\Models\CompetitionDraw;
 use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
@@ -25,6 +26,7 @@ use App\Models\User;
 use App\Support\AttemptLayout;
 use App\Support\CompetitionShortLink;
 use App\Support\CumulativeRanking;
+use App\Support\DrawSelector;
 use App\Support\RoundQuestions;
 use App\Support\StudentResultsSheet;
 use Database\Seeders\BrahinCompetitionSeeder;
@@ -562,4 +564,66 @@ it('keeps the ranking scope and prizes locked after the last branch is published
         ->and(fn () => app(SaveCompetition::class)->handle($this->director, $competition, [
             'title' => $competition->title, 'slug' => 'brahin', 'opens_at' => $competition->opens_at, 'closes_at' => $competition->closes_at, 'ranking_scope' => 'category',
         ]))->toThrow(ValidationException::class);
+});
+
+// ── بعد دمج #67: خطوات النشر
+
+it('refreshes the cached round banks after a deploy, so a migration that renames a category is seen at once', function () {
+    studentQuestion($this->round);
+    $before = RoundQuestions::key($this->round->id);
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+
+    expect(RoundQuestions::key($this->round->id))->not->toBe($before);
+});
+
+it('backfills the ranking lock for competitions whose branches were all published before the column existed', function () {
+    $migration = require database_path('migrations/2026_10_27_100300_backfill_competition_ranking_locked_at.php');
+    $published = now()->subDay()->startOfSecond();
+    $this->round->forceFill(['results_published_at' => $published])->save();
+    $open = Competition::factory()->student()->create(['slug' => 'still-running']);
+
+    $migration->up();
+
+    expect($this->competition->fresh()->ranking_locked_at?->equalTo($published))->toBeTrue()
+        ->and($open->fresh()->ranking_locked_at)->toBeNull();
+});
+
+it('backfills the ranking lock at the first cumulative draw even with a branch unpublished, and a second run changes nothing', function () {
+    $migration = require database_path('migrations/2026_10_27_100300_backfill_competition_ranking_locked_at.php');
+    $drawnAt = now()->subHours(5)->startOfSecond();
+    // سحب تراكمي سابق للعمود (بيانات قديمة)
+    $cumulativeDraw = function (StudentGender $gender, Carbon $at): void {
+        $draw = new CompetitionDraw;
+        $draw->competition_id = $this->competition->id;
+        $draw->round_id = null;
+        $draw->gender = $gender;
+        $draw->places = 1;
+        $draw->tie_score = 5;
+        $draw->seed = str_repeat('a', 64);
+        $draw->entrants = ['A1', 'B2'];
+        $draw->entrants_hash = DrawSelector::fingerprint(['A1', 'B2']);
+        $draw->entrants_count = 2;
+        $draw->winners_count = 1;
+        $draw->winners = ['A1'];
+        $draw->executed_by = $this->director->id;
+        $draw->executed_at = $at;
+        $draw->save();
+    };
+
+    $cumulativeDraw(StudentGender::Male, $drawnAt);
+
+    expect($this->round->fresh()->resultsPublished())->toBeFalse();
+
+    $migration->up();
+    $locked = $this->competition->fresh()->ranking_locked_at;
+
+    expect($locked?->equalTo($drawnAt))->toBeTrue();
+
+    // تشغيل ثانٍ لا يمس ما قُفل: ولو ظهر سحب أقدم (الجنس الآخر) لبقيت لحظة القفل كما سُجّلت أول مرة
+    $cumulativeDraw(StudentGender::Female, now()->subHours(10)->startOfSecond());
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    $migration->up();
+
+    expect($this->competition->fresh()->ranking_locked_at?->equalTo($locked))->toBeTrue();
 });
