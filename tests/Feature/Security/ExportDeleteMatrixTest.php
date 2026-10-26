@@ -33,4 +33,8 @@ it('gives each export, delete and view-all right to exactly its reviewed roles',
     'accounts.update' => ['accounts.update', []],
     'form_entries.view_all' => ['form_entries.view_all', ['super_admin', 'board_member']],
     'meetings.view_all' => ['meetings.view_all', ['super_admin', 'secretary']],
+    // مسابقة الطلاب (#67): نشر النتائج والسحب والشهادات، ورقم الهوية كاملاً، وتصحيح التسجيلات
+    'competition.manage_results' => ['competition.manage_results', []],
+    'competition.view_national_id' => ['competition.view_national_id', []],
+    'competition.correct_registrations' => ['competition.correct_registrations', []],
 ]);

@@ -77,9 +77,10 @@ it('refuses every write route from another origin without the token, signed in, 
         }
     }
 
-    // كل مسار يكتب مرّ، لا قائمة فارغة: الموقع وFortify وLivewire
+    // كل مسار يكتب مرّ، لا قائمة فارغة: الموقع وFortify وLivewire، ومسابقة الطلاب (التسجيل وبدء المرحلة وحفظها وتسليمها)
     expect(count($routes))->toBeGreaterThan(40)
-        ->and(collect($routes)->pluck(1))->toContain('login', 'logout', 'contact')
+        ->and(collect($routes)->pluck(1))->toContain('login', 'logout', 'contact', 'competitions/{slug}/register',
+            'competitions/{slug}/rounds/{round}/start', 'competitions/{slug}/rounds/{round}/units/{number}', 'competitions/{slug}/rounds/{round}/submit')
         ->and(collect($routes)->pluck(1)->contains(fn (string $uri) => str_contains($uri, 'livewire') && str_ends_with($uri, 'update')))->toBeTrue()
         ->and($wrong)->toBe([]);
 });

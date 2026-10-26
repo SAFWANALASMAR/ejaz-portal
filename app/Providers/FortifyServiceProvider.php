@@ -19,6 +19,7 @@ use App\Http\Responses\RegisterResponse;
 use App\Models\User;
 use App\Support\NetworkPrefix;
 use App\Support\PasswordPolicy;
+use App\Support\SchoolNetworkLimits;
 use App\Support\UploadLimits;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -181,11 +182,12 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perHour((int) config('security.password_reset_per_subscriber_per_hour'))
             ->by('password-reset:'.NetworkPrefix::subscriber($request->ip())));
 
-        // تعيين كلمة المرور برمز الرابط: لكل بريد وعنوان، ولكل مشترك سقف أرحب، فلا تحجب مدرسةٌ خلف عنوان واحد طلابَها
+        // تعيين كلمة المرور برمز الرابط: لكل بريد وعنوان، ولكل مشترك سقف أرحب يتسع أيام اختبار مسابقة الطلاب
+        // (SchoolNetworkLimits)، فلا تحجب مدرسةٌ خلف عنوان واحد طلابَها
         RateLimiter::for('password-update', fn (Request $request): array => [
             Limit::perMinute((int) config('security.password_update_per_identity_per_minute'))
                 ->by('password-update:'.mb_strtolower(trim((string) (is_string($request->input('email')) ? $request->input('email') : ''))).'|'.$request->ip()),
-            Limit::perMinute((int) config('security.password_update_per_subscriber_per_minute'))
+            Limit::perMinute(SchoolNetworkLimits::limit('password_update_per_subscriber_per_minute'))
                 ->by('password-update-net:'.NetworkPrefix::subscriber($request->ip())),
         ]);
 
