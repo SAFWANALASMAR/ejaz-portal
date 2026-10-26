@@ -88,6 +88,8 @@ class SaveCompetitionRound
                 }
             }
 
+            $extended = $endChanged && $endsAt->gt($round->ends_at);
+
             // وما لم يتغير بالدقيقة يبقى كما خُزن بثوانيه، فلا يقصّر الحفظُ المواعيدَ المحسوبة منه
             if ($round->exists) {
                 $validated['starts_at'] = $startChanged ? $startsAt : $round->starts_at;
@@ -102,14 +104,16 @@ class SaveCompetitionRound
             ])->save();
 
             // مدّ النهاية يمدّ المحاولات الجارية التي قطعتها النهاية القديمة: الموعد أقرب البدء + المدة والنهاية الجديدة
-            // (مراجعة المشرف). والمسلَّمة لا تتغير
-            foreach ($round->attempts()->where('status', AttemptStatus::InProgress)->lockForUpdate()->get() as $attempt) {
-                $deadline = $attempt->started_at->copy()->addMinutes($round->duration_minutes)->min($round->ends_at);
+            // (مراجعة المشرف). والمسلَّمة لا تتغير. وبلا تمديد لا تُلمس، وهو أمر واحد في القاعدة بلا تحميل الصفوف: حفظ
+            // المرحلة أثناء نافذتها لا يقفل آلاف المحاولات الجارية ولا يحمّلها (المراجعة السحابية، ع١)
+            if ($extended) {
+                $deadline = 'LEAST(started_at + make_interval(mins => ?::int), ?::timestamp)';
+                $bindings = [$round->duration_minutes, $round->ends_at->toDateTimeString()];
 
-                if (! $deadline->equalTo($attempt->deadline_at)) {
-                    $attempt->deadline_at = $deadline;
-                    $attempt->save();
-                }
+                DB::update(
+                    "UPDATE competition_attempts SET deadline_at = {$deadline}, updated_at = ? WHERE round_id = ? AND status = ? AND deadline_at < {$deadline}",
+                    [...$bindings, now()->toDateTimeString(), $round->id, AttemptStatus::InProgress->value, ...$bindings],
+                );
             }
 
             return $round;
