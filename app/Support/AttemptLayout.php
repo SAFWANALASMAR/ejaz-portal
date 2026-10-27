@@ -87,14 +87,14 @@ final class AttemptLayout
      *
      * يُحسب مرة ويُخزَّن كـ mixedMaxScores، لا مع كل بدء اختبار (اختبار التحمل: كان كل بدء يبني البنك من الذاكرة
      * المؤقتة مرة ثانية ويعيد البرمجة الديناميكية): المفتاح بإصدار بنك المرحلة وعددها والفئة. والقيمة داخل مصفوفة،
-     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز). وبلا مدة كالبنك، لأن المفتاح يتغير مع كل تعديل، فلا
-     * تنتهي مدته في نافذة أطول منها على كل الطلاب معاً (مراجعة 26 أكتوبر، ن١).
+     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز). وبمدة البنك (RoundQuestions::TTL)، ويُحذف معه (forget).
      */
     public static function shortfall(CompetitionRound $round, int $categoryId): ?int
     {
         /** @var array{0: int|null} $result */
-        $result = Cache::rememberForever(
-            'competition-round-shortfall:'.RoundQuestions::key($round->id).':'.$round->question_count.':'.$categoryId,
+        $result = Cache::remember(
+            self::shortfallKey(RoundQuestions::key($round->id), $round->question_count, $categoryId),
+            RoundQuestions::TTL,
             function () use ($round, $categoryId): array {
                 $bank = self::bank($round, $categoryId);
                 $reachable = self::reachable(self::units($bank), $round->question_count);
@@ -133,8 +133,8 @@ final class AttemptLayout
      * الترتيب لكل فئة على حدة.
      *
      * يُحسب مرة ويُخزَّن (مراجعة المشرف على 0b788d7f)، لا مع كل بدء اختبار: المفتاح بإصدار بنك المرحلة (يتغير مع كل
-     * تعديل فيه، ومع حفظ المسابقة إن تغيرت الفئات المفتوحة — SaveCompetition)، وبعدد أسئلتها. وبلا مدة كالبنك
-     * وفحص العدد (shortfall).
+     * تعديل فيه، ومع حفظ المسابقة إن تغيرت الفئات المفتوحة — SaveCompetition، ومع تعديل الفئة أو ربطها لأن اسمها مفتاح
+     * الدرجات — RoundQuestions::forgetCategory)، وبعدد أسئلتها. وبمدة البنك كفحص العدد (shortfall).
      *
      * @return array<string, float>
      */
@@ -145,8 +145,9 @@ final class AttemptLayout
         }
 
         /** @var array<string, float> */
-        return Cache::rememberForever(
-            'competition-round-mixed-max:'.RoundQuestions::key($round->id).':'.$round->question_count,
+        return Cache::remember(
+            self::mixedMaxKey(RoundQuestions::key($round->id), $round->question_count),
+            RoundQuestions::TTL,
             function () use ($round): array {
                 $scores = [];
 
@@ -162,6 +163,35 @@ final class AttemptLayout
                 return count(array_unique($scores)) > 1 ? $scores : [];
             },
         );
+    }
+
+    /**
+     * فحص العدد والدرجات القصوى المبنية من بنك المرحلة بمفتاحه القديم، قبل تغيير الإصدار (RoundQuestions::forget)،
+     * فلا تبقى لكل إصدار سابق حتى تنتهي مدتها. بعدد أسئلة المرحلة الحالي وفئات مسابقتها المفتوحة، وما سواها تُنهيه مدته.
+     */
+    public static function forget(int $roundId, string $bankKey): void
+    {
+        $round = CompetitionRound::query()->with('competition')->find($roundId);
+
+        if ($round === null) {
+            return;
+        }
+
+        Cache::forget(self::mixedMaxKey($bankKey, $round->question_count));
+
+        foreach ($round->competition->openCategories()->pluck('competition_categories.id') as $categoryId) {
+            Cache::forget(self::shortfallKey($bankKey, $round->question_count, (int) $categoryId));
+        }
+    }
+
+    private static function shortfallKey(string $bankKey, int $questionCount, int $categoryId): string
+    {
+        return 'competition-round-shortfall:'.$bankKey.':'.$questionCount.':'.$categoryId;
+    }
+
+    private static function mixedMaxKey(string $bankKey, int $questionCount): string
+    {
+        return 'competition-round-mixed-max:'.$bankKey.':'.$questionCount;
     }
 
     /**
