@@ -69,18 +69,16 @@ it('passes the registration token on standard input, never in the environment or
     expect($register)->not->toMatch('/token[^|\n]*>\s*[^&\s]/');
 });
 
-it('cleans the private Docker server before every job, and keeps the old registration out of job containers', function () {
+it('recreates the private Docker server and its volumes before every job, and keeps the old registration out of job containers', function () {
     $register = ciRunnerFile('register.sh');
     $compose = ciRunnerFile('compose.yaml');
 
     preg_match('/^while true; do\n(.*?)^done$/ms', $register, $loop);
+    preg_match('/^clean\(\) \{\n(.*?)^\}$/ms', $register, $clean);
 
-    // التنظيف قبل المهمة، ولا مهمة إن تعذّر
+    // خادم جديد ومجلدان جديدان قبل المهمة، بخطوات متسلسلة (&&)، ولا مهمة إن تعذّر
     expect($loop[1] ?? '')->toMatch('/if ! clean; then.*?continue.*?docker compose run --rm -T runner ephemeral/s')
-        ->and($register)->toContain('docker ps -aq | xargs -r docker rm -f')
-        ->toContain('docker volume prune -af')
-        ->toContain('docker network prune -f')
-        ->toContain('docker builder prune -af');
+        ->and($clean[1] ?? '')->toMatch('/docker compose rm -sf dind[^\n]*\\\\\n\s*&& docker volume rm -f ejaz-ci-runner_docker-data ejaz-ci-runner_work[^\n]*\\\\\n\s*&& docker compose up -d --wait dind/');
 
     preg_match('/^  runner:\n(.*?)(?=^  \S|^\S|\z)/ms', $compose, $runner);
 

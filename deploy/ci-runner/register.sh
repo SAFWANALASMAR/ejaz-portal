@@ -25,18 +25,13 @@ token() {
   fi
 }
 
-# ما تتركه مهمة في خادم Docker الخاص (dind، دائم) لا يبقى للتي بعدها: الحاويات، والمجلدات، والشبكات، وذاكرة البناء،
-# والصور المبنية محلياً (ejaz-*). وتبقى صور السجلات وحدها، فلا يُعاد تنزيلها، وكلها تُسحب من جديد في الفحص (--pull،
-# وخدمات الفحص تُسحب كل مرة)، فلا يبقى وسم عدّلته مهمة
+# خادم Docker الخاص (dind) ومجلداه يُعاد إنشاؤها قبل كل مهمة، فلا يبقى مما فعلته مهمة شيء للتي بعدها: لا حاوية ولا
+# مجلد ولا شبكة ولا swarm ولا إضافة، ولا ملف في قرص dind الممتاز، ولا طبقة صورة عُدّلت في مخزنه، ولا ملف في مجلد العمل
+# المشترك. وثمنه تنزيل الصور في كل مهمة (المراجعة الأمنية لـ 0.14.1). ويفشل بأي خطوة فاشلة، فلا تبدأ المهمة
 clean() {
-  docker compose exec -T dind sh -c '
-    docker ps -aq | xargs -r docker rm -f
-    docker volume prune -af
-    docker network prune -f
-    docker builder prune -af
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep "^ejaz-" | xargs -r docker rmi -f
-    docker image prune -f
-  ' >/dev/null
+  docker compose rm -sf dind >/dev/null \
+    && docker volume rm -f ejaz-ci-runner_docker-data ejaz-ci-runner_work >/dev/null \
+    && docker compose up -d --wait dind >/dev/null
 }
 
 docker compose build runner
@@ -49,12 +44,11 @@ if [ "$action" = remove ]; then
   exit 0
 fi
 
-docker compose up -d --wait dind
 # حاوية جديدة لكل مهمة (--rm): تسجّل مؤقتاً، وتنفّذ مهمة واحدة، وتخرج. ورمز جديد قبل كل واحدة (مدته ساعة)
 while true; do
-  # ولا مهمة بلا تنظيف: إن تعذّر أُعيدت المحاولة
+  # ولا مهمة بلا خادم Docker جديد: إن تعذّر أُعيدت المحاولة
   if ! clean; then
-    echo "تعذّر تنظيف خادم Docker الخاص، إعادة المحاولة بعد 30 ثانية" >&2
+    echo "تعذّر إعادة إنشاء خادم Docker الخاص، إعادة المحاولة بعد 30 ثانية" >&2
     sleep 30
     continue
   fi
