@@ -16,6 +16,7 @@ use App\Actions\Competitions\SaveStudentQuestion;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Competitions\VoidTieDraw;
+use App\Actions\Users\ChangeNationalIdExport;
 use App\Enums\AttemptStatus;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
@@ -299,16 +300,34 @@ it('refuses a tie draw when nobody is tied at the boundary', function () {
         ->and(CompetitionDraw::query()->count())->toBe(0);
 });
 
-it('shows the full national ID only to the competition creator and the executive director, logging every view', function () {
+it('shows the full national ID only to holders of the full export, not to the competition creator by default, logging every view', function () {
     $student = registeredStudent($this->competition, 4);
     $submission = CompetitionSubmission::query()->where('user_id', $student->id)->sole();
+
+    // منشئ المسابقة بلا الخيار يُرفض ويرى الرقم مقنّعاً (قرار صفوان، 27 أكتوبر 2026)
+    expect(fn () => app(RevealStudentIdentity::class)->handle($this->manager, $submission))->toThrow(AuthorizationException::class);
+
+    $this->actingAs($this->manager);
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertOk()
+        ->assertSee(CompetitionSubmission::mask(studentNationalId(4)))
+        ->assertDontSee(studentNationalId(4))
+        ->assertActionHidden(TestAction::make('reveal')->table($submission));
+
+    // وبالخيار من مدير النظام يكشف، كالمدير التنفيذي
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->manager, true);
+    $this->manager->refresh();
 
     expect(app(RevealStudentIdentity::class)->handle($this->director, $submission)['national_id'])->toBe(studentNationalId(4))
         ->and(app(RevealStudentIdentity::class)->handle($this->manager, $submission)['national_id'])->toBe(studentNationalId(4))
         ->and(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(2)
         ->and(Activity::query()->where('event', 'national_id_viewed')->get()->pluck('properties')->flatten()->implode(' '))->not->toContain(studentNationalId(4));
 
-    foreach ([userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $user) {
+    // ولا لمن يملك الخيار في مسابقة لا يدير نتائجها، ولا للمشرف العام وعضو المجلس
+    $other = userWithRole(RoleName::ProgramManager);
+    app(ChangeNationalIdExport::class)->handle($this->director, $other, true);
+
+    foreach ([$other->fresh(), userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $user) {
         expect(fn () => app(RevealStudentIdentity::class)->handle($user, $submission))->toThrow(AuthorizationException::class);
     }
 

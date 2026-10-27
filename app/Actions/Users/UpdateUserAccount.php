@@ -68,6 +68,11 @@ class UpdateUserAccount
             if ($nationalIdExport !== null) {
                 $this->changeNationalIdExport->handle($actor, $user, $nationalIdExport);
             }
+
+            // والحساب المعطّل لا يبقى له، فلا يعود صامتاً بإعادة تفعيله (مراجعة المشرف)
+            if (! $isActive) {
+                ChangeNationalIdExport::drop($actor, $user, 'deactivated');
+            }
         });
 
         // البريد الجديد يُوثَّق متى كان التوثيق مفعّلاً من اللوحة؛ وتعديل الاسم مثلاً لا يعيد إرسال التوثيق

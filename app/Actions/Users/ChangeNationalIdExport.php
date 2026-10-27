@@ -12,13 +12,14 @@ use Illuminate\Validation\ValidationException;
 /**
  * منح تصدير رقم الهوية كاملاً لمستخدم مباشرة لا عبر دور، أو سحبه (قرار صفوان، 27 أكتوبر 2026): لمديري النظام وحدهم،
  * فيمنحه المدير من يختار دون دور إداري كامل. ولا يُمنح للمشرف العام (اطلاع فقط)، ولمديري النظام هو بدورهم. ويُسجَّل كل
- * منح وسحب بمن نفّذه ولمن ومتى. والتصدير الكامل بعده مشروط بكلمة المرور وسجله (NationalIdExport::authorizeFull).
+ * منح وسحب بمن نفّذه ولمن ومتى، ويُسحب بتعطيل الحساب أو منحه دور المشرف العام (drop). والتصدير الكامل بعده مشروط
+ * بكلمة المرور وسجله (NationalIdExport::authorizeFull)، وبه وحده كشف الرقم في اللوحة (CompetitionPolicy::viewNationalId).
  */
 class ChangeNationalIdExport
 {
     /**
      * @throws AuthorizationException
-     * @throws ValidationException منحه للمشرف العام
+     * @throws ValidationException منحه للمشرف العام أو لحساب معطّل
      */
     public function handle(User $actor, User $user, bool $granted): void
     {
@@ -35,14 +36,39 @@ class ChangeNationalIdExport
             throw ValidationException::withMessages(['export_national_id' => __('users.national_id_export.not_for_super_admin')]);
         }
 
+        // ولا لحساب معطّل، فلا يعود صامتاً بإعادة تفعيله (مراجعة المشرف)
+        if ($granted && ! $user->is_active) {
+            throw ValidationException::withMessages(['export_national_id' => __('users.national_id_export.not_for_inactive')]);
+        }
+
         $granted
             ? $user->givePermissionTo(NationalIdExport::PERMISSION)
             : $user->revokePermissionTo(NationalIdExport::PERMISSION);
 
-        $event = $granted ? ActivityEvent::NationalIdExportGranted : ActivityEvent::NationalIdExportRevoked;
+        self::log($actor, $user, $granted ? ActivityEvent::NationalIdExportGranted : ActivityEvent::NationalIdExportRevoked);
+    }
 
+    /**
+     * سحب المنح المباشر بسبب لا بقرار: تعطيل الحساب، أو منحه دور المشرف العام. ويُسجَّل بسببه، ولا شيء إن لم يكن ممنوحاً.
+     */
+    public static function drop(?User $actor, User $user, string $reason): void
+    {
+        if (! $user->hasDirectPermission(NationalIdExport::PERMISSION)) {
+            return;
+        }
+
+        $user->revokePermissionTo(NationalIdExport::PERMISSION);
+        self::log($actor, $user, ActivityEvent::NationalIdExportRevoked, ['reason' => $reason]);
+    }
+
+    /**
+     * @param  array<string, string>  $properties
+     */
+    private static function log(?User $actor, User $user, ActivityEvent $event, array $properties = []): void
+    {
         activity('users')->causedBy($actor)->performedOn($user)
             ->event($event->value)
+            ->withProperties($properties)
             ->log($event->value);
     }
 

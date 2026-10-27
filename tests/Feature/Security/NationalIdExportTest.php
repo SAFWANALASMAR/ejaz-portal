@@ -5,6 +5,8 @@ use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
 use App\Actions\Users\ChangeNationalIdExport;
+use App\Actions\Users\ChangeUserRoles;
+use App\Actions\Users\UpdateUserAccount;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
@@ -308,4 +310,72 @@ it('drops a direct grant of the full export when the account is anonymized', fun
     app(AnonymizeUser::class)->handle($this->director, $this->creator);
 
     expect($this->creator->fresh()->getDirectPermissions())->toBeEmpty();
+});
+
+/*
+| ملاحظات المشرف بعد المراجعة الأمنية المستقلة لـ 791a25a8.
+*/
+
+it('refuses the grant from a user editor who is not a system admin, rolling the whole save back', function () {
+    $editor = userWithRole(RoleName::ContentEditor);
+    $editor->givePermissionTo(['users.view', 'users.update']);
+    $member = User::factory()->create(['name' => 'الاسم الأول']);
+
+    // يعدّل الحساب بسياسته، والخيار يرده الإجراء، فلا يبقى الاسم ولا المنح ولا سجل
+    expect(fn () => app(UpdateUserAccount::class)->handle($editor, $member, ['name' => 'اسم جديد', 'email' => $member->email], null, true))
+        ->toThrow(AuthorizationException::class);
+
+    expect($member->fresh()->name)->toBe('الاسم الأول')
+        ->and($member->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and(Activity::query()->whereIn('event', ['national_id_export_granted', 'national_id_export_revoked'])->count())->toBe(0);
+});
+
+it('never grants the full export to a deactivated account, and drops it on deactivation so reactivation does not bring it back', function () {
+    $inactive = User::factory()->create(['is_active' => false]);
+
+    expect(fn () => app(ChangeNationalIdExport::class)->handle($this->director, $inactive, true))
+        ->toThrow(ValidationException::class, __('users.national_id_export.not_for_inactive'));
+
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->creator, true);
+    $this->actingAs($this->director);
+    $edit = fn () => Livewire::test(EditUser::class, ['record' => $this->creator->getRouteKey()]);
+    $edit()->fillForm(['is_active' => false])->call('save')->assertHasNoFormErrors();
+
+    expect($this->creator->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse();
+
+    $edit()->assertFormSet(['export_national_id' => false])->fillForm(['is_active' => true])->call('save')->assertHasNoFormErrors();
+
+    $revoked = Activity::query()->where('event', 'national_id_export_revoked')->sole();
+
+    expect(NationalIdExport::allows($this->creator->fresh()))->toBeFalse()
+        ->and($revoked->causer_id)->toBe($this->director->id)
+        ->and($revoked->subject_id)->toBe($this->creator->id)
+        ->and($revoked->properties['reason'])->toBe('deactivated');
+});
+
+it('refuses the super admin role and the option in one save, rolling both back without a log', function () {
+    $member = User::factory()->create();
+    $this->actingAs($this->director);
+
+    $component = Livewire::test(EditUser::class, ['record' => $member->getRouteKey()])
+        ->fillForm(['roles' => [RoleName::SuperAdmin->value], 'export_national_id' => true])
+        ->call('save');
+
+    expect($component->errors()->first('data.export_national_id'))->toBe(__('users.national_id_export.not_for_super_admin'))
+        ->and($member->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeFalse()
+        ->and($member->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and(Activity::query()->whereIn('event', ['roles_changed', 'national_id_export_granted', 'national_id_export_revoked'])->count())->toBe(0);
+});
+
+it('drops a direct grant when the account is given the super admin role, with a log line', function () {
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->creator, true);
+    app(ChangeUserRoles::class)->handle($this->director, $this->creator, [RoleName::ProgramManager->value, RoleName::SuperAdmin->value]);
+
+    $revoked = Activity::query()->where('event', 'national_id_export_revoked')->sole();
+
+    expect($this->creator->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and($this->creator->fresh()->hasRole(RoleName::SuperAdmin->value))->toBeTrue()
+        ->and($revoked->causer_id)->toBe($this->director->id)
+        ->and($revoked->subject_id)->toBe($this->creator->id)
+        ->and($revoked->properties['reason'])->toBe('super_admin');
 });
