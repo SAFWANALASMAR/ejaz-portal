@@ -67,7 +67,7 @@ PY
     invalid) fail "ADMIN_CIDR غير صالح: $ADMIN_CIDR" ;;
     *)
       if [ "$inside" = unknown ]; then
-        msg="لا يُعرف عنوان هذه الجلسة (ليست SSH)، فلا يُتحقق أنه داخل ADMIN_CIDR=$ADMIN_CIDR"
+        msg="لا يُعرف عنوان هذه الجلسة (ليست SSH، أو حذف sudo المتغير SSH_CLIENT)، فلا يُتحقق أنه داخل ADMIN_CIDR=$ADMIN_CIDR. ومع sudo: sudo --preserve-env=SSH_CLIENT ADMIN_USER=... ADMIN_CIDR=... bash server-bootstrap.sh"
       else
         msg="عنوان هذه الجلسة $CLIENT_IP خارج ADMIN_CIDR=$ADMIN_CIDR، فلن تدخل بـ SSH بعدها إلا من لوحة المزود"
       fi
@@ -202,7 +202,7 @@ docker compose version
 say "٧/٧ مجلدات التطبيق"
 install -d -m 755 -o "$ADMIN_USER" -g "$ADMIN_USER" /opt/ejaz
 install -d -m 755 /etc/ejaz
-install -d -m 755 /etc/ejaz/tls
+install -d -m 750 /etc/ejaz/tls
 install -d -m 755 /var/lib/ejaz/acme
 
 printf '\n\033[1;32m✓ اكتمل التجهيز.\033[0m\n'
