@@ -19,7 +19,8 @@ concurrency:
 jobs:
   quality:
     name: الجودة والاختبارات
-    runs-on: ubuntu-latest
+    # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     services:
       pgsql:
@@ -65,6 +66,9 @@ jobs:
           fi
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        env:
+          # على المشغّل المحلي يثبّت ما ينقص صورته ولا يفترض أدوات ubuntu-latest
+          runner: ${{ vars.CI_RUNNER && 'self-hosted' || 'github-hosted' }}
         with:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, pcntl, exif
