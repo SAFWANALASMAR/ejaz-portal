@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Competitions\StartAttempt;
+use App\Actions\Competitions\SubmitAttempt;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Filament\Exports\SubmissionExporter;
@@ -7,6 +9,7 @@ use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\SubmissionsRelationManager;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\CompetitionStats;
@@ -166,4 +169,39 @@ it('creates load accounts only with the log SMS driver', function () {
 
     $this->artisan('ejaz:load-accounts', ['count' => 2])->assertFailed();
     expect(User::where('email', 'like', '%@load.test')->count())->toBe(0);
+});
+
+it('counts the attempts of a student competition: registered, running and submitted, by category and region', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key', 'competitions.student.min_questions' => 1]);
+    $competition = Competition::factory()->student()->create(['slug' => 'students-stats']);
+    $round = $competition->rounds()->firstOrFail();
+    studentQuestion($round);
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+
+    // خمسة يسلّمون (أربعة من الثانوية وواحد من المتوسطة)، وواحد يختبر الآن، وواحد سجّل ولم يبدأ، وواحد أُلغي تسجيله
+    foreach (range(1, 5) as $serial) {
+        $student = registeredStudent($competition, $serial, $serial === 5 ? ['category_id' => $middle, 'grade' => 'الأول المتوسط'] : []);
+        $attempt = app(StartAttempt::class)->handle($student, $round);
+        app(SubmitAttempt::class)->handle($student, $attempt);
+    }
+
+    app(StartAttempt::class)->handle(registeredStudent($competition, 6), $round);
+    registeredStudent($competition, 7);
+    $cancelled = registeredStudent($competition, 8);
+    app(StartAttempt::class)->handle($cancelled, $round);
+    CompetitionSubmission::query()->where('user_id', $cancelled->id)->sole()->delete();
+
+    expect(CompetitionStats::compute($competition))->toBe([
+        'registered' => 7,
+        'drafts' => 1,
+        'submitted' => 5,
+        'categories' => ['المرحلة الثانوية' => 4, 'المرحلة المتوسطة' => 1],
+        'regions' => ['منطقة مكة المكرمة' => 5],
+    ]);
+
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector))
+        ->get(CompetitionResource::getUrl('stats', ['record' => $competition]))
+        ->assertOk()
+        ->assertSeeInOrder([__('competitions.stats.student_drafts'), '1', __('competitions.stats.student_submitted'), '5'])
+        ->assertDontSee(__('competitions.stats.drafts'));
 });

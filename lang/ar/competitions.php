@@ -334,6 +334,13 @@ return [
         'none' => 'غير محدد',
         'empty' => 'لا مشاركات مكتملة بعد.',
         'refresh' => 'تتحدث الأرقام كل دقيقة.',
+        // مسابقة الطلاب: محاولات الفروع لا مسودات المشاركة (CompetitionStats::student)
+        'student_registered' => 'المسجلون',
+        'student_drafts' => 'محاولات جارية',
+        'student_submitted' => 'محاولات مكتملة',
+        'student_by_categories' => 'المحاولات المكتملة حسب الفئة',
+        'student_by_regions' => 'المحاولات المكتملة حسب المنطقة',
+        'student_empty' => 'لا محاولات مكتملة بعد.',
     ],
 
     'export' => [

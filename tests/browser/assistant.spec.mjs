@@ -93,3 +93,25 @@ test('opens the assistant, answers with sources, and keeps the chat across navig
         await expect(dialog).toBeHidden();
     }
 });
+
+// الملاحظة 6 من الاختبار الشامل 0.14: الزر العائم لا يغطي سطر الحقوق في آخر الصفحة (ومنه رابط «سياسة الخصوصية» إن نُشرت)
+test('keeps the floating button clear of the footer rights line at the bottom of the page', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+    const toggle = page.locator('[data-assistant-toggle]');
+    await expect(toggle).toBeVisible();
+
+    const overlaps = await page.evaluate(() => {
+        const button = document.querySelector('[data-assistant-toggle]').getBoundingClientRect();
+
+        return [...document.querySelectorAll('[data-site-footer] > div:last-child > div > *')].some((item) => {
+            const box = item.getBoundingClientRect();
+
+            return box.left < button.right && box.right > button.left && box.top < button.bottom && box.bottom > button.top;
+        });
+    });
+
+    expect(overlaps).toBe(false);
+    await page.screenshot({ path: `docs/design/screenshots/footer-assistant-${test.info().project.name}.png` });
+});
