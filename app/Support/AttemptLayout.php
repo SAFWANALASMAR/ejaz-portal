@@ -84,17 +84,30 @@ final class AttemptLayout
 
     /**
      * null إن كان بنك الفئة جاهزاً، وإلا أقصى عدد ممكن منه دون العدد، أو -1 لبنك أكبر بدرجات مختلفة.
+     *
+     * يُحسب مرة ويُخزَّن كـ mixedMaxScores، لا مع كل بدء اختبار (اختبار التحمل: كان كل بدء يبني البنك من الذاكرة
+     * المؤقتة مرة ثانية ويعيد البرمجة الديناميكية): المفتاح بإصدار بنك المرحلة وعددها والفئة. والقيمة داخل مصفوفة،
+     * لأن remember لا يخزّن null، وهو الجواب الغالب (جاهز). وبلا مدة كالبنك، لأن المفتاح يتغير مع كل تعديل، فلا
+     * تنتهي مدته في نافذة أطول منها على كل الطلاب معاً (مراجعة 26 أكتوبر، ن١).
      */
     public static function shortfall(CompetitionRound $round, int $categoryId): ?int
     {
-        $bank = self::bank($round, $categoryId);
-        $reachable = self::reachable(self::units($bank), $round->question_count);
+        /** @var array{0: int|null} $result */
+        $result = Cache::rememberForever(
+            'competition-round-shortfall:'.RoundQuestions::key($round->id).':'.$round->question_count.':'.$categoryId,
+            function () use ($round, $categoryId): array {
+                $bank = self::bank($round, $categoryId);
+                $reachable = self::reachable(self::units($bank), $round->question_count);
 
-        return match (true) {
-            ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
-            $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
-            default => null,
-        };
+                return [match (true) {
+                    ! $reachable[0][$round->question_count] => (int) max(array_keys(array_filter($reachable[0]))),
+                    $bank->count() > $round->question_count && $bank->pluck('points')->unique()->count() > 1 => -1,
+                    default => null,
+                }];
+            },
+        );
+
+        return $result[0];
     }
 
     /**
@@ -120,7 +133,8 @@ final class AttemptLayout
      * الترتيب لكل فئة على حدة.
      *
      * يُحسب مرة ويُخزَّن (مراجعة المشرف على 0b788d7f)، لا مع كل بدء اختبار: المفتاح بإصدار بنك المرحلة (يتغير مع كل
-     * تعديل فيه، ومع حفظ المسابقة لأن الفئات المفتوحة منها — SaveCompetition)، وبعدد أسئلتها.
+     * تعديل فيه، ومع حفظ المسابقة إن تغيرت الفئات المفتوحة — SaveCompetition)، وبعدد أسئلتها. وبلا مدة كالبنك
+     * وفحص العدد (shortfall).
      *
      * @return array<string, float>
      */
@@ -131,9 +145,8 @@ final class AttemptLayout
         }
 
         /** @var array<string, float> */
-        return Cache::remember(
+        return Cache::rememberForever(
             'competition-round-mixed-max:'.RoundQuestions::key($round->id).':'.$round->question_count,
-            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
             function () use ($round): array {
                 $scores = [];
 
