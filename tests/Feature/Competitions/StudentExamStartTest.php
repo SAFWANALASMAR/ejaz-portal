@@ -47,9 +47,12 @@ it('builds the round bank once per version in the process, and sees a bank chang
     expect(RoundQuestions::load($this->round)['questions'])->toBe($bank['questions']);
 
     $question->forceFill(['prompt' => 'نص معدّل'])->save();
+    $old = RoundQuestions::key($this->round->id);
     RoundQuestions::forget($this->round->id);
 
-    expect(RoundQuestions::load($this->round)['questions']->get($question->id)?->prompt)->toBe('نص معدّل');
+    // البنك القديم بلا مدة يُحذف، فلا يبقى في Redis مع كل إصدار
+    expect(Cache::has($old))->toBeFalse()
+        ->and(RoundQuestions::load($this->round)['questions']->get($question->id)?->prompt)->toBe('نص معدّل');
 });
 
 it('does not bring back a bank kept in the process after the shared cache is emptied', function () {
@@ -93,6 +96,10 @@ it('keeps the round banks when the competition is saved without touching its ope
     $save([]);
     expect(RoundQuestions::key($this->round->id))->toBe($key);
 
+    // الفئات نفسها بترتيب آخر كما قد يرسلها النموذج
+    $save(['open_categories' => CompetitionCategory::query()->orderByDesc('id')->pluck('id')->all()]);
+    expect(RoundQuestions::key($this->round->id))->toBe($key);
+
     $save(['ranking_scope' => RankingScope::Category->value]);
     expect(RoundQuestions::key($this->round->id))->not->toBe($key);
 
@@ -101,7 +108,7 @@ it('keeps the round banks when the competition is saved without touching its ope
     expect(RoundQuestions::key($this->round->id))->not->toBe($key);
 });
 
-it('spreads the automatic submission over at most half the network grace and ten seconds', function (int $grace, int $spread) {
+it('spreads the automatic submission over at most a quarter of the network grace and five seconds', function (int $grace, int $spread) {
     config(['competitions.student.grace_seconds' => $grace]);
     studentQuestion($this->round);
     $student = registeredStudent($this->competition);
@@ -110,4 +117,4 @@ it('spreads the automatic submission over at most half the network grace and ten
     $this->actingAs($student)->get('/competitions/students/rounds/'.$this->round->uuid.'/units/1')
         ->assertOk()
         ->assertSee('data-exam-auto-spread="'.$spread.'"', false);
-})->with(['default grace' => [20, 10], 'short grace' => [6, 3], 'long grace' => [60, 10]]);
+})->with(['default grace' => [20, 5], 'short grace' => [6, 1], 'long grace' => [60, 5]]);

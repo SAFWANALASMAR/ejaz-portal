@@ -114,7 +114,7 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
-        $rankingBefore = [$competition->ranking_scope, $this->openCategoryIds($competition)];
+        $rankingBefore = null;
 
         // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
         $background = $data['certificate_background'] ?? null;
@@ -132,7 +132,7 @@ class SaveCompetition
             $data['work_types'] = null;
         }
 
-        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories): void {
+        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories, &$rankingBefore): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
@@ -143,6 +143,8 @@ class SaveCompetition
                 }
 
                 $this->checkLocks($locked, $requested);
+                // نطاق الترتيب والفئات المفتوحة قبل الحفظ من الصف المقفول، فلا يفوت حفظاً متزامناً تغييرهما
+                $rankingBefore = [$locked->ranking_scope, $this->openCategoryIds($locked)];
             }
 
             $createdBy = $data['created_by'] ?? null;

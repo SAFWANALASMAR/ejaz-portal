@@ -14,10 +14,11 @@ const format = (seconds) => {
 // الوقت الباقي من الخادم (لا من ساعة الجهاز) يُعدّ تنازلياً، ويُعلَن في الدقائق الخمس الأخيرة. وعند انتهائه يُرسل
 // نموذج الصفحة بالتسليم الآلي، فتُحفظ إجابات الوحدة الحالية ثم تُسلَّم المحاولة. والإرسال بعد تأخير عشوائي حتى
 // data-exam-auto-spread ثانية، داخل هامش الشبكة: من بدؤوا في آخر النافذة يشتركون في موعد واحد، فلا يصل
-// تسليمهم كله في الثانية نفسها (مراجعة 26 أكتوبر، ن٢)
+// تسليمهم كله في الثانية نفسها (مراجعة 26 أكتوبر، ن٢). والصفحة المفتوحة بعد انتهاء الوقت ترسل فوراً، فلا يتراكم
+// التأخير، والإرسال باليد يلغي المؤجل
 function timer(element, signal) {
     const total = Number(element.dataset.examTimer);
-    const spread = Number(element.dataset.examAutoSpread || 0);
+    const spread = total > 0 ? Number(element.dataset.examAutoSpread || 0) : 0;
     const output = element.querySelector('[data-exam-timer-value]');
     const alert = element.querySelector('[data-exam-timer-alert]');
     const form = document.querySelector('form[data-exam-autosubmit]');
@@ -60,6 +61,7 @@ function timer(element, signal) {
 
     tick();
     const interval = window.setInterval(tick, 1000);
+    form?.addEventListener('submit', () => window.clearTimeout(delay), { signal });
     signal.addEventListener('abort', () => {
         window.clearInterval(interval);
         window.clearTimeout(delay);

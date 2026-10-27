@@ -16,6 +16,7 @@ use App\Support\RoundQuestions;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * تسجيل حسابات اختبار التحمل (ejaz:load-accounts) في مسابقة طلاب، بأرقام هوية صحيحة الصيغة متسلسلة، عبر
@@ -61,13 +62,14 @@ class RegisterLoadStudents extends Command
         if ((int) $this->option('bank') > 0) {
             $round = $competition->rounds()->where('uuid', (string) $this->option('round'))->first();
 
-            if ($round === null || $round->attempts()->exists()) {
-                $this->error('المرحلة غير موجودة، أو بدأت فيها محاولة فالبنك مقفل.');
+            // ولا بنك فئات سابق، فلا يتضاعف بإعادة الأمر
+            if ($round === null || $round->attempts()->exists() || $round->questions()->whereNotNull('category_id')->exists()) {
+                $this->error('المرحلة غير موجودة، أو بدأت فيها محاولة فالبنك مقفل، أو فيها بنك فئات سابق.');
 
                 return self::FAILURE;
             }
 
-            $this->bank($competition, $round, $categories->all(), (int) $this->option('bank'));
+            DB::transaction(fn () => $this->bank($competition, $round, $categories->all(), (int) $this->option('bank')));
         }
 
         for ($n = 1; $n <= $count; $n++) {
@@ -154,6 +156,6 @@ class RegisterLoadStudents extends Command
         }
 
         $round->forceFill(['question_count' => (int) $this->option('questions')])->save();
-        RoundQuestions::forget($round->id);
+        DB::afterCommit(fn () => RoundQuestions::forget($round->id));
     }
 }

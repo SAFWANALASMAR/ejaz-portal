@@ -133,7 +133,8 @@ final class AttemptLayout
      * الترتيب لكل فئة على حدة.
      *
      * يُحسب مرة ويُخزَّن (مراجعة المشرف على 0b788d7f)، لا مع كل بدء اختبار: المفتاح بإصدار بنك المرحلة (يتغير مع كل
-     * تعديل فيه، ومع حفظ المسابقة لأن الفئات المفتوحة منها — SaveCompetition)، وبعدد أسئلتها.
+     * تعديل فيه، ومع حفظ المسابقة إن تغيرت الفئات المفتوحة — SaveCompetition)، وبعدد أسئلتها. وبلا مدة كالبنك
+     * وفحص العدد (shortfall).
      *
      * @return array<string, float>
      */
@@ -144,9 +145,8 @@ final class AttemptLayout
         }
 
         /** @var array<string, float> */
-        return Cache::remember(
+        return Cache::rememberForever(
             'competition-round-mixed-max:'.RoundQuestions::key($round->id).':'.$round->question_count,
-            now()->addMinutes((int) config('competitions.exam.cache_minutes')),
             function () use ($round): array {
                 $scores = [];
 
