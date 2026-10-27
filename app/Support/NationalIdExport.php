@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Auth\CurrentPasswordLimiter;
 use App\Enums\ActivityEvent;
+use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -12,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * تصدير نتائج مسابقة الطلاب برقم الهوية وجوال ولي الأمر كاملين (ملاحظة الاختبار الشامل 10، 26 أكتوبر 2026): التصدير
- * الافتراضي مقنّع (آخر أربعة أرقام)، والكامل خيار منفصل بصلاحية مستقلة لا تُربط إلا بمديري النظام، وبكلمة المرور الحالية
+ * الافتراضي مقنّع (آخر أربعة أرقام)، والكامل خيار منفصل بصلاحية مستقلة لمديري النظام بدورهم، ولمن يمنحونه إياها مباشرة
+ * (ChangeNationalIdExport — قرار صفوان، 27 أكتوبر 2026)، وبكلمة المرور الحالية
  * في كل مرة (قفلها مشترك مع تأكيد كلمة المرور — CurrentPasswordLimiter). والفحص بالربط نفسه (CompetitionAccess)، فلا
  * يناله المشرف العام ضمناً ولا منشئ المسابقة. والمحاولة المرفوضة تُسجَّل بسببها، فتظهر محاولات جلسة مسروقة في السجل.
  */
@@ -22,7 +24,9 @@ final class NationalIdExport
 
     public static function allows(?User $user): bool
     {
-        return CompetitionAccess::allows($user, self::PERMISSION);
+        // والمشرف العام اطلاع فقط ولو وصلته الصلاحية مباشرة قبل دوره
+        return $user !== null && CompetitionAccess::allows($user, self::PERMISSION)
+            && (! $user->hasRole(RoleName::SuperAdmin->value) || RoleName::isAdministrator($user));
     }
 
     /**

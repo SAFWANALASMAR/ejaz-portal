@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Actions\Users\ChangeNationalIdExport;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Rules\SaudiMobile;
@@ -77,6 +78,18 @@ class UserForm
                                     $fail(__('users.cannot_demote_self'));
                                 }
                             }),
+                        // ممنوح للمستخدم مباشرة لا عبر دور، يراه مديرا النظام وحدهما (ChangeNationalIdExport)، ولا معنى له
+                        // لمدير النظام فهو له بدوره، ولا يُمنح للمشرف العام
+                        Toggle::make('export_national_id')
+                            ->label(__('users.national_id_export.label'))
+                            ->helperText(fn (?User $record) => $record?->hasRole(RoleName::SuperAdmin->value)
+                                ? __('users.national_id_export.not_for_super_admin')
+                                : __('users.national_id_export.hint'))
+                            ->hiddenOn('create')
+                            ->visible(fn (?User $record) => $record !== null && ! RoleName::isAdministrator($record)
+                                && ChangeNationalIdExport::manages(auth()->user() instanceof User ? auth()->user() : null))
+                            ->disabled(fn (?User $record) => $record?->hasRole(RoleName::SuperAdmin->value) ?? false)
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

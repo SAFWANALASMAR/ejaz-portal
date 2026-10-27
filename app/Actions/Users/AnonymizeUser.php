@@ -49,6 +49,7 @@ class AnonymizeUser
             // الحفظ دون التسجيل الآلي، وإلا كتب السجل القيم القديمة من جديد
             activity()->withoutLogging(function () use ($user): void {
                 $user->syncRoles([]);
+                $user->syncPermissions([]);
 
                 $user->forceFill([
                     'name' => __('users.anonymized_name'),

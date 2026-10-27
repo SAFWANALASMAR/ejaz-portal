@@ -4,10 +4,13 @@ use App\Actions\Competitions\SaveCompetitionField;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
+use App\Actions\Users\ChangeNationalIdExport;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\Competitions\RelationManagers\CumulativeRelationManager;
 use App\Filament\Resources\Competitions\RelationManagers\ResultsRelationManager;
+use App\Filament\Resources\Users\Pages\EditUser;
+use App\Filament\Resources\Users\UserResource;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
@@ -210,4 +213,99 @@ it('shows the full export buttons to system admins alone, and downloads only wit
         ->assertFileDownloaded('cumulative-students.xlsx');
 
     expect(Activity::query()->where('event', 'competition_results_exported')->pluck('properties')->pluck('full_identity')->all())->toBe([true, true]);
+});
+
+/*
+| الخيار في تعديل المستخدم (قرار صفوان، 27 أكتوبر 2026): يمنحه مديرا النظام لمن يختاران مباشرة لا عبر دور، ويسحبانه،
+| ويُسجَّل كل منح وسحب. ولا يراه غيرهما، ولا يُمنح للمشرف العام.
+*/
+
+it('lets a system admin grant the full export to a chosen user from the user screen, and revoke it back to masked', function () {
+    $this->actingAs($this->director);
+    $edit = fn () => Livewire::test(EditUser::class, ['record' => $this->creator->getRouteKey()]);
+    $edit()->assertFormFieldVisible('export_national_id')
+        ->assertFormSet(['export_national_id' => false])
+        ->fillForm(['export_national_id' => true])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $creator = $this->creator->fresh();
+    $rows = nationalIdSheet(fn () => nationalIdExports($this->competition)['results']($creator, true, 'password'));
+
+    expect($creator->hasDirectPermission(NationalIdExport::PERMISSION))->toBeTrue()
+        ->and($creator->getRoleNames()->all())->toBe([RoleName::ProgramManager->value])
+        ->and(array_merge(...$rows))->toContain(studentNationalId(1), studentNationalId(2));
+
+    $edit()->assertFormSet(['export_national_id' => true])
+        ->fillForm(['export_national_id' => false])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $creator = $this->creator->fresh();
+    $masked = implode(' ', array_merge(...nationalIdSheet(fn () => nationalIdExports($this->competition)['results']($creator))));
+
+    expect(NationalIdExport::allows($creator))->toBeFalse()
+        ->and(fn () => nationalIdExports($this->competition)['results']($creator, true, 'password'))->toThrow(AuthorizationException::class)
+        ->and($masked)->not->toContain(studentNationalId(1))->toContain(substr(studentNationalId(1), -4));
+
+    // من منح، ولمن، ومتى: بالترتيب، ولا سجل لحفظ لم يغيّر الخيار
+    $edit()->fillForm(['name' => 'اسم آخر'])->call('save');
+    $logs = Activity::query()->whereIn('event', ['national_id_export_granted', 'national_id_export_revoked'])->oldest('id')->get();
+
+    expect($logs->pluck('event')->all())->toBe(['national_id_export_granted', 'national_id_export_revoked'])
+        ->and($logs->pluck('causer_id')->unique()->all())->toBe([$this->director->id])
+        ->and($logs->pluck('subject_id')->unique()->all())->toBe([$this->creator->id])
+        ->and($logs->every(fn (Activity $log): bool => $log->created_at !== null && $log->log_name === 'users'))->toBeTrue();
+});
+
+it('hides the option from whoever is not a system admin, and refuses it through Livewire', function () {
+    // ولو مُنح users.* مباشرة: لا يصل إلى تعديل الحسابات (UserResource بلا أدوار يمنحها)، ولا يمر الإجراء
+    $editor = userWithRole(RoleName::ContentEditor);
+    $editor->givePermissionTo(['users.view', 'users.update']);
+    $member = User::factory()->create();
+
+    $this->actingAs($editor)->get(UserResource::getUrl('edit', ['record' => $member]))->assertNotFound();
+
+    expect(fn () => app(ChangeNationalIdExport::class)->handle($editor, $member, true))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(ChangeNationalIdExport::class)->handle($this->creator, $member, true))->toThrow(AuthorizationException::class);
+
+    // ومخفي عن مدير النظام في حساب مدير نظام آخر (له بدوره)، فلا يمر بتعديل حالته عبر Livewire
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $this->actingAs($this->director);
+    Livewire::test(EditUser::class, ['record' => $admin->getRouteKey()])
+        ->assertFormFieldHidden('export_national_id')
+        ->set('data.export_national_id', true)
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($member->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and($admin->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and(Activity::query()->where('event', 'national_id_export_granted')->count())->toBe(0);
+});
+
+it('never grants the full export to the super admin, nor lets the super admin grant it', function () {
+    $super = userWithRole(RoleName::SuperAdmin);
+    $member = User::factory()->create();
+
+    expect(fn () => app(ChangeNationalIdExport::class)->handle($super, $member, true))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(ChangeNationalIdExport::class)->handle($this->director, $super, true))->toThrow(ValidationException::class);
+
+    $this->actingAs($this->director);
+    Livewire::test(EditUser::class, ['record' => $super->getRouteKey()])
+        ->assertFormFieldDisabled('export_national_id');
+
+    // ولو وصلته الصلاحية مباشرة قبل دوره، فهو اطلاع فقط
+    $super->givePermissionTo([NationalIdExport::PERMISSION, 'competition.manage_results']);
+
+    expect(NationalIdExport::allows($super->fresh()))->toBeFalse()
+        ->and(fn () => nationalIdExports($this->competition)['results']($super->fresh(), true, 'password'))->toThrow(AuthorizationException::class)
+        ->and(Activity::query()->where('event', 'national_id_export_granted')->count())->toBe(0);
+});
+
+it('drops a direct grant of the full export when the account is anonymized', function () {
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->creator, true);
+    $this->creator->forceFill(['deletion_requested_at' => now()])->save();
+    app(AnonymizeUser::class)->handle($this->director, $this->creator);
+
+    expect($this->creator->fresh()->getDirectPermissions())->toBeEmpty();
 });

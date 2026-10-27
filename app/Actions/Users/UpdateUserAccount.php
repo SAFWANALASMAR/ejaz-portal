@@ -14,16 +14,17 @@ use Illuminate\Validation\ValidationException;
  */
 class UpdateUserAccount
 {
-    public function __construct(private ChangeUserRoles $changeRoles) {}
+    public function __construct(private ChangeUserRoles $changeRoles, private ChangeNationalIdExport $changeNationalIdExport) {}
 
     /**
      * @param  array{name: string, email?: ?string, phone?: ?string, is_active?: bool}  $data
      * @param  list<string>|null  $roles  null = لا تغيير في الأدوار
+     * @param  bool|null  $nationalIdExport  تصدير رقم الهوية كاملاً ممنوحاً مباشرة، وnull = لا تغيير
      *
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function handle(User $actor, User $user, array $data, ?array $roles = null): void
+    public function handle(User $actor, User $user, array $data, ?array $roles = null, ?bool $nationalIdExport = null): void
     {
         // الحساب الذي أُخفيت بياناته لا يُعدَّل ولا يُعاد تفعيله (منع صريح في السياسة أيضاً)
         if ($user->anonymized_at !== null || ! $actor->can('update', $user)) {
@@ -47,7 +48,7 @@ class UpdateUserAccount
             throw ValidationException::withMessages(['email' => __('users.identifier_required')]);
         }
 
-        DB::transaction(function () use ($actor, $user, $data, $roles, $isActive, $email, $phone): void {
+        DB::transaction(function () use ($actor, $user, $data, $roles, $nationalIdExport, $isActive, $email, $phone): void {
 
             // البريد أو الجوال الجديد لا يرث توثيق القديم، وتوثيق الجوال أساس التقديم في المسابقات
             $user->forceFill([
@@ -61,6 +62,11 @@ class UpdateUserAccount
 
             if ($roles !== null && $actor->can('assignRoles', $user)) {
                 $this->changeRoles->handle($actor, $user, $roles);
+            }
+
+            // بعد الأدوار، فلا يُمنح لمن صار مشرفاً عاماً في الحفظ نفسه
+            if ($nationalIdExport !== null) {
+                $this->changeNationalIdExport->handle($actor, $user, $nationalIdExport);
             }
         });
 

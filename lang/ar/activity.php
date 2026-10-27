@@ -56,6 +56,8 @@ return [
         'data_exported' => 'تنزيل نسخة من البيانات الشخصية',
         'invitation_sent' => 'إرسال دعوة تعيين كلمة المرور',
         'roles_changed' => 'تغيير الأدوار',
+        'national_id_export_granted' => 'منح تصدير رقم الهوية كاملاً',
+        'national_id_export_revoked' => 'سحب تصدير رقم الهوية كاملاً',
         'personal_data_changed' => 'تعديل البيانات الشخصية',
         'anonymized' => 'إخفاء البيانات بطلب الحذف',
         'menu_reordered' => 'إعادة ترتيب القائمة',

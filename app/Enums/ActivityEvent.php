@@ -34,6 +34,8 @@ enum ActivityEvent: string implements HasLabel
     // المستخدمون
     case InvitationSent = 'invitation_sent';
     case RolesChanged = 'roles_changed';
+    case NationalIdExportGranted = 'national_id_export_granted';
+    case NationalIdExportRevoked = 'national_id_export_revoked';
     case PersonalDataChanged = 'personal_data_changed';
     case Anonymized = 'anonymized';
 
