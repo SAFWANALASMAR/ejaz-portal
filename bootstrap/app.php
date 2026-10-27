@@ -61,6 +61,10 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        // رقم الهوية وجوال ولي الأمر لا يعودان إلى الجلسة مع خطأ التحقق (_old_input)، ككلمات المرور: الجلسة غير مشفرة،
+        // وبيانات قاصرين (المراجعة السحابية، ن٣)
+        $exceptions->dontFlash(['national_id', 'guardian_phone']);
+
         // خطأ القاعدة يُسجَّل بلا قيم الاستعلام: رسالته تحمل القيم المربوطة (الاسم والبريد والجوال وبصمة كلمة المرور)،
         // ونص PostgreSQL نفسه قد يحمل قيمة المدخل (23505 في DETAIL، و22P02 «invalid input syntax for type uuid: "…"»).
         // فيُسجَّل رمز الخطأ SQLSTATE وحده، والاستعلام بعلاماته، وموضعه، واسم المسار لا المسار نفسه (فيه رموز مثل

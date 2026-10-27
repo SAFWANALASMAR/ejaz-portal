@@ -55,7 +55,9 @@ class ResultsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion']))
+            // والتسجيل الملغى (CorrectStudentRegistration::cancel) خارج النتائج، كما في السحب والترتيب التراكمي
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion'])
+                ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at')))
             ->defaultSort('score', 'desc')
             ->poll('30s')
             ->columns([
