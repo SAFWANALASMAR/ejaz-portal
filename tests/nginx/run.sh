@@ -35,12 +35,13 @@ run() {
   local opts=()
   while [ "$1" != "--" ]; do opts+=("$1"); shift; done
   shift
-  docker run "${opts[@]}" \
+  # وفي Git Bash يحوّل التحويل التلقائي طرف الحاوية من -v إلى مسار ويندوز، فيُطفأ وتُمرَّر المصادر بصيغة ويندوز (ولا أثر لهذا على لينكس)
+  MSYS_NO_PATHCONV=1 docker run "${opts[@]}" \
     -e SITE_HOST=ejaz.test \
     --add-host app:127.0.0.1 \
-    -v "$PWD/deploy/docker/nginx.conf:/etc/nginx/templates/default.conf.template:ro" \
-    -v "$work/tls:/etc/nginx/tls:ro" \
-    -v "$work/public:/var/www/html/public:ro" \
+    -v "$(native "$PWD")/deploy/docker/nginx.conf:/etc/nginx/templates/default.conf.template:ro" \
+    -v "$(native "$work")/tls:/etc/nginx/tls:ro" \
+    -v "$(native "$work")/public:/var/www/html/public:ro" \
     "$IMAGE" "$@"
 }
 
