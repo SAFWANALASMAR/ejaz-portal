@@ -135,7 +135,14 @@
     </div>
 
     <div class="relative border-t border-white/10 bg-black/10">
-        <div class="container-page flex flex-col gap-2 py-5 text-xs text-white/75 sm:flex-row sm:items-center sm:justify-between">
+        {{-- زر المساعد العائم في الزاوية السفلية (partials/assistant): هامش سفلي بقدره، فلا يغطي رابط «سياسة الخصوصية» في آخر
+             الصفحة (الملاحظة 6 من الاختبار الشامل 0.14) --}}
+        @php($assistantOn = \App\Models\AssistantSettings::current()->is_enabled)
+        <div @class([
+            'container-page flex flex-col gap-2 pt-5 text-xs text-white/75 sm:flex-row sm:items-center sm:justify-between',
+            'pb-20' => $assistantOn,
+            'pb-5' => ! $assistantOn,
+        ]) data-footer-rights>
             <p>© {{ now()->year }} {{ __('site.name') }} — {{ $text('rights') }}</p>
             @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
                 <a href="{{ route('privacy') }}" wire:navigate class="hover:text-white">{{ __('site.footer.privacy') }}</a>

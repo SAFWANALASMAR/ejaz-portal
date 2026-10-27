@@ -2,11 +2,15 @@
 
 namespace App\Auth;
 
+use App\Http\Middleware\VerifyBotChallenge;
 use App\Models\User;
+use App\Notifications\LoginChallengeOnAccount;
+use App\Services\BotChallenge\TurnstileChallenge;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use App\Support\SchoolNetworkLimits;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
@@ -35,7 +39,15 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
      */
     protected function limits(Request $request): array
     {
-        return $this->accountLimits($request) + $this->networkLimits($request);
+        // وبلوغها مع Turnstile مضبوطاً تحدٍّ لا حجب، حتى السقف (TurnstileChallenge::ceiling): فلا يقفل طالبٌ حسابَ زميله
+        // ولا دخولَ مدرسته خلف عنوان واحد بمحاولات خاطئة متعمدة (المراجعة السحابية، م١ وم٢). والسقف للطلب الذي اجتاز
+        // التحدي فعلاً (VerifyBotChallenge::PASSED)، فإن لم يمر بالوسيط بقي الحد حاجباً
+        $challenged = $request->attributes->get(VerifyBotChallenge::PASSED) === true;
+
+        return array_map(
+            fn (array $limit): array => ['max' => $challenged ? TurnstileChallenge::ceiling($limit['max']) : $limit['max'], 'decay' => $limit['decay']],
+            $this->accountLimits($request) + $this->networkLimits($request),
+        );
     }
 
     /**
@@ -162,6 +174,39 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
         foreach ($this->limits($request) + $this->portalLimits() as $key => $limit) {
             $this->limiter->hit($key, $limit['decay']);
         }
+
+        $this->noticeChallengedAccount($request);
+    }
+
+    /**
+     * صاحب الحساب يُنبَّه حين تبلغ المحاولات الخاطئة حد حسابه فيصير دخوله بالتحدي، مرة في اليوم. بعد الرد (defer)،
+     * فلا يفرق زمن الرد بين حساب موجود وغيره: الفحص كله بعد الرد، ويُسجَّل لكل معرّف. و always لأن رد المحاولة الخاطئة
+     * 422، ولارافيل يُسقط المؤجَّل بعد رد خطأ بدونه. ولا تنبيه بلا التحدي: الحجب فيه كما كان.
+     */
+    private function noticeChallengedAccount(Request $request): void
+    {
+        if ($request->attributes->get(VerifyBotChallenge::PASSED) !== true) {
+            return;
+        }
+
+        $id = $this->accountId($request, LoginIdentifier::normalize($request->input(Fortify::username())));
+        $limits = $this->accountLimits($request);
+
+        defer(function () use ($id, $limits): void {
+            if ($id === null) {
+                return;
+            }
+
+            foreach ($limits as $key => $limit) {
+                if ($limit['decay'] === 900 && $this->limiter->attempts($key) >= $limit['max']) {
+                    if (Cache::add('login-challenge-notice:'.$id, true, 86400)) {
+                        User::query()->find($id)?->notify(new LoginChallengeOnAccount);
+                    }
+
+                    return;
+                }
+            }
+        }, always: true);
     }
 
     /**

@@ -75,6 +75,11 @@ class ChangeUserRoles
 
             self::voidRememberOnPanelGrant($user, $before, $after);
 
+            // المشرف العام اطلاع فقط، فيُسحب منه تصدير رقم الهوية الممنوح مباشرة قبل دوره (مراجعة المشرف)
+            if (in_array(RoleName::SuperAdmin->value, $after, true) && ! RoleName::isAdministrator($user)) {
+                ChangeNationalIdExport::drop($actor, $user, 'super_admin');
+            }
+
             if ($before !== $after) {
                 activity('users')
                     ->causedBy($actor)

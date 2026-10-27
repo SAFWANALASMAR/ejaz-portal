@@ -4,6 +4,8 @@ namespace App\Policies;
 
 use App\Models\Competition;
 use App\Models\User;
+use App\Support\CompetitionAccess;
+use App\Support\NationalIdExport;
 
 /**
  * المسابقات في اللوحة (صلاحيات competitions.*): مسؤول البرامج يديرها، وعضو المجلس يطّلع.
@@ -17,17 +19,12 @@ class CompetitionPolicy extends ModulePolicy
     }
 
     /**
-     * رقم هوية الطالب وجوال ولي أمره كاملين (قرار المدير التنفيذي): منشئ المسابقة، ومن رُبطت به الصلاحية
-     * المستقلة competition.view_national_id. والفحص بالربط نفسه (checkPermissionTo) لا بـ can، فلا يناله المشرف
-     * العام ضمناً عبر Gate::after، والجواب صريح فلا يغيّره.
+     * رقم هوية الطالب وجوال ولي أمره كاملين: لمن يملك التصدير الكامل (NationalIdExport — مديرا النظام ومن يمنحانه الخيار)
+     * فيما يدير نتائجه، لا لمنشئ المسابقة تلقائياً (قرار صفوان، 27 أكتوبر 2026). والفحص بالربط نفسه (checkPermissionTo)
+     * لا بـ can، فلا يناله المشرف العام ضمناً عبر Gate::after، والجواب صريح فلا يغيّره.
      */
     public function viewNationalId(User $user, Competition $competition): bool
     {
-        if (! $user->is_active) {
-            return false;
-        }
-
-        return ($competition->created_by !== null && $competition->created_by === $user->id && $user->checkPermissionTo('competitions.update'))
-            || $user->checkPermissionTo('competition.view_national_id');
+        return NationalIdExport::allows($user) && CompetitionAccess::managesResults($user, $competition);
     }
 }

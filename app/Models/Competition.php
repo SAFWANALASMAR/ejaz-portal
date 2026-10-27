@@ -117,7 +117,8 @@ class Competition extends Model
     }
 
     /**
-     * منشئ المسابقة: يطّلع على أرقام هويات مسجليها كاملة (CompetitionPolicy::viewNationalId).
+     * منشئ المسابقة: يدير نتائجها (CompetitionAccess::managesResults)، ويطّلع على أرقام هويات مسجليها كاملة إن مُنح الخيار
+     * (CompetitionPolicy::viewNationalId).
      *
      * @return BelongsTo<User, $this>
      */
