@@ -17,6 +17,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # صور الخادم كما تُبنى (docs/security.md «تحديث PHP وnginx»)، بـ --pull فلا تُقبل طبقة قديمة من ذاكرة المشغّل:
+  # PHP للتطوير والإنتاج على الرقعة 8.4.27 فأحدث ورفع تقدم الجلسة مطفأ، وnginx بالوسم الذي في Dockerfile
+  # (فرع مستقر يتلقى الرقع) بـ nginx -t بلا تحذير ورؤوس الحماية حاضرة (tests/nginx/run.sh)
+  php-image:
+    name: صور الخادم (الرقع الأمنية)
+    # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: بناء الصور
+        run: |
+          docker build --pull -t ejaz-php-dev docker/php
+          docker build --pull --target base -t ejaz-php-base -f deploy/docker/Dockerfile .
+          # صورة الإنتاج كاملة كما ينشرها scripts/deploy-compose.sh (المكتبات والواجهة وإعداد PHP منسوخ فيها)
+          docker build --pull --target app -t ejaz-app -f deploy/docker/Dockerfile .
+
+      - name: الإصدار ورفع تقدم الجلسة
+        run: |
+          check='if (version_compare(PHP_VERSION, "8.4.27", "<")) { fwrite(STDERR, "PHP ".PHP_VERSION." أقدم من 8.4.27\n"); exit(1); }
+          if (filter_var(ini_get("session.upload_progress.enabled"), FILTER_VALIDATE_BOOLEAN)) { fwrite(STDERR, "session.upload_progress.enabled مفعّل\n"); exit(1); }
+          echo "PHP ", PHP_VERSION, "، ورفع تقدم الجلسة مطفأ\n";'
+          docker run --rm ejaz-php-dev php -r "$check"
+          # إعداد الإنتاج كما تنسخه مرحلة app إلى الصورة
+          docker run --rm -v "$PWD/deploy/php/production.ini:/usr/local/etc/php/conf.d/99-ejaz.ini:ro" ejaz-php-base php -r "$check"
+          # والصورة المنشورة نفسها بإعدادها المنسوخ، بلا نقطة دخولها (تبني ذاكرة لارافيل وتحتاج القاعدة)
+          docker run --rm --entrypoint php ejaz-app -r "$check"
+
+      - name: nginx بإعداد الإنتاج
+        run: |
+          image="$(sed -n 's/^FROM \(nginx:[^ ]*\) AS web$/\1/p' deploy/docker/Dockerfile)"
+          [ -n "$image" ] || { echo "::error::لا مرحلة web بصورة nginx في deploy/docker/Dockerfile"; exit 1; }
+          docker pull -q "$image"
+          bash tests/nginx/run.sh "$image"
+
   quality:
     name: الجودة والاختبارات
     # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
@@ -64,6 +99,10 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
+
+      # سكربت تجهيز الخادم يُشغَّل بـ root مرة واحدة على خادم الإنتاج، فلا يدخل بتحذير واحد (shellcheck مثبّت في ubuntu-latest)
+      - name: فحص سكربت تجهيز الخادم (shellcheck)
+        run: shellcheck --severity=style scripts/server-bootstrap.sh
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         env:

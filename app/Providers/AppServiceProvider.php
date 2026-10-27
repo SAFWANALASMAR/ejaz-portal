@@ -165,10 +165,7 @@ class AppServiceProvider extends ServiceProvider
         // البريد الموثق أولاً لوسيط الاستعادة (VerifiedFirstUserProvider)
         Auth::provider('verified-first', fn ($app, array $config): VerifiedFirstUserProvider => new VerifiedFirstUserProvider($app['hash'], $config['model']));
 
-        // المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج، لا عند أول تبرع
-        if ($this->app->isProduction() && config('payments.driver') === 'fake') {
-            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
-        }
+        $this->guardPaymentDriver();
 
         // قواعد كلمة المرور في docs/security.md، وتعريفها في PasswordPolicy (قرار صفوان، 20 أكتوبر 2026)
         Password::defaults(fn () => PasswordPolicy::defaults());
@@ -268,5 +265,28 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $adapter;
+    }
+
+    /**
+     * الدفع في الإنتاج متى فُعّل: قائمة سماح لا قائمة منع، فيُرفض عند الإقلاع لا عند أول تبرع كل مشغّل غير moyasar
+     * (fake أو قيمة خاطئة)، وكل مفتاح سري فارغ. والدفع مؤرشف خلف PAYMENTS_ENABLED=false (مساراته 404، وصفحة الدفع
+     * الوهمية للمحلي والاختبار وحدهما)، فلا يُفحص حينها، وإلا تعطّل بناء صورة الإنتاج (package:discover بلا .env)
+     * والموقع كله بقالب .env.production.example.
+     */
+    protected function guardPaymentDriver(): void
+    {
+        if (! $this->app->isProduction() || ! config('payments.enabled')) {
+            return;
+        }
+
+        if (config('payments.driver') !== 'moyasar') {
+            throw new RuntimeException('PAYMENT_DRIVER must be moyasar in production while payments are enabled.');
+        }
+
+        foreach (['payments.moyasar.secret_key' => 'MOYASAR_SECRET_KEY', 'payments.webhook_secret' => 'PAYMENT_WEBHOOK_SECRET'] as $key => $variable) {
+            if (trim((string) config($key)) === '') {
+                throw new RuntimeException($variable.' must be set in production while payments are enabled.');
+            }
+        }
     }
 }
