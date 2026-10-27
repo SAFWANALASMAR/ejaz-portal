@@ -63,7 +63,10 @@ class ArchiveCategoryResource extends Resource
                 TextColumn::make('roles')
                     ->label(__('documents.fields.roles'))
                     ->formatStateUsing(fn (string $state): string => RoleName::tryFrom($state)?->getLabel() ?? $state)
-                    ->badge(),
+                    ->badge()
+                    // على الجوال الاسم والعدد وحدهما: برأس الجدول كاملاً يتمرر حاويه ولا تصله لوحة المفاتيح
+                    // (axe: scrollable-region-focusable، الاختبار الشامل 0.14 الخلل 5). والأدوار في نافذة التعديل
+                    ->visibleFrom('md'),
                 TextColumn::make('items_count')->label(__('documents.items.plural'))->counts('items'),
             ])
             ->recordActions([
