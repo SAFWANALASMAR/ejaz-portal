@@ -102,10 +102,13 @@ class ReviewResource extends Resource
             ->defaultSort('id')
             ->columns([
                 TextColumn::make('submission.reference')->label(__('competitions.entry.reference'))->searchable(),
-                TextColumn::make('submission.competition.title')->label(__('competitions.model'))->wrap(),
-                TextColumn::make('submission.category')->label(__('competitions.entry.category')),
+                // على الجوال الرقم والاكتمال والمجموع وحدها: برأس الجدول كاملاً يتمرر حاويه ولا تصله لوحة المفاتيح
+                // (axe: scrollable-region-focusable، الاختبار الشامل 0.14 الخلل 5). والباقي في صفحة التحكيم
+                TextColumn::make('submission.competition.title')->label(__('competitions.model'))->wrap()->visibleFrom('md'),
+                TextColumn::make('submission.category')->label(__('competitions.entry.category'))->visibleFrom('md'),
                 TextColumn::make('reviewer.name')->label(__('competitions.reviews.reviewer'))
-                    ->visible(fn (): bool => auth()->user()?->can('submissions.view') ?? false),
+                    ->visible(fn (): bool => auth()->user()?->can('submissions.view') ?? false)
+                    ->visibleFrom('md'),
                 IconColumn::make('completed_at')->label(__('competitions.reviews.completed'))->boolean()->state(fn (SubmissionReview $record): bool => $record->completed_at !== null),
                 TextColumn::make('total')->label(__('competitions.reviews.total'))->numeric(2),
             ])

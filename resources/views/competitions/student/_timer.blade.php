@@ -1,6 +1,8 @@
-{{-- العداد الظاهر: الوقت الباقي من الخادم، ويعدّه resources/js/student-competition.js وينبّه في الدقائق الخمس الأخيرة --}}
+{{-- العداد الظاهر: الوقت الباقي من الخادم، ويعدّه resources/js/student-competition.js وينبّه في الدقائق الخمس الأخيرة.
+     وأقصى تأخير عشوائي للتسليم الآلي ربع هامش الشبكة وحتى خمس ثوانٍ: يبقى من الهامش ما يكفي تحميل الصفحة وطلب
+     التسليم تحت حمل الذروة --}}
 @php($left = $attempt->secondsLeft())
-<div data-exam-timer="{{ $left }}" class="sticky top-2 z-10 flex items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white px-5 py-3 shadow-xs data-[warning=true]:border-amber-300 data-[warning=true]:bg-amber-50">
+<div data-exam-timer="{{ $left }}" data-exam-auto-spread="{{ min(5, intdiv((int) config('competitions.student.grace_seconds'), 4)) }}" class="sticky top-2 z-10 flex items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white px-5 py-3 shadow-xs data-[warning=true]:border-amber-300 data-[warning=true]:bg-amber-50">
     <span class="flex items-center gap-2 text-sm font-semibold text-ink">
         {{ svg('heroicon-o-clock', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
         {{ __('competitions.student.time_left') }}

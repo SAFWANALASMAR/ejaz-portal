@@ -9,14 +9,15 @@ use App\Models\CompetitionSubmission;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * تصدير الترتيب التراكمي لمسابقة الطلاب إلى إكسل بتصفية الجدول (CumulativeRanking): بقاعدة تصدير النتائج نفسها
- * (StudentResultsSheet): لمن يدير النتائج، ورقم الهوية مخفي إلا لمن يملك الاطلاع الكامل، والتصدير يُسجَّل، والخلية
- * التي تبدأ كالصيغة نصٌّ.
+ * (StudentResultsSheet): لمن يدير النتائج، ورقم الهوية مخفي إلا في التصدير الكامل (NationalIdExport)، والتصدير
+ * يُسجَّل بعدده ومن صدّره، والخلية التي تبدأ كالصيغة نصٌّ.
  */
 final class CumulativeRankingSheet
 {
@@ -24,18 +25,21 @@ final class CumulativeRankingSheet
      * @param  Builder<CompetitionSubmission>  $query
      *
      * @throws AuthorizationException
+     * @throws ValidationException كلمة المرور في التصدير الكامل
      */
-    public static function download(User $actor, Competition $competition, Builder $query): StreamedResponse
+    public static function download(User $actor, Competition $competition, Builder $query, bool $full = false, ?string $password = null): StreamedResponse
     {
         if (! CompetitionAccess::managesResults($actor, $competition)) {
             throw new AuthorizationException;
         }
 
-        $full = $actor->can('viewNationalId', $competition);
+        if ($full) {
+            NationalIdExport::authorizeFull($actor, $competition, $password);
+        }
 
         activity('competitions')->performedOn($competition)->causedBy($actor)
             ->event(ActivityEvent::ResultsExported->value)
-            ->withProperties(['cumulative' => true, 'full_identity' => $full, 'rows' => (clone $query)->count()])
+            ->withProperties(['cumulative' => true, 'full_identity' => $full, 'rows' => (clone $query)->count(), 'exported_by' => $actor->name])
             ->log(ActivityEvent::ResultsExported->value);
 
         return response()->streamDownload(function () use ($query, $full): void {

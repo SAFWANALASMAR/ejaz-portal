@@ -8,8 +8,8 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 
 /**
- * الاطلاع الكامل على رقم هوية الطالب وجوال ولي أمره (قرار المدير التنفيذي): لمنشئ المسابقة ومن له
- * competition.view_national_id وحدهم (CompetitionPolicy::viewNationalId)، وكل اطلاع يُسجَّل في سجل العمليات
+ * الاطلاع الكامل على رقم هوية الطالب وجوال ولي أمره: لمن يملك التصدير الكامل فيما يدير نتائجه، لا لمنشئ المسابقة
+ * تلقائياً (CompetitionPolicy::viewNationalId — قرار صفوان، 27 أكتوبر 2026)، وكل اطلاع يُسجَّل في سجل العمليات
  * بلا الرقم نفسه. وفي غير ذلك يُعرضان مخفيين إلا آخر أربعة أرقام.
  */
 class RevealStudentIdentity
