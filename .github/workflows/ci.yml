@@ -22,7 +22,8 @@ jobs:
   # (فرع مستقر يتلقى الرقع) بـ nginx -t بلا تحذير ورؤوس الحماية حاضرة (tests/nginx/run.sh)
   php-image:
     name: صور الخادم (الرقع الأمنية)
-    runs-on: ubuntu-latest
+    # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -53,7 +54,8 @@ jobs:
 
   quality:
     name: الجودة والاختبارات
-    runs-on: ubuntu-latest
+    # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     services:
       pgsql:
@@ -103,6 +105,9 @@ jobs:
         run: shellcheck --severity=style scripts/server-bootstrap.sh
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        env:
+          # على المشغّل المحلي يثبّت ما ينقص صورته ولا يفترض أدوات ubuntu-latest
+          runner: ${{ vars.CI_RUNNER && 'self-hosted' || 'github-hosted' }}
         with:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, pcntl, exif
