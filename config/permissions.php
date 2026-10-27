@@ -56,10 +56,14 @@ $modules = [
     'competitions' => ['view', 'create', 'update', 'delete', 'approve', 'draw'],
     // المشاركات منفصلة لأن فيها بيانات المتقدمين الشخصية
     'submissions' => ['view', 'assign', 'export', 'delete'],
-    // مسابقة الطلاب (plans/student-competition.md): رقم الهوية كاملاً، وإدارة النتائج (النشر والسحب والتأهيل والشهادات
+    // مسابقة الطلاب (plans/student-competition.md): view_national_id (لم تعد تكفي لكشف الرقم: الكشف لمن يملك
+    // export_national_id — قرار صفوان، 27 أكتوبر 2026)، وإدارة النتائج (النشر والسحب والتأهيل والشهادات
     // والتصدير)، وتصحيح التسجيلات. لمديري النظام (المدير التنفيذي والمسؤول التقني بـ '*')، والأوليان لمنشئ المسابقة
     // أيضاً، ولا لمسؤول البرامج. وتُفحص بالربط نفسه (CompetitionAccess) فلا ينالها المشرف العام (اطلاع)
-    'competition' => ['view_national_id', 'manage_results', 'correct_registrations'],
+    // export_national_id: تصدير النتائج برقم الهوية كاملاً، لمديري النظام ولمن يمنحانه مباشرة (ChangeNationalIdExport) لا لمنشئ
+    // المسابقة تلقائياً، بكلمة المرور
+    // (NationalIdExport — ملاحظة الاختبار الشامل 10). والتصدير العادي مقنّع لكل من يدير النتائج
+    'competition' => ['view_national_id', 'manage_results', 'correct_registrations', 'export_national_id'],
     // التحكيم: السياسة تحصره في المسند إلى المحكّم نفسه
     'reviews' => ['view', 'update'],
 
