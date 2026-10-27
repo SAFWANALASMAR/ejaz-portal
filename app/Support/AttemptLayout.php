@@ -9,6 +9,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Random\Randomizer;
 
 /**
@@ -168,10 +169,12 @@ final class AttemptLayout
     /**
      * فحص العدد والدرجات القصوى المبنية من بنك المرحلة بمفتاحه القديم، قبل تغيير الإصدار (RoundQuestions::forget)،
      * فلا تبقى لكل إصدار سابق حتى تنتهي مدتها. بعدد أسئلة المرحلة الحالي وفئات مسابقتها المفتوحة، وما سواها تُنهيه مدته.
+     * والفئات من الجدول الوسيط لا من علاقة المسابقة، فالمسابقة المحذوفة حذفاً ناعماً تبقى مراحلها (ejaz:refresh-content
+     * يمر عليها كلها)، ولا تعود علاقتها.
      */
     public static function forget(int $roundId, string $bankKey): void
     {
-        $round = CompetitionRound::query()->with('competition')->find($roundId);
+        $round = CompetitionRound::query()->find($roundId);
 
         if ($round === null) {
             return;
@@ -179,7 +182,7 @@ final class AttemptLayout
 
         Cache::forget(self::mixedMaxKey($bankKey, $round->question_count));
 
-        foreach ($round->competition->openCategories()->pluck('competition_categories.id') as $categoryId) {
+        foreach (DB::table('competition_category_competition')->where('competition_id', $round->competition_id)->pluck('category_id') as $categoryId) {
             Cache::forget(self::shortfallKey($bankKey, $round->question_count, (int) $categoryId));
         }
     }

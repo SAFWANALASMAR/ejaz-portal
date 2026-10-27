@@ -187,7 +187,26 @@ it('caps the notice text messages for each targeted account, then sends mail alo
 it('lists the challenge settings in both environment templates', function (string $template) {
     $content = (string) file_get_contents(base_path($template));
 
-    foreach (['BOT_CHALLENGE_CEILING_FACTOR', 'LOGIN_CHALLENGE_SMS_PER_DAY', 'LOGIN_CHALLENGE_SMS_PER_ACCOUNT_PER_WEEK'] as $variable) {
+    foreach (['BOT_CHALLENGE_CEILING_FACTOR', 'LOGIN_CHALLENGE_SMS_PER_DAY', 'LOGIN_CHALLENGE_SMS_PER_ACCOUNT_PER_WEEK', 'NATIONAL_ID_REVEALS_PER_HOUR'] as $variable) {
         expect($content)->toMatch('/^'.$variable.'=\d+$/m');
     }
 })->with(['.env.example', '.env.production.example']);
+
+it('keeps the account weekly allowance when the portal daily cap stops the text message', function () {
+    config(['security.login_challenge_sms_per_account_per_week' => 1, 'security.login_challenge_sms_per_day' => 1]);
+    MessagingChannel::query()->updateOrCreate(['channel' => MessagingChannel::SMS], [
+        'provider' => 'taqnyat',
+        'options' => ['sender' => 'EJAZ'],
+        'secrets' => ['api_key' => 'panel-key'],
+    ]);
+    $first = User::factory()->create(['phone' => '+966512345672', 'phone_verified_at' => now()]);
+    $target = User::factory()->create(['phone' => '+966512345673', 'phone_verified_at' => now()]);
+
+    // سقف البوابة نفد اليوم: لا رسالة، ولا يُخصم من حصة الحساب، فتصله رسالة غداً
+    expect((new LoginChallengeOnAccount)->via($first))->toBe(['mail', SmsChannel::class])
+        ->and((new LoginChallengeOnAccount)->via($target))->toBe(['mail']);
+
+    $this->travel(1)->days();
+
+    expect((new LoginChallengeOnAccount)->via($target))->toBe(['mail', SmsChannel::class]);
+});

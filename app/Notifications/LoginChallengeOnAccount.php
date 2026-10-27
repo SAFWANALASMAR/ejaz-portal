@@ -26,33 +26,40 @@ class LoginChallengeOnAccount extends Notification implements ShouldQueueAfterCo
     public function via(object $notifiable): array
     {
         $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone()
-            && self::smsAllowedForAccount($notifiable) && self::smsAllowedToday();
+            && self::smsAllowed($notifiable);
 
         return $sms ? ['mail', SmsChannel::class] : ['mail'];
     }
 
     /**
-     * سقف لرسائل هذا التنبيه لكل حساب في الأسبوع، فلا يُغرق جوالَ صاحب حساب واحد من يستهدفه يوماً بعد يوم، ولا يستهلك
-     * حسابٌ واحد حصة البوابة (المراجعة المستقلة على v0.14.0). وبعده بالبريد وحده.
+     * سقفان لرسائل هذا التنبيه، وبعد أيهما بالبريد وحده:
+     * - يومي للبوابة كلها، فلا يحوّل من يحل التحدي بخدمة مدفوعة على آلاف الحسابات التنبيهَ إلى إغراق رسائل وتكلفة
+     *   (المراجعة الأمنية لـ #77، م-ب).
+     * - أسبوعي لكل حساب، فلا يُغرق جوالَ صاحب حساب واحد من يستهدفه يوماً بعد يوم، ولا يستهلك حسابٌ واحد حصة البوابة
+     *   (المراجعة المستقلة على v0.14.0).
+     * ويُفحصان معاً قبل العدّ، فلا تُخصم حصة الحساب برسالة منعها سقف البوابة.
      */
-    private static function smsAllowedForAccount(User $user): bool
+    private static function smsAllowed(User $user): bool
     {
-        $key = 'login-challenge-sms-account:'.$user->getKey();
-        Cache::add($key, 0, 7 * 86400);
+        $limits = [
+            'login-challenge-sms:'.now()->toDateString() => [(int) config('security.login_challenge_sms_per_day'), 86400],
+            'login-challenge-sms-account:'.$user->getKey() => [(int) config('security.login_challenge_sms_per_account_per_week'), 7 * 86400],
+        ];
 
-        return Cache::increment($key) <= (int) config('security.login_challenge_sms_per_account_per_week');
-    }
+        foreach ($limits as $key => [$max]) {
+            if ((int) Cache::get($key, 0) >= $max) {
+                return false;
+            }
+        }
 
-    /**
-     * سقف يومي لرسائل هذا التنبيه في البوابة كلها، فلا يحوّل من يحل التحدي بخدمة مدفوعة على آلاف الحسابات التنبيهَ
-     * إلى إغراق رسائل وتكلفة (المراجعة الأمنية لهذا الفرع، م-ب). وبعده بالبريد وحده.
-     */
-    private static function smsAllowedToday(): bool
-    {
-        $key = 'login-challenge-sms:'.now()->toDateString();
-        Cache::add($key, 0, 86400);
+        $allowed = true;
 
-        return Cache::increment($key) <= (int) config('security.login_challenge_sms_per_day');
+        foreach ($limits as $key => [$max, $ttl]) {
+            Cache::add($key, 0, $ttl);
+            $allowed = Cache::increment($key) <= $max && $allowed;
+        }
+
+        return $allowed;
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -41,9 +41,9 @@ services:
       RUNNER_NAME: ${RUNNER_NAME:-ejaz-local}
       # self-hosted وLinux وX64 يضيفها GitHub بنفسه
       RUNNER_LABELS: ejaz
+    # وتسجيل المشغّل الدائم القديم (state) لا يُركَّب في حاوية مهمة، فلا تقرؤه: يركّبه register.sh remove وحده
     volumes:
       - work:/ejaz-ci
-      - state:/ejaz-ci-state
 
 volumes:
   docker-data:

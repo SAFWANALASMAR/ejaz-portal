@@ -23,12 +23,15 @@ class CompetitionCategory extends Model
 
     /**
      * اسم الفئة مفتاح الدرجات القصوى المخزنة لمراحل المسابقات التي تفتحها (AttemptLayout::mixedMaxScores)، فتعديلها يعيد
-     * حسابها بعد حفظه (المراجعة المستقلة على v0.14.0).
+     * حسابها بعد حفظه (المراجعة المستقلة على v0.14.0). وتغيير الاسم وحده، فلا يفرّغ تعديلُ الترتيب أو الصفوف أثناء نافذة
+     * الاختبار بنوكَ المراحل على الطلاب كلهم معاً.
      */
     protected static function booted(): void
     {
         static::updated(function (self $category): void {
-            DB::afterCommit(fn () => RoundQuestions::forgetCategory($category->id));
+            if ($category->wasChanged('name')) {
+                DB::afterCommit(fn () => RoundQuestions::forgetCategory($category->id));
+            }
         });
     }
 

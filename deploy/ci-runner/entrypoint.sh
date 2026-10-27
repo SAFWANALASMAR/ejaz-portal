@@ -21,19 +21,23 @@ token() {
 
 case "${1:-ephemeral}" in
   ephemeral)
+    # الرمز أولاً في متغير، فيوقف غيابه السكربت (set -e) برسالته
+    registration="$(token)"
     sudo find /ejaz-ci/work /ejaz-ci/tmp -mindepth 1 -delete
     # التسجيل في ملفات الحاوية وحدها، ويذهب معها
     ./config.sh --unattended --ephemeral --replace \
-      --url "https://github.com/$RUNNER_REPO" --token "$(token)" \
+      --url "https://github.com/$RUNNER_REPO" --token "$registration" \
       --name "$RUNNER_NAME" --labels "$RUNNER_LABELS" --work /ejaz-ci/work
+    unset registration
     exec ./run.sh </dev/null
     ;;
   remove)
+    removal="$(token)"
     for file in "${state[@]}"; do
       [ -f "/ejaz-ci-state/$file" ] || { echo "لا تسجيل دائماً محفوظاً" >&2; exit 0; }
       cp "/ejaz-ci-state/$file" .
     done
-    ./config.sh remove --token "$(token)"
+    ./config.sh remove --token "$removal"
     rm -f /ejaz-ci-state/.runner /ejaz-ci-state/.credentials*
     ;;
   *)

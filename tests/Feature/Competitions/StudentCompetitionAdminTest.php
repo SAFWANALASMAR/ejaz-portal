@@ -685,6 +685,7 @@ it('asks for the password in the reveal window before the first reveal, then cle
         ->fillForm(['password' => 'password'])
         ->callMountedAction()
         ->assertSet('revealed.national_id', studentNationalId(4))
+        ->assertSet('mountedActions.0.data.password', null)
         ->call('unmountAction')
         ->assertSet('revealed', null);
 

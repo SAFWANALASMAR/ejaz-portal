@@ -115,6 +115,8 @@ class RegistrationsRelationManager extends RelationManager
                             return app(RevealStudentIdentity::class)->handle($this->actor(), $record);
                         });
 
+                        // كلمة المرور لا تبقى في حالة الصفحة المرسلة إلى المتصفح والنافذة مفتوحة
+                        $this->mountedActions[array_key_last($this->mountedActions)]['data']['password'] = null;
                         $action->halt();
                     })
                     ->schema([

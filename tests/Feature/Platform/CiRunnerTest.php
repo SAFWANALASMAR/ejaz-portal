@@ -27,7 +27,7 @@ it('installs the dependencies without their plugins or install scripts, then run
     $job = ciJob('quality');
 
     expect($job)->toContain('composer install --no-interaction --prefer-dist --no-progress --no-plugins --no-scripts')
-        ->toContain('composer run-script post-autoload-dump')
+        ->toContain('composer run-script --no-plugins post-autoload-dump')
         ->toContain('npm ci --ignore-scripts')
         ->not->toMatch('/npm ci\s*$/m')
         ->not->toMatch('/composer install(?!.*--no-scripts)/');
@@ -67,4 +67,23 @@ it('passes the registration token on standard input, never in the environment or
 
     // ولا تحويل لمخرج الرمز إلى ملف
     expect($register)->not->toMatch('/token[^|\n]*>\s*[^&\s]/');
+});
+
+it('cleans the private Docker server before every job, and keeps the old registration out of job containers', function () {
+    $register = ciRunnerFile('register.sh');
+    $compose = ciRunnerFile('compose.yaml');
+
+    preg_match('/^while true; do\n(.*?)^done$/ms', $register, $loop);
+
+    // التنظيف قبل المهمة، ولا مهمة إن تعذّر
+    expect($loop[1] ?? '')->toMatch('/if ! clean; then.*?continue.*?docker compose run --rm -T runner ephemeral/s')
+        ->and($register)->toContain('docker ps -aq | xargs -r docker rm -f')
+        ->toContain('docker volume prune -af')
+        ->toContain('docker network prune -f')
+        ->toContain('docker builder prune -af');
+
+    preg_match('/^  runner:\n(.*?)(?=^  \S|^\S|\z)/ms', $compose, $runner);
+
+    expect($runner[1] ?? '')->not->toContain('/ejaz-ci-state')
+        ->and($register)->toContain('-v ejaz-ci-runner_state:/ejaz-ci-state runner remove');
 });

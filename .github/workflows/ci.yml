@@ -22,8 +22,8 @@ jobs:
   # (فرع مستقر يتلقى الرقع) بـ nginx -t بلا تحذير ورؤوس الحماية حاضرة (tests/nginx/run.sh)
   php-image:
     name: صور الخادم (الرقع الأمنية)
-    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي (docs/deploy/ci-runner.md «الأمن»)
-    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
+    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي، ولو دفع إنسانٌ إلى فرعه (docs/deploy/ci-runner.md «الأمن»)
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.ref_name, 'dependabot/')
     # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
@@ -56,8 +56,8 @@ jobs:
 
   quality:
     name: الجودة والاختبارات
-    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي (docs/deploy/ci-runner.md «الأمن»)
-    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
+    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي، ولو دفع إنسانٌ إلى فرعه (docs/deploy/ci-runner.md «الأمن»)
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.ref_name, 'dependabot/')
     # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
@@ -128,12 +128,13 @@ jobs:
           path: ~/.cache/composer
           key: composer-${{ hashFiles('composer.lock') }}
 
-      # بلا إضافات Composer ولا سكربتات تثبيت الحزم، فلا تعمل شيفرة مكتبة عند التثبيت على المشغّل. ثم سكربت المشروع
-      # بعد التحميل صراحة (package:discover). والبناء لا يحتاج سكربتات npm (esbuild وrollup وoxide بحزمها الثنائية)
+      # بلا إضافات Composer ولا سكربتات تثبيت الحزم. ثم سكربت المشروع بعد التحميل صراحة وبلا إضافات (package:discover،
+      # ويقلع التطبيق بمزوّدي الحزم كالاختبارات بعده). والبناء لا يحتاج سكربتات npm (esbuild وrollup وoxide بحزمها الثنائية).
+      # فلا تعمل عند التثبيت شيفرة تنفّذها المكتبات بنفسها، وشيفرتها في الاختبارات والبناء باقية كما في كل فحص
       - name: تثبيت المكتبات
         run: |
           composer install --no-interaction --prefer-dist --no-progress --no-plugins --no-scripts
-          composer run-script post-autoload-dump
+          composer run-script --no-plugins post-autoload-dump
           npm ci --ignore-scripts
           npm run build
 

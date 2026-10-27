@@ -19,6 +19,10 @@ return new class extends Migration
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
+    /**
+     * يعيد الصلاحية بلا ربطها القديم بالأدوار والمستخدمين، لأنها بلا أثر أصلاً. ومديرا النظام ينالانها بـ '*' من
+     * PermissionsSeeder إن أُعيدت إلى الإعداد.
+     */
     public function down(): void
     {
         DB::table('permissions')->insertOrIgnore(['name' => self::NAME, 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()]);

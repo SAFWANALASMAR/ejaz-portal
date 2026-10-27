@@ -350,5 +350,5 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
  */
 function ciRunnerGuard(): string
 {
-    return "(github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'";
+    return "(github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.ref_name, 'dependabot/')";
 }

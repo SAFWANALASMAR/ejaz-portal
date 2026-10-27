@@ -563,6 +563,25 @@ it('recomputes the category maximums under the new name when a category is renam
 
     expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة المتوسطة (معدّلة)')
         ->not->toHaveKey('المرحلة المتوسطة');
+
+    // وتعديل الترتيب وحده لا يفرّغ البنوك أثناء النافذة
+    $key = RoundQuestions::key($this->round->id);
+    $middle->update(['sort_order' => 99]);
+
+    expect(RoundQuestions::key($this->round->id))->toBe($key);
+});
+
+it('refreshes the content and renames a category while a soft-deleted competition still holds rounds', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->sole();
+    $this->competition->openCategories()->sync([$middle->id]);
+    studentQuestion($this->round, ['category_id' => $middle->id]);
+    AttemptLayout::mixedMaxScores($this->round->fresh());
+    $this->competition->delete();
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+    $middle->update(['name' => 'المرحلة المتوسطة (بعد الحذف)']);
+
+    expect($middle->fresh()->name)->toBe('المرحلة المتوسطة (بعد الحذف)');
 });
 
 it('keeps the bank and its checks a day at most, and drops the old version checks when the bank changes', function () {
