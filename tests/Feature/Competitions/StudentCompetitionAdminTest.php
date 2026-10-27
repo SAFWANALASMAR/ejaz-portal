@@ -49,6 +49,7 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -318,8 +319,14 @@ it('shows the full national ID only to holders of the full export, not to the co
     app(ChangeNationalIdExport::class)->handle($this->director, $this->manager, true);
     $this->manager->refresh();
 
-    expect(app(RevealStudentIdentity::class)->handle($this->director, $submission)['national_id'])->toBe(studentNationalId(4))
-        ->and(app(RevealStudentIdentity::class)->handle($this->manager, $submission)['national_id'])->toBe(studentNationalId(4))
+    $reveal = function (User $user) use ($submission): ?string {
+        app(RevealStudentIdentity::class)->confirm($user, $this->competition, 'password');
+
+        return app(RevealStudentIdentity::class)->handle($user, $submission)['national_id'];
+    };
+
+    expect($reveal($this->director))->toBe(studentNationalId(4))
+        ->and($reveal($this->manager))->toBe(studentNationalId(4))
         ->and(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(2)
         ->and(Activity::query()->where('event', 'national_id_viewed')->get()->pluck('properties')->flatten()->implode(' '))->not->toContain(studentNationalId(4));
 
@@ -338,8 +345,9 @@ it('shows the full national ID only to holders of the full export, not to the co
         ->assertDontSee(studentNationalId(4))
         ->assertActionHidden(TestAction::make('reveal')->table($submission));
 
-    // فتح نافذة الاطلاع وحده يقرأ الرقم ويسجّل الاطلاع، والجدول لا يحمله
+    // فتح نافذة الاطلاع وحده يقرأ الرقم ويسجّل الاطلاع ما دامت كلمة المرور مؤكدة في الجلسة، والجدول لا يحمله
     $this->actingAs($this->director);
+    app(RevealStudentIdentity::class)->confirm($this->director, $this->competition, 'password');
     Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
         ->assertDontSee(studentNationalId(4))
         ->assertActionVisible(TestAction::make('reveal')->table($submission))
@@ -663,15 +671,54 @@ it('extends the deadline of running attempts when the round end is extended', fu
     expect($attempt->fresh()->deadline_at->timestamp)->toBe($attempt->started_at->copy()->addMinutes(30)->timestamp);
 });
 
-it('clears the revealed identity from the page state when the reveal window closes', function () {
+it('asks for the password in the reveal window before the first reveal, then clears the identity when it closes', function () {
     $submission = CompetitionSubmission::query()->where('user_id', registeredStudent($this->competition, 4)->id)->sole();
     $this->actingAs($this->director);
 
     Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
         ->mountAction(TestAction::make('reveal')->table($submission))
+        ->assertSet('revealed', null)
+        ->assertDontSee(studentNationalId(4))
+        ->fillForm(['password' => 'wrong-password'])
+        ->callMountedAction()
+        ->assertSet('revealed', null)
+        ->fillForm(['password' => 'password'])
+        ->callMountedAction()
         ->assertSet('revealed.national_id', studentNationalId(4))
         ->call('unmountAction')
         ->assertSet('revealed', null);
+
+    expect(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(1);
+});
+
+it('reveals a national ID only after the password, for a short while, and up to an hourly limit', function () {
+    $submission = CompetitionSubmission::query()->where('user_id', registeredStudent($this->competition, 4)->id)->sole();
+    $reveal = fn () => app(RevealStudentIdentity::class)->handle($this->director, $submission);
+
+    // بلا تأكيد، وبكلمة مرور خاطئة: لا عرض ولا سجل اطلاع، والخاطئة تُحسب على قفل تأكيد كلمة المرور
+    expect($reveal)->toThrow(ValidationException::class)
+        ->and(fn () => app(RevealStudentIdentity::class)->confirm($this->director, $this->competition, 'wrong-password'))->toThrow(ValidationException::class)
+        ->and(RateLimiter::attempts('confirm-password:'.$this->director->id))->toBe(1)
+        ->and(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(0);
+
+    // والتأكيد لصاحبه وحده، فلا يكشف به غيره في الجلسة نفسها
+    app(RevealStudentIdentity::class)->confirm($this->director, $this->competition, 'password');
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->manager, true);
+
+    expect($reveal()['national_id'])->toBe(studentNationalId(4))
+        ->and(fn () => app(RevealStudentIdentity::class)->handle($this->manager->fresh(), $submission))->toThrow(ValidationException::class);
+
+    // ينتهي التأكيد بعد مدته
+    $this->travel(RevealStudentIdentity::CONFIRM_SECONDS + 1)->seconds();
+    expect($reveal)->toThrow(ValidationException::class);
+
+    // وحد الساعة لكل مستخدم
+    config(['security.national_id_reveals_per_hour' => 2]);
+    app(RevealStudentIdentity::class)->confirm($this->director, $this->competition, 'password');
+    $reveal();
+
+    expect($reveal)->toThrow(ValidationException::class)
+        ->and(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(2);
 });
 
 it('refuses an import whose uncompressed size is too large, and restores cells protected from formulas', function () {

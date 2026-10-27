@@ -39,14 +39,15 @@ class LoginRateLimiter extends FortifyLoginRateLimiter
      */
     protected function limits(Request $request): array
     {
-        // وبلوغها مع Turnstile مضبوطاً تحدٍّ لا حجب، حتى السقف (TurnstileChallenge::ceiling): فلا يقفل طالبٌ حسابَ زميله
-        // ولا دخولَ مدرسته خلف عنوان واحد بمحاولات خاطئة متعمدة (المراجعة السحابية، م١ وم٢). والسقف للطلب الذي اجتاز
-        // التحدي فعلاً (VerifyBotChallenge::PASSED)، فإن لم يمر بالوسيط بقي الحد حاجباً
+        // حدود الشبكة وحدها تتسع مع Turnstile مضبوطاً إلى سقفها (TurnstileChallenge::ceiling): فلا يقفل طالبٌ دخولَ
+        // مدرسته خلف عنوان واحد بمحاولات خاطئة متعمدة (المراجعة السحابية، م٢). والسقف للطلب الذي اجتاز التحدي فعلاً
+        // (VerifyBotChallenge::PASSED)، فإن لم يمر بالوسيط بقي الحد حاجباً. أما حدود الحساب فحاجبة بقيمها دائماً، فلا
+        // يخمّن كلمةَ مرور حساب واحد من يحل التحدي آلياً (المراجعة المستقلة على v0.14.0، قرار صفوان ١(أ))
         $challenged = $request->attributes->get(VerifyBotChallenge::PASSED) === true;
 
-        return array_map(
+        return $this->accountLimits($request) + array_map(
             fn (array $limit): array => ['max' => $challenged ? TurnstileChallenge::ceiling($limit['max']) : $limit['max'], 'decay' => $limit['decay']],
-            $this->accountLimits($request) + $this->networkLimits($request),
+            $this->networkLimits($request),
         );
     }
 

@@ -95,17 +95,37 @@ class RegistrationsRelationManager extends RelationManager
                     ->color('gray')
                     ->visible(fn (): bool => auth()->user()?->can('viewNationalId', $this->competition()) ?? false)
                     ->modalHeading(__('competitions.student.admin.reveal_heading'))
-                    ->modalDescription(__('competitions.student.admin.reveal_logged'))
-                    ->modalSubmitAction(false)
+                    ->modalDescription(fn (): string => $this->revealed === null
+                        ? __('competitions.student.admin.reveal_confirm').' '.__('competitions.student.admin.reveal_logged')
+                        : __('competitions.student.admin.reveal_logged'))
+                    // زر العرض ما دام الرقم لم يُعرض (تأكيد كلمة المرور)، ثم الإغلاق وحده
+                    ->modalSubmitAction(fn (Action $action): Action|false => $this->revealed === null ? $action->label(__('competitions.student.admin.reveal_submit')) : false)
                     ->modalCancelActionLabel(__('competitions.student.admin.close'))
-                    // الرقم يُقرأ ويُسجَّل مرة عند فتح النافذة (mountUsing)، لا في الجدول ولا عند كل رسم
+                    // الرقم يُقرأ ويُسجَّل مرة عند فتح النافذة (mountUsing) إن كانت كلمة المرور مؤكدة في الجلسة، لا في الجدول ولا
+                    // عند كل رسم. وإلا فبعد تأكيدها في النافذة نفسها (action)، وتبقى مفتوحة لعرضه (halt)
                     ->mountUsing(function (CompetitionSubmission $record): void {
-                        $this->revealed = $this->attempt(fn (): array => app(RevealStudentIdentity::class)->handle($this->actor(), $record));
+                        if (RevealStudentIdentity::confirmed($this->actor())) {
+                            $this->revealed = $this->attempt(fn (): array => app(RevealStudentIdentity::class)->handle($this->actor(), $record));
+                        }
+                    })
+                    ->action(function (CompetitionSubmission $record, array $data, Action $action): void {
+                        $this->revealed = $this->attempt(function () use ($record, $data): array {
+                            app(RevealStudentIdentity::class)->confirm($this->actor(), $this->competition(), $data['password'] ?? null);
+
+                            return app(RevealStudentIdentity::class)->handle($this->actor(), $record);
+                        });
+
+                        $action->halt();
                     })
                     ->schema([
+                        TextInput::make('password')->label(__('competitions.student.admin.reveal_password'))
+                            ->password()->revealable()->required()->autocomplete('current-password')
+                            ->visible(fn (): bool => $this->revealed === null),
                         TextEntry::make('revealed_national_id')->label(__('competitions.student.attributes.national_id'))
+                            ->visible(fn (): bool => $this->revealed !== null)
                             ->state(fn (): ?string => $this->revealed['national_id'] ?? null)->copyable()->extraAttributes(['dir' => 'ltr']),
                         TextEntry::make('revealed_guardian_phone')->label(__('competitions.student.attributes.guardian_phone'))
+                            ->visible(fn (): bool => $this->revealed !== null)
                             ->state(fn (): string => filled($this->revealed['guardian_phone'] ?? null) ? SaudiPhone::display((string) $this->revealed['guardian_phone']) : '—')
                             ->extraAttributes(['dir' => 'ltr']),
                     ]),

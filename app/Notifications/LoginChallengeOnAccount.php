@@ -12,7 +12,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * تنبيه صاحب الحساب بأن المحاولات الخاطئة على حسابه بلغت حده، فصار دخوله يتطلب التحدي ضد الآليات بدل الحجب
+ * تنبيه صاحب الحساب بأن المحاولات الخاطئة على حسابه بلغت حده فأُقفل دخوله مؤقتاً، مع Turnstile مضبوطاً
  * (LoginRateLimiter، قرار صفوان 27 أكتوبر 2026). يُرسل بعد الرد، والرد على المحاولة واحد لكل معرّف، فلا يكشف وجود
  * الحساب لمن يحاول. مرة في اليوم على الأكثر، بالبريد وبالرسالة النصية متى كانت جاهزة وجواله موثقاً، كـ PasswordChanged.
  */
@@ -25,9 +25,22 @@ class LoginChallengeOnAccount extends Notification implements ShouldQueueAfterCo
      */
     public function via(object $notifiable): array
     {
-        $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone() && self::smsAllowedToday();
+        $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone()
+            && self::smsAllowedForAccount($notifiable) && self::smsAllowedToday();
 
         return $sms ? ['mail', SmsChannel::class] : ['mail'];
+    }
+
+    /**
+     * سقف لرسائل هذا التنبيه لكل حساب في الأسبوع، فلا يُغرق جوالَ صاحب حساب واحد من يستهدفه يوماً بعد يوم، ولا يستهلك
+     * حسابٌ واحد حصة البوابة (المراجعة المستقلة على v0.14.0). وبعده بالبريد وحده.
+     */
+    private static function smsAllowedForAccount(User $user): bool
+    {
+        $key = 'login-challenge-sms-account:'.$user->getKey();
+        Cache::add($key, 0, 7 * 86400);
+
+        return Cache::increment($key) <= (int) config('security.login_challenge_sms_per_account_per_week');
     }
 
     /**

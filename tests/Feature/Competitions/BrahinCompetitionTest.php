@@ -504,7 +504,9 @@ it('gives the technical admin the full national ID and the results operations, a
     $super = userWithRole(RoleName::SuperAdmin);
     $submission = submissionOf(registeredStudent($this->competition, 3));
 
-    expect($technical->checkPermissionTo('competition.view_national_id'))->toBeTrue()
+    app(RevealStudentIdentity::class)->confirm($technical, $this->competition, 'password');
+
+    expect($technical->checkPermissionTo('competition.export_national_id'))->toBeTrue()
         ->and($technical->checkPermissionTo('competition.manage_results'))->toBeTrue()
         ->and(app(RevealStudentIdentity::class)->handle($technical, $submission)['national_id'])->toBe(studentNationalId(3))
         ->and(fn () => app(RevealStudentIdentity::class)->handle($super, $submission))->toThrow(AuthorizationException::class);
