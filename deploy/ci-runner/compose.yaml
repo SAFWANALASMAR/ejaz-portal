@@ -24,10 +24,12 @@ services:
       timeout: 5s
       retries: 20
 
+  # مؤقت: حاوية لكل مهمة من حلقة register.sh (docker compose run --rm)، فلا يشغّله up ولا يعيده Docker وحده
   runner:
     build: .
     image: ejaz-ci-runner:2.338.0
-    restart: unless-stopped
+    profiles: [ephemeral]
+    stdin_open: true
     network_mode: service:dind
     depends_on:
       dind:

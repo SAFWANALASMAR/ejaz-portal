@@ -22,6 +22,8 @@ jobs:
   # (فرع مستقر يتلقى الرقع) بـ nginx -t بلا تحذير ورؤوس الحماية حاضرة (tests/nginx/run.sh)
   php-image:
     name: صور الخادم (الرقع الأمنية)
+    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي (docs/deploy/ci-runner.md «الأمن»)
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
@@ -54,6 +56,8 @@ jobs:
 
   quality:
     name: الجودة والاختبارات
+    # لا شيفرة من نسخة (fork) ولا من Dependabot على المشغّل المحلي (docs/deploy/ci-runner.md «الأمن»)
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     # متغير المستودع CI_RUNNER يوجّه الفحص إلى المشغّل المحلي (ejaz)، وبدونه ubuntu-latest (docs/deploy/ci-runner.md)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
@@ -120,13 +124,17 @@ jobs:
       - name: Cache Composer
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ~/.composer/cache
+          # مجلد ذاكرة Composer على لينكس (XDG)، لا مجلد ~/.composer القديم
+          path: ~/.cache/composer
           key: composer-${{ hashFiles('composer.lock') }}
 
+      # بلا إضافات Composer ولا سكربتات تثبيت الحزم، فلا تعمل شيفرة مكتبة عند التثبيت على المشغّل. ثم سكربت المشروع
+      # بعد التحميل صراحة (package:discover). والبناء لا يحتاج سكربتات npm (esbuild وrollup وoxide بحزمها الثنائية)
       - name: تثبيت المكتبات
         run: |
-          composer install --no-interaction --prefer-dist --no-progress
-          npm ci
+          composer install --no-interaction --prefer-dist --no-progress --no-plugins --no-scripts
+          composer run-script post-autoload-dump
+          npm ci --ignore-scripts
           npm run build
 
       - name: تجهيز البيئة

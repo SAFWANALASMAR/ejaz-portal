@@ -344,3 +344,11 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
 
     return $user;
 }
+
+/**
+ * حارس المشغّل المحلي على مهمتي الفحص الآلي: لا نسخة (fork) ولا Dependabot (docs/deploy/ci-runner.md «الأمن»).
+ */
+function ciRunnerGuard(): string
+{
+    return "(github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'";
+}
