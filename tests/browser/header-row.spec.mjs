@@ -1,8 +1,11 @@
 // قائمة الرأس صف واحد مريح (docs/reviews/ready-fix-header-single-row.md): على عروض الحاسب الشائعة كل عنصر
 // بسطر واحد بلا تداخل مع الشعار وزر الدخول، وما دون نقطة الظهور وما لا يتسع يصير زر القائمة.
+// وعلى 1280 بعناصرها التسعة والشعار الكامل منذ #66، بخط وحشو أصغر قليلاً دون 1440 (docs/reviews/2026-10-27-header-fit-1280.md).
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const WIDTHS = [1280, 1366, 1440, 1920];
+// 1263: نافذة 1280 على ويندوز بشريط تمرير ظاهر (نحو 17 بكسل)، والمتصفح هنا يخفي الشريط
+const WIDTHS = [1263, 1280, 1366, 1440, 1920];
 
 // يكفي عرض واحد من مشاريع الإعداد، والعروض هنا صريحة
 test.beforeEach(async ({}, testInfo) => test.skip(testInfo.project.name !== 'desktop', 'العروض في الاختبار نفسه'));
@@ -48,6 +51,41 @@ for (const width of WIDTHS) {
         expect(layout.clearOfBrand).toBe(true);
         expect(layout.clearOfActions).toBe(true);
         expect(layout.noHorizontalScroll).toBe(true);
+    });
+}
+
+// الخط الأصغر قليلاً دون 1440 وحده، وما فوقه كما كان. و1240 أول ظهور القائمة (--breakpoint-nav) و1439 آخر الخط الأصغر
+for (const [width, size] of [[1240, '13.5px'], [1280, '13.5px'], [1439, '13.5px'], [1440, '14.5px'], [1920, '14.5px']]) {
+    test(`uses ${size} menu text at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+
+        const sizes = await page.locator('[data-main-nav] > ul > li > :is(a, button)').evaluateAll((items) => [...new Set(items.map((item) => getComputedStyle(item).fontSize))]);
+        expect(sizes).toEqual([size]);
+    });
+}
+
+for (const width of [820, 390]) {
+    test(`keeps the menu button on tablet and phone at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        await page.evaluate(() => document.fonts.ready);
+
+        const layout = await headerLayout(page);
+        expect(layout.navShown).toBe(false);
+        expect(layout.hamburgerShown).toBe(true);
+        expect(layout.noHorizontalScroll).toBe(true);
+    });
+}
+
+for (const width of [1280, 1366, 1440, 820, 390]) {
+    test(`passes axe on the header at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        await page.evaluate(() => document.fonts.ready);
+
+        const { violations } = await new AxeBuilder({ page }).include('[data-site-header]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+        expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
     });
 }
 
