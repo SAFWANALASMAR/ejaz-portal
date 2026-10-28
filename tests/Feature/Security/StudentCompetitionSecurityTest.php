@@ -3,14 +3,24 @@
 use App\Actions\Competitions\ImportStudentQuestions;
 use App\Enums\RoleName;
 use App\Filament\Exports\ServiceRequestExporter;
+use App\Filament\Resources\Competitions\Pages\ViewCompetition;
+use App\Filament\Resources\Competitions\RelationManagers\RegistrationsRelationManager;
 use App\Models\Competition;
+use App\Models\CompetitionSubmission;
+use App\Models\User;
 use App\Support\SchoolNetworkLimits;
+use Livewire\Livewire;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
 /*
 | بعد دمج مسابقة الطلاب (#67) في الاختبار الأمني 0.14.0: حد تعيين كلمة المرور يتسع أيام الاختبار كالدخول، واستيراد
-| الأسئلة يعيد الخلية التي اقتبسها safeCell كما كانت، ولو سبقت علامتَها فراغات.
+| الأسئلة يعيد الخلية التي اقتبسها safeCell كما كانت، ولو سبقت علامتَها فراغات، وحقول التسجيل المخصصة مرمَّزة.
+|
+| وبقية البند ٦ على main مغطاة في اختبارات المسابقة نفسها: محاولة طالب آخر وإجاباته (StudentCompetitionTest «does not let
+| a student reach another student attempt»)، والدرجة قبل النشر («never shows the score before the results are
+| published»)، والشهادة لصاحبها وحده («lets the owner download the certificate»)، والرابط المختصر لمسابقة منشورة
+| بمسار داخلي وحده (BrahinCompetitionTest).
 */
 
 beforeEach(function () {
@@ -72,3 +82,25 @@ it('imports back a question cell that safeCell quoted, even after leading spaces
         ->and($round->questions()->sole()->prompt)->not->toStartWith("'")
         ->and($round->questions()->sole()->prompt)->toEndWith(ltrim($prompt, " \u{00A0}\u{FEFF}"));
 })->with(['formula' => '=1+1', 'nbsp before' => "\u{00A0}=1+1", 'space before' => ' @SUM(1)']);
+
+// البند ٦ على main بعد دمج #67 (الاختبار الأمني 0.14.0، «ما بعد دمج #67»): حقول التسجيل المخصصة في XSS. تسمية الحقل
+// وخياراته من اللوحة في صفحة التسجيل، وقيمة الطالب (نص حر بلا PlainText) في جدول المسجلين في اللوحة
+it('escapes the custom registration fields: labels and options on the form, and the student value in the panel', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    $payload = '"><img src=x onerror=alert(1)><script>alert(1)</script>';
+    $competition = Competition::factory()->student()->create(['slug' => 'xss-students']);
+    $text = $competition->fields()->create(['label' => $payload, 'type' => 'text', 'is_required' => false, 'sort_order' => 1]);
+    $competition->fields()->create(['label' => 'المسار', 'type' => 'select', 'options' => [$payload], 'is_required' => false, 'sort_order' => 2]);
+
+    $form = $this->actingAs(User::factory()->create())->get('/competitions/xss-students/register')->assertOk()->getContent();
+
+    expect($form)->not->toContain('<img src=x onerror')->not->toContain('<script>alert(1)')->toContain(e($payload));
+
+    registeredStudent($competition, 5, ['fields' => [$text->id => $payload]]);
+    expect(CompetitionSubmission::query()->sole()->extra[(string) $text->id])->toBe($payload);
+
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector));
+    $panel = Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $competition, 'pageClass' => ViewCompetition::class])->assertOk()->html();
+
+    expect($panel)->not->toContain('<img src=x onerror')->not->toContain('<script>alert(1)')->toContain(e($payload));
+});
