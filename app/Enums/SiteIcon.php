@@ -30,6 +30,19 @@ enum SiteIcon: string implements HasLabel
     case GlobeAlt = 'globe-alt';
     case CheckBadge = 'check-badge';
     case Scale = 'scale';
+    // بطاقات لوحة المستفيد (AccountCard — ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+    case Home = 'home';
+    case User = 'user';
+    case InboxStack = 'inbox-stack';
+    case UserGroup = 'user-group';
+    case Banknotes = 'banknotes';
+    case DocumentText = 'document-text';
+    case Cog = 'cog-6-tooth';
+    case Megaphone = 'megaphone';
+    case Newspaper = 'newspaper';
+    case ShoppingBag = 'shopping-bag';
+    case VideoCamera = 'video-camera';
+    case Link = 'link';
 
     public function getLabel(): string
     {

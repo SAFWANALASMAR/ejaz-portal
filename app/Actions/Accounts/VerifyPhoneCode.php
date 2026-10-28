@@ -20,17 +20,42 @@ class VerifyPhoneCode
 {
     public function handle(User $user, string $code): void
     {
+        $this->consume($user, $code, SendPhoneVerificationCode::VERIFY);
+
+        $this->claimNumber($user);
+    }
+
+    /**
+     * يستهلك الرمز لغرضه (توثيق الجوال أو استعادة كلمة المرور — ResetPasswordByPhone): صحيح فيُحذف، فلا يصلح مرة ثانية،
+     * وخاطئ فتُعدّ المحاولة، والخامسة تبطله. داخل قفل لكل مستخدم وغرض. ورسائل الخطأ بمفاتيح الغرض نفسه.
+     *
+     * و$beforeConsume يجري بعد ثبوت صحة الرمز وقبل استهلاكه، داخل القفل: ما يرميه يُبقي الرمز صالحاً بلا عدّ محاولة.
+     * فالاستعادة تفحص كلمة المرور فيه، فلا يرى رد كلمة المرور إلا من يملك الرمز.
+     *
+     * @param  array{expired: string, invalid: string, busy: string}|null  $messages
+     * @param  (callable(): void)|null  $beforeConsume
+     *
+     * @throws ValidationException
+     */
+    public function consume(User $user, string $code, string $purpose, ?array $messages = null, ?callable $beforeConsume = null): void
+    {
+        $messages ??= ['expired' => __('account.phone.expired'), 'invalid' => __('account.phone.invalid'), 'busy' => __('account.phone.busy')];
+
         try {
-            Cache::lock('phone-otp-verify:'.$user->id, 10)
-                ->block((int) config('security.otp_lock_wait_seconds'), fn () => $this->verify($user, $code));
+            Cache::lock('phone-otp-verify:'.($purpose === SendPhoneVerificationCode::VERIFY ? '' : $purpose.':').$user->id, 10)
+                ->block((int) config('security.otp_lock_wait_seconds'), fn () => $this->check($user, $code, $purpose, $messages, $beforeConsume));
         } catch (LockTimeoutException) {
-            throw ValidationException::withMessages(['code' => __('account.phone.busy')]);
+            throw ValidationException::withMessages(['code' => $messages['busy']]);
         }
     }
 
-    private function verify(User $user, string $code): void
+    /**
+     * @param  array{expired: string, invalid: string, busy: string}  $messages
+     * @param  (callable(): void)|null  $beforeConsume
+     */
+    private function check(User $user, string $code, string $purpose, array $messages, ?callable $beforeConsume): void
     {
-        $key = SendPhoneVerificationCode::cacheKey($user);
+        $key = SendPhoneVerificationCode::cacheKey($user, $purpose);
         $entry = Cache::get($key);
 
         if (! is_array($entry)
@@ -38,7 +63,7 @@ class VerifyPhoneCode
             || $entry['attempts'] >= SendPhoneVerificationCode::MAX_ATTEMPTS) {
             Cache::forget($key);
 
-            throw ValidationException::withMessages(['code' => __('account.phone.expired')]);
+            throw ValidationException::withMessages(['code' => $messages['expired']]);
         }
 
         if (! hash_equals($entry['hash'], SendPhoneVerificationCode::hash($code, (string) $user->phone))) {
@@ -46,15 +71,17 @@ class VerifyPhoneCode
             // لا تمديد لمدة الرمز مع المحاولات الخاطئة
             Cache::put($key, $entry, Carbon::createFromTimestamp($entry['expires_at']));
 
-            throw ValidationException::withMessages(['code' => __('account.phone.invalid')]);
+            throw ValidationException::withMessages(['code' => $messages['invalid']]);
+        }
+
+        if ($beforeConsume !== null) {
+            $beforeConsume();
         }
 
         Cache::forget($key);
 
         // الرمز المكتمل يحرر مكانه في حد الشبكة
         SendPhoneVerificationCode::releaseBuckets((array) ($entry['buckets'] ?? []));
-
-        $this->claimNumber($user);
     }
 
     /**

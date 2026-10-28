@@ -6,6 +6,8 @@ test('aligns the arrows of the section cards on every row', async ({ page }, tes
     await page.goto('/');
 
     const section = page.locator('section[aria-labelledby="home-shortcuts"]');
+    // المقطع مخفي افتراضياً منذ ترتيب المدير التنفيذي للرئيسية (25 أكتوبر 2026)، ويُظهر من إعدادات الموقع
+    test.skip((await section.count()) === 0, 'بطاقات الأقسام مخفية في إعدادات الرئيسية');
     await expect(section).toBeVisible();
 
     // اللقطة قبل التحقق، فتُحفظ لقطة «قبل» ولو فشل. والرأس الثابت لا يغطي القسم الأطول من الشاشة في اللقطة

@@ -25,7 +25,7 @@ class VideoUploadController extends Controller
     public function start(StartVideoUploadRequest $request, string $slug, int $question, StartVideoUpload $start): JsonResponse
     {
         $user = $this->user($request);
-        $competition = Competition::query()->published()->where('slug', $slug)->firstOrFail();
+        $competition = Competition::query()->published()->where('student_mode', false)->where('slug', $slug)->firstOrFail();
         $submission = $competition->submissions()->where('user_id', $user->id)->firstOrFail();
         $question = $competition->questions()->whereKey($question)->firstOrFail();
 

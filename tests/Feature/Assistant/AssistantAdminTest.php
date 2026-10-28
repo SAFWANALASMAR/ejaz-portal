@@ -29,15 +29,15 @@ use Spatie\Activitylog\Models\Activity;
 | لا يُعاد إلى المتصفح ولا يدخل سجل العمليات.
 */
 
-it('opens the assistant screens to the super admin only', function () {
+it('opens the assistant screens to the administrators only', function () {
     $pages = [AssistantSettingsPage::getUrl(), AssistantFaqResource::getUrl(), AssistantGuideResource::getUrl(), AssistantLogResource::getUrl()];
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     foreach ($pages as $url) {
         $this->get($url)->assertOk();
     }
 
-    foreach ([RoleName::ContentEditor, RoleName::BoardMember, RoleName::Secretary, RoleName::ExecutiveDirector] as $role) {
+    foreach ([RoleName::ContentEditor, RoleName::BoardMember, RoleName::Secretary] as $role) {
         $this->actingAs(userWithRole($role));
 
         foreach ($pages as $url) {
@@ -52,7 +52,7 @@ it('refuses the settings action to anyone but the super admin', function () {
 });
 
 it('stores the API key encrypted, never sends it back and never logs it', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(AssistantSettingsPage::class)
         ->fillForm(['is_enabled' => true, 'provider' => 'anthropic', 'model' => 'claude-haiku-5-5', 'api_key' => 'sk-ant-secret-123'])
@@ -78,7 +78,7 @@ it('stores the API key encrypted, never sends it back and never logs it', functi
 });
 
 it('keeps the saved key when the field is left empty, and clears it on request', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $action = app(SaveAssistantSettings::class);
 
     $action->handle($admin, ['provider' => 'anthropic', 'model' => 'm', 'api_key' => 'sk-one']);
@@ -91,7 +91,7 @@ it('keeps the saved key when the field is left empty, and clears it on request',
 });
 
 it('survives a key encrypted with an old application key', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     AssistantSettings::query()->create(['provider' => 'anthropic', 'model' => 'm']);
     DB::table('assistant_settings')->update(['api_key' => 'eyJpdiI6ImJhZCIsInZhbHVlIjoiYmFkIn0=']);
 
@@ -107,7 +107,7 @@ it('survives a key encrypted with an old application key', function () {
 });
 
 it('sends the key only to provider hosts allowed on the server', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $action = app(SaveAssistantSettings::class);
 
     expect(fn () => $action->handle($admin, ['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://attacker.example/v1', 'api_key' => 'sk-x']))
@@ -124,7 +124,7 @@ it('sends the key only to provider hosts allowed on the server', function () {
 
 it('asks for the key again before sending a saved key to another provider or host', function () {
     config(['assistant.allowed_hosts' => ['api.anthropic.com', 'api.openai.com', 'models.example.sa']]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $action = app(SaveAssistantSettings::class);
     $action->handle($admin, ['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://api.openai.com/v1', 'api_key' => 'sk-openai']);
 
@@ -151,7 +151,7 @@ it('asks for the key again before sending a saved key to another provider or hos
 
 it('never sends one provider environment key to another provider when testing the connection', function () {
     config(['assistant.api_keys.anthropic' => 'sk-anthropic-env']);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(SaveAssistantSettings::class)->handle($admin, ['provider' => 'anthropic', 'model' => 'claude-haiku-5-5']);
     Http::fake();
 
@@ -165,7 +165,7 @@ it('never sends one provider environment key to another provider when testing th
 });
 
 it('tests the connection with the stored key only for the provider and host it was saved for', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(SaveAssistantSettings::class)->handle($admin, ['provider' => 'anthropic', 'model' => 'claude-haiku-5-5', 'api_key' => 'sk-stored']);
     Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'OK']], 'usage' => ['input_tokens' => 3, 'output_tokens' => 1]])]);
 
@@ -179,7 +179,7 @@ it('tests the connection with the stored key only for the provider and host it w
 });
 
 it('clears the typed key from the page state when saving fails', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(AssistantSettingsPage::class)
         ->fillForm(['provider' => 'openai_compatible', 'model' => 'm', 'base_url' => 'https://attacker.example/v1', 'api_key' => 'sk-typed-secret'])
@@ -192,7 +192,7 @@ it('clears the typed key from the page state when saving fails', function () {
 });
 
 it('clears the typed key from the page state after testing the connection', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'OK']], 'usage' => ['input_tokens' => 3, 'output_tokens' => 1]])]);
 
     Livewire::test(AssistantSettingsPage::class)
@@ -203,7 +203,7 @@ it('clears the typed key from the page state after testing the connection', func
 });
 
 it('does not enable generation without a provider, a cap and prices', function (array $data) {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect(fn () => app(SaveAssistantSettings::class)->handle($admin, ['generation_enabled' => true, ...$data]))->toThrow(ValidationException::class);
 })->with([
@@ -214,7 +214,7 @@ it('does not enable generation without a provider, a cap and prices', function (
 ]);
 
 it('validates the provider settings', function (array $data) {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect(fn () => app(SaveAssistantSettings::class)->handle($admin, $data))->toThrow(ValidationException::class);
 })->with([
@@ -226,6 +226,9 @@ it('validates the provider settings', function (array $data) {
     'key with spaces' => [['api_key' => 'sk key']],
     'too many suggestions' => [['suggested_questions' => array_fill(0, 7, 'سؤال')]],
     'retention too long' => [['log_retention_days' => 99999]],
+    // سقف صفر يشغّل التوليد ولا يجيب أبداً (مراجعة ما بعد v0.12.0)
+    'zero monthly cap' => [['monthly_cap' => 0]],
+    'monthly cap stored as zero' => [['monthly_cap' => 0.001]],
 ]);
 
 it('accepts only https base URLs in production', function () {
@@ -238,7 +241,7 @@ it('accepts only https base URLs in production', function () {
 });
 
 it('tests the connection with the typed values before saving', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Http::fake(['api.anthropic.com/*' => Http::sequence()
         ->push(['content' => [['type' => 'text', 'text' => 'OK']], 'usage' => ['input_tokens' => 3, 'output_tokens' => 1]])
         ->push(['error' => 'bad key'], 401)]);
@@ -258,7 +261,7 @@ it('tests the connection with the typed values before saving', function () {
 });
 
 it('creates approved questions with a source page in the portal', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(CreateAssistantFaq::class)
         ->fillForm(['question' => 'كيف أراسل الجمعية؟', 'answer' => "من صفحة التواصل.\nسطر ثانٍ.", 'source_url' => 'https://evil.example', 'status' => 'approved'])
@@ -274,7 +277,7 @@ it('creates approved questions with a source page in the portal', function () {
 });
 
 it('accepts guide articles only for existing public pages', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $data = ['title' => 'كيف أراسلكم؟', 'slug' => 'contact-us-test', 'steps' => [['step' => 'افتح الصفحة.']], 'status' => 'reviewed'];
 
     foreach (['filament.admin.pages.dashboard', 'governance.show', 'no.such.route'] as $route) {
@@ -285,7 +288,7 @@ it('accepts guide articles only for existing public pages', function () {
 });
 
 it('lets the super admin flag a wrong answer but never edit or delete the log', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $log = AssistantLog::query()->create(['question' => 'سؤال', 'answer' => 'جواب خاطئ', 'mode' => AssistantMode::Generated]);
 
     $this->actingAs($admin);

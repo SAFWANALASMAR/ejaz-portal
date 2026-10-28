@@ -34,11 +34,20 @@ enum LibrarySection: string implements HasLabel
     }
 
     /**
-     * المرئية برابط مقطع، وما سواها بملف.
+     * المرئية والصوتية برابط يوتيوب لا بملف مرفوع، فلا تأخذ من سعة التخزين (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)،
+     * والكتب والأبحاث بملف PDF.
      */
     public function takesVideoUrl(): bool
     {
-        return $this === self::Videos;
+        return $this === self::Videos || $this === self::Audio;
+    }
+
+    /**
+     * الصوتية رُفعت ملفاتٍ قبل قرار الروابط، فيبقى ما رُفع منها يعمل، ولا يُرفع جديد.
+     */
+    public function keepsLegacyFile(): bool
+    {
+        return $this === self::Audio;
     }
 
     public function takesPdf(): bool

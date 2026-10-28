@@ -31,7 +31,7 @@ it('opens the messages to the secretary, and to nobody without the requests perm
 
     // تصل من الموقع، فلا إنشاء من اللوحة
     expect(InquiryResource::hasPage('create'))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('create', Inquiry::class))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('create', Inquiry::class))->toBeFalse();
 });
 
 it('processes a message: status, assignee and note, logged without the personal data', function () {
@@ -109,7 +109,7 @@ it('assigns a message only to active staff who may see the requests', function (
         ->and(fn () => $update(tap(userWithRole(RoleName::Secretary), fn (User $user) => $user->forceFill(['is_active' => false])->save())))->toThrow(ValidationException::class)
         ->and($inquiry->fresh()->assigned_to)->toBeNull();
 
-    $update($admin = userWithRole(RoleName::SuperAdmin));
+    $update($admin = userWithRole(RoleName::TechnicalAdmin));
 
     expect($inquiry->fresh()->assigned_to)->toBe($admin->id);
 });
@@ -141,7 +141,7 @@ it('soft deletes and restores a message, and never deletes it for good', functio
     Livewire::test(ListInquiries::class)->filterTable('trashed', true)->callAction(TestAction::make('restore')->table($inquiry));
 
     expect($inquiry->fresh()->trashed())->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('forceDelete', $inquiry))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('forceDelete', $inquiry))->toBeFalse();
 });
 
 it('lists the messages newest first and filters them by status', function () {

@@ -39,7 +39,8 @@ class CancelMeeting
             $meeting->setRawAttributes($locked->getAttributes(), true);
         });
 
-        if ($meeting->hasOnlineMeeting()) {
+        // وما تعذّر ربطه ولا رابط له تمسح المهمة سببه، فلا يبقى الملغى «متعذراً» (مراجعة ما بعد v0.12.0)
+        if ($meeting->hasOnlineMeeting() || $meeting->online_sync_error !== null) {
             SyncOnlineMeeting::dispatch($meeting->id);
         }
 

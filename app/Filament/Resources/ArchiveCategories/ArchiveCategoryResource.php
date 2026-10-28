@@ -46,7 +46,7 @@ class ArchiveCategoryResource extends Resource
             CheckboxList::make('roles')
                 ->label(__('documents.fields.roles'))
                 ->helperText(__('documents.fields.roles_hint'))
-                ->options(collect(RoleName::panelRoles())->reject(fn (RoleName $role): bool => $role === RoleName::SuperAdmin)->mapWithKeys(fn (RoleName $role): array => [$role->value => $role->getLabel()])->all())
+                ->options(collect(RoleName::panelRoles())->reject(fn (RoleName $role): bool => in_array($role, RoleName::overseers(), true))->mapWithKeys(fn (RoleName $role): array => [$role->value => $role->getLabel()])->all())
                 ->columns(2)
                 ->columnSpanFull(),
         ]);
@@ -63,7 +63,10 @@ class ArchiveCategoryResource extends Resource
                 TextColumn::make('roles')
                     ->label(__('documents.fields.roles'))
                     ->formatStateUsing(fn (string $state): string => RoleName::tryFrom($state)?->getLabel() ?? $state)
-                    ->badge(),
+                    ->badge()
+                    // على الجوال الاسم والعدد وحدهما: برأس الجدول كاملاً يتمرر حاويه ولا تصله لوحة المفاتيح
+                    // (axe: scrollable-region-focusable، الاختبار الشامل 0.14 الخلل 5). والأدوار في نافذة التعديل
+                    ->visibleFrom('md'),
                 TextColumn::make('items_count')->label(__('documents.items.plural'))->counts('items'),
             ])
             ->recordActions([

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -38,5 +39,26 @@ class CompetitionController extends Controller
 
         // الصفحة لصاحب الحساب تحمل رقم مشاركته، فلا تُحفظ في ذاكرة متصفح ولا وسيط
         return $user === null ? $response : $response->header('Cache-Control', 'private, no-store');
+    }
+
+    /**
+     * الرابط المختصر لمسابقة طلاب منشورة (/c/{code}) يحوّل إلى صفحتها، فيبقى ثابتاً لو تغيّر رابطها.
+     */
+    public function short(string $code): RedirectResponse
+    {
+        $competition = Competition::query()->published()->where('student_mode', true)->where('short_code', $code)->firstOrFail();
+
+        return redirect()->route('competitions.show', $competition->slug);
+    }
+
+    /**
+     * دليل الدخول إلى الاختبار: صفحة عامة من نصوص المسابقة في اللوحة، و404 إن لم يُكتب.
+     */
+    public function guide(string $slug): View
+    {
+        $competition = Competition::query()->published()->where('student_mode', true)->where('slug', $slug)->firstOrFail();
+        abort_unless($competition->hasGuide(), 404);
+
+        return view('competitions.student.guide', ['competition' => $competition]);
     }
 }

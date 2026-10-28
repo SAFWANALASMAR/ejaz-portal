@@ -1,22 +1,33 @@
 <?php
 
+use App\Actions\Competitions\RegisterStudent;
 use App\Contracts\AiAssistant;
+use App\Enums\QuestionType;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
 use App\Enums\VideoStatus;
 use App\Models\AssistantSettings;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
+use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRegion;
+use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\Meeting;
+use App\Models\Setting;
 use App\Models\SubmissionVideo;
 use App\Models\User;
 use App\Services\Assistant\FakeAiAssistant;
+use App\Support\AccountSettings;
 use App\Support\ContentCache;
+use App\Support\RoundQuestions;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
 /*
@@ -50,6 +61,43 @@ function userWithRole(RoleName $role, array $attributes = []): User
     $user->assignRole($role->value);
 
     return $user;
+}
+
+/**
+ * توثيق البريد والجوال شرطاً كما كان قبل تأجيله (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026)، لاختبارات
+ * مساراته. والبوابات المؤجلة تبقى كما هي ما لم تُمرَّر.
+ */
+function enableVerification(bool $showDeferredPortals = false): void
+{
+    Setting::put(AccountSettings::KEY, ['verification' => true, 'show_deferred_portals' => $showDeferredPortals]);
+}
+
+/**
+ * بوابتا المجلس والموظفين والجمعية العمومية في حساب المستخدم ظاهرة، لاختبارات ما فيها.
+ */
+function showDeferredPortals(): void
+{
+    Setting::put(AccountSettings::KEY, ['verification' => AccountSettings::verificationEnabled(), 'show_deferred_portals' => true]);
+}
+
+/**
+ * مقاطع الرئيسية السابقة (البطل والإحصائيات والاختصارات والمقطع والمبادرات والمرئيات والشركاء) ظاهرة، لاختباراتها. مخفية
+ * افتراضياً منذ ملاحظات المدير التنفيذي (25 أكتوبر 2026).
+ *
+ * @param  array<string, mixed>  $home
+ */
+function showLegacyHomeSections(array $home = []): void
+{
+    Setting::put('home', ['show_hero' => true, 'show_video' => true, 'show_stats' => true, 'show_shortcuts' => true,
+        'show_initiatives' => true, 'show_videos' => true, 'show_partners' => true, ...Setting::group('home'), ...$home]);
+}
+
+/**
+ * اسم مستخدم فريد صالح للتسجيل (Username::PATTERN).
+ */
+function uniqueUsername(): string
+{
+    return 'u'.strtolower(Str::random(12));
 }
 
 /**
@@ -227,4 +275,105 @@ function teamsEvent(Meeting $meeting, array $extra = []): array
     $at = fn ($time): array => ['dateTime' => $time->copy()->utc()->format('Y-m-d\TH:i:s').'.0000000', 'timeZone' => 'UTC'];
 
     return ['subject' => $meeting->title, 'start' => $at($meeting->starts_at), 'end' => $at($meeting->ends_at ?? $meeting->starts_at->copy()->addHour()), ...$extra];
+}
+
+/**
+ * رقم هوية سعودي صحيح الصيغة ورقم التحقق من رقم تسلسلي (مسابقة الطلاب).
+ */
+function studentNationalId(int $serial): string
+{
+    $body = '1'.str_pad((string) $serial, 8, '0', STR_PAD_LEFT);
+    $sum = 0;
+
+    foreach (str_split($body) as $position => $digit) {
+        $number = (int) $digit * ($position % 2 === 0 ? 2 : 1);
+        $sum += $number > 9 ? $number - 9 : $number;
+    }
+
+    return $body.((10 - $sum % 10) % 10);
+}
+
+/**
+ * سؤال اختيار في بنك مرحلة من مسابقة الطلاب، الصحيح فيه الخيار b، أو صح وخطأ الصحيح فيه «صح». ويُضبط عدد أسئلة
+ * المرحلة على بنك الطالب الافتراضي (registeredStudent: المرحلة الثانوية)، لأن البنك بالعدد تماماً شرط البدء.
+ * والاختبار الذي يختبر البنك الناقص أو الزائد يضبط العدد بنفسه بعده.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function studentQuestion(CompetitionRound $round, array $attributes = []): CompetitionQuestion
+{
+    $question = new CompetitionQuestion([
+        'round_id' => $round->id,
+        'type' => QuestionType::MultipleChoice,
+        'prompt' => 'سؤال تجريبي '.Str::random(6),
+        'options' => [['key' => 'a', 'label' => 'خيار أ'], ['key' => 'b', 'label' => 'خيار ب'], ['key' => 'c', 'label' => 'خيار ج'], ['key' => 'd', 'label' => 'خيار د']],
+        'correct_option' => 'b',
+        'points' => 1,
+        'is_required' => false,
+        ...$attributes,
+    ]);
+    $question->competition_id = $round->competition_id;
+    $question->save();
+
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $round->forceFill(['question_count' => $round->questions()->where(fn ($query) => $query->whereNull('category_id')->orWhere('category_id', $secondary))->count()])->save();
+    RoundQuestions::forget($round->id);
+
+    return $question;
+}
+
+/**
+ * تسجيل طالب في مسابقة الطلاب بحساب بلا جوال موثّق، عبر الإجراء نفسه.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function registeredStudent(Competition $competition, int $serial = 1, array $overrides = []): User
+{
+    $user = User::factory()->create(['phone' => null, 'phone_verified_at' => null]);
+    $category = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->firstOrFail();
+
+    app(RegisterStudent::class)->handle($user, $competition, [
+        'full_name' => 'طالب تجريبي بن مثال',
+        'national_id' => studentNationalId($serial),
+        'category_id' => $category->id,
+        'grade' => 'الأول الثانوي',
+        'region_id' => CompetitionRegion::query()->where('is_active', true)->value('id'),
+        'gender' => 'male',
+        'pledge' => '1',
+        ...$overrides,
+    ]);
+
+    return $user;
+}
+
+/**
+ * صفوف ملف Excel نصوصاً، لفحص التصدير (نتائج مسابقة الطلاب، وعناوين حقولها المخصصة).
+ *
+ * @return list<list<string>>
+ */
+function readXlsx(string $contents): array
+{
+    $path = tempnam(sys_get_temp_dir(), 'r').'.xlsx';
+    file_put_contents($path, $contents);
+    $reader = new Reader;
+    $reader->open($path);
+    $rows = [];
+
+    foreach ($reader->getSheetIterator() as $sheet) {
+        foreach ($sheet->getRowIterator() as $row) {
+            $rows[] = array_map(fn ($value): string => (string) $value, $row->toArray());
+        }
+    }
+
+    $reader->close();
+
+    return $rows;
+}
+
+/**
+ * حارس المشغّل المحلي على مهمتي الفحص الآلي: لا نسخة (fork) ولا Dependabot (docs/deploy/ci-runner.md «الأمن»).
+ */
+function ciRunnerGuard(): string
+{
+    return "(github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.ref_name, 'dependabot/')";
 }

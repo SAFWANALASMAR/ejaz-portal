@@ -26,8 +26,8 @@ class RegisterForProgram
      */
     public function handle(User $user, Program $program, array $answers): ProgramRegistration
     {
-        // حساب نشط موثق البريد فقط، ولو استُدعي الإجراء من غير مسار التسجيل
-        if (! $user->is_active || $user->anonymized_at !== null || ! $user->hasVerifiedEmail()) {
+        // حساب نشط يستوفي التوثيق إن فُعّل من اللوحة (User::isVerified)، ولو استُدعي الإجراء من غير مسار التسجيل
+        if (! $user->is_active || $user->anonymized_at !== null || ! $user->isVerified()) {
             throw new AuthorizationException;
         }
 

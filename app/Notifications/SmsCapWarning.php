@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرف العام قبل بلوغ سقف رسائل التحقق في الساعة، ليرفعه قبل أن يتوقف التسجيل.
+ * تنبيه المشرف العام والمسؤول التقني قبل بلوغ سقف رسائل التحقق في الساعة، ليرفعه قبل أن يتوقف التسجيل.
  */
 class SmsCapWarning extends Notification implements ShouldQueueAfterCommit
 {

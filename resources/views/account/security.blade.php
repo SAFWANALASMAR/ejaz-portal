@@ -81,4 +81,16 @@
             </form>
         @endif
     </x-card>
+
+    <x-card class="mt-6">
+        <h2 class="text-lg font-semibold text-ink">{{ __('account.security.other_sessions.title') }}</h2>
+        <p class="mt-2 leading-7 text-muted">{{ __('account.security.other_sessions.intro') }}</p>
+
+        <form method="POST" action="{{ route('account.security.other-sessions') }}" class="mt-5 max-w-sm space-y-4" novalidate>
+            @csrf
+            <x-field name="current_password" type="password" :label="__('account.security.other_sessions.password')" bag="logoutOtherSessions"
+                autocomplete="current-password" required />
+            <x-button variant="secondary">{{ __('account.security.other_sessions.submit') }}</x-button>
+        </form>
+    </x-card>
 </x-layouts.account>

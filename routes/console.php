@@ -26,6 +26,9 @@ Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 // طلبات إلغاء السحب التي لم يقرر فيها مشرف عام آخر خلال سبعة أيام تسقط، ويبقى السحب (docs/decisions.md)
 Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 
+// التسليم الآلي لمحاولات مسابقة الطلاب التي انتهى وقتها ولم يعد صاحبها (docs/plans/student-competition.md)
+Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping()->onOneServer();
+
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();
 
@@ -43,6 +46,9 @@ Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 
 // المعلّق القديم من عمليات الدفع: يُستعلم عن فاتورته أو يُعلَّم فاشلاً (docs/plans/store-payments.md)
 Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer();
+
+// تقرير تحليل الإحصائيات المعلّق بعد مهلته «تعذّر»، لا عند عرض الصفحة (مراجعة ما بعد v0.12.0)
+Schedule::command('ejaz:fail-stale-analyses')->everyFiveMinutes()->onOneServer();
 
 // نبض المجدول كل دقيقة، يقرؤه فحص الصحة ejaz:health فينبّه إن توقفت مهمة cron (docs/monitoring.md)
 Schedule::call(fn () => Cache::put(CheckHealth::HEARTBEAT_KEY, now()->getTimestamp(), now()->addDay()))

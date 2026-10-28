@@ -3,6 +3,8 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\NewPasswordController;
+use App\Http\Controllers\Account\PasswordResetByPhoneController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
@@ -32,6 +34,24 @@ use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-reset'])
     ->name('password.email');
+
+// وتعيين كلمة المرور الجديدة برمز الرابط كذلك، بحد لكل بريد وعنوان ولكل مشترك وفي زمن ثابت: كان بلا حد، وكل طلب
+// تجزئة bcrypt، وزمنه يكشف الحساب (الاختبار الأمني 0.14.0)
+Route::post('/reset-password', [NewPasswordController::class, 'store'])
+    ->middleware(['guest:'.config('fortify.guard'), 'throttle:password-update'])
+    ->name('password.update');
+
+// الاستعادة برمز الجوال (قرار صفوان، 20 أكتوبر 2026): طلب الرمز بحد الاستعادة نفسه، ثم صفحة الرمز وكلمة المرور الجديدة
+Route::middleware('guest:'.config('fortify.guard'))->group(function () {
+    Route::post('/forgot-password/phone', [PasswordResetByPhoneController::class, 'send'])->middleware('throttle:password-reset')->name('password.phone.send');
+    Route::get('/forgot-password/phone', [PasswordResetByPhoneController::class, 'edit'])->name('password.phone.reset');
+    Route::post('/forgot-password/phone/reset', [PasswordResetByPhoneController::class, 'update'])->middleware('throttle:10,1')->name('password.phone.update');
+});
+
+// Filament يسجّل مسار «صفوف الاستيراد الفاشلة» دائماً، والبوابة لا تستورد ولا جدول imports فيها: كان الربط الضمني يسأل
+// جدولاً غير موجود فيرد 500 لأي زائر. فيُعاد تسجيله هنا بالاسم والمسار نفسيهما بلا نموذج مربوط، فيرد 404 قبل أي استعلام،
+// ولا يمس ربطٌ عام معامل {import} في أي مسار آخر (مراجعة المشرف على #64)
+Route::get('/filament/imports/{import}/failed-rows/download', fn () => abort(404))->name('filament.imports.failed-rows.download');
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -69,6 +89,7 @@ Route::get('/media', [MediaController::class, 'index'])->name('media.index');
 Route::get('/media/partners', [MediaController::class, 'partners'])->name('media.partners');
 Route::get('/media/news', [NewsController::class, 'index'])->name('media.news.index');
 Route::get('/media/news/{slug}', [NewsController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.news.show');
+Route::get('/media/announcements', [MediaController::class, 'announcements'])->name('media.announcements');
 Route::get('/media/albums', [AlbumController::class, 'index'])->name('media.albums.index');
 Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.albums.show');
 
@@ -99,6 +120,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/security', SecurityController::class)->middleware('password.confirm')->name('security');
+    Route::post('/security/other-sessions', [SecurityController::class, 'logoutOtherSessions'])->middleware('throttle:10,1')->name('security.other-sessions');
 
     Route::get('/verify-phone', [PhoneVerificationController::class, 'show'])->name('phone.verify');
     Route::post('/verify-phone', [PhoneVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('phone.verify.store');

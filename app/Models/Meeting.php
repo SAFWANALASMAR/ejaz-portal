@@ -97,7 +97,7 @@ class Meeting extends Model
     {
         // المحذوف من اللوحة يُلغى اجتماع تيمز له في الطابور، والمستعاد يُنشأ له من جديد
         static::deleted(function (Meeting $meeting): void {
-            if ($meeting->hasOnlineMeeting()) {
+            if ($meeting->hasOnlineMeeting() || $meeting->online_sync_error !== null) {
                 SyncOnlineMeeting::dispatch($meeting->id);
             }
         });

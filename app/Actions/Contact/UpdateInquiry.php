@@ -4,7 +4,6 @@ namespace App\Actions\Contact;
 
 use App\Enums\ActivityEvent;
 use App\Enums\InquiryStatus;
-use App\Enums\RoleName;
 use App\Models\Inquiry;
 use App\Models\User;
 use App\Rules\PlainText;
@@ -82,7 +81,7 @@ class UpdateInquiry
     }
 
     /**
-     * الموظفون النشطون الذين يُسند إليهم: من له الاطلاع على الطلبات بدوره، والمشرف العام.
+     * الموظفون النشطون الذين يُسند إليهم: من له الاطلاع على الطلبات بدوره (والمسؤول التقني بكل الصلاحيات). والمشرف العام اطلاع فقط فلا يُسند إليه.
      *
      * @return array<int, string>
      */
@@ -90,7 +89,7 @@ class UpdateInquiry
     {
         return User::query()
             ->where('is_active', true)
-            ->where(fn ($query) => $query->permission('requests.view')->orWhereHas('roles', fn ($roles) => $roles->where('name', RoleName::SuperAdmin->value)))
+            ->permission('requests.view')
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();

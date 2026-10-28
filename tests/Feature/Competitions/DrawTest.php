@@ -73,8 +73,8 @@ it('keeps the draw record immutable in the model and in the database', function 
     expect(fn () => DB::transaction(fn () => DB::table('competition_draws')->where('id', $draw->id)->update(['winners_count' => 5])))->toThrow(QueryException::class)
         ->and(fn () => DB::transaction(fn () => DB::table('competition_draws')->where('id', $draw->id)->delete()))->toThrow(QueryException::class);
 
-    expect(userWithRole(RoleName::SuperAdmin)->can('update', $draw))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $draw))->toBeFalse();
+    expect(userWithRole(RoleName::TechnicalAdmin)->can('update', $draw))->toBeFalse()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $draw))->toBeFalse();
 });
 
 it('refuses to draw before closing, beyond the entrants, or without the permission', function () {
@@ -123,7 +123,7 @@ it('lets only the super admin void a draw with a reason, keeps it visible, and t
 
     expect(fn () => app(VoidDraw::class)->handle($this->manager, $first, 'سبب كافٍ للإلغاء هنا'))->toThrow(AuthorizationException::class);
 
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     expect(fn () => app(VoidDraw::class)->handle($admin, $first, 'قصير'))->toThrow(ValidationException::class);
 
     app(VoidDraw::class)->handle($admin, $first, 'خطأ في قائمة المشاركات قبل السحب');
@@ -138,7 +138,7 @@ it('lets only the super admin void a draw with a reason, keeps it visible, and t
 });
 
 it('refuses a new draw by the super admin who voided the last one, so voiding and redrawing stay apart', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $first = app(RunDraw::class)->handle($admin, $this->competition, 1);
     app(VoidDraw::class)->handle($admin, $first, 'خطأ في قائمة المشاركات قبل السحب');
 

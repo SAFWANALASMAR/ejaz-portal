@@ -92,7 +92,7 @@ class EntryController extends Controller
 
     private function competition(string $slug): Competition
     {
-        return Competition::query()->published()->where('slug', $slug)->firstOrFail();
+        return Competition::query()->published()->where('student_mode', false)->where('slug', $slug)->firstOrFail();
     }
 
     /**

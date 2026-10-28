@@ -49,7 +49,7 @@ it('renders a section tile with its icon, label and link', function () {
     expect($html)->toContain('href="/news"')
         ->toContain('الأخبار')
         ->toContain('<svg')
-        ->toContain('text-accent');
+        ->toContain('bg-primary-soft');
 
     expect(Blade::render('<x-section-tile href="/x" icon="user" label="س" tone="primary" size="size-10" class="justify-center" />'))
         ->toContain('text-primary')

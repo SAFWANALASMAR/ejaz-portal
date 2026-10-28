@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * رمز تحقق ثنائي خاطئ بعد كلمة مرور صحيحة: قد تكون كلمة المرور مسرّبة. سقوف المحاولات (FortifyServiceProvider)
- * تمنع التخمين، وهذا يُعلم المشرف العام حين تكثر الأخطاء على حساب في اليوم (docs/monitoring.md): تنبيه
+ * تمنع التخمين، وهذا يُعلم المشرف العام والمسؤول التقني حين تكثر الأخطاء على حساب في اليوم (docs/monitoring.md): تنبيه
  * واحد لكل حساب في اليوم عند بلوغ العتبة، بالبريد، وفي السجل الأمني.
  */
 class WarnRepeatedTwoFactorFailures
@@ -43,7 +43,7 @@ class WarnRepeatedTwoFactorFailures
             ->log(ActivityEvent::TwoFactorFailuresAlerted->value);
 
         Notification::send(
-            User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+            User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
             new TwoFactorFailuresWarning($user, $failures),
         );
     }

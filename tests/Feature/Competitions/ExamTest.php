@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\SubmitExam;
 use App\Contracts\WhatsAppNotifier;
 use App\Enums\EducationStage;
@@ -60,10 +61,18 @@ function examReachQuestions(): void
     $test->post('/competitions/exam/exam/instructions', ['accept' => '1']);
 }
 
+/**
+ * رمز الخيار في صفحة السؤال للمشاركة الأخيرة (CompetitionSubmission::optionToken)، فالمفتاح نفسه يُرفض.
+ */
+function examToken(int $questionId, string $key): string
+{
+    return CompetitionSubmission::query()->latest('id')->firstOrFail()->optionToken($questionId, $key);
+}
+
 function examAnswerAll(string $option = 'a'): void
 {
     foreach (test()->questions as $question) {
-        test()->post('/competitions/exam/exam/answer', ['question' => $question->id, 'option' => $option, 'go' => 'next']);
+        test()->post('/competitions/exam/exam/answer', ['question' => $question->id, 'option' => examToken($question->id, $option), 'go' => 'next']);
     }
 }
 
@@ -114,7 +123,7 @@ it('lets no stage be skipped by a crafted request', function () {
     $this->post('/competitions/exam/exam/instructions', ['accept' => '1'])->assertSessionHas('error');
     $this->get('/competitions/exam/exam/questions/1')->assertRedirect('/competitions/exam/exam');
     $this->get('/competitions/exam/exam/review')->assertRedirect('/competitions/exam/exam');
-    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => 'a', 'go' => 'next'])->assertSessionHas('error');
+    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => examToken($first->id, 'a'), 'go' => 'next'])->assertSessionHas('error');
     $this->post('/competitions/exam/exam/submit')->assertSessionHas('error');
     $this->get('/competitions/exam/exam/intro/video')->assertNotFound();
 
@@ -221,10 +230,10 @@ it('saves each answer on the server while moving between questions, and allows c
     examReachQuestions();
     [$first, $second, $third] = $this->questions->all();
 
-    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => 'b', 'go' => 'next'])->assertRedirect('/competitions/exam/exam/questions/2');
+    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => examToken($first->id, 'b'), 'go' => 'next'])->assertRedirect('/competitions/exam/exam/questions/2');
     $this->post('/competitions/exam/exam/answer', ['question' => $second->id, 'option' => '', 'go' => 'prev'])->assertRedirect('/competitions/exam/exam/questions/1');
-    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => 'd', 'go' => '3'])->assertRedirect('/competitions/exam/exam/questions/3');
-    $this->post('/competitions/exam/exam/answer', ['question' => $third->id, 'option' => 'a', 'go' => 'next'])->assertRedirect('/competitions/exam/exam/review');
+    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => examToken($first->id, 'd'), 'go' => '3'])->assertRedirect('/competitions/exam/exam/questions/3');
+    $this->post('/competitions/exam/exam/answer', ['question' => $third->id, 'option' => examToken($third->id, 'a'), 'go' => 'next'])->assertRedirect('/competitions/exam/exam/review');
 
     expect(examSubmission()->answers)->toBe([(string) $first->id => 'd', (string) $third->id => 'a']);
 
@@ -239,7 +248,7 @@ it('saves each answer on the server while moving between questions, and allows c
 
 it('shows the review page with statuses, the exact submit button and the exact confirmation dialog', function () {
     examReachQuestions();
-    $this->post('/competitions/exam/exam/answer', ['question' => $this->questions[0]->id, 'option' => 'a', 'go' => 'review']);
+    $this->post('/competitions/exam/exam/answer', ['question' => $this->questions[0]->id, 'option' => examToken($this->questions[0]->id, 'a'), 'go' => 'review']);
 
     $page = $this->get('/competitions/exam/exam/review')->assertOk()
         ->assertSee('إرسال وإنهاء الاختبار')
@@ -280,7 +289,7 @@ it('submits once, shows the exact finish message without answers or score, and a
     Notification::assertSentToTimes($this->applicant, SubmissionReceived::class, 1);
 
     // لا تعديل بعد الإرسال
-    $this->post('/competitions/exam/exam/answer', ['question' => $this->questions[0]->id, 'option' => 'a', 'go' => 'next'])->assertSessionHas('error');
+    $this->post('/competitions/exam/exam/answer', ['question' => $this->questions[0]->id, 'option' => examToken($this->questions[0]->id, 'a'), 'go' => 'next'])->assertSessionHas('error');
     $this->get('/competitions/exam/exam/questions/1')->assertRedirect('/competitions/exam/exam');
     expect(examSubmission()->answers[(string) $this->questions[0]->id])->toBe('c');
 });
@@ -383,4 +392,13 @@ it('shows a closed exam as closed, and refuses its steps', function () {
 
     $this->get('/competitions/exam/exam')->assertOk()->assertSee(__('competitions.exam.closed'));
     $this->postJson('/competitions/exam/exam/intro/start')->assertForbidden();
+});
+
+it('leaves the draft exam answers out of the personal data export (cloud review, low 4)', function () {
+    examReachQuestions();
+    $first = $this->questions->first();
+    $this->post('/competitions/exam/exam/answer', ['question' => $first->id, 'option' => examToken($first->id, 'b'), 'go' => 'next']);
+
+    expect(examSubmission()->answers)->toBe([(string) $first->id => 'b'])
+        ->and(app(ExportUserData::class)->handle($this->applicant->fresh())['competition_submissions'][0]['answers'])->toBeNull();
 });

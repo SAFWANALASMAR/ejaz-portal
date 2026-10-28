@@ -48,7 +48,8 @@ class SendExamReceipt implements ShouldQueue
         try {
             $deliver->handle(MessagingChannel::WHATSAPP, (string) $phone, 'exam_receipt', fn () => $whatsapp->send((string) $phone, $message), $this->attempts());
         } catch (MessagingException $exception) {
-            if (! $exception->retryable) {
+            // ولا يُعاد بعد مهلة القراءة: ربما وصل، فلا يتكرر الإيصال (مراجعة ما بعد v0.12.0)
+            if (! $exception->retryable || $exception->outcomeUnknown) {
                 $this->fail($exception);
 
                 return;

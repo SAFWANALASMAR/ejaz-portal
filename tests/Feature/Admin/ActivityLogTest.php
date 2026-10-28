@@ -12,7 +12,7 @@ use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\Finder\SplFileInfo;
 
 it('shows the activity log to the super admin only', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(ActivityResource::getUrl('index'))->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(ActivityResource::getUrl('index'))->assertOk();
     $this->actingAs(userWithRole(RoleName::ContentEditor))->get(ActivityResource::getUrl('index'))->assertForbidden();
     $this->actingAs(userWithRole(RoleName::BoardMember))->get(ActivityResource::getUrl('index'))->assertForbidden();
 
@@ -34,14 +34,14 @@ it('records who changed what with the values before and after', function () {
         ->and($log->attribute_changes['old']['label'])->toBe('قبل')
         ->and($log->attribute_changes['attributes']['label'])->toBe('بعد');
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))
         ->get(ActivityResource::getUrl('view', ['record' => $log]))
         ->assertOk()
         ->assertSee('بعد');
 });
 
 it('offers no way to change or delete the log', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $log = Activity::create(['description' => 'test', 'log_name' => 'default']);
 
     // عبر البوابة نفسها لا السياسة مباشرة، حتى يُختبر منح المشرف العام فعلاً
@@ -53,7 +53,7 @@ it('offers no way to change or delete the log', function () {
 });
 
 it('names events and affected records in Arabic', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $member = User::factory()->create();
     activity('users')->causedBy($admin)->performedOn($member)
         ->event(ActivityEvent::RolesChanged->value)->log(ActivityEvent::RolesChanged->value);
@@ -85,7 +85,7 @@ it('names and filters by every log the code writes to', function () {
         expect(__('activity.logs.'.$log))->not->toBe('activity.logs.'.$log);
     }
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     activity('requests')->event(ActivityEvent::PersonalDataPurged->value)->log(ActivityEvent::PersonalDataPurged->value);
     $log = Activity::where('log_name', 'requests')->sole();
 
@@ -96,7 +96,7 @@ it('names and filters by every log the code writes to', function () {
 });
 
 it('shows an unknown actor for failed sign-ins, and the system for other automatic events', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     activity('security')->event(ActivityEvent::LoginFailed->value)->log(ActivityEvent::LoginFailed->value);
     activity('security')->event(ActivityEvent::AdminCreated->value)->log(ActivityEvent::AdminCreated->value);
 

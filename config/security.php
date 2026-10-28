@@ -12,10 +12,20 @@ return [
     // وفارغة إن وصل الزوار إلى الخادم مباشرة. وسكربتا النشر ينبّهان إلى الفارغة و* (docs/security.md)
     'trusted_proxies' => env('TRUSTED_PROXIES'),
 
-    // حد التسجيل من عنوان واحد في الساعة. مرتفع عمداً لأن شبكات الجوال (CGNAT)
-    // والمدارس والجامعات تجمع آلاف المستخدمين خلف عنوان واحد. الحماية الأساسية
-    // من الحسابات الآلية هي توثيق الجوال (docs/decisions.md)
-    'registration_per_ip_per_hour' => (int) env('REGISTRATION_PER_IP_PER_HOUR', 60),
+    // حدود التسجيل (CreateNewUser — قرار صفوان، 20 أكتوبر 2026، أشد من الحد الوحيد السابق 60 في الساعة). شبكات الجوال
+    // (CGNAT) والمدارس والجامعات تجمع آلاف المستخدمين خلف عنوان واحد، فالحماية الأولى التحدي ضد الآليات (Turnstile)
+    // وتوثيق الجوال، والحدود سقوف فوقها تبقى الشبكات المشتركة ممكنة معها:
+    // - لكل مشترك (عنوان IPv4 أو /64 في IPv6) في الساعة. 120 لا 30 (مراجعة المشرف على #64، 25 أكتوبر 2026): عنوان CGNAT
+    //   واحد عند مشغلي الجوال يخدم مئات المشتركين، وساعة الذروة عند فتح التسجيل تجمعهم. والآلي يوقفه التحدي وتوثيق الجوال
+    //   وحدود الرسائل لكل شبكة (sms_*_per_ipv4_network)، فالحساب بلا جوال موثق لا يقدّم ويُحذف (PruneUnverifiedAccounts).
+    'registration_per_ip_per_hour' => (int) env('REGISTRATION_PER_IP_PER_HOUR', 120),
+    // - لكل جهاز (كعكة عشوائية — CreateNewUser::device) في الساعة، فلا يُكثر جهاز واحد خلف الشبكة المشتركة.
+    'registration_per_device_per_hour' => (int) env('REGISTRATION_PER_DEVICE_PER_HOUR', 5),
+    // - لكل شبكة (/24 في IPv4، و/48 في IPv6) في اليوم، فلا يُلتف على حد المشترك بتدوير العناوين. 2000 لا 300 للسبب
+    //   نفسه: نطاق /24 عند مشغل جوال قد يجمع آلاف المشتركين، وفتح التسجيل لـ30,000 متقدم يومٌ واحد كثيف.
+    'registration_per_network_per_day' => (int) env('REGISTRATION_PER_NETWORK_PER_DAY', 2000),
+    // - للبوابة كلها في الساعة، يُنبَّه المشرف العام عند بلوغه. يُرفع قبل فتح تسجيل كبير كسقف الرسائل.
+    'registration_per_hour' => (int) env('REGISTRATION_PER_HOUR', 3000),
 
     // سقف رسائل التحقق النصية للبوابة كلها في الساعة، حماية من إغراق الرسائل وتكلفته.
     // يُضبط قبل كل فتح تسجيل كبير حسب العدد المتوقع، ويُختبر في اختبار التحمل (docs/performance.md)
@@ -48,9 +58,28 @@ return [
     'login_failures_per_minute' => (int) env('LOGIN_FAILURES_PER_MINUTE', 1200),
     'login_attempts_per_subscriber_per_minute' => (int) env('LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 300),
 
+    // مع Turnstile مضبوطاً يصير بلوغ حدود الدخول للشبكة (المشترك وموقع IPv6) تحدياً لا حجباً لمن اجتازه، حتى هذا الضعف
+    // من الحد فيعود الحجب (TurnstileChallenge::ceiling، قرار صفوان 26 أكتوبر 2026). وحدود الحساب (المعرّف والحساب والمعرّف
+    // مع العنوان) حاجبة بقيمها دائماً (المراجعة المستقلة على v0.14.0، قرار صفوان ١(أ)). وبلا مفتاحيه لا أثر له. وحد طلبات
+    // الاستعادة لكل عنوان لا يتسع به، لأنه يحمي كلفة الرسائل (مراجعة المشرف على #77)
+    'bot_challenge_ceiling_factor' => (int) env('BOT_CHALLENGE_CEILING_FACTOR', 5),
+
+    // تنبيه صاحب الحساب بقفل دخوله (LoginChallengeOnAccount) بالرسالة النصية: سقف لكل حساب في الأسبوع، وسقف يومي للبوابة
+    // كلها، وبعدهما بالبريد وحده
+    'login_challenge_sms_per_day' => (int) env('LOGIN_CHALLENGE_SMS_PER_DAY', 200),
+    'login_challenge_sms_per_account_per_week' => (int) env('LOGIN_CHALLENGE_SMS_PER_ACCOUNT_PER_WEEK', 2),
+
+    // كشف رقم هوية طالب واحد في اللوحة (RevealStudentIdentity): حد لكل مستخدم في الساعة، بعد تأكيد كلمة المرور
+    'national_id_reveals_per_hour' => (int) env('NATIONAL_ID_REVEALS_PER_HOUR', 60),
+
     // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),
+
+    // تعيين كلمة المرور الجديدة برمز الرابط في الدقيقة: خمس لكل بريد وعنوان، وسقف أرحب لكل مشترك يتسع لمدرسة كاملة
+    // خلف عنوان واحد (مراجعة المشرف على الاختبار الأمني 0.14.0). ويُربط بحدود شبكات المدارس بعد دمج مسابقة الطلاب
+    'password_update_per_identity_per_minute' => (int) env('PASSWORD_UPDATE_PER_IDENTITY_PER_MINUTE', 5),
+    'password_update_per_subscriber_per_minute' => (int) env('PASSWORD_UPDATE_PER_SUBSCRIBER_PER_MINUTE', 120),
 
     // حدان لكل شبكة في الساعة، حتى لا يستنزف مصدر واحد السقف العام:
     // - المعلّق (pending): رموز أُرسلت ولم يُتحقق منها. الرمز الجديد للمستخدم نفسه يحل محل
@@ -81,6 +110,9 @@ return [
 
     // HSTS يُرسل فقط على الاتصال الآمن
     'hsts_max_age' => 31536000,
+
+    // الصورة المصغرة لمقطع يوتيوب في المكتبة تُجلب من الخادم وتُحفظ محلياً، لا من متصفح الزائر (FetchYoutubeThumbnail)
+    'youtube_thumbnails' => (bool) env('YOUTUBE_THUMBNAILS', true),
 
     // مصادر خارجية مسموحة في سياسة أمان المحتوى (CSP)
     'csp' => [

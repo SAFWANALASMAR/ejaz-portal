@@ -41,14 +41,14 @@ class UserResource extends Resource
         $query = parent::getEloquentQuery()->with('roles');
         $actor = auth()->user();
 
-        // من يملك users.view غير المشرف العام (المدير التنفيذي اليوم) يرى حسابات الموظفين التي يمنح أدوارها وحدها، كما في
-        // UserPolicy: لها دور إداري مما يمنحه، ولا دور إدارياً غيره. فلا يرى المستفيدين ولا المشرف العام ولا
+        // من يملك users.view غير المشرف العام والمسؤول التقني (المدير التنفيذي اليوم) يرى المستفيدين وحسابات الموظفين التي
+        // يمنح أدوارها، كما في UserPolicy: لا دور إدارياً فيها غير ما يمنحه. فلا يرى المشرف العام ولا المسؤول التقني ولا
         // المجلس ولا حسابه. ومن لا يمنح شيئاً قائمته فارغة
-        if ($actor instanceof User && ! $actor->hasRole(RoleName::SuperAdmin->value) && $actor->can('users.view')) {
+        if ($actor instanceof User && ! RoleName::isOverseer($actor) && $actor->can('users.view')) {
             $panel = RoleName::values(RoleName::panelRoles());
             $managed = array_values(array_intersect($panel, RoleName::values(RoleName::assignableBy($actor))));
 
-            $query->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', $managed))
+            $query->when(RoleName::assignableBy($actor) === [], fn (Builder $query) => $query->whereRaw('1 = 0'))
                 ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', array_values(array_diff($panel, $managed))));
         }
 

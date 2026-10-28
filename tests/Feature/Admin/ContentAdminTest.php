@@ -158,7 +158,7 @@ it('rejects an image that cannot be read, under its own field', function () {
 
 it('never deletes the about or privacy page nor changes its link, even for the super admin', function (string $slug) {
     $about = Page::factory()->create(['slug' => $slug]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     expect($admin->can('delete', $about))->toBeFalse()
         ->and(fn () => app(DeleteContent::class)->handle($admin, $about))->toThrow(AuthorizationException::class)

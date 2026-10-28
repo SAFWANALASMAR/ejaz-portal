@@ -9,12 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * المستخدمون: بيانات شخصية، فلا يصلها إلا من له users.*.
- * والمنع الصريح هنا (false) يسري على المشرف العام أيضاً (Gate::after):
+ * والمنع الصريح هنا (false) يسري على مديري النظام أيضاً (Gate::after):
  * - لا يُعدَّل حساب أُخفيت بياناته، ولا تُمنح له أدوار.
  * - لا يحذف أحد حسابه.
- * - وغير المشرف العام لا يعدّل حساباً له دور إداري، إلا المدير التنفيذي في حسابات الموظفين.
- * ومنح الأدوار قاعدة في الشيفرة لا في ملف الصلاحيات (RoleName::assignableBy): المشرف العام كلها،
- * والمدير التنفيذي أدوار الموظفين («إدارة الموظفين» — requirements/12 §12).
+ * - ولا يعدّل حساباً له دور إداري إلا مديرو النظام (المدير التنفيذي والمسؤول التقني).
+ * ومنح الأدوار قاعدة في الشيفرة لا في ملف الصلاحيات (RoleName::assignableBy): لمديري النظام. والمشرف العام يطّلع ولا يغيّر.
  */
 class UserPolicy extends ModulePolicy
 {
@@ -50,7 +49,7 @@ class UserPolicy extends ModulePolicy
             return false;
         }
 
-        if ($user->hasRole(RoleName::SuperAdmin->value)) {
+        if (RoleName::isAdministrator($user)) {
             return true;
         }
 
@@ -67,8 +66,25 @@ class UserPolicy extends ModulePolicy
         return $record->anonymized_at === null
             && $record->is_active
             && $record->last_login_at === null
+            && $record->email !== null
             && ($this->allows($user, 'create') || $this->allows($user, 'update'))
             && ! $this->protectsAdministrator($user, $record);
+    }
+
+    /**
+     * كلمة مرور جديدة من اللوحة لمن لا يستعيدها بنفسه: لا بريد موثق له ولا جوال موثق (ملاحظات المدير التنفيذي، 25 أكتوبر
+     * 2026). للمدير التنفيذي والمسؤول التقني (accounts.update)، فيما يعدّله من الحسابات، ولا لحسابه نفسه.
+     */
+    public function resetPassword(User $user, User $record): bool
+    {
+        return $user->isNot($record)
+            // ولا لحساب رقيب (المشرف العام ومديرو النظام): يستعيد كلمة مروره ببريده الموثق (مراجعة المشرف، 26 أكتوبر 2026)
+            && ! RoleName::isOverseer($record)
+            && $record->anonymized_at === null
+            && ! $record->hasVerifiedEmail()
+            && ! $record->hasVerifiedPhone()
+            && $user->can('accounts.update')
+            && $this->update($user, $record);
     }
 
     /**
@@ -80,23 +96,15 @@ class UserPolicy extends ModulePolicy
     }
 
     /**
-     * حساب له دور إداري لا يعدّله إلا المشرف العام. والمدير التنفيذي يصل إلى حسابات الموظفين وحدها
-     * (والقائمة محصورة مثلها في UserResource): أدوارها الإدارية كلها مما يمنحه. فلا يصل إلى حساب
-     * مستفيد، ولا حساب بلا أدوار، ولا حسابه، ولا المشرف العام أو المجلس أو مدير تنفيذي آخر. والحساب الذي
-     * ينشئه يأخذ دوره في الإنشاء نفسه (ChangeUserRoles بـ newAccount).
+     * حساب له دور إداري لا يعدّله إلا مديرو النظام (المدير التنفيذي والمسؤول التقني)، ويطّلع عليه المشرف العام. ومن
+     * سواهم ممن يُمنح users.* يصل إلى حسابات المستفيدين وحدها.
      */
     private function protectsAdministrator(User $user, Model $record): bool
     {
-        if (! $record instanceof User || $user->hasRole(RoleName::SuperAdmin->value)) {
+        if (! $record instanceof User || RoleName::isOverseer($user)) {
             return false;
         }
 
-        $administrative = array_values(array_intersect($record->getRoleNames()->all(), RoleName::values(RoleName::panelRoles())));
-
-        if ($user->hasRole(RoleName::ExecutiveDirector->value)) {
-            return $administrative === [] || array_diff($administrative, RoleName::values(RoleName::assignableBy($user))) !== [];
-        }
-
-        return $administrative !== [];
+        return array_intersect($record->getRoleNames()->all(), RoleName::values(RoleName::panelRoles())) !== [];
     }
 }

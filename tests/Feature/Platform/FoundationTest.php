@@ -33,7 +33,7 @@ it('sends the security headers on every web response', function () {
 it('sends the security headers on the admin panel too, so its screens cannot be framed', function () {
     $this->get('/admin')->assertRedirect()->assertHeader('X-Frame-Options', 'DENY');
 
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     foreach (['/admin', '/admin/users'] as $path) {
         $response = $this->get($path)->assertOk();

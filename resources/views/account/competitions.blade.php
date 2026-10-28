@@ -12,6 +12,10 @@
     @else
         <ul class="space-y-4">
             @foreach ($submissions as $submission)
+                @if ($submission->competition->student_mode)
+                    @include('account.partials.student-competition', ['submission' => $submission])
+                    @continue
+                @endif
                 <li class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p class="font-bold text-ink">{{ $submission->competition->title }}</p>

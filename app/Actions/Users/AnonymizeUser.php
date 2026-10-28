@@ -5,14 +5,18 @@ namespace App\Actions\Users;
 use App\Actions\Programs\CancelProgramRegistration;
 use App\Enums\ActivityEvent;
 use App\Enums\MembershipStatus;
+use App\Jobs\GenerateCompetitionCertificate;
 use App\Jobs\SyncAttendanceCertificate;
 use App\Models\AssemblyMembership;
+use App\Models\CompetitionSubmission;
 use App\Models\Inquiry;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
+use App\Support\Username;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
@@ -38,15 +42,18 @@ class AnonymizeUser
 
         $oldEmail = $user->email;
         $oldPhone = $user->phone;
+        $oldUsername = $user->username;
         $emailVerified = $user->email_verified_at !== null;
 
-        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone, $emailVerified): void {
+        DB::transaction(function () use ($actor, $user, $oldEmail, $oldPhone, $oldUsername, $emailVerified): void {
             // الحفظ دون التسجيل الآلي، وإلا كتب السجل القيم القديمة من جديد
             activity()->withoutLogging(function () use ($user): void {
                 $user->syncRoles([]);
+                $user->syncPermissions([]);
 
                 $user->forceFill([
                     'name' => __('users.anonymized_name'),
+                    'username' => null,
                     'email' => 'deleted-'.$user->id.'@deleted.invalid',
                     'phone' => null,
                     'email_verified_at' => null,
@@ -61,7 +68,12 @@ class AnonymizeUser
                 ])->save();
             });
 
-            $this->scrubActivityLog($user, $oldEmail, $oldPhone);
+            $this->scrubActivityLog($user, $oldEmail, $oldPhone, $oldUsername);
+
+            // اسمه لا يُحرَّر لغيره، فلا يُنتحل صاحبه السابق (Username::retire — مراجعة المشرف المبكرة، ١٧)
+            if ($oldUsername !== null) {
+                Username::retire($oldUsername);
+            }
 
             // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله ونصها
             // (Inquiry::FREE_TEXT)، بلا تسجيل. ويبقى رقمها ونوعها وحالتها وتاريخها للإحصاء
@@ -87,7 +99,13 @@ class AnonymizeUser
 
             // بيانات تسجيل الاختبار تعرّف صاحبها فتُمسح الآن، لا بعد مدة الاحتفاظ. ويبقى الرقم المرجعي والدرجات
             DB::table('competition_submissions')->where('user_id', $user->id)
-                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null]);
+                ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'gender' => null, 'extra' => null]);
+
+            // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
+            // المعاملة فلا يضيع ملف إن تراجعت
+            $certificates = CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();
+            CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->update(['certificate_path' => null, 'certificate_issued_at' => null]);
+            DB::afterCommit(fn () => Storage::disk(GenerateCompetitionCertificate::disk())->delete($certificates));
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
             AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);
@@ -117,9 +135,9 @@ class AnonymizeUser
      * يبقى من السجل ما حدث ومتى ومن نفّذه، وتُمسح منه هوية صاحب الحساب:
      * قيم الحقول في سجلاته، والعنوان ونوع المتصفح، وبصمة معرّف الدخول.
      */
-    private function scrubActivityLog(User $user, ?string $oldEmail, ?string $oldPhone): void
+    private function scrubActivityLog(User $user, ?string $oldEmail, ?string $oldPhone, ?string $oldUsername = null): void
     {
-        $hashes = array_values(array_filter([LoginIdentifier::hash($oldEmail), LoginIdentifier::hash($oldPhone)]));
+        $hashes = array_values(array_filter([LoginIdentifier::hash($oldEmail), LoginIdentifier::hash($oldPhone), LoginIdentifier::hash($oldUsername)]));
 
         Activity::query()
             ->where(fn ($query) => $query
@@ -132,7 +150,8 @@ class AnonymizeUser
 
                 $log->forceFill([
                     'attribute_changes' => $aboutUser ? null : $log->attribute_changes,
-                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash']),
+                    // exported_by: اسم المصدِّر في سجل تصدير نتائج مسابقة الطلاب (NationalIdExport)
+                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash', 'exported_by']),
                 ])->saveQuietly();
             });
     }

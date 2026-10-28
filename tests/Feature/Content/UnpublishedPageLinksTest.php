@@ -29,7 +29,8 @@ function footerLink(string $html, string $label): string
 {
     $footer = (string) str($html)->after('<footer');
 
-    preg_match('#<a\s[^>]*>\s*'.preg_quote($label, '#').'\s*</a>#u', $footer, $match);
+    // وفي الرابط أيقونة قبل نصه (التذييل الجديد — 26 أكتوبر 2026)
+    preg_match('#<a\s[^>]*>(?:(?!</a>).)*?'.preg_quote($label, '#').'\s*</a>#us', $footer, $match);
 
     return $match[0] ?? '';
 }
@@ -72,17 +73,17 @@ it('hides a link to a page that does not exist', function () {
 
 it('shows the link as soon as the page is published, without waiting for the cached menu', function () {
     $page = Page::factory()->unpublished()->create(['slug' => 'vision']);
-    MenuItem::factory()->create(['label' => 'الرؤية', 'url' => '/pages/vision']);
+    MenuItem::factory()->create(['label' => 'صفحة تجريبية', 'url' => '/pages/vision']);
 
-    $this->get('/')->assertDontSee('الرؤية');
+    $this->get('/')->assertDontSee('صفحة تجريبية');
 
     $page->update(['is_published' => true]);
 
     $html = (string) $this->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('الرؤية')
+    expect($html)->toContain('صفحة تجريبية')
         ->and(pageHrefs($html))->toContain(url('/pages/vision'))
-        ->and(footerLink($html, 'الرؤية'))->not->toBe('');
+        ->and(footerLink($html, 'صفحة تجريبية'))->not->toBe('');
 });
 
 it('keeps the links that are not content pages: sections, intro pages and outside links', function () {
@@ -96,9 +97,9 @@ it('keeps the links that are not content pages: sections, intro pages and outsid
 it('drops the unpublished children of a dropdown, and the dropdown itself when none is left', function () {
     $parent = MenuItem::factory()->create(['label' => 'عن الجمعية', 'url' => '/about', 'sort' => 1]);
     MenuItem::factory()->create(['parent_id' => $parent->id, 'label' => 'التوجه الاستراتيجي', 'url' => '/about']);
-    MenuItem::factory()->create(['parent_id' => $parent->id, 'label' => 'الرؤية', 'url' => '/pages/vision']);
+    MenuItem::factory()->create(['parent_id' => $parent->id, 'label' => 'صفحة تجريبية', 'url' => '/pages/vision']);
 
-    $this->get('/')->assertOk()->assertDontSee('عن الجمعية')->assertDontSee('التوجه الاستراتيجي')->assertDontSee('الرؤية');
+    $this->get('/')->assertOk()->assertDontSee('عن الجمعية')->assertDontSee('التوجه الاستراتيجي')->assertDontSee('صفحة تجريبية');
 });
 
 it('keeps a dropdown whose own page is unpublished for its remaining children, with no footer link to that page', function () {

@@ -3,6 +3,7 @@
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Actions\Messaging\DeliverMessage;
 use App\Contracts\SmsGateway;
+use App\Contracts\WhatsAppNotifier;
 use App\Enums\MessageStatus;
 use App\Enums\RoleName;
 use App\Jobs\SendExamReceipt;
@@ -104,7 +105,7 @@ it('alerts the super admins once when production has no SMS provider, and keeps 
     Notification::fake();
     Queue::fake();
     app()->detectEnvironment(fn () => 'production');
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $user = User::factory()->create(['phone' => '+966500000123', 'phone_verified_at' => null]);
 
     // التوثيق كما هو: يُولَّد الرمز ويُرسل إلى الطابور
@@ -314,10 +315,36 @@ it('refuses an international number at registration', function () {
         'name' => 'متقدم',
         'email' => 'intl@example.test',
         'phone' => '+447700900123',
-        'password' => 'long-enough-pass-2026',
-        'password_confirmation' => 'long-enough-pass-2026',
-        'privacy' => '1',
+        'password' => 'Long-Enough-Pass-2026',
+        'password_confirmation' => 'Long-Enough-Pass-2026',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ])->assertSessionHasErrors('phone');
 
     expect(User::where('email', 'intl@example.test')->exists())->toBeFalse();
 });
+
+// مراجعة ما بعد v0.12.0: بعد مهلة القراءة ربما وصل الإيصال، فلا يُعاد فيتكرر. وما لم يصل المزود يُعاد
+it('does not resend the exam receipt after a read timeout, but retries one that never reached the provider', function (string $error, bool $fails) {
+    config(['services.whatsapp.driver' => 'log']);
+    MessagingChannel::query()->create([
+        'channel' => MessagingChannel::WHATSAPP,
+        'provider' => 'cloud',
+        'options' => ['phone_number_id' => '1234567890', 'templates' => ['exam_receipt' => 'ejaz_exam_receipt']],
+        'secrets' => ['access_token' => 'wa-token'],
+    ]);
+    Http::fake(fn () => throw new ConnectionException($error));
+    $submission = CompetitionSubmission::factory()->submitted()->create(['user_id' => User::factory()->create(['phone' => '+966500000124'])->id]);
+
+    $job = (new SendExamReceipt($submission->id))->withFakeQueueInteractions();
+
+    if ($fails) {
+        $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+        $job->assertFailed();
+    } else {
+        expect(fn () => $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class)))->toThrow(MessagingException::class);
+        $job->assertNotFailed();
+    }
+})->with([
+    'read timeout' => ['cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received', true],
+    'connect failure' => ['cURL error 7: Failed to connect to graph.facebook.com port 443', false],
+]);

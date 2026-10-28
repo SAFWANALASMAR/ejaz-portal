@@ -7,7 +7,10 @@ import './competition-entry';
 import './live-countdown';
 import './gallery';
 import './competition-exam';
+import './student-competition';
 import './assistant';
+import './password-rules';
+import './home';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

@@ -171,7 +171,7 @@ it('loads Livewire once in the head with the request nonce, and allows no eval o
 });
 
 it('keeps eval for the Alpine expressions in the admin panel alone', function () {
-    $csp = (string) $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk()
+    $csp = (string) $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get('/admin')->assertOk()
         ->headers->get('Content-Security-Policy');
 
     expect(scriptSources($csp))->toContain("'unsafe-eval'")
@@ -321,7 +321,7 @@ it('defers and tracks the Livewire script on public pages alone, so the admin pa
 
     // طلب تالٍ في العامل نفسه (Octane، والاختبارات): Livewire يمسح حالته بين الطلبات، وسماته تبقى
     Livewire::flushState();
-    $admin = $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/admin')->assertOk()->getContent();
+    $admin = $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get('/admin')->assertOk()->getContent();
 
     expect(preg_match('#<script src="[^"]*/livewire(\.min)?\.js[^>]*>#', $admin, $script))->toBe(1)
         ->and($script[0])->not->toContain('defer')

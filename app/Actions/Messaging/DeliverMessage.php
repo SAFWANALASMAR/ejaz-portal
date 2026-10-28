@@ -21,7 +21,7 @@ use Throwable;
 /**
  * إرسال رسالة واحدة عبر قناتها وتسجيل حالتها (MessageLog) بلا نصها: أُرسلت بمعرّفها عند المزود، أو فشلت
  * برمز الخطأ، أو تجاوزت حد الرقم في اليوم، أو لا قالب لاستعمالها. والفشل يُعاد رميه لتعيد المهمة المحاولة
- * (ما لم يكن retryable=false). وغياب المزود في الإنتاج يُنبّه المشرف العام بالبريد مرة كل ست ساعات.
+ * (ما لم يكن retryable=false). وغياب المزود في الإنتاج يُنبّه المشرف العام والمسؤول التقني بالبريد مرة كل ست ساعات.
  *
  * حد الرقم في اليوم يُفحص قبل كل محاولة، ويُستهلك بعد كل محاولة وصلت إلى المزود، ومنها إعادات الطابور
  * (فكل منها قد تكلّف رسالة). وما لم يُرسل أصلاً (لا مزود، أو لا قالب) لا يستهلكه.
@@ -90,12 +90,21 @@ class DeliverMessage
 
         // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها
         try {
-            return $record(MessageStatus::Sent, $id !== null ? mb_substr($id, 0, 191) : null);
+            $log = $record(MessageStatus::Sent, $id !== null ? mb_substr($id, 0, 191) : null);
         } catch (Throwable $exception) {
             report($exception);
 
             return new MessageLog(['channel' => $channel, 'provider' => $provider, 'usage' => $usage, 'phone_hint' => MessageLog::hint($phone), 'status' => MessageStatus::Sent]);
         }
+
+        // وما سبق تسجيلَها من إشعارات واتساب يُطبَّق، وتعذّره (الذاكرة المؤقتة) لا يغيّر السجل المُعاد
+        try {
+            HandleWhatsAppWebhook::applyPending($log);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return $log;
     }
 
     /**
@@ -123,7 +132,7 @@ class DeliverMessage
         Log::critical('Messaging provider is not configured in production.', ['channel' => $channel]);
 
         Notification::send(
-            User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+            User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
             new MessagingNotConfigured($channel),
         );
     }

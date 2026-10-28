@@ -47,7 +47,7 @@ it('opens each screen to its roles and keeps the others out', function () {
         RegisterEntryResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 200, 'projects' => 403],
         RegisterEntryResource::getUrl('create') => ['director' => 200, 'secretary' => 200, 'board' => 403, 'projects' => 403],
         CommitteeResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 200, 'projects' => 403],
-        CommitteeResource::getUrl('create') => ['director' => 403, 'secretary' => 200, 'board' => 403, 'projects' => 403],
+        CommitteeResource::getUrl('create') => ['director' => 200, 'secretary' => 200, 'board' => 403, 'projects' => 403],
         BodyMembershipResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 200, 'projects' => 403],
         AnnualPlanItemResource::getUrl('index') => ['director' => 200, 'secretary' => 403, 'board' => 200, 'projects' => 200],
         AnnualPlanItemResource::getUrl('create') => ['director' => 200, 'secretary' => 403, 'board' => 403, 'projects' => 200],

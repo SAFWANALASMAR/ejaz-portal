@@ -6,6 +6,7 @@ use App\Actions\Messaging\SendTestMessage;
 use App\Actions\Messaging\UpdateMessagingChannels;
 use App\Enums\MessageStatus;
 use App\Enums\SmsProvider;
+use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\MessageLog;
 use App\Models\MessagingChannel;
 use App\Models\User;
@@ -39,6 +40,8 @@ use UnitEnum;
  */
 class MessagingChannels extends Page
 {
+    use ReadableByOverseers;
+
     protected static ?string $slug = 'messaging-channels';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
@@ -48,7 +51,7 @@ class MessagingChannels extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
-    public static function canAccess(): bool
+    protected static function canWrite(): bool
     {
         return auth()->user()?->can('messaging.update') ?? false;
     }
@@ -101,6 +104,7 @@ class MessagingChannels extends Page
     {
         return $schema
             ->statePath('data')
+            ->disabled(fn (): bool => ! static::canWrite())
             ->components([
                 Callout::make(__('messaging.not_ready.heading'))
                     ->description(fn (): string => __('messaging.not_ready.body', ['channels' => $this->unreadyChannels()]))
@@ -193,7 +197,7 @@ class MessagingChannels extends Page
                 ->footer([
                     Actions::make([
                         Action::make('save')->label(__('site.save'))->submit('save')->keyBindings(['mod+s']),
-                    ]),
+                    ])->visible(fn (): bool => static::canWrite()),
                 ]),
             Section::make(__('messaging.logs.title'))
                 ->description(__('messaging.logs.hint', ['days' => (int) config('messaging.log_days')]))
@@ -233,6 +237,7 @@ class MessagingChannels extends Page
         }
 
         return Action::make('test_'.$channel)
+            ->visible(fn (): bool => static::canWrite())
             ->label(__('messaging.test.action_'.$channel))
             ->icon(Heroicon::OutlinedPaperAirplane)
             ->color('gray')
@@ -264,6 +269,8 @@ class MessagingChannels extends Page
 
     public function save(UpdateMessagingChannels $action): void
     {
+        $this->authorizeWrite();
+
         /** @var User $user */
         $user = auth()->user();
 

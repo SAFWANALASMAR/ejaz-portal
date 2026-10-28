@@ -73,7 +73,7 @@ it('sends guests to log in, keeps placeholders in names literal, and drops certi
     $this->get(route('account.programs.certificate', $registration))->assertRedirect(route('login'));
 
     $this->user->forceFill(['deletion_requested_at' => now()])->save();
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user);
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->user);
 
     expect($registration->fresh()->certificate_path)->toBeNull()
         ->and(Storage::disk('local')->allFiles('certificates'))->toBe([]);
@@ -88,7 +88,7 @@ it('keeps a certificate and its path when the disk cannot delete it, so no file 
 
     $this->user->forceFill(['deletion_requested_at' => now()])->save();
 
-    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $this->user))->toThrow(RuntimeException::class);
+    expect(fn () => app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->user))->toThrow(RuntimeException::class);
 
     // الإخفاء كله ينتظر إعادة المحاولة، والشهادة ومسارها كما هما
     expect($this->registration->fresh()->certificate_path)->toBe($path)
@@ -117,6 +117,29 @@ it('issues no certificate in production until the association template is set, a
     expect($this->registration->fresh()->certificate_path)->toStartWith('certificates/');
     Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->program, 'pageClass' => EditProgram::class])
         ->assertDontSee(__('programs.certificate.paused'));
+});
+
+// مراجعة ما بعد v0.12.0 (مهمة ١): الحضور المسجَّل قبل القالب لا يعيد إرسال مهمته شيء، فأمر يصدرها بعد التفعيل
+it('issues the certificates held back before the template once it is set, and refuses before', function () {
+    app()->detectEnvironment(fn () => 'production');
+    $this->registration->update(['attended_at' => now()]);
+    (new SyncAttendanceCertificate($this->registration))->handle();
+    $issued = ProgramRegistration::factory()->for($this->program)->create(['attended_at' => now(), 'certificate_path' => 'certificates/old.pdf']);
+    ProgramRegistration::factory()->for($this->program)->create();
+    ProgramRegistration::factory()->waitlisted()->for($this->program)->create(['attended_at' => now()]);
+    $anonymized = ProgramRegistration::factory()->for($this->program)->create(['attended_at' => now()]);
+    $anonymized->user->forceFill(['anonymized_at' => now()])->save();
+
+    Bus::fake();
+    $this->artisan('programs:issue-pending-certificates')->assertFailed();
+    Bus::assertNotDispatched(SyncAttendanceCertificate::class);
+
+    config(['programs.certificate_template_ready' => true]);
+    $this->artisan('programs:issue-pending-certificates')->expectsOutput('1')->assertSuccessful();
+
+    Bus::assertDispatchedTimes(SyncAttendanceCertificate::class, 1);
+    Bus::assertDispatched(SyncAttendanceCertificate::class, fn ($job) => $job->registration->is($this->registration));
+    expect($issued->fresh()->certificate_path)->toBe('certificates/old.pdf');
 });
 
 it('prints the missing-content mark on the temporary template outside production only', function () {

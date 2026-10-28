@@ -23,7 +23,7 @@ use Spatie\Activitylog\Models\Activity;
 */
 
 beforeEach(function () {
-    $this->admin = userWithRole(RoleName::SuperAdmin);
+    $this->admin = userWithRole(RoleName::TechnicalAdmin);
 });
 
 it('lets the super admin register a member, which grants the role, and nobody else', function () {

@@ -11,11 +11,14 @@ it('closes the queue dashboard to guests and ordinary users', function () {
 
 it('requires two-factor even for the super admin', function () {
     $admin = User::factory()->create();
-    $admin->assignRole(RoleName::SuperAdmin->value);
+    $admin->assignRole(RoleName::TechnicalAdmin->value);
 
-    $this->actingAs($admin)->get('/horizon')->assertForbidden();
+    // يُحوَّل إلى إعداد التحقق الثنائي كاللوحة (EnsureTwoFactorIsEnabled في وسطاء Horizon — الاختبار الأمني 0.14.0)،
+    // ولا تُقرأ واجهته
+    $this->actingAs($admin)->get('/horizon')->assertRedirect(route('account.security'));
+    $this->get('/horizon/api/stats')->assertRedirect(route('account.security'));
 });
 
 it('opens the queue dashboard to the super admin with two-factor', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get('/horizon')->assertOk();
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get('/horizon')->assertOk();
 });

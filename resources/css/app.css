@@ -34,8 +34,9 @@
     --color-muted: #556170;
     --color-line: #D8E3EE;
 
-    /* ظهور قائمة الرأس الأفقية (nav:): أصغر عرض تتسع فيه عناصر القائمة الحالية صفاً واحداً بهامش مريح،
-       بالقياس في المتصفح (docs/reviews/ready-fix-header-single-row.md) */
+    /* ظهور قائمة الرأس الأفقية (nav:)، بالقياس في المتصفح (docs/reviews/ready-fix-header-single-row.md). ومنذ #66
+       بعناصرها التسعة والشعار الكامل: خط وحشو أصغر قليلاً حتى 1440، فتتسع صفاً واحداً من نحو 1250، وما دونه زر
+       القائمة بحارس app.js (docs/reviews/2026-10-27-header-fit-1280.md) */
     --breakpoint-nav: 77.5rem;
 }
 
@@ -156,6 +157,70 @@
 
 [data-site-header][data-nav-overflow] #mobile-menu:not([hidden]) {
     display: block;
+}
+
+/* الشريطان المتحركان في الرئيسية (home/partials/news-ticker وannouncements): نسختان متتاليتان تتحركان نحو اليمين بمقدار
+   نسخة، فيستمر الشريط بلا قفزة. ويتوقف بالمرور والتركيز وبزر الإيقاف (data-paused — resources/js/home.js) */
+.ticker {
+    overflow: hidden;
+    mask-image: linear-gradient(to left, transparent, #000 4%, #000 96%, transparent);
+}
+
+.ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker var(--ticker-duration, 40s) linear infinite;
+}
+
+.ticker-group {
+    display: flex;
+    flex-shrink: 0;
+    align-items: stretch;
+    gap: 2rem;
+    padding-inline-end: 2rem;
+}
+
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track,
+.ticker[data-paused] .ticker-track {
+    animation-play-state: paused;
+}
+
+@keyframes ticker {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(50%);
+    }
+}
+
+/* الظهور عند التمرير (resources/js/home.js): لا يُخفى شيء قبل أن يجهز السكربت، فيبقى ظاهراً بلا سكربت */
+html[data-reveal-ready] [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+    transform: translateY(1.5rem);
+}
+
+html[data-reveal-ready] [data-reveal] {
+    transition:
+        opacity 0.7s ease-out var(--reveal-delay, 0ms),
+        transform 0.7s ease-out var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ticker {
+        overflow-x: auto;
+        mask-image: none;
+    }
+
+    .ticker-track {
+        animation: none;
+    }
+
+    .ticker [data-ticker-copy] {
+        display: none;
+    }
 }
 
 /* شريط التقدّم أثناء التنقّل السريع (resources/js/page.js): زخرفة على html لا عنصر يقرؤه قارئ الشاشة، والصفحة

@@ -2,9 +2,12 @@
 
 use App\Http\Middleware\CountVisit;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureAccountVerified;
 use App\Http\Middleware\FullPageLoadOnNavigate;
 use App\Http\Middleware\RejectInvalidUtf8;
+use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\VerifyBotChallenge;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -13,6 +16,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -34,12 +38,19 @@ return Application::configure(basePath: dirname(__DIR__))
         // ورؤوس الحماية أول المجموعة: تحيط بكل ما بعدها، فتصل إلى ما يُرسم قبل المتحكم أيضاً (تجاوز الحد، والربط الضمني
         // للنموذج، ورمز الحماية المنتهي)، برمز الطلب. ولوحة الإدارة لها مجموعتها، وفيها SecurityHeaders في أولها.
         // والمدخل بترميز غير صالح يُرفض بعدها وقبل الجلسة (RejectInvalidUtf8)
+        // وكلمة مرور قائمة لا تطابق السياسة تُغيَّر من «بياناتي» قبل أي صفحة أخرى (RequirePasswordUpgrade)، ونماذج
+        // الزائر (الدخول والتسجيل والاستعادة) بالتحدي ضد الآليات (VerifyBotChallenge)
         $middleware->web(prepend: [SecurityHeaders::class, RejectInvalidUtf8::class], append: [
             AuthenticateSession::class,
             FullPageLoadOnNavigate::class,
             EnsureAccountIsActive::class,
+            RequirePasswordUpgrade::class,
+            VerifyBotChallenge::class,
             CountVisit::class,
         ]);
+
+        // التوثيق شرطاً متى فُعّل من اللوحة وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        $middleware->alias(['verified' => EnsureAccountVerified::class]);
 
         // التنقّل السريع إلى ما يُحمَّل كاملاً تحميل كامل (FullPageLoadOnNavigate)، ومنه تحويل الدخول من Authenticate:
         // فيُقدَّم عليه في ترتيب الأولوية، وإلا قدّم لارافيل Authenticate على كل ما أُلحق بمجموعة web
@@ -50,17 +61,20 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        // رقم الهوية وجوال ولي الأمر لا يعودان إلى الجلسة مع خطأ التحقق (_old_input)، ككلمات المرور: الجلسة غير مشفرة،
+        // وبيانات قاصرين (المراجعة السحابية، ن٣)
+        $exceptions->dontFlash(['national_id', 'guardian_phone']);
+
         // خطأ القاعدة يُسجَّل بلا قيم الاستعلام: رسالته تحمل القيم المربوطة (الاسم والبريد والجوال وبصمة كلمة المرور)،
-        // ورسالة PostgreSQL تحمل القيمة المكررة في سطر DETAIL للقيد الفريد. فيُسجَّل رمز الخطأ ونص PostgreSQL بلا
-        // DETAIL، والاستعلام بعلاماته، وموضعه، واسم المسار لا المسار نفسه (فيه رموز مثل reset-password/{token})
-        // (docs/security.md: لا كلمات مرور ولا بيانات هوية في السجلات — اختبار الأمن قبل الرفع، 19 أكتوبر 2026)
+        // ونص PostgreSQL نفسه قد يحمل قيمة المدخل (23505 في DETAIL، و22P02 «invalid input syntax for type uuid: "…"»).
+        // فيُسجَّل رمز الخطأ SQLSTATE وحده، والاستعلام بعلاماته، وموضعه، واسم المسار لا المسار نفسه (فيه رموز مثل
+        // reset-password/{token}) (docs/security.md: لا كلمات مرور ولا بيانات هوية في السجلات — اختبار الأمن قبل الرفع،
+        // ومراجعة #61). والتشخيص بالرمز والاستعلام والموضع، وبإعادة الطلب في التطوير
         $exceptions->report(function (QueryException $exception): false {
             $frame = collect($exception->getTrace())->first(fn (array $frame) => str_starts_with($frame['file'] ?? '', app_path()));
-            $error = preg_replace('/\s*(DETAIL|CONTEXT|HINT):.*$/s', '', (string) ($exception->errorInfo[2] ?? ''));
 
             Log::error('Database query failed', [
                 'sqlstate' => $exception->errorInfo[0] ?? $exception->getCode(),
-                'error' => $error === '' ? null : $error,
                 'connection' => $exception->getConnectionName(),
                 'sql' => $exception->getSql(),
                 'at' => isset($frame['file']) ? $frame['file'].':'.($frame['line'] ?? 0) : null,
@@ -68,5 +82,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
 
             return false;
+        });
+
+        // كل رفض وصول (403) يُسجَّل: الحساب والمسار باسمه والطريقة، فيظهر من يجرّب ما ليس له (ASVS 7.2.2، مطابقة
+        // المعايير — 20 أكتوبر 2026). في سجل التطبيق لا في سجل العمليات، فلا يملأ طالبٌ مكررٌ القاعدةَ. والرد كما هو
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request): null {
+            if ($exception->getStatusCode() === 403) {
+                Log::warning('Access denied', [
+                    'user_id' => $request->user()?->getAuthIdentifier(),
+                    'route' => $request->route()?->getName(),
+                    'method' => $request->method(),
+                    'ip' => $request->ip(),
+                ]);
+            }
+
+            return null;
         });
     })->create();

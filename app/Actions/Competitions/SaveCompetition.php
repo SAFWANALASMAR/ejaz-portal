@@ -4,15 +4,22 @@ namespace App\Actions\Competitions;
 
 use App\Enums\QuestionMedia;
 use App\Enums\QuestionType;
+use App\Enums\RankingScope;
 use App\Enums\RoleName;
 use App\Enums\WorkType;
 use App\Models\Competition;
+use App\Models\CompetitionCategory;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionMedia;
+use App\Support\CompetitionPage;
+use App\Support\CompetitionShortLink;
 use App\Support\ExamQuestions;
 use App\Support\ImageSanitizer;
+use App\Support\RoundQuestions;
+use App\Support\SchoolNetworkLimits;
 use App\Support\VideoProbe;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +47,11 @@ class SaveCompetition
     private const OPTION_KEYS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
 
     /**
+     * مجلد صور خلفية شهادات مسابقة الطلاب في القرص الخاص.
+     */
+    public const CERTIFICATE_DIRECTORY = 'competition-certificate-templates';
+
+    /**
      * @param  array<string, mixed>  $data
      *
      * @throws AuthorizationException
@@ -58,13 +70,34 @@ class SaveCompetition
         $requested = $data;
         $this->checkLocks($competition, $requested);
 
+        // نصوص الصفحة: القوائم من النموذج نص بأسطر (سطر لكل بند)، فتُحوَّل قبل الفحص
+        if (is_array($data['page_content'] ?? null)) {
+            $data['page_content'] = $this->pageContent($data['page_content']);
+        }
+
         $data = $this->validate($competition, $data);
+
+        if (array_key_exists('prize_table', $data)) {
+            $data['prize_table'] = array_values(array_map(fn (array $row): array => ['male' => (int) ($row['male'] ?? 0), 'female' => (int) ($row['female'] ?? 0)], (array) $data['prize_table']));
+        }
 
         // ما لم يصل من المعايير أو الأسئلة يبقى كما هو
         $criteria = $data['criteria'] ?? null;
         $questions = $data['questions'] ?? null;
         $reviewers = $data['reviewers'] ?? null;
-        unset($data['criteria'], $data['questions'], $data['reviewers']);
+        $openCategories = $data['open_categories'] ?? null;
+        unset($data['criteria'], $data['questions'], $data['reviewers'], $data['open_categories']);
+
+        // مسابقة الطلاب: بنكها في مراحلها يُدار من صفحاتها (SaveStudentQuestion)، فلا يمسه بنك النموذج ولو وصل،
+        // ولا أعمال فيها (docs/plans/student-competition.md)
+        if ((bool) ($data['student_mode'] ?? $competition->student_mode)) {
+            $questions = null;
+            $data['work_types'] = null;
+        }
+
+        if (! $competition->exists) {
+            $data['created_by'] = $actor->id;
+        }
 
         if ($reviewers !== null) {
             $this->checkReviewers($competition, array_map('intval', $reviewers));
@@ -80,13 +113,26 @@ class SaveCompetition
         $media = $this->prepareMedia($competition, ['questions' => $questions ?? [], ...$data]);
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
+        $backgroundBefore = $competition->certificate_background;
+        $rankingBefore = null;
+
+        // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
+        $background = $data['certificate_background'] ?? null;
+
+        if (filled($background) && $background !== $backgroundBefore) {
+            try {
+                ImageSanitizer::strip((string) config('filesystems.private_disk', 'local'), (string) $background);
+            } catch (\Throwable) {
+                throw ValidationException::withMessages(['certificate_background' => __('competitions.student.certificate_background_invalid')]);
+            }
+        }
 
         // الاختبار الإلكتروني بلا أعمال: حقلها مخفي في اللوحة فلا يصل، فتُفرَّغ هنا
         if ((bool) ($data['exam_mode'] ?? $competition->exam_mode)) {
             $data['work_types'] = null;
         }
 
-        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers): void {
+        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories, &$rankingBefore): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
@@ -97,9 +143,35 @@ class SaveCompetition
                 }
 
                 $this->checkLocks($locked, $requested);
+                // نطاق الترتيب والفئات المفتوحة قبل الحفظ من الصف المقفول، فلا يفوت حفظاً متزامناً تغييرهما
+                $rankingBefore = [$locked->ranking_scope, $this->openCategoryIds($locked)];
             }
 
-            $competition->fill($data)->save();
+            $createdBy = $data['created_by'] ?? null;
+            unset($data['created_by']);
+            $wasStudent = $competition->exists && $competition->student_mode;
+            $competition->fill($data);
+
+            if ($createdBy !== null) {
+                $competition->created_by = (int) $createdBy;
+            }
+
+            $competition->save();
+
+            if ($openCategories !== null) {
+                $competition->openCategories()->sync(array_map('intval', $openCategories));
+            }
+
+            // عند إنشائها مسابقة طلاب (أو تحويلها قبل أي مرحلة) وحده، لا عند كل حفظ بعد حذف مراحلها من اللوحة
+            if ($competition->student_mode && ! $wasStudent && $competition->rounds()->doesntExist()) {
+                $this->createDefaultRounds($competition);
+            }
+
+            // رابط مختصر ثابت يُعمَّم على المدارس ورمز QR له (مطوية «البراهين العلمية»)
+            if ($competition->student_mode && $competition->short_code === null) {
+                CompetitionShortLink::assign($competition);
+            }
+
             if ($criteria !== null) {
                 $this->syncCriteria($competition, $criteria);
             }
@@ -125,8 +197,90 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
+        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)،
+        // فيُمسح إن تغيّر أحدهما وحده: تعديل نص الصفحة أو الجوائز أثناء النافذة لا يفرّغ البنوك على الطلاب كلهم (ن١)
+        if ($competition->student_mode && $rankingBefore !== [$competition->ranking_scope, $this->openCategoryIds($competition)]) {
+            $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
+        }
+        SchoolNetworkLimits::forget();
+
+        // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص
+        if (filled($backgroundBefore) && $backgroundBefore !== $competition->certificate_background) {
+            Storage::disk((string) config('filesystems.private_disk', 'local'))->delete((string) $backgroundBefore);
+        }
 
         return $competition->refresh();
+    }
+
+    /**
+     * معرّفات الفئات المفتوحة مرتبة للمقارنة قبل الحفظ وبعده.
+     *
+     * @return list<int>
+     */
+    private function openCategoryIds(Competition $competition): array
+    {
+        return $competition->exists
+            ? $competition->openCategories()->allRelatedIds()->map(fn (mixed $id): int => (int) $id)->sort()->values()->all()
+            : [];
+    }
+
+    /**
+     * صفوف جدول الجوائز أعداداً للمقارنة، بلا اعتبار لنوع القيمة القادمة من النموذج.
+     *
+     * @return list<array{male: int, female: int}>
+     */
+    private static function prizeRows(mixed $table): array
+    {
+        return array_values(array_map(fn (mixed $row): array => [
+            'male' => (int) (is_array($row) ? ($row['male'] ?? 0) : 0),
+            'female' => (int) (is_array($row) ? ($row['female'] ?? 0) : 0),
+        ], is_array($table) ? $table : []));
+    }
+
+    /**
+     * نصوص الصفحة بشكلها المخزن: الفقرات نصوص بلا مسافات زائدة، والقوائم بنود (من نص بأسطر أو مصفوفة)،
+     * والفارغ يسقط. ومفتاح غير معروف يبقى فيرفضه الفحص.
+     *
+     * @param  array<mixed>  $content
+     * @return array<mixed>
+     */
+    private function pageContent(array $content): array
+    {
+        foreach ($content as $key => $value) {
+            if (in_array($key, CompetitionPage::listKeys(), true)) {
+                $content[$key] = CompetitionPage::items($value);
+            } elseif (is_string($value)) {
+                $content[$key] = trim($value);
+            }
+
+            if ($content[$key] === '' || $content[$key] === [] || $content[$key] === null) {
+                unset($content[$key]);
+            }
+        }
+
+        return $content;
+    }
+
+    /**
+     * مراحل مسابقة الطلاب الأربع (قرار المدير التنفيذي) عند إنشائها، بالعدد والمدة الافتراضيين، ونوافذ مبدئية متتالية
+     * أسبوعاً بعد نهاية التسجيل يعدّلها المدير من تبويب «المراحل» (وتُحذف وتُضاف هناك).
+     */
+    private function createDefaultRounds(Competition $competition): void
+    {
+        for ($number = 1; $number <= (int) config('competitions.student.default_rounds'); $number++) {
+            $starts = $competition->closes_at->copy()->addWeeks($number - 1);
+
+            $round = new CompetitionRound([
+                'name' => __('competitions.student.admin.round_default', ['number' => __('competitions.student.ordinals.'.$number)]),
+                'sort_order' => $number,
+                'starts_at' => $starts,
+                'ends_at' => $starts->copy()->addDay(),
+                'question_count' => (int) config('competitions.student.default_questions'),
+                'duration_minutes' => (int) config('competitions.student.default_minutes'),
+            ]);
+            $round->competition_id = $competition->id;
+            $round->save();
+        }
     }
 
     /**
@@ -147,6 +301,14 @@ class SaveCompetition
             throw ValidationException::withMessages(['closes_at' => __('competitions.validation.schedule_locked')]);
         }
 
+        // نطاق الترتيب وجدول الجوائز لا يتغيران بعد سحب تراكمي أو نشر كل الفروع (مراجعة المشرف على المطوية)
+        if ($competition->cumulativeLocked() && (
+            (array_key_exists('ranking_scope', $data) && (string) ($data['ranking_scope'] instanceof RankingScope ? $data['ranking_scope']->value : $data['ranking_scope']) !== $competition->ranking_scope->value)
+            || (array_key_exists('prize_table', $data) && self::prizeRows($data['prize_table']) !== self::prizeRows($competition->prize_table))
+        )) {
+            throw ValidationException::withMessages(['prize_table' => __('competitions.student.cumulative_locked')]);
+        }
+
         if (array_key_exists('criteria', $data) && $competition->criteriaLocked()) {
             throw ValidationException::withMessages(['criteria' => __('competitions.validation.criteria_locked')]);
         }
@@ -155,6 +317,11 @@ class SaveCompetition
         if (array_key_exists('exam_mode', $data) && $competition->exists && (bool) $data['exam_mode'] !== $competition->exam_mode
             && $competition->submissions()->withTrashed()->exists()) {
             throw ValidationException::withMessages(['exam_mode' => __('competitions.exam_validation.exam_mode_locked')]);
+        }
+
+        if (array_key_exists('student_mode', $data) && $competition->exists && (bool) $data['student_mode'] !== $competition->student_mode
+            && ($competition->submissions()->withTrashed()->exists() || $competition->rounds()->exists())) {
+            throw ValidationException::withMessages(['student_mode' => __('competitions.student.mode_locked')]);
         }
     }
 
@@ -183,6 +350,23 @@ class SaveCompetition
             'intro_video_path' => ['nullable', 'string', 'max:255'],
             'work_types' => ['nullable', 'array', 'max:'.count(WorkType::cases())],
             'work_types.*' => ['distinct', Rule::enum(WorkType::class)],
+            'student_mode' => ['boolean'],
+            // اسم عشوائي في مجلد القوالب وحده، فلا يشير المسار إلى ملف خاص آخر (../)
+            'certificate_background' => ['nullable', 'string', 'max:255', 'regex:#^'.self::CERTIFICATE_DIRECTORY.'/[A-Za-z0-9_-]+\.(jpe?g|png)$#'],
+            'open_categories' => ['nullable', 'array', 'max:50'],
+            'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
+            // مسابقة الطلاب: نصوص الصفحة ودليل الدخول، وجدول الجوائز لكل جنس، ونطاق الترتيب
+            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
+            'page_content.'.CompetitionPage::PARTNER => ['nullable', 'string', 'max:200'],
+            ...collect(CompetitionPage::PARAGRAPHS)->mapWithKeys(fn (string $key): array => ['page_content.'.$key => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX]])->all(),
+            ...collect(CompetitionPage::listKeys())->mapWithKeys(fn (string $key): array => [
+                'page_content.'.$key => ['nullable', 'array', 'max:'.CompetitionPage::ITEMS_MAX],
+                'page_content.'.$key.'.*' => ['string', 'max:'.CompetitionPage::ITEM_MAX],
+            ])->all(),
+            'prize_table' => ['nullable', 'array', 'max:50'],
+            'prize_table.*.male' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'prize_table.*.female' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'ranking_scope' => ['sometimes', Rule::enum(RankingScope::class)],
 
             'reviewers' => ['nullable', 'array', 'max:200'],
             'reviewers.*' => ['integer', 'distinct'],
@@ -195,7 +379,7 @@ class SaveCompetition
 
             'questions' => ['nullable', 'array', 'max:200'],
             'questions.*.id' => ['nullable', 'integer', 'distinct'],
-            'questions.*.type' => ['required', Rule::enum(QuestionType::class)],
+            'questions.*.type' => ['required', Rule::enum(QuestionType::class)->only(QuestionType::classic())],
             'questions.*.prompt' => ['required', 'string', 'max:2000'],
             'questions.*.is_required' => ['boolean'],
             'questions.*.options' => ['nullable', 'array', 'max:'.count(self::OPTION_KEYS)],
@@ -259,7 +443,17 @@ class SaveCompetition
 
         $this->checkExam($validator, $competition, $data, $questions);
 
-        $hasQuestions = array_key_exists('questions', $data) ? $questions !== [] : $competition->exists && $competition->questions()->exists();
+        // نوع واحد للمسابقة: الاختبار الإلكتروني ومسابقة الطلاب لا يجتمعان
+        if ((bool) ($data['exam_mode'] ?? $competition->exam_mode) && (bool) ($data['student_mode'] ?? $competition->student_mode)) {
+            $validator->errors()->add('student_mode', __('competitions.student.one_mode'));
+        }
+
+        // مسابقة الطلاب بنكها في مراحلها، وبنك نموذجها لا يُحفظ
+        $hasQuestions = match (true) {
+            (bool) ($data['student_mode'] ?? $competition->student_mode) => $competition->exists && $competition->roundQuestions()->exists(),
+            array_key_exists('questions', $data) => $questions !== [],
+            default => $competition->exists && $competition->questions()->exists(),
+        };
 
         if (($data['is_published'] ?? false) && ! $hasQuestions) {
             $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));

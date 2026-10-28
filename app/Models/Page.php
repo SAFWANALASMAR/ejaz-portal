@@ -22,7 +22,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * وصفحات «المقدمة» (INTROS) نصوص صفحات الموقع السابق التي صار لها قالب مبني في البوابة: تُعرض
  * مقاطعها أعلى صفحة القالب (x-page-intro)، ورابطها /pages/{slug} يحوّل إليه.
  */
-#[Fillable(['slug', 'title', 'summary', 'blocks', 'is_published'])]
+#[Fillable(['slug', 'title', 'summary', 'blocks', 'is_published', 'is_sample'])]
 class Page extends Model implements HasPublicImages
 {
     /** @use HasFactory<PageFactory> */
@@ -63,6 +63,7 @@ class Page extends Model implements HasPublicImages
         return [
             'blocks' => 'array',
             'is_published' => 'boolean',
+            'is_sample' => 'boolean',
         ];
     }
 

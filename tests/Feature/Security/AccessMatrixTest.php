@@ -43,7 +43,7 @@ function matrixGetUris(callable $filter): array
 {
     return collect(Router::getRoutes()->getRoutes())
         ->filter(fn (Route $route) => in_array('GET', $route->methods(), true) && $filter($route))
-        ->map(fn (Route $route) => '/'.ltrim((string) preg_replace_callback('/\{([^}?]+)\??\}/', fn (array $m) => str_contains($m[1], 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment'], true) ? (string) Str::uuid() : '1', $route->uri()), '/'))
+        ->map(fn (Route $route) => '/'.ltrim((string) preg_replace_callback('/\{([^}?]+)\??\}/', fn (array $m) => str_contains($m[1], 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment', 'round', 'submission'], true) ? (string) Str::uuid() : '1', $route->uri()), '/'))
         ->unique()
         ->values()
         ->all();
@@ -89,9 +89,11 @@ it('answers 403 to an ordinary member on every admin panel screen and Horizon', 
     expect($wrong)->toBe([]);
 });
 
-it('never opens the records of one member to another, by uuid or by signed link, and opens each to its owner', function () {
+// لكل دور، لا للمستفيد وحده (مراجعة المشرف على #64): طلب المستفيد وملفه وشهادته ونموذجه وعمله في المسابقة لا تُفتح ولا تُعدَّل
+// من مسارات حسابه لأحد غيره، ولو كان مشرفاً عاماً، فمكان الإدارة اللوحة بصلاحياتها وسجلها
+it('never opens the records of one member to another role, by uuid or by signed link, and opens each to its owner', function (RoleName $role) {
     $victim = userWithRole(RoleName::Member);
-    $attacker = userWithRole(RoleName::Member);
+    $attacker = userWithRole($role);
 
     $request = ServiceRequest::factory()->create(['user_id' => $victim->id, 'files' => ['cv' => ['path' => storedPrivateFile('service-requests'), 'name' => 'cv.pdf', 'size' => 100]]]);
     $registration = ProgramRegistration::factory()->create(['user_id' => $victim->id, 'attended_at' => now(), 'certificate_path' => storedPrivateFile('certificates')]);
@@ -121,7 +123,7 @@ it('never opens the records of one member to another, by uuid or by signed link,
     expect($request->fresh()->answers)->not->toBe(['about' => 'x'])
         ->and($registration->fresh()->status)->toBe($registration->status)
         ->and(SubmissionWork::query()->whereKey($work->id)->exists())->toBeTrue();
-});
+})->with(fn () => array_map(fn (RoleName $role) => [$role], RoleName::cases()));
 
 // عضو في الجمعية العمومية يجتاز بوابة المنطقة، فيُختبر فحص السجل نفسه: اجتماع المجلس وملفه لا يُفتحان له ولو بتوقيع
 // صالح، واجتماع الجمعية وملفها يُفتحان. وملف وظيفة لموظف بلا صلة بها، وصاحب الوظيفة يصل إليه
@@ -153,23 +155,26 @@ it('keeps board meetings and files from an assembly member, and job files from s
 });
 
 // إجراءات Livewire في اللوحة: الشاشة لا تُفتح لغير المخوّل، فلا يصل إلى «حفظ» ولا «حذف»، والسجل كما هو.
-// ومنها IDOR كتابة لدورين: المدير التنفيذي على حساب المشرف العام، والمحكّم على تحكيم غيره
+// ومنها IDOR كتابة: المشرف العام للاطلاع لا يعدّل حساباً، والمحكّم لا يعدّل تحكيم غيره
 it('refuses panel Livewire actions to a role without the permission and on a record that is not theirs', function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
-    $superAdmin = userWithRole(RoleName::SuperAdmin, ['name' => 'المشرف الأصلي']);
+    $superAdmin = userWithRole(RoleName::TechnicalAdmin, ['name' => 'المشرف الأصلي']);
     $director = userWithRole(RoleName::ExecutiveDirector);
     $staff = userWithRole(RoleName::Accountant, ['name' => 'موظف']);
 
-    // المدير التنفيذي: حساب المشرف العام خارج نطاقه (404)، ولا يُبدَّل سجل نموذج يملكه إلى حسابه (الخاصية مقفلة)
+    // المشرف العام للاطلاع وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026): لا يفتح تعديل حساب
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertForbidden();
+
+    // والمدير التنفيذي أدمن كامل، ولا يُبدَّل سجل نموذج يملكه إلى حساب آخر (الخاصية مقفلة)
     $this->actingAs($director);
-    Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertNotFound();
     expect(fn () => Livewire::test(EditUser::class, ['record' => $staff->getRouteKey()])->set('record', $superAdmin->getKey())->fillForm(['name' => 'مخترَق'])->call('save'))
         ->toThrow(CannotUpdateLockedPropertyException::class);
 
     // السكرتير بلا صلاحية المستخدمين (403)، والمشرف العام يفتحه (شاهد إيجابي)
     $this->actingAs(userWithRole(RoleName::Secretary));
     Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertForbidden();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     Livewire::test(EditUser::class, ['record' => $superAdmin->getRouteKey()])->assertOk();
     expect($superAdmin->fresh()->name)->toBe('المشرف الأصلي');
 
@@ -204,6 +209,7 @@ it('refuses a forged Livewire update request from a member', function () {
             'calls' => [['method' => 'save', 'params' => []]],
         ]]])->getStatusCode();
 
-    expect($status)->toBeGreaterThanOrEqual(400)->toBeLessThan(500)
+    // 419 بالضبط من فحص سلامة اللقطة (LivewireReleaseTokenMismatchException)، كما في تقرير الأمن
+    expect($status)->toBe(419)
         ->and($target->fresh()->name)->toBe('موظف');
 });

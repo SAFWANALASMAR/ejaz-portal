@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use App\Enums\CompetitionStatus;
+use App\Enums\RankingScope;
 use App\Enums\SubmissionStatus;
 use App\Enums\WorkType;
 use App\Models\Concerns\Publishable;
+use App\Support\CompetitionPage;
 use Database\Factories\CompetitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -29,8 +32,12 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $results_approved_at
  * @property array<mixed>|null $categories
  * @property array<mixed>|null $work_types
+ * @property array<string, mixed>|null $page_content
+ * @property array<mixed>|null $prize_table
+ * @property RankingScope $ranking_scope
+ * @property Carbon|null $ranking_locked_at
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -52,7 +59,72 @@ class Competition extends Model
             'exam_mode' => 'boolean',
             'intro_video_seconds' => 'integer',
             'work_types' => 'array',
+            'student_mode' => 'boolean',
+            'page_content' => 'array',
+            'prize_table' => 'array',
+            'ranking_scope' => RankingScope::class,
+            'ranking_locked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * مراحل مسابقة الطلاب بترتيبها (plans/student-competition.md).
+     *
+     * @return HasMany<CompetitionRound, $this>
+     */
+    public function rounds(): HasMany
+    {
+        return $this->hasMany(CompetitionRound::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * محاولات الطلاب في كل المراحل (لوحة النتائج).
+     *
+     * @return HasManyThrough<CompetitionAttempt, CompetitionRound, $this>
+     */
+    public function attempts(): HasManyThrough
+    {
+        return $this->hasManyThrough(CompetitionAttempt::class, CompetitionRound::class, 'competition_id', 'round_id');
+    }
+
+    /**
+     * حقول التسجيل المخصصة.
+     *
+     * @return HasMany<CompetitionField, $this>
+     */
+    public function fields(): HasMany
+    {
+        return $this->hasMany(CompetitionField::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<CompetitionPassage, $this>
+     */
+    public function passages(): HasMany
+    {
+        return $this->hasMany(CompetitionPassage::class)->orderBy('id');
+    }
+
+    /**
+     * الفئات المفتوحة في هذا الإطلاق.
+     *
+     * @return BelongsToMany<CompetitionCategory, $this>
+     */
+    public function openCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(CompetitionCategory::class, 'competition_category_competition', 'competition_id', 'category_id')
+            ->orderBy('sort_order')->orderBy('competition_categories.id');
+    }
+
+    /**
+     * منشئ المسابقة: يدير نتائجها (CompetitionAccess::managesResults)، ويطّلع على أرقام هويات مسجليها كاملة إن مُنح الخيار
+     * (CompetitionPolicy::viewNationalId).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
@@ -74,11 +146,24 @@ class Competition extends Model
     }
 
     /**
+     * بنك المسابقة في نموذجها (الأعمال والاختبار الإلكتروني)، بلا أسئلة مراحل مسابقة الطلاب، فلا يصل بنك المراحل
+     * إلى نموذج المشاركة ولا التصحيح القديم ولا حفظ النموذج.
+     *
      * @return HasMany<CompetitionQuestion, $this>
      */
     public function questions(): HasMany
     {
-        return $this->hasMany(CompetitionQuestion::class)->orderBy('sort_order')->orderBy('id');
+        return $this->hasMany(CompetitionQuestion::class)->whereNull('round_id')->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * بنك مراحل مسابقة الطلاب كلها (QuestionBankRelationManager).
+     *
+     * @return HasMany<CompetitionQuestion, $this>
+     */
+    public function roundQuestions(): HasMany
+    {
+        return $this->hasMany(CompetitionQuestion::class)->whereNotNull('round_id')->orderBy('sort_order')->orderBy('id');
     }
 
     /**
@@ -166,7 +251,24 @@ class Competition extends Model
     public function scheduleLocked(): bool
     {
         // السحب الملغى لا يقفل، فيُصحَّح موعد خاطئ كان سبب الإلغاء
-        return $this->exists && ($this->resultsApproved() || $this->draws()->whereDoesntHave('void')->exists());
+        // وسحب المتساوين في مرحلة من مسابقة الطلاب لا يقفل مواعيد المسابقة (RunTieDraw)
+        return $this->exists && ($this->resultsApproved() || $this->draws()->whereNull('round_id')->whereNull('gender')->whereDoesntHave('void')->exists());
+    }
+
+    /**
+     * نطاق الترتيب وجدول الجوائز يُقفلان متى سُحب في الترتيب التراكمي (ولو أُلغي السحب) أو نُشرت نتائج كل الفروع،
+     * فلا يتغير على أساسه الترتيب ولا حد المراكز بعد إعلانه (مراجعة المشرف على المطوية). ولحظة القفل تُسجَّل
+     * (ranking_locked_at)، فلا تفكه إضافة مرحلة بعد نشر كل الفروع.
+     */
+    public function cumulativeLocked(): bool
+    {
+        if (! $this->exists || ! $this->student_mode) {
+            return false;
+        }
+
+        return $this->ranking_locked_at !== null
+            || $this->draws()->whereNull('round_id')->whereNotNull('gender')->exists()
+            || ($this->rounds()->exists() && $this->rounds()->whereNull('results_published_at')->doesntExist());
     }
 
     /**
@@ -184,11 +286,56 @@ class Competition extends Model
      */
     public function workTypeList(): array
     {
-        if ($this->exam_mode) {
+        if ($this->exam_mode || $this->student_mode) {
             return [];
         }
 
         return array_values(array_filter(array_map(fn ($type): ?WorkType => is_string($type) ? WorkType::tryFrom($type) : null, (array) $this->work_types)));
+    }
+
+    /**
+     * فقرة من نصوص صفحة مسابقة الطلاب (CompetitionPage)، أو null إن لم تُكتب.
+     */
+    public function pageText(string $key): ?string
+    {
+        $value = ((array) $this->page_content)[$key] ?? null;
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
+     * قائمة بنود من نصوص صفحة مسابقة الطلاب (CompetitionPage).
+     *
+     * @return list<string>
+     */
+    public function pageList(string $key): array
+    {
+        return CompetitionPage::items(((array) $this->page_content)[$key] ?? []);
+    }
+
+    public function hasGuide(): bool
+    {
+        return collect(CompetitionPage::GUIDE)->contains(fn (string $key): bool => $this->pageList($key) !== []);
+    }
+
+    /**
+     * جوائز المراكز لكل جنس بترتيبها: المركز من موضعه في الجدول.
+     *
+     * @return list<array{place: int, male: int, female: int}>
+     */
+    public function prizeRows(): array
+    {
+        $prizes = [];
+
+        foreach (array_values((array) $this->prize_table) as $index => $row) {
+            $prizes[] = [
+                'place' => $index + 1,
+                'male' => (int) (is_array($row) ? ($row['male'] ?? 0) : 0),
+                'female' => (int) (is_array($row) ? ($row['female'] ?? 0) : 0),
+            ];
+        }
+
+        return $prizes;
     }
 
     public function getActivitylogOptions(): LogOptions

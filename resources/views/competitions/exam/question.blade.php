@@ -48,7 +48,7 @@
                 <legend class="mb-3 leading-8 font-medium whitespace-pre-line text-ink">{{ $question->prompt }}</legend>
                 @foreach ($options as $option)
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-line px-4 py-3 has-checked:border-primary has-checked:bg-primary-soft">
-                        <input type="radio" name="option" value="{{ $option['key'] }}" class="accent-primary" @checked($current === $option['key'])>
+                        <input type="radio" name="option" value="{{ $submission->optionToken($question->id, $option['key']) }}" class="accent-primary" @checked($current === $option['key'])>
                         <span class="text-ink">{{ $option['label'] }}</span>
                     </label>
                 @endforeach

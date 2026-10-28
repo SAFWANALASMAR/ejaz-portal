@@ -153,7 +153,7 @@ class ExamController extends Controller
     {
         $request->validate([
             'question' => ['required', 'integer'],
-            'option' => ['nullable', 'string', 'max:10'],
+            'option' => ['nullable', 'string', 'max:64'],
             'go' => ['required', 'string', 'max:10'],
         ]);
 

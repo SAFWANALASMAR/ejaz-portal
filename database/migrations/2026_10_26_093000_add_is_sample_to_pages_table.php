@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * وسم «مثال تجريبي» على الصفحة التي كتب فريق البوابة نصها مكان محتوى ناقص من الجمعية (قرار صفوان، 26 أكتوبر 2026):
+ * يظهر الوسم في الصفحة حتى يُطفأ من اللوحة باعتماد نصها.
+ */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('pages', function (Blueprint $table) {
+            $table->boolean('is_sample')->default(false)->after('is_published');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('pages', function (Blueprint $table) {
+            $table->dropColumn('is_sample');
+        });
+    }
+};

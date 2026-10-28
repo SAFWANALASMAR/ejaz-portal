@@ -2,10 +2,12 @@
 
 namespace App\Listeners;
 
+use App\Actions\Accounts\NoticeNewDeviceLogin;
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Actions\Accounts\WarnRepeatedTwoFactorFailures;
 use App\Enums\ActivityEvent;
 use App\Models\User;
+use App\Support\AccountSettings;
 use App\Support\LoginIdentifier;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
@@ -33,9 +35,12 @@ class RecordAuthenticationEvents
             return;
         }
 
+        $loggedInBefore = $event->user->last_login_at !== null;
         $event->user->forceFill(['last_login_at' => now()])->saveQuietly();
 
         $this->log(ActivityEvent::Login, $event->user);
+
+        app(NoticeNewDeviceLogin::class)->handle($event->user, $loggedInBefore);
     }
 
     public function handleFailed(Failed $event): void
@@ -84,7 +89,8 @@ class RecordAuthenticationEvents
     }
 
     /**
-     * رمز توثيق الجوال يُرسل مباشرة بعد التسجيل.
+     * رمز توثيق الجوال يُرسل مباشرة بعد التسجيل متى كان التوثيق مفعّلاً من اللوحة وللحساب جوال («ما ودنا نربطها برقم الجوال
+     * يصير يجيه رابط للتوثيق، خليها فيما بعد» — المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
      */
     public function handleRegistered(Registered $event): void
     {
@@ -93,6 +99,10 @@ class RecordAuthenticationEvents
         }
 
         $this->log(ActivityEvent::Registered, $event->user);
+
+        if (! AccountSettings::verificationEnabled() || $event->user->phone === null) {
+            return;
+        }
 
         try {
             app(SendPhoneVerificationCode::class)->handle($event->user);
