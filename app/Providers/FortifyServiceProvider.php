@@ -219,7 +219,7 @@ class FortifyServiceProvider extends ServiceProvider
             $ip = NetworkPrefix::normalize($request->ip());
             $minutes = (int) config('assistant.per_visitor_minutes');
             $network = $ip === null ? 'unknown' : NetworkPrefix::prefix($ip, NetworkPrefix::isIpv6($ip) ? 48 : 24);
-            $response = fn () => response()->json(['message' => __('assistant.limited'), 'contact_url' => route('contact', [], false)], 429);
+            $response = fn () => response()->json(['message' => __('assistant.limited')], 429);
 
             return [
                 Limit::perMinutes($minutes, (int) config('assistant.per_visitor'))->by('assistant:'.NetworkPrefix::subscriber($ip))->response($response),

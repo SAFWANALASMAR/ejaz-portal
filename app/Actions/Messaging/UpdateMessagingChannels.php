@@ -7,6 +7,7 @@ use App\Enums\SmsProvider;
 use App\Models\MessagingChannel;
 use App\Models\User;
 use App\Rules\PlainText;
+use App\Services\Messaging\MessagingSettings;
 use BackedEnum;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +125,14 @@ class UpdateMessagingChannels
                 $changed[] = $name;
             }
         }
+
+        // الاستعمال يُحفظ إن ضُبط من اللوحة قبلُ أو غيّره المسؤول عن المعمول به، وما لم يُلمس يبقى لمفتاحه في البيئة كما
+        // يقول التلميح، فلا يثبّت أول حفظ قيمة البيئة (مراجعة ما بعد v0.12.0، ملاحظة مهمة ٣)
+        $options['usages'] = array_filter(
+            (array) ($options['usages'] ?? []),
+            fn (bool $on, string $usage): bool => is_bool($model->option('usages.'.$usage)) || $on !== MessagingSettings::usageEnabled($channel, $usage),
+            ARRAY_FILTER_USE_BOTH,
+        );
 
         $model->fill([
             'provider' => self::clean($input['provider'] ?? null),

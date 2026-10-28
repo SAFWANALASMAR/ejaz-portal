@@ -53,14 +53,24 @@ class GenerateStatsAnalysis implements ShouldQueue
     {
         $analysis = StatsAnalysis::query()->find($this->analysisId);
 
-        if ($analysis === null || $analysis->status !== StatsAnalysisStatus::Queued) {
+        // يُحجز عند البدء (updated_at)، ومهلة «تعذّر» تُحسب منه، فلا يعلّمه الأمر المجدول والمزود يكتبه بعد انتظار في
+        // طابور مزدحم، فيُدفع ثمنه ويُرمى. وما تجاوز المهلة قبل البدء لا يُحجز: هو «تعذّر» كما تعدّه الصفحة والأمر
+        // المجدول، فلا يُدفع لطلب تركه صاحبه (مراجعتا الفرع)
+        $claimed = $analysis === null ? 0 : StatsAnalysis::query()->whereKey($this->analysisId)
+            ->where('status', StatsAnalysisStatus::Queued->value)
+            ->where('updated_at', '>=', now()->subMinutes(self::STALE_MINUTES))
+            ->update([]);
+
+        if ($claimed === 0) {
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value]);
+
             return;
         }
 
         $settings = AssistantSettings::current();
 
         if (! RequestStatsAnalysis::available($settings) || ! $budget->allows($settings) || ! $budget->takeSlot()) {
-            $analysis->update(['status' => StatsAnalysisStatus::Failed]);
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value]);
 
             return;
         }
@@ -77,7 +87,7 @@ class GenerateStatsAnalysis implements ShouldQueue
         }
 
         if ($reply === null || AnswerComposer::isNoAnswer($reply->text)) {
-            $analysis->update(['status' => StatsAnalysisStatus::Failed, ...($usage ?? [])]);
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value, ...($usage ?? [])]);
 
             return;
         }
@@ -85,13 +95,25 @@ class GenerateStatsAnalysis implements ShouldQueue
         $cost = $budget->cost($settings, $reply->inputTokens, $reply->outputTokens);
         $budget->record($cost);
 
-        $analysis->update([
-            'status' => StatsAnalysisStatus::Done,
+        $this->finish([
+            'status' => StatsAnalysisStatus::Done->value,
             'report' => AnswerComposer::clean($reply->text),
             'input_tokens' => $reply->inputTokens,
             'output_tokens' => $reply->outputTokens,
             'cost' => $cost,
         ]);
+    }
+
+    /**
+     * تحديث ما دام التقرير في الطابور، ومعه updated_at (يضيفه Eloquent): الحجز عند البدء بلا حقول، والحالة النهائية مرة
+     * واحدة، فلا يكتب العامل فوق «تعذّر» علّمه الأمر المجدول، كما في failed() (مراجعة ما بعد v0.12.0، ملاحظة مهمة ٢).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function finish(array $attributes): int
+    {
+        return StatsAnalysis::query()->whereKey($this->analysisId)->where('status', StatsAnalysisStatus::Queued->value)
+            ->update($attributes);
     }
 
     /**

@@ -7,8 +7,8 @@ use App\Enums\AssistantRating;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Support\Carbon;
 
 /**
@@ -34,7 +34,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['question', 'answer', 'sources', 'mode', 'rating', 'is_flagged', 'flag_note', 'input_tokens', 'output_tokens', 'cost', 'provider', 'model'])]
 class AssistantLog extends Model
 {
-    use HasUuids, Prunable;
+    // حذف بالجملة بلا أحداث لكل سجل، كسجل الرسائل (مراجعة ما بعد v0.12.0)
+    use HasUuids, MassPrunable;
 
     /**
      * @return list<string>
