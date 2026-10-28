@@ -56,7 +56,8 @@ final class StudentResultsSheet
         return response()->streamDownload(function () use ($query, $full, $fields): void {
             $writer = new Writer;
             $writer->openToFile('php://output');
-            $writer->addRow(Row::fromValues([
+            // صف العناوين بـ safeCell أيضاً: فيه تسميات الحقول المخصصة من اللوحة (المراجعة الأمنية لإعادة البند ٦)
+            $writer->addRow(self::row([
                 __('competitions.student.admin.rank'),
                 __('competitions.entry.reference'),
                 __('competitions.student.attributes.full_name'),
