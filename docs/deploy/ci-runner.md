@@ -35,11 +35,7 @@ bash deploy/ci-runner/register.sh     # الحلقة: تبقى تعمل في ن�
 
 - **الإيقاف:** Ctrl+C في نافذة الحلقة، ثم `docker compose -f deploy/ci-runner/compose.yaml stop`. والمهام تنتظر في GitHub حتى تعود.
 - **السجل:** نافذة الحلقة نفسها. و`docker compose -f deploy/ci-runner/compose.yaml ps` يعرض `dind` دائماً، ومعها حاوية المشغّل وقت انتظار مهمة أو تنفيذها.
-- **بعد إعادة تشغيل الجهاز** لا تعود الحلقة وحدها، لأنها على الجهاز لا في Docker (فهي التي تملك بيانات GitHub). فإما تُشغَّل يدوياً، وإما بمهمة مجدولة في ويندوز عند الدخول:
-
-  ```powershell
-  schtasks /create /tn "ejaz-ci-runner" /sc onlogon /rl limited /tr "\"C:\Program Files\Git\bin\bash.exe\" -lc 'cd \"/c/Users/<المستخدم>/Downloads/بوابة-إعجاز/ejaz-portal\" && bash deploy/ci-runner/register.sh'"
-  ```
+- **بعد إعادة تشغيل الجهاز** لا تعود الحلقة وحدها، لأنها على الجهاز لا في Docker (فهي التي تملك بيانات GitHub). **وتُشغَّل يدوياً** بالأمر أعلاه عند الحاجة إلى فحص، بلا مهمة مجدولة في ويندوز (قرار صفوان، 28 أكتوبر 2026): فلا يعمل على الجهاز شيء من سير العمل إلا وصفوان يعلم.
 
 - **المشغّل واحد:** المهام تُنفَّذ واحدة بعد واحدة.
   - كل دفع إلى فرع له طلب دمج يشغّل الفحص مرتين (`push` و`pull_request`).
