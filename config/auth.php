@@ -41,6 +41,9 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // مدة «تذكّرني» بالدقائق: 30 يوماً بدل 400 في لارافيل، ثم يُطلب الدخول من جديد (ASVS 3.3.2، مطابقة
+            // المعايير — 20 أكتوبر 2026). والأدوار الإدارية بلا «تذكّرني» أصلاً (FortifyServiceProvider)
+            'remember' => (int) env('AUTH_REMEMBER_MINUTES', 60 * 24 * 30),
         ],
     ],
 
@@ -63,7 +66,7 @@ return [
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'verified-first', // البريد الموثق أولاً للاستعادة (App\Auth\VerifiedFirstUserProvider)
             'model' => env('AUTH_MODEL', User::class),
         ],
 

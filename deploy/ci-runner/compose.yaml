@@ -1,0 +1,51 @@
+# مشغّل GitHub Actions المحلي على جهاز التطوير (docs/deploy/ci-runner.md، decisions.md — 27 أكتوبر 2026).
+# المشغّل يكلّم خادم Docker خاصاً به (dind) لا مقبس Docker Desktop، ويشاركه شبكته:
+#   - منافذ خدمات الفحص (PostgreSQL وRedis) ومنافذ docker run -p 127.0.0.1:: تُفتح على 127.0.0.1 الذي يراه المشغّل،
+#     ولا تتعارض مع منافذ بيئات التطوير على الجهاز.
+#   - وحاويات الجهاز (التطوير والعرض) خارج متناول ما يشغّله سير العمل.
+name: ejaz-ci-runner
+
+services:
+  dind:
+    image: docker:29.8.2-dind
+    # خادم Docker داخل حاوية يحتاج الامتياز. لمستودع خاص وحده (decisions.md)
+    privileged: true
+    restart: unless-stopped
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    # على شبكة الحاوية المحلية وحدها (127.0.0.1)، والمشغّل يشاركها
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://127.0.0.1:2375"]
+    volumes:
+      - docker-data:/var/lib/docker
+      - work:/ejaz-ci
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # مؤقت: حاوية لكل مهمة من حلقة register.sh (docker compose run --rm)، فلا يشغّله up ولا يعيده Docker وحده
+  runner:
+    build: .
+    image: ejaz-ci-runner:2.338.0
+    profiles: [ephemeral]
+    stdin_open: true
+    network_mode: service:dind
+    depends_on:
+      dind:
+        condition: service_healthy
+    environment:
+      DOCKER_HOST: tcp://127.0.0.1:2375
+      TMPDIR: /ejaz-ci/tmp
+      RUNNER_REPO: SAFWANALASMAR/ejaz-portal
+      RUNNER_NAME: ${RUNNER_NAME:-ejaz-local}
+      # self-hosted وLinux وX64 يضيفها GitHub بنفسه
+      RUNNER_LABELS: ejaz
+    # وتسجيل المشغّل الدائم القديم (state) لا يُركَّب في حاوية مهمة، فلا تقرؤه: يركّبه register.sh remove وحده
+    volumes:
+      - work:/ejaz-ci
+
+volumes:
+  docker-data:
+  work:
+  state:

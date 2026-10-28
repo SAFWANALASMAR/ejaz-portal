@@ -14,7 +14,7 @@ use Filament\Facades\Filament;
 
 /**
  * مصفوفة البوابات الخمس (requirements/12 §12): كل قدرة ومن يملكها، ويُفحص كل دور (عدا المشرف العام)
- * عليها: المسموح له يملكها، وغيره ممنوع. والمشرف العام يملك الكل (Gate::after) فيُفحص منفرداً.
+ * عليها: المسموح له يملكها، وغيره ممنوع. ومديرو النظام (المدير التنفيذي والمسؤول التقني) يملكون الكل فيُفحصون منفردين.
  *
  * القدرة: [العملية، النموذج] لسياسة، أو [الصلاحية] مباشرة، أو 'panel' لدخول اللوحة.
  */
@@ -76,7 +76,8 @@ function portalMatrixCases(): array
 
     foreach (portalMatrix() as $name => [$capability, $allowed]) {
         foreach (RoleName::cases() as $role) {
-            if ($role === RoleName::SuperAdmin) {
+            // مديرو النظام يملكون الكل (Gate::after)، والمشرف العام اطلاع فقط: تُفحص أدوارهم منفردة هنا وفي tests/Feature/Director
+            if (in_array($role, [...RoleName::administrators(), RoleName::SuperAdmin], true)) {
                 continue;
             }
 
@@ -103,13 +104,13 @@ it('gives each role exactly its portal capabilities', function (RoleName $role, 
     expect(portalCan(userWithRole($role), $capability))->toBe($expected);
 })->with(portalMatrixCases());
 
-it('keeps every capability for the super admin', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+it('keeps every capability for the system administrators', function (RoleName $role) {
+    $admin = userWithRole($role);
 
     foreach (portalMatrix() as $name => [$capability]) {
         expect(portalCan($admin, $capability))->toBeTrue($name);
     }
-});
+})->with([RoleName::ExecutiveDirector, RoleName::TechnicalAdmin]);
 
 it('requires two-factor authentication for every new job role, and lets them into the panel', function (RoleName $role) {
     expect(in_array($role, RoleName::twoFactorRoles(), true))->toBeTrue()

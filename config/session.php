@@ -127,9 +127,11 @@ return [
     |
     */
 
+    // وفي الإنتاج بالبادئة __Host-: لا يقبلها المتصفح إلا آمنة على المسار / بلا نطاق، فلا يزرعها نطاق فرعي
+    // (ASVS 3.4.4، مطابقة المعايير — 20 أكتوبر 2026)
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+        (env('APP_ENV') === 'production' ? '__Host-' : '').Str::slug((string) env('APP_NAME', 'laravel')).'-session'
     ),
 
     /*

@@ -34,6 +34,9 @@ class SaveExamAnswer
             throw ValidationException::withMessages(['question' => __('competitions.exam.unknown_question')]);
         }
 
+        // الخيار يصل برمزه في الصفحة (optionToken)، والمفتاح نفسه يُرفض
+        $option = $option === null ? null : ($submission->optionKey($question, $option) ?? '');
+
         if ($option !== null && ! in_array($option, $question->optionKeys(), true)) {
             throw ValidationException::withMessages(['option' => __('validation.in', ['attribute' => __('competitions.entry.answer')])]);
         }

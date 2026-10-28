@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AdminIdleTimeout;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Illuminate\Support\Str;
 
 return [
@@ -83,7 +85,9 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // ومهلة خمول اللوحة وسقفها المطلق، فلا تفتح جلسة الموقع (120 دقيقة) Horizon بعد خمول اللوحة (الاختبار الأمني 0.14.0)
+    // ولا بجلسة بدأت بكعكة «تذكّرني» كاللوحة (EnsureTwoFactorIsEnabled)
+    'middleware' => ['web', AdminIdleTimeout::class, EnsureTwoFactorIsEnabled::class],
 
     /*
     |--------------------------------------------------------------------------

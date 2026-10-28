@@ -22,8 +22,8 @@ function passwordChange(string $current): array
 {
     return [
         'current_password' => $current,
-        'password' => 'brand-new-pass-2026',
-        'password_confirmation' => 'brand-new-pass-2026',
+        'password' => 'Brand-New-Pass-2026',
+        'password_confirmation' => 'Brand-New-Pass-2026',
     ];
 }
 
@@ -63,7 +63,7 @@ it('checks the current password hash once per request, right or wrong', function
     $change = ['name' => 'سارة', 'email' => 'sara.new@example.test', 'phone' => '0512345678'];
     $this->put('/user/profile-information', [...$change, 'current_password' => 'wrong-password'])
         ->assertSessionHasErrorsIn('updateProfileInformation', 'current_password');
-    $this->put('/user/profile-information', [...$change, 'current_password' => 'brand-new-pass-2026'])->assertSessionHasNoErrors();
+    $this->put('/user/profile-information', [...$change, 'current_password' => 'Brand-New-Pass-2026'])->assertSessionHasNoErrors();
 
     expect($this->user->fresh()->email)->toBe('sara.new@example.test');
 });

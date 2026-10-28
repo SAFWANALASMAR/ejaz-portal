@@ -2,23 +2,24 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleName;
 use App\Models\AssistantLog;
 use App\Models\User;
 
 /**
  * سجل محادثات المساعد: الاطلاع وتعليم الإجابة الخاطئة بصلاحية ai_assistant.manage. ولا إنشاء ولا تعديل لنصه ولا
- * حذف يدوي لأحد، ومنهم المشرف العام: يُحذف آلياً بعد مدة الاحتفاظ وحدها.
+ * حذف يدوي لأحد، ومنهم المسؤول التقني، والمشرف العام يطّلع: يُحذف آلياً بعد مدة الاحتفاظ وحدها.
  */
 class AssistantLogPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('ai_assistant.manage');
+        return $user->can('ai_assistant.manage') || RoleName::isOverseer($user);
     }
 
     public function view(User $user, AssistantLog $log): bool
     {
-        return $user->can('ai_assistant.manage');
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

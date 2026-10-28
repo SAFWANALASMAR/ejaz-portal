@@ -136,8 +136,8 @@ class SaveArchiveItem
             throw ValidationException::withMessages(['files' => __('validation.file_in_use')]);
         }
 
-        $size = PrivateUpload::check(ArchiveItem::disk(), ArchiveItem::DIRECTORY, $path, 'files', __('documents.validation.invalid_file'))['size'];
+        $checked = PrivateUpload::check(ArchiveItem::disk(), ArchiveItem::DIRECTORY, $path, 'files', __('documents.validation.invalid_file'));
 
-        return ['path' => $path, 'name' => str_replace(['/', '\\'], '-', $file['name']), 'size' => $size];
+        return ['path' => $path, 'name' => PrivateUpload::downloadName((string) $file['name'], $checked['extension']), 'size' => $checked['size']];
     }
 }

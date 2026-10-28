@@ -4,7 +4,9 @@
 # الشيفرة داخل الصورة، والأسرار من البيئة وقت التشغيل لا وقت البناء.
 
 # ---- الأساس: PHP-FPM 8.4 بإضافات البوابة ----
-FROM php:8.4-fpm-bookworm AS base
+# رقعة مثبّتة لا وسم متحرك: 8.4.27 فأحدث (إصدار 21 أكتوبر 2026 الأمني، docs/security.md «تحديث PHP وnginx»). وكل رقعة
+# أمنية جديدة تُرفع هنا وفي docker/php/Dockerfile، ثم build --pull
+FROM php:8.4.27-fpm-bookworm AS base
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 
@@ -55,7 +57,8 @@ ENTRYPOINT ["ejaz-entrypoint"]
 CMD ["php-fpm", "--nodaemonize"]
 
 # ---- خادم الويب: nginx بالملفات العامة المبنية ----
-FROM nginx:1.27-alpine AS web
+# الفرع المستقر الذي يتلقى الرقع (1.30، و1.27 منتهٍ بلا رقع — docs/security.md «تحديث PHP وnginx»)، ويُبنى بـ --pull
+FROM nginx:1.30-alpine AS web
 # قالب يُكمَل بـ SITE_HOST عند بدء الحاوية (envsubst في صورة nginx الرسمية)
 COPY deploy/docker/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=app /var/www/html/public /var/www/html/public

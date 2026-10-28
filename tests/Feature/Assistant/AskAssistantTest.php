@@ -12,6 +12,7 @@ use App\Models\Page;
 use App\Models\User;
 use App\Notifications\AssistantCapReached;
 use App\Support\Assistant\AnswerComposer;
+use App\Support\Assistant\CurrentPage;
 use App\Support\Assistant\PersonalData;
 use App\Support\Assistant\PromptBuilder;
 use Illuminate\Support\Facades\Cache;
@@ -107,6 +108,16 @@ it('tells the visitor which page they are on, by path only', function () {
     expect($fake->requests[1]['message'])->toContain('<page>'.__('assistant.page_names.contact').' /contact</page>');
 });
 
+// مراجعة ما بعد v0.12.0: مقالة الدليل والسؤال الشائع يشيران إلى الصفحة، فليسا اسمها
+it('names the page by its own content, not by a guide article or a question pointing to it', function () {
+    AssistantGuide::factory()->create(['title' => 'كيف أتواصل مع الجمعية؟', 'steps' => ['افتح صفحة «تواصل معنا».'], 'route_name' => 'contact']);
+    AssistantFaq::factory()->create(['question' => 'ما بريد الجمعية؟', 'source_url' => '/contact']);
+    $page = Page::factory()->create(['slug' => 'visits', 'title' => 'الزيارات']);
+
+    expect(CurrentPage::name('/contact'))->toBe(__('assistant.page_names.contact'))
+        ->and(CurrentPage::name('/pages/visits'))->toBe($page->title);
+});
+
 it('never sends or indexes drafts', function () {
     $fake = enableAssistant();
     manuscriptsPage(['is_published' => false]);
@@ -200,7 +211,8 @@ it('limits each visitor to ten questions in ten minutes', function () {
         ask('سؤال رقم '.$i)->assertOk();
     }
 
-    ask('سؤال آخر')->assertTooManyRequests()->assertJson(['message' => __('assistant.limited'), 'contact_url' => '/contact']);
+    // ولا حقل contact_url: الواجهة لا تستعمله، فرابط التواصل في قالبها (مراجعة ما بعد v0.12.0)
+    ask('سؤال آخر')->assertTooManyRequests()->assertJson(['message' => __('assistant.limited')])->assertJsonMissingPath('contact_url');
 
     // زائر آخر لا يتأثر
     $this->withServerVariables(['REMOTE_ADDR' => '10.9.9.9'])->postJson(route('assistant.ask'), ['question' => 'سؤال'])->assertOk();
@@ -218,7 +230,7 @@ it('stops generating at the monthly cap and alerts the super admin once', functi
     $fake = enableAssistant(['monthly_cap' => 1]);
     manuscriptsPage();
     AssistantGuide::factory()->create(['title' => 'كيف أزور معرض المخطوطات؟']);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     AssistantUsage::add(1.5);
 
     ask('أين المخطوطات؟')->assertOk()->assertJsonPath('mode', AssistantMode::Guide->value);
@@ -303,7 +315,7 @@ it('answers that the assistant is busy when the provider fails', function () {
     $fake->fail = true;
 
     ask('أين المخطوطات؟')->assertOk()
-        ->assertJson(['mode' => AssistantMode::Busy->value, 'answer' => __('assistant.busy'), 'contact' => true, 'contact_url' => '/contact']);
+        ->assertJson(['mode' => AssistantMode::Busy->value, 'answer' => __('assistant.busy'), 'contact' => true])->assertJsonMissingPath('contact_url');
 
     // خطأ غير المهلة (رد بخطأ أو رفض اتصال) لا تكلفة له
     expect(AssistantUsage::monthCost())->toBe(0.0);

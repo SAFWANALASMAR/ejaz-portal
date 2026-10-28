@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Messaging\DeliverMessage;
 use App\Actions\Messaging\HandleWhatsAppWebhook;
 use App\Enums\ActivityEvent;
 use App\Enums\MessageStatus;
@@ -46,6 +47,40 @@ function sentWhatsApp(string $id = 'wamid.1'): MessageLog
 it('answers the subscription check with the right token only', function () {
     $this->get('/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=1158201444')->assertOk()->assertSeeText('1158201444');
     $this->get('/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=1158201444')->assertForbidden();
+});
+
+// مراجعة ما بعد v0.12.0 (محتملة ٥): الإشعار قد يصل والإرسال لم يرجع بعد، فلا يضيع
+it('keeps a status that arrives before its message is recorded, and applies it once the message is recorded', function () {
+    postStatus(statusPayload([['id' => 'wamid.early', 'status' => 'delivered'], ['id' => 'wamid.early', 'status' => 'read']]))->assertOk();
+
+    $log = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000001', 'exam_receipt', fn () => 'wamid.early');
+
+    expect($log->fresh()->status)->toBe(MessageStatus::Read);
+
+    // ويُطبَّق مرة: رسالة أخرى بالمعرّف نفسه لا ترثه، والفشل المبكر برمزه
+    postStatus(statusPayload([['id' => 'wamid.failed', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
+    $failed = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000002', 'exam_receipt', fn () => 'wamid.failed');
+    $again = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000003', 'exam_receipt', fn () => 'wamid.early');
+
+    expect($failed->fresh())->status->toBe(MessageStatus::Failed)->error->toBe('meta:131026')
+        ->and($again->fresh()->status)->toBe(MessageStatus::Sent);
+});
+
+// مراجعتا الفرع: لكل حالة معلّقة مفتاحها، والتحديث شرطي في القاعدة، فلا تكتب «سُلّمت» فوق «فشلت» قرأها غيرها قديمة
+it('applies a failure that arrived early over a later progress, and never writes a progress over a failure stored meanwhile', function () {
+    postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
+    postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'delivered']]))->assertOk();
+
+    expect(app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000004', 'exam_receipt', fn () => 'wamid.race')->fresh())
+        ->status->toBe(MessageStatus::Failed)->error->toBe('meta:131026');
+
+    // «سُلّمت» معلّقة، والسجل في الذاكرة «أُرسلت» وفي القاعدة «فشلت» كتبها إشعار آخر بعد قراءته
+    postStatus(statusPayload([['id' => 'wamid.stale', 'status' => 'delivered']]))->assertOk();
+    $memory = sentWhatsApp('wamid.stale');
+    MessageLog::query()->whereKey($memory->id)->update(['status' => MessageStatus::Failed->value, 'error' => 'meta:1']);
+    HandleWhatsAppWebhook::applyPending($memory);
+
+    expect($memory->fresh())->status->toBe(MessageStatus::Failed)->error->toBe('meta:1');
 });
 
 it('updates delivery status forward only', function () {

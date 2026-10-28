@@ -40,7 +40,7 @@ function adminLivewireCall(mixed $test, string $snapshot, array $metadata, array
 
 it('does not count automatic Livewire polling as admin activity', function () {
     $this->freezeSecond();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $snapshot = adminComponentSnapshot($this);
     $openedAt = now()->getTimestamp();
 
@@ -57,7 +57,7 @@ it('does not count automatic Livewire polling as admin activity', function () {
 
 it('counts a real Livewire action as admin activity', function () {
     $this->freezeSecond();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $snapshot = adminComponentSnapshot($this);
 
     $this->travel(25)->minutes();
@@ -70,7 +70,7 @@ it('counts a real Livewire action as admin activity', function () {
 
 it('logs administrators out at the absolute session limit despite activity', function () {
     $this->freezeSecond();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $this->get('/admin')->assertOk();
 
     // نشاط متواصل كل عشرين دقيقة حتى السقف المطلق
@@ -88,7 +88,7 @@ it('logs administrators out at the absolute session limit despite activity', fun
 });
 
 it('starts the absolute limit at the first admin request of the session', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))
         ->withSession([AdminIdleTimeout::STARTED_KEY => now()->subMinutes((int) config('security.admin_session_max_minutes') + 1)->getTimestamp()])
         ->get('/admin')
         ->assertRedirect(route('login'));

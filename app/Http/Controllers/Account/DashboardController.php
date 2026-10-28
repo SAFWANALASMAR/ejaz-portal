@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Account;
 
 use App\Actions\Accounts\BuildAccountSummary;
+use App\Actions\Accounts\BuildOversight;
 use App\Actions\Accounts\BuildParticipationStats;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -11,13 +12,17 @@ use Illuminate\Http\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats): Response
+    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats, BuildOversight $oversight): Response
     {
         /** @var User $user */
         $user = $request->user();
 
         // بيانات شخصية: لا تُحفظ في ذاكرة متصفح مشترك ولا وسيط
-        return response()->view('account.dashboard', ['user' => $user, 'summary' => $summary->handle($user), 'stats' => $stats->handle($user)])
-            ->header('Cache-Control', 'private, no-store');
+        return response()->view('account.dashboard', [
+            'user' => $user,
+            'summary' => $summary->handle($user),
+            'stats' => $stats->handle($user),
+            'oversight' => $oversight->handle($user),
+        ])->header('Cache-Control', 'private, no-store');
     }
 }

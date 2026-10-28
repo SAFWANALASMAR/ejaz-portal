@@ -71,7 +71,7 @@ it('embeds YouTube only from the privacy-enhanced domain', function () {
 
 // ملاحظات التجربة الشاملة (الخلل 3): أداة رفع الصور في اللوحة ترسم المعاينة في عامل من blob:
 it('lets the admin forms draw image previews in a blob worker, without widening script-src', function (string $path) {
-    $csp = (string) $this->actingAs(userWithRole(RoleName::SuperAdmin))->get($path)->assertOk()
+    $csp = (string) $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get($path)->assertOk()
         ->headers->get('Content-Security-Policy');
 
     expect(cspDirective($csp, 'worker-src'))->toBe("worker-src 'self' blob:")

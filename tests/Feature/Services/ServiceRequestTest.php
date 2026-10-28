@@ -52,6 +52,7 @@ it('lists open published openings of each kind only', function () {
 });
 
 it('asks guests to log in and unverified users to verify their email before applying', function () {
+    enableVerification();
     $this->get('/services/openings/data-analyst/apply')->assertRedirect(route('login'));
 
     $unverified = User::factory()->unverified()->create();

@@ -100,7 +100,7 @@ it('verifies one request at a time for the same user', function () {
 it('warns the super admin at 90 percent of the hourly cap without stopping codes', function () {
     Notification::fake();
     config(['security.sms_per_hour' => 10]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
 
     foreach (range(1, 8) as $ignored) {
         RateLimiter::hit('sms:global', 3600);
@@ -117,7 +117,7 @@ it('warns the super admin at 90 percent of the hourly cap without stopping codes
 it('sends each threshold warning once an hour', function () {
     Notification::fake();
     config(['security.sms_per_hour' => 4]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     RateLimiter::hit('sms:global', 3600);
     RateLimiter::hit('sms:global', 3600);
 

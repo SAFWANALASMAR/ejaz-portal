@@ -57,4 +57,15 @@ final class PrivateUpload
 
         throw ValidationException::withMessages([$field => $invalid]);
     }
+
+    /**
+     * اسم التنزيل: اسم الملف عند صاحبه بلا مسار ولا امتداده، ثم الامتداد من نوعه المفحوص (check)، فلا يُنزَّل ملف باسم
+     * x.html (الاختبار الأمني 0.14.0، كملفات الوظائف).
+     */
+    public static function downloadName(string $original, string $extension): string
+    {
+        $name = (string) preg_replace('/\.[A-Za-z0-9]{1,10}$/', '', str_replace(['/', '\\'], '-', $original));
+
+        return mb_substr($name !== '' ? $name : 'document', 0, 190).'.'.$extension;
+    }
 }

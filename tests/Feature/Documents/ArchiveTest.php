@@ -46,9 +46,9 @@ it('lets the super admin alone set categories and who sees them', function () {
     $data = ['name' => 'المراسلات السرية', 'roles' => ['secretary']];
 
     expect(fn () => app(SaveArchiveCategory::class)->handle($this->secretary, new ArchiveCategory, $data))->toThrow(AuthorizationException::class)
-        ->and(fn () => app(SaveArchiveCategory::class)->handle(userWithRole(RoleName::SuperAdmin), new ArchiveCategory, ['name' => 'تصنيف', 'roles' => ['member']]))->toThrow(ValidationException::class);
+        ->and(fn () => app(SaveArchiveCategory::class)->handle(userWithRole(RoleName::TechnicalAdmin), new ArchiveCategory, ['name' => 'تصنيف', 'roles' => ['member']]))->toThrow(ValidationException::class);
 
-    expect(app(SaveArchiveCategory::class)->handle(userWithRole(RoleName::SuperAdmin), new ArchiveCategory, $data)->roles)->toBe(['secretary']);
+    expect(app(SaveArchiveCategory::class)->handle(userWithRole(RoleName::TechnicalAdmin), new ArchiveCategory, $data)->roles)->toBe(['secretary']);
 });
 
 it('numbers correspondence in sequence per type and year, and documents not at all', function () {
@@ -88,7 +88,7 @@ it('shows items only to roles their category allows, and keeps others from filin
         ->and($board->can('view', $item))->toBeFalse()
         ->and($board->can('viewAny', ArchiveItem::class))->toBeTrue()
         ->and(ArchiveCategory::visibleTo($board)->pluck('id')->all())->toBe([$this->category->id])
-        ->and(userWithRole(RoleName::SuperAdmin)->can('view', $item))->toBeTrue()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('view', $item))->toBeTrue()
         ->and(userWithRole(RoleName::ContentEditor)->can('viewAny', ArchiveItem::class))->toBeFalse();
 
     $boardOnly = ArchiveCategory::factory()->roles(['board_member'])->create();

@@ -10,13 +10,13 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 /**
- * منح الأدوار وسحبها (UserPolicy::assignRoles): المشرف العام كلها، والمدير التنفيذي أدوار الموظفين
- * وحدها (RoleName::assignableBy). ويُسجَّل كل تغيير بالأدوار قبل وبعد (docs/roles-permissions.md).
- * ولا يسحب المشرف العام دوره من نفسه.
+ * منح الأدوار وسحبها (UserPolicy::assignRoles): لمديري النظام (RoleName::assignableBy). ويُسجَّل كل تغيير بالأدوار قبل
+ * وبعد (docs/roles-permissions.md). ولا يسحب مدير النظام دوره الإداري من نفسه، فلا تبقى البوابة بلا من يديرها.
  *
- * منح دور المشرف العام أو سحبه يُبلَّغ به كل من كان مشرفاً عاماً قبل التغيير أو بعده،
+ * منح دور رقابي (المشرف العام أو المدير التنفيذي أو المسؤول التقني) أو سحبه يُبلَّغ به كل من كان منهم قبل التغيير أو بعده،
  * ومنهم من سُحب دوره، فلا يخفى السحب على صاحبه ولو نفّذه حساب مخترَق.
  *
  * ودور عضو الجمعية العمومية لا يُمنح هنا ولا يُسحب: يتبع العضوية في سجل الأعضاء (SaveAssemblyMembership)،
@@ -41,7 +41,7 @@ class ChangeUserRoles
             throw new AuthorizationException;
         }
 
-        $super = RoleName::SuperAdmin->value;
+        $administrators = RoleName::values(RoleName::administrators());
         $assemblyMember = RoleName::AssemblyMember->value;
         $before = $user->getRoleNames()->sort()->values()->all();
         $assignable = RoleName::values(RoleName::assignableBy($actor));
@@ -59,17 +59,26 @@ class ChangeUserRoles
         // ما لا يمنحه المنفّذ ولا يسحبه يبقى كما هو، ومنه عضوية الجمعية العمومية
         $valid = array_values(array_unique([...$valid, ...array_diff($before, $assignable)]));
 
-        if ($actor->is($user) && in_array($super, $before, true) && ! in_array($super, $valid, true)) {
+        if ($actor->is($user) && array_intersect($administrators, $before) !== [] && array_intersect($administrators, $valid) === []) {
             throw new AuthorizationException(__('users.cannot_demote_self'));
         }
 
-        $superChanges = in_array($super, $before, true) !== in_array($super, $valid, true);
-        $recipients = $superChanges ? self::activeSuperAdmins() : new Collection;
+        // كل دور رقابي تغيّر (المشرف العام أو المدير التنفيذي أو المسؤول التقني)، لا أولها وحده (مراجعة المشرف المبكرة، ١٠)
+        $watched = array_values(array_filter(RoleName::values(RoleName::overseers()),
+            fn (string $role): bool => in_array($role, $before, true) !== in_array($role, $valid, true)));
+        $recipients = $watched !== [] ? self::activeOverseers() : new Collection;
 
         DB::transaction(function () use ($actor, $user, $valid, $before): void {
             $user->syncRoles($valid);
 
             $after = $user->getRoleNames()->sort()->values()->all();
+
+            self::voidRememberOnPanelGrant($user, $before, $after);
+
+            // المشرف العام اطلاع فقط، فيُسحب منه تصدير رقم الهوية الممنوح مباشرة قبل دوره (مراجعة المشرف)
+            if (in_array(RoleName::SuperAdmin->value, $after, true) && ! RoleName::isAdministrator($user)) {
+                ChangeNationalIdExport::drop($actor, $user, 'super_admin');
+            }
 
             if ($before !== $after) {
                 activity('users')
@@ -83,19 +92,51 @@ class ChangeUserRoles
 
         // الطابور ينتظر اعتماد المعاملة (after_commit في config/queue.php)، ولو استُدعي
         // الإجراء داخل معاملة أكبر كإنشاء حساب موظف
-        if ($superChanges) {
-            Notification::send(
-                $recipients->merge(self::activeSuperAdmins()),
-                new SuperAdminRoleChanged($user, granted: in_array($super, $valid, true), by: $actor),
-            );
+        self::notifyOverseers($recipients, $user, $watched, $valid, $actor);
+    }
+
+    /**
+     * يُبلَّغ مَن كان رقيباً قبل التغيير ومن صار بعده، بتنبيه لكل دور تغيّر. والمنفّذ null لأمر الطرفية (ejaz:create-admin).
+     *
+     * @param  Collection<int, User>  $before
+     * @param  list<string>  $watched
+     * @param  list<string>  $after
+     */
+    public static function notifyOverseers(Collection $before, User $user, array $watched, array $after, ?User $actor): void
+    {
+        if ($watched === []) {
+            return;
         }
+
+        $recipients = $before->merge(self::activeOverseers())->unique('id');
+
+        foreach ($watched as $role) {
+            Notification::send($recipients, new SuperAdminRoleChanged($user, granted: in_array($role, $after, true), by: $actor, role: RoleName::from($role)));
+        }
+    }
+
+    /**
+     * دور جديد في اللوحة يُبطل كعكة «تذكّرني» القائمة: صدرت قبل الترقية، ولا «تذكّرني» للأدوار الإدارية، فكانت تفتح
+     * اللوحة بلا كلمة مرور ولا تحقق ثنائي (الاختبار الأمني 0.14.0). ومنه أمر ejaz:create-admin لحساب قائم.
+     *
+     * @param  list<string>  $before
+     * @param  list<string>  $after
+     */
+    public static function voidRememberOnPanelGrant(User $user, array $before, array $after): void
+    {
+        if (array_diff(array_intersect($after, RoleName::values(RoleName::panelRoles())), $before) === []) {
+            return;
+        }
+
+        $user->setRememberToken(Str::random(60));
+        $user->saveQuietly();
     }
 
     /**
      * @return Collection<int, User>
      */
-    private static function activeSuperAdmins(): Collection
+    public static function activeOverseers(): Collection
     {
-        return User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get();
+        return User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get();
     }
 }

@@ -25,6 +25,8 @@ enum ActivityEvent: string implements HasLabel
     case TwoFactorRotationRefused = 'two_factor_rotation_refused';
     case Logout = 'logout';
     case PasswordReset = 'password_reset';
+    case PasswordSetByAdmin = 'password_set_by_admin';
+    case OtherSessionsEnded = 'other_sessions_ended';
     case Registered = 'registered';
     case AdminCreated = 'admin_created';
     case DataExported = 'data_exported';
@@ -32,6 +34,8 @@ enum ActivityEvent: string implements HasLabel
     // المستخدمون
     case InvitationSent = 'invitation_sent';
     case RolesChanged = 'roles_changed';
+    case NationalIdExportGranted = 'national_id_export_granted';
+    case NationalIdExportRevoked = 'national_id_export_revoked';
     case PersonalDataChanged = 'personal_data_changed';
     case Anonymized = 'anonymized';
 
@@ -50,6 +54,15 @@ enum ActivityEvent: string implements HasLabel
     case SubmissionsDistributed = 'submissions_distributed';
     case SubmissionsExported = 'submissions_exported';
     case PersonalDataPurged = 'personal_data_purged';
+    // مسابقة الطلاب (docs/plans/student-competition.md)
+    case RoundResultsPublished = 'round_results_published';
+    case TieDrawExecuted = 'tie_draw_executed';
+    case AttemptsQualified = 'attempts_qualified';
+    case CertificatesIssued = 'certificates_issued';
+    case NationalIdViewed = 'national_id_viewed';
+    case ResultsExported = 'competition_results_exported';
+    case NationalIdExportDenied = 'national_id_export_denied';
+    case RegistrationCorrected = 'registration_corrected';
 
     // قياس الرضا
     case SurveyResultsExported = 'survey_results_exported';

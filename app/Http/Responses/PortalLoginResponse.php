@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Enums\RoleName;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * مدخل كل بوابة بعد الدخول (requirements/12 §12): من يدخل لوحة الإدارة (الموظفون والمجلس والمحكّمون)
- * إلى /admin، والمشترك إلى لوحته (/account). والرابط المقصود قبل الدخول مقدَّم على الاثنين.
+ * إلى /admin، والمشترك إلى لوحته (/account). والمشرف العام إلى لوحته في حسابه، وفيها رابط لوحة الإدارة وإحصائياته
+ * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). والرابط المقصود قبل الدخول مقدَّم على الجميع.
  */
 class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
 {
@@ -28,7 +30,7 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         }
 
         $user = $request->user();
-        $home = $user instanceof User && $user->canAccessPanel(Filament::getPanel('admin'))
+        $home = $user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
             ? url(Filament::getPanel('admin')->getPath())
             : Fortify::redirects('login');
 

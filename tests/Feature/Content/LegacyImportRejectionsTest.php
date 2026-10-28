@@ -27,7 +27,7 @@ beforeEach(function () {
     File::put($this->dir.'/export/files/ok.png', imageBytes('png', 4, 4));
     File::put($this->dir.'/outside.png', imageBytes('png', 4, 4));
 
-    $this->admin = userWithRole(RoleName::SuperAdmin);
+    $this->admin = userWithRole(RoleName::TechnicalAdmin);
 });
 
 afterEach(fn () => File::deleteDirectory($this->dir));

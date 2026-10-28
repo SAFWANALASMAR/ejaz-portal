@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Content\RecordMenuReorder;
+use App\Auth\VerifiedFirstUserProvider;
 use App\Contracts\AiAssistant;
 use App\Contracts\BotChallenge;
 use App\Contracts\OnlineMeetings;
@@ -14,6 +15,7 @@ use App\Contracts\WhatsAppNotifier;
 use App\Enums\OnlineMeetingFailure;
 use App\Enums\RoleName;
 use App\Exceptions\OnlineMeetingFailed;
+use App\Listeners\SendVerificationWhenRequired;
 use App\Models\AssistantSettings;
 use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
@@ -35,17 +37,21 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\ChunkedVideoUpload;
+use App\Support\PasswordPolicy;
+use App\Support\ReadOnlyAccess;
 use App\Support\SpaLink;
 use App\Support\TeamsConnection;
 use App\Support\UploadLimits;
 use App\View\Composers\SiteChromeComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -76,6 +82,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(RecordMenuReorder::class);
+
+        // رسالة التوثيق بعد التسجيل تتبع مفتاحه في اللوحة (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+        $this->app->bind(SendEmailVerificationNotification::class, SendVerificationWhenRequired::class);
 
         // التكاملات الخارجية خلف واجهات، ويُختار التطبيق من الإعدادات (docs/architecture.md)
         // الرسائل النصية وواتساب: المزود يُختار عند كل إرسال من «قنوات التواصل» في اللوحة، وإلا من .env
@@ -153,13 +162,13 @@ class AppServiceProvider extends ServiceProvider
         // يكشف التحميل الكسول (N+1) والحقول غير المعرّفة أثناء التطوير
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        // المشغّل الوهمي للدفع يُرفض عند الإقلاع في الإنتاج، لا عند أول تبرع
-        if ($this->app->isProduction() && config('payments.driver') === 'fake') {
-            throw new RuntimeException('PAYMENT_DRIVER=fake must not be used in production; set moyasar.');
-        }
+        // البريد الموثق أولاً لوسيط الاستعادة (VerifiedFirstUserProvider)
+        Auth::provider('verified-first', fn ($app, array $config): VerifiedFirstUserProvider => new VerifiedFirstUserProvider($app['hash'], $config['model']));
 
-        // قواعد كلمة المرور في docs/security.md
-        Password::defaults(fn () => Password::min(10)->uncompromised());
+        $this->guardPaymentDriver();
+
+        // قواعد كلمة المرور في docs/security.md، وتعريفها في PasswordPolicy (قرار صفوان، 20 أكتوبر 2026)
+        Password::defaults(fn () => PasswordPolicy::defaults());
 
         // الروابط المطلقة (asset وroute وurl) من APP_URL لا من رأس Host في الطلب، فلا يُسمَّم
         // ما يُخزَّن من HTML (ContentCache) بنطاق آخر. ويرفض trustHosts المضيف المجهول في الإنتاج
@@ -188,9 +197,19 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
-        // المشرف العام يملك كل ما لم تمنعه سياسة صراحة. Gate::after لا يغيّر نتيجة صريحة
-        // (false أو Response::deny من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس
-        Gate::after(fn (User $user, string $ability, mixed $result): ?bool => $result === null && $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
+        // مديرو النظام (المدير التنفيذي والمسؤول التقني) يملكون كل ما لم تمنعه سياسة صراحة، والمشرف العام الاطلاع منه وحده
+        // (ReadOnlyAccess — المدير التنفيذي عبر صفوان، 25 أكتوبر 2026). Gate::after لا يغيّر نتيجة صريحة (false أو
+        // Response::deny من سياسة)، فتسري قواعد مثل: لا تعديل لسجل العمليات، ولا حذف للنفس
+        Gate::after(function (User $user, string $ability, mixed $result): ?bool {
+            if ($result !== null) {
+                return null;
+            }
+
+            return RoleName::isAdministrator($user)
+                || ($user->hasRole(RoleName::SuperAdmin->value) && ReadOnlyAccess::allows($ability))
+                ? true
+                : null;
+        });
 
         // نموذج سجل العمليات من مكتبة خارجية، فتُسجَّل سياسته صراحة
         Gate::policy(Activity::class, ActivityPolicy::class);
@@ -246,5 +265,28 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $adapter;
+    }
+
+    /**
+     * الدفع في الإنتاج متى فُعّل: قائمة سماح لا قائمة منع، فيُرفض عند الإقلاع لا عند أول تبرع كل مشغّل غير moyasar
+     * (fake أو قيمة خاطئة)، وكل مفتاح سري فارغ. والدفع مؤرشف خلف PAYMENTS_ENABLED=false (مساراته 404، وصفحة الدفع
+     * الوهمية للمحلي والاختبار وحدهما)، فلا يُفحص حينها، وإلا تعطّل بناء صورة الإنتاج (package:discover بلا .env)
+     * والموقع كله بقالب .env.production.example.
+     */
+    protected function guardPaymentDriver(): void
+    {
+        if (! $this->app->isProduction() || ! config('payments.enabled')) {
+            return;
+        }
+
+        if (config('payments.driver') !== 'moyasar') {
+            throw new RuntimeException('PAYMENT_DRIVER must be moyasar in production while payments are enabled.');
+        }
+
+        foreach (['payments.moyasar.secret_key' => 'MOYASAR_SECRET_KEY', 'payments.webhook_secret' => 'PAYMENT_WEBHOOK_SECRET'] as $key => $variable) {
+            if (trim((string) config($key)) === '') {
+                throw new RuntimeException($variable.' must be set in production while payments are enabled.');
+            }
+        }
     }
 }

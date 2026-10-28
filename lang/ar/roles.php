@@ -3,6 +3,7 @@
 return [
 
     'super_admin' => 'المشرف العام',
+    'technical_admin' => 'المسؤول التقني',
     'board_member' => 'عضو مجلس الإدارة',
     'secretary' => 'السكرتير',
     'content_editor' => 'محرر المحتوى',

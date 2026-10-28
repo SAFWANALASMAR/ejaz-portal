@@ -105,7 +105,7 @@ it('opens the media library to the editor only, and never offers deletion', func
     }
 
     expect($this->editor->can('delete', $asset))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $asset))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $asset))->toBeFalse();
 });
 
 it('lets the editor complete the alt text from the panel, logged, and clears it for a decorative image', function () {

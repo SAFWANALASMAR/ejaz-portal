@@ -2,7 +2,6 @@
 
 use App\Models\LibraryItem;
 use App\Models\Page;
-use App\Models\Setting;
 use App\Support\LegacyPaths;
 use Illuminate\Support\Facades\Storage;
 
@@ -10,6 +9,10 @@ use Illuminate\Support\Facades\Storage;
 | ما يلزم لإطلاق الموقع بدل السابق (docs/launch-plan.md): الوصف والأيقونة المفضلة والرابط المعتمد
 | وصفحة 404، وروابط ووردبريس القديمة، وصفحات المقدمة، ومقطع الرئيسية.
 */
+
+beforeEach(function () {
+    showLegacyHomeSections();
+});
 
 it('describes every page by default with the approved short description, with a canonical link and the favicons', function () {
     $html = (string) $this->get('/contact')->assertOk()->getContent();
@@ -107,13 +110,13 @@ it('shows the image alt text of a block, and an empty one for a decorative image
 
 it('embeds the home video from the settings, and the hero image with its alt text', function () {
     Storage::fake('public');
-    Setting::put('home', ['video_url' => 'https://youtube.com/watch?v=WaSvMAl4zPw', 'hero_image' => 'settings/hero.webp', 'hero_image_alt' => 'قاعة']);
+    showLegacyHomeSections(['video_url' => 'https://youtube.com/watch?v=WaSvMAl4zPw', 'hero_image' => 'settings/hero.webp', 'hero_image_alt' => 'قاعة']);
 
     $this->get('/')->assertOk()
         ->assertSee('youtube-nocookie.com/embed/WaSvMAl4zPw', false)
         ->assertSee('settings/hero.webp" alt="قاعة"', false);
 
-    Setting::put('home', ['video_url' => 'https://evil.example/watch?v=WaSvMAl4zPw']);
+    showLegacyHomeSections(['video_url' => 'https://evil.example/watch?v=WaSvMAl4zPw']);
 
     $this->get('/')->assertOk()->assertDontSee('WaSvMAl4zPw');
 });

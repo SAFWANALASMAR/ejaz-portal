@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\RateLimiter;
  * حدود الإنفاق على المزود (requirements/10)، مشتركة بين كل ما يرسل إليه. التكلفة تقديرية من عدد الوحدات وسعرها في
  * الإعدادات، وتُجمع في AssistantUsage لا في السجل (فحذفه بمدة الاحتفاظ لا يُنقصها). وبلا سقف أو بلا سعر لا يُرسل شيء.
  *
- * - **السقف الشهري:** عند بلوغه يتوقف التوليد حتى الشهر التالي (أو رفع السقف)، ويُنبَّه المشرف العام مرة في الشهر.
+ * - **السقف الشهري:** عند بلوغه يتوقف التوليد حتى الشهر التالي (أو رفع السقف)، ويُنبَّه المشرف العام والمسؤول التقني مرة في الشهر.
  * - **حصة اليوم** من السقف الشهري (config/assistant.php)، فلا يُستنزف الشهر في يوم واحد.
  * - **حد عام للطلبات في الدقيقة** من البوابة كلها، فوق حد كل زائر وشبكته.
  * (المراجعة الأمنية، م1 وم3)
@@ -100,7 +100,7 @@ class CheckAssistantBudget
         Log::warning('AI assistant reached its monthly cost cap.', ['spent' => $spent, 'cap' => $cap]);
 
         Notification::send(
-            User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+            User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
             new AssistantCapReached($spent, $cap),
         );
     }

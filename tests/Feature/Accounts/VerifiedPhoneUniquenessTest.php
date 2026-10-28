@@ -14,6 +14,7 @@ use Tests\Fakes\FakeSmsGateway;
 */
 
 beforeEach(function () {
+    enableVerification();
     $this->sms = FakeSmsGateway::swap();
     Notification::fake();
 });
@@ -29,9 +30,9 @@ function registerWithPhone(string $email): TestResponse
         'name' => 'عبدالله محمد',
         'email' => $email,
         'phone' => '0512345678',
-        'password' => 'long-enough-pass-2026',
-        'password_confirmation' => 'long-enough-pass-2026',
-        'privacy' => '1',
+        'password' => 'Long-Enough-Pass-2026',
+        'password_confirmation' => 'Long-Enough-Pass-2026',
+        'username' => uniqueUsername(), 'privacy' => '1',
     ]);
 }
 
@@ -55,7 +56,8 @@ it('lets the owner register a number that an unverified account holds', function
 it('still rejects a number that a verified account holds', function () {
     squatter(['phone_verified_at' => now()]);
 
-    registerWithPhone('owner@example.test')->assertSessionHasErrors('phone');
+    // برسالة عامة على البريد، فلا يُعرف أن الرقم يخص حساباً (CreateNewUser — 20 أكتوبر 2026)
+    registerWithPhone('owner@example.test')->assertSessionHasErrors(['email' => __('account.register.unavailable')])->assertSessionDoesntHaveErrors('phone');
 
     expect(User::where('email', 'owner@example.test')->exists())->toBeFalse();
 });

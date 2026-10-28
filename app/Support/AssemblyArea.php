@@ -34,6 +34,7 @@ final class AssemblyArea
      */
     private static function boardRoles(): array
     {
-        return [RoleName::BoardMember->value, RoleName::Secretary->value, RoleName::SuperAdmin->value];
+        // والمشرف العام ومديرو النظام (RoleName::overseers — 25 أكتوبر 2026)
+        return [RoleName::BoardMember->value, RoleName::Secretary->value, ...RoleName::values(RoleName::overseers())];
     }
 }

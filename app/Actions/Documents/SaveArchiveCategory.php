@@ -30,7 +30,7 @@ class SaveArchiveCategory
             throw new AuthorizationException;
         }
 
-        $roles = array_map(fn (RoleName $role): string => $role->value, array_filter(RoleName::panelRoles(), fn (RoleName $role): bool => $role !== RoleName::SuperAdmin));
+        $roles = array_map(fn (RoleName $role): string => $role->value, array_filter(RoleName::panelRoles(), fn (RoleName $role): bool => ! in_array($role, RoleName::overseers(), true)));
 
         $validated = Validator::make($data, [
             'name' => ['required', 'string', 'max:150', Rule::unique('archive_categories', 'name')->ignore($category->id)],

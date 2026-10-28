@@ -11,7 +11,9 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum RoleName: string implements HasLabel
 {
+    // المشرف العام اطلاع فقط، والمسؤول التقني يملك ما كان للمشرف العام (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026)
     case SuperAdmin = 'super_admin';
+    case TechnicalAdmin = 'technical_admin';
     case BoardMember = 'board_member';
     case Secretary = 'secretary';
     case ContentEditor = 'content_editor';
@@ -41,6 +43,7 @@ enum RoleName: string implements HasLabel
     {
         return [
             self::SuperAdmin,
+            self::TechnicalAdmin,
             self::BoardMember,
             self::Secretary,
             self::ContentEditor,
@@ -82,24 +85,49 @@ enum RoleName: string implements HasLabel
     }
 
     /**
+     * مديرو النظام: يملكون الإضافة والتعديل والحذف في كل شيء، والإعدادات التقنية، ومنح الأدوار. المدير التنفيذي «أدمن
+     * كامل»، والمسؤول التقني (المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
+     *
+     * @return list<self>
+     */
+    public static function administrators(): array
+    {
+        return [self::ExecutiveDirector, self::TechnicalAdmin];
+    }
+
+    public static function isAdministrator(User $user): bool
+    {
+        return $user->hasAnyRole(self::values(self::administrators()));
+    }
+
+    /**
+     * من يطّلع على كل شيء في اللوحة بلا قيد جهة أو تصنيف، ويصله كل تنبيه أمني وتشغيلي: المشرف العام (اطلاعاً) ومديرو
+     * النظام.
+     *
+     * @return list<self>
+     */
+    public static function overseers(): array
+    {
+        return [self::SuperAdmin, ...self::administrators()];
+    }
+
+    public static function isOverseer(User $user): bool
+    {
+        return $user->hasAnyRole(self::values(self::overseers()));
+    }
+
+    /**
      * الأدوار التي يمنحها الحساب ويسحبها (ChangeUserRoles). قاعدة في الشيفرة لا في ملف الصلاحيات:
-     * - المشرف العام: كل الأدوار عدا عضو الجمعية العمومية (من سجل الأعضاء وحده).
-     * - المدير التنفيذي («إدارة الموظفين»): الوظائف الأربع (المدير المالي، والمحاسب، ومدير المشاريع،
-     *   ومدير التسويق) والمستفيد، وكلها صلاحياتها ضمن صلاحياته فلا يكسب بها ما لا يملك. فلا يمنح المشرف
-     *   العام ولا عضو المجلس ولا المدير التنفيذي ولا المحكّم، ولا السكرتير ولا محرر المحتوى ولا مسؤول
-     *   البرامج (فيها صلاحيات خارج صلاحياته: الطلبات والإعدادات والاستبيانات).
-     * - غيرهما: لا شيء.
+     * - مديرو النظام (المدير التنفيذي والمسؤول التقني): كل الأدوار عدا عضو الجمعية العمومية (من سجل الأعضاء وحده).
+     * - المشرف العام: لا شيء، فهو اطلاع فقط.
+     * - غيرهم: لا شيء.
      *
      * @return list<self>
      */
     public static function assignableBy(User $actor): array
     {
-        if ($actor->hasRole(self::SuperAdmin->value)) {
+        if (self::isAdministrator($actor)) {
             return array_values(array_filter(self::cases(), fn (self $role): bool => $role !== self::AssemblyMember));
-        }
-
-        if ($actor->hasRole(self::ExecutiveDirector->value)) {
-            return [self::FinancialManager, self::Accountant, self::ProjectsManager, self::MarketingManager, self::Member];
         }
 
         return [];

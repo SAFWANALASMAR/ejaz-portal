@@ -34,8 +34,8 @@ beforeEach(function () {
     $this->competition = Competition::factory()->closed()->create();
     $this->manager = userWithRole(RoleName::ProgramManager);
     CompetitionSubmission::factory()->submitted()->count(4)->create(['competition_id' => $this->competition->id]);
-    $this->adminA = userWithRole(RoleName::SuperAdmin);
-    $this->adminB = userWithRole(RoleName::SuperAdmin);
+    $this->adminA = userWithRole(RoleName::TechnicalAdmin);
+    $this->adminB = userWithRole(RoleName::TechnicalAdmin);
     $this->reason = 'خطأ في قائمة المشاركات قبل السحب';
 });
 

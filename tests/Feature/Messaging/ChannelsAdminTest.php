@@ -19,12 +19,12 @@ use Spatie\Activitylog\Models\Activity;
 
 const CHANNELS_TEST_KEY = 'taq-secret-key-9f8e7d';
 
-it('opens the channels page to the super admin only', function (RoleName $role) {
+it('opens the channels page to the administrators only', function (RoleName $role) {
     $this->actingAs(userWithRole($role))->get(MessagingChannels::getUrl())->assertForbidden();
-})->with([RoleName::ContentEditor, RoleName::BoardMember, RoleName::Secretary, RoleName::ExecutiveDirector, RoleName::ProgramManager]);
+})->with([RoleName::ContentEditor, RoleName::BoardMember, RoleName::Secretary, RoleName::ProgramManager]);
 
 it('shows the page to the super admin', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(MessagingChannels::getUrl())
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(MessagingChannels::getUrl())
         ->assertOk()
         ->assertSee(__('messaging.title'))
         ->assertSee(route('messaging.whatsapp.webhook'));
@@ -39,7 +39,7 @@ it('refuses saving and test messages for anyone without the permission', functio
 });
 
 it('saves the provider with an encrypted key that never shows or logs', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $this->actingAs($admin);
 
     Livewire::test(MessagingChannels::class)
@@ -59,8 +59,36 @@ it('saves the provider with an encrypted key that never shows or logs', function
     $this->get(MessagingChannels::getUrl())->assertOk()->assertDontSee(CHANNELS_TEST_KEY)->assertSee(__('messaging.fields.secret_stored'));
 });
 
+// مراجعة ما بعد v0.12.0 (مهمة ٣): أول حفظ لا يثبّت قيمة البيئة لاستعمال لم يلمسه المسؤول
+it('leaves an untouched use to its server key, and keeps a use the admin changed', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $action = app(UpdateMessagingChannels::class);
+    config(['services.sms.request_updates' => true, 'competitions.exam.whatsapp' => false]);
+
+    $action->handle($admin, [
+        'sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'usages' => ['request_updates' => true]],
+        'whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]],
+    ]);
+
+    expect(MessagingChannel::for('sms')->option('usages'))->toBe([])
+        ->and(MessagingChannel::for('whatsapp')->option('usages'))->toBe([]);
+
+    config(['services.sms.request_updates' => false, 'competitions.exam.whatsapp' => true]);
+    expect(MessagingSettings::usageEnabled('sms', 'request_updates'))->toBeFalse()
+        ->and(MessagingSettings::usageEnabled('whatsapp', 'exam_receipt'))->toBeTrue();
+
+    // والمسؤول يطفئ ما في البيئة مشغّلاً: يُحفظ، ويبقى محفوظاً ولو وافق البيئة بعدها
+    $action->handle($admin, ['whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]]]);
+    config(['competitions.exam.whatsapp' => false]);
+    $action->handle($admin, ['whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]]]);
+    config(['competitions.exam.whatsapp' => true]);
+
+    expect(MessagingChannel::for('whatsapp')->option('usages'))->toBe(['exam_receipt' => false])
+        ->and(MessagingSettings::usageEnabled('whatsapp', 'exam_receipt'))->toBeFalse();
+});
+
 it('keeps a stored key when the field is left empty, and clears it on request', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $action = app(UpdateMessagingChannels::class);
 
     $action->handle($admin, ['sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'api_key' => CHANNELS_TEST_KEY]]);
@@ -77,7 +105,7 @@ it('keeps a stored key when the field is left empty, and clears it on request', 
 
 it('validates channel settings', function (array $data, string $field) {
     try {
-        app(UpdateMessagingChannels::class)->handle(userWithRole(RoleName::SuperAdmin), $data);
+        app(UpdateMessagingChannels::class)->handle(userWithRole(RoleName::TechnicalAdmin), $data);
     } catch (ValidationException $exception) {
         expect($exception->errors())->toHaveKey($field);
 
@@ -96,7 +124,7 @@ it('validates channel settings', function (array $data, string $field) {
 ]);
 
 it('sends a test SMS to the number the admin enters', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(UpdateMessagingChannels::class)->handle($admin, ['sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'api_key' => CHANNELS_TEST_KEY]]);
     Http::fake(['api.taqnyat.sa/*' => Http::response(['messageId' => 42], 201)]);
 
@@ -111,7 +139,7 @@ it('sends a test SMS to the number the admin enters', function () {
 });
 
 it('shows a provider failure from the test message without the key', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(UpdateMessagingChannels::class)->handle($admin, ['sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'api_key' => CHANNELS_TEST_KEY]]);
     Http::fake(['api.taqnyat.sa/*' => Http::response(['message' => 'invalid credentials information'], 401)]);
 
@@ -121,7 +149,7 @@ it('shows a provider failure from the test message without the key', function ()
 });
 
 it('sends a WhatsApp test with the named template', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     config(['services.whatsapp.driver' => 'log']);
     app(UpdateMessagingChannels::class)->handle($admin, ['whatsapp' => ['provider' => 'cloud', 'phone_number_id' => '1234567890', 'access_token' => 'wa-token']]);
     Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.T']]])]);
@@ -134,7 +162,7 @@ it('sends a WhatsApp test with the named template', function () {
 
 it('validates the test number and limits test messages per admin', function () {
     config(['messaging.tests_per_hour' => 2]);
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $send = app(SendTestMessage::class);
 
     expect(fn () => $send->handle($admin, 'sms', ['phone' => '0500000555']))->toThrow(ValidationException::class)
@@ -148,7 +176,7 @@ it('validates the test number and limits test messages per admin', function () {
 
 it('warns the admin in production when SMS has no provider', function () {
     app()->detectEnvironment(fn () => 'production');
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(MessagingChannels::class)->assertSee(__('messaging.not_ready.heading'));
 
@@ -159,7 +187,7 @@ it('warns the admin in production when SMS has no provider', function () {
 
 it('lists recent messages without their text', function () {
     MessageLog::query()->create(['channel' => 'sms', 'provider' => 'taqnyat', 'usage' => 'otp', 'phone_hint' => '***4321', 'status' => MessageStatus::Failed, 'error' => 'http_401']);
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(MessagingChannels::class)->assertSee('***4321')->assertSee('http_401')->assertSee(__('messaging.usages.labels.otp'));
 });
@@ -168,16 +196,16 @@ it('sends test messages to Saudi mobile numbers only, within a daily cap for eve
     config(['messaging.tests_per_day' => 1]);
     $send = app(SendTestMessage::class);
 
-    expect(fn () => $send->handle(userWithRole(RoleName::SuperAdmin), 'sms', ['phone' => '+447700900123']))->toThrow(ValidationException::class)
-        ->and(fn () => $send->handle(userWithRole(RoleName::SuperAdmin), 'sms', ['phone' => "+966500000555\n"]))->toThrow(ValidationException::class);
+    expect(fn () => $send->handle(userWithRole(RoleName::TechnicalAdmin), 'sms', ['phone' => '+447700900123']))->toThrow(ValidationException::class)
+        ->and(fn () => $send->handle(userWithRole(RoleName::TechnicalAdmin), 'sms', ['phone' => "+966500000555\n"]))->toThrow(ValidationException::class);
 
-    $send->handle(userWithRole(RoleName::SuperAdmin), 'sms', ['phone' => '+966500000555']);
+    $send->handle(userWithRole(RoleName::TechnicalAdmin), 'sms', ['phone' => '+966500000555']);
 
-    expect(fn () => $send->handle(userWithRole(RoleName::SuperAdmin), 'sms', ['phone' => '+966500000555']))->toThrow(ValidationException::class);
+    expect(fn () => $send->handle(userWithRole(RoleName::TechnicalAdmin), 'sms', ['phone' => '+966500000555']))->toThrow(ValidationException::class);
 });
 
 it('does not keep a typed key in the page state when saving is refused', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(MessagingChannels::class)
         ->fillForm(['sms.provider' => 'taqnyat', 'sms.sender' => '<b>', 'sms.api_key' => CHANNELS_TEST_KEY])
@@ -189,7 +217,7 @@ it('does not keep a typed key in the page state when saving is refused', functio
 });
 
 it('treats keys that can no longer be decrypted as not configured, and lets the admin replace them', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     app(UpdateMessagingChannels::class)->handle($admin, ['sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'api_key' => CHANNELS_TEST_KEY]]);
     DB::table('messaging_channels')->update(['secrets' => 'not-decryptable']);
 
@@ -203,7 +231,7 @@ it('treats keys that can no longer be decrypted as not configured, and lets the 
 });
 
 it('clears a typed key when the form fields themselves are refused', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(MessagingChannels::class)
         ->fillForm(['sms.provider' => 'taqnyat', 'sms.sender' => str_repeat('A', 25), 'sms.api_key' => CHANNELS_TEST_KEY])

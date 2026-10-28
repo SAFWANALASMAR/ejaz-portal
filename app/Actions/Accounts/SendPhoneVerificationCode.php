@@ -27,13 +27,22 @@ use Illuminate\Validation\ValidationException;
  *   السابق فيه، والتحقق الناجح يحرر مكانه، فلا تتضرر الشبكات المشتركة. وكل رسالة
  *   مرسلة، بلا استبدال ولا تحرير، فلا تضاعف إعادةُ الإرسال حدَّ الشبكة.
  *   IPv4: الشبكة /24. وIPv6: المشترك /64 بحد صارم، والموقع /48.
- * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام عند 70% و90% قبل التوقف.
+ * - للبوابة كلها: سقف في الساعة، مع تنبيه المشرف العام والمسؤول التقني عند 70% و90% قبل التوقف.
  */
 class SendPhoneVerificationCode
 {
     public const TTL_MINUTES = 10;
 
     public const MAX_ATTEMPTS = 5;
+
+    /**
+     * غرض الرمز: توثيق الجوال، أو استعادة كلمة المرور به (ResetPasswordByPhone، قرار صفوان 20 أكتوبر 2026). لكل غرض
+     * مفتاح رمزه ونص رسالته. وحدود الحساب والرقم لكل غرض وحده (مراجعة المشرف على #64): فمن يعرف الرقم ويستنزف رموز الاستعادة
+     * لا يحرم صاحبه رمز التوثيق. وحدود الشبكة وسقف البوابة مشتركة بينهما، فلا يُضاعف الغرض الثاني ما يُرسل من شبكة.
+     */
+    public const VERIFY = 'verify';
+
+    public const RESET = 'reset';
 
     private const PENDING_WINDOW = 3600;
 
@@ -45,7 +54,7 @@ class SendPhoneVerificationCode
         ['otp-number-day:', 10, 86400],
     ];
 
-    public function handle(User $user): void
+    public function handle(User $user, string $purpose = self::VERIFY): void
     {
         $phone = $user->phone;
 
@@ -59,8 +68,11 @@ class SendPhoneVerificationCode
             throw ValidationException::withMessages(['code' => __('account.phone.not_saudi')]);
         }
 
+        // الاستعادة بمفاتيح مستقلة، والتوثيق بمفاتيحه القائمة كما هي
+        $scope = $purpose === self::RESET ? 'reset:' : '';
+
         foreach ([['otp-minute:', 1], ['otp-hour:', 5]] as [$prefix, $max]) {
-            $key = $prefix.$user->id;
+            $key = $prefix.$scope.$user->id;
 
             if (RateLimiter::tooManyAttempts($key, $max)) {
                 throw ValidationException::withMessages([
@@ -70,7 +82,7 @@ class SendPhoneVerificationCode
         }
 
         // مفتاح الرقم ببصمته، فلا يُخزَّن الرقم نصاً في مفاتيح الحدود
-        $number = (string) LoginIdentifier::hash($phone);
+        $number = $scope.LoginIdentifier::hash($phone);
 
         foreach (self::NUMBER_LIMITS as [$prefix, $max]) {
             if (RateLimiter::tooManyAttempts($prefix.$number, $max)) {
@@ -78,7 +90,7 @@ class SendPhoneVerificationCode
             }
         }
 
-        $previous = Cache::get(self::cacheKey($user));
+        $previous = Cache::get(self::cacheKey($user, $purpose));
         $previousBuckets = is_array($previous) ? (array) ($previous['buckets'] ?? []) : [];
         $networks = self::networks(request()->ip());
 
@@ -106,8 +118,8 @@ class SendPhoneVerificationCode
             throw ValidationException::withMessages(['code' => __('account.phone.unavailable')]);
         }
 
-        RateLimiter::hit('otp-minute:'.$user->id, 60);
-        RateLimiter::hit('otp-hour:'.$user->id, 3600);
+        RateLimiter::hit('otp-minute:'.$scope.$user->id, 60);
+        RateLimiter::hit('otp-hour:'.$scope.$user->id, 3600);
 
         foreach (self::NUMBER_LIMITS as [$prefix, , $decay]) {
             RateLimiter::hit($prefix.$number, $decay);
@@ -128,7 +140,7 @@ class SendPhoneVerificationCode
 
         $expiresAt = now()->addMinutes(self::TTL_MINUTES);
 
-        Cache::put(self::cacheKey($user), [
+        Cache::put(self::cacheKey($user, $purpose), [
             'hash' => self::hash($code, $phone),
             'phone' => $phone,
             'buckets' => array_map(fn (string $network) => 'sms-pending:'.$network, array_keys($networks)),
@@ -136,7 +148,7 @@ class SendPhoneVerificationCode
             'expires_at' => $expiresAt->getTimestamp(),
         ], $expiresAt);
 
-        SendSms::dispatch($phone, __('account.phone.sms', [
+        SendSms::dispatch($phone, __($purpose === self::RESET ? 'account.password_reset.sms' : 'account.phone.sms', [
             'code' => $code,
             'minutes' => self::TTL_MINUTES,
         ]));
@@ -221,15 +233,15 @@ class SendPhoneVerificationCode
             Log::critical("SMS codes reached {$percent}% of the hourly cap.", ['sent' => $sent, 'cap' => $cap]);
 
             Notification::send(
-                User::role(RoleName::SuperAdmin->value)->where('is_active', true)->get(),
+                User::role(RoleName::values(RoleName::overseers()))->where('is_active', true)->get(),
                 new SmsCapWarning((int) $percent, $sent, $cap),
             );
         }
     }
 
-    public static function cacheKey(User $user): string
+    public static function cacheKey(User $user, string $purpose = self::VERIFY): string
     {
-        return 'phone-otp:'.$user->id;
+        return ($purpose === self::RESET ? 'password-reset-otp:' : 'phone-otp:').$user->id;
     }
 
     public static function hash(string $code, string $phone): string

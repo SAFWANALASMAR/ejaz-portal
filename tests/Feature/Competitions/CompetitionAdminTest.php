@@ -189,7 +189,7 @@ it('soft deletes and restores a competition, and never deletes it for good', fun
 
     expect($this->manager->can('delete', $competition))->toBeTrue()
         ->and($this->manager->can('forceDelete', $competition))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('forceDelete', $competition))->toBeFalse();
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('forceDelete', $competition))->toBeFalse();
 
     $competition->delete();
     expect(Competition::withTrashed()->find($competition->id)->trashed())->toBeTrue();

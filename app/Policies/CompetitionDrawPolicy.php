@@ -8,7 +8,7 @@ use App\Models\User;
 
 /**
  * سجل السحب: يطّلع عليه من يطّلع على المسابقات (ولجنتها)، ويُنفّذه من له competitions.draw عبر
- * RunDraw. ولا تعديل ولا حذف لأحد، ولا المشرف العام (منع صريح لا يغيّره Gate::after).
+ * RunDraw. ولا تعديل ولا حذف لأحد، ولا المسؤول التقني (منع صريح لا يغيّره Gate::after).
  */
 class CompetitionDrawPolicy
 {
@@ -28,15 +28,16 @@ class CompetitionDrawPolicy
     }
 
     /**
-     * إلغاء سحب معتمد بسبب: للمشرف العام وحده (VoidDraw).
+     * إلغاء سحب معتمد بسبب (VoidDraw): للمدير التنفيذي والمسؤول التقني (كان للمشرف العام وحده، وصار اطلاعاً فقط —
+     * المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
      */
     public function void(User $user, CompetitionDraw $draw): bool
     {
-        return $user->hasRole(RoleName::SuperAdmin->value);
+        return self::voids($user);
     }
 
     /**
-     * اعتماد طلب إلغاء بعد الإلغاء الأول في المسابقة (ApproveDrawVoid): لمشرف عام غير طالب الإلغاء.
+     * اعتماد طلب إلغاء بعد الإلغاء الأول في المسابقة (ApproveDrawVoid): لمن يلغي السحب غير طالب الإلغاء.
      * نتيجة صريحة، فلا يجعلها Gate::after صحيحة لطالب الإلغاء. والطلب الذي مضت مدته لا يُعتمد ولا يُرفض.
      */
     public function approveVoid(User $user, CompetitionDraw $draw): bool
@@ -45,7 +46,12 @@ class CompetitionDrawPolicy
 
         return $request !== null
             && $request->requested_by !== $user->id
-            && $user->hasRole(RoleName::SuperAdmin->value);
+            && self::voids($user);
+    }
+
+    private static function voids(User $user): bool
+    {
+        return RoleName::isAdministrator($user);
     }
 
     /**

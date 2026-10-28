@@ -243,7 +243,7 @@ it('blanks the free text of a deleted account after the retention period, and ke
     $user = User::factory()->create();
     answer([$this->scale->id => 4, $this->choice->id => 1, $this->text->id => 'نص قد يدل على كاتبه'], $user);
     $user->forceFill(['deletion_requested_at' => now()])->save();
-    app(AnonymizeUser::class)->handle(userWithRole(RoleName::SuperAdmin), $user->fresh());
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user->fresh());
 
     // بلا مدة مضبوطة لا يُحذف شيء، والمدة تُحسب من إخفاء بيانات الحساب
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();

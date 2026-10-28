@@ -110,7 +110,7 @@ it('refuses to delete an item that has sub-items', function () {
     $child = MenuItem::factory()->create(['parent_id' => $parent->id]);
 
     expect($this->editor->can('delete', $parent))->toBeFalse()
-        ->and(userWithRole(RoleName::SuperAdmin)->can('delete', $parent))->toBeFalse()
+        ->and(userWithRole(RoleName::TechnicalAdmin)->can('delete', $parent))->toBeFalse()
         ->and($this->editor->can('delete', $child))->toBeTrue();
 
     $this->actingAs($this->editor);

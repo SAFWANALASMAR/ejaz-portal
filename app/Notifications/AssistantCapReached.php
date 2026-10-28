@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * تنبيه المشرف العام ببلوغ المساعد الذكي سقفه الشهري، فتوقف التوليد وبقي وضع الدليل حتى الشهر التالي أو رفع السقف.
+ * تنبيه المشرف العام والمسؤول التقني ببلوغ المساعد الذكي سقفه الشهري، فتوقف التوليد وبقي وضع الدليل حتى الشهر التالي أو رفع السقف.
  */
 class AssistantCapReached extends Notification implements ShouldQueueAfterCommit
 {

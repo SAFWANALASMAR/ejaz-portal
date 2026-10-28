@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Assembly\CancelMeeting;
 use App\Actions\Assembly\RetryOnlineMeeting;
 use App\Actions\Settings\TestOnlineMeetingsConnection;
 use App\Actions\Settings\UpdateOnlineMeetingSettings;
@@ -17,6 +18,7 @@ use App\Models\Setting;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Support\TeamsConnection;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Bus;
@@ -247,6 +249,19 @@ it('shows an unexpected error after the last attempt', function () {
     expect($meeting->fresh()->online_sync_error)->toBe(OnlineMeetingFailure::Unexpected);
 });
 
+// مراجعة ما بعد v0.12.0: ملغى أو محذوف تعذّر ربطه ولا رابط له لا يبقى «متعذراً»
+it('clears the failure of a meeting cancelled or deleted before it ever got a Teams link', function () {
+    $cancelled = Meeting::factory()->online()->create(['starts_at' => now()->subDay(), 'online_sync_error' => OnlineMeetingFailure::NotConfigured, 'online_sync_failed_at' => now()]);
+    $deleted = Meeting::factory()->online()->create(['online_sync_error' => OnlineMeetingFailure::NotConfigured, 'online_sync_failed_at' => now()]);
+
+    app(CancelMeeting::class)->handle(userWithRole(RoleName::Secretary), $cancelled);
+    $deleted->delete();
+
+    expect($cancelled->fresh())->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse()
+        ->and(Meeting::withTrashed()->find($deleted->id))->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse();
+    Http::assertNothingSent();
+});
+
 it('touches no Teams settings for a meeting in a hall', function () {
     $meeting = Meeting::factory()->create();
 
@@ -296,10 +311,10 @@ it('shows the failure and the retry button in the panel to the secretary only', 
     Bus::assertDispatched(SyncOnlineMeeting::class);
 });
 
-it('opens the Teams settings to the super admin alone', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin))->get(OnlineMeetingsSettings::getUrl())->assertOk();
+it('opens the Teams settings to the administrators alone', function () {
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin))->get(OnlineMeetingsSettings::getUrl())->assertOk();
 
-    foreach ([RoleName::Secretary, RoleName::ContentEditor, RoleName::BoardMember, RoleName::ExecutiveDirector] as $role) {
+    foreach ([RoleName::Secretary, RoleName::ContentEditor, RoleName::BoardMember] as $role) {
         $this->actingAs(userWithRole($role))->get(OnlineMeetingsSettings::getUrl())->assertForbidden();
     }
 
@@ -308,7 +323,7 @@ it('opens the Teams settings to the super admin alone', function () {
 });
 
 it('saves the secret encrypted, never logs it, and never sends it back to the browser', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $this->actingAs($admin);
 
     $page = Livewire::test(OnlineMeetingsSettings::class)
@@ -342,8 +357,19 @@ it('saves the secret encrypted, never logs it, and never sends it back to the br
         ->and(Activity::where('event', ActivityEvent::OnlineMeetingsSettingsUpdated->value)->latest('id')->first()->properties['secret_changed'])->toBeFalse();
 });
 
+// مراجعة ما بعد v0.12.0: الحفظ وسجله في معاملة واحدة
+it('saves no Teams settings when their activity entry cannot be written', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    DB::statement('alter table activity_log rename to activity_log_away');
+
+    expect(fn () => app(UpdateOnlineMeetingSettings::class)->handle($admin, ['enabled' => false, 'organizer' => 'organizer@ejaz.example']))
+        ->toThrow(QueryException::class);
+
+    expect(DB::table('settings')->where('key', TeamsConnection::SETTING)->exists())->toBeFalse();
+});
+
 it('refuses an incomplete or malformed connection, and drops the typed secret anyway', function (array $data, string $field) {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     Livewire::test(OnlineMeetingsSettings::class)
         ->fillForm(['enabled' => true, 'tenant_id' => 'tenant-1.example', 'client_id' => $this->clientId, 'organizer' => 'organizer@ejaz.example', 'client_secret' => $this->secret, ...$data])
@@ -361,7 +387,7 @@ it('refuses an incomplete or malformed connection, and drops the typed secret an
 ]);
 
 it('tests the saved connection with a fresh token and reports the reason', function () {
-    $admin = userWithRole(RoleName::SuperAdmin);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
     $this->actingAs($admin);
 
     Livewire::test(OnlineMeetingsSettings::class)->call('testConnection')->assertNotified(OnlineMeetingFailure::NotConfigured->getLabel());
@@ -378,12 +404,13 @@ it('tests the saved connection with a fresh token and reports the reason', funct
     Http::assertNotSent(fn (Request $request) => $request->hasHeader('Authorization', 'Bearer stale-token'));
     Http::assertNotSent(fn (Request $request) => in_array($request->method(), ['POST', 'PATCH', 'DELETE'], true) && str_contains($request->url(), 'graph.microsoft.com'));
 
-    expect(Activity::where('event', ActivityEvent::OnlineMeetingsConnectionTested->value)->pluck('properties')->map->get('result')->all())
+    // بترتيب الإدراج صراحة، فترتيب PostgreSQL بلا ORDER BY غير مضمون (فشل متقطع في الفحص الآلي)
+    expect(Activity::where('event', ActivityEvent::OnlineMeetingsConnectionTested->value)->orderBy('id')->pluck('properties')->map->get('result')->all())
         ->toBe(['not_configured', 'ok', 'access_denied']);
 });
 
 it('drops a secret typed before testing, and limits tests to five a minute', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     $page = Livewire::test(OnlineMeetingsSettings::class)
         ->set('data.client_secret', $this->secret)
@@ -402,7 +429,7 @@ it('drops a secret typed before testing, and limits tests to five a minute', fun
 
 it('retries every failed meeting once Teams is enabled, and warns when switched off with live links', function () {
     Bus::fake();
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
     $failed = Meeting::factory()->online()->create();
     $failed->forceFill(['online_sync_error' => OnlineMeetingFailure::NotConfigured])->save();
     Meeting::factory()->online()->create(['online_meeting_id' => 'event-1']);
@@ -493,7 +520,7 @@ it('does not retry a request Graph rejects as invalid', function () {
 });
 
 it('warns on the settings page when the server does not use the graph driver', function () {
-    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
 
     config(['services.online_meetings.driver' => 'fake']);
     Livewire::test(OnlineMeetingsSettings::class)->assertSee(__('settings.online_meetings.driver_warning'));

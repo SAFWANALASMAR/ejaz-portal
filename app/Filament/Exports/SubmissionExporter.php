@@ -3,6 +3,7 @@
 namespace App\Filament\Exports;
 
 use App\Models\CompetitionSubmission;
+use App\Support\SaudiPhone;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -23,15 +24,16 @@ class SubmissionExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('reference')->preventFormulaInjection()->label(__('competitions.entry.reference')),
-            ExportColumn::make('user.name')->preventFormulaInjection()->label(__('competitions.export.name')),
-            ExportColumn::make('user.email')->preventFormulaInjection()->label(__('competitions.export.email'))->enabledByDefault(false),
-            ExportColumn::make('user.phone')->preventFormulaInjection()->label(__('competitions.export.phone'))->enabledByDefault(false),
+            // safeCell كالتصديرين الآخرين: يتخطى الفراغات قبل علامة الصيغة، وحماية Filament الافتراضية لا تتخطاها
+            ExportColumn::make('reference')->label(__('competitions.entry.reference'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
+            ExportColumn::make('user.name')->label(__('competitions.export.name'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
+            ExportColumn::make('user.email')->label(__('competitions.export.email'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state))->enabledByDefault(false),
+            ExportColumn::make('user.phone')->label(__('competitions.export.phone'))->formatStateUsing(fn (?string $state) => SaudiPhone::display($state))->enabledByDefault(false),
             ExportColumn::make('status')->label(__('competitions.fields.status'))->formatStateUsing(fn ($state) => $state?->getLabel()),
-            ExportColumn::make('category')->preventFormulaInjection()->label(__('competitions.entry.category')),
+            ExportColumn::make('category')->label(__('competitions.entry.category'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state)),
             ExportColumn::make('region')->label(__('competitions.entry.region'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             // بيانات تسجيل الاختبار الإلكتروني، بلا رقم الهوية. والاسم غير مفعّل افتراضياً كالبريد والجوال
-            ExportColumn::make('full_name')->preventFormulaInjection()->label(__('competitions.exam.full_name'))->enabledByDefault(false),
+            ExportColumn::make('full_name')->label(__('competitions.exam.full_name'))->formatStateUsing(fn (?string $state) => ServiceRequestExporter::safeCell($state))->enabledByDefault(false),
             ExportColumn::make('education_stage')->label(__('competitions.exam.education_stage'))->formatStateUsing(fn ($state) => $state?->getLabel()),
             ExportColumn::make('submitted_at')->label(__('competitions.entry.submitted_at'))
                 ->formatStateUsing(fn ($state) => $state?->timezone(config('app.display_timezone'))->format('Y-m-d H:i')),
