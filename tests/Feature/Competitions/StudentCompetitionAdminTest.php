@@ -16,6 +16,7 @@ use App\Actions\Competitions\SaveStudentQuestion;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Competitions\VoidTieDraw;
+use App\Actions\Users\ChangeNationalIdExport;
 use App\Enums\AttemptStatus;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
@@ -299,16 +300,34 @@ it('refuses a tie draw when nobody is tied at the boundary', function () {
         ->and(CompetitionDraw::query()->count())->toBe(0);
 });
 
-it('shows the full national ID only to the competition creator and the executive director, logging every view', function () {
+it('shows the full national ID only to holders of the full export, not to the competition creator by default, logging every view', function () {
     $student = registeredStudent($this->competition, 4);
     $submission = CompetitionSubmission::query()->where('user_id', $student->id)->sole();
+
+    // منشئ المسابقة بلا الخيار يُرفض ويرى الرقم مقنّعاً (قرار صفوان، 27 أكتوبر 2026)
+    expect(fn () => app(RevealStudentIdentity::class)->handle($this->manager, $submission))->toThrow(AuthorizationException::class);
+
+    $this->actingAs($this->manager);
+    Livewire::test(RegistrationsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => ViewCompetition::class])
+        ->assertOk()
+        ->assertSee(CompetitionSubmission::mask(studentNationalId(4)))
+        ->assertDontSee(studentNationalId(4))
+        ->assertActionHidden(TestAction::make('reveal')->table($submission));
+
+    // وبالخيار من مدير النظام يكشف، كالمدير التنفيذي
+    app(ChangeNationalIdExport::class)->handle($this->director, $this->manager, true);
+    $this->manager->refresh();
 
     expect(app(RevealStudentIdentity::class)->handle($this->director, $submission)['national_id'])->toBe(studentNationalId(4))
         ->and(app(RevealStudentIdentity::class)->handle($this->manager, $submission)['national_id'])->toBe(studentNationalId(4))
         ->and(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(2)
         ->and(Activity::query()->where('event', 'national_id_viewed')->get()->pluck('properties')->flatten()->implode(' '))->not->toContain(studentNationalId(4));
 
-    foreach ([userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $user) {
+    // ولا لمن يملك الخيار في مسابقة لا يدير نتائجها، ولا للمشرف العام وعضو المجلس
+    $other = userWithRole(RoleName::ProgramManager);
+    app(ChangeNationalIdExport::class)->handle($this->director, $other, true);
+
+    foreach ([$other->fresh(), userWithRole(RoleName::ProgramManager), userWithRole(RoleName::SuperAdmin), userWithRole(RoleName::BoardMember)] as $user) {
         expect(fn () => app(RevealStudentIdentity::class)->handle($user, $submission))->toThrow(AuthorizationException::class);
     }
 
@@ -329,23 +348,26 @@ it('shows the full national ID only to the competition creator and the executive
     expect(Activity::query()->where('event', 'national_id_viewed')->count())->toBe(3);
 });
 
-it('exports results with the national ID masked unless the exporter may see it in full', function () {
+it('exports results with the national ID masked by default, and in full only on the full export', function () {
     studentQuestion($this->round);
     submittedWithScore(6, 4);
     $query = fn () => $this->competition->attempts()->getQuery();
 
-    $content = fn (User $user): string => TestResponse::fromBaseResponse(StudentResultsSheet::download($user, $this->competition, $query()))->streamedContent();
-    // من يدير النتائج بلا الاطلاع الكامل على الهوية (صلاحية مفردة)، ومسؤول برامج ليس منشئها لا يصدّر أصلاً
+    $content = fn (User $user, bool $full = false): string => TestResponse::fromBaseResponse(StudentResultsSheet::download($user, $this->competition, $query(), $full, 'password'))->streamedContent();
+    // من يدير النتائج بلا الاطلاع الكامل على الهوية (صلاحية مفردة)، ومسؤول برامج ليس منشئها لا يصدّر أصلاً. والمدير
+    // التنفيذي مقنّع في التصدير العادي أيضاً (ملاحظة الاختبار الشامل 10)، وكامل في التصدير الكامل بكلمة المرور
     $resultsOnly = User::factory()->create();
     $resultsOnly->givePermissionTo('competition.manage_results');
     $masked = readXlsx($content($resultsOnly));
-    $full = readXlsx($content($this->director));
+    $directorDefault = readXlsx($content($this->director));
+    $full = readXlsx($content($this->director, true));
 
     expect(fn () => StudentResultsSheet::download(userWithRole(RoleName::ProgramManager), $this->competition, $query()))->toThrow(AuthorizationException::class)
         ->and($masked)->toHaveCount(2)
         ->and(implode(' ', $masked[1]))->not->toContain(studentNationalId(6))->toContain(substr(studentNationalId(6), -4))
+        ->and(implode(' ', $directorDefault[1]))->not->toContain(studentNationalId(6))
         ->and(implode(' ', $full[1]))->toContain(studentNationalId(6))
-        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(2);
+        ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(3);
 });
 
 it('issues certificates to participants who submitted, generating a PDF each', function () {
@@ -831,4 +853,116 @@ it('rolls the draws index back to unique only when no voided draw was redrawn', 
     expect(fn () => $migration->down())->toThrow(RuntimeException::class)
         ->and($indexes())->toContain('competition_draws_round_category_index')->not->toContain('competition_draws_round_category_unique')
         ->and(Schema::hasColumn('competition_attempts', 'question_count'))->toBeTrue();
+});
+
+it('leaves running attempts untouched when a round is saved without changing its end (cloud review, high 1)', function () {
+    studentQuestion($this->round);
+    $attempt = app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    // موعد مختلف عمّا يُحسب من البدء والمدة والنهاية، فأي إعادة حساب تغيّره
+    $attempt->forceFill(['deadline_at' => now()->addMinutes(7)->startOfSecond()])->save();
+    $deadline = $attempt->fresh()->deadline_at->timestamp;
+
+    $round = $this->round->fresh();
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => 'تصحيح حرف في الاسم', 'starts_at' => $round->starts_at, 'ends_at' => $round->ends_at,
+        'question_count' => $round->question_count, 'duration_minutes' => 30,
+    ]);
+
+    expect($attempt->fresh()->deadline_at->timestamp)->toBe($deadline);
+});
+
+it('keeps a cancelled registration out of the results table, their export and qualification (cloud review, medium 4)', function () {
+    studentQuestion($this->round);
+    $kept = submittedWithScore(1, 3);
+    $cancelled = submittedWithScore(2, 9);
+    app(CorrectStudentRegistration::class)->cancel($this->director, $cancelled->submission, 'انتحال اكتُشف بعد التسليم');
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    $this->actingAs($this->director);
+
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertCanSeeTableRecords([$kept])
+        ->assertCanNotSeeTableRecords([$cancelled]);
+
+    $rows = readXlsx(TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()))->streamedContent());
+    $score = array_search(__('competitions.student.admin.score'), $rows[0], true);
+
+    expect($rows)->toHaveCount(2)
+        ->and([$rows[1][0], $rows[1][$score]])->toBe(['1', '3'])
+        ->and(app(QualifyAttempts::class)->handle($this->director, $this->round, [$kept->id, $cancelled->id]))->toBe(1)
+        ->and($cancelled->fresh()->qualified_at)->toBeNull();
+});
+
+it('leaves running attempts untouched when a round is saved during its window without extending its end', function () {
+    studentQuestion($this->round);
+    $attempt = app(StartAttempt::class)->handle(registeredStudent($this->competition), $this->round);
+    $round = $this->round->fresh();
+    $writes = [];
+    DB::listen(function ($query) use (&$writes): void {
+        if (preg_match('/^update "competition_attempts"|competition_attempts.+for update/is', $query->sql)) {
+            $writes[] = $query->sql;
+        }
+    });
+
+    // تصحيح حرف في الاسم والفرع أثناء النافذة (المراجعة السحابية، ع١)
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => 'المرحلة الأولى مصححة', 'branch' => 'فرع مصحح', 'starts_at' => $round->starts_at, 'ends_at' => $round->ends_at,
+        'question_count' => $round->question_count, 'duration_minutes' => $round->duration_minutes, 'qualified_only' => $round->qualified_only,
+    ]);
+
+    expect($writes)->toBe([])
+        ->and($round->fresh()->name)->toBe('المرحلة الأولى مصححة')
+        ->and($attempt->fresh()->deadline_at->timestamp)->toBe($attempt->deadline_at->timestamp);
+});
+
+it('extends, in one statement, only the running attempts the old end cut short', function () {
+    studentQuestion($this->round);
+    $this->round->forceFill(['ends_at' => now()->addMinutes(10), 'duration_minutes' => 30])->save();
+    $cut = app(StartAttempt::class)->handle(registeredStudent($this->competition, 1), $this->round);
+    $early = app(StartAttempt::class)->handle(registeredStudent($this->competition, 2), $this->round);
+    DB::table('competition_attempts')->where('id', $early->id)->update([
+        'started_at' => now()->subMinutes(25), 'deadline_at' => now()->addMinutes(5), 'updated_at' => '2026-01-01 00:00:00',
+    ]);
+    $submitted = submittedWithScore(3, 4);
+    $submitted->forceFill(['deadline_at' => $this->round->ends_at])->save();
+    $round = $this->round->fresh();
+    $updates = [];
+    DB::listen(function ($query) use (&$updates): void {
+        if (str_starts_with(strtolower($query->sql), 'update competition_attempts')) {
+            $updates[] = $query->sql;
+        }
+    });
+
+    app(SaveCompetitionRound::class)->handle($this->director, $this->competition, $round, [
+        'name' => $round->name, 'starts_at' => $round->starts_at, 'ends_at' => $round->ends_at->copy()->addHours(2),
+        'question_count' => $round->question_count, 'duration_minutes' => 30, 'qualified_only' => $round->qualified_only,
+    ]);
+
+    expect($updates)->toHaveCount(1)
+        ->and($cut->fresh()->deadline_at->timestamp)->toBe($cut->started_at->copy()->addMinutes(30)->timestamp)
+        ->and($early->fresh()->updated_at->year)->toBe(2026)
+        ->and($early->fresh()->updated_at->month)->toBe(1)
+        ->and($submitted->fresh()->deadline_at->timestamp)->toBe($round->ends_at->timestamp);
+});
+
+it('exports only submitted attempts of standing registrations, leaving running and cancelled ones out', function () {
+    studentQuestion($this->round);
+    $cancelled = submittedWithScore(1, 9);
+    $kept = submittedWithScore(2, 3);
+    $running = app(StartAttempt::class)->handle(registeredStudent($this->competition, 3), $this->round);
+    // إلغاء تسجيل سلّم صاحبه بأعلى درجة، لانتحال اكتُشف بعد التسليم (المراجعة السحابية، م٤)
+    app(CorrectStudentRegistration::class)->cancel($this->director, $cancelled->submission, 'انتحال اكتُشف بعد التسليم');
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    $this->actingAs($this->director);
+
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->assertCanSeeTableRecords([$kept, $running])
+        ->assertCanNotSeeTableRecords([$cancelled]);
+
+    // والتصدير يرتّب المسلَّمة لتسجيل قائم وحدها: لا الملغى بدرجته، ولا الجارية بصفر
+    $rows = readXlsx(TestResponse::fromBaseResponse(StudentResultsSheet::download($this->director, $this->competition, $this->competition->attempts()->getQuery()))->streamedContent());
+
+    expect(array_map(fn (array $row): array => [$row[0], $row[1]], array_slice($rows, 1)))->toBe([['1', (string) $kept->submission->reference]])
+        ->and(app(QualifyAttempts::class)->handle($this->director, $this->round, [$cancelled->id, $kept->id]))->toBe(1)
+        ->and($cancelled->fresh()->qualified_at)->toBeNull()
+        ->and($kept->fresh()->qualified_at)->not->toBeNull();
 });

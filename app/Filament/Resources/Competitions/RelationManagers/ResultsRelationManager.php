@@ -12,6 +12,7 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
+use App\Support\NationalIdExport;
 use App\Support\StudentResultsSheet;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -32,7 +33,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * نتائج مسابقة الطلاب (لمن له submissions.view): ترتيب بالدرجة، وتصفية بالمرحلة والفئة والصف والمنطقة، وتصدير
- * إكسل (رقم الهوية مخفياً إلا لمن له الاطلاع الكامل)، والتأهيل للمرحلة التالية، والسحب بين المتساوين، وإصدار
+ * إكسل (رقم الهوية مخفياً، وكاملاً في «التصدير الكامل» لمديري النظام بكلمة المرور)، والتأهيل للمرحلة التالية، والسحب بين المتساوين، وإصدار
  * الشهادات. و«نشر النتائج» في المراحل. والعمل كله في الإجراءات.
  */
 class ResultsRelationManager extends RelationManager
@@ -54,7 +55,9 @@ class ResultsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion']))
+            // والتسجيل الملغى (CorrectStudentRegistration::cancel) خارج النتائج، كما في السحب والترتيب التراكمي
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion'])
+                ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at')))
             ->defaultSort('score', 'desc')
             ->poll('30s')
             ->columns([
@@ -99,6 +102,18 @@ class ResultsRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => $this->managesResults())
                     ->action(fn (): StreamedResponse => StudentResultsSheet::download($this->actor(), $this->competition(), $this->getFilteredSortedTableQuery())),
+                // رقم الهوية وجوال ولي الأمر كاملين: لمديري النظام وحدهم (NationalIdExport)، بكلمة المرور في كل مرة
+                Action::make('export_full')
+                    ->label(__('competitions.student.admin.export_results_full'))
+                    ->icon('heroicon-o-identification')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->managesResults() && NationalIdExport::allows($this->actor()))
+                    ->modalDescription(__('competitions.student.admin.export_full_hint'))
+                    ->schema([self::passwordField()])
+                    ->action(fn (array $data, Action $action): ?StreamedResponse => $this->attempt(
+                        fn (): StreamedResponse => StudentResultsSheet::download($this->actor(), $this->competition(), $this->getFilteredSortedTableQuery(), full: true, password: (string) ($data['password'] ?? '')),
+                        fn () => $action->halt(),
+                    )),
                 Action::make('tie_draw')
                     ->label(__('competitions.student.admin.tie_draw'))
                     ->icon('heroicon-o-sparkles')

@@ -39,6 +39,8 @@ class QualifyAttempts
             ->where('round_id', $round->id)
             ->where('status', AttemptStatus::Submitted)
             ->whereIn('id', $attemptIds)
+            // ولا تأهل لتسجيل ملغى
+            ->whereHas('submission', fn ($query) => $query->whereNull('deleted_at'))
             ->when($qualified, fn ($query) => $query->whereNull('qualified_at'), fn ($query) => $query->whereNotNull('qualified_at'))
             ->update(['qualified_at' => $qualified ? now() : null, 'updated_at' => now()]);
 

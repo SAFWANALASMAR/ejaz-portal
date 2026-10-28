@@ -21,7 +21,15 @@ const adminPages = [
     '/admin/programs', '/admin/programs/create', '/admin/media-assets', '/admin/competitions', '/admin/archive-items', '/admin/form-templates', '/admin/reviews',
     // ما أُضيف منذ 13 أكتوبر: المساعد الذكي، وقنوات التواصل، واجتماعات تيمز
     '/admin/assistant-settings', '/admin/assistant-faqs', '/admin/assistant-logs', '/admin/messaging-channels', '/admin/online-meetings-settings',
+    // مخالفات axe القديمة في تقرير الاختبار الشامل 0.14 (الخلل 5): شبكة البطاقات المجمّعة، والجدول الفارغ على الجوال
+    '/admin/job-files', '/admin/archive-categories',
 ];
+
+// مخالفة معروفة من ترميز Filament نفسه (حتى 5.11.0): رأس المجموعة داخل role="list" بلا role="listitem"
+// (aria-required-children). وإصلاحها ينتظر القرار في open-questions.md («ملفات الوظائف»)
+const knownViolations = {
+    '/admin/job-files': 'aria-required-children في شبكة البطاقات المجمّعة من Filament — open-questions.md',
+};
 
 async function expectNoAxeViolations(page, path) {
     const response = await page.goto(path);
@@ -29,6 +37,9 @@ async function expectNoAxeViolations(page, path) {
     test.skip(response?.status() === 403, `${path} لغير صاحب الصلاحية`);
 
     await page.evaluate(() => document.fonts.ready);
+    // مقاطع الرئيسية تظهر بالتمرير (resources/js/home.js): تُظهر كلها قبل الفحص، وإلا قاس axe تباين نص في منتصف ظهوره
+    await page.evaluate(() => document.querySelectorAll('[data-reveal]').forEach((element) => element.setAttribute('data-revealed', '')));
+    await page.waitForTimeout(800);
 
     const { violations } = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -60,7 +71,10 @@ test.describe('axe: admin panel', () => {
     test.use({ storageState: ADMIN_STATE ?? AUTH_STATE });
 
     for (const path of adminPages) {
-        test(path, async ({ page }) => expectNoAxeViolations(page, path));
+        test(path, async ({ page }) => {
+            test.fixme(path in knownViolations, knownViolations[path]);
+            await expectNoAxeViolations(page, path);
+        });
     }
 });
 

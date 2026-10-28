@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
+use App\Actions\Competitions\SaveAttemptAnswers;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Users\AnonymizeUser;
@@ -264,6 +266,64 @@ it('refuses a larger bank whose questions carry different points, so the maximum
     $this->actingAs(registeredStudent($this->competition))->post('/competitions/students/rounds/'.$this->round->uuid.'/start')->assertSessionHasErrors('round');
 
     expect(AttemptLayout::shortfalls($this->round->fresh()))->toHaveKey('المرحلة الثانوية', -1);
+});
+
+it('recomputes the stored bank readiness when the bank or the round count changes, before any start', function () {
+    collect(range(1, 3))->each(fn () => studentQuestion($this->round));
+    $student = registeredStudent($this->competition);
+    $start = '/competitions/students/rounds/'.$this->round->uuid.'/start';
+
+    // جاهز ومخزّن: ثلاثة أسئلة لعدد ثلاثة
+    expect(AttemptLayout::shortfall($this->round->fresh(), $this->secondary->id))->toBeNull();
+
+    // سؤال بدرجتين والعدد باقٍ ثلاثة: البنك أكبر بدرجات مختلفة، وجاهزية مخزّنة قبل الإضافة كانت ستقبل البدء
+    studentQuestion($this->round, ['points' => 2]);
+    $this->round->forceFill(['question_count' => 3])->save();
+
+    $this->actingAs($student)->post($start)->assertSessionHasErrors('round');
+    expect(AttemptLayout::shortfall($this->round->fresh(), $this->secondary->id))->toBe(-1)
+        ->and(CompetitionAttempt::query()->count())->toBe(0);
+
+    // والعدد أربعة يكوّنه البنك كله، فيبدأ
+    $this->round->forceFill(['question_count' => 4])->save();
+
+    $this->post($start)->assertSessionHasNoErrors();
+    expect(CompetitionAttempt::query()->sole()->question_count)->toBe(4);
+});
+
+it('sends «start» straight to the first unanswered unit, and a second click to the same attempt', function () {
+    $first = studentQuestion($this->round);
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition);
+    $base = '/competitions/students/rounds/'.$this->round->uuid;
+
+    $this->actingAs($student)->post($base.'/start')->assertRedirect(unitUrl(1));
+    $attempt = CompetitionAttempt::query()->sole();
+
+    $firstUnit = collect($attempt->layout)->search(fn ($unit) => $unit['questions'][0]['id'] === $first->id) + 1;
+    $this->post(unitUrl($firstUnit), ['answers' => answerTokens($attempt, [$first->id => 'a']), 'go' => 'next']);
+
+    $this->post($base.'/start')->assertRedirect(unitUrl(3 - $firstUnit));
+
+    expect(CompetitionAttempt::query()->sole()->id)->toBe($attempt->id);
+});
+
+it('sends «start» to the round page for a submitted or timed-out attempt, submitting the timed-out one there', function () {
+    studentQuestion($this->round);
+    $student = registeredStudent($this->competition);
+    $base = '/competitions/students/rounds/'.$this->round->uuid;
+
+    $attempt = startedAttempt($student);
+    $this->travelTo($attempt->deadline_at->copy()->addMinutes(5));
+
+    $this->actingAs($student)->post($base.'/start')->assertRedirect($base);
+    expect($attempt->fresh()->isInProgress())->toBeTrue();
+
+    $this->get($base)->assertOk()->assertSee(__('competitions.student.received'));
+    expect($attempt->fresh()->status)->toBe(AttemptStatus::Submitted);
+
+    $this->post($base.'/start')->assertRedirect($base);
+    expect(CompetitionAttempt::query()->count())->toBe(1);
 });
 
 it('refuses to start in a round whose results are published, even inside its window', function () {
@@ -536,4 +596,30 @@ it('marks a submission automatic only near the deadline, whatever the browser se
     $this->actingAs($student)->post('/competitions/students/rounds/'.$this->round->uuid.'/submit', ['auto' => '1']);
 
     expect($attempt->fresh()->auto_submitted)->toBeFalse();
+});
+
+it('leaves the running attempt answers out of the personal data export, and includes them once submitted (cloud review, low 4)', function () {
+    $question = studentQuestion($this->round);
+    $user = registeredStudent($this->competition);
+    $attempt = startedAttempt($user)->setRelation('round', $this->round);
+    app(SaveAttemptAnswers::class)->handle($user, $attempt, 0, answerTokens($attempt, [$question->id => 'a']));
+
+    $answers = fn (): mixed => app(ExportUserData::class)->handle($user->fresh())['competition_submissions'][0]['attempts'][0]['answers'];
+
+    expect($answers())->toBeNull();
+
+    app(SubmitAttempt::class)->handle($user, $attempt->fresh());
+
+    expect($answers())->toBe([(string) $question->id => 'a']);
+});
+
+it('does not flash the national ID or the guardian phone back into the session on a validation error', function () {
+    registeredStudent($this->competition, 7);
+
+    // «رقم الهوية مسجل» من الإجراء: يعيد لارافيل المدخلات إلى الجلسة إلا ما في dontFlash (المراجعة السحابية، ن٣)
+    $this->actingAs(User::factory()->create())->post('/competitions/students/register', studentForm())
+        ->assertSessionHasErrors('national_id')
+        ->assertSessionHasInput('full_name')
+        ->assertSessionMissing('_old_input.national_id')
+        ->assertSessionMissing('_old_input.guardian_phone');
 });

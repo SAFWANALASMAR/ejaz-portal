@@ -49,6 +49,7 @@ class AnonymizeUser
             // الحفظ دون التسجيل الآلي، وإلا كتب السجل القيم القديمة من جديد
             activity()->withoutLogging(function () use ($user): void {
                 $user->syncRoles([]);
+                $user->syncPermissions([]);
 
                 $user->forceFill([
                     'name' => __('users.anonymized_name'),
@@ -149,7 +150,8 @@ class AnonymizeUser
 
                 $log->forceFill([
                     'attribute_changes' => $aboutUser ? null : $log->attribute_changes,
-                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash']),
+                    // exported_by: اسم المصدِّر في سجل تصدير نتائج مسابقة الطلاب (NationalIdExport)
+                    'properties' => collect($log->properties)->except(['ip', 'agent', 'identifier_hash', 'exported_by']),
                 ])->saveQuietly();
             });
     }

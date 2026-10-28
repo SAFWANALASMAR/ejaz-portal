@@ -114,6 +114,7 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
+        $rankingBefore = null;
 
         // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
         $background = $data['certificate_background'] ?? null;
@@ -131,7 +132,7 @@ class SaveCompetition
             $data['work_types'] = null;
         }
 
-        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories): void {
+        DB::transaction(function () use ($competition, $data, $requested, $criteria, $questions, $reviewers, $openCategories, &$rankingBefore): void {
             // حفظان متزامنان للمسابقة نفسها: الثاني ينتظر، فلا يحذف ما أضافه الأول. والأقفال تُفحص من
             // جديد على الصف المقفول: أول مشاركة أو إسناد أو سحب وصل بين الفحص الأول والقفل
             if ($competition->exists) {
@@ -142,6 +143,8 @@ class SaveCompetition
                 }
 
                 $this->checkLocks($locked, $requested);
+                // نطاق الترتيب والفئات المفتوحة قبل الحفظ من الصف المقفول، فلا يفوت حفظاً متزامناً تغييرهما
+                $rankingBefore = [$locked->ranking_scope, $this->openCategoryIds($locked)];
             }
 
             $createdBy = $data['created_by'] ?? null;
@@ -194,8 +197,9 @@ class SaveCompetition
         }
 
         ExamQuestions::forget($competition->id);
-        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)
-        if ($competition->student_mode) {
+        // والفئات المفتوحة ونطاق الترتيب يدخلان في فحص الدرجة القصوى المخزن لكل مرحلة (AttemptLayout::mixedMaxScores)،
+        // فيُمسح إن تغيّر أحدهما وحده: تعديل نص الصفحة أو الجوائز أثناء النافذة لا يفرّغ البنوك على الطلاب كلهم (ن١)
+        if ($competition->student_mode && $rankingBefore !== [$competition->ranking_scope, $this->openCategoryIds($competition)]) {
             $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
         }
         SchoolNetworkLimits::forget();
@@ -206,6 +210,18 @@ class SaveCompetition
         }
 
         return $competition->refresh();
+    }
+
+    /**
+     * معرّفات الفئات المفتوحة مرتبة للمقارنة قبل الحفظ وبعده.
+     *
+     * @return list<int>
+     */
+    private function openCategoryIds(Competition $competition): array
+    {
+        return $competition->exists
+            ? $competition->openCategories()->allRelatedIds()->map(fn (mixed $id): int => (int) $id)->sort()->values()->all()
+            : [];
     }
 
     /**

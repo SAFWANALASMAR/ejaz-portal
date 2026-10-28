@@ -3,6 +3,7 @@
 المرجع: بنود الإنتاج في المرحلة 1 من `roadmap.md`، و`security.md`، و`performance.md`، و`decisions.md` (11 أكتوبر 2026: تأجيل اختيار الخادم حتى يكتمل المشروع، ولا اعتماد على خدمة مُدارة. و18 أكتوبر 2026: الاستضافة خارج المملكة مقبولة، والمرشح Contabo والنسخ عند Hetzner).
 
 > **الحال:** كل ما هنا جاهز للتنفيذ، ولا حساب سحابي ولا خادم بعد.
+> - **المقترح الجديد (26 أكتوبر):** Hostinger KVM 8 في ألمانيا، والملفات على قرصه، والنسخ عند Hetzner (القسم «Hostinger KVM»).
 > - **المرشح (قرار 18 أكتوبر):** Contabo Cloud VDS XL للإنتاج، وContabo Object Storage للملفات في منطقة الخادم، وHetzner Object Storage للنسخ الاحتياطية عند شركة ثانية. والاعتماد النهائي بقائمة `deploy/provider-checklist.md`.
 > - **التجربة أولاً** على الخادم التجريبي (`deploy/staging-plan.md`)، ومن يجهّز الخادم يبدأ بدليل `deploy/handoff-server.md`.
 > - كل قيمة بين `<...>` تُضبط عند الاختيار.
@@ -14,6 +15,7 @@
 - `deploy/docker/` — صورة الإنتاج (`Dockerfile` بمراحل: التطبيق، والويب، والنسخ)، ونقطة الدخول، وإعداد PHP-FPM، وnginx للحاوية.
 - `.env.production.example` و`.env.backup.example` — قالبا الإعداد بلا أسرار.
 - `scripts/deploy-compose.sh` — النشر بوسم.
+- `scripts/server-bootstrap.sh` — تجهيز خادم Ubuntu 24.04 الجديد مرة واحدة: المستخدم، وSSH بالمفتاح، وufw، وfail2ban، والتحديثات، وDocker (القسم «Hostinger KVM»).
 - `scripts/backup.sh` و`scripts/restore.md` — النسخ المشفّر خارج الخادم والاستعادة وتجربتها.
 - `deploy/systemd/compose/` — تشغيل الحزمة عند الإقلاع، والنسخ اليومي، وفحص الصحة، مع المؤقتات في `deploy/systemd/`.
 - `deploy/storage/` — CORS ودورة الحياة لحاويات S3.
@@ -76,6 +78,9 @@
 - `MAIL_*` لمزود البريد، و`SMS_DRIVER` بعد اعتماد المزود (`open-questions.md`)، و`SMS_PER_HOUR` حسب التسجيل المتوقع (`performance.md`).
 - ضبط الذاكرة: `PG_*` و`REDIS_MAXMEMORY` و`FPM_MAX_CHILDREN` حسب حجم الخادم (`deploy/provider-checklist.md`، ولخادم Cloud VDS XL قسم «إعدادات خادم 8 أنوية و64 جيجابايت»).
 - ما يلزمه قرار أو حساب: Turnstile، وMicrosoft Graph، والدفع (`PAYMENTS_ENABLED=false`). انظر «عند كل نشر» في `security.md`.
+- **Turnstile وحدود الدخول (قرار صفوان، 26 أكتوبر 2026):** بمفتاحَي `TURNSTILE_SITE_KEY` و`TURNSTILE_SECRET_KEY` مع `BOT_CHALLENGE_DRIVER=turnstile`، يصير بلوغ حدود الدخول الخاطئ (لكل حساب ومعرّف وعنوان وشبكة) تحدياً لا حجباً، حتى `BOT_CHALLENGE_CEILING_FACTOR` ضعفاً من الحد (5 افتراضياً) فيعود الحجب. فلا يقفل طالبٌ حسابَ زميله ولا دخولَ مدرسته بمحاولات خاطئة متعمدة. وحد طلبات الاستعادة لكل عنوان يبقى حاجباً كما هو. وصاحب الحساب يُنبَّه، وسقف رسائل التنبيه النصية `LOGIN_CHALLENGE_SMS_PER_DAY` (200). ونمط العنصر في لوحة Cloudflare «Managed».
+  - **المفاتيح غير موجودة بعد:** وما دامت غائبة يبقى الحجب الحالي عند الحد كما هو، ويبقى خطر قفل الحساب والمدرسة قائماً حتى تُضبط.
+  - **بعد ضبطها:** تجربة على التجريبي: عشر محاولات خاطئة لحساب، ثم الدخول بكلمة مروره الصحيحة يمر بعد حل التحدي.
 
 ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`، وكلمتا سر تشفير الملفات `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT` (عشوائيتان، ونسختهما في مدير كلمات المرور مع مفتاح GPG الخاص، ولا تُغيَّران بعد أول نسخة)، وحاوية الملفات الخاصة للقراءة `BACKUP_SOURCE_*` (`.env.backup.example`). ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف ولا قراءة** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject` ولا `GetObject` — `deploy/storage/README.md` «المفاتيح»)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 
@@ -158,6 +163,170 @@ $DC ps                                         # كل الخدمات healthy
 
 - `SEO_INDEXABLE=true` في الإنتاج وحده بعد نقل النطاق (`cutover.md`).
 - robots.txt وsitemap.xml من لارافيل: لا ملف `public/robots.txt`، ولا `location = /robots.txt` بلا `try_files` في nginx.
+
+## Hostinger KVM (المقترح في 26 أكتوبر 2026)
+
+> **مقترح لا قرار:** خادم Hostinger KVM 8 (8 معالجات افتراضية، و32 جيجابايت، و400 جيجابايت NVMe) في ألمانيا، بنظام Ubuntu 24.04 LTS. ولا شراء قبل موافقة صفوان على التكلفة، ولا بيانات حقيقية قبل شروط النقل خارج المملكة (`decisions.md` 18 أكتوبر). وما يُتحقق منه قبل الشراء في `deploy/provider-checklist.md` «Hostinger KVM».
+
+### ما يوفره Hostinger وما نضيفه
+
+- **من Hostinger (من لوحة hPanel):**
+  - **جدار ناري على مستوى المزود:** قواعد للوارد تُربط بالخادم. وهو الطبقة الحاسمة، لأن Docker يتجاوز ufw في المنافذ المنشورة.
+  - **لقطة يدوية واحدة** (snapshot): تُحذف بعد 20 يوماً، وبإعادة تثبيت النظام أو الاستعادة. فهي للرجوع قبل عملية خطرة، لا نسخة.
+  - **نسخ أسبوعية آلية** عند المزود نفسه، والاستعادة منها تمحو الخادم كله وتقفله أثناءها. والنسخ اليومية عنده إضافة مدفوعة لا تلزمنا.
+- **ما نضيفه نحن:**
+  - **النسخ اليومي المشفّر خارج الخادم وخارج المزود:** `scripts/backup.sh` إلى حاوية Hetzner Object Storage (مزود ثانٍ، بقفل الكائنات). ونسخ Hostinger الأسبوعية احتياط ثالث لا بديل: عند المزود نفسه، وغير مشفّرة بمفتاحنا، وعمرها حتى أسبوع.
+  - ufw وfail2ban والتحديثات الأمنية وSSH بالمفتاح وحده: `scripts/server-bootstrap.sh`.
+  - المراقبة: `ejaz:health` ومؤقته، و`/up` من أداة خارجية (`monitoring.md`).
+
+### تخزين الملفات الخاصة: لا تخزين S3 عند Hostinger
+
+Hostinger لا يبيع تخزين كائنات متوافقاً مع S3، والحزمة كانت تفترضه عند مزود الخادم (Contabo). فالخياران (القرار لصفوان، والمقترح أ):
+
+- **(أ) القرص المحلي على NVMe الخادم (المقترح للإطلاق):** بلا تغيير في الشيفرة، والنسخ اليومي ينسخ `storage/app/private` مشفّراً إلى Hetzner. وقيوده:
+  - رفع ملفات اللوحة حتى 32 ميجابايت (حد nginx وPHP). فالفيديو التعريفي للاختبار الإلكتروني ووسائط الأسئلة فوق ذلك لا تُرفع، حتى يُرفع الحد لمسار `/livewire/upload-file` وحده بفرع مستقل.
+  - مقاطع المسابقات بالرفع المجزأ عبر الخادم (`COMPETITION_VIDEO_UPLOAD=app`)، وتشغل القرص نفسه. ومسابقة الطلاب (اختبار موقوت) لا رفع فيها.
+  - التطبيق على خادم واحد، والقرص يتسع للبداية (400 جيجابايت)، وتُراقب المساحة.
+- **(ب) Hetzner Object Storage في ألمانيا للملفات:** الحزمة كما هي (`FILESYSTEM_PRIVATE_DISK=s3`). لكن الملفات ونسخها يصيران عند Hetzner، فتنتقل النسخ إلى مزود ثالث، أو تُقبل المخاطرة بقرار مكتوب.
+
+### الخطوات من الصفر حتى `ejaz:health` سليم
+
+**١. الشراء والإعداد في hPanel** (بحساب الجمعية وبريدها، وبتحقق ثنائي):
+
+1. KVM 8، والموقع ألمانيا، والنظام «Ubuntu 24.04» نظيفاً بلا لوحة تحكم (`handoff-server.md` «ما لا تفعله»).
+2. مفتاح SSH العام في خانة المفاتيح عند الإعداد (يُضاف لـ root، وينسخه سكربت التجهيز).
+3. **الجدار الناري** (VPS ← Security ← Firewall): إعداد جديد بثلاث قواعد قبول TCP: 22 من عنوان الإدارة وحده إن ثبت (وإلا من الكل، وfail2ban يحميه)، و80 و443 من الكل. ثم يُربط بالخادم ويُفعَّل.
+4. **IPv6:** إن كان للخادم عنوان IPv6 فقواعد الجدار تشمله، وإلا فلا سجل `AAAA` له في `cutover.md`.
+
+**٢. التجهيز الأساسي** (من جهازك، ثم بـ root مرة واحدة):
+
+```bash
+scp scripts/server-bootstrap.sh root@<IP>:/root/
+ssh root@<IP>
+less /root/server-bootstrap.sh                      # يُقرأ قبل تشغيله
+ADMIN_USER=ejaz ADMIN_CIDR=<عنوان الإدارة>/32 bash /root/server-bootstrap.sh   # ADMIN_CIDR اختياري، ويسأل عن كلمة مرور sudo
+```
+
+ثم من نافذة جديدة قبل إغلاق جلسة root: `ssh ejaz@<IP>`، ثم `sudo -v` و`docker ps`. ومن هنا كل شيء بالمستخدم `ejaz`.
+
+- السكربت يطلب كلمة مرور sudo للمستخدم في الطرفية قبل إغلاق دخول root، ولا يُغلقه بدونها. وفي تشغيل بلا طرفية يُنشئ المستخدم ويتوقف قبل SSH: `passwd ejaz` ثم يُعاد تشغيله.
+- `ADMIN_CIDR` يُرفض إن لم يكن عنوان جلستك داخله (أو يطلب تأكيداً في الطرفية)، فلا تُقفل خارج الخادم.
+- وبلا `ADMIN_CIDR` فالمنفذ 22 بـ `ufw limit`: يحجب العنوان الذي يفتح 6 اتصالات أو أكثر في 30 ثانية، فقد يُحجب سكربت أو أداة تفتح جلسات متتابعة (scp ثم ssh مراراً) مؤقتاً. ومع `ADMIN_CIDR` لا حد، فالمنفذ لعنوان الإدارة وحده.
+- ومن شغّله بـ `sudo` لا بـ root مباشرة: `sudo --preserve-env=SSH_CLIENT ...`، لأن sudo يحذف `SSH_CLIENT` فلا يُعرف عنوان الجلسة لفحص `ADMIN_CIDR`.
+- إعادة التشغيل بـ `ADMIN_CIDR` مختلف تضيف قاعدة 22 جديدة ولا تحذف القديمة: بعد الدخول بالجديدة `sudo ufw status numbered`، ثم `sudo ufw delete <رقم القاعدة القديمة>`، ثم يُعدَّل جدار hPanel مثلها.
+
+**٣. لقطة في hPanel** بعد التجهيز («قبل المشروع»)، فإن أخطأت خطوة لاحقة رجعت إليها.
+
+**٤. المشروع والإعداد:**
+
+```bash
+cd /opt/ejaz
+git clone <المستودع> .            # بمفتاح نشر للقراءة وحدها: ssh-keygen -t ed25519، والعام في GitHub ← Deploy keys
+git checkout v0.14.0
+cp .env.production.example .env && chmod 600 .env
+cp .env.backup.example .env.backup && chmod 600 .env.backup
+```
+
+ثم `.env` كما في «ثانياً»، ومعه لخادم KVM 8 (القيم من `deploy/provider-checklist.md` «توزيع الذاكرة التقريبي لخادم 32 جيجابايت»):
+
+```dotenv
+PG_MAX_CONNECTIONS=200
+PG_SHARED_BUFFERS=4GB
+PG_EFFECTIVE_CACHE_SIZE=12GB
+PG_WORK_MEM=16MB
+PG_MAINTENANCE_WORK_MEM=512MB
+REDIS_MAXMEMORY=2gb
+FPM_MAX_CHILDREN=80
+```
+
+ولخيار (أ) القرص المحلي:
+
+```dotenv
+FILESYSTEM_PRIVATE_DISK=local
+COMPETITION_VIDEO_UPLOAD=app
+LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=
+CSP_CONNECT_SRC=
+CSP_MEDIA_SRC=
+CSP_FRAME_SRC=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=
+AWS_BUCKET=
+AWS_ENDPOINT=
+```
+
+- كل قيمة بين `<...>` تُستبدل أو تُفرغ، فلا يبقى في `.env` نص فيه مسافة بلا علامات اقتباس.
+- `LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=` الفارغ يرجع إلى القرص الافتراضي `FILESYSTEM_DISK=local` (Livewire يقرؤه بـ `?:`، فالنص الفارغ لا يصير اسم قرص). مجرَّب: `FileUploadConfiguration::disk()` يرد `local`.
+- و`COMPETITION_NATIONAL_ID_HMAC_KEY` بقيمة `openssl rand -base64 48` (`CHANGELOG.md` 0.14.0).
+- والبريد من مايكروسوفت 365 (شروطه في `cutover.md` «ما تحتاجه الجمعية يوم النشر»):
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.office365.com
+MAIL_PORT=587
+MAIL_USERNAME=info@ejaz.sa
+MAIL_PASSWORD=<من مدير كلمات المرور>
+MAIL_FROM_ADDRESS=info@ejaz.sa
+```
+
+وفي `.env.backup` لخيار (أ): `BACKUP_SOURCE_S3_BUCKET=none`، فيُنسخ `storage/app/private` و`storage/app/public` من الحجم مشفّرين. وبقية قيمه (حاوية Hetzner ومفتاح GPG وكلمتا التشفير) كما في «ثانياً».
+
+**٥. الشهادة.** حاوية nginx لا تبدأ بلا ملفي الشهادة، فشهادة مؤقتة ذاتية أولاً، ثم Let's Encrypt:
+
+```bash
+sudo openssl req -x509 -nodes -newkey rsa:2048 -days 7 -subj "/CN=ejaz.sa" \
+  -keyout /etc/ejaz/tls/privkey.pem -out /etc/ejaz/tls/fullchain.pem
+sudo chmod 600 /etc/ejaz/tls/privkey.pem
+sudo apt-get install -y certbot
+sudo install -d /etc/letsencrypt/renewal-hooks/deploy
+```
+
+وخطاف التجديد `/etc/letsencrypt/renewal-hooks/deploy/ejaz.sh` (بصلاحية 755): ينسخ الشهادة إلى مجلد الحاوية (لا روابط رمزية فيه) ويعيد تحميل nginx:
+
+```sh
+#!/bin/sh
+set -e
+install -m 644 "$RENEWED_LINEAGE/fullchain.pem" /etc/ejaz/tls/fullchain.pem
+install -m 600 "$RENEWED_LINEAGE/privkey.pem" /etc/ejaz/tls/privkey.pem
+cd /opt/ejaz && docker compose --env-file .env -f deploy/compose.production.yaml exec -T web nginx -s reload
+```
+
+- **قبل نقل النطاق** (ejaz.sa ما زال عند hosting.com): بتحدي DNS، وسجل `_acme-challenge` يضيفه صاحب صلاحية DNS:
+  - `sudo certbot certonly --manual --preferred-challenges dns -d ejaz.sa -d www.ejaz.sa`
+  - ثم بعد الخطوة ٧: `sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/ejaz.sa sh /etc/letsencrypt/renewal-hooks/deploy/ejaz.sh`
+  - وهذه الشهادة لا تتجدد آلياً، فتُستبدل بعد النقل.
+- **بعد النقل** (`cutover.md`): شهادة بتحدي HTTP تتجدد وحدها:
+  - `sudo certbot certonly --webroot -w /var/lib/ejaz/acme -d ejaz.sa -d www.ejaz.sa --force-renewal`
+  - ثم خطاف النسخ يدوياً، لأن certbot لا يشغّل خطافات `renewal-hooks/deploy` إلا في `renew`: `sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/ejaz.sa sh /etc/letsencrypt/renewal-hooks/deploy/ejaz.sh`، ثم `curl -vI https://ejaz.sa 2>&1 | grep -i "issuer"` يعرض Let's Encrypt.
+  - ثم `sudo certbot renew --dry-run` بلا خطأ (التجديدات بعدها تشغّل الخطاف وحدها).
+
+**٦. مفتاح النسخ والوحدات:** «أولاً» الخطوتان 8 و9 كما هما (`/etc/ejaz/backup-public.asc`، ثم `deploy/systemd/compose/`). ومؤقت النسخ لا يُفعَّل قبل أول نسخة يدوية (الخطوة ٩).
+
+**٧. أول نشر:** «ثالثاً» كما هي، بالوسم `v0.14.0`، ومعها ما بعد النشر في `CHANGELOG.md` 0.14.0 (`CompetitionListsSeeder` و`ejaz:create-admin`).
+
+**٨. التحقق حتى `ejaz:health` سليم:**
+
+```bash
+DC="docker compose --env-file .env -f deploy/compose.production.yaml"
+$DC ps                                              # كل الخدمات healthy
+$DC exec -T app php artisan ejaz:health             # يخرج بـ 0 بلا ✗
+$DC exec -T app php artisan migrate:status | tail -16
+echo "127.0.0.1 ejaz.sa www.ejaz.sa" | sudo tee -a /etc/hosts
+bash scripts/verify-server.sh https://ejaz.sa --server   # فحصا الفهرسة وحدهما يفشلان ما دام SEO_INDEXABLE=false
+sudo sed -i '/ ejaz.sa www.ejaz.sa$/d' /etc/hosts
+```
+
+وإن فشل `ejaz:health` فرسالته تسمّي الفحص (القاعدة، أو Redis، أو الطوابير والمهام الفاشلة، أو مساحة القرص، أو القرص الخاص، أو نبض المجدول بعد دقيقتين من التشغيل). والسجل: `$DC logs --tail=200 app horizon scheduler web`.
+
+**٩. أول نسخة واستعادتها:** `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50`، ثم تجربة الاستعادة (`scripts/restore.md`)، ثم `sudo systemctl enable --now ejaz-backup.timer ejaz-health.timer`.
+
+**١٠. لقطة ثانية في hPanel** («v0.14.0 سليم»)، وتُستبدل بلقطة جديدة قبل كل نشر كبير (لقطة واحدة متاحة).
+
+### الصيانة الدورية على Hostinger
+
+- **إعادة الإقلاع بعد تحديث النواة:** التحديثات الأمنية آلية بلا إعادة إقلاع. فأسبوعياً: إن وُجد `/var/run/reboot-required` يُعاد الإقلاع في وقت هادئ (`sudo reboot`)، والحزمة تعود بخدمة `ejaz-stack`، ثم `ejaz:health`.
+- **المساحة:** `df -h /` و`docker system df` شهرياً، و`docker image prune` للصور القديمة مع إبقاء الوسم السابق للتراجع.
+- **fail2ban:** `sudo fail2ban-client status sshd`.
 
 ## التجريبية
 
