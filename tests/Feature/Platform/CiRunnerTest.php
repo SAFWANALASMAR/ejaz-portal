@@ -85,3 +85,18 @@ it('recreates the private Docker server and its volumes before every job, and ke
     expect($runner[1] ?? '')->not->toContain('/ejaz-ci-state')
         ->and($register)->toContain('-v ejaz-ci-runner_state:/ejaz-ci-state runner remove');
 });
+
+// على جهاز صفوان (28 أكتوبر 2026): بقيت حاوية المشغّل الدائم القديمة تعمل بعد remove ومعها مجلد state، لأن خدمة runner في
+// ملف ephemeral فلا يراها down. فالإلغاء يوقفها ويحذفها بعد إلغاء التسجيل، ثم يحذف مجلد state وحده
+it('stops the old persistent runner container on remove, then deletes only its registration volume', function () {
+    preg_match('/^if \[ "\$action" = remove \]; then\n(.*?)^fi$/ms', ciRunnerFile('register.sh'), $remove);
+    $steps = array_values(array_filter(array_map('trim', explode("\n", $remove[1] ?? '')), fn (string $line): bool => $line !== '' && ! str_starts_with($line, '#')));
+
+    expect($steps)->toBe([
+        'token | docker compose run --rm -T -v ejaz-ci-runner_state:/ejaz-ci-state runner remove',
+        'docker compose --profile ephemeral rm -sf runner',
+        'docker compose down',
+        'docker volume rm -f ejaz-ci-runner_state >/dev/null',
+        'exit 0',
+    ]);
+});

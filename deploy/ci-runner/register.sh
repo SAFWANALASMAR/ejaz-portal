@@ -37,8 +37,11 @@ clean() {
 docker compose build runner
 
 if [ "$action" = remove ]; then
-  # مجلد التسجيل الدائم القديم يُركَّب هنا وحده، ثم يُحذف مع الحاويتين
+  # مجلد التسجيل الدائم القديم يُركَّب هنا وحده. ثم تُوقف حاوية المشغّل الدائم القديمة وتُحذف (خدمة runner في ملف
+  # ephemeral، فلا يراها down بلا الملف، وتبقى تمسك المجلد)، ثم dind والشبكة، ثم مجلد التسجيل state وحده: docker-data
+  # وwork تعيد الحلقة إنشاءهما قبل كل مهمة
   token | docker compose run --rm -T -v ejaz-ci-runner_state:/ejaz-ci-state runner remove
+  docker compose --profile ephemeral rm -sf runner
   docker compose down
   docker volume rm -f ejaz-ci-runner_state >/dev/null
   exit 0
