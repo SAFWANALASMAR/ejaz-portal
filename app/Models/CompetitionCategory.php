@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\RoundQuestions;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,20 @@ use Spatie\Activitylog\Support\LogOptions;
 class CompetitionCategory extends Model
 {
     use LogsActivity;
+
+    /**
+     * اسم الفئة مفتاح الدرجات القصوى المخزنة لمراحل المسابقات التي تفتحها (AttemptLayout::mixedMaxScores)، فتعديلها يعيد
+     * حسابها بعد حفظه (المراجعة المستقلة على v0.14.0). وتغيير الاسم وحده، فلا يفرّغ تعديلُ الترتيب أو الصفوف أثناء نافذة
+     * الاختبار بنوكَ المراحل على الطلاب كلهم معاً.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (self $category): void {
+            if ($category->wasChanged('name')) {
+                DB::afterCommit(fn () => RoundQuestions::forgetCategory($category->id));
+            }
+        });
+    }
 
     /**
      * @return array<string, string>

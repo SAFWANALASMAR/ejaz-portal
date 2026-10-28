@@ -56,7 +56,8 @@ final class StudentResultsSheet
         return response()->streamDownload(function () use ($query, $full, $fields): void {
             $writer = new Writer;
             $writer->openToFile('php://output');
-            $writer->addRow(Row::fromValues([
+            // صف العناوين بـ safeCell أيضاً: فيه تسميات الحقول المخصصة من اللوحة (المراجعة الأمنية لإعادة البند ٦)
+            $writer->addRow(self::row([
                 __('competitions.student.admin.rank'),
                 __('competitions.entry.reference'),
                 __('competitions.student.attributes.full_name'),
@@ -118,7 +119,7 @@ final class StudentResultsSheet
                 });
 
             $writer->close();
-        }, 'results-'.$competition->slug.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }, 'results-'.$competition->slug.($full ? '-full' : '').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     /**

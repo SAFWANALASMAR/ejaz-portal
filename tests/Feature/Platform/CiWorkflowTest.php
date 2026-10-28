@@ -25,8 +25,17 @@ it('fails the CI run when a lock file or the phpstan config is missing', functio
 it('never skips the quality steps on a condition that keeps the run green', function () {
     $workflow = ciWorkflow();
 
-    expect($workflow)->not->toMatch('/^\s*if:/m')
-        ->and($workflow)->not->toContain('ready=false')
+    // والشرط الوحيد حارس المشغّل المحلي على المهمتين (لا نسخة ولا Dependabot — docs/deploy/ci-runner.md)، لا على خطوة
+    preg_match_all('/^(\s*)if:\s*(.+)$/m', $workflow, $conditions);
+
+    expect($conditions[0])->toHaveCount(2);
+
+    foreach ($conditions[2] as $index => $condition) {
+        expect($conditions[1][$index])->toBe('    ')
+            ->and($condition)->toBe(ciRunnerGuard());
+    }
+
+    expect($workflow)->not->toContain('ready=false')
         ->and($workflow)->toContain('vendor/bin/pint --test')
         ->and($workflow)->toContain('vendor/bin/phpstan analyse')
         ->and($workflow)->toContain('php artisan test')

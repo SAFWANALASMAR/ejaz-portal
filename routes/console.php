@@ -47,6 +47,9 @@ Schedule::command('ejaz:refresh-stats')->everyTenMinutes()->onOneServer();
 // المعلّق القديم من عمليات الدفع: يُستعلم عن فاتورته أو يُعلَّم فاشلاً (docs/plans/store-payments.md)
 Schedule::command('ejaz:sync-pending-payments')->hourly()->withoutOverlapping()->onOneServer();
 
+// تقرير تحليل الإحصائيات المعلّق بعد مهلته «تعذّر»، لا عند عرض الصفحة (مراجعة ما بعد v0.12.0)
+Schedule::command('ejaz:fail-stale-analyses')->everyFiveMinutes()->onOneServer();
+
 // نبض المجدول كل دقيقة، يقرؤه فحص الصحة ejaz:health فينبّه إن توقفت مهمة cron (docs/monitoring.md)
 Schedule::call(fn () => Cache::put(CheckHealth::HEARTBEAT_KEY, now()->getTimestamp(), now()->addDay()))
     ->everyMinute()

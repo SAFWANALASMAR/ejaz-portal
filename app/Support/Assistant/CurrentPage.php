@@ -2,6 +2,7 @@
 
 namespace App\Support\Assistant;
 
+use App\Enums\AssistantSource;
 use App\Models\AssistantChunk;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
@@ -44,7 +45,9 @@ final class CurrentPage
 
     public static function name(string $path): ?string
     {
-        $title = AssistantChunk::query()->where('url', $path)->value('title');
+        // مقالة الدليل والسؤال الشائع يشيران إلى الصفحة ولا يسمّيانها (مراجعة ما بعد v0.12.0)
+        $title = AssistantChunk::query()->where('url', $path)
+            ->whereNotIn('source_type', [AssistantSource::Guide->value, AssistantSource::Faq->value])->value('title');
 
         if (is_string($title)) {
             return $title;

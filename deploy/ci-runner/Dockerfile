@@ -10,4 +10,4 @@ COPY --chmod=755 entrypoint.sh /usr/local/bin/ejaz-runner
 
 USER runner
 ENTRYPOINT ["/usr/local/bin/ejaz-runner"]
-CMD ["run"]
+CMD ["ephemeral"]

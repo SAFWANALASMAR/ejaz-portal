@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
 /*
@@ -343,4 +344,36 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
     ]);
 
     return $user;
+}
+
+/**
+ * صفوف ملف Excel نصوصاً، لفحص التصدير (نتائج مسابقة الطلاب، وعناوين حقولها المخصصة).
+ *
+ * @return list<list<string>>
+ */
+function readXlsx(string $contents): array
+{
+    $path = tempnam(sys_get_temp_dir(), 'r').'.xlsx';
+    file_put_contents($path, $contents);
+    $reader = new Reader;
+    $reader->open($path);
+    $rows = [];
+
+    foreach ($reader->getSheetIterator() as $sheet) {
+        foreach ($sheet->getRowIterator() as $row) {
+            $rows[] = array_map(fn ($value): string => (string) $value, $row->toArray());
+        }
+    }
+
+    $reader->close();
+
+    return $rows;
+}
+
+/**
+ * حارس المشغّل المحلي على مهمتي الفحص الآلي: لا نسخة (fork) ولا Dependabot (docs/deploy/ci-runner.md «الأمن»).
+ */
+function ciRunnerGuard(): string
+{
+    return "(github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.ref_name, 'dependabot/')";
 }

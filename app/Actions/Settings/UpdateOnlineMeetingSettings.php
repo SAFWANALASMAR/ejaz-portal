@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\TeamsConnection;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -52,24 +53,27 @@ class UpdateOnlineMeetingSettings
 
         $secretChanged = filled($validated['client_secret'] ?? null);
 
-        Setting::put(TeamsConnection::SETTING, [
-            'enabled' => $enabled,
-            'tenant_id' => $validated['tenant_id'] ?? null,
-            'client_id' => isset($validated['client_id']) ? strtolower($validated['client_id']) : null,
-            'organizer' => $validated['organizer'] ?? null,
-            'client_secret' => $secretChanged ? Crypt::encryptString($validated['client_secret']) : ($stored['client_secret'] ?? null),
-        ]);
-
-        activity('security')->causedBy($actor)
-            ->event(ActivityEvent::OnlineMeetingsSettingsUpdated->value)
-            ->withProperties([
+        // الحفظ وسجله معاً: لا إعداد تغيّر بلا سجل يذكره (مراجعة ما بعد v0.12.0)
+        DB::transaction(function () use ($actor, $enabled, $validated, $secretChanged, $stored): void {
+            Setting::put(TeamsConnection::SETTING, [
                 'enabled' => $enabled,
                 'tenant_id' => $validated['tenant_id'] ?? null,
-                'client_id' => $validated['client_id'] ?? null,
+                'client_id' => isset($validated['client_id']) ? strtolower($validated['client_id']) : null,
                 'organizer' => $validated['organizer'] ?? null,
-                'secret_changed' => $secretChanged,
-            ])
-            ->log(ActivityEvent::OnlineMeetingsSettingsUpdated->value);
+                'client_secret' => $secretChanged ? Crypt::encryptString($validated['client_secret']) : ($stored['client_secret'] ?? null),
+            ]);
+
+            activity('security')->causedBy($actor)
+                ->event(ActivityEvent::OnlineMeetingsSettingsUpdated->value)
+                ->withProperties([
+                    'enabled' => $enabled,
+                    'tenant_id' => $validated['tenant_id'] ?? null,
+                    'client_id' => $validated['client_id'] ?? null,
+                    'organizer' => $validated['organizer'] ?? null,
+                    'secret_changed' => $secretChanged,
+                ])
+                ->log(ActivityEvent::OnlineMeetingsSettingsUpdated->value);
+        });
 
         if (! $enabled) {
             return 0;

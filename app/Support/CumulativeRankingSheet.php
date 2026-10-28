@@ -83,6 +83,6 @@ final class CumulativeRankingSheet
                 });
 
             $writer->close();
-        }, 'cumulative-'.$competition->slug.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }, 'cumulative-'.$competition->slug.($full ? '-full' : '').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 }

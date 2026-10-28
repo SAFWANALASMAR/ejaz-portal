@@ -1,39 +1,43 @@
 #!/usr/bin/env bash
 # نقطة دخول المشغّل المحلي (docs/deploy/ci-runner.md):
-#   run       يشغّل المشغّل بتسجيله المحفوظ في /ejaz-ci-state (الافتراضي)
-#   register  يسجّله بـ RUNNER_TOKEN (رمز تسجيل مدته ساعة) ويحفظ التسجيل
-#   remove    يلغي تسجيله في GitHub بـ RUNNER_TOKEN (رمز إزالة) ويحذف المحفوظ
+#   ephemeral  يسجّله مؤقتاً (--ephemeral) برمز تسجيل يُقرأ من الدخل القياسي، فينفّذ مهمة واحدة ويُلغى تسجيله وتخرج
+#              الحاوية (الافتراضي). والحاوية تُنشأ لكل مهمة (register.sh)، فلا يبقى من مهمة شيء لما بعدها.
+#   remove     يلغي تسجيلاً دائماً قديماً محفوظاً في /ejaz-ci-state (قبل المشغّل المؤقت) برمز إزالة من الدخل القياسي
+# والرمز من الدخل لا من متغير بيئة، فلا يظهر في docker inspect ولا يُكتب في ملف.
 set -euo pipefail
 
 cd /home/runner
-# العمل والمؤقت على مسار واحد هنا وفي خادم Docker (dind)، فيصح تمرير "$PWD" و"$(mktemp -d)" إلى docker run -v
+# العمل والمؤقت على مسار واحد هنا وفي خادم Docker (dind)، فيصح تمرير "$PWD" و"$(mktemp -d)" إلى docker run -v.
+# ويُفرَّغان قبل كل مهمة: مجلد العمل مشترك مع dind، فلا ترى مهمةٌ ملفاتِ ما قبلها
 sudo install -d -o runner -g runner /ejaz-ci/work /ejaz-ci/tmp /ejaz-ci-state
 state=(.runner .credentials .credentials_rsaparams)
 
-restore() {
-  for file in "${state[@]}"; do
-    [ -f "/ejaz-ci-state/$file" ] || { echo "المشغّل غير مسجّل: bash deploy/ci-runner/register.sh" >&2; return 1; }
-    cp "/ejaz-ci-state/$file" .
-  done
+token() {
+  local value=''
+  IFS= read -r value || true
+  [ -n "$value" ] || { echo "الرمز غائب من الدخل القياسي" >&2; exit 1; }
+  printf '%s' "$value"
 }
 
-case "${1:-run}" in
-  run)
-    restore
-    exec ./run.sh
-    ;;
-  register)
-    : "${RUNNER_TOKEN:?RUNNER_TOKEN غائب}"
-    ./config.sh --unattended --replace \
-      --url "https://github.com/$RUNNER_REPO" --token "$RUNNER_TOKEN" \
+case "${1:-ephemeral}" in
+  ephemeral)
+    # الرمز أولاً في متغير، فيوقف غيابه السكربت (set -e) برسالته
+    registration="$(token)"
+    sudo find /ejaz-ci/work /ejaz-ci/tmp -mindepth 1 -delete
+    # التسجيل في ملفات الحاوية وحدها، ويذهب معها
+    ./config.sh --unattended --ephemeral --replace \
+      --url "https://github.com/$RUNNER_REPO" --token "$registration" \
       --name "$RUNNER_NAME" --labels "$RUNNER_LABELS" --work /ejaz-ci/work
-    cp "${state[@]}" /ejaz-ci-state/
-    chmod 600 /ejaz-ci-state/.credentials*
+    unset registration
+    exec ./run.sh </dev/null
     ;;
   remove)
-    : "${RUNNER_TOKEN:?RUNNER_TOKEN غائب}"
-    restore
-    ./config.sh remove --token "$RUNNER_TOKEN"
+    removal="$(token)"
+    for file in "${state[@]}"; do
+      [ -f "/ejaz-ci-state/$file" ] || { echo "لا تسجيل دائماً محفوظاً" >&2; exit 0; }
+      cp "/ejaz-ci-state/$file" .
+    done
+    ./config.sh remove --token "$removal"
     rm -f /ejaz-ci-state/.runner /ejaz-ci-state/.credentials*
     ;;
   *)

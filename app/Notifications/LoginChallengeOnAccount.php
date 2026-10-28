@@ -12,7 +12,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * تنبيه صاحب الحساب بأن المحاولات الخاطئة على حسابه بلغت حده، فصار دخوله يتطلب التحدي ضد الآليات بدل الحجب
+ * تنبيه صاحب الحساب بأن المحاولات الخاطئة على حسابه بلغت حده فأُقفل دخوله مؤقتاً، مع Turnstile مضبوطاً
  * (LoginRateLimiter، قرار صفوان 27 أكتوبر 2026). يُرسل بعد الرد، والرد على المحاولة واحد لكل معرّف، فلا يكشف وجود
  * الحساب لمن يحاول. مرة في اليوم على الأكثر، بالبريد وبالرسالة النصية متى كانت جاهزة وجواله موثقاً، كـ PasswordChanged.
  */
@@ -25,21 +25,41 @@ class LoginChallengeOnAccount extends Notification implements ShouldQueueAfterCo
      */
     public function via(object $notifiable): array
     {
-        $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone() && self::smsAllowedToday();
+        $sms = MessagingSettings::ready('sms') && $notifiable instanceof User && $notifiable->hasVerifiedPhone()
+            && self::smsAllowed($notifiable);
 
         return $sms ? ['mail', SmsChannel::class] : ['mail'];
     }
 
     /**
-     * سقف يومي لرسائل هذا التنبيه في البوابة كلها، فلا يحوّل من يحل التحدي بخدمة مدفوعة على آلاف الحسابات التنبيهَ
-     * إلى إغراق رسائل وتكلفة (المراجعة الأمنية لهذا الفرع، م-ب). وبعده بالبريد وحده.
+     * سقفان لرسائل هذا التنبيه، وبعد أيهما بالبريد وحده:
+     * - يومي للبوابة كلها، فلا يحوّل من يحل التحدي بخدمة مدفوعة على آلاف الحسابات التنبيهَ إلى إغراق رسائل وتكلفة
+     *   (المراجعة الأمنية لـ #77، م-ب).
+     * - أسبوعي لكل حساب، فلا يُغرق جوالَ صاحب حساب واحد من يستهدفه يوماً بعد يوم، ولا يستهلك حسابٌ واحد حصة البوابة
+     *   (المراجعة المستقلة على v0.14.0).
+     * ويُفحصان معاً قبل العدّ، فلا تُخصم حصة الحساب برسالة منعها سقف البوابة.
      */
-    private static function smsAllowedToday(): bool
+    private static function smsAllowed(User $user): bool
     {
-        $key = 'login-challenge-sms:'.now()->toDateString();
-        Cache::add($key, 0, 86400);
+        $limits = [
+            'login-challenge-sms:'.now()->toDateString() => [(int) config('security.login_challenge_sms_per_day'), 86400],
+            'login-challenge-sms-account:'.$user->getKey() => [(int) config('security.login_challenge_sms_per_account_per_week'), 7 * 86400],
+        ];
 
-        return Cache::increment($key) <= (int) config('security.login_challenge_sms_per_day');
+        foreach ($limits as $key => [$max]) {
+            if ((int) Cache::get($key, 0) >= $max) {
+                return false;
+            }
+        }
+
+        $allowed = true;
+
+        foreach ($limits as $key => [$max, $ttl]) {
+            Cache::add($key, 0, $ttl);
+            $allowed = Cache::increment($key) <= $max && $allowed;
+        }
+
+        return $allowed;
     }
 
     public function toMail(object $notifiable): MailMessage
