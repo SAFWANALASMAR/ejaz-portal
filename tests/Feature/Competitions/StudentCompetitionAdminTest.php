@@ -105,7 +105,6 @@ function questionsXlsx(array $rows): string
     return $path;
 }
 
-
 it('creates a student competition through the save action, recording its creator and open categories', function () {
     $competition = app(SaveCompetition::class)->handle($this->director, new Competition, [
         'title' => 'مسابقة تجريبية',
