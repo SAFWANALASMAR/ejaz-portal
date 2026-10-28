@@ -502,7 +502,7 @@ test.describe('المستفيد', () => {
         await submit(page, page.locator('#exam-confirm').getByRole('button', { name: 'تأكيد الإرسال' }));
 
         // ٦. الختام، ولا درجة ظاهرة
-        await expect(page.locator('main')).toContainText('شكرًا لك، تم الانتهاء من الاختبار،، نسأل الله لك التوفيق والسداد');
+        await expect(page.locator('main')).toContainText('شكرًا لك، تم الانتهاء من الاختبار، نسأل الله لك التوفيق والسداد');
         await shot(page, 'exam-6-finished', testInfo);
         expect(errors, errors.join('\n')).toEqual([]);
     });

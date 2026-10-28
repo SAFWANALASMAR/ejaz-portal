@@ -277,7 +277,7 @@ it('submits once, shows the exact finish message without answers or score, and a
         ->and((float) $submission->auto_score)->toBe(3.0);
 
     $page = $this->get('/competitions/exam/exam')->assertOk()
-        ->assertSee('شكرًا لك، تم الانتهاء من الاختبار،، نسأل الله لك التوفيق والسداد')
+        ->assertSee('شكرًا لك، تم الانتهاء من الاختبار، نسأل الله لك التوفيق والسداد')
         ->assertSee($submission->reference);
     expect($page->getContent())->not->toContain('خيار ج1')->not->toContain('auto_score');
 
@@ -329,7 +329,7 @@ it('sends no WhatsApp message by default, and when enabled sends receipt, date a
 
     expect($whatsapp->sent[0]['phone'])->toBe('+966500000002')
         ->and($message)->toContain('جمعية إعجاز للدراسات والبحوث العلمية')
-        ->and($message)->toContain('شكرًا لك، تم الانتهاء من الاختبار،، نسأل الله لك التوفيق والسداد')
+        ->and($message)->toContain('شكرًا لك، تم الانتهاء من الاختبار، نسأل الله لك التوفيق والسداد')
         ->and($message)->toContain(now()->setTimezone(config('app.display_timezone'))->format('Y-m-d'))
         ->and($message)->not->toContain('خيار ج')
         ->and($message)->not->toContain('3.00');
