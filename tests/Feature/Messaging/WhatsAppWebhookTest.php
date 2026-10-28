@@ -67,7 +67,7 @@ it('keeps a status that arrives before its message is recorded, and applies it o
 });
 
 // مراجعتا الفرع: لكل حالة معلّقة مفتاحها، والتحديث شرطي في القاعدة، فلا تكتب «سُلّمت» فوق «فشلت» قرأها غيرها قديمة
-it('keeps both early statuses, and never writes a progress over a failure stored meanwhile', function () {
+it('applies a failure that arrived early over a later progress, and never writes a progress over a failure stored meanwhile', function () {
     postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
     postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'delivered']]))->assertOk();
 

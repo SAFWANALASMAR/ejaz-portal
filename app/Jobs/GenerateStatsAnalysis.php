@@ -54,8 +54,16 @@ class GenerateStatsAnalysis implements ShouldQueue
         $analysis = StatsAnalysis::query()->find($this->analysisId);
 
         // يُحجز عند البدء (updated_at)، ومهلة «تعذّر» تُحسب منه، فلا يعلّمه الأمر المجدول والمزود يكتبه بعد انتظار في
-        // طابور مزدحم، فيُدفع ثمنه ويُرمى (مراجعة الفرع)
-        if ($analysis === null || $this->finish([]) === 0) {
+        // طابور مزدحم، فيُدفع ثمنه ويُرمى. وما تجاوز المهلة قبل البدء لا يُحجز: هو «تعذّر» كما تعدّه الصفحة والأمر
+        // المجدول، فلا يُدفع لطلب تركه صاحبه (مراجعتا الفرع)
+        $claimed = $analysis === null ? 0 : StatsAnalysis::query()->whereKey($this->analysisId)
+            ->where('status', StatsAnalysisStatus::Queued->value)
+            ->where('updated_at', '>=', now()->subMinutes(self::STALE_MINUTES))
+            ->update([]);
+
+        if ($claimed === 0) {
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value]);
+
             return;
         }
 

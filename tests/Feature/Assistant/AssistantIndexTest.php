@@ -14,6 +14,7 @@ use App\Models\NewsArticle;
 use App\Models\Opening;
 use App\Models\Page;
 use App\Models\Program;
+use App\Models\User;
 use App\Support\Assistant\ArabicText;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\Assistant\AssistantRetriever;
@@ -177,4 +178,18 @@ it('reports a failed index sync after the commit without failing the save, and r
     (new RetryAssistantIndexSync(Page::class, $page->id))->handle();
 
     expect(AssistantChunk::query()->where('source_type', 'page')->exists())->toBeFalse();
+});
+
+it('retries an index sync for a soft-deleted record, a missing one, and ignores a class outside the index', function () {
+    $document = Document::factory()->create(['title' => 'لائحة محذوفة']);
+    Document::withoutEvents(fn () => $document->delete());
+    $gone = Page::factory()->create(['title' => 'صفحة زالت']);
+    Page::withoutEvents(fn () => $gone->forceDelete());
+    expect(AssistantChunk::query()->whereIn('source_type', ['document', 'page'])->count())->toBe(2);
+
+    (new RetryAssistantIndexSync(Document::class, $document->id))->handle();
+    (new RetryAssistantIndexSync(Page::class, $gone->id))->handle();
+    (new RetryAssistantIndexSync(User::class, 1))->handle();
+
+    expect(AssistantChunk::query()->whereIn('source_type', ['document', 'page'])->exists())->toBeFalse();
 });

@@ -129,6 +129,7 @@ it('issues the certificates held back before the template once it is set, and re
     ProgramRegistration::factory()->waitlisted()->for($this->program)->create(['attended_at' => now()]);
     $anonymized = ProgramRegistration::factory()->for($this->program)->create(['attended_at' => now()]);
     $anonymized->user->forceFill(['anonymized_at' => now()])->save();
+
     Bus::fake();
     $this->artisan('programs:issue-pending-certificates')->assertFailed();
     Bus::assertNotDispatched(SyncAttendanceCertificate::class);

@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\Assistant\AssistantReply;
 use App\Services\Assistant\FakeAiAssistant;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -269,12 +270,14 @@ it('keeps a report the worker started near the deadline, even when the scheduled
     enableAnalysis();
     $member = userWithRole(RoleName::BoardMember);
     $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
-    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+    // طُلب قبل تسع دقائق، والمزود يجيب بعد دقيقتين يمر فيهما الأمر المجدول
+    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES - 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES - 1)])->save();
 
     app()->instance(AiAssistant::class, new class implements AiAssistant
     {
         public function answer(string $system, string $message): AssistantReply
         {
+            Carbon::setTestNow(now()->addMinutes(2));
             Artisan::call('ejaz:fail-stale-analyses');
 
             return new AssistantReply(__('analysis.fake_report'), 10, 10);
@@ -282,8 +285,22 @@ it('keeps a report the worker started near the deadline, even when the scheduled
     });
 
     app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+    Carbon::setTestNow();
 
     expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Done);
+});
+
+// مراجعتا الفرع: ما تجاوز المهلة قبل أن يبدأه العامل «تعذّر» كما تعدّه الصفحة، فلا يُرسل إلى المزود ولا يُدفع له
+it('does not start a report that passed its deadline in the queue, and marks it as failed', function () {
+    $fake = enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+
+    app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+
+    expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Failed)
+        ->and($fake->requests)->toBe([]);
 });
 
 it('names only published programs and competitions', function () {
