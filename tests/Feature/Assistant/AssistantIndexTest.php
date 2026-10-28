@@ -2,6 +2,7 @@
 
 use App\Enums\AssistantSource;
 use App\Enums\LibrarySection;
+use App\Jobs\RetryAssistantIndexSync;
 use App\Models\AssistantChunk;
 use App\Models\AssistantFaq;
 use App\Models\AssistantGuide;
@@ -13,11 +14,15 @@ use App\Models\NewsArticle;
 use App\Models\Opening;
 use App\Models\Page;
 use App\Models\Program;
+use App\Models\User;
 use App\Support\Assistant\ArabicText;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\Assistant\AssistantRetriever;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Queue;
 
 /*
 | فهرس المساعد: المحتوى المنشور وحده بكل مصادره، ويتبع النشر والحذف والاستعادة، ولا يقرأ الملفات الخاصة.
@@ -151,4 +156,40 @@ it('rebuilds the whole index from the command', function () {
     Artisan::call('ejaz:assistant-index');
 
     expect(AssistantChunk::query()->where('source_type', 'page')->count())->toBe(1);
+});
+
+// مراجعة ما بعد v0.12.0 (محتملة ٤): المحتوى محفوظ قبل المزامنة، فتعذّرها يُبلَّغ ولا يرد 500. وتُعاد في الطابور، فلا يبقى
+// مقطع ما أُلغي نشره حتى الليل (مراجعتا الفرع)
+it('reports a failed index sync after the commit without failing the save, and retries it in the queue', function () {
+    $page = Page::factory()->create(['slug' => 'kept', 'title' => 'محفوظة']);
+    expect(AssistantChunk::query()->where('source_type', 'page')->exists())->toBeTrue();
+
+    Exceptions::fake();
+    Queue::fake();
+    DB::statement('alter table assistant_chunks rename to assistant_chunks_away');
+
+    $page->update(['is_published' => false]);
+
+    expect(Page::query()->whereKey($page->id)->value('is_published'))->toBeFalse();
+    Exceptions::assertReported(QueryException::class);
+    Queue::assertPushed(RetryAssistantIndexSync::class, fn (RetryAssistantIndexSync $job): bool => $job->class === Page::class && $job->id === $page->id);
+
+    DB::statement('alter table assistant_chunks_away rename to assistant_chunks');
+    (new RetryAssistantIndexSync(Page::class, $page->id))->handle();
+
+    expect(AssistantChunk::query()->where('source_type', 'page')->exists())->toBeFalse();
+});
+
+it('retries an index sync for a soft-deleted record, a missing one, and ignores a class outside the index', function () {
+    $document = Document::factory()->create(['title' => 'لائحة محذوفة']);
+    Document::withoutEvents(fn () => $document->delete());
+    $gone = Page::factory()->create(['title' => 'صفحة زالت']);
+    Page::withoutEvents(fn () => $gone->forceDelete());
+    expect(AssistantChunk::query()->whereIn('source_type', ['document', 'page'])->count())->toBe(2);
+
+    (new RetryAssistantIndexSync(Document::class, $document->id))->handle();
+    (new RetryAssistantIndexSync(Page::class, $gone->id))->handle();
+    (new RetryAssistantIndexSync(User::class, 1))->handle();
+
+    expect(AssistantChunk::query()->whereIn('source_type', ['document', 'page'])->exists())->toBeFalse();
 });

@@ -5,6 +5,7 @@ namespace App\Actions\Messaging;
 use App\Enums\ActivityEvent;
 use App\Enums\MessageStatus;
 use App\Models\MessageLog;
+use App\Models\MessagingChannel;
 use App\Services\Messaging\MessagingSettings;
 use App\Support\NetworkPrefix;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -24,6 +25,12 @@ class HandleWhatsAppWebhook
     public const REJECTED_PER_HOUR = 60;
 
     private const REJECTED_ALL = 'whatsapp-webhook-rejected:all';
+
+    // مدة حفظ حالة وصلت قبل تسجيل رسالتها
+    public const PENDING_SECONDS = 600;
+
+    // الحالات التي يحدّثها الإشعار
+    private const TRACKED = [MessageStatus::Sent, MessageStatus::Delivered, MessageStatus::Read, MessageStatus::Failed];
 
     /**
      * @throws AuthorizationException توقيع غائب أو خاطئ، أو App Secret غير مضبوط
@@ -78,32 +85,73 @@ class HandleWhatsAppWebhook
         $id = $status['id'] ?? null;
         $new = MessageStatus::tryFrom(is_string($status['status'] ?? null) ? $status['status'] : '');
 
-        if (! is_string($id) || $id === '' || ! in_array($new, [MessageStatus::Sent, MessageStatus::Delivered, MessageStatus::Read, MessageStatus::Failed], true)) {
+        if (! is_string($id) || $id === '' || ! in_array($new, self::TRACKED, true)) {
             return 0;
         }
 
-        $log = MessageLog::query()->where('channel', 'whatsapp')->where('provider_message_id', $id)->latest('id')->first();
+        $code = data_get($status, 'errors.0.code');
+        $error = is_scalar($code) ? mb_substr('meta:'.$code, 0, 100) : 'failed';
+        $log = self::log($id);
 
         if ($log === null) {
+            // الإشعار قد يسبق تسجيل الرسالة (يصل والإرسال لم يرجع بعد)، فيُحفظ قليلاً ويُطبَّق عند تسجيلها
+            // (DeliverMessage)، ثم يُعاد البحث مرة لرسالة سُجّلت بين البحث والحفظ (مراجعة ما بعد v0.12.0، محتملة ٥).
+            // ولكل حالة مفتاحها، فلا يكتب إشعاران متزامنان أحدهما فوق الآخر (مراجعتا الفرع)
+            Cache::put(self::pendingKey($id, $new), $error, self::PENDING_SECONDS);
+            $log = self::log($id);
+
+            return $log === null ? 0 : self::applyPending($log);
+        }
+
+        return self::transition($log, $new, $error);
+    }
+
+    /**
+     * ما وصل من حالات الرسالة قبل تسجيلها، يُطبَّق مرة ويُحذف.
+     */
+    public static function applyPending(MessageLog $log): int
+    {
+        if ($log->channel !== MessagingChannel::WHATSAPP || $log->provider_message_id === null) {
             return 0;
         }
 
-        // الفشل نهائي: لا يغيّره إشعار يصل بعده، ولو كان «سُلّمت» متأخراً من قبله
-        if ($log->status === MessageStatus::Failed) {
-            return 0;
+        $updated = 0;
+
+        foreach (self::TRACKED as $new) {
+            $error = Cache::pull(self::pendingKey($log->provider_message_id, $new));
+            $updated += is_string($error) ? self::transition($log, $new, $error) : 0;
         }
 
-        if ($new === MessageStatus::Failed) {
-            $code = data_get($status, 'errors.0.code');
+        return $updated;
+    }
 
-            return (int) $log->update(['status' => $new, 'error' => is_scalar($code) ? mb_substr('meta:'.$code, 0, 100) : 'failed']);
+    private static function log(string $id): ?MessageLog
+    {
+        return MessageLog::query()->where('channel', MessagingChannel::WHATSAPP)->where('provider_message_id', $id)->latest('id')->first();
+    }
+
+    private static function pendingKey(string $id, MessageStatus $status): string
+    {
+        return 'whatsapp-status-pending:'.sha1($id).':'.$status->value;
+    }
+
+    /**
+     * تحديث شرطي في الاستعلام نفسه، فإشعاران متزامنان (أو إشعار وتطبيق المعلّق) لا يكتب أحدهما «سُلّمت» فوق «فشلت»
+     * قرأها الآخر قديمة. الفشل نهائي، والتقدم يمحو أي خطأ سابق فلا تُعرض «سُلّمت» برمز خطأ.
+     */
+    private static function transition(MessageLog $log, MessageStatus $new, string $error): int
+    {
+        $from = array_filter(MessageStatus::cases(), fn (MessageStatus $status): bool => $status !== MessageStatus::Failed
+            && ($new === MessageStatus::Failed || $status->rank() < $new->rank()));
+
+        $updated = MessageLog::query()->whereKey($log->getKey())
+            ->whereIn('status', array_map(fn (MessageStatus $status): string => $status->value, $from))
+            ->update(['status' => $new->value, 'error' => $new === MessageStatus::Failed ? $error : null]);
+
+        if ($updated > 0) {
+            $log->forceFill(['status' => $new, 'error' => $new === MessageStatus::Failed ? $error : null])->syncOriginal();
         }
 
-        if ($new->rank() <= $log->status->rank()) {
-            return 0;
-        }
-
-        // التقدم يمحو أي خطأ سابق، فلا تُعرض «سُلّمت» برمز خطأ
-        return (int) $log->update(['status' => $new, 'error' => null]);
+        return $updated;
     }
 }

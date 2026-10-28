@@ -30,7 +30,7 @@ class AssistantController extends Controller
         $ids = array_slice([...(array) $request->session()->get(self::SESSION_KEY, []), $answer['id']], -self::REMEMBERED);
         $request->session()->put(self::SESSION_KEY, $ids);
 
-        return response()->json([...$answer, 'contact_url' => route('contact', [], false)]);
+        return response()->json($answer);
     }
 
     public function rate(Request $request, string $answer, RateAssistantAnswer $action): JsonResponse

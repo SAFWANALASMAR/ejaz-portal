@@ -2,6 +2,7 @@
 
 use App\Actions\Assistant\SaveAssistantSettings;
 use App\Actions\Stats\RequestStatsAnalysis;
+use App\Contracts\AiAssistant;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Enums\SaudiRegion;
@@ -17,8 +18,11 @@ use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
 use App\Models\StatsAnalysis;
 use App\Models\User;
+use App\Services\Assistant\AssistantReply;
 use App\Services\Assistant\FakeAiAssistant;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
@@ -213,19 +217,90 @@ it('records each analysis request in the activity log', function () {
         ->and($activity->properties->all())->toBe(lastMonth());
 });
 
-it('marks a report stuck in the queue as failed, so the page stops polling', function () {
+it('stops polling for a report stuck in the queue, and a scheduled command, not the page, marks it as failed', function () {
     enableAnalysis();
     $member = userWithRole(RoleName::BoardMember);
     $stuck = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
-    $stuck->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+    $stuck->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
 
+    // مراجعة ما بعد v0.12.0 (مهمة ٢): العرض والاستطلاع لا يكتبان في القاعدة
     $this->actingAs($member)->get(StatsAnalysisPage::getUrl())->assertOk()->assertDontSee('wire:poll', false);
-    expect($stuck->fresh()->status)->toBe(StatsAnalysisStatus::Failed);
+    expect($stuck->fresh()->status)->toBe(StatsAnalysisStatus::Queued);
+
+    $fresh = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    $this->get(StatsAnalysisPage::getUrl())->assertSee('wire:poll', false);
+
+    $this->artisan('ejaz:fail-stale-analyses')->expectsOutput('1')->assertSuccessful();
+    expect($stuck->fresh()->status)->toBe(StatsAnalysisStatus::Failed)
+        ->and($fresh->fresh()->status)->toBe(StatsAnalysisStatus::Queued);
+    $fresh->delete();
 
     // وما يرمي من خطأ غير تعذّر المزود
     $other = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
     (new GenerateStatsAnalysis($other->id))->failed(new RuntimeException('boom'));
     expect($other->fresh()->status)->toBe(StatsAnalysisStatus::Failed);
+});
+
+it('does not write its report over a failure the scheduled command marked while the provider was answering', function () {
+    enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+
+    // المزود يجيب بعد أن علّم الأمر المجدول التقرير «تعذّر» (مراجعة ما بعد v0.12.0، مهمة ٢)
+    app()->instance(AiAssistant::class, new class($analysis->id) implements AiAssistant
+    {
+        public function __construct(private int $id) {}
+
+        public function answer(string $system, string $message): AssistantReply
+        {
+            StatsAnalysis::query()->whereKey($this->id)->update(['status' => StatsAnalysisStatus::Failed->value]);
+
+            return new AssistantReply(__('analysis.fake_report'), 10, 10);
+        }
+    });
+
+    app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+
+    expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Failed)
+        ->and($analysis->fresh()->report)->toBeNull();
+});
+
+// مراجعة الفرع: المهلة من بدء العامل لا من الطلب، فتقرير بدأ قرب المهلة بعد طابور مزدحم لا يُرمى وقد دُفع ثمنه
+it('keeps a report the worker started near the deadline, even when the scheduled command runs meanwhile', function () {
+    enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    // طُلب قبل تسع دقائق، والمزود يجيب بعد دقيقتين يمر فيهما الأمر المجدول
+    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES - 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES - 1)])->save();
+
+    app()->instance(AiAssistant::class, new class implements AiAssistant
+    {
+        public function answer(string $system, string $message): AssistantReply
+        {
+            Carbon::setTestNow(now()->addMinutes(2));
+            Artisan::call('ejaz:fail-stale-analyses');
+
+            return new AssistantReply(__('analysis.fake_report'), 10, 10);
+        }
+    });
+
+    app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+    Carbon::setTestNow();
+
+    expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Done);
+});
+
+// مراجعتا الفرع: ما تجاوز المهلة قبل أن يبدأه العامل «تعذّر» كما تعدّه الصفحة، فلا يُرسل إلى المزود ولا يُدفع له
+it('does not start a report that passed its deadline in the queue, and marks it as failed', function () {
+    $fake = enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+
+    app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+
+    expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Failed)
+        ->and($fake->requests)->toBe([]);
 });
 
 it('names only published programs and competitions', function () {
