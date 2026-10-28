@@ -104,7 +104,9 @@ it('still blocks password spraying from one address at the network ceiling', fun
 });
 
 it('tells the owner once a day, and answers the guesser as for any identifier', function () {
-    // عشر خاطئة، ثم القفل: الرد في الحالين واحد لمعرّف موجود وغيره
+    // عشر خاطئة، ثم القفل: الرد في الحالين واحد لمعرّف موجود وغيره. والوقت مجمّد، لأن رسالة القفل تحمل الثواني الباقية،
+    // فطلبان على جانبي حد ثانية يختلفان بثانية (899 و900) ولا خلل
+    $this->freezeTime();
     foreach (range(1, 12) as $i) {
         $known = challengedLogin('198.51.100.'.$i, 'student@example.test');
         $unknown = challengedLogin('198.51.100.'.$i, 'nobody@example.test');
