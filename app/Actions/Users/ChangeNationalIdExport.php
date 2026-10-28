@@ -5,6 +5,7 @@ namespace App\Actions\Users;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\CompetitionAccess;
 use App\Support\NationalIdExport;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,12 @@ class ChangeNationalIdExport
         // ولا لحساب معطّل، فلا يعود صامتاً بإعادة تفعيله (مراجعة المشرف)
         if ($granted && ! $user->is_active) {
             throw ValidationException::withMessages(['export_national_id' => __('users.national_id_export.not_for_inactive')]);
+        }
+
+        // ولا لمن لا يدير نتائج المسابقات ولا المسابقات نفسها (منشئاً)، فلا يُمنح خيار لا يصل به إلى نتائج فيبقى صامتاً حتى
+        // يُمنح دوراً لاحقاً (المراجعة المستقلة على v0.14.0)
+        if ($granted && ! CompetitionAccess::allows($user, 'competition.manage_results') && ! CompetitionAccess::allows($user, 'competitions.update')) {
+            throw ValidationException::withMessages(['export_national_id' => __('users.national_id_export.not_for_non_manager')]);
         }
 
         $granted

@@ -76,6 +76,8 @@ class CreateDemoStudentCompetition extends Command
             ]);
             $competition->save();
             $competition->openCategories()->sync(CompetitionCategory::query()->pluck('id')->all());
+            // الفئات المربوطة تدخل في الدرجات القصوى المخزنة لكل مرحلة (AttemptLayout::mixedMaxScores)
+            RoundQuestions::forgetCompetition($competition->id);
             CompetitionShortLink::assign($competition);
 
             return $competition;
