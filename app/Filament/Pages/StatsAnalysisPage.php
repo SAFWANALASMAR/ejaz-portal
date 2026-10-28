@@ -99,7 +99,7 @@ class StatsAnalysisPage extends Page
         return [
             'analyses' => StatsAnalysis::query()->latest('id')->limit(self::SHOWN)->get(),
             'polling' => StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)
-                ->where('created_at', '>=', now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES))->exists(),
+                ->where('updated_at', '>=', now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES))->exists(),
         ];
     }
 }

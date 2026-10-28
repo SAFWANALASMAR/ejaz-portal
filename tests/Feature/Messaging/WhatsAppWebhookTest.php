@@ -66,6 +66,23 @@ it('keeps a status that arrives before its message is recorded, and applies it o
         ->and($again->fresh()->status)->toBe(MessageStatus::Sent);
 });
 
+// مراجعتا الفرع: لكل حالة معلّقة مفتاحها، والتحديث شرطي في القاعدة، فلا تكتب «سُلّمت» فوق «فشلت» قرأها غيرها قديمة
+it('keeps both early statuses, and never writes a progress over a failure stored meanwhile', function () {
+    postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
+    postStatus(statusPayload([['id' => 'wamid.race', 'status' => 'delivered']]))->assertOk();
+
+    expect(app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000004', 'exam_receipt', fn () => 'wamid.race')->fresh())
+        ->status->toBe(MessageStatus::Failed)->error->toBe('meta:131026');
+
+    // «سُلّمت» معلّقة، والسجل في الذاكرة «أُرسلت» وفي القاعدة «فشلت» كتبها إشعار آخر بعد قراءته
+    postStatus(statusPayload([['id' => 'wamid.stale', 'status' => 'delivered']]))->assertOk();
+    $memory = sentWhatsApp('wamid.stale');
+    MessageLog::query()->whereKey($memory->id)->update(['status' => MessageStatus::Failed->value, 'error' => 'meta:1']);
+    HandleWhatsAppWebhook::applyPending($memory);
+
+    expect($memory->fresh())->status->toBe(MessageStatus::Failed)->error->toBe('meta:1');
+});
+
 it('updates delivery status forward only', function () {
     $log = sentWhatsApp();
 

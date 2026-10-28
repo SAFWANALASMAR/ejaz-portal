@@ -53,7 +53,9 @@ class GenerateStatsAnalysis implements ShouldQueue
     {
         $analysis = StatsAnalysis::query()->find($this->analysisId);
 
-        if ($analysis === null || $analysis->status !== StatsAnalysisStatus::Queued) {
+        // يُحجز عند البدء (updated_at)، ومهلة «تعذّر» تُحسب منه، فلا يعلّمه الأمر المجدول والمزود يكتبه بعد انتظار في
+        // طابور مزدحم، فيُدفع ثمنه ويُرمى (مراجعة الفرع)
+        if ($analysis === null || $this->finish([]) === 0) {
             return;
         }
 
@@ -95,15 +97,15 @@ class GenerateStatsAnalysis implements ShouldQueue
     }
 
     /**
-     * الحالة النهائية تُكتب مرة واحدة ما دام التقرير في الطابور، فلا يكتب العامل فوق «تعذّر» علّمه الأمر المجدول بعد
-     * المهلة، كما في failed() (مراجعة ما بعد v0.12.0، ملاحظة مهمة ٢).
+     * تحديث ما دام التقرير في الطابور، ومعه updated_at (يضيفه Eloquent): الحجز عند البدء بلا حقول، والحالة النهائية مرة
+     * واحدة، فلا يكتب العامل فوق «تعذّر» علّمه الأمر المجدول، كما في failed() (مراجعة ما بعد v0.12.0، ملاحظة مهمة ٢).
      *
      * @param  array<string, mixed>  $attributes
      */
-    private function finish(array $attributes): void
+    private function finish(array $attributes): int
     {
-        StatsAnalysis::query()->whereKey($this->analysisId)->where('status', StatsAnalysisStatus::Queued->value)
-            ->update([...$attributes, 'updated_at' => now()]);
+        return StatsAnalysis::query()->whereKey($this->analysisId)->where('status', StatsAnalysisStatus::Queued->value)
+            ->update($attributes);
     }
 
     /**

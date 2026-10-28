@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\Assistant\AssistantReply;
 use App\Services\Assistant\FakeAiAssistant;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
@@ -219,7 +220,7 @@ it('stops polling for a report stuck in the queue, and a scheduled command, not 
     enableAnalysis();
     $member = userWithRole(RoleName::BoardMember);
     $stuck = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
-    $stuck->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+    $stuck->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
 
     // مراجعة ما بعد v0.12.0 (مهمة ٢): العرض والاستطلاع لا يكتبان في القاعدة
     $this->actingAs($member)->get(StatsAnalysisPage::getUrl())->assertOk()->assertDontSee('wire:poll', false);
@@ -261,6 +262,28 @@ it('does not write its report over a failure the scheduled command marked while 
 
     expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Failed)
         ->and($analysis->fresh()->report)->toBeNull();
+});
+
+// مراجعة الفرع: المهلة من بدء العامل لا من الطلب، فتقرير بدأ قرب المهلة بعد طابور مزدحم لا يُرمى وقد دُفع ثمنه
+it('keeps a report the worker started near the deadline, even when the scheduled command runs meanwhile', function () {
+    enableAnalysis();
+    $member = userWithRole(RoleName::BoardMember);
+    $analysis = StatsAnalysis::query()->create(['requested_by' => $member->id, 'period_from' => now(), 'period_to' => now(), 'status' => StatsAnalysisStatus::Queued, 'figures' => []]);
+    $analysis->forceFill(['created_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1), 'updated_at' => now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES + 1)])->save();
+
+    app()->instance(AiAssistant::class, new class implements AiAssistant
+    {
+        public function answer(string $system, string $message): AssistantReply
+        {
+            Artisan::call('ejaz:fail-stale-analyses');
+
+            return new AssistantReply(__('analysis.fake_report'), 10, 10);
+        }
+    });
+
+    app()->call([new GenerateStatsAnalysis($analysis->id), 'handle']);
+
+    expect($analysis->fresh()->status)->toBe(StatsAnalysisStatus::Done);
 });
 
 it('names only published programs and competitions', function () {

@@ -88,17 +88,23 @@ class DeliverMessage
 
         $count();
 
-        // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها. وما سبق تسجيلَها من إشعارات واتساب يُطبَّق
+        // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها
         try {
             $log = $record(MessageStatus::Sent, $id !== null ? mb_substr($id, 0, 191) : null);
-            HandleWhatsAppWebhook::applyPending($log);
-
-            return $log;
         } catch (Throwable $exception) {
             report($exception);
 
             return new MessageLog(['channel' => $channel, 'provider' => $provider, 'usage' => $usage, 'phone_hint' => MessageLog::hint($phone), 'status' => MessageStatus::Sent]);
         }
+
+        // وما سبق تسجيلَها من إشعارات واتساب يُطبَّق، وتعذّره (الذاكرة المؤقتة) لا يغيّر السجل المُعاد
+        try {
+            HandleWhatsAppWebhook::applyPending($log);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return $log;
     }
 
     /**

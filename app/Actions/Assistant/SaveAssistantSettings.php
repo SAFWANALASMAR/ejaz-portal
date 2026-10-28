@@ -128,8 +128,9 @@ class SaveAssistantSettings
             }],
             'api_key' => ['nullable', 'string', 'max:500', 'regex:/^[\x21-\x7E]+$/'],
             'clear_api_key' => ['boolean'],
-            // سقف صفر يشغّل التوليد ولا يجيب أبداً، فالإيقاف بمفتاحه لا بالسقف (مراجعة ما بعد v0.12.0)
-            'monthly_cap' => ['nullable', 'numeric', 'gt:0', 'max:100000'],
+            // سقف صفر يشغّل التوليد ولا يجيب أبداً، فالإيقاف بمفتاحه لا بالسقف (مراجعة ما بعد v0.12.0). وأقله 0.01 لأن العمود
+            // بخانتين عشريتين، فما دونه يُحفظ صفراً
+            'monthly_cap' => ['nullable', 'numeric', 'min:0.01', 'max:100000'],
             'input_price' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'output_price' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'welcome_text' => ['nullable', 'string', 'max:600', new PlainText(multiline: true)],

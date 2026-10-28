@@ -21,7 +21,8 @@ class FailStaleAnalyses extends Command
     {
         $failed = StatsAnalysis::query()
             ->where('status', StatsAnalysisStatus::Queued->value)
-            ->where('created_at', '<', now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES))
+            // من آخر حركة: الطلب، أو بدء العامل (GenerateStatsAnalysis يحجزه)
+            ->where('updated_at', '<', now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES))
             ->update(['status' => StatsAnalysisStatus::Failed->value]);
 
         $this->info((string) $failed);
