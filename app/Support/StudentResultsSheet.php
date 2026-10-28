@@ -119,7 +119,7 @@ final class StudentResultsSheet
                 });
 
             $writer->close();
-        }, 'results-'.$competition->slug.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }, 'results-'.$competition->slug.($full ? '-full' : '').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     /**

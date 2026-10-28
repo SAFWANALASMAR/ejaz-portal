@@ -24,10 +24,12 @@ services:
       timeout: 5s
       retries: 20
 
+  # مؤقت: حاوية لكل مهمة من حلقة register.sh (docker compose run --rm)، فلا يشغّله up ولا يعيده Docker وحده
   runner:
     build: .
     image: ejaz-ci-runner:2.338.0
-    restart: unless-stopped
+    profiles: [ephemeral]
+    stdin_open: true
     network_mode: service:dind
     depends_on:
       dind:
@@ -39,9 +41,9 @@ services:
       RUNNER_NAME: ${RUNNER_NAME:-ejaz-local}
       # self-hosted وLinux وX64 يضيفها GitHub بنفسه
       RUNNER_LABELS: ejaz
+    # وتسجيل المشغّل الدائم القديم (state) لا يُركَّب في حاوية مهمة، فلا تقرؤه: يركّبه register.sh remove وحده
     volumes:
       - work:/ejaz-ci
-      - state:/ejaz-ci-state
 
 volumes:
   docker-data:
