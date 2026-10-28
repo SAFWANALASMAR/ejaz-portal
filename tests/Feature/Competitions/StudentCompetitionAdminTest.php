@@ -56,7 +56,6 @@ use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use OpenSpout\Common\Entity\Row;
-use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Writer\XLSX\Writer;
 use Spatie\Activitylog\Models\Activity;
 
@@ -105,28 +104,6 @@ function questionsXlsx(array $rows): string
     $writer->close();
 
     return $path;
-}
-
-/**
- * @return list<list<string>>
- */
-function readXlsx(string $contents): array
-{
-    $path = tempnam(sys_get_temp_dir(), 'r').'.xlsx';
-    file_put_contents($path, $contents);
-    $reader = new Reader;
-    $reader->open($path);
-    $rows = [];
-
-    foreach ($reader->getSheetIterator() as $sheet) {
-        foreach ($sheet->getRowIterator() as $row) {
-            $rows[] = array_map(fn ($value): string => (string) $value, $row->toArray());
-        }
-    }
-
-    $reader->close();
-
-    return $rows;
 }
 
 it('creates a student competition through the save action, recording its creator and open categories', function () {
