@@ -48,9 +48,12 @@ bash deploy/ci-runner/register.sh     # الحلقة: تبقى تعمل في ن�
 مرة واحدة:
 
 ```bash
-bash deploy/ci-runner/register.sh remove   # يلغي التسجيل الدائم القديم ويوقف الحاويتين
+bash deploy/ci-runner/register.sh remove   # يلغي التسجيل الدائم القديم، ويوقف حاوية المشغّل القديمة وdind ويحذفهما، ويحذف مجلد التسجيل state وحده
 bash deploy/ci-runner/register.sh          # الحلقة المؤقتة
 ```
+
+- **قبله:** أوقف الحلقة إن كانت تعمل، وانتظر أن يفرغ المشغّل من مهمته. فـ GitHub ترفض إلغاء تسجيل مشغّل ينفّذ مهمة («is currently running a job and cannot be deleted»)، ولا يتغير شيء حينها، فيُعاد الأمر بعد انتهائها.
+- **مجلدا `docker-data` و`work`** لا يحذفهما: الحلقة تعيد إنشاءهما قبل كل مهمة.
 
 ## الرمز
 
