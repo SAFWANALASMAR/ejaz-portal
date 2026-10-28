@@ -36,7 +36,7 @@
 1. **الترحيل:** `2026_10_28_090000_remove_view_national_id_permission` (يحذف صلاحية بلا أثر وربطها). يشغّله `scripts/deploy-compose.sh`.
 2. **المتغيرات** (اختيارية بقيمها الافتراضية، وفي `.env.production.example`): `LOGIN_CHALLENGE_SMS_PER_ACCOUNT_PER_WEEK=2`، و`NATIONAL_ID_REVEALS_PER_HOUR=60`. و`BOT_CHALLENGE_CEILING_FACTOR` صار لحدود الشبكة وحدها.
 3. **بعد النشر:** السكربت يشغّل `ejaz:refresh-content`، فيمسح بنوك المراحل القديمة المخزنة بلا مدة وما بُني منها.
-4. **المشغّل المحلي على جهاز صفوان، مرة:** `bash deploy/ci-runner/register.sh remove` ثم `bash deploy/ci-runner/register.sh` (الحلقة). وبعد إعادة تشغيل الجهاز تُشغَّل الحلقة يدوياً أو بمهمة مجدولة (`docs/deploy/ci-runner.md`).
+4. **المشغّل المحلي على جهاز صفوان، مرة:** `bash deploy/ci-runner/register.sh remove` ثم `bash deploy/ci-runner/register.sh` (الحلقة). وبعد إعادة تشغيل الجهاز تُشغَّل الحلقة يدوياً، بلا مهمة مجدولة (قرار صفوان، `docs/deploy/ci-runner.md`).
 
 ## [0.14.0] — 2026-10-27
 
