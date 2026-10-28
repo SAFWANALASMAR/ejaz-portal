@@ -504,7 +504,9 @@ it('gives the technical admin the full national ID and the results operations, a
     $super = userWithRole(RoleName::SuperAdmin);
     $submission = submissionOf(registeredStudent($this->competition, 3));
 
-    expect($technical->checkPermissionTo('competition.view_national_id'))->toBeTrue()
+    app(RevealStudentIdentity::class)->confirm($technical, $this->competition, 'password');
+
+    expect($technical->checkPermissionTo('competition.export_national_id'))->toBeTrue()
         ->and($technical->checkPermissionTo('competition.manage_results'))->toBeTrue()
         ->and(app(RevealStudentIdentity::class)->handle($technical, $submission)['national_id'])->toBe(studentNationalId(3))
         ->and(fn () => app(RevealStudentIdentity::class)->handle($super, $submission))->toThrow(AuthorizationException::class);
@@ -546,6 +548,72 @@ it('computes the category maximum check once and keeps it until the bank changes
     $this->actingAs($this->director);
     Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
         ->assertSee(__('competitions.student.bank_ready'));
+});
+
+it('recomputes the category maximums under the new name when a category is renamed', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->sole();
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $this->competition->openCategories()->sync([$middle->id, $secondary]);
+    studentQuestion($this->round, ['category_id' => $middle->id, 'points' => 1]);
+    studentQuestion($this->round, ['category_id' => $secondary, 'points' => 3]);
+
+    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة المتوسطة');
+
+    $middle->update(['name' => 'المرحلة المتوسطة (معدّلة)']);
+
+    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة المتوسطة (معدّلة)')
+        ->not->toHaveKey('المرحلة المتوسطة');
+
+    // وتعديل الترتيب وحده لا يفرّغ البنوك أثناء النافذة
+    $key = RoundQuestions::key($this->round->id);
+    $middle->update(['sort_order' => 99]);
+
+    expect(RoundQuestions::key($this->round->id))->toBe($key);
+});
+
+it('refreshes the content and renames a category while a soft-deleted competition still holds rounds', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->sole();
+    $this->competition->openCategories()->sync([$middle->id]);
+    studentQuestion($this->round, ['category_id' => $middle->id]);
+    AttemptLayout::mixedMaxScores($this->round->fresh());
+    $this->competition->delete();
+
+    $this->artisan('ejaz:refresh-content')->assertSuccessful();
+    $middle->update(['name' => 'المرحلة المتوسطة (بعد الحذف)']);
+
+    expect($middle->fresh()->name)->toBe('المرحلة المتوسطة (بعد الحذف)');
+});
+
+it('keeps the bank and its checks a day at most, and drops the old version checks when the bank changes', function () {
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
+    $this->competition->openCategories()->sync([$middle, $secondary]);
+    studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);
+    $other = studentQuestion($this->round, ['category_id' => $secondary, 'points' => 3]);
+    $round = $this->round->fresh();
+    $bankKey = RoundQuestions::key($round->id);
+
+    expect(AttemptLayout::mixedMaxScores($round))->not->toBe([])
+        ->and(AttemptLayout::shortfall($round, $middle))->toBeNull()
+        ->and(Cache::has('competition-round-mixed-max:'.$bankKey.':'.$round->question_count))->toBeTrue()
+        ->and(Cache::has('competition-round-shortfall:'.$bankKey.':'.$round->question_count.':'.$middle))->toBeTrue();
+
+    // بلا مدة كان يبقى حتى يُمسح: الآن يوم ثم يُعاد بناؤه
+    $this->travel(RoundQuestions::TTL + 1)->seconds();
+
+    expect(Cache::has($bankKey))->toBeFalse()
+        ->and(Cache::has('competition-round-mixed-max:'.$bankKey.':'.$round->question_count))->toBeFalse()
+        ->and(Cache::has('competition-round-shortfall:'.$bankKey.':'.$round->question_count.':'.$middle))->toBeFalse();
+
+    // ومسح البنك يحذف ما بُني من إصداره القديم قبل انتهاء مدته
+    $this->travelBack();
+    AttemptLayout::mixedMaxScores($round);
+    $other->forceFill(['points' => 1])->save();
+    RoundQuestions::forget($round->id);
+
+    expect(Cache::has('competition-round-mixed-max:'.$bankKey.':'.$round->question_count))->toBeFalse()
+        ->and(Cache::has('competition-round-shortfall:'.$bankKey.':'.$round->question_count.':'.$middle))->toBeFalse()
+        ->and(Cache::has('competition-round-shortfall:'.$bankKey.':'.$round->question_count.':'.$secondary))->toBeFalse();
 });
 
 it('keeps the ranking scope and prizes locked after the last branch is published, even when a branch is added', function () {

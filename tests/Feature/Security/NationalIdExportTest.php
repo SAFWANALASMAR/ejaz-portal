@@ -27,6 +27,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use OpenSpout\Reader\XLSX\Reader;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Permission;
 
 /*
 | تصدير نتائج مسابقة الطلاب برقم الهوية (ملاحظة الاختبار الشامل 10، 26 أكتوبر 2026): التصدير الافتراضي مقنّع لكل من
@@ -87,7 +88,7 @@ function nationalIdExports(Competition $competition): array
 
 it('masks the national ID and guardian phone in the default export for everyone who may export, system admins included', function () {
     $resultsOnly = User::factory()->create();
-    $resultsOnly->givePermissionTo(['competition.manage_results', 'competition.view_national_id']);
+    $resultsOnly->givePermissionTo('competition.manage_results');
     $exporters = [$this->director, userWithRole(RoleName::TechnicalAdmin), $this->creator, $resultsOnly];
 
     foreach (nationalIdExports($this->competition) as $export) {
@@ -104,9 +105,9 @@ it('masks the national ID and guardian phone in the default export for everyone 
 });
 
 it('refuses the full export to whoever lacks competition.export_national_id, whatever else they hold', function () {
-    // منشئ المسابقة يدير نتائجها، ومن يطّلع على رقم واحد بسجله لا يصدّر الكل، والمشرف العام اطلاع فقط
+    // منشئ المسابقة يدير نتائجها، ومن يدير النتائج بصلاحيته وحدها لا يصدّر الكل، والمشرف العام اطلاع فقط
     $revealer = User::factory()->create();
-    $revealer->givePermissionTo(['competition.manage_results', 'competition.view_national_id']);
+    $revealer->givePermissionTo('competition.manage_results');
     $super = userWithRole(RoleName::SuperAdmin);
 
     foreach (nationalIdExports($this->competition) as $export) {
@@ -209,10 +210,10 @@ it('shows the full export buttons to system admins alone, and downloads only wit
         ->assertNotified(__('auth.password'))
         ->assertNoFileDownloaded();
     $results()->callAction(TestAction::make('export_full')->table(), ['password' => 'password'])
-        ->assertFileDownloaded('results-students.xlsx');
+        ->assertFileDownloaded('results-students-full.xlsx');
     Livewire::test(CumulativeRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
         ->callAction(TestAction::make('export_cumulative_full')->table(), ['password' => 'password'])
-        ->assertFileDownloaded('cumulative-students.xlsx');
+        ->assertFileDownloaded('cumulative-students-full.xlsx');
 
     expect(Activity::query()->where('event', 'competition_results_exported')->pluck('properties')->pluck('full_identity')->all())->toBe([true, true]);
 });
@@ -378,4 +379,48 @@ it('drops a direct grant when the account is given the super admin role, with a 
         ->and($revoked->causer_id)->toBe($this->director->id)
         ->and($revoked->subject_id)->toBe($this->creator->id)
         ->and($revoked->properties['reason'])->toBe('super_admin');
+});
+
+it('names the full export file apart from the masked one', function () {
+    $this->actingAs($this->director);
+
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->callAction(TestAction::make('export')->table())
+        ->assertFileDownloaded('results-students.xlsx');
+    Livewire::test(ResultsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
+        ->callAction(TestAction::make('export_full')->table(), ['password' => 'password'])
+        ->assertFileDownloaded('results-students-full.xlsx');
+});
+
+it('removes the old single-ID permission from the database, with its grants', function () {
+    $permission = Permission::findOrCreate('competition.view_national_id', 'web');
+    $holder = User::factory()->create();
+    $holder->givePermissionTo($permission);
+
+    (require database_path('migrations/2026_10_28_090000_remove_view_national_id_permission.php'))->up();
+
+    expect(Permission::query()->where('name', 'competition.view_national_id')->exists())->toBeFalse()
+        ->and($holder->fresh()->getAllPermissions()->pluck('name'))->not->toContain('competition.view_national_id')
+        ->and(config('permissions.modules.competition'))->toBeArray()->not->toContain('view_national_id');
+});
+
+it('refuses the full export option to a user who manages neither competition results nor competitions', function () {
+    $staff = userWithRole(RoleName::Accountant);
+    $plain = User::factory()->create();
+
+    foreach ([$staff, $plain] as $user) {
+        expect(fn () => app(ChangeNationalIdExport::class)->handle($this->director, $user, true))
+            ->toThrow(ValidationException::class, __('users.national_id_export.not_for_non_manager'))
+            ->and($user->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse();
+    }
+
+    // ومن الشاشة: رسالة على الحقل، ولا شيء يُحفظ
+    $this->actingAs($this->director);
+    Livewire::test(EditUser::class, ['record' => $staff->getRouteKey()])
+        ->fillForm(['export_national_id' => true])
+        ->call('save')
+        ->assertHasFormErrors(['export_national_id']);
+
+    expect($staff->fresh()->hasDirectPermission(NationalIdExport::PERMISSION))->toBeFalse()
+        ->and(Activity::query()->where('event', 'national_id_export_granted')->count())->toBe(0);
 });
