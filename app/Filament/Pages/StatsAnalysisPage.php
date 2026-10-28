@@ -88,21 +88,18 @@ class StatsAnalysisPage extends Page
     }
 
     /**
-     * آخر التقارير، وهل يُستطلع لتقرير حديث في الطابور. والمعلّق منذ أكثر من مهلته «تعذّر» (مات العامل أو توقف الطابور)،
-     * فلا تستطلع الصفحة بلا نهاية. وفي بيانات القالب لا في دوال عامة يناديها المتصفح.
+     * آخر التقارير، وهل يُستطلع لتقرير حديث في الطابور. والمعلّق منذ أكثر من مهلته لا يُستطلع له، فلا تستطلع الصفحة بلا
+     * نهاية، ويعلّمه «تعذّر» أمر مجدول لا العرض (ejaz:fail-stale-analyses). وفي بيانات القالب لا في دوال عامة يناديها
+     * المتصفح.
      *
      * @return array{analyses: Collection<int, StatsAnalysis>, polling: bool}
      */
     protected function getViewData(): array
     {
-        $stale = now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES);
-
-        StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)->where('created_at', '<', $stale)
-            ->update(['status' => StatsAnalysisStatus::Failed->value]);
-
         return [
             'analyses' => StatsAnalysis::query()->latest('id')->limit(self::SHOWN)->get(),
-            'polling' => StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)->exists(),
+            'polling' => StatsAnalysis::query()->where('status', StatsAnalysisStatus::Queued->value)
+                ->where('created_at', '>=', now()->subMinutes(GenerateStatsAnalysis::STALE_MINUTES))->exists(),
         ];
     }
 }

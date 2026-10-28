@@ -142,7 +142,7 @@ class AssistantSettingsPage extends Page
                         TextInput::make('monthly_cap')->label(__('assistant.admin.settings.monthly_cap'))
                             ->helperText(__('assistant.admin.settings.monthly_cap_hint').' '.__('assistant.admin.settings.month_cost', ['cost' => number_format(AssistantUsage::monthCost(), 2)]))
                             ->numeric()
-                            ->minValue(0)
+                            ->rule('gt:0')
                             ->maxValue(100000),
                         Section::make()->description(__('assistant.admin.settings.prices_hint'))->columns(2)->schema([
                             TextInput::make('input_price')->label(__('assistant.admin.settings.input_price'))->numeric()->minValue(0)->maxValue(10000),

@@ -60,7 +60,7 @@ class GenerateStatsAnalysis implements ShouldQueue
         $settings = AssistantSettings::current();
 
         if (! RequestStatsAnalysis::available($settings) || ! $budget->allows($settings) || ! $budget->takeSlot()) {
-            $analysis->update(['status' => StatsAnalysisStatus::Failed]);
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value]);
 
             return;
         }
@@ -77,7 +77,7 @@ class GenerateStatsAnalysis implements ShouldQueue
         }
 
         if ($reply === null || AnswerComposer::isNoAnswer($reply->text)) {
-            $analysis->update(['status' => StatsAnalysisStatus::Failed, ...($usage ?? [])]);
+            $this->finish(['status' => StatsAnalysisStatus::Failed->value, ...($usage ?? [])]);
 
             return;
         }
@@ -85,13 +85,25 @@ class GenerateStatsAnalysis implements ShouldQueue
         $cost = $budget->cost($settings, $reply->inputTokens, $reply->outputTokens);
         $budget->record($cost);
 
-        $analysis->update([
-            'status' => StatsAnalysisStatus::Done,
+        $this->finish([
+            'status' => StatsAnalysisStatus::Done->value,
             'report' => AnswerComposer::clean($reply->text),
             'input_tokens' => $reply->inputTokens,
             'output_tokens' => $reply->outputTokens,
             'cost' => $cost,
         ]);
+    }
+
+    /**
+     * الحالة النهائية تُكتب مرة واحدة ما دام التقرير في الطابور، فلا يكتب العامل فوق «تعذّر» علّمه الأمر المجدول بعد
+     * المهلة، كما في failed() (مراجعة ما بعد v0.12.0، ملاحظة مهمة ٢).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function finish(array $attributes): void
+    {
+        StatsAnalysis::query()->whereKey($this->analysisId)->where('status', StatsAnalysisStatus::Queued->value)
+            ->update([...$attributes, 'updated_at' => now()]);
     }
 
     /**

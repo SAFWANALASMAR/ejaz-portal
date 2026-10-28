@@ -18,6 +18,7 @@ use App\Models\Program;
 use App\Support\ContentBlocks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * فهرس المساعد: مقاطع من المحتوى المنشور وحده، بعنوانه ورابطه في الموقع ونصه المطبَّع (requirements/10).
@@ -58,7 +59,8 @@ final class AssistantIndex
     }
 
     /**
-     * يعيد مقاطع سجل واحد بعد اعتماد المعاملة: يحذف القديمة، ويضيف الجديدة إن كان منشوراً.
+     * يعيد مقاطع سجل واحد بعد اعتماد المعاملة: يحذف القديمة، ويضيف الجديدة إن كان منشوراً. والمحتوى محفوظ قبلها، فتعذّرها
+     * يُبلَّغ ولا يرد على صاحب الحفظ بخطأ، وإعادة البناء الليلية تصلح الفهرس (مراجعة ما بعد v0.12.0، محتملة ٤).
      */
     public static function sync(Model $model): void
     {
@@ -69,11 +71,15 @@ final class AssistantIndex
         }
 
         DB::afterCommit(function () use ($model, $source): void {
-            DB::transaction(function () use ($model, $source): void {
-                self::lock();
-                AssistantChunk::query()->where('source_type', $source->value)->where('source_id', $model->getKey())->delete();
-                self::insert($source, $model);
-            });
+            try {
+                DB::transaction(function () use ($model, $source): void {
+                    self::lock();
+                    AssistantChunk::query()->where('source_type', $source->value)->where('source_id', $model->getKey())->delete();
+                    self::insert($source, $model);
+                });
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         });
     }
 

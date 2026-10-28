@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Assembly\CancelMeeting;
 use App\Actions\Assembly\RetryOnlineMeeting;
 use App\Actions\Settings\TestOnlineMeetingsConnection;
 use App\Actions\Settings\UpdateOnlineMeetingSettings;
@@ -17,6 +18,7 @@ use App\Models\Setting;
 use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Support\TeamsConnection;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Bus;
@@ -247,6 +249,19 @@ it('shows an unexpected error after the last attempt', function () {
     expect($meeting->fresh()->online_sync_error)->toBe(OnlineMeetingFailure::Unexpected);
 });
 
+// مراجعة ما بعد v0.12.0: ملغى أو محذوف تعذّر ربطه ولا رابط له لا يبقى «متعذراً»
+it('clears the failure of a meeting cancelled or deleted before it ever got a Teams link', function () {
+    $cancelled = Meeting::factory()->online()->create(['starts_at' => now()->subDay(), 'online_sync_error' => OnlineMeetingFailure::NotConfigured, 'online_sync_failed_at' => now()]);
+    $deleted = Meeting::factory()->online()->create(['online_sync_error' => OnlineMeetingFailure::NotConfigured, 'online_sync_failed_at' => now()]);
+
+    app(CancelMeeting::class)->handle(userWithRole(RoleName::Secretary), $cancelled);
+    $deleted->delete();
+
+    expect($cancelled->fresh())->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse()
+        ->and(Meeting::withTrashed()->find($deleted->id))->online_sync_error->toBeNull()->needsOnlineSync()->toBeFalse();
+    Http::assertNothingSent();
+});
+
 it('touches no Teams settings for a meeting in a hall', function () {
     $meeting = Meeting::factory()->create();
 
@@ -340,6 +355,17 @@ it('saves the secret encrypted, never logs it, and never sends it back to the br
 
     expect(TeamsConnection::current())->secret()->toBe($this->secret)->organizer->toBe('meetings@ejaz.example')
         ->and(Activity::where('event', ActivityEvent::OnlineMeetingsSettingsUpdated->value)->latest('id')->first()->properties['secret_changed'])->toBeFalse();
+});
+
+// مراجعة ما بعد v0.12.0: الحفظ وسجله في معاملة واحدة
+it('saves no Teams settings when their activity entry cannot be written', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    DB::statement('alter table activity_log rename to activity_log_away');
+
+    expect(fn () => app(UpdateOnlineMeetingSettings::class)->handle($admin, ['enabled' => false, 'organizer' => 'organizer@ejaz.example']))
+        ->toThrow(QueryException::class);
+
+    expect(DB::table('settings')->where('key', TeamsConnection::SETTING)->exists())->toBeFalse();
 });
 
 it('refuses an incomplete or malformed connection, and drops the typed secret anyway', function (array $data, string $field) {

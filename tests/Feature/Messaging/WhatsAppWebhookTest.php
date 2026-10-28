@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Messaging\DeliverMessage;
 use App\Actions\Messaging\HandleWhatsAppWebhook;
 use App\Enums\ActivityEvent;
 use App\Enums\MessageStatus;
@@ -46,6 +47,23 @@ function sentWhatsApp(string $id = 'wamid.1'): MessageLog
 it('answers the subscription check with the right token only', function () {
     $this->get('/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=1158201444')->assertOk()->assertSeeText('1158201444');
     $this->get('/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=1158201444')->assertForbidden();
+});
+
+// مراجعة ما بعد v0.12.0 (محتملة ٥): الإشعار قد يصل والإرسال لم يرجع بعد، فلا يضيع
+it('keeps a status that arrives before its message is recorded, and applies it once the message is recorded', function () {
+    postStatus(statusPayload([['id' => 'wamid.early', 'status' => 'delivered'], ['id' => 'wamid.early', 'status' => 'read']]))->assertOk();
+
+    $log = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000001', 'exam_receipt', fn () => 'wamid.early');
+
+    expect($log->fresh()->status)->toBe(MessageStatus::Read);
+
+    // ويُطبَّق مرة: رسالة أخرى بالمعرّف نفسه لا ترثه، والفشل المبكر برمزه
+    postStatus(statusPayload([['id' => 'wamid.failed', 'status' => 'failed', 'errors' => [['code' => 131026]]]]))->assertOk();
+    $failed = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000002', 'exam_receipt', fn () => 'wamid.failed');
+    $again = app(DeliverMessage::class)->handle(MessagingChannel::WHATSAPP, '0500000003', 'exam_receipt', fn () => 'wamid.early');
+
+    expect($failed->fresh())->status->toBe(MessageStatus::Failed)->error->toBe('meta:131026')
+        ->and($again->fresh()->status)->toBe(MessageStatus::Sent);
 });
 
 it('updates delivery status forward only', function () {

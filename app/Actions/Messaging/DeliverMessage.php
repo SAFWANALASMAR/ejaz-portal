@@ -88,9 +88,12 @@ class DeliverMessage
 
         $count();
 
-        // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها
+        // الرسالة أُرسلت فعلاً: فشل تسجيلها لا يُرمى، وإلا أعادت المهمة إرسالها. وما سبق تسجيلَها من إشعارات واتساب يُطبَّق
         try {
-            return $record(MessageStatus::Sent, $id !== null ? mb_substr($id, 0, 191) : null);
+            $log = $record(MessageStatus::Sent, $id !== null ? mb_substr($id, 0, 191) : null);
+            HandleWhatsAppWebhook::applyPending($log);
+
+            return $log;
         } catch (Throwable $exception) {
             report($exception);
 

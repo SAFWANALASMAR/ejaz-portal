@@ -226,6 +226,8 @@ it('validates the provider settings', function (array $data) {
     'key with spaces' => [['api_key' => 'sk key']],
     'too many suggestions' => [['suggested_questions' => array_fill(0, 7, 'سؤال')]],
     'retention too long' => [['log_retention_days' => 99999]],
+    // سقف صفر يشغّل التوليد ولا يجيب أبداً (مراجعة ما بعد v0.12.0)
+    'zero monthly cap' => [['monthly_cap' => 0]],
 ]);
 
 it('accepts only https base URLs in production', function () {

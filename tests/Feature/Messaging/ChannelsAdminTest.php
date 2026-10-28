@@ -59,6 +59,34 @@ it('saves the provider with an encrypted key that never shows or logs', function
     $this->get(MessagingChannels::getUrl())->assertOk()->assertDontSee(CHANNELS_TEST_KEY)->assertSee(__('messaging.fields.secret_stored'));
 });
 
+// مراجعة ما بعد v0.12.0 (مهمة ٣): أول حفظ لا يثبّت قيمة البيئة لاستعمال لم يلمسه المسؤول
+it('leaves an untouched use to its server key, and keeps a use the admin changed', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $action = app(UpdateMessagingChannels::class);
+    config(['services.sms.request_updates' => true, 'competitions.exam.whatsapp' => false]);
+
+    $action->handle($admin, [
+        'sms' => ['provider' => 'taqnyat', 'sender' => 'EJAZ', 'usages' => ['request_updates' => true]],
+        'whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]],
+    ]);
+
+    expect(MessagingChannel::for('sms')->option('usages'))->toBe([])
+        ->and(MessagingChannel::for('whatsapp')->option('usages'))->toBe([]);
+
+    config(['services.sms.request_updates' => false, 'competitions.exam.whatsapp' => true]);
+    expect(MessagingSettings::usageEnabled('sms', 'request_updates'))->toBeFalse()
+        ->and(MessagingSettings::usageEnabled('whatsapp', 'exam_receipt'))->toBeTrue();
+
+    // والمسؤول يطفئ ما في البيئة مشغّلاً: يُحفظ، ويبقى محفوظاً ولو وافق البيئة بعدها
+    $action->handle($admin, ['whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]]]);
+    config(['competitions.exam.whatsapp' => false]);
+    $action->handle($admin, ['whatsapp' => ['provider' => 'cloud', 'usages' => ['exam_receipt' => false]]]);
+    config(['competitions.exam.whatsapp' => true]);
+
+    expect(MessagingChannel::for('whatsapp')->option('usages'))->toBe(['exam_receipt' => false])
+        ->and(MessagingSettings::usageEnabled('whatsapp', 'exam_receipt'))->toBeFalse();
+});
+
 it('keeps a stored key when the field is left empty, and clears it on request', function () {
     $admin = userWithRole(RoleName::TechnicalAdmin);
     $action = app(UpdateMessagingChannels::class);
