@@ -19,7 +19,7 @@
                         <li>
                             <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
                                 <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white" aria-hidden="true">
-                                    {{ svg('heroicon-o-'.$entry['icon'], 'size-6') }}
+                                    {{ \App\Support\Icon::svg($entry['icon'], 'size-6') }}
                                 </span>
                                 <span class="text-lg font-bold text-ink">{{ $entry['label'] }}</span>
                             </a>

@@ -19,7 +19,7 @@
             <span class="font-bold leading-7 text-ink">{{ $announcement->title }}</span>
             @if ($href)
                 <span class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
-                    {{ svg($external ? 'heroicon-o-arrow-up-left' : 'heroicon-o-arrow-left', 'size-4') }}
+                    {{ \App\Support\Icon::svg($external ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                 </span>
             @endif
         </span>

@@ -30,7 +30,7 @@
                         @endif
                         <span class="absolute inset-0 bg-primary-dark/40" aria-hidden="true"></span>
                         <span class="relative inline-flex size-20 items-center justify-center rounded-full bg-white/20 backdrop-blur transition group-hover:bg-white/30" aria-hidden="true">
-                            {{ svg('heroicon-s-play', 'size-10') }}
+                            {{ \App\Support\Icon::solid('play', 'size-10') }}
                         </span>
                         <span class="relative text-lg font-semibold">{{ __('library.item.play') }}</span>
                         <span class="relative text-sm text-white/85">{{ __('library.item.youtube_notice') }}</span>

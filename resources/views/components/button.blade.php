@@ -33,14 +33,14 @@
     <a href="{{ $href }}" @navigate($attributes->has('target') ? null : $href) {{ $attributes->merge(['class' => $classes]) }}>
         {{ $slot }}
         @if ($arrow)
-            {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0') }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0') }}
         @endif
     </a>
 @else
     <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }}>
         {{ $slot }}
         @if ($arrow)
-            {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0') }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0') }}
         @endif
     </button>
 @endif

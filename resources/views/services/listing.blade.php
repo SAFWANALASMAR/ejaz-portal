@@ -21,14 +21,14 @@
                         <li>
                             <a href="{{ route('services.openings.show', $opening->slug) }}" wire:navigate
                                 class="group flex h-full flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-                                <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$kind->icon(), 'size-8') }}</span>
+                                <span class="text-accent" aria-hidden="true">{{ \App\Support\Icon::svg($kind->icon(), 'size-8') }}</span>
                                 <span class="mt-3 block text-lg font-bold text-ink">{{ $opening->title }}</span>
                                 @if (filled($opening->summary))
                                     <span class="mt-2 block text-sm leading-6 text-muted">{{ $opening->summary }}</span>
                                 @endif
                                 <span class="mt-auto flex items-center justify-between gap-3 pt-5 text-sm text-muted">
                                     <span class="flex items-center gap-1.5">
-                                        {{ svg('heroicon-o-calendar', 'size-4') }}
+                                        {{ \App\Support\Icon::svg('calendar', 'size-4') }}
                                         @if ($opening->closes_at)
                                             {{ __('services.listing.closes_at') }}: {{ Dates::display($opening->closes_at) }}
                                         @else
@@ -36,7 +36,7 @@
                                         @endif
                                     </span>
                                     <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
-                                        {{ svg('heroicon-o-arrow-left', 'size-4') }}
+                                        {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
                                     </span>
                                 </span>
                             </a>

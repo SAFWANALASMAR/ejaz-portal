@@ -6,6 +6,7 @@ use App\Enums\LibrarySection;
 use App\Enums\PartnerKind;
 use App\Enums\SiteIcon;
 use App\Filament\Pages\SiteSettings;
+use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\Announcement;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
@@ -67,6 +68,7 @@ class BuildHomePage
      *     content: array<string, mixed>,
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null}|null,
      *     video: string|null,
+     *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
      *     shortcuts: list<array{key: string, icon: string, url: string, external: bool}>,
      *     initiatives: Collection<int, Initiative>,
@@ -86,7 +88,9 @@ class BuildHomePage
             'content' => HomeContent::resolved(),
             'hero' => self::shows($home, 'hero', false) ? self::hero($home) : null,
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
-            'video' => self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
+            'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
+            // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
+            'video_thumbnail' => $video !== null ? FetchHomeVideoThumbnail::url($video) : null,
             'stats' => self::shows($home, 'stats', false) ? self::stats($home) : [],
             'shortcuts' => self::shows($home, 'shortcuts', false) ? self::shortcuts() : [],
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات

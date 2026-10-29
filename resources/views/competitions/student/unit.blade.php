@@ -37,7 +37,7 @@
                             data-video-title="{{ __('competitions.student.video_player') }}"
                             class="group flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl bg-primary-dark p-6 text-center text-white">
                             <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-white/20" aria-hidden="true">
-                                {{ svg('heroicon-s-play', 'size-8') }}
+                                {{ \App\Support\Icon::solid('play', 'size-8') }}
                             </span>
                             <span class="font-semibold">{{ __('competitions.student.play_video') }}</span>
                         </a>

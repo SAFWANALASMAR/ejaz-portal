@@ -10,7 +10,7 @@
                 class="group flex size-full items-center justify-center bg-primary-dark text-white"
                 aria-label="{{ __('home.video.play') }}">
                 <span class="inline-flex size-20 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 transition group-hover:scale-110 group-hover:bg-accent" aria-hidden="true">
-                    {{ svg('heroicon-s-play', 'size-10') }}
+                    {{ \App\Support\Icon::solid('play', 'size-10') }}
                 </span>
             </a>
         </div>

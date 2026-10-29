@@ -15,7 +15,7 @@
                 {{-- عدد فردي من البطاقات في عمودين: الأخيرة بعرض الصف فلا تبقى يتيمة --}}
                 <li @class(['bg-white', 'col-span-2 sm:col-span-1' => $loop->last && count($shortcuts) % 2 === 1])>
                     <a href="{{ $shortcut['url'] }}" @navigate($shortcut['external'] ? null : $shortcut['url']) @if ($shortcut['external']) target="_blank" rel="noopener noreferrer" @endif class="group flex h-full flex-col items-center gap-2 px-4 py-8 text-center transition hover:bg-surface/60">
-                        <span class="text-primary" aria-hidden="true">{{ svg('heroicon-o-'.$shortcut['icon'], 'size-8') }}</span>
+                        <span class="text-primary" aria-hidden="true">{{ \App\Support\Icon::svg($shortcut['icon'], 'size-8') }}</span>
                         <span class="mt-1 font-bold text-ink">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
                         <span class="mb-3 text-sm leading-6 text-muted">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
                         @if ($shortcut['external'])
@@ -24,7 +24,7 @@
                         {{-- السهم «للأمام» إلى اليسار في الموقع العربي، كما في x-button. وفي أسفل البطاقة (mt-auto)،
                              فتتحاذى الأسهم في الصف الواحد مهما طال الوصف --}}
                         <span class="mt-auto inline-flex size-8 items-center justify-center rounded-full bg-accent text-white transition group-hover:bg-accent-dark" aria-hidden="true">
-                            {{ svg('heroicon-o-arrow-left', 'size-4') }}
+                            {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
                         </span>
                     </a>
                 </li>

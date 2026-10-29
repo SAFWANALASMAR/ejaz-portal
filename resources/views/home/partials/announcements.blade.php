@@ -10,12 +10,12 @@
             <div class="flex items-center gap-3">
                 <button type="button" data-ticker-toggle="home-announcements-ticker" aria-pressed="false" data-label-pause="{{ __('home.ticker.pause') }}" data-label-play="{{ __('home.ticker.play') }}"
                     aria-label="{{ __('home.ticker.pause') }}" class="inline-flex rounded-full border border-line bg-white p-2 text-muted hover:text-ink">
-                    {{ svg('heroicon-o-pause', 'size-5', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
-                    {{ svg('heroicon-o-play', 'size-5', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
+                    {{ \App\Support\Icon::svg('pause', 'size-5', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
+                    {{ \App\Support\Icon::svg('play', 'size-5', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
                 </button>
                 <a href="{{ route('media.announcements') }}" wire:navigate class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
                     {{ __('home.ticker.all_announcements') }}
-                    {{ svg('heroicon-o-arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
+                    {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
                 </a>
             </div>
         </div>

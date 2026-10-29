@@ -29,7 +29,7 @@
                         <span class="font-bold">{{ __('settings.social.'.$account['network']) }}</span>
                         <span class="inline-flex items-center gap-1 text-xs text-white/75">
                             {{ __('home.accounts.visit') }}
-                            {{ svg('heroicon-o-arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
+                            {{ \App\Support\Icon::svg('arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
                         </span>
                         <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                     </a>

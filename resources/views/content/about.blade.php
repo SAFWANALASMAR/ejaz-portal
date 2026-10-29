@@ -15,7 +15,7 @@
                             <img src="{{ Storage::disk('public')->url($member->photo) }}" alt="" loading="lazy" class="mx-auto size-28 rounded-full object-cover">
                         @else
                             <span class="mx-auto flex size-28 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
-                                {{ svg('heroicon-o-user', 'size-12') }}
+                                {{ \App\Support\Icon::svg('user', 'size-12') }}
                             </span>
                         @endif
                         <p class="mt-4 font-bold text-ink">{{ $member->name }}</p>

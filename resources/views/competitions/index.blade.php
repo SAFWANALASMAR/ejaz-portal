@@ -29,7 +29,7 @@
                                     <p class="mt-2 line-clamp-3 text-sm leading-6 text-muted">{{ $competition->description }}</p>
                                 @endif
                                 <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
-                                    {{ svg('heroicon-o-calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                                    {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                                     @if ($status === CompetitionStatus::Upcoming)
                                         {{ __('competitions.list.opens', ['date' => Dates::display($competition->opens_at)]) }}
                                     @elseif ($status === CompetitionStatus::Open)

@@ -53,6 +53,9 @@ const accountScreens = [
     { name: 'requests', path: '/account/requests', heading: 'h1' },
     { name: 'my-programs', path: '/account/programs', heading: 'h1' },
     { name: 'my-competitions', path: '/account/competitions', heading: 'h1' },
+    { name: 'my-forms', path: '/account/forms', heading: 'h1' },
+    { name: 'my-data', path: '/account/data', heading: 'h1' },
+    { name: 'security', path: '/account/security', heading: 'h1' },
     { name: 'my-payments', path: '/account/payments', heading: 'h1', whenPublished: true },
     // المسودة تُنشأ بزر «شارك الآن» (POST) في صفحة المسابقة، لا بفتح النموذج
     { name: 'competition-entry', path: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}/entry`, heading: 'h1', whenPublished: true, startFrom: `/competitions/${process.env.COMPETITION_SLUG ?? 'demo'}` },
@@ -61,6 +64,7 @@ const accountScreens = [
     { name: 'assembly-meetings', path: '/assembly/meetings', heading: 'h1', whenMember: true },
     { name: 'assembly-meeting', path: `/assembly/meetings/${process.env.MEETING_UUID ?? '00000000-0000-0000-0000-000000000000'}`, heading: 'h1', whenMember: true, whenPublished: true },
     { name: 'assembly-files', path: '/assembly/files', heading: 'h1', whenMember: true },
+    { name: 'assembly-minutes', path: '/assembly/minutes', heading: 'h1', whenMember: true },
 ];
 
 async function checkScreen(page, testInfo, screen) {
@@ -98,7 +102,10 @@ async function checkScreen(page, testInfo, screen) {
     expect(overflow, 'no horizontal scroll').toBeLessThanOrEqual(0);
 
     const width = page.viewportSize().width;
-    await page.screenshot({ path: `docs/design/screenshots/${screen.name}-${width}.png`, fullPage: true });
+    // مجلد آخر ووسم في الاسم للقطات قبل التغيير وبعده (SCREENSHOT_DIR وSCREENSHOT_TAG — docs/plans/visual-refresh.md)
+    const dir = process.env.SCREENSHOT_DIR ?? 'docs/design/screenshots';
+    const tag = process.env.SCREENSHOT_TAG ? `-${process.env.SCREENSHOT_TAG}` : '';
+    await page.screenshot({ path: `${dir}/${screen.name}${tag}-${width}.png`, fullPage: true });
 }
 
 test.describe('guest screens', () => {

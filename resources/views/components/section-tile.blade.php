@@ -8,7 +8,7 @@
 <a href="{{ $href }}" @navigate($href)
     {{ $attributes->class(['group flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md']) }}>
     <span class="inline-flex size-16 items-center justify-center rounded-2xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white" aria-hidden="true">
-        {{ svg('heroicon-o-'.$icon, $size) }}
+        {{ \App\Support\Icon::svg($icon, $size) }}
     </span>
     <span class="font-semibold text-ink">{{ $label }}</span>
 </a>

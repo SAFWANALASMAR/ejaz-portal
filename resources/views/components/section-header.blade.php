@@ -6,7 +6,7 @@
     @if ($href)
         <a href="{{ $href }}" @navigate($href) class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
             {{ $linkLabel ?? __('site.view_all') }}
-            {{ svg('heroicon-o-arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
         </a>
     @endif
 </div>

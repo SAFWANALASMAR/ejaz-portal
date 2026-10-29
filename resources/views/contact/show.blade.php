@@ -56,7 +56,7 @@
                     @if ($map !== null)
                         <p class="mt-4">
                             <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                                {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
                                 {{ __('contact.info.map') }}
                                 @if (\App\Support\NationalAddress::normalize($contact['short_address'] ?? null))
                                     <bdi dir="ltr" class="font-normal text-muted">{{ \App\Support\NationalAddress::normalize($contact['short_address']) }}</bdi>

@@ -23,7 +23,7 @@
                             <img src="{{ Storage::disk('public')->url($picture) }}" alt="" loading="lazy" class="size-14 object-contain">
                         @elseif ($icon)
                             <span class="inline-flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
-                                {{ svg('heroicon-o-'.$icon->value, 'size-6') }}
+                                {{ \App\Support\Icon::svg($icon->value, 'size-6') }}
                             </span>
                         @endif
                         <h3 @class(['text-lg font-bold text-ink', 'mt-4' => $icon || $picture])>{{ $item['title'] }}</h3>

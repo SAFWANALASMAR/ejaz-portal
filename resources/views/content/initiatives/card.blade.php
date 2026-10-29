@@ -10,7 +10,7 @@
         @endif
         {{-- السهم «للأمام» إلى اليسار في الموقع العربي، كما في x-button --}}
         <span class="mt-4 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
-            {{ svg('heroicon-o-arrow-left', 'size-4') }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
         </span>
     </span>
 </a>

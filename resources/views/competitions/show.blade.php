@@ -48,12 +48,12 @@
                 <h2 class="font-bold text-primary">{{ __('competitions.show.dates') }}</h2>
                 <dl class="space-y-2 text-sm">
                     <div class="flex items-center gap-2">
-                        {{ svg('heroicon-o-calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                         <dt class="text-muted">{{ $competition->student_mode ? __('competitions.student.registration_opens') : __('competitions.show.opens_at') }}</dt>
                         <dd class="font-medium text-ink">{{ Dates::display($competition->opens_at, withTime: true) }}</dd>
                     </div>
                     <div class="flex items-center gap-2">
-                        {{ svg('heroicon-o-calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                         <dt class="text-muted">{{ $competition->student_mode ? __('competitions.student.registration_closes') : __('competitions.show.closes_at') }}</dt>
                         <dd class="font-medium text-ink">{{ Dates::display($competition->closes_at, withTime: true) }}</dd>
                     </div>
