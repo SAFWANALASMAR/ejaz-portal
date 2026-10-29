@@ -8,11 +8,14 @@ use App\Filament\Resources\LibraryItems\LibraryItemResource;
 use App\Filament\Resources\LibraryItems\Pages\EditLibraryItem;
 use App\Filament\Resources\Partners\Pages\EditPartner;
 use App\Filament\Resources\Partners\PartnerResource;
+use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\LibraryItem;
 use App\Models\Partner;
 use App\Models\ProgramType;
 use App\Models\Setting;
 use Database\Seeders\ProgramTypesSeeder;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -163,4 +166,50 @@ it('clears the home page flag from anything that is not a YouTube video', functi
     app(SaveLibraryItem::class)->handle(auth()->user(), $item, ['video_url' => 'https://media.example.org/talk.mp4']);
 
     expect($item->fresh()->on_home)->toBeFalse();
+});
+
+// ملاحظة المدير التنفيذي (29 أكتوبر 2026 — docs/plans/visual-refresh.md): صورة المقطع الحقيقية قبل الضغط، من الخادم لا من جوجل
+it('shows each chosen video with its stored image before it plays, and no request to Google from the visitor', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('library/yt-bbbbbbbbbbb-1.jpg', 'jpeg');
+    LibraryItem::factory()->video('https://www.youtube.com/watch?v=bbbbbbbbbbb')->create(['title' => 'مرئي بصورته', 'on_home' => true, 'thumbnail' => 'library/yt-bbbbbbbbbbb-1.jpg']);
+
+    $html = (string) $this->get('/')->assertOk()->getContent();
+
+    expect($html)->toContain('src="'.Storage::disk('public')->url('library/yt-bbbbbbbbbbb-1.jpg').'"')
+        ->toContain('data-video-embed="https://www.youtube-nocookie.com/embed/bbbbbbbbbbb?autoplay=1"')
+        ->not->toContain('ytimg.com')
+        ->not->toContain('<iframe');
+});
+
+it('fetches the single home video image once on the server and shows it before it plays', function () {
+    Storage::fake('public');
+    Queue::fake();
+    $png = imageBytes('png', 32, 18);
+    Http::fake(['i.ytimg.com/*' => Http::response($png, 200, ['Content-Type' => 'image/png'])]);
+
+    Setting::put('home', [...Setting::group('home'), 'video_url' => 'https://www.youtube.com/watch?v=ccccccccccc']);
+    FetchHomeVideoThumbnail::queueForCurrent();
+    Queue::assertPushed(FetchHomeVideoThumbnail::class, fn (FetchHomeVideoThumbnail $job): bool => $job->youtube === 'ccccccccccc');
+
+    // قبل الجلب: الخلفية الداكنة وحدها
+    expect((string) $this->get('/')->getContent())->not->toContain('data-video-thumbnail');
+
+    (new FetchHomeVideoThumbnail('ccccccccccc'))->handle();
+    $path = FetchHomeVideoThumbnail::path('ccccccccccc');
+
+    Storage::disk('public')->assertExists($path);
+    expect(Storage::disk('public')->get($path))->toStartWith("\xFF\xD8");
+    Http::assertSentCount(1);
+
+    $html = (string) $this->get('/')->assertOk()->getContent();
+    expect($html)->toContain('src="'.Storage::disk('public')->url($path).'"')
+        ->not->toContain('ytimg.com')
+        ->not->toContain('<iframe');
+
+    // ولا يُطلب ثانية ما دامت الصورة موجودة، وتنظيف القرص العام يتركها
+    FetchHomeVideoThumbnail::queueForCurrent();
+    Queue::assertPushed(FetchHomeVideoThumbnail::class, 1);
+    $this->artisan('ejaz:prune-public-files')->assertSuccessful();
+    Storage::disk('public')->assertExists($path);
 });

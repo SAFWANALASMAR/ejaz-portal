@@ -101,6 +101,17 @@ async function checkScreen(page, testInfo, screen) {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, 'no horizontal scroll').toBeLessThanOrEqual(0);
 
+    // تمرير الصفحة كلها قبل اللقطة، فيظهر ما يظهر عند التمرير وتُحمَّل الصور المؤجلة، ثم انتظار انتهاء الحركة
+    await page.evaluate(async () => {
+        for (let y = 0; y < document.documentElement.scrollHeight; y += 500) {
+            window.scrollTo(0, y);
+            await new Promise((resolve) => setTimeout(resolve, 60));
+        }
+
+        window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(1800);
+
     const width = page.viewportSize().width;
     // مجلد آخر ووسم في الاسم للقطات قبل التغيير وبعده (SCREENSHOT_DIR وSCREENSHOT_TAG — docs/plans/visual-refresh.md)
     const dir = process.env.SCREENSHOT_DIR ?? 'docs/design/screenshots';

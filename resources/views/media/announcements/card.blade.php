@@ -5,7 +5,7 @@
 @php
     $href = $announcement->href();
     $external = $announcement->opensExternally();
-    $classes = 'group flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs transition';
+    $classes = 'group flex h-full flex-col overflow-hidden card-lift';
 @endphp
 
 @if ($href)

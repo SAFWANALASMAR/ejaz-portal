@@ -8,7 +8,7 @@
         <div class="container-page">
             <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
 
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4" data-reveal-group>
                 @foreach ($members as $member)
                     <li class="rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs">
                         @if ($member->photo)

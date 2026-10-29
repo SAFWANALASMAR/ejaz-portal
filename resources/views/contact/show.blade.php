@@ -83,7 +83,7 @@
             </aside>
             @endif
 
-            <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs sm:p-8">
+            <div class="card-lift p-6 sm:p-8">
                 <h2 class="text-xl font-bold text-primary">{{ __('contact.form.title') }}</h2>
                 <p class="mt-2 text-muted">{{ __('contact.form.intro') }}</p>
 

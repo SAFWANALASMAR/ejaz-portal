@@ -43,7 +43,7 @@
                 @endif
             </div>
 
-            <aside class="h-fit space-y-4 rounded-2xl border border-line/70 bg-white p-6 shadow-xs lg:sticky lg:top-24">
+            <aside class="h-fit space-y-4 card-lift p-6 lg:sticky lg:top-24">
                 <x-competitions.status-badge :status="$status" />
                 <h2 class="font-bold text-primary">{{ __('competitions.show.dates') }}</h2>
                 <dl class="space-y-2 text-sm">

@@ -7,9 +7,9 @@
 @endphp
 
 <a href="{{ route('media.news.show', $article->slug) }}" wire:navigate
-    class="group flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
+    class="group flex h-full flex-col overflow-hidden card-lift">
     @if ($article->image)
-        <img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover">
+        <span class="skeleton block overflow-hidden"><img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-105"></span>
     @else
         <span class="flex aspect-[16/10] w-full items-center justify-center bg-primary-soft text-primary/70" aria-hidden="true">
             {{ \App\Support\Icon::svg('newspaper', 'size-14') }}

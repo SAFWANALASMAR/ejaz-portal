@@ -17,13 +17,13 @@
 <section class="py-10 sm:py-14">
     <div class="container-page">
         <h2 class="sr-only">{{ __('governance.fields.category') }}</h2>
-        <ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>
             @foreach (DocumentCategory::cases() as $category)
                 <li>
                     <a href="{{ route('governance.index', ['category' => $category->value]) }}" wire:navigate
                         @if ($active === $category->value) aria-current="true" @endif
-                        class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
-                        <span class="text-accent" aria-hidden="true">{{ \App\Support\Icon::svg($category->icon(), 'size-8') }}</span>
+                        class="card-lift tilt group flex h-full flex-col items-center gap-3 p-5 text-center aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
+                        <span class="icon-tile size-14" aria-hidden="true">{{ \App\Support\Icon::svg($category->icon(), 'size-8') }}</span>
                         <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>
                     </a>
                 </li>
@@ -67,7 +67,7 @@
         @if ($documents->isEmpty())
             <p class="mt-10 text-muted">{{ $filters === [] ? __('governance.list.empty') : __('governance.list.no_results') }}</p>
         @else
-            <ul class="mt-8 grid gap-4 lg:grid-cols-2">
+            <ul class="mt-8 grid gap-4 lg:grid-cols-2" data-reveal-group>
                 @foreach ($documents as $document)
                     <li>
                         <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"

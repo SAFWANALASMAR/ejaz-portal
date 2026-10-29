@@ -9,7 +9,7 @@
     $status = $program->status();
 @endphp
 
-<article class="flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
+<article class="flex h-full flex-col overflow-hidden card-lift">
     <div class="relative aspect-[16/9] bg-primary-soft">
         @if ($program->image)
             <img src="{{ Storage::disk('public')->url($program->image) }}" alt="" class="size-full object-cover" loading="lazy">

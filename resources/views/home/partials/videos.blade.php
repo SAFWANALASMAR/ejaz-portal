@@ -1,28 +1,39 @@
 {{--
-    نماذج من مرئياتنا (ملاحظة المدير التنفيذي): عناصر المكتبة المرئية المختارة للرئيسية، برابط يوتيوب.
-    المشغّل لا يُحمَّل إلا بضغط الزائر ومن youtube-nocookie.com (نمط صفحة العنصر — resources/js/app.js).
+    نماذج من مرئياتنا (ملاحظة المدير التنفيذي): عناصر المكتبة المرئية المختارة للرئيسية، برابط يوتيوب. وقبل الضغط صورة المقطع
+    الحقيقية التي جلبها الخادم وحفظها (LibraryItem::thumbnailUrl — FetchYoutubeThumbnail)، تحت تدرج داكن بزر تشغيل وعنوان
+    (ملاحظة المدير، 29 أكتوبر 2026). ولعنصر بلا صورة بعد الخلفية الداكنة. المشغّل لا يُحمَّل إلا بضغط الزائر ومن
+    youtube-nocookie.com (resources/js/app.js)، فلا يتصل متصفحه بجوجل قبله.
 --}}
-<section class="py-12 lg:py-16" aria-labelledby="home-videos">
+<section class="section-tint py-12 lg:py-16" aria-labelledby="home-videos">
     <div class="container-page">
         <x-section-header id="home-videos" :title="__('home.videos.title')"
             :href="route('library.section', \App\Enums\LibrarySection::Videos->value)" :link-label="__('home.videos.all')" />
 
-        <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
             @foreach ($videos as $item)
                 @php($youtube = $item->youtubeId())
-                <li class="overflow-hidden rounded-2xl border border-line/70 bg-white shadow-sm">
-                    <div class="aspect-video">
-                        <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
-                            data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
-                            class="group flex size-full items-center justify-center bg-primary-dark text-white"
-                            aria-label="{{ __('home.videos.play', ['title' => $item->title]) }}">
-                            <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 transition group-hover:scale-110 group-hover:bg-accent" aria-hidden="true">
-                                {{ \App\Support\Icon::solid('play', 'size-8') }}
+                @php($thumbnail = $item->thumbnailUrl())
+                {{-- العنوان فوق الصورة رابطاً إلى صفحة المقطع، ويختفي حين يحل المشغّل مكان الصورة --}}
+                <li class="card-lift relative overflow-hidden [&:has(iframe)_[data-video-caption]]:hidden">
+                    <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
+                        data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
+                        class="group relative block aspect-video overflow-hidden bg-primary-dark text-white"
+                        aria-label="{{ __('home.videos.play', ['title' => $item->title]) }}">
+                        @if ($thumbnail)
+                            <span class="skeleton absolute inset-0 block">
+                                <img src="{{ $thumbnail }}" alt="" loading="lazy" data-video-thumbnail
+                                    class="size-full object-cover transition duration-700 group-hover:scale-105">
                             </span>
-                        </a>
-                    </div>
-                    <h3 class="p-4 font-bold text-ink">
-                        <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate class="hover:text-primary hover:underline">{{ $item->title }}</a>
+                        @endif
+                        <span class="absolute inset-0 bg-linear-to-t from-primary-dark/90 via-primary-dark/30 to-transparent" aria-hidden="true"></span>
+                        <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                            <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-sm transition group-hover:scale-110 group-hover:bg-accent">
+                                {{ \App\Support\Icon::solid('play', 'size-7') }}
+                            </span>
+                        </span>
+                    </a>
+                    <h3 data-video-caption class="pointer-events-none absolute inset-x-0 bottom-0 p-4 font-bold leading-7 text-white">
+                        <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate class="pointer-events-auto line-clamp-2 hover:underline">{{ $item->title }}</a>
                     </h3>
                 </li>
             @endforeach

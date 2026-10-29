@@ -14,10 +14,10 @@
 
             {{-- محور «الدورات والبرامج» (ملاحظة المدير التنفيذي): الدورات التدريبية، والمجالس العلمية، والمسابقات --}}
             <nav aria-label="{{ __('programs.hub.label') }}" class="mt-10">
-                <ul class="grid gap-4 sm:grid-cols-3">
+                <ul class="grid gap-4 sm:grid-cols-3" data-reveal-group>
                     @foreach ($hub as $entry)
                         <li>
-                            <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+                            <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 card-lift p-5 hover:border-brand hover:shadow-md">
                                 <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white" aria-hidden="true">
                                     {{ \App\Support\Icon::svg($entry['icon'], 'size-6') }}
                                 </span>
@@ -50,7 +50,7 @@
             @if ($programs->isEmpty())
                 <p class="mt-10 text-center text-muted">{{ __('programs.list.empty') }}</p>
             @else
-                <ul class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <ul class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                     @foreach ($programs as $program)
                         <li>@include('programs.card', ['program' => $program])</li>
                     @endforeach

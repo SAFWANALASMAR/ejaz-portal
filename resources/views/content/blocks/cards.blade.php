@@ -13,11 +13,11 @@
                 <x-section-heading class="mb-8">{{ $data['heading'] }}</x-section-heading>
             @endif
 
-            <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($items as $item)
                     @php($icon = is_string($item['icon'] ?? null) ? \App\Enums\SiteIcon::tryFrom($item['icon']) : null)
                     @php($picture = is_string($item['picture'] ?? null) && $item['picture'] !== '' ? $item['picture'] : null)
-                    <li class="flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+                    <li class="flex flex-col card-lift p-6">
                         @if ($picture)
                             {{-- صورة البطاقة أيقونة بجوار عنوانها، فهي زخرفية --}}
                             <img src="{{ Storage::disk('public')->url($picture) }}" alt="" loading="lazy" class="size-14 object-contain">

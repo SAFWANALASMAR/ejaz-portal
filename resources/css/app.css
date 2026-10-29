@@ -2,6 +2,8 @@
 | مصادر الأصناف محددة صراحةً بدل فحص المشروع كله، لأن الفحص عبر قرص ويندوز المشترك بطيء جداً.
 */
 @import 'tailwindcss' source(none);
+/* التحسين البصري والحركة (docs/plans/visual-refresh.md) */
+@import './visual.css';
 
 @source '../views';
 @source '../js';
@@ -28,6 +30,11 @@
     --color-accent: #5D2A92;
     --color-accent-dark: #4A2175;
     --color-accent-light: #D9CCF0;
+
+    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): «الذهبي» في المرجع
+       الأسلوبي يقابله في الهوية البنفسجي، ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
+    --color-highlight: #5D2A92;
+    --color-highlight-on-dark: #D9CCF0;
 
     --color-surface: #F3F7FB;
     --color-ink: #17202E;

@@ -21,7 +21,9 @@
     $hasContact = $email !== null || $phone !== null || $address !== null || $shortAddress !== null || $whatsapp !== null;
 @endphp
 
-<footer class="relative overflow-hidden bg-primary-dark text-white" data-site-footer>
+{{-- بخلفية القسم الداكن ودوائره وزخرفته الهندسية (التحسين البصري — docs/plans/visual-refresh.md) --}}
+<footer class="section-dark" data-site-footer>
+    <div class="bg-pattern-light pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
     <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-l from-accent-light via-brand to-secondary" aria-hidden="true"></span>
     <img src="{{ asset('images/decor/palms-line.svg') }}" alt="" aria-hidden="true"
         class="pointer-events-none absolute bottom-0 end-0 w-[420px] max-w-[70%] opacity-15">
