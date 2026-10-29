@@ -4,6 +4,7 @@ namespace App\Http\Responses;
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\IntendedUrl;
 use Filament\Facades\Filament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +34,9 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         $home = $user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
             ? url(Filament::getPanel('admin')->getPath())
             : Fortify::redirects('login');
+
+        // ولا يُتبع رابط مقصود في لوحة الإدارة لمن لا يدخلها (رابط بقي في الجلسة من حساب خرج قبله)
+        IntendedUrl::dropAdminFor($request, $user instanceof User ? $user : null);
 
         return redirect()->intended($home);
     }
