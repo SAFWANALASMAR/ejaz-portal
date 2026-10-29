@@ -95,7 +95,7 @@ it('seeds the brochure competition as an unpublished draft: verbatim texts, four
         ->and($competition->pageText('vision'))->toBe('بناء جيل محب للعلم، متأمل في الكون، قادر على فهم الحقائق وتحليلها، ومعتز بما يقدمه العلم من براهين ودلائل وشواهد جليّة.')
         ->and($competition->pageList('goals'))->toHaveCount(6)
         ->and($competition->pageList('outcomes'))->toHaveCount(4)
-        ->and($competition->pageList('rules'))->toHaveCount(4)
+        ->and($competition->pageList('rules'))->toHaveCount(3)
         ->and($competition->pageText('partner'))->toBe('وزارة التعليم')
         ->and($rounds->pluck('branch')->all())->toBe(['الحقائق العلمية في الأنفس', 'الحقائق العلمية في علوم الفلك والفضاء', 'الحقائق العلمية في علوم الأرض', 'الحقائق العلمية في علوم البحار'])
         ->and($rounds->every(fn (CompetitionRound $round): bool => $round->starts_at->copy()->setTimezone($zone)->isThursday()))->toBeTrue()
@@ -103,8 +103,11 @@ it('seeds the brochure competition as an unpublished draft: verbatim texts, four
         ->and($competition->closes_at->equalTo($rounds->last()->ends_at))->toBeTrue()
         ->and(array_sum(array_column($competition->prizeRows(), 'male')))->toBe(10000)
         ->and(array_sum(array_column($competition->prizeRows(), 'female')))->toBe(10000)
-        ->and($competition->openCategories()->pluck('name')->all())->toBe(['المرحلة المتوسطة', 'المرحلة الثانوية', 'المرحلة الجامعية', 'المهتمون بالثقافة العلمية'])
-        ->and($competition->fields()->sole()->only(['label', 'is_required']))->toBe(['label' => 'الجهة التعليمية / المدرسة', 'is_required' => false])
+        // ملاحظات المدير التنفيذي (29 أكتوبر 2026): ثلاث فئات بلا المتوسطة، والجهة التعليمية إلزامية، والمراحل بأسمائها
+        ->and($competition->openCategories()->pluck('name')->all())->toBe(['المرحلة الثانوية', 'المرحلة الجامعية', 'المهتمون بالثقافة العلمية'])
+        ->and($competition->fields()->sole()->only(['label', 'is_required']))->toBe(['label' => 'الجهة التعليمية / المدرسة', 'is_required' => true])
+        ->and($rounds->pluck('name')->all())->toBe(['المرحلة الأولى', 'المرحلة الثانية', 'المرحلة الثالثة', 'المرحلة الرابعة'])
+        ->and(implode(' ', $competition->pageList('rules')))->not->toContain('لجنة التحكيم')->not->toContain('الفروع')
         ->and($competition->short_code)->toMatch('/^[a-z0-9]{6}$/');
 
     // لا يمس المسابقة إن وُجدت (تعديل المسؤول باقٍ)
@@ -140,8 +143,8 @@ it('shows the brochure sections, the prizes for boys and girls, and a public ent
 it('requires the gender at registration, stores it, and shows the official rules above the pledge', function () {
     $this->competition->forceFill(['page_content' => ['rules' => ['أن يكون المتسابق سعوديًا أو مقيمًا بإقامة نظامية سارية المفعول.']]])->save();
     $form = [
-        'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(21), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id'),
-        'grade' => 'الأول المتوسط', 'region_id' => CompetitionRegion::query()->active()->value('id'), 'pledge' => '1',
+        'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(21), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id'),
+        'region_id' => CompetitionRegion::query()->active()->value('id'), 'pledge' => '1',
     ];
     $student = User::factory()->create();
 
@@ -228,9 +231,9 @@ it('ranks the cumulative total of all branches for each gender, leaving out who 
 it('ranks within each category when the competition scope says so', function () {
     studentQuestion($this->round);
     $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
     $high = registeredStudent($this->competition, 1);
-    $young = registeredStudent($this->competition, 2, ['category_id' => $middle, 'grade' => 'الأول المتوسط']);
+    $young = registeredStudent($this->competition, 2, ['category_id' => $middle]);
     branchScore($high, $this->round, 9);
     branchScore($young, $this->round, 2);
 
@@ -356,7 +359,7 @@ it('lets a whole school behind one address open the short link at once', functio
 });
 
 it('refuses to start a branch whose maximum score differs between categories when ranking all categories together', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
     $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
     $this->competition->openCategories()->sync([$middle, $secondary]);
     studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);
@@ -367,7 +370,7 @@ it('refuses to start a branch whose maximum score differs between categories whe
 
     $this->actingAs($this->director);
     Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
-        ->assertSee(__('competitions.student.bank_mixed_max', ['details' => 'المرحلة المتوسطة 1، المرحلة الثانوية 3']));
+        ->assertSee(__('competitions.student.bank_mixed_max', ['details' => 'المرحلة الجامعية 1، المرحلة الثانوية 3']));
 
     // والترتيب لكل فئة على حدة لا يقارن بين الفئات، فيبدأ
     $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
@@ -529,7 +532,7 @@ it('reaches the competitions from the main menu and the account card', function 
 });
 
 it('computes the category maximum check once and keeps it until the bank changes', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
     $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
     $this->competition->openCategories()->sync([$middle, $secondary]);
     studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);
@@ -551,18 +554,18 @@ it('computes the category maximum check once and keeps it until the bank changes
 });
 
 it('recomputes the category maximums under the new name when a category is renamed', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->sole();
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->sole();
     $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
     $this->competition->openCategories()->sync([$middle->id, $secondary]);
     studentQuestion($this->round, ['category_id' => $middle->id, 'points' => 1]);
     studentQuestion($this->round, ['category_id' => $secondary, 'points' => 3]);
 
-    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة المتوسطة');
+    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة الجامعية');
 
-    $middle->update(['name' => 'المرحلة المتوسطة (معدّلة)']);
+    $middle->update(['name' => 'المرحلة الجامعية (معدّلة)']);
 
-    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة المتوسطة (معدّلة)')
-        ->not->toHaveKey('المرحلة المتوسطة');
+    expect(AttemptLayout::mixedMaxScores($this->round->fresh()))->toHaveKey('المرحلة الجامعية (معدّلة)')
+        ->not->toHaveKey('المرحلة الجامعية');
 
     // وتعديل الترتيب وحده لا يفرّغ البنوك أثناء النافذة
     $key = RoundQuestions::key($this->round->id);
@@ -572,20 +575,20 @@ it('recomputes the category maximums under the new name when a category is renam
 });
 
 it('refreshes the content and renames a category while a soft-deleted competition still holds rounds', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->sole();
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->sole();
     $this->competition->openCategories()->sync([$middle->id]);
     studentQuestion($this->round, ['category_id' => $middle->id]);
     AttemptLayout::mixedMaxScores($this->round->fresh());
     $this->competition->delete();
 
     $this->artisan('ejaz:refresh-content')->assertSuccessful();
-    $middle->update(['name' => 'المرحلة المتوسطة (بعد الحذف)']);
+    $middle->update(['name' => 'المرحلة الجامعية (بعد الحذف)']);
 
-    expect($middle->fresh()->name)->toBe('المرحلة المتوسطة (بعد الحذف)');
+    expect($middle->fresh()->name)->toBe('المرحلة الجامعية (بعد الحذف)');
 });
 
 it('keeps the bank and its checks a day at most, and drops the old version checks when the bank changes', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
     $secondary = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id');
     $this->competition->openCategories()->sync([$middle, $secondary]);
     studentQuestion($this->round, ['category_id' => $middle, 'points' => 1]);

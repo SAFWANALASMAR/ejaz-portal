@@ -12,9 +12,6 @@
             <h2 id="home-accounts" class="mt-3 text-2xl font-bold sm:text-3xl">{{ $channels['title'] }}</h2>
             <p class="mt-2 text-white/80">
                 {{ $channels['intro'] }}
-                @if (\App\Support\HomeContent::isSample('channels', 'intro'))
-                    <x-sample class="ms-1" />
-                @endif
             </p>
         </div>
 

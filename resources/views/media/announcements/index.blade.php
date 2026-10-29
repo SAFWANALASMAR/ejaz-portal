@@ -1,13 +1,9 @@
 {{-- الإعلانات: المنشور في مدة عرضه بترتيبه في اللوحة، بتصفية بنوعه (تُخزَّن نصاً لكل نوع — MediaController). والعنوان والمقدمة
-     من «محتوى الرئيسية»، والمقدمة «مثال تجريبي» حتى تُستبدل (HomeContent::SAMPLE) --}}
+     من «محتوى الرئيسية». ولا وسم «مثال تجريبي» للعامة (قرار صفوان، 29 أكتوبر 2026)، فيبقى في اللوحة وحدها --}}
 <x-page-hero :title="\App\Support\HomeContent::text('announcements', 'title')" :summary="\App\Support\HomeContent::text('announcements', 'intro')" />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        @if (\App\Support\HomeContent::isSample('announcements', 'intro'))
-            <p class="mb-6"><x-sample /></p>
-        @endif
-
         <nav aria-label="{{ __('announcements.list.filter') }}">
             <ul class="flex flex-wrap gap-2">
                 @foreach ([null, ...\App\Enums\AnnouncementKind::cases()] as $option)

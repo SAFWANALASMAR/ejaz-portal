@@ -389,7 +389,7 @@ it('shows the student pages in the panel for a student competition only, by role
     expect(SubmissionsRelationManager::canViewForRecord($this->competition, EditCompetition::class))->toBeFalse()
         ->and(RoundsRelationManager::canViewForRecord(Competition::factory()->create(), EditCompetition::class))->toBeFalse();
 
-    $this->get(CompetitionCategoryResource::getUrl())->assertOk()->assertSee('المرحلة المتوسطة');
+    $this->get(CompetitionCategoryResource::getUrl())->assertOk()->assertSee('المرحلة الجامعية');
     $this->get(CompetitionRegionResource::getUrl())->assertOk()->assertSee('منطقة مكة المكرمة');
 
     // عضو المجلس يطّلع على المسابقة ومراحلها، ولا يرى النتائج ولا المسجلين (بياناتهم الشخصية)

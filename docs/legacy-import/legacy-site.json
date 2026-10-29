@@ -217,18 +217,6 @@
       ]
     },
     {
-      "slug": "img-2-png",
-      "file": "files/images/img-2.png",
-      "title": "img-2.png",
-      "alt": null,
-      "is_decorative": true,
-      "from_template": false,
-      "target": "/about",
-      "legacy_paths": [
-        "/wp-content/uploads/2026/01/img-2.png"
-      ]
-    },
-    {
       "slug": "icon-amazon-2-svg",
       "file": "files/icons/amazon-2.svg",
       "title": "amazon-2.svg",
@@ -964,12 +952,6 @@
                 "media": "civic-png"
               }
             ]
-          }
-        },
-        {
-          "type": "image",
-          "data": {
-            "media": "img-2-png"
           }
         },
         {

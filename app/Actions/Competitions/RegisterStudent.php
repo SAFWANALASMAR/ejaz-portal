@@ -68,7 +68,8 @@ class RegisterStudent
             'category_id' => ['required', 'integer', Rule::in($categories->keys()->all())],
             'grade' => $grades === [] ? ['nullable', 'prohibited'] : ['required', 'string', Rule::in($grades)],
             'region_id' => ['required', 'integer', Rule::exists(CompetitionRegion::class, 'id')->where('is_active', true)],
-            'guardian_phone' => ['nullable', 'string', 'max:20', new SaudiMobile],
+            // «رقم الجوال» إلزامي للجميع (ملاحظات المدير التنفيذي على صفحة البراهين، 29 أكتوبر 2026)، وعموده guardian_phone كما هو
+            'guardian_phone' => ['required', 'string', 'max:20', new SaudiMobile],
             // إلزامي: الجوائز والترتيب لكل جنس (مطوية «البراهين العلمية»)
             'gender' => ['required', Rule::enum(StudentGender::class)],
             'fields' => ['nullable', 'array'],

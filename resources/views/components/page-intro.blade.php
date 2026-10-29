@@ -1,7 +1,7 @@
 {{--
     مقدمة قالب مبني من صفحة محتوى منشورة (Page::INTROS): نص صفحة الموقع السابق أعلى صفحة الخدمة
     أو التواصل أو التقارير، يحرره المحرر من «الصفحات». وغير المنشورة لا يظهر منها شيء.
-    ونص فريق البوابة (Page::is_sample) بوسم «مثال تجريبي» كما في /pages/{slug} (الاختبار الشامل 0.14).
+    ووسم نص فريق البوابة (Page::is_sample) في اللوحة وحدها لا للعامة (قرار صفوان، 29 أكتوبر 2026).
 --}}
 @props(['slug'])
 
@@ -10,16 +10,10 @@
     $intro = \App\Support\ContentCache::remember('pages.intro-tagged.'.$slug, function () use ($slug): array {
         $page = \App\Models\Page::query()->published()->where('slug', $slug)->first();
 
-        return $page === null ? [] : ['sample' => $page->is_sample, 'html' => view('components.content-blocks', ['blocks' => $page->blocks])->render()];
+        return $page === null ? [] : ['html' => view('components.content-blocks', ['blocks' => $page->blocks])->render()];
     });
 @endphp
 
 @if ($intro !== [])
-    @if ($intro['sample'])
-        <div class="container-page pt-8">
-            <x-sample />
-        </div>
-    @endif
-
     {{ new \Illuminate\Support\HtmlString($intro['html']) }}
 @endif
