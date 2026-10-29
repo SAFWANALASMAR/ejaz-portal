@@ -4,11 +4,15 @@ use App\Actions\Accounts\ExportUserData;
 use App\Actions\Settings\UpdateSiteSettings;
 use App\Actions\Users\AnonymizeUser;
 use App\Contracts\VideoUploads;
+use App\Enums\AttemptStatus;
 use App\Enums\RoleName;
 use App\Enums\VideoStatus;
 use App\Enums\WorkType;
 use App\Filament\Pages\SiteSettings;
 use App\Models\Competition;
+use App\Models\CompetitionAttempt;
+use App\Models\CompetitionCategory;
+use App\Models\CompetitionRegion;
 use App\Models\CompetitionSubmission;
 use App\Models\Setting;
 use App\Models\SubmissionVideo;
@@ -304,4 +308,45 @@ it('clears the exam registration details at once when the account is anonymized,
         ->and($entry->contact_email)->toBeNull()
         ->and($entry->national_id_hash)->toBeNull()
         ->and($entry->reference)->not->toBeNull();
+});
+
+it('purges the attempt answers and region of a deleted student after the period, and keeps the scores and an attempt still in progress', function () {
+    Setting::put('retention', ['days' => 30]);
+    $competition = Competition::factory()->student()->create(['opens_at' => now()->subDays(60), 'closes_at' => now()->subDays(31)]);
+    $round = $competition->rounds()->firstOrFail();
+    $region = CompetitionRegion::query()->where('is_active', true)->firstOrFail();
+    $category = CompetitionCategory::query()->firstOrFail();
+
+    $attemptOf = function (User $user, AttemptStatus $status) use ($competition, $round, $region, $category): CompetitionAttempt {
+        $submission = CompetitionSubmission::factory()->create(['competition_id' => $competition->id, 'user_id' => $user->id, 'answers' => null, 'region' => null]);
+        $submission->forceFill(['category_id' => $category->id, 'region_id' => $region->id])->save();
+
+        $attempt = new CompetitionAttempt;
+        $attempt->forceFill([
+            'round_id' => $round->id, 'submission_id' => $submission->id, 'user_id' => $user->id, 'status' => $status,
+            'started_at' => now()->subDays(40), 'deadline_at' => now()->subDays(40)->addMinutes(30),
+            'layout' => [], 'answers' => ['1' => 'b'], 'score' => 7, 'question_count' => 10,
+        ])->save();
+
+        return $attempt;
+    };
+
+    $submitted = $attemptOf($this->deleted, AttemptStatus::Submitted);
+    $running = $attemptOf(User::factory()->create(['anonymized_at' => now()->subDays(39)]), AttemptStatus::InProgress);
+    $kept = $attemptOf(User::factory()->create(), AttemptStatus::Submitted);
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    $submitted->refresh();
+    expect($submitted->answers)->toBeNull()
+        ->and((float) $submitted->score)->toBe(7.0)
+        ->and($submitted->submission->region_id)->toBeNull()
+        ->and($submitted->submission->category_id)->toBe($category->id)
+        ->and($running->fresh()->answers)->toBe(['1' => 'b'])
+        ->and($kept->fresh()->answers)->toBe(['1' => 'b'])
+        ->and($kept->submission->fresh()->region_id)->toBe($region->id);
+
+    // مرة ثانية لا تعيد المشاركة التي لم يبق فيها إلا محاولة جارية
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+    expect(Activity::where('event', 'personal_data_purged')->where('subject_id', $submitted->submission_id)->count())->toBe(1);
 });

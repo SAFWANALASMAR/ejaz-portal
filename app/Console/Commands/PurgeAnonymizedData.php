@@ -8,6 +8,7 @@ use App\Actions\Programs\PurgeProgramRegistrationPersonalData;
 use App\Actions\Services\PurgeServiceRequestPersonalData;
 use App\Actions\Surveys\PurgeSurveyResponsePersonalData;
 use App\Enums\ActivityEvent;
+use App\Enums\AttemptStatus;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
@@ -83,7 +84,8 @@ class PurgeAnonymizedData extends Command
             // (ومشاركة الاختبار بلا منطقة، ومسودة الأعمال بلا إجابات، فيُنظر في بيانات التسجيل والأعمال أيضاً)
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos')->orWhereHas('works')
                 ->orWhereNotNull('full_name')->orWhereNotNull('contact_email')->orWhereNotNull('national_id_hash')
-                ->orWhereNotNull('guardian_phone')->orWhereNotNull('extra'))
+                ->orWhereNotNull('guardian_phone')->orWhereNotNull('extra')->orWhereNotNull('region_id')
+                ->orWhereHas('attempts', fn ($query) => $query->whereNotNull('answers')->where('status', '!=', AttemptStatus::InProgress->value)))
             ->lazyById()
             ->each(fn (CompetitionSubmission $submission) => $attempt(fn () => $purgeSubmission->handle($submission)));
 

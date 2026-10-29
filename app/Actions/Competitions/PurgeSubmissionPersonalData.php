@@ -4,6 +4,8 @@ namespace App\Actions\Competitions;
 
 use App\Contracts\VideoUploads;
 use App\Enums\ActivityEvent;
+use App\Enums\AttemptStatus;
+use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\SubmissionWork;
@@ -13,8 +15,8 @@ use RuntimeException;
 
 /**
  * حذف بيانات مشاركة من حُذف حسابه بعد مدة الاحتفاظ (قرار صفوان، مراجعة #1): مقاطعها (الملفات وبقايا
- * الرفع والسجلات)، وإجاباتها، ومنطقتها. ويبقى الرقم المرجعي والحالة والفئة والدرجات وتحكيمها لسلامة
- * النتائج والسحب. يستدعيه ejaz:purge-anonymized-data وحده، ولا تراجع عنه.
+ * الرفع والسجلات)، وإجاباتها، ومنطقتها، وإجابات محاولاتها في مسابقة الطلاب. ويبقى الرقم المرجعي والحالة
+ * والفئة والدرجات وتحكيمها لسلامة النتائج والسحب. يستدعيه ejaz:purge-anonymized-data وحده، ولا تراجع عنه.
  */
 class PurgeSubmissionPersonalData
 {
@@ -65,6 +67,8 @@ class PurgeSubmissionPersonalData
             $locked->forceFill([
                 'answers' => null,
                 'region' => null,
+                // منطقة الطالب في مسابقة الطلاب كمنطقة المشاركة العامة (خريطة البيانات الشخصية، 29 أكتوبر)
+                'region_id' => null,
                 'full_name' => null,
                 'contact_email' => null,
                 'national_id' => null,
@@ -75,6 +79,13 @@ class PurgeSubmissionPersonalData
                 'gender' => null,
                 'extra' => null,
             ])->save();
+
+            // إجابات المحاولات المسلّمة: الدرجة محسوبة ومحفوظة، فلا يلزمها شيء بعد مدة الاحتفاظ. والمحاولة
+            // الجارية لا تُمس، لأن التسليم الآلي يصححها من إجاباتها
+            CompetitionAttempt::query()->where('submission_id', $locked->id)
+                ->where('status', '!=', AttemptStatus::InProgress->value)
+                ->whereNotNull('answers')
+                ->update(['answers' => null]);
 
             activity('competitions')->performedOn($locked)
                 ->event(ActivityEvent::PersonalDataPurged->value)
