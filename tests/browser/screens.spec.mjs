@@ -103,9 +103,9 @@ async function checkScreen(page, testInfo, screen) {
 
     // تمرير الصفحة كلها قبل اللقطة، فيظهر ما يظهر عند التمرير وتُحمَّل الصور المؤجلة، ثم انتظار انتهاء الحركة
     await page.evaluate(async () => {
-        for (let y = 0; y < document.documentElement.scrollHeight; y += 500) {
+        for (let y = 0; y < document.documentElement.scrollHeight; y += 300) {
             window.scrollTo(0, y);
-            await new Promise((resolve) => setTimeout(resolve, 60));
+            await new Promise((resolve) => setTimeout(resolve, 120));
         }
 
         window.scrollTo(0, 0);
