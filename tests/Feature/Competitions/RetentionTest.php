@@ -346,7 +346,10 @@ it('purges the attempt answers and region of a deleted student after the period,
         ->and($kept->fresh()->answers)->toBe(['1' => 'b'])
         ->and($kept->submission->fresh()->region_id)->toBe($region->id);
 
-    // مرة ثانية لا تعيد المشاركة التي لم يبق فيها إلا محاولة جارية
+    // مرة ثانية لا تعيد المشاركتين، ولا التي لم يبق فيها إلا محاولة جارية
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
-    expect(Activity::where('event', 'personal_data_purged')->where('subject_id', $submitted->submission_id)->count())->toBe(1);
+    $purges = fn (int $id): int => Activity::where('event', 'personal_data_purged')
+        ->where('subject_type', (new CompetitionSubmission)->getMorphClass())->where('subject_id', $id)->count();
+    expect($purges($submitted->submission_id))->toBe(1)
+        ->and($purges($running->submission_id))->toBe(1);
 });
