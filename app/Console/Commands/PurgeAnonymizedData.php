@@ -79,7 +79,9 @@ class PurgeAnonymizedData extends Command
             ->withTrashed()
             ->whereHas('user', fn ($query) => $query->whereNotNull('anonymized_at'))
             // والمسابقة المحذوفة من اللوحة داخلة (العلاقة بـ withTrashed، وصريحة هنا)
-            ->whereHas('competition', fn ($query) => $query->withTrashed()->where('closes_at', '<', $cutoff))
+            ->whereHas('competition', fn ($query) => $query->withTrashed()->where('closes_at', '<', $cutoff)
+                // مسابقة الطلاب: الإغلاق نهاية التسجيل، والمراحل بعده، فتُحسب المدة من نهاية آخر مرحلة (قرار صفوان، 29 أكتوبر)
+                ->whereDoesntHave('rounds', fn ($query) => $query->where('ends_at', '>=', $cutoff)))
             // ما بقي فيه شيء يُحذف، فلا تُعاد المشاركة نفسها كل يوم
             // (ومشاركة الاختبار بلا منطقة، ومسودة الأعمال بلا إجابات، فيُنظر في بيانات التسجيل والأعمال أيضاً)
             ->where(fn ($query) => $query->whereNotNull('answers')->orWhereNotNull('region')->orWhereHas('videos')->orWhereHas('works')

@@ -314,6 +314,7 @@ it('purges the attempt answers and region of a deleted student after the period,
     Setting::put('retention', ['days' => 30]);
     $competition = Competition::factory()->student()->create(['opens_at' => now()->subDays(60), 'closes_at' => now()->subDays(31)]);
     $round = $competition->rounds()->firstOrFail();
+    $round->forceFill(['starts_at' => now()->subDays(45), 'ends_at' => now()->subDays(44)])->save();
     $region = CompetitionRegion::query()->where('is_active', true)->firstOrFail();
     $category = CompetitionCategory::query()->firstOrFail();
 
@@ -352,4 +353,21 @@ it('purges the attempt answers and region of a deleted student after the period,
         ->where('subject_type', (new CompetitionSubmission)->getMorphClass())->where('subject_id', $id)->count();
     expect($purges($submitted->submission_id))->toBe(1)
         ->and($purges($running->submission_id))->toBe(1);
+});
+
+it('counts the retention period of the student competition from the end of its last round, not the registration close', function () {
+    Setting::put('retention', ['days' => 30]);
+    $competition = Competition::factory()->student()->create(['opens_at' => now()->subDays(60), 'closes_at' => now()->subDays(31)]);
+    $competition->rounds()->firstOrFail()->forceFill(['starts_at' => now()->subDays(11), 'ends_at' => now()->subDays(10)])->save();
+    $entry = CompetitionSubmission::factory()->create(['competition_id' => $competition->id, 'user_id' => $this->deleted->id, 'answers' => null, 'region' => null]);
+    $entry->forceFill(['region_id' => CompetitionRegion::query()->where('is_active', true)->value('id')])->save();
+
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($entry->fresh()->region_id)->not->toBeNull();
+
+    $this->travel(21)->days();
+    $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
+
+    expect($entry->fresh()->region_id)->toBeNull();
 });
