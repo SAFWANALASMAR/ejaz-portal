@@ -178,9 +178,9 @@ it('counts the attempts of a student competition: registered, running and submit
     studentQuestion($round);
     $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
 
-    // خمسة يسلّمون (أربعة من الثانوية وواحد من المتوسطة)، وواحد يختبر الآن، وواحد سجّل ولم يبدأ، وواحد أُلغي تسجيله
+    // خمسة يسلّمون (أربعة من الثانوية وواحد من الجامعية)، وواحد يختبر الآن، وواحد سجّل ولم يبدأ، وواحد أُلغي تسجيله
     foreach (range(1, 5) as $serial) {
-        $student = registeredStudent($competition, $serial, $serial === 5 ? ['category_id' => $middle] : []);
+        $student = registeredStudent($competition, $serial, $serial === 5 ? ['category_id' => $middle, 'grade' => null] : []);
         $attempt = app(StartAttempt::class)->handle($student, $round);
         app(SubmitAttempt::class)->handle($student, $attempt);
     }

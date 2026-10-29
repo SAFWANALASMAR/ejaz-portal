@@ -144,7 +144,7 @@ it('requires the gender at registration, stores it, and shows the official rules
     $this->competition->forceFill(['page_content' => ['rules' => ['أن يكون المتسابق سعوديًا أو مقيمًا بإقامة نظامية سارية المفعول.']]])->save();
     $form = [
         'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(21), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id'),
-        'region_id' => CompetitionRegion::query()->active()->value('id'), 'pledge' => '1',
+        'region_id' => CompetitionRegion::query()->active()->value('id'), 'guardian_phone' => '0551234567', 'pledge' => '1',
     ];
     $student = User::factory()->create();
 
@@ -233,7 +233,7 @@ it('ranks within each category when the competition scope says so', function () 
     $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
     $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
     $high = registeredStudent($this->competition, 1);
-    $young = registeredStudent($this->competition, 2, ['category_id' => $middle]);
+    $young = registeredStudent($this->competition, 2, ['category_id' => $middle, 'grade' => null]);
     branchScore($high, $this->round, 9);
     branchScore($young, $this->round, 2);
 
@@ -370,7 +370,7 @@ it('refuses to start a branch whose maximum score differs between categories whe
 
     $this->actingAs($this->director);
     Livewire::test(RoundsRelationManager::class, ['ownerRecord' => $this->competition, 'pageClass' => EditCompetition::class])
-        ->assertSee(__('competitions.student.bank_mixed_max', ['details' => 'المرحلة الجامعية 1، المرحلة الثانوية 3']));
+        ->assertSee(__('competitions.student.bank_mixed_max', ['details' => 'المرحلة الثانوية 3، المرحلة الجامعية 1']));
 
     // والترتيب لكل فئة على حدة لا يقارن بين الفئات، فيبدأ
     $this->competition->forceFill(['ranking_scope' => RankingScope::Category])->save();
@@ -493,7 +493,7 @@ it('lets a student with a username alone, no email and no phone, register in the
     $this->actingAs($student)->get('/competitions/brahin/register')->assertOk();
     $this->post('/competitions/brahin/register', [
         'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(31), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id'),
-        'grade' => 'الأول الثانوي', 'region_id' => CompetitionRegion::query()->active()->value('id'), 'gender' => 'male', 'pledge' => '1',
+        'grade' => 'الأول الثانوي', 'region_id' => CompetitionRegion::query()->active()->value('id'), 'guardian_phone' => '0551234567', 'gender' => 'male', 'pledge' => '1',
     ])->assertSessionHasNoErrors();
 
     $this->post('/competitions/brahin/rounds/'.$this->round->uuid.'/start')->assertRedirect();
