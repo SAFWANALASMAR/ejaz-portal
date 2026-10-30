@@ -26,7 +26,7 @@
         'waitlist' => __('programs.show.join_waitlist'),
         'login' => __('programs.show.login_to_register'),
         'confirm' => __('programs.register.confirm'),
-        'mine' => __('programs.how_to.my_programs'),
+        'mine' => __('programs.mine.title'),
     ];
 
     $open = ($status ?? $program?->status()) === ProgramStatus::Open;
@@ -76,7 +76,7 @@
                 {{ svg('heroicon-o-check-circle', 'size-5') }}
                 {{ __('programs.how_to.registered', ['status' => $registration->status->getLabel()]) }}
             </span>
-            <x-button data-how-to-start variant="outline" :href="route('account.programs.index')">{{ __('programs.how_to.my_programs') }}</x-button>
+            <x-button data-how-to-start variant="outline" :href="route('account.programs.index')">{{ __('programs.mine.title') }}</x-button>
         @elseif (! $open)
             <p class="text-sm text-muted">{{ __('programs.show.closed') }}</p>
             <x-button data-how-to-start variant="outline" :href="route('programs.index')">{{ __('programs.how_to.browse_others') }}</x-button>

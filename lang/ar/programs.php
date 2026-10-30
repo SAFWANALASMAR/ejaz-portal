@@ -84,7 +84,6 @@ return [
         'create_account' => 'أنشئ حساباً',
         'browse' => 'اختر برنامجاً',
         'registered' => 'مسجّل — :status',
-        'my_programs' => 'البرامج المسجل بها',
         'browse_others' => 'تصفّح البرامج الأخرى',
     ],
 
