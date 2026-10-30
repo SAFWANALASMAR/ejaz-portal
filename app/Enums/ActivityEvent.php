@@ -88,6 +88,10 @@ enum ActivityEvent: string implements HasLabel
     case Viewed = 'viewed';
     case FormEntryApproved = 'form_entry_approved';
     case FormEntriesExported = 'form_entries_exported';
+    // معرض الشواهد: إصدار رابطه السري وإلغاؤه (بلا الرمز)، وتغيّر بنوده
+    case EvidenceLinkIssued = 'evidence_link_issued';
+    case EvidenceLinkRevoked = 'evidence_link_revoked';
+    case EvidenceItemsUpdated = 'evidence_items_updated';
     // الطلبات
     case InquiryNoteUpdated = 'inquiry_note_updated';
     // البث المباشر

@@ -63,6 +63,20 @@ final class NetworkPrefix
     }
 
     /**
+     * العنوان مقنّعاً للسجلات: شبكته /24 في IPv4 و/48 في IPv6، فلا يُحفظ عنوان زائر بعينه.
+     */
+    public static function masked(?string $ip): string
+    {
+        $ip = self::normalize($ip);
+
+        if ($ip === null) {
+            return 'unknown';
+        }
+
+        return self::prefix($ip, self::isIpv6($ip) ? 48 : 24);
+    }
+
+    /**
      * المشترك الواحد لحد التسجيل: عنوان IPv4 كاملاً، أو /64 في IPv6.
      */
     public static function subscriber(?string $ip): string

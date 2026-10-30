@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckHealth;
 use App\Models\AssistantLog;
+use App\Models\EvidenceGalleryVisit;
 use App\Models\MessageLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
@@ -65,6 +66,9 @@ Schedule::command('ejaz:assistant-index')->dailyAt('03:30')->timezone(config('ap
 
 // سجل حالة الرسائل بعد مدة الاحتفاظ (config/messaging.php: log_days)
 Schedule::command('model:prune', ['--model' => [MessageLog::class]])->daily()->onOneServer();
+
+// سجل فتح معارض الشواهد بعد مدة الاحتفاظ بسجل العمليات (activitylog.clean_after_days)
+Schedule::command('model:prune', ['--model' => [EvidenceGalleryVisit::class]])->daily()->onOneServer();
 
 // المهام الفاشلة بعد أسبوع، كما يحذفها Horizon من قائمته (config/horizon.php: trim.failed)، فلا يبقى نص استثناءاتها
 // بلا حد (اختبار الأمن قبل الرفع، مراجعة #61)
