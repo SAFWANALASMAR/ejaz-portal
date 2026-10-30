@@ -1868,3 +1868,4 @@
   - `receipt_sent_at` وقت وضع الإيصال في الطابور لا وقت تسليمه، فإن فشل البريد بعد محاولاته لا يُعاد آلياً.
 - **واتساب:** `SendExamReceipt` من المسارين، بمعرّف المحاولة ووقت تسليمها، خلف `MessagingSettings::usageEnabled('whatsapp', 'exam_receipt')` المطفأ.
 - **شاشة التأكيد** كما هي.
+- **أنماط الأقسام المطوية والشرائح** في `resources/css/competition-page.css` يستوردها `competition-page.js`، لا في `app.css` (ملك التحسين البصري بقاعدة التنسيق، 30 أكتوبر 2026).

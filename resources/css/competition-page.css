@@ -1,0 +1,63 @@
+/*
+| صفحة مسابقة الطلاب وحدها (resources/js/competition-page.js يستوردها): خارج app.css لأنه للتحسين البصري وحده
+| (قاعدة التنسيق، 30 أكتوبر 2026).
+*/
+
+/* صفحة مسابقة الطلاب (resources/js/competition-page.js): البطاقات المطوية تنسدل بنعومة والسهم يدور، حيث يدعم المتصفح
+   ::details-content وinterpolate-size، وغيره يفتحها فوراً. والشريحة تظهر بانزلاق خفيف. وبلا حركة لمن يطلب تقليلها */
+.collapsible {
+    interpolate-size: allow-keywords;
+}
+
+.collapsible::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+        block-size 0.3s ease,
+        content-visibility 0.3s allow-discrete;
+}
+
+.collapsible[open]::details-content {
+    block-size: auto;
+}
+
+.collapsible-chevron {
+    transition: rotate 0.3s ease;
+}
+
+.collapsible[open] .collapsible-chevron {
+    rotate: 180deg;
+}
+
+/* السحب الأفقي للشرائح، والرأسي يبقى تمريراً للصفحة */
+[data-slides-track] {
+    touch-action: pan-y;
+}
+
+/* التالية تدخل من اليسار (الموقع من اليمين)، والسابقة من اليمين */
+[data-slides-ready] [data-slide]:not([hidden]) {
+    --slide-from: -1rem;
+    animation: slide-in 0.35s ease-out;
+}
+
+[data-slides-ready][data-direction='previous'] [data-slide]:not([hidden]) {
+    --slide-from: 1rem;
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        translate: var(--slide-from) 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .collapsible::details-content,
+    .collapsible-chevron {
+        transition: none;
+    }
+
+    [data-slides-ready] [data-slide]:not([hidden]) {
+        animation: none;
+    }
+}
