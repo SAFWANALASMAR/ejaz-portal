@@ -109,9 +109,10 @@ it('gives detail pages one breadcrumb through their sections', function () {
     }
 });
 
-it('leaves the breadcrumb out of pages that are not indexed', function () {
+it('leaves all structured data out of pages that are not indexed', function () {
+    // ومنها معرض الشواهد برابطه السري: لا شيء يعرّف بالصفحة لمحركات البحث (مراجعة المشرف على #104)
     expect(jsonLdNode($this->get('/login')->assertOk(), 'BreadcrumbList'))->toBeNull()
-        ->and(jsonLdNode($this->get('/login'), 'Organization'))->not->toBeNull();
+        ->and(jsonLdNode($this->get('/login'), 'Organization'))->toBeNull();
 });
 
 it('describes a published program as an event without its meeting link', function () {
