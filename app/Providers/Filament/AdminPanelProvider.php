@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Str;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\View\View;
 
 /**
  * لوحة الإدارة على /admin.
@@ -77,6 +78,10 @@ class AdminPanelProvider extends PanelProvider
             // الخط يُخدَم من خادم البوابة نفسه (Vite) لا من مزود خارجي
             ->font('Zain', provider: LocalFontProvider::class)
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): Htmlable => Vite::fonts())
+            // سمة اللوحة على التصور النهائي 13–15: الشريط الداكن ومربعات الأيقونات ورؤوس الصفحات
+            // (docs/decisions/2026-10-30-admin-theme.md)
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->renderHook(PanelsRenderHook::SIDEBAR_NAV_START, fn (): View => view('filament.admin.sidebar-brand'))
             // صورة الحساب تُولَّد محلياً، لا من مزود خارجي
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             // التنقّل بين صفحات اللوحة بلا إعادة تحميل كاملة، وما خارجها يُحمَّل تحميلاً كاملاً (decisions.md)
