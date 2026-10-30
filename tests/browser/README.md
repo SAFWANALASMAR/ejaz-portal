@@ -31,6 +31,7 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
 2. شغّل اللقطات، ثم أعد تسمية ملفات الشاشة إلى `-demo-`.
    - صفحتا عنصر المكتبة (`library-item` و`library-video`) لا تُلتقطان إلا من المجموعة التجريبية، بعنصرين معرّفاهما `demo-book` و`demo-video`.
    - وكذلك صفحتا الخبر والألبوم (`news-article` و`album`)، بمعرّفي `demo-news` و`demo-album`.
+   - وقارئ الكتب «للقراءة فقط» (`library-read-only.spec.mjs`): كتاب منشور من صفحتين فأكثر، مطفأ فيه «يُتاح تنزيل الملف»، ومعرّفه في `READ_ONLY_SLUG`. مع الأصول المبنية: `docker compose run --rm --no-deps -e VITE_HOST=none -e READ_ONLY_SLUG=demo-book browser npx playwright test --config=tests/browser/playwright.config.mjs library-read-only.spec.mjs`. ولقطاته في `docs/design/screenshots/library-read-only/` (`SHOT_PREFIX`، وafter افتراضياً).
 3. **احذف القيم والمسارات المؤقتة:**
    - احذف القيم من اللوحة نفسها، فتُمسح ذاكرتها.
    - وإن عُدّلت القاعدة مباشرة، فامسح الذاكرة كلها بـ `php artisan cache:clear` (في البيئة المحلية وحدها)، لأن `ejaz:refresh-content` لا يمس ذاكرة الإعدادات.
@@ -54,7 +55,7 @@ APP_URL=http://localhost:8181 php artisan serve --host=127.0.0.1 --port=8181
 
 docker run --rm --ipc=host -v "$PWD:/work" -w /work \
   -e APP_PORT=8181 -e APP_HOST=host.docker.internal -e APP_UPSTREAM_PORT=8181 -e VITE_HOST=none \
-  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.63.0-noble \
+  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.64.1-noble \
   npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
 ```
 

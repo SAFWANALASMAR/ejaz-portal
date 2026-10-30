@@ -74,6 +74,11 @@ class SaveLibraryItem
             $item->on_home = false;
         }
 
+        // «للقراءة فقط» للكتب والأبحاث وحدها، فلا تبقى العلامة على صوت أو مرئي (ولو تغيّر القسم)
+        if (! $item->section->takesPdf() || $item->getAttribute('is_downloadable') === null) {
+            $item->is_downloadable = true;
+        }
+
         if (filled($item->video_url) && ! VideoUrl::isValid($item->video_url)) {
             throw ValidationException::withMessages(['video_url' => __('validation.video_url')]);
         }

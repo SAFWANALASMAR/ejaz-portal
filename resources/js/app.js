@@ -11,6 +11,7 @@ import './student-competition';
 import './assistant';
 import './password-rules';
 import './home';
+import './pdf-reader';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

@@ -1,6 +1,6 @@
 {{--
     صفحة العنصر: المشغّل المدمج للمرئية (يوتيوب من youtube-nocookie.com، أو ملف من نطاق معتمد)، أو
-    مشغّل الصوت، أو عارض PDF على الحاسوب مع الفتح والتنزيل. ثم بياناته ووصفه وتصنيفاته، ثم عناصر
+    مشغّل الصوت، أو عارض PDF على الحاسوب مع الفتح والتنزيل، أو قارئ الكتاب «للقراءة فقط» بلا تنزيل. ثم بياناته ووصفه وتصنيفاته، ثم عناصر
     ذات صلة من قسمه. (تُخزَّن نصاً — LibraryController)
 --}}
 @php
@@ -61,7 +61,12 @@
                 @endif
             </dl>
 
-            @if (filled($item->file))
+            @if ($item->isReadOnly())
+                {{-- «للقراءة فقط — بلا تحميل»: لا زر تنزيل ولا فتح للملف، والقراءة في القارئ أدناه --}}
+                <p class="inline-flex items-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-sm font-semibold text-primary-dark">
+                    {{ svg('heroicon-o-book-open', 'size-5 shrink-0', ['aria-hidden' => 'true']) }}{{ __('library.item.read_only') }}
+                </p>
+            @elseif (filled($item->file))
                 <div class="flex flex-wrap gap-3">
                     <x-button :href="route('library.download', $route)">
                         {{ __('library.item.download') }}
@@ -100,8 +105,11 @@
             </ul>
         @endif
 
+        {{-- كتاب «للقراءة فقط»: قارئ يرسم الصفحات في <canvas> على كل العروض، بلا شريط عارض المتصفح (resources/js/pdf-reader.js) --}}
+        @if (filled($item->file) && $item->isReadOnly())
+            @include('library.reader', ['url' => route('library.file', $route), 'title' => $item->title])
         {{-- متصفحات الجوال لا تعرض PDF داخل الصفحة، فعليها زرا الفتح والتنزيل وحدهما --}}
-        @if (filled($item->file) && $item->section->takesPdf())
+        @elseif (filled($item->file) && $item->section->takesPdf())
             <iframe src="{{ route('library.file', $route) }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"
                 loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
             <p class="mt-6 text-sm text-muted lg:hidden">{{ __('library.item.mobile_hint') }}</p>
