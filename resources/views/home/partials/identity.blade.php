@@ -39,9 +39,15 @@
                     <x-carousel :label="__('ui.identity.values')" :count="count($values)" autoplay :interval="4000" compact class="static" data-values-slider>
                         @foreach ($values as $index => $slide)
                             <div data-carousel-item @if ($index === 0) data-active @endif data-kind="value"
-                                class="flex items-center gap-2 pt-4 pb-10 text-[1.375rem] font-extrabold text-primary" title="{{ $slide['text'] }}">
-                                {{ \App\Support\Icon::svg($slide['icon'], 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
-                                {{ $slide['title'] }}
+                                class="pt-4 pb-10">
+                                <span class="flex items-center gap-2 text-[1.375rem] font-extrabold text-primary">
+                                    {{ \App\Support\Icon::svg($slide['icon'], 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
+                                    {{ $slide['title'] }}
+                                </span>
+                                {{-- وصف القيمة من الخطة الاستراتيجية ظاهراً للجوال ولوحة المفاتيح وقارئ الشاشة، لا في title وحده --}}
+                                @if (filled($slide['text']))
+                                    <span data-value-text class="mt-1 line-clamp-2 block text-sm leading-6 text-muted">{{ $slide['text'] }}</span>
+                                @endif
                             </div>
                         @endforeach
                     </x-carousel>

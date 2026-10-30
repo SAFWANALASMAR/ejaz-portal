@@ -12,7 +12,7 @@
 <div data-pdf-reader="{{ $url }}" data-state="loading" data-error="{{ __('library.reader.error') }}" data-loading="{{ __('library.reader.loading') }}"
     data-page-label="{{ __('library.reader.canvas') }}" data-title="{{ $title }}"
     role="region" aria-label="{{ __('library.reader.label', ['title' => $title]) }}"
-    class="card-lift mt-8 overflow-hidden select-none print:hidden">
+    class="concept-panel mt-8 overflow-hidden select-none print:hidden">
     <div class="flex flex-wrap items-center justify-between gap-3 bg-primary-dark px-3 py-3 text-white sm:px-4">
         {{-- السابقة في جهة البداية (اليمين) والتالية في جهة النهاية، كتقليب الكتاب العربي --}}
         <div class="flex items-center gap-2">

@@ -11,7 +11,6 @@
     $route = request()->route();
     $parent = \App\Support\BackNavigation::parentUrl($route);
     $home = route('home');
-    request()->attributes->set('back-nav.rendered', true);
 @endphp
 
 <nav data-back-nav aria-label="{{ __('ui.back_nav.label') }}" {{ $attributes->class(['back-nav' => ! $inline]) }}>

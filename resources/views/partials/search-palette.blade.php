@@ -1,7 +1,7 @@
 {{--
     البحث السريع (Ctrl+K أو ⌘K، وزر البحث في الرأس — محور المدير «التقانة»): نافذة <dialog> تبحث فوراً في صفحات القائمة
     الرئيسية بأسمائها، وتقترح البحث بالكلمة في الأقسام التي لها بحث قائم (الحوكمة والأخبار وأقسام المكتبة) بمساراتها الموجودة.
-    بلا طلب إلى الخادم ولا مكتبة (resources/js/search-palette.js). وبلا سكربت يبقى زر البحث رابطاً إلى الحوكمة.
+    بلا طلب إلى الخادم ولا مكتبة (resources/js/search-palette.js). وبلا سكربت لا تُفتح النافذة، ويبقى البحث في صفحة كل قسم.
     $siteMenu من SiteChromeComposer.
 --}}
 @php
@@ -42,7 +42,7 @@
         <div class="flex items-center gap-3 border-b border-line px-5 py-3">
             {{ \App\Support\Icon::svg('magnifying-glass', 'size-5 shrink-0 text-primary', ['aria-hidden' => 'true']) }}
             <h2 id="search-palette-title" class="sr-only">{{ __('ui.search.title') }}</h2>
-            <input type="search" data-search-input maxlength="100" autocomplete="off" role="combobox" aria-expanded="true"
+            <input type="search" data-search-input maxlength="100" autocomplete="off" role="combobox" aria-expanded="false"
                 aria-controls="search-palette-results" aria-autocomplete="list" aria-label="{{ __('ui.search.title') }}"
                 placeholder="{{ __('ui.search.placeholder') }}"
                 class="min-w-0 flex-1 border-0 bg-transparent py-2 text-lg outline-none placeholder:text-muted focus:ring-0">

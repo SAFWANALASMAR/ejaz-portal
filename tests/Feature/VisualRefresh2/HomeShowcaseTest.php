@@ -124,3 +124,26 @@ it('lists the latest published updates across modules, newest first', function (
     expect($titles)->toBe(['وثيقة حديثة', 'برنامج قديم']);
     $this->get('/')->assertSee('id="home-updates"', false)->assertSee('وثيقة حديثة');
 });
+
+it('refreshes the cached home when the competition is saved or deleted', function () {
+    $competition = Competition::factory()->create(['student_mode' => true, 'is_published' => true, 'prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $this->get('/')->assertOk()->assertSee('2,000');
+
+    $competition->forceFill(['prize_table' => [['male' => 3000, 'female' => 3000]]])->save();
+    $this->get('/')->assertOk()->assertSee('6,000')->assertDontSee('2,000');
+
+    $competition->delete();
+    $this->get('/')->assertOk()->assertDontSee('data-prize-total', false);
+});
+
+it('stacks the short text sections on the about page only, and keeps a news body as running text', function () {
+    $blocks = [
+        ['type' => 'text', 'data' => ['heading' => 'الأول', 'body' => '<p>نص قصير</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الثاني', 'body' => '<p>نص قصير آخر</p>']],
+    ];
+    publishedAboutWith(['الأول' => 'نص قصير', 'الثاني' => 'نص قصير آخر']);
+    $article = \App\Models\NewsArticle::factory()->create(['is_published' => true, 'blocks' => $blocks]);
+
+    $this->get('/about')->assertOk()->assertSee('data-stack', false);
+    $this->get(route('media.news.show', $article->slug))->assertOk()->assertSee('نص قصير آخر')->assertDontSee('data-stack', false);
+});

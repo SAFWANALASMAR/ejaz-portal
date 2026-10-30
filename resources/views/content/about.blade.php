@@ -12,7 +12,7 @@
 
 <x-page-hero :title="$page->title" :summary="$page->summary" />
 
-<x-content-blocks :blocks="$page->blocks" />
+<x-content-blocks :blocks="$page->blocks" stack />
 
 {{-- كلمة رئيس مجلس الإدارة: الصورة، والمقتطف، والاسم والصفة، والكلمة كاملة تنفتح في مكانها --}}
 <section class="mx-auto max-w-[82.5rem] px-4 pt-12 pb-6 sm:px-7" aria-labelledby="about-chairman">

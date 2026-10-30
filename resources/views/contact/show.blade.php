@@ -35,30 +35,21 @@
                 @if ($hasInfo)
                     <dl class="mt-5 space-y-3.5">
                         @if (filled($email))
-                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
-                                <x-icon-tile icon="envelope" :index="0" />
-                                <div>
-                                    <dt class="text-sm text-muted">{{ __('contact.info.email') }}</dt>
-                                    <dd class="mt-0.5 text-lg font-black"><a href="mailto:{{ $email }}" dir="ltr" class="text-primary-dark hover:underline">{{ $email }}</a></dd>
-                                </div>
+                            <div class="card-lift group grid grid-cols-[auto_1fr] items-center gap-x-4 px-5 py-4">
+                                <dt class="contents text-sm text-muted"><x-icon-tile icon="envelope" :index="0" class="row-span-2" /><span>{{ __('contact.info.email') }}</span></dt>
+                                <dd class="mt-0.5 min-w-0 text-lg font-black"><a href="mailto:{{ $email }}" dir="ltr" class="text-primary-dark hover:underline">{{ $email }}</a></dd>
                             </div>
                         @endif
                         @if (filled($phone))
-                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
-                                <x-icon-tile icon="phone" :index="1" />
-                                <div>
-                                    <dt class="text-sm text-muted">{{ __('contact.info.phone') }}</dt>
-                                    <dd class="mt-0.5 text-lg font-black"><a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" dir="ltr" class="text-primary-dark hover:underline">{{ $phone }}</a></dd>
-                                </div>
+                            <div class="card-lift group grid grid-cols-[auto_1fr] items-center gap-x-4 px-5 py-4">
+                                <dt class="contents text-sm text-muted"><x-icon-tile icon="phone" :index="1" class="row-span-2" /><span>{{ __('contact.info.phone') }}</span></dt>
+                                <dd class="mt-0.5 min-w-0 text-lg font-black"><a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" dir="ltr" class="text-primary-dark hover:underline">{{ $phone }}</a></dd>
                             </div>
                         @endif
                         @if (filled($address))
-                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
-                                <x-icon-tile icon="map-pin" :index="2" />
-                                <div>
-                                    <dt class="text-sm text-muted">{{ __('contact.info.address') }}</dt>
-                                    <dd class="mt-0.5 leading-7 font-black text-primary-dark">{{ $address }}</dd>
-                                </div>
+                            <div class="card-lift group grid grid-cols-[auto_1fr] items-center gap-x-4 px-5 py-4">
+                                <dt class="contents text-sm text-muted"><x-icon-tile icon="map-pin" :index="2" class="row-span-2" /><span>{{ __('contact.info.address') }}</span></dt>
+                                <dd class="mt-0.5 min-w-0 leading-7 font-black text-primary-dark">{{ $address }}</dd>
                             </div>
                         @endif
                     </dl>
