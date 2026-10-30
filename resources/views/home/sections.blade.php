@@ -1,34 +1,27 @@
 {{--
-    مقاطع الرئيسية بترتيب المدير التنفيذي (ملاحظاته عبر صفوان، 25 أكتوبر 2026 — App\Actions\Content\BuildHomePage):
-    كلمة خادم الحرمين الشريفين، ثم كلمة رئيس مجلس الإدارة، ثم المبررات، ثم القيم الأربع، ثم شريط الأخبار، ثم شريط
-    الإعلانات، ثم قنوات التواصل. والمقاطع السابقة لا تظهر إلا إن أُظهرت من الإعدادات، قبل قنوات التواصل.
+    مقاطع الرئيسية ببنية مرجع المدير التنفيذي (قرار صفوان، 30 أكتوبر 2026 — plans/2026-10-30-director-home-reference.md و
+    docs/decisions/2026-10-30-visual-refresh-2.md): البطل الحي، ثم شرائح الهوية وجوائز البراهين، ثم «خدماتنا»، ثم الإعلانات
+    والأخبار، ثم «مستجدات الجمعية». ثم مقاطع الخطة الاستراتيجية بترتيب 25 أكتوبر (كلمة خادم الحرمين الشريفين، وكلمة رئيس مجلس
+    الإدارة، والمبررات)، والقيم صارت شرائح تحت البطل. ثم المقاطع التي تُظهر من الإعدادات، وقنوات التواصل.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
 --}}
-@if ($hero)
-    @include('home.partials.hero', ['hero' => $hero])
-@else
-    <h1 class="sr-only">{{ __('site.name') }}</h1>
+@include('home.partials.hero', ['hero' => $hero, 'slides' => $slides, 'prize' => $prize])
+@include('home.partials.identity', ['identity' => \App\Support\HomeShowcase::identity($content), 'prize' => $prize])
+@include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content])
+@include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize])
+
+@if ($updates !== [])
+    @include('home.partials.updates', ['updates' => $updates])
 @endif
+
+<x-divider-ornament class="container-page my-2" />
 
 @include('home.partials.king', ['king' => $content['king']])
 @include('home.partials.chairman', ['chairman' => $content['chairman']])
 @include('home.partials.rationale', ['rationale' => $content['rationale']])
-@include('home.partials.values', ['values' => $content['values']])
-
-@if ($news->isNotEmpty())
-    @include('home.partials.news-ticker', ['news' => $news, 'tickers' => $content['tickers']])
-@endif
-
-@if ($announcements->isNotEmpty())
-    @include('home.partials.announcements', ['announcements' => $announcements, 'tickers' => $content['tickers']])
-@endif
 
 @if ($stats !== [])
     @include('home.partials.stats', ['stats' => $stats])
-@endif
-
-@if ($shortcuts !== [])
-    @include('home.partials.shortcuts', ['shortcuts' => $shortcuts])
 @endif
 
 @if ($video !== null)

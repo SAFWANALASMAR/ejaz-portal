@@ -225,7 +225,7 @@ class AppServiceProvider extends ServiceProvider
         // «نماذجي» في لوحة المستخدم لمن في ملفه نموذج مشاركين معتمد (FormEntry::scopeVisibleToPerson)
         Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
-        View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+        View::composer(['partials.header', 'partials.footer', 'partials.search-palette'], SiteChromeComposer::class);
 
         // فهرس المساعد يتبع المحتوى: كل حفظ وحذف واستعادة يعيد مقاطع السجل، فلا تبقى مسودة ولا محذوف فيه
         foreach (array_keys(AssistantIndex::MODELS) as $model) {

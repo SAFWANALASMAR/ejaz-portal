@@ -1,8 +1,9 @@
 {{--
-    التذييل بهوية الجمعية (مراجعة المشرف، 26 أكتوبر 2026 — docs/design/ui-reference.md «التذييل»): شريط علوي بالشعار والمخطوطة
-    ونبذة الجمعية والإشراف والترخيص، ثم أعمدة الروابط المختصرة والتواصل (ومعه العنوان الوطني برابط الخريطة) والقنوات بشعارات
-    منصاتها، ثم الحقوق. نصوصه من «محتوى الرئيسية» (HomeContent، القسم footer)، وبيانات التواصل والقنوات من «إعدادات الموقع»،
-    وما لم يُدخل لا يظهر.
+    التذييل الداكن (نمط ٩ في توجيه الدفعة الثانية، ومرجع المدير التنفيذي — plans/2026-10-30-director-home-reference.md): أعمدة
+    «عن الجمعية» (الشعار والمخطوطة والنبذة والإشراف والترخيص والحسابات بأيقونات دائرية)، و«روابط سريعة»، و«تواصل معنا»
+    (ومعه العنوان الوطني برابط الخريطة)، و«شركاؤنا» بشعاراتهم متى نُشروا. ثم الحقوق وسياسة الخصوصية وخريطة الموقع. نصوصه من
+    «محتوى الرئيسية» (HomeContent، القسم footer)، وبيانات التواصل والقنوات من «إعدادات الموقع»، والشركاء من اللوحة، وما لم
+    يُدخل لا يظهر. ولا رقم ولا بريد ولا شعار من صورة المرجع.
 --}}
 @php
     $menu = $siteMenu ?? collect();
@@ -19,42 +20,56 @@
         : \App\Support\NationalAddress::mapUrl($shortAddress);
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
     $hasContact = $email !== null || $phone !== null || $address !== null || $shortAddress !== null || $whatsapp !== null;
+    // شعارات الشركاء المنشورة بترتيبها في اللوحة، والبقية في صفحة الشركاء
+    $partners = \App\Models\Partner::query()->published()->whereNotNull('logo')->limit(4)->get();
 @endphp
 
-{{-- بخلفية القسم الداكن ودوائره وزخرفته الهندسية (التحسين البصري — docs/plans/visual-refresh.md) --}}
 <footer class="section-dark" data-site-footer>
     <div class="bg-pattern-light pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
     <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-l from-accent-light via-brand to-secondary" aria-hidden="true"></span>
-    <img src="{{ asset('images/decor/palms-line.svg') }}" alt="" aria-hidden="true"
+    <img src="{{ asset('images/decor/palms-line.svg') }}" alt="" aria-hidden="true" width="420" height="160"
         class="pointer-events-none absolute bottom-0 end-0 w-[420px] max-w-[70%] opacity-15">
 
     <div class="container-page relative">
-        {{-- الهوية: الشعار والمخطوطة، والنبذة، والإشراف والترخيص --}}
-        <div class="flex flex-col gap-6 border-b border-white/10 py-10 lg:flex-row lg:items-center lg:justify-between">
-            <div class="space-y-4">
-                <x-brand light />
-                <p class="max-w-xl text-sm leading-7 text-white/80">{{ $text('about') }}</p>
-            </div>
-            <div class="flex flex-col gap-2 text-sm lg:items-end">
-                <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-accent-light ring-1 ring-white/15">
+        <div class="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.2fr_1fr] lg:gap-8">
+            {{-- عن الجمعية --}}
+            <div data-footer-column class="space-y-5">
+                <h2 class="sr-only">{{ __('ui.footer.about') }}</h2>
+                <x-brand light round />
+                <p class="max-w-sm text-sm leading-7 text-white/80">{{ $text('about') }}</p>
+                <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-accent-light ring-1 ring-white/15">
                     {{ \App\Support\Icon::svg('academic-cap', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                     {{ $text('supervision') }}
                 </p>
                 <p class="text-xs text-white/75">{{ $text('license') }}</p>
-            </div>
-        </div>
 
-        <div class="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1.3fr_1fr]">
-            <nav aria-labelledby="footer-links">
-                <p id="footer-links" class="mb-4 flex items-center gap-2 font-bold text-accent-light">
-                    <span class="h-0.5 w-6 rounded-full bg-accent-light" aria-hidden="true"></span>{{ $text('quick_links') }}
-                </p>
-                <ul class="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+                @if ($social !== [])
+                    <div>
+                        <p class="sr-only">{{ $text('channels') }}</p>
+                        <ul class="flex flex-wrap gap-2.5">
+                            @foreach ($social as $network => $url)
+                                <li>
+                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" title="{{ __('settings.social.'.$network) }}" data-social-link
+                                        class="social-circle">
+                                        <x-social-icon :network="$network" class="size-[18px]" />
+                                        <span class="sr-only">{{ __('settings.social.'.$network) }} ({{ __('site.opens_in_new_tab') }})</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </div>
+
+            {{-- روابط سريعة --}}
+            <nav data-footer-column aria-labelledby="footer-links">
+                <h2 id="footer-links" class="footer-title">{{ $text('quick_links') }}</h2>
+                <ul class="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm lg:grid-cols-1">
                     {{-- العنصر الذي يشير إلى صفحة غير منشورة يبقى في الرأس لعناصره الفرعية، ولا رابط له هنا (SiteChromeComposer) --}}
                     @foreach ($menu->where('linkable', true) as $item)
                         <li>
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
-                                class="inline-flex items-center gap-1.5 text-white/80 transition hover:text-white">
+                                class="footer-link">
                                 {{ \App\Support\Icon::svg('chevron-left', 'size-3 shrink-0 text-accent-light', ['aria-hidden' => 'true']) }}
                                 {{ $item->label }}
                             </a>
@@ -63,22 +78,21 @@
                 </ul>
             </nav>
 
-            @if ($hasContact)
-                <div class="text-sm">
-                    <p class="mb-4 flex items-center gap-2 font-bold text-accent-light">
-                        <span class="h-0.5 w-6 rounded-full bg-accent-light" aria-hidden="true"></span>{{ $text('contact') }}
-                    </p>
+            {{-- تواصل معنا --}}
+            <div data-footer-column class="text-sm">
+                <h2 class="footer-title">{{ $text('contact') }}</h2>
+                @if ($hasContact)
                     <ul class="space-y-3">
-                        @if ($email !== null)
-                            <li class="flex items-center gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('envelope', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
-                                <a href="mailto:{{ $email }}" class="text-white/85 hover:text-white" dir="ltr">{{ $email }}</a>
-                            </li>
-                        @endif
                         @if ($phone !== null)
                             <li class="flex items-center gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('phone', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
+                                <span class="footer-contact-icon">{{ \App\Support\Icon::svg('phone', 'size-4', ['aria-hidden' => 'true']) }}</span>
                                 <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="text-white/85 hover:text-white"><bdi dir="ltr">{{ $phone }}</bdi></a>
+                            </li>
+                        @endif
+                        @if ($email !== null)
+                            <li class="flex items-center gap-3">
+                                <span class="footer-contact-icon">{{ \App\Support\Icon::svg('envelope', 'size-4', ['aria-hidden' => 'true']) }}</span>
+                                <a href="mailto:{{ $email }}" class="text-white/85 hover:text-white" dir="ltr">{{ $email }}</a>
                             </li>
                         @endif
                         @if ($whatsapp !== null)
@@ -93,7 +107,7 @@
                         @endif
                         @if ($address !== null || $shortAddress !== null)
                             <li class="flex items-start gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('map-pin', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
+                                <span class="footer-contact-icon">{{ \App\Support\Icon::svg('map-pin', 'size-4', ['aria-hidden' => 'true']) }}</span>
                                 <span class="space-y-1 leading-7 text-white/85">
                                     @if ($address !== null)
                                         <span class="block">{{ $address }}</span>
@@ -112,22 +126,17 @@
                             </li>
                         @endif
                     </ul>
-                </div>
-            @endif
+                @endif
+            </div>
 
-            @if ($social !== [])
-                <div>
-                    <p class="mb-4 flex items-center gap-2 font-bold text-accent-light">
-                        <span class="h-0.5 w-6 rounded-full bg-accent-light" aria-hidden="true"></span>{{ $text('channels') }}
-                    </p>
-                    <ul class="flex flex-wrap gap-2.5">
-                        @foreach ($social as $network => $url)
-                            <li>
-                                <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" title="{{ __('settings.social.'.$network) }}"
-                                    class="inline-flex size-10 items-center justify-center rounded-full bg-white text-primary-dark shadow-sm transition hover:-translate-y-0.5 hover:bg-accent-light">
-                                    <x-social-icon :network="$network" class="size-5" />
-                                    <span class="sr-only">{{ __('settings.social.'.$network) }} ({{ __('site.opens_in_new_tab') }})</span>
-                                </a>
+            {{-- شركاؤنا: لا يظهر العمود قبل نشر شريك بشعاره --}}
+            @if ($partners->isNotEmpty())
+                <div data-footer-column>
+                    <h2 class="footer-title">{{ __('ui.footer.partners') }}</h2>
+                    <ul class="grid grid-cols-2 gap-3">
+                        @foreach ($partners as $partner)
+                            <li class="flex h-20 items-center justify-center rounded-2xl bg-white p-3" title="{{ $partner->name }}">
+                                <img src="{{ Storage::disk('public')->url($partner->logo) }}" alt="{{ $partner->name }}" loading="lazy" width="160" height="80" class="max-h-full w-auto object-contain">
                             </li>
                         @endforeach
                     </ul>
@@ -146,9 +155,12 @@
             'pb-5' => ! $assistantOn,
         ]) data-footer-rights>
             <p>© {{ now()->year }} {{ __('site.name') }} — {{ $text('rights') }}</p>
-            @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
-                <a href="{{ route('privacy') }}" wire:navigate class="hover:text-white">{{ __('site.footer.privacy') }}</a>
-            @endif
+            <ul class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                @if (\App\Models\Page::isPublishedSlug(\App\Models\Page::PRIVACY))
+                    <li><a href="{{ route('privacy') }}" wire:navigate class="hover:text-white">{{ __('site.footer.privacy') }}</a></li>
+                @endif
+                <li><a href="{{ route('sitemap') }}" class="hover:text-white">{{ __('ui.footer.sitemap') }}</a></li>
+            </ul>
         </div>
     </div>
 </footer>

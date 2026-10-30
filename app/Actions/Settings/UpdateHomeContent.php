@@ -2,6 +2,7 @@
 
 namespace App\Actions\Settings;
 
+use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\PlainText;
@@ -10,6 +11,7 @@ use App\Support\PublicImages;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,6 +54,8 @@ class UpdateHomeContent
         $rules['values.items.*.title'] = ['nullable', 'string', 'max:80', new PlainText];
         $rules['values.items.*.text'] = ['nullable', 'string', 'max:300', new PlainText];
         $rules['values.items.*.image'] = ['nullable', 'string', 'max:255'];
+        // أيقونة القيمة في شرائح الهوية: من القائمة المسموحة وحدها، فاسمها يبني مسار ملف
+        $rules['values.items.*.icon'] = ['nullable', Rule::enum(SiteIcon::class)];
 
         $validated = Validator::make($content, $rules)->validate();
 

@@ -21,6 +21,10 @@
     --color-primary: #2E6898;
     --color-primary-dark: #1F4565;
     --color-primary-soft: #EAF3FB;
+    /* الأزرق الفاتح على الداكن (التصور المعتمد، 30 أكتوبر 11:58): السطر الثاني من عنوان البطل، والنشط في الرأس الداكن.
+       5.4:1 على primary-dark (tests/Unit/BrandContrastTest.php). وأعمق الداكن لقاع التدرج الشعاعي في البطل والتذييل */
+    --color-brand-light: #8EC5F0;
+    --color-primary-deep: #142E45;
     /* الثانوي (أخضر) */
     --color-secondary: #287A37;
     --color-secondary-soft: #E8F3EA;
@@ -65,7 +69,7 @@
 
     /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
        فإطار التركيز فيها بدرجته الفاتحة */
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) :focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) :focus-visible {
         @apply outline-accent-light;
     }
 
@@ -74,7 +78,7 @@
         @apply outline-primary-dark;
     }
 
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) .bg-accent:focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) .bg-accent:focus-visible {
         @apply outline-accent-light;
     }
 

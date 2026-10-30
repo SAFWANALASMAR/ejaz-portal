@@ -23,7 +23,7 @@
                     <a href="{{ route('governance.index', ['category' => $category->value]) }}" wire:navigate
                         @if ($active === $category->value) aria-current="true" @endif
                         class="card-lift tilt group flex h-full flex-col items-center gap-3 p-5 text-center aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
-                        <span class="icon-tile size-14" aria-hidden="true">{{ \App\Support\Icon::svg($category->icon(), 'size-8') }}</span>
+                        <x-icon-tile :icon="$category->icon()" :tone="['blue', 'violet', 'green', 'navy', 'sky'][$loop->index % 5]" size="md" />
                         <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>
                     </a>
                 </li>

@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Actions\Settings\UpdateHomeContent;
 use App\Actions\Settings\UpdateSiteSettings;
 use App\Filament\Concerns\ReadableByOverseers;
+use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\HomeContent;
@@ -12,6 +13,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -93,6 +95,7 @@ class HomeContentPage extends Page
                 'title' => $item['title'] ?? __('home.sections.values.items.'.$index.'.title'),
                 'text' => $item['text'] ?? __('home.sections.values.items.'.$index.'.text'),
                 'image' => $item['image'] ?? null,
+                'icon' => $item['icon'] ?? HomeContent::VALUE_ICONS[$index],
             ];
         }
 
@@ -140,8 +143,17 @@ class HomeContentPage extends Page
                         ->schema([
                             TextInput::make('title')->label(__('settings.home_content.value_title'))->maxLength(80),
                             Textarea::make('text')->label(__('settings.home_content.value_text'))->rows(2)->maxLength(300),
+                            Select::make('icon')->label(__('ui.admin.value_icon'))->options(SiteIcon::class)->required(),
                             self::image('image', 'values')->columnSpanFull(),
                         ]),
+                ]),
+                // شرائح الهوية تحت البطل والبطاقة الجانبية في «خدماتنا» (مرجع المدير، 30 أكتوبر 2026). فارغة تعني: الرؤية والرسالة من
+                // صفحة «عن الجمعية» المنشورة، والبطاقة بلا نص
+                Section::make(__('ui.admin.identity'))->description(__('ui.admin.identity_hint'))->columns(2)->schema([
+                    Textarea::make('identity.vision')->label(__('ui.identity.vision'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.mission')->label(__('ui.identity.mission'))->rows(3)->maxLength(6000),
+                    TextInput::make('identity.side_title')->label(__('ui.admin.side_title'))->maxLength(300),
+                    TextInput::make('identity.side_text')->label(__('ui.admin.side_text'))->maxLength(300),
                 ]),
                 // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
                 Section::make(__('settings.home_content.interface'))->columns(2)->schema([

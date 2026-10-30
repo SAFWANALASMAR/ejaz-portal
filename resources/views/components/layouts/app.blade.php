@@ -41,7 +41,7 @@
         <meta property="og:image" content="{{ $image }}">
     @endif
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="theme-color" content="#2E6898">
+    <meta name="theme-color" content="#1F4565">
     @include('partials.favicons')
     @fonts
     {{-- Livewire للتنقّل السريع (wire:navigate) وحده، في الرأس فيُحمَّل مرة واحدة لا مع كل صفحة. ونمطه يحمل رمز
@@ -70,6 +70,11 @@
 
     @include('partials.header')
 
+    {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation) --}}
+    @if (\App\Support\BackNavigation::shows(request()->route()))
+        <x-back-nav />
+    @endif
+
     {{-- بعد كل تنقّل سريع يُنقل التركيز إلى عنوانه h1، أو إليه إن لم يكن (resources/js/page.js)، فلا إطار حوله --}}
     <main id="main" class="flex-1 focus:outline-none" tabindex="-1" aria-label="{{ __('site.main_content') }}">
         {{ $slot }}
@@ -84,6 +89,7 @@
         {{ \App\Support\Icon::svg('arrow-up', 'size-5') }}
     </button>
 
+    @include('partials.search-palette')
     @include('partials.assistant')
 </body>
 </html>

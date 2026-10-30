@@ -5,13 +5,14 @@
     ونسختاهما البيضاوان للخلفيات الداكنة. وكل ملف منها يُستبدل من «محتوى الرئيسية» (App\Support\HomeContent::brand)، إلا مع
     static: الملفات الأصلية بلا قراءة الإعدادات، لصفحة أخطاء الخادم التي لا تقرأ القاعدة (errors/5xx).
 --}}
-@props(['light' => false, 'static' => false])
+@props(['light' => false, 'static' => false, 'round' => false])
 
 @php($file = fn (string $key): string => $static ? asset(\App\Support\HomeContent::BRAND[$key]) : \App\Support\HomeContent::brand($key))
 
-<a href="{{ route('home') }}" wire:navigate class="flex shrink-0 items-center gap-2">
+{{-- round: الشعار في دائرة زجاجية والمخطوطة أكبر بوضوح (الرأس الداكن — التصور المعتمد، 30 أكتوبر 11:58) --}}
+<a href="{{ route('home') }}" wire:navigate @class(['flex shrink-0 items-center', 'gap-2' => ! $round, 'gap-3' => $round])>
     <img src="{{ $file($light ? 'mark_white' : 'mark') }}" alt=""
-        width="495" height="505" class="h-11 w-auto sm:h-13">
-    <img src="{{ $file($light ? 'calligraphy_white' : 'calligraphy') }}" alt="{{ __('site.name') }}"
-        width="1218" height="185" class="h-5 w-auto sm:h-6">
+        width="495" height="505" @class(['w-auto', 'h-11 sm:h-13' => ! $round, 'brand-round size-12 object-contain p-1.5 sm:size-14' => $round])>
+    <img src="{{ $file($light ? 'calligraphy_white' : 'calligraphy') }}" alt="{{ __('site.name') }}" data-logo-calligraphy
+        width="1218" height="185" @class(['w-auto', 'h-5 sm:h-6' => ! $round, 'h-6 max-w-[42vw] object-contain sm:h-8 sm:max-w-none' => $round])>
 </a>

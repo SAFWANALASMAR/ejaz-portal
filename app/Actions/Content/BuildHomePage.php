@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Rules\SafeUrl;
 use App\Rules\VideoUrl;
 use App\Support\HomeContent;
+use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Route;
@@ -38,10 +39,14 @@ class BuildHomePage
         'services' => ['icon' => 'squares-2x2', 'route' => 'programs.index'],
         // أيقونة مستقلة للمسابقات (ملاحظة المدير التنفيذي)
         'competitions' => ['icon' => 'trophy', 'route' => 'competitions.index'],
+        'library' => ['icon' => 'book-open', 'route' => 'library.index'],
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
-        // المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه، ويفتح في تبويب جديد
-        'store' => ['icon' => 'shopping-bag', 'route' => 'store.index', 'external' => true],
     ];
+
+    /**
+     * لون مربع الأيقونة لكل بطاقة في «خدماتنا» (x-icon-tile): من ألوان الهوية بالتناوب.
+     */
+    public const SHORTCUT_TONES = ['governance' => 'blue', 'membership' => 'violet', 'services' => 'green', 'competitions' => 'navy', 'library' => 'sky', 'media' => 'violet'];
 
     /**
      * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.
@@ -66,11 +71,14 @@ class BuildHomePage
      *
      * @return array{
      *     content: array<string, mixed>,
-     *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null}|null,
+     *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
+     *     slides: list<array{src: string, alt: string}>,
+     *     prize: array{title: string, total: int, url: string}|null,
+     *     updates: list<array{kind: string, icon: string, title: string, url: string, date: \Illuminate\Support\Carbon}>,
      *     video: string|null,
      *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
-     *     shortcuts: list<array{key: string, icon: string, url: string, external: bool}>,
+     *     shortcuts: list<array{key: string, icon: string, url: string, external: bool, tone: string}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
      *     announcements: Collection<int, Announcement>,
@@ -86,13 +94,17 @@ class BuildHomePage
 
         return [
             'content' => HomeContent::resolved(),
-            'hero' => self::shows($home, 'hero', false) ? self::hero($home) : null,
+            'hero' => self::hero($home),
+            // بنية مرجع المدير (30 أكتوبر): العارض، وشرائح الهوية، والجوائز، والمستجدات (HomeShowcase)
+            'slides' => HomeShowcase::slides($home),
+            'prize' => HomeShowcase::prize(),
+            'updates' => HomeShowcase::updates(),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
             'video_thumbnail' => $video !== null ? FetchHomeVideoThumbnail::url($video) : null,
             'stats' => self::shows($home, 'stats', false) ? self::stats($home) : [],
-            'shortcuts' => self::shows($home, 'shortcuts', false) ? self::shortcuts() : [],
+            'shortcuts' => self::shortcuts(),
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
             'initiatives' => self::shows($home, 'initiatives', false) ? Initiative::query()->published()->limit(3)->get() : new Collection,
             // مفتاح «آخر الأخبار»: عناوين أحدث المنشور في الشريط المتحرك
@@ -216,7 +228,7 @@ class BuildHomePage
     }
 
     /**
-     * @return list<array{key: string, icon: string, url: string, external: bool}>
+     * @return list<array{key: string, icon: string, url: string, external: bool, tone: string}>
      */
     private static function shortcuts(): array
     {
@@ -224,7 +236,7 @@ class BuildHomePage
 
         foreach (self::SHORTCUTS as $key => $shortcut) {
             if (Route::has($shortcut['route'])) {
-                $shortcuts[] = ['key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route']), 'external' => $shortcut['external'] ?? false];
+                $shortcuts[] = ['key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route']), 'external' => false, 'tone' => self::SHORTCUT_TONES[$key]];
             }
         }
 

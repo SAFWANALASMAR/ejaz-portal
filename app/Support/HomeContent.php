@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\SiteIcon;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 
@@ -37,12 +38,22 @@ final class HomeContent
         'channels' => ['title', 'intro'],
         'announcements' => ['title', 'intro'],
         'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights'],
+        // شريحة الهوية تحت البطل وبطاقة «خدماتنا» الجانبية (مرجع المدير، 30 أكتوبر — plans/2026-10-30-director-home-reference.md).
+        // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
+        'identity' => ['vision', 'mission', 'side_title', 'side_text'],
     ];
+
+    /**
+     * أيقونة كل قيمة ما لم تُختر من اللوحة (شرائح الهوية في الرئيسية)، من القائمة المسموحة (SiteIcon).
+     *
+     * @var list<string>
+     */
+    public const VALUE_ICONS = ['check-badge', 'light-bulb', 'hand-raised', 'puzzle-piece'];
 
     /**
      * النصوص الطويلة (حد 6000 حرف، وغيرها 300).
      */
-    public const LONG = ['full', 'text', 'excerpt'];
+    public const LONG = ['full', 'text', 'excerpt', 'vision', 'mission'];
 
     /**
      * نصوص كتبناها مكان محتوى ناقص من الجمعية، فتُوسم «مثال تجريبي» ما لم تُستبدل من اللوحة (قرار صفوان، 26 أكتوبر 2026).
@@ -104,6 +115,7 @@ final class HomeContent
                 'title' => self::clean($item['title'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.title'),
                 'text' => self::clean($item['text'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.text'),
                 'image' => $path !== null ? Storage::disk('public')->url($path) : asset('images/home/value-'.($index + 1).'.jpg'),
+                'icon' => SiteIcon::tryFrom(is_string($item['icon'] ?? null) ? $item['icon'] : '')?->value ?? self::VALUE_ICONS[$index],
             ];
         }
 
