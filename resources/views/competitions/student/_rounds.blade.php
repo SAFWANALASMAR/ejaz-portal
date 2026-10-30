@@ -27,15 +27,18 @@
                     $attempt = $attempts->get($round->id);
                     $domain = $round->branch ? $domains->search($round->branch) : false;
                 @endphp
-                <li class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+                <li class="card-lift group flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex gap-4">
                         @if ($round->image_path)
                             <img src="{{ Storage::disk('public')->url($round->image_path) }}" alt="" class="size-16 shrink-0 rounded-xl object-cover" loading="lazy">
                         @else
-                            <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-lg font-bold text-white" aria-hidden="true">{{ Number::format($loop->iteration) }}</span>
+                            <span class="relative shrink-0" aria-hidden="true">
+                                <x-icon-tile icon="flag" :index="$loop->index" />
+                                <span class="absolute -top-1.5 -start-1.5 grid size-6 place-items-center rounded-full bg-primary-dark text-xs font-bold text-white ring-2 ring-white">{{ Number::format($loop->iteration) }}</span>
+                            </span>
                         @endif
                         <div class="space-y-1">
-                            <h3 class="font-bold text-ink">{{ $round->name }}</h3>
+                            <h3 class="text-lg font-black text-primary-dark">{{ $round->name }}</h3>
                             @if ($domain !== false)
                                 <p class="text-sm font-semibold text-accent">{{ __('competitions.student.page.domain', ['ordinal' => __('competitions.student.page.places')[$domain + 1] ?? Number::format($domain + 1)]) }}: {{ $round->branch }}</p>
                             @endif
