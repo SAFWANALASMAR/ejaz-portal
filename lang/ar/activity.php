@@ -102,6 +102,9 @@ return [
         'viewed' => 'اطلاع',
         'form_entry_approved' => 'اعتماد نموذج معبأ',
         'form_entries_exported' => 'تصدير النماذج المعبأة',
+        'evidence_link_issued' => 'إصدار رابط معرض الشواهد',
+        'evidence_link_revoked' => 'إلغاء رابط معرض الشواهد',
+        'evidence_items_updated' => 'تعديل بنود معرض الشواهد',
         'inquiry_note_updated' => 'تعديل الملاحظة الداخلية لاستفسار',
     ],
 

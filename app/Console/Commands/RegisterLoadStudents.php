@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Actions\Competitions\RegisterStudent;
+use App\Enums\CompetitionFieldType;
 use App\Enums\PassageKind;
 use App\Enums\QuestionType;
 use App\Models\Competition;
 use App\Models\CompetitionCategory;
+use App\Models\CompetitionField;
 use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRegion;
@@ -50,6 +52,12 @@ class RegisterLoadStudents extends Command
 
         $categories = $competition->openCategories()->get()->values();
         $region = CompetitionRegion::query()->active()->value('id');
+        // الحقول الإلزامية (الجهة التعليمية في البراهين) بقيمة صالحة لنوعها
+        $fields = $competition->fields()->where('is_required', true)->get()->mapWithKeys(fn (CompetitionField $field): array => [$field->id => match ($field->type) {
+            CompetitionFieldType::Text => 'مدرسة اختبار التحمل',
+            CompetitionFieldType::Number => '1',
+            CompetitionFieldType::Select => $field->optionList()[0] ?? '',
+        }])->all();
         $count = (int) $this->argument('count');
         $registered = 0;
 
@@ -89,6 +97,9 @@ class RegisterLoadStudents extends Command
                 'grade' => $category->gradeList()[0] ?? null,
                 'region_id' => $region,
                 'gender' => $n % 2 === 0 ? 'female' : 'male',
+                // رقم الجوال إلزامي (ملاحظات المدير التنفيذي، 29 أكتوبر 2026): صيغة سعودية من الرقم التسلسلي
+                'guardian_phone' => '05'.str_pad((string) ($n % 100000000), 8, '0', STR_PAD_LEFT),
+                'fields' => $fields,
                 'pledge' => '1',
             ]);
             $registered++;

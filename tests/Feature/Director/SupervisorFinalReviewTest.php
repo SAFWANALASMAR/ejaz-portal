@@ -9,6 +9,7 @@ use App\Enums\RoleName;
 use App\Enums\SiteIcon;
 use App\Filament\Pages\HomeContentPage;
 use App\Filament\Pages\SiteSettings;
+use App\Filament\Resources\ContentPages\Pages\EditContentPage;
 use App\Models\AccountCard;
 use App\Models\Committee;
 use App\Models\Meeting;
@@ -60,25 +61,31 @@ it('hides the old home sections once and puts the saved values back when rolled 
         ->and(Setting::query()->where('key', 'home_legacy_before')->exists())->toBeFalse();
 });
 
-// ٢
-it('tags the texts written by the portal team «مثال تجريبي» until the association replaces them', function () {
+// ٢، وقرار صفوان (29 أكتوبر 2026): لا وسم «مثال تجريبي» للعامة قبل الإطلاق، ويبقى في اللوحة وحدها حتى تراجعه الجمعية
+it('marks the texts written by the portal team in the admin panel only, never to the public', function () {
     $editor = userWithRole(RoleName::ContentEditor);
     Setting::put('contact', ['social' => ['x' => 'https://x.com/ejazsa2025']]);
-    $sample = __('site.sample');
 
-    expect($this->get('/')->getContent())->toContain(__('home.sections.channels.intro'))->toContain($sample);
-    $this->get('/media/announcements')->assertOk()->assertSee(__('home.sections.announcements.intro'))->assertSee($sample);
+    expect($this->get('/')->getContent())->toContain(__('home.sections.channels.intro'))->not->toContain('مثال تجريبي');
+    $this->get('/media/announcements')->assertOk()->assertSee(__('home.sections.announcements.intro'))->assertDontSee('مثال تجريبي');
+
+    // واللوحة تدل المسؤول عليه: التلميح على الحقل، وحالته في الإعدادات
+    $this->actingAs($editor);
+    Livewire::test(HomeContentPage::class)->assertSee(__('settings.home_content.sample_hint'));
+    expect(HomeContent::isSample('channels', 'intro'))->toBeTrue();
 
     saveHomeContent($editor, ['channels' => ['intro' => 'نص الجمعية المعتمد'], 'announcements' => ['intro' => 'مقدمة الجمعية']]);
 
-    expect($this->get('/')->getContent())->toContain('نص الجمعية المعتمد')->not->toContain($sample);
-    $this->get('/media/announcements')->assertSee('مقدمة الجمعية')->assertDontSee($sample);
+    expect($this->get('/')->getContent())->toContain('نص الجمعية المعتمد')
+        ->and(HomeContent::isSample('channels', 'intro'))->toBeFalse();
+    $this->get('/media/announcements')->assertSee('مقدمة الجمعية');
+    // وبعد استبدال النصين يزول الوسم من اللوحة أيضاً (مراجعة المشرف على #102)
+    Livewire::test(HomeContentPage::class)->assertDontSee(__('settings.home_content.sample_hint'));
 
-    // والصفحة الموسومة من اللوحة، ويُطفأ وسمها
+    // والصفحة الموسومة بلا وسم للعامة، ووسمها حقل فيها في اللوحة
     $page = Page::factory()->create(['slug' => 'sample-intro', 'is_sample' => true, 'is_published' => true]);
-    $this->get('/pages/sample-intro')->assertOk()->assertSee($sample);
-    $page->update(['is_sample' => false]);
-    $this->get('/pages/sample-intro')->assertDontSee($sample);
+    $this->get('/pages/sample-intro')->assertOk()->assertDontSee('مثال تجريبي');
+    Livewire::test(EditContentPage::class, ['record' => $page->getRouteKey()])->assertFormSet(['is_sample' => true])->assertSee(__('pages.fields.is_sample'));
 
     // وصفحات الاستفسارات والتوظيف والتطوع والتقارير في ملف الاستيراد بفقرة موسومة، لا بعناوينها وحدها
     $pages = collect(json_decode((string) file_get_contents(base_path('docs/legacy-import/legacy-site.json')), true)['pages'])->keyBy('slug');
@@ -339,8 +346,9 @@ it('keeps the «مثال تجريبي» tag after saving the home content page f
         ->and(HomeContent::isSample('channels', 'intro'))->toBeTrue()
         ->and(HomeContent::isSample('announcements', 'intro'))->toBeTrue();
 
-    expect((string) $this->get('/')->getContent())->toContain(__('site.sample'));
-    $this->get('/media/announcements')->assertSee(__('site.sample'));
+    // والوسم في اللوحة وحدها (قرار صفوان، 29 أكتوبر 2026)
+    expect((string) $this->get('/')->getContent())->not->toContain('مثال تجريبي');
+    $this->get('/media/announcements')->assertDontSee('مثال تجريبي');
 });
 
 it('keeps the footer texts in the wording the site had before', function () {

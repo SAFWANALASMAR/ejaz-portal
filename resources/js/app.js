@@ -8,6 +8,7 @@ import './live-countdown';
 import './gallery';
 import './competition-exam';
 import './student-competition';
+import './competition-page';
 import './assistant';
 import './password-rules';
 // قبل home.js: يضع data-reveal على أبناء [data-reveal-group] قبل أن يراقبها

@@ -230,6 +230,20 @@ return [
             'timeout' => 900,
             'nice' => 10,
         ],
+        // إيصالات تسليم محاولات مسابقة الطلاب (AttemptReceived وSendExamReceipt): إغلاق النافذة يسلّم آلاف المحاولات في دقيقة،
+        // فطابورها مستقل بعامل واحد، فلا تتأخر خلفها رسائل الاستعادة والتوثيق والدخول في default (مراجعة 30 أكتوبر)
+        'supervisor-receipts' => [
+            'connection' => 'redis',
+            'queue' => ['receipts'],
+            'balance' => 'simple',
+            'maxProcesses' => (int) env('RECEIPT_WORKERS', 1),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 60,
+            'nice' => 10,
+        ],
     ],
 
     'environments' => [
@@ -240,6 +254,7 @@ return [
                 'balanceCooldown' => 3,
             ],
             'supervisor-videos' => [],
+            'supervisor-receipts' => [],
         ],
 
         // التجريبية مطابقة للإنتاج، وإلا لم يُشغّل Horizon فيها عاملاً واحداً
@@ -250,6 +265,7 @@ return [
                 'balanceCooldown' => 3,
             ],
             'supervisor-videos' => [],
+            'supervisor-receipts' => [],
         ],
 
         'local' => [
@@ -259,6 +275,7 @@ return [
             'supervisor-videos' => [
                 'maxProcesses' => 1,
             ],
+            'supervisor-receipts' => [],
         ],
     ],
 

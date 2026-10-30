@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Messaging\DeliverMessage;
 use App\Contracts\WhatsAppNotifier;
+use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\MessagingChannel;
 use App\Services\Messaging\MessagingException;
@@ -23,18 +24,24 @@ class SendExamReceipt implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public int $submissionId) {}
+    /**
+     * @param  int|null  $attemptId  محاولة في مسابقة الطلاب (SubmitAttempt): وقت تسليمها لا وقت التسجيل
+     */
+    public function __construct(public int $submissionId, public ?int $attemptId = null) {}
 
     public function handle(WhatsAppNotifier $whatsapp, DeliverMessage $deliver): void
     {
         $submission = CompetitionSubmission::query()->with(['user', 'competition'])->find($this->submissionId);
         $phone = $submission?->user?->phone;
+        $submittedAt = $this->attemptId !== null
+            ? CompetitionAttempt::query()->where('submission_id', $this->submissionId)->find($this->attemptId)?->submitted_at
+            : $submission?->submitted_at;
 
-        if ($submission?->submitted_at === null || blank($phone)) {
+        if ($submission === null || $submittedAt === null || blank($phone)) {
             return;
         }
 
-        $local = Dates::local($submission->submitted_at);
+        $local = Dates::local($submittedAt);
 
         $parameters = [
             'competition' => $submission->competition->title,

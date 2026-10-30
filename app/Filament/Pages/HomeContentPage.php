@@ -160,9 +160,12 @@ class HomeContentPage extends Page
                     TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),
                     TextInput::make('tickers.announcements')->label(__('settings.home_content.tickers_announcements'))->maxLength(300),
                     TextInput::make('channels.title')->label(__('settings.home_content.channels_title'))->maxLength(300),
-                    TextInput::make('channels.intro')->label(__('settings.home_content.channels_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                    // وسم «مثال تجريبي» في اللوحة وحدها ما دام النص الذي كتبه فريق البوابة لم يُستبدل (HomeContent::SAMPLE)
+                    TextInput::make('channels.intro')->label(__('settings.home_content.channels_intro'))
+                        ->helperText(fn (): ?string => HomeContent::isSample('channels', 'intro') ? __('settings.home_content.sample_hint') : null)->maxLength(300),
                     TextInput::make('announcements.title')->label(__('settings.home_content.announcements_title'))->maxLength(300),
-                    TextInput::make('announcements.intro')->label(__('settings.home_content.announcements_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                    TextInput::make('announcements.intro')->label(__('settings.home_content.announcements_intro'))
+                        ->helperText(fn (): ?string => HomeContent::isSample('announcements', 'intro') ? __('settings.home_content.sample_hint') : null)->maxLength(300),
                 ]),
                 Section::make(__('settings.home_content.footer'))->columns(2)->schema([
                     Textarea::make('footer.about')->label(__('settings.home_content.footer_about'))->rows(2)->maxLength(300)->columnSpanFull(),

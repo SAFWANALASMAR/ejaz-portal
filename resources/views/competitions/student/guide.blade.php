@@ -1,6 +1,6 @@
 {{--
     دليل الدخول إلى الاختبار: صفحة عامة من نصوص المسابقة في اللوحة (page_content)، بأقسامها الأربعة. والخطوات
-    مرقّمة، وبقية الأقسام نقاط. ورابط حالة المحاولة في صفحة المسابقة لكل مرحلة.
+    شرائح (x-competitions.guide-slides)، وبقية الأقسام نقاط. ورابط حالة المحاولة في صفحة المسابقة لكل مرحلة.
 --}}
 @php
     use App\Support\CompetitionPage;
@@ -19,11 +19,7 @@
                     <div>
                         <x-section-heading>{{ __('competitions.student.page.'.$key) }}</x-section-heading>
                         @if ($key === 'guide_steps')
-                            <ol class="mt-4 list-decimal space-y-2 ps-6 leading-8 text-ink">
-                                @foreach ($items as $item)
-                                    <li>{{ $item }}</li>
-                                @endforeach
-                            </ol>
+                            <x-competitions.guide-slides :steps="$items" class="mt-4" />
                         @else
                             <ul class="mt-4 list-disc space-y-2 ps-6 leading-8 text-ink">
                                 @foreach ($items as $item)
