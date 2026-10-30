@@ -19,6 +19,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .r1{animation:rise .6s .05s both}.r2{animation:rise .6s .15s both}.r3{animation:rise .6s .25s both}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.navi{transition:background .2s}.navi:hover{background:rgba(255,255,255,.08)!important}.ntile{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}.navi:hover .ntile,.lift:hover .ntile{transform:translateY(-2px) rotate(-6deg)}
 </style>
 </helmet>
 <div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F4F7FB; width: 100%; min-height: 1500px; display: flex; font-size: 16px;">
@@ -32,7 +33,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
     <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
       <span style="font-size: 12px; font-weight: 800; color: #8EC5F0; padding: 12px 10px 4px; letter-spacing: .5px;">{{g.label}}</span>
       <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
-        <a href="#" style="{{it.style}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.d}}"></path></svg>{{it.t}}</a>
+        <a href="#" class="navi" style="{{it.style}}"><span class="ntile" style="{{it.tile}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.d}}"></path></svg></span>{{it.t}}</a>
       </sc-for>
     </sc-for>
   </nav>
@@ -56,7 +57,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
     <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
       <sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
         <div class="lift r1" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
-          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 15px; font-weight: 800; color: #556170;">{{s.t}}</span><span style="width: 40px; height: 40px; border-radius: 12px; background: #EAF3FB; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="{{s.d}}"></path></svg></span></span>
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 15px; font-weight: 800; color: #556170;">{{s.t}}</span><span class="ntile" style="{{s.tile}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" aria-hidden="true"><path d="{{s.d}}"></path></svg></span></span>
           <span style="font-size: 34px; font-weight: 900; color: #1F4565;">[العدد]</span>
           <svg width="100%" height="36" viewBox="0 0 160 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 28 L20 24 L40 26 L60 18 L80 20 L100 12 L120 15 L140 8 L160 10" fill="none" stroke="#3E8ACA" stroke-width="2"></path></svg>
         </div>
@@ -104,7 +105,10 @@ class Component extends DCLogic {
     const base = 'display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 15px; ';
     const off = base + 'color: rgba(255,255,255,.8);';
     const on = base + 'color: #fff; font-weight: 800; background: rgba(142,197,240,.16); box-shadow: inset -3px 0 0 #8EC5F0;';
-    const I = (t, d, active) => ({ t, d, style: active ? on : off });
+    const P=[['#7DB8E8','#2E6898'],['#9C7ED0','#5D2A92'],['#5FB36D','#287A37'],['#6FA9DA','#1F4565'],['#8EC5F0','#3E8ACA'],['#B79DE0','#5D2A92']];
+    const tl=(i,sz,on)=>{const p=P[i%P.length];return 'flex: none; width: '+sz+'px; height: '+sz+'px; border-radius: '+Math.round(sz*0.32)+'px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(145deg,'+p[0]+','+p[1]+'); box-shadow: inset 0 1px 0 rgba(255,255,255,.4)'+(on?', 0 0 0 2px rgba(142,197,240,.6), 0 10px 20px -8px '+p[1]:', 0 8px 16px -10px '+p[1])+';';};
+    let k = 0;
+    const I = (t, d, active) => ({ t, d, style: active ? on : off, tile: tl(k++, 34, active) });
     const dot = (bg, c) => 'flex: none; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: ' + bg + '; color: ' + c + ';';
     return {
       groups: [
@@ -115,15 +119,15 @@ class Component extends DCLogic {
         { label: 'النظام', items: [I('المستخدمون والأدوار', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.9'), I('الإعدادات', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1'), I('سجل العمليات', 'M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5')] }
       ],
       stats: [
-        { t: 'المستخدمون', d: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
-        { t: 'الطلبات الجديدة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2' },
-        { t: 'المسجلون في البرامج', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4' },
-        { t: 'متسابقو البراهين', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z' }
+        { t: 'المستخدمون', d: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z', tile: tl(0, 48, false) },
+        { t: 'الطلبات الجديدة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2', tile: tl(1, 48, false) },
+        { t: 'المسجلون في البرامج', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4', tile: tl(2, 48, false) },
+        { t: 'متسابقو البراهين', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z', tile: tl(3, 48, false) }
       ],
       todo: [
-        { t: 'طلبات بانتظار المراجعة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2', dot: dot('#EAF3FB', '#2E6898') },
-        { t: 'وثائق تنتهي صلاحيتها', d: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', dot: dot('#F1EBFA', '#5D2A92') },
-        { t: 'اجتماعات قادمة', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4', dot: dot('#E7F4EA', '#287A37') }
+        { t: 'طلبات بانتظار المراجعة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2', dot: tl(2, 38, false) },
+        { t: 'وثائق تنتهي صلاحيتها', d: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', dot: tl(3, 38, false) },
+        { t: 'اجتماعات قادمة', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4', dot: tl(4, 38, false) }
       ],
       log: ['نشر خبراً', 'عدّل محتوى الرئيسية', 'قبل طلب انضمام', 'رفع وثيقة حوكمة', 'أضاف برنامجاً']
     };

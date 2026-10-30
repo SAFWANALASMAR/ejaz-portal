@@ -21,6 +21,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
 .r1{animation:rise .6s .1s both}.r2{animation:rise .6s .25s both}.r3{animation:rise .6s .4s both}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (max-width: 960px){.wrap{grid-template-columns:1fr!important}.cards{grid-template-columns:1fr!important}}
+.navi{transition:background .2s}.navi:hover{background:rgba(255,255,255,.08)!important}.ntile{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}.navi:hover .ntile,.lift:hover .ntile{transform:translateY(-2px) rotate(-6deg)}
 </style>
 </helmet>
 <div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F7FAFD; width: 100%; font-size: 18px;">
@@ -63,7 +64,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
   <div class="wrap" style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start;">
     <nav class="side" aria-label="قائمة حسابي" style="background: #1F4565; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-height: 560px; box-sizing: border-box;">
       <sc-for list="{{side}}" as="s" hint-placeholder-count="6">
-        <a href="#" style="{{s.style}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="{{s.d}}"></path></svg>{{s.t}}</a>
+        <a href="#" class="navi" style="{{s.style}}"><span class="ntile" style="{{s.tile}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" aria-hidden="true"><path d="{{s.d}}"></path></svg></span>{{s.t}}</a>
       </sc-for>
       <span style="flex: 1;"></span>
       <span aria-hidden="true" style="height: 1px; background: rgba(255,255,255,.15); margin: 8px 0;"></span>
@@ -80,7 +81,7 @@ a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
       <div class="cards r3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
         <sc-for list="{{cards}}" as="c" hint-placeholder-count="5">
           <a href="#" class="lift" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 8px; color: #17202E;">
-            <span style="display: flex; align-items: center; justify-content: space-between;"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" aria-hidden="true"><path d="{{c.d}}"></path></svg><span style="font-size: 26px; font-weight: 900; color: #1F4565;">[العدد]</span></span>
+            <span style="display: flex; align-items: center; justify-content: space-between;"><span class="ntile" style="{{c.tile}}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" aria-hidden="true"><path d="{{c.d}}"></path></svg></span><span style="font-size: 26px; font-weight: 900; color: #1F4565;">[العدد]</span></span>
             <span style="font-size: 21px; font-weight: 900; color: #1F4565;">{{c.t}}</span>
             <span style="font-size: 15px; color: #556170;">{{c.desc}}</span>
             <span style="align-self: flex-end; width: 38px; height: 38px; border-radius: 50%; background: #1F4565; color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></span>
@@ -114,7 +115,7 @@ class Component extends DCLogic {
   renderVals() {
     const item = 'display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; color: rgba(255,255,255,.88); font-weight: 700;';
     const active = 'display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; color: #fff; font-weight: 900; background: rgba(255,255,255,.16);';
-    return {
+    const R = {
       nav1: ['عن الجمعية', 'الدورات والبرامج', 'المسابقات', 'مكتبة إعجاز', 'المركز الإعلامي', 'الحوكمة'],
       nav2: ['المبادرات', 'الخدمات الإلكترونية', 'تواصل معنا'],
       side: [
@@ -134,6 +135,11 @@ class Component extends DCLogic {
       ],
       appts: ['[موعد برنامج مسجل به]', '[موعد مرحلة في المسابقة]', '[موعد آخر]']
     };
+    const P=[['#7DB8E8','#2E6898'],['#9C7ED0','#5D2A92'],['#5FB36D','#287A37'],['#6FA9DA','#1F4565'],['#8EC5F0','#3E8ACA'],['#B79DE0','#5D2A92']];
+    const tl=(i,sz,on)=>{const p=P[i%P.length];return 'flex: none; width: '+sz+'px; height: '+sz+'px; border-radius: '+Math.round(sz*0.32)+'px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(145deg,'+p[0]+','+p[1]+'); box-shadow: inset 0 1px 0 rgba(255,255,255,.4)'+(on?', 0 0 0 2px rgba(142,197,240,.6), 0 10px 20px -8px '+p[1]:', 0 8px 16px -10px '+p[1])+';';};
+    R.side = R.side.map((x, i) => Object.assign({}, x, { tile: tl(i, 38, i === 0) }));
+    R.cards = R.cards.map((x, i) => Object.assign({}, x, { tile: tl(i, 58, false) }));
+    return R;
   }
 }
 </script>
