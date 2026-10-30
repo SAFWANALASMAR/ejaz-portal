@@ -54,7 +54,7 @@ APP_URL=http://localhost:8181 php artisan serve --host=127.0.0.1 --port=8181
 
 docker run --rm --ipc=host -v "$PWD:/work" -w /work \
   -e APP_PORT=8181 -e APP_HOST=host.docker.internal -e APP_UPSTREAM_PORT=8181 -e VITE_HOST=none \
-  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.63.0-noble \
+  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.64.1-noble \
   npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
 ```
 

@@ -40,7 +40,7 @@
         <x-button class="w-full" size="lg" arrow>{{ __('payments.donate.submit') }}</x-button>
 
         <p class="flex items-start gap-2 text-xs leading-5 text-muted">
-            {{ svg('heroicon-o-lock-closed', 'mt-0.5 size-4 shrink-0 text-primary', ['aria-hidden' => 'true']) }}
+            {{ \App\Support\Icon::svg('lock-closed', 'mt-0.5 size-4 shrink-0 text-primary', ['aria-hidden' => 'true']) }}
             <span>
                 {{ __('payments.donate.secure_note') }}
                 @if ($challengeKey ?? null)

@@ -30,7 +30,7 @@
                             <p class="text-sm font-semibold text-accent">{{ $round->branch }}</p>
                         @endif
                         <p class="flex items-center gap-2 text-sm text-muted">
-                            {{ svg('heroicon-o-calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
+                            {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                             {{ Dates::display($round->starts_at, withTime: true) }} — {{ Dates::display($round->ends_at, withTime: true) }}
                         </p>
                         <p class="text-sm text-muted">{{ trans_choice('competitions.student.questions_count', $round->question_count, ['count' => $round->question_count]) }} · {{ trans_choice('competitions.student.minutes', $round->duration_minutes, ['count' => $round->duration_minutes]) }}</p>

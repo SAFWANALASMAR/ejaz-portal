@@ -44,6 +44,31 @@ class FetchYoutubeThumbnail implements ShouldQueue
         return $youtubeId !== null && str_starts_with($path, LibraryItem::IMAGE_DIRECTORY.'/'.self::PREFIX.$youtubeId.'-');
     }
 
+    /**
+     * صورة المقطع من خادم يوتيوب، معاداً ترميزها JPEG بلا بيانات وصفية، أو null إن لم تكن صورة. ويستعملها مقطع الرئيسية
+     * المفرد أيضاً (FetchHomeVideoThumbnail).
+     *
+     * @throws ConnectionException
+     */
+    public static function download(string $youtube): ?string
+    {
+        $response = Http::connectTimeout(5)->timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
+
+        // الحجم المعلن ثم الفعلي قبل فك الصورة (عميل HTTP ينزّل الجسم كاملاً، والمهلة تحده)
+        $declared = (int) $response->header('Content-Length');
+        $bytes = $response->successful() && $declared <= self::MAX_BYTES ? $response->body() : '';
+        $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;
+
+        if ($image === false) {
+            return null;
+        }
+
+        ob_start();
+        imagejpeg($image, null, 85);
+
+        return (string) ob_get_clean();
+    }
+
     public function handle(): void
     {
         $item = LibraryItem::query()->find($this->itemId);
@@ -54,23 +79,16 @@ class FetchYoutubeThumbnail implements ShouldQueue
         }
 
         try {
-            $response = Http::timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
+            $jpeg = self::download($youtube);
         } catch (ConnectionException) {
             $this->release($this->backoff[$this->attempts() - 1] ?? 300);
 
             return;
         }
 
-        $bytes = $response->successful() ? $response->body() : '';
-        $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;
-
-        if ($image === false) {
+        if ($jpeg === null) {
             return;
         }
-
-        ob_start();
-        imagejpeg($image, null, 85);
-        $jpeg = (string) ob_get_clean();
 
         $path = LibraryItem::IMAGE_DIRECTORY.'/'.self::PREFIX.$youtube.'-'.Str::uuid().'.jpg';
         Storage::disk('public')->put($path, $jpeg);

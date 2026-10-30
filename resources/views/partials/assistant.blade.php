@@ -18,7 +18,7 @@
 
             <button type="button" data-assistant-toggle aria-expanded="false" aria-controls="assistant-panel"
                 class="fixed bottom-4 end-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                {{ svg('heroicon-o-chat-bubble-left-right', 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
+                {{ \App\Support\Icon::svg('chat-bubble-left-right', 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
                 <span class="sr-only sm:not-sr-only">{{ __('assistant.widget.open') }}</span>
             </button>
 
@@ -26,7 +26,7 @@
                 class="fixed inset-0 z-50 flex flex-col bg-white sm:inset-auto sm:bottom-20 sm:end-4 sm:h-[min(38rem,calc(100dvh-7rem))] sm:w-[25rem] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line sm:shadow-2xl">
                 <header class="flex items-start gap-3 bg-primary px-4 py-3 text-white">
                     <span class="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15" aria-hidden="true">
-                        {{ svg('heroicon-o-sparkles', 'size-5') }}
+                        {{ \App\Support\Icon::svg('sparkles', 'size-5') }}
                     </span>
                     <div class="min-w-0 flex-1">
                         <h2 id="assistant-title" class="text-lg font-bold leading-7">{{ __('assistant.widget.title') }}</h2>
@@ -34,7 +34,7 @@
                     </div>
                     <button type="button" data-assistant-close
                         class="inline-flex size-9 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white">
-                        {{ svg('heroicon-o-x-mark', 'size-6', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg('x-mark', 'size-6', ['aria-hidden' => 'true']) }}
                         <span class="sr-only">{{ __('assistant.widget.close') }}</span>
                     </button>
                 </header>
@@ -65,7 +65,7 @@
 
                 <form data-assistant-form class="border-t border-line bg-white px-3 pb-3 pt-2" novalidate>
                     <p id="assistant-privacy" class="mb-2 flex items-start gap-1.5 text-xs leading-5 text-muted">
-                        {{ svg('heroicon-o-shield-exclamation', 'mt-0.5 size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg('shield-exclamation', 'mt-0.5 size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                         <span>{{ __('assistant.widget.privacy') }}</span>
                     </p>
                     <label for="assistant-question" class="sr-only">{{ __('assistant.widget.question') }}</label>
@@ -77,7 +77,7 @@
                             class="block min-h-12 w-full resize-none rounded-xl border border-muted/70 bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"></textarea>
                         <button type="submit" data-assistant-send
                             class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60">
-                            {{ svg('heroicon-o-paper-airplane', 'size-5 -scale-x-100', ['aria-hidden' => 'true']) }}
+                            {{ \App\Support\Icon::svg('paper-airplane', 'size-5 -scale-x-100', ['aria-hidden' => 'true']) }}
                             <span class="sr-only">{{ __('assistant.widget.send') }}</span>
                         </button>
                     </div>
@@ -107,7 +107,7 @@
                         <p data-contact hidden class="mt-3">
                             <a href="{{ route('contact') }}" @navigate(route('contact'))
                                 class="inline-flex items-center gap-1 rounded-full border border-primary px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary-soft">
-                                {{ svg('heroicon-o-envelope', 'size-4', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('envelope', 'size-4', ['aria-hidden' => 'true']) }}
                                 {{ __('assistant.widget.contact') }}
                             </a>
                         </p>
@@ -115,12 +115,12 @@
                         <div data-rating hidden class="mt-3 flex items-center gap-2 text-sm">
                             <button type="button" data-rate="helpful" aria-pressed="false"
                                 class="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-muted hover:border-secondary hover:text-secondary aria-pressed:border-secondary aria-pressed:bg-secondary-soft aria-pressed:text-secondary">
-                                {{ svg('heroicon-o-hand-thumb-up', 'size-4', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('hand-thumb-up', 'size-4', ['aria-hidden' => 'true']) }}
                                 {{ __('assistant.widget.helpful') }}
                             </button>
                             <button type="button" data-rate="unhelpful" aria-pressed="false"
                                 class="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-muted hover:border-red-700 hover:text-red-700 aria-pressed:border-red-700 aria-pressed:bg-red-50 aria-pressed:text-red-700">
-                                {{ svg('heroicon-o-hand-thumb-down', 'size-4', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('hand-thumb-down', 'size-4', ['aria-hidden' => 'true']) }}
                                 {{ __('assistant.widget.unhelpful') }}
                             </button>
                             <span data-rated class="text-secondary" role="status"></span>
@@ -131,7 +131,7 @@
                 <template data-assistant-template="go">
                     <a class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                         <span data-label>{{ __('assistant.widget.go') }}</span>
-                        {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                     </a>
                 </template>
 

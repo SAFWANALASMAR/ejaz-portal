@@ -15,10 +15,10 @@
             @if ($competitions->isEmpty())
                 <p class="text-muted">{{ __('competitions.list.empty') }}</p>
             @else
-                <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                     @foreach ($competitions as $competition)
                         @php($status = $competition->status())
-                        <li class="flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
+                        <li class="flex h-full flex-col overflow-hidden card-lift">
                             <div class="relative">
                                 <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" class="aspect-[16/9] w-full object-cover">
                                 <x-competitions.status-badge :status="$status" class="absolute top-3 start-3" />
@@ -29,7 +29,7 @@
                                     <p class="mt-2 line-clamp-3 text-sm leading-6 text-muted">{{ $competition->description }}</p>
                                 @endif
                                 <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
-                                    {{ svg('heroicon-o-calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                                    {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                                     @if ($status === CompetitionStatus::Upcoming)
                                         {{ __('competitions.list.opens', ['date' => Dates::display($competition->opens_at)]) }}
                                     @elseif ($status === CompetitionStatus::Open)
