@@ -1,5 +1,6 @@
 // صفحة مسابقة الطلاب (fix/brahin-director-notes): الأقسام المطوية ودليل الدخول شرائح. تحسين فوق ترميز يعمل بلا
-// سكربت: details/summary تُفتح بنفسها، والخطوات قائمة كاملة. والموقع من اليمين وحده، فالسهم الأيسر للتالية.
+// سكربت: details/summary تُفتح بنفسها وتعلن حالتها، والخطوات قائمة كاملة. والموقع من اليمين وحده، فالتالية جهة
+// اليسار: بالسهم الأيسر، وبالسحب إلى اليمين، وتدخل الشريحة من اليسار.
 // وتقليل الحركة في app.css. ويُهيّأ مع كل صفحة (page.js)، ومستمعاته بإشارتها فتزول معها.
 
 import { onPage } from './page';
@@ -10,8 +11,6 @@ function setupCollapsibles(group, signal) {
     const label = toggle?.querySelector('[data-collapsible-all-label]');
 
     const sync = () => {
-        cards.forEach((card) => card.querySelector('summary')?.setAttribute('aria-expanded', String(card.open)));
-
         if (toggle) {
             const all = cards.every((card) => card.open);
             toggle.setAttribute('aria-expanded', String(all));
@@ -51,13 +50,20 @@ function setupSlides(root, signal) {
     let current = 0;
 
     const show = (index, announce = true) => {
+        root.dataset.direction = index < current ? 'previous' : 'next';
         current = Math.max(0, Math.min(slides.length - 1, index));
         slides.forEach((slide, position) => {
             slide.hidden = position !== current;
         });
         dots.forEach((dot, position) => (position === current ? dot.setAttribute('aria-current', 'step') : dot.removeAttribute('aria-current')));
-        previous.disabled = current === 0;
-        next.disabled = current === slides.length - 1;
+        // الزر الذي عليه التركيز لا يُعطَّل قبل نقل التركيز إلى صاحبه، فلا يسقط إلى body
+        const atStart = current === 0;
+        const atEnd = current === slides.length - 1;
+        if ((atStart && document.activeElement === previous) || (atEnd && document.activeElement === next)) {
+            (atStart ? next : previous).focus();
+        }
+        previous.disabled = atStart;
+        next.disabled = atEnd;
 
         if (announce && status) {
             status.textContent = slides[current].getAttribute('aria-label');
@@ -82,7 +88,7 @@ function setupSlides(root, signal) {
         }
     }, { signal });
 
-    // السحب على الجوال: إلى اليسار للتالية، وإلى اليمين للسابقة، والحركة الرأسية تمرير للصفحة
+    // السحب على الجوال: إلى اليمين للتالية (تأتي من اليسار)، وإلى اليسار للسابقة، والحركة الرأسية تمرير للصفحة
     let start = null;
     track.addEventListener('pointerdown', (event) => {
         start = { x: event.clientX, y: event.clientY };
@@ -97,7 +103,7 @@ function setupSlides(root, signal) {
         start = null;
 
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-            show(current + (dx < 0 ? 1 : -1));
+            show(current + (dx > 0 ? 1 : -1));
         }
     }, { signal });
     track.addEventListener('pointercancel', () => {

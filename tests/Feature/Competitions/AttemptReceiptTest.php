@@ -10,6 +10,7 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\MessagingChannel;
 use App\Notifications\AttemptReceived;
+use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -138,4 +139,41 @@ it('skips the WhatsApp receipt for an attempt of another registration', function
     (new SendExamReceipt($otherSubmission, $attempt->id))->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
 
     Http::assertNothingSent();
+});
+
+it('sends only to a verified email while verification is required, and never to a deactivated account', function () {
+    Notification::fake();
+    enableVerification();
+    $unverified = receiptAttempt();
+    $unverified->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($unverified->user, $unverified);
+
+    $inactive = receiptAttempt(serial: 2);
+    $inactive->user->forceFill(['email_verified_at' => now(), 'is_active' => false])->save();
+    app(SubmitAttempt::class)->handle(null, $inactive, auto: true);
+
+    $verified = receiptAttempt(serial: 3);
+    $verified->user->forceFill(['email_verified_at' => now()])->save();
+    app(SubmitAttempt::class)->handle($verified->user, $verified);
+
+    Notification::assertSentTimes(AttemptReceived::class, 1);
+    Notification::assertSentTo($verified->user, AttemptReceived::class);
+});
+
+it('puts the receipts on their own queue', function () {
+    expect((new AttemptReceived(new CompetitionAttempt))->viaQueues())->toBe(['mail' => 'receipts'])
+        ->and(config('horizon.defaults.supervisor-receipts.queue'))->toBe(['receipts']);
+});
+
+it('registers load-test students with the required mobile number and school field', function () {
+    (new BrahinCompetitionSeeder)->run();
+    $brahin = Competition::query()->where('slug', 'brahin-1448')->sole();
+    $brahin->forceFill(['is_published' => true])->save();
+    $this->artisan('ejaz:load-accounts', ['count' => 2])->assertSuccessful();
+
+    $this->artisan('ejaz:load-students', ['competition' => 'brahin-1448', 'count' => 2])->assertSuccessful();
+
+    $submissions = CompetitionSubmission::query()->where('competition_id', $brahin->id)->get();
+    expect($submissions)->toHaveCount(2)
+        ->and($submissions->every(fn (CompetitionSubmission $submission): bool => filled($submission->guardian_phone)))->toBeTrue();
 });

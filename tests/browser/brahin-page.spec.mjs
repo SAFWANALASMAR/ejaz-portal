@@ -51,11 +51,9 @@ test.describe('interactions', () => {
         await expect(card).not.toHaveAttribute('open', '');
         await summary.click();
         await expect(card).toHaveAttribute('open', '');
-        await expect(summary).toHaveAttribute('aria-expanded', 'true');
         await summary.focus();
         await page.keyboard.press('Enter');
         await expect(card).not.toHaveAttribute('open', '');
-        await expect(summary).toHaveAttribute('aria-expanded', 'false');
 
         const toggle = page.locator('[data-collapsible-all]');
         await toggle.click();
@@ -89,6 +87,12 @@ test.describe('interactions', () => {
 
         await slides.locator('[data-slide-dot]').last().click();
         await expect(slides.getByRole('button', { name: 'التالي' })).toBeDisabled();
+
+        // التركيز لا يسقط حين يُعطَّل الزر المضغوط عند الطرف
+        await slides.locator('[data-slide-dot]').nth(1).click();
+        await slides.getByRole('button', { name: 'السابق' }).click();
+        await expect(slides.getByRole('button', { name: 'السابق' })).toBeDisabled();
+        await expect(slides.getByRole('button', { name: 'التالي' })).toBeFocused();
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(overflow).toBeLessThanOrEqual(0);
     });

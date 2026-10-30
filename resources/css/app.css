@@ -282,14 +282,25 @@ html[data-navigating]::before {
     rotate: 180deg;
 }
 
+/* السحب الأفقي للشرائح، والرأسي يبقى تمريراً للصفحة */
+[data-slides-track] {
+    touch-action: pan-y;
+}
+
+/* التالية تدخل من اليسار (الموقع من اليمين)، والسابقة من اليمين */
 [data-slides-ready] [data-slide]:not([hidden]) {
+    --slide-from: -1rem;
     animation: slide-in 0.35s ease-out;
+}
+
+[data-slides-ready][data-direction='previous'] [data-slide]:not([hidden]) {
+    --slide-from: 1rem;
 }
 
 @keyframes slide-in {
     from {
         opacity: 0;
-        translate: -1rem 0;
+        translate: var(--slide-from) 0;
     }
 }
 

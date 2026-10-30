@@ -9,6 +9,7 @@ use App\Models\CompetitionQuestion;
 use App\Models\User;
 use App\Notifications\AttemptReceived;
 use App\Services\Messaging\MessagingSettings;
+use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
@@ -55,9 +56,11 @@ class SubmitAttempt
             $locked->score = (float) $score;
             $locked->max_score = (float) $max;
 
-            // بلا بريد في الحساب (التسجيل باسم المستخدم) لا إشعار ولا خطأ
+            // بلا بريد في الحساب (التسجيل باسم المستخدم) لا إشعار ولا خطأ. وحين يكون التوثيق شرطاً فالموثّق وحده، لأن
+            // البريد غير الموثق لا يتفرد فقد يكون لغيره. والموقوف أو المجهَّل لا شيء. وreceipt_sent_at سجل الإرسال
             $student = $locked->receipt_sent_at === null ? $locked->user : null;
-            $notify = $student !== null && filled($student->email);
+            $notify = $student !== null && $student->is_active && filled($student->email)
+                && ($student->hasVerifiedEmail() || ! AccountSettings::verificationEnabled());
 
             if ($notify) {
                 $locked->receipt_sent_at = now();
@@ -73,7 +76,7 @@ class SubmitAttempt
         });
 
         if ($fresh && MessagingSettings::usageEnabled('whatsapp', 'exam_receipt')) {
-            SendExamReceipt::dispatch($locked->submission_id, $locked->id)->afterCommit();
+            SendExamReceipt::dispatch($locked->submission_id, $locked->id)->onQueue('receipts')->afterCommit();
         }
 
         return $locked;

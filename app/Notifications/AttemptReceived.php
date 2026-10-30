@@ -27,6 +27,16 @@ class AttemptReceived extends Notification implements ShouldQueueAfterCommit
         return ['mail'];
     }
 
+    /**
+     * طابور الإيصالات المستقل (config/horizon.php)، فلا تحجب دفعة إغلاق النافذة رسائل الحماية في default.
+     *
+     * @return array<string, string>
+     */
+    public function viaQueues(): array
+    {
+        return ['mail' => 'receipts'];
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         $round = $this->attempt->round;
