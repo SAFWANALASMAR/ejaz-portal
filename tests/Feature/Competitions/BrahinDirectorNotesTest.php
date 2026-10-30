@@ -143,15 +143,13 @@ it('lets a registrant in the closed intermediate stage be corrected in their cur
     expect(fn () => app(CorrectStudentRegistration::class)->edit($director, $other, [...$data, 'region_id' => $other->region_id]))->toThrow(ValidationException::class);
 });
 
-it('says the mobile number is required in the guide, for new installs and in the stored page', function () {
+it('says the mobile number is required in the stored guide (the 29 Oct migration)', function () {
     $required = 'ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
     $optional = 'ورقم الجوال والبريد الإلكتروني اختياريان.';
 
-    // البذرة للتثبيت الجديد
-    expect(implode(' ', $this->competition->pageList('guide_steps')))->toContain($required)->not->toContain($optional);
-
-    // والمخزّن قبل التصحيح: يصحّحه الترحيل، ويعيده الرجوع
-    $steps = array_map(fn (string $step): string => str_replace($required, $optional, $step), $this->competition->pageList('guide_steps'));
+    // المخزّن قبل التصحيح بصيغته القديمة: يصحّحه الترحيل، ويعيده الرجوع. والبذرة صارت بنص صفوان الحرفي (الاختبار التالي)
+    $steps = $this->competition->pageList('guide_steps');
+    $steps[2] = 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة. '.$optional;
     $this->competition->forceFill(['page_content' => [...$this->competition->page_content, 'guide_steps' => $steps]])->save();
     $migration = require database_path('migrations/2026_10_30_223000_correct_brahin_guide_phone_step.php');
 
@@ -164,22 +162,28 @@ it('says the mobile number is required in the guide, for new installs and in the
     $this->get('/competitions/'.$this->competition->slug.'/guide')->assertOk();
 });
 
-it('leaves the national ID out of the guide step, since the platform does not ask for it', function () {
-    $step = 'أدخل البيانات المطلوبة بدقة، مثل الاسم والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة. ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
-    $withId = 'مثل الاسم ورقم الهوية أو الإقامة والمرحلة التعليمية';
+it('shows the third guide step in Safwan\'s exact words, with no national ID', function () {
+    $step = 'الرجاء إدخال البيانات مع التأكد من صحتها: الاسم، والمرحلة التعليمية، والجهة التعليمية، ورقم الجوال، والبريد الإلكتروني.';
+    $previous = 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة. ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
 
-    // البذرة للتثبيت الجديد: النص المعتمد حرفياً
-    expect($this->competition->pageList('guide_steps'))->toContain($step)
+    // البذرة للتثبيت الجديد: الخطوة الثالثة حرفياً، ولا رقم هوية في الدليل
+    expect($this->competition->pageList('guide_steps')[2])->toBe($step)
         ->and(implode(' ', $this->competition->pageList('guide_steps')))->not->toContain('رقم الهوية');
 
-    // والمخزّن قبل التصحيح: يصحّحه الترحيل، ويعيده الرجوع
-    $steps = array_map(fn (string $item): string => str_replace('مثل الاسم والمرحلة التعليمية', $withId, $item), $this->competition->pageList('guide_steps'));
-    $this->competition->forceFill(['page_content' => [...$this->competition->page_content, 'guide_steps' => $steps]])->save();
-    $migration = require database_path('migrations/2026_10_30_233000_drop_national_id_from_brahin_guide.php');
+    // والمخزّن بأي صيغة سابقة تبدأ بـ «أدخل البيانات المطلوبة بدقة»: يصحّحه الترحيل، ويعيده الرجوع إلى صيغة ترحيل 29 أكتوبر
+    $migration = require database_path('migrations/2026_10_30_233000_simplify_brahin_guide_data_step.php');
 
-    $migration->up();
-    expect($this->competition->fresh()->pageList('guide_steps'))->toContain($step);
+    foreach ([$previous, 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة. ورقم الجوال والبريد الإلكتروني اختياريان.'] as $stored) {
+        $steps = $this->competition->pageList('guide_steps');
+        $steps[2] = $stored;
+        $this->competition->forceFill(['page_content' => [...$this->competition->page_content, 'guide_steps' => $steps]])->save();
+
+        $migration->up();
+        expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($step);
+    }
+
+    $this->get('/competitions/'.$this->competition->slug.'/guide')->assertOk()->assertSee($step);
 
     $migration->down();
-    expect(implode(' ', $this->competition->fresh()->pageList('guide_steps')))->toContain($withId);
+    expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($previous);
 });
