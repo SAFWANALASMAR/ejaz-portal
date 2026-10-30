@@ -252,3 +252,147 @@ it('refuses a PDF larger than the reading cap without reading it', function () {
 
     expect($failed)->toBeTrue();
 });
+
+it('creates a document with a direct link instead of a file, and logs the link', function () {
+    $this->actingAs($this->editor);
+
+    Livewire::test(CreateDocument::class)
+        ->fillForm([...documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => null]), 'url' => 'https://example.org/annual-report'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $document = Document::where('slug', 'privacy-policy')->sole();
+
+    expect($document)->file->toBeNull()->url->toBe('https://example.org/annual-report')->file_size->toBeNull()
+        ->and($document->isLink())->toBeTrue()
+        ->and(Storage::disk('local')->allFiles('documents'))->toBe([]);
+
+    $changes = Activity::whereMorphedTo('subject', $document)->where('event', 'created')->sole()->attribute_changes;
+    expect($changes['attributes']['url'])->toBe('https://example.org/annual-report');
+});
+
+it('refuses a document with neither a file nor a link, or with both, in the form and in the action', function () {
+    $this->actingAs($this->editor);
+
+    Livewire::test(CreateDocument::class)
+        ->fillForm(documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => null, 'url' => null]))
+        ->call('create')
+        ->assertHasFormErrors(['file' => __('governance.errors.file_or_url')]);
+
+    Livewire::test(CreateDocument::class)
+        ->fillForm(documentForm(UploadedFile::fake()->createWithContent('policy.pdf', pdfContents()), ['url' => 'https://example.org/report']))
+        ->call('create')
+        ->assertHasFormErrors(['file' => __('governance.errors.file_and_url')]);
+
+    Storage::disk('local')->put('documents/x.pdf', pdfContents());
+    $save = fn (array $overrides) => app(SaveDocument::class)->handle($this->editor, new Document, documentForm(UploadedFile::fake()->create('x.pdf'), $overrides));
+
+    expect(fn () => $save(['file' => null, 'url' => '']))->toThrow(ValidationException::class, __('governance.errors.file_or_url'))
+        ->and(fn () => $save(['file' => 'documents/x.pdf', 'url' => 'https://example.org/report']))->toThrow(ValidationException::class, __('governance.errors.file_and_url'))
+        ->and(Document::count())->toBe(0);
+});
+
+it('accepts only a full https link, in the form and in the action', function (string $url) {
+    $this->actingAs($this->editor);
+
+    Livewire::test(CreateDocument::class)
+        ->fillForm(documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => null, 'url' => $url]))
+        ->call('create')
+        ->assertHasFormErrors(['url']);
+
+    expect(fn () => app(SaveDocument::class)->handle($this->editor, new Document, documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => null, 'url' => $url])))
+        ->toThrow(ValidationException::class)
+        ->and(Document::count())->toBe(0);
+})->with([
+    'http' => 'http://example.org/report',
+    'javascript' => 'javascript:alert(1)',
+    'data' => 'data:text/html,<script>alert(1)</script>',
+    'ftp' => 'ftp://example.org/report.pdf',
+    'internal path' => '/governance',
+    'credentials' => 'https://ejaz.sa@evil.example/report',
+    'too long' => 'https://example.org/'.str_repeat('a', 2050),
+]);
+
+it('switches a document from its file to a link and removes the old file, logging the change', function () {
+    Storage::disk('local')->put('documents/old.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/old.pdf']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['file' => null, 'url' => 'https://example.org/new'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($document->fresh())->file->toBeNull()->url->toBe('https://example.org/new')->file_size->toBeNull()
+        ->and(Storage::disk('local')->allFiles('documents'))->toBe([])
+        ->and(Activity::whereMorphedTo('subject', $document)->where('event', 'updated')->latest('id')->first()->attribute_changes['attributes']['url'])->toBe('https://example.org/new');
+});
+
+it('hides the panel download for a link document, and keeps a link document from users without the permission', function () {
+    $document = Document::factory()->link()->create();
+    $this->actingAs($this->editor);
+
+    Livewire::test(ListDocuments::class)->assertTableActionHidden('downloadFile', $document);
+
+    expect(fn () => app(SaveDocument::class)->handle(userWithRole(RoleName::BoardMember), $document, ['url' => 'https://example.org/other']))
+        ->toThrow(AuthorizationException::class)
+        ->and($document->fresh()->url)->toBe('https://example.org/report');
+
+    $this->actingAs(userWithRole(RoleName::BoardMember))->get(DocumentResource::getUrl('edit', ['record' => $document]))->assertForbidden();
+});
+
+it('switches a link document back to a file from the edit screen, and refuses a file next to the saved link', function () {
+    $document = Document::factory()->link()->create(['slug' => 'report']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['file' => [UploadedFile::fake()->createWithContent('new.pdf', pdfContents())]])
+        ->call('save')
+        ->assertHasFormErrors(['file' => __('governance.errors.file_and_url')]);
+
+    expect($document->fresh()->file)->toBeNull();
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['url' => null, 'file' => [UploadedFile::fake()->createWithContent('new.pdf', pdfContents())]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($document->fresh())->url->toBeNull()->file->toStartWith('documents/')->file_size->toBeGreaterThan(0);
+
+    $this->get('/governance/report/file')->assertOk();
+    $this->get('/governance/report/download')->assertOk();
+});
+
+it('refuses a new link next to the saved file from the edit screen, keeping the file', function () {
+    Storage::disk('local')->put('documents/old.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/old.pdf']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(EditDocument::class, ['record' => $document->getRouteKey()])
+        ->fillForm(['url' => 'https://example.org/report'])
+        ->call('save')
+        ->assertHasFormErrors(['file' => __('governance.errors.file_and_url')]);
+
+    expect($document->fresh())->file->toBe('documents/old.pdf')->url->toBeNull()
+        ->and(Storage::disk('local')->exists('documents/old.pdf'))->toBeTrue();
+});
+
+it('saves a link document through the action itself, and leaves no new file behind when it refuses one next to a link', function () {
+    $document = app(SaveDocument::class)->handle($this->editor, new Document, documentForm(UploadedFile::fake()->create('x.pdf'), ['file' => null, 'url' => 'https://example.org/report']));
+
+    expect($document->fresh())->url->toBe('https://example.org/report')->file->toBeNull();
+
+    Storage::disk('local')->put('documents/new.pdf', pdfContents());
+
+    expect(fn () => app(SaveDocument::class)->handle($this->editor, new Document, documentForm(UploadedFile::fake()->create('x.pdf'), ['slug' => 'other', 'file' => 'documents/new.pdf', 'url' => 'https://example.org/other'])))
+        ->toThrow(ValidationException::class, __('governance.errors.file_and_url'))
+        ->and(Storage::disk('local')->exists('documents/new.pdf'))->toBeFalse();
+});
+
+it('keeps the panel download for a file document', function () {
+    Storage::disk('local')->put('documents/a.pdf', pdfContents());
+    $document = Document::factory()->create(['file' => 'documents/a.pdf']);
+    $this->actingAs($this->editor);
+
+    Livewire::test(ListDocuments::class)->assertTableActionVisible('downloadFile', $document);
+});

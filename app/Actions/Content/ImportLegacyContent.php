@@ -221,7 +221,8 @@ class ImportLegacyContent
         }
 
         try {
-            if (filled($values['file'] ?? null) && blank($existing?->getAttribute('file'))) {
+            // ولا ملف لوثيقة جعل لها المحرر رابطاً مباشراً بدله
+            if (filled($values['file'] ?? null) && blank($existing?->getAttribute('file')) && blank($existing?->getAttribute('url'))) {
                 $fields['file'] = $this->copyFile($section, $values, $base);
             }
 

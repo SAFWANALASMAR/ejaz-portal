@@ -270,3 +270,13 @@ it('prints nothing from the file that could tamper with the terminal', function 
         ->doesntExpectOutputToContain("\e]0;")
         ->assertFailed();
 });
+
+it('keeps the direct link an editor gave a draft document, without copying the archive file to it', function () {
+    Document::factory()->link('https://example.org/license')->unpublished()->create(['slug' => 'license', 'title' => 'وثيقة تجريبية']);
+    $file = writeImportFile($this->dir, sampleImport());
+
+    $this->artisan('import:legacy-site', ['file' => $file, '--actor' => $this->editor->email])->assertSuccessful();
+
+    expect(Document::query()->where('slug', 'license')->sole())->file->toBeNull()->url->toBe('https://example.org/license')
+        ->and(Storage::disk(Document::disk())->allFiles('documents'))->toBeEmpty();
+});

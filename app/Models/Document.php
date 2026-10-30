@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DocumentCategory;
 use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
+use App\Rules\SafeUrl;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,9 +17,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * وثيقة حوكمة: لائحة أو سياسة أو تقرير أو وثيقة رسمية أو آلية عمل. ملفها PDF في القرص
- * الخاص، ولا يُقدَّم إلا منشوراً (GovernanceController).
+ * الخاص، ولا يُقدَّم إلا منشوراً (GovernanceController). أو رابط مباشر https بدل الملف،
+ * أحدهما وحده (SaveDocument وقيد القاعدة).
  */
-#[Fillable(['slug', 'title', 'category', 'issued_at', 'version', 'file', 'file_size', 'description', 'is_published'])]
+#[Fillable(['slug', 'title', 'category', 'issued_at', 'version', 'file', 'url', 'file_size', 'description', 'is_published'])]
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
@@ -63,6 +65,15 @@ class Document extends Model
     public function downloadName(): string
     {
         return $this->slug.'.pdf';
+    }
+
+    /**
+     * وثيقة برابط مباشر لا بملف: لا عرض مدمج ولا تنزيل. والرابط يُفحص عند العرض أيضاً، فسجل
+     * كُتب في القاعدة دون SaveDocument لا يظهر رابطه.
+     */
+    public function isLink(): bool
+    {
+        return blank($this->file) && SafeUrl::isSafe($this->url, allowInternal: false);
     }
 
     public function getActivitylogOptions(): LogOptions
