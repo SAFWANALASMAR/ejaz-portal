@@ -68,6 +68,16 @@
   - العامة والحساب في `feature/visual-refresh-2` (`docs/design/screenshots/visual-refresh-2/inventory.md`).
   - ولوحة الإدارة في `feature/admin-theme` (`docs/design/screenshots/admin-theme/inventory.md`).
 
+**بعد دمج #111:** فرع صغير يزيل `fixme` عن بنود الدفعة الثانية في `tests/browser/director-acceptance.spec.mjs` ويحدّث محدداتها:
+- **البطل:** 470 بكسل لا ملء الشاشة، بلا `data-swoosh` ولا تبويبات.
+- **الرؤية والقيم:** `[data-identity-slider]` و`[data-values-slider]`.
+- **الرأس:** الشعار غير دائري، وزر الدخول أزرق.
+- **بطاقات الأهداف:** `[data-cards-block] [data-card-item]`.
+- **مجلس الإدارة:** `[data-person-card]`.
+- **جوائز البراهين:** `[data-prize-total]`، و`[data-student-cta]` مرتين (البطل أولاً).
+- **جوائز الرئيسية:** `[data-prize-card]`.
+- **التذييل:** أربعة أعمدة.
+
 **توفير الاستهلاك (صفوان، 22:15) — حتى لا يخلص الحد الأسبوعي خلال يومين:**
 - **وكيلان متوازيان** كحد أقصى (يحل محل «أربعة»).
 - **مراجعة داخلية واحدة** قبل فتح الطلب، لا مراجعات كاملة مكررة. والمستقلة عند المشرف.
