@@ -356,8 +356,9 @@ class SaveCompetition
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
             // مسابقة الطلاب: نصوص الصفحة ودليل الدخول، وجدول الجوائز لكل جنس، ونطاق الترتيب
-            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
+            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, CompetitionPage::ROUNDS_INTRO, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
             'page_content.'.CompetitionPage::PARTNER => ['nullable', 'string', 'max:200'],
+            'page_content.'.CompetitionPage::ROUNDS_INTRO => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX],
             ...collect(CompetitionPage::PARAGRAPHS)->mapWithKeys(fn (string $key): array => ['page_content.'.$key => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX]])->all(),
             ...collect(CompetitionPage::listKeys())->mapWithKeys(fn (string $key): array => [
                 'page_content.'.$key => ['nullable', 'array', 'max:'.CompetitionPage::ITEMS_MAX],
@@ -367,6 +368,7 @@ class SaveCompetition
             'prize_table.*.male' => ['nullable', 'integer', 'min:0', 'max:10000000'],
             'prize_table.*.female' => ['nullable', 'integer', 'min:0', 'max:10000000'],
             'ranking_scope' => ['sometimes', Rule::enum(RankingScope::class)],
+            'show_round_dates' => ['boolean'],
 
             'reviewers' => ['nullable', 'array', 'max:200'],
             'reviewers.*' => ['integer', 'distinct'],

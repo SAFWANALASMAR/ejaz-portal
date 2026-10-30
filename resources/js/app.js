@@ -8,6 +8,7 @@ import './live-countdown';
 import './gallery';
 import './competition-exam';
 import './student-competition';
+import './competition-page';
 import './assistant';
 import './password-rules';
 import './home';
