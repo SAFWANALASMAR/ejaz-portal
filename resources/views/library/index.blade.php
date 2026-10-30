@@ -13,7 +13,7 @@
         <h2 class="sr-only">{{ __('library.list.sections') }}</h2>
         <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-reveal-group>
             @foreach (LibrarySection::cases() as $section)
-                <li><x-section-tile :href="route('library.section', $section->value)" :icon="$section->icon()" :label="$section->getLabel()" /></li>
+                <li><x-section-tile :index="$loop->index" :href="route('library.section', $section->value)" :icon="$section->icon()" :label="$section->getLabel()" /></li>
             @endforeach
         </ul>
     </div>

@@ -16,7 +16,7 @@
         <h2 class="sr-only">{{ __('media.tiles.label') }}</h2>
         <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-reveal-group>
             @foreach ($tiles as $tile)
-                <li><x-section-tile :href="$tile['url']" :icon="$tile['icon']" :label="__('media.tiles.'.$tile['key'])" /></li>
+                <li><x-section-tile :index="$loop->index" :href="$tile['url']" :icon="$tile['icon']" :label="__('media.tiles.'.$tile['key'])" /></li>
             @endforeach
         </ul>
 

@@ -11,7 +11,7 @@
             <ul class="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3" data-reveal-group>
                 @foreach ($tiles as $tile)
                     <li @class(['col-span-2 lg:col-span-3' => $tile['wide'] ?? false])>
-                        <x-section-tile :href="route($tile['route'])" :icon="$tile['icon']" :label="__($tile['label'])" tone="primary" size="size-10" class="justify-center" />
+                        <x-section-tile :index="$loop->index" :href="route($tile['route'])" :icon="$tile['icon']" :label="__($tile['label'])" />
                     </li>
                 @endforeach
             </ul>
