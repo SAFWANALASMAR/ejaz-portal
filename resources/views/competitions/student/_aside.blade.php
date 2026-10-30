@@ -11,7 +11,8 @@
     @auth
         <x-button :href="route('competitions.student.register', $competition->slug)" class="w-full" arrow>{{ __('competitions.student.register_cta') }}</x-button>
     @else
-        <x-button :href="route('login')" class="w-full" arrow>{{ __('competitions.student.login_to_register') }}</x-button>
+        {{-- إلى صفحة التسجيل نفسها: تطلب الدخول وتحفظ وجهتها، فيعود إليها المستفيد بعد الدخول لا إلى /account --}}
+        <x-button :href="route('competitions.student.register', $competition->slug)" class="w-full" arrow>{{ __('competitions.student.login_to_register') }}</x-button>
         <x-button :href="route('register')" variant="outline" class="w-full">{{ __('competitions.student.create_account') }}</x-button>
     @endauth
 @elseif ($status === CompetitionStatus::Upcoming)
