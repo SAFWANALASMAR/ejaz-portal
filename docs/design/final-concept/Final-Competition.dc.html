@@ -28,6 +28,7 @@ details[open] .chev{transform:rotate(180deg)}.chev{transition:transform .3s}
 .w1{animation:word .8s .15s both}.w2{animation:word .8s .35s both}.w3{animation:word .8s .6s both}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (max-width: 960px){.g4{grid-template-columns:1fr 1fr!important}.g3{grid-template-columns:1fr!important}.ft{grid-template-columns:1fr 1fr!important}.prize{display:none!important}}
+.gt{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:30%;background:linear-gradient(145deg,#7DB8E8,#2E6898);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #2E6898;transition:transform .45s cubic-bezier(.34,1.56,.64,1)}.gt svg{transform:none!important}.lift:hover .gt{transform:translateY(-3px) rotate(-6deg) scale(1.05)}.lift:nth-child(6n+2) .gt{background:linear-gradient(145deg,#9C7ED0,#5D2A92);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #5D2A92}.lift:nth-child(6n+3) .gt{background:linear-gradient(145deg,#5FB36D,#287A37);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #287A37}.lift:nth-child(6n+4) .gt{background:linear-gradient(145deg,#6FA9DA,#1F4565);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #1F4565}.lift:nth-child(6n+5) .gt{background:linear-gradient(145deg,#8EC5F0,#3E8ACA);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #3E8ACA}.lift:nth-child(6n+6) .gt{background:linear-gradient(145deg,#B79DE0,#5D2A92);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 22px -12px #5D2A92}.lift{position:relative;overflow:hidden;animation:liftin .7s cubic-bezier(.2,.8,.2,1) both}.lift::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);transform:translateX(130%);transition:transform .9s}.lift:hover::after{transform:translateX(-130%)}.lift:nth-child(2){animation-delay:0.07s}.lift:nth-child(3){animation-delay:0.14s}.lift:nth-child(4){animation-delay:0.21s}.lift:nth-child(5){animation-delay:0.28s}.lift:nth-child(6){animation-delay:0.35s}.lift:nth-child(7){animation-delay:0.42s}.lift:nth-child(8){animation-delay:0.49s}@keyframes liftin{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion: reduce){.lift{animation:none}.lift::after{display:none}}
 </style>
 </helmet>
 <div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F7FAFD; width: 100%; font-size: 18px;">
@@ -91,7 +92,7 @@ details[open] .chev{transform:rotate(180deg)}.chev{transition:transform .3s}
   <div class="g4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
     <sc-for list="{{domains}}" as="d" hint-placeholder-count="4">
       <div class="lift" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 10px;">
-        <svg class="ico" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{d.d}}"></path></svg>
+        <span class="gt" style="width: 62px; height: 62px;"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{d.d}}"></path></svg></span>
         <span style="font-size: 15px; font-weight: 800; color: #2E6898;">{{d.n}}</span>
         <span style="font-size: 20px; font-weight: 900; color: #1F4565;">[اسم المجال من اللوحة]</span>
       </div>
@@ -122,7 +123,7 @@ details[open] .chev{transform:rotate(180deg)}.chev{transition:transform .3s}
   <div class="g3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
     <sc-for list="{{cats}}" as="c" hint-placeholder-count="3">
       <div class="lift" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 22px; display: flex; align-items: center; gap: 16px;">
-        <svg class="ico" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.d}}"></path></svg>
+        <span class="gt" style="width: 66px; height: 66px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.d}}"></path></svg></span>
         <span style="font-size: 22px; font-weight: 900; color: #1F4565;">{{c.t}}</span>
       </div>
     </sc-for>
