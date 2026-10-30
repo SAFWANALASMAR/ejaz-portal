@@ -100,7 +100,7 @@
     {{-- details/summary: المحتوى في الصفحة لمحركات البحث ويُفتح بلوحة المفاتيح بلا سكربت، و«عرض الكل» بالسكربت وحده --}}
     <div class="space-y-3" data-collapsible-group>
         <div class="flex justify-end">
-            <button type="button" hidden data-collapsible-all aria-expanded="false" data-show="{{ __('competitions.student.page.show_all') }}" data-hide="{{ __('competitions.student.page.hide_all') }}"
+            <button type="button" hidden data-collapsible-all aria-expanded="false" aria-controls="{{ collect(array_keys($sections))->map(fn (string $key): string => 'page-section-'.$key)->implode(' ') }}" data-show="{{ __('competitions.student.page.show_all') }}" data-hide="{{ __('competitions.student.page.hide_all') }}"
                 class="inline-flex items-center gap-2 rounded-full border border-primary/30 px-4 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary-soft">
                 {{ svg('heroicon-o-chevron-double-down', 'size-4', ['aria-hidden' => 'true']) }}
                 <span data-collapsible-all-label>{{ __('competitions.student.page.show_all') }}</span>
@@ -108,7 +108,7 @@
         </div>
 
         @foreach ($sections as $key => $section)
-            <x-competitions.collapsible :title="__('competitions.student.page.'.$key)" :icon="$icons[$key]">
+            <x-competitions.collapsible :id="'page-section-'.$key" :title="__('competitions.student.page.'.$key)" :icon="$icons[$key]">
                 @isset($section['text'])
                     <p class="leading-8 whitespace-pre-line text-ink">{{ $section['text'] }}</p>
                 @endisset

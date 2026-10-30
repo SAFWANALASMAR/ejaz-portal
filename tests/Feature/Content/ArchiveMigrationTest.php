@@ -189,8 +189,8 @@ it('sends every old link in redirects.csv permanently to a page that answers', f
 
     $rows = array_map(str_getcsv(...), array_slice(file(base_path('docs/legacy-import/redirects.csv'), FILE_IGNORE_NEW_LINES), 1));
 
-    // بلا رابط صورة «البكرة» المحذوفة (img-2-png — طلب صفوان، 29 أكتوبر 2026)
-    expect($rows)->toHaveCount(153);
+    // ورابط صورة «البكرة» المحذوفة من الصفحة باقٍ يحوّل إلى «عن الجمعية» بتحويل مسجل في ملف الاستيراد (مراجعة المشرف على #102)
+    expect($rows)->toHaveCount(154);
 
     foreach ($rows as [$source, $target, $kind]) {
         $url = implode('/', array_map(rawurlencode(...), explode('/', (string) strtok($source, '?')))).(str_contains($source, '?') ? '?'.Str::after($source, '?') : '');

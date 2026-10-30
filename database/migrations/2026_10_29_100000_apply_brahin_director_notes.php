@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\RoundQuestions;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,8 @@ return new class extends Migration
         $stage = DB::table('competition_categories')->where('name', self::STAGE)->value('id');
 
         if ($stage !== null) {
+            // بنوك مراحل المسابقات التي كانت تفتحها: الدرجات القصوى المخزنة تُحسب بفئاتها المفتوحة (AttemptLayout::mixedMaxScores)
+            RoundQuestions::forgetCategory((int) $stage);
             DB::table('competition_category_competition')->where('category_id', $stage)->delete();
 
             $referenced = collect(self::REFERENCES)->contains(fn (string $table): bool => DB::table($table)->where('category_id', $stage)->exists());
@@ -74,7 +77,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $rounds = DB::table('competition_rounds')->whereIn('name', array_values(self::ROUNDS))->get(['id', 'name']);
+        // مسابقات الطلاب وحدها كما في up()، فلا تُسمّى مراحل غيرها «فروعاً»
+        $rounds = DB::table('competition_rounds')->join('competitions', 'competitions.id', '=', 'competition_rounds.competition_id')
+            ->where('competitions.student_mode', true)->whereIn('competition_rounds.name', array_values(self::ROUNDS))
+            ->select('competition_rounds.id', 'competition_rounds.name')->get();
 
         foreach ($rounds as $round) {
             DB::table('competition_rounds')->where('id', $round->id)->update(['name' => array_search($round->name, self::ROUNDS, true)]);

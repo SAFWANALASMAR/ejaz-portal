@@ -79,6 +79,8 @@ it('marks the texts written by the portal team in the admin panel only, never to
     expect($this->get('/')->getContent())->toContain('نص الجمعية المعتمد')
         ->and(HomeContent::isSample('channels', 'intro'))->toBeFalse();
     $this->get('/media/announcements')->assertSee('مقدمة الجمعية');
+    // وبعد استبدال النصين يزول الوسم من اللوحة أيضاً (مراجعة المشرف على #102)
+    Livewire::test(HomeContentPage::class)->assertDontSee(__('settings.home_content.sample_hint'));
 
     // والصفحة الموسومة بلا وسم للعامة، ووسمها حقل فيها في اللوحة
     $page = Page::factory()->create(['slug' => 'sample-intro', 'is_sample' => true, 'is_published' => true]);

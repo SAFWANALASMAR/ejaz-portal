@@ -1,12 +1,16 @@
 <?php
 
+use App\Actions\Competitions\CorrectStudentRegistration;
+use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionRegion;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\RoundQuestions;
 use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /*
 | ملاحظات المدير التنفيذي على صفحة مسابقة «البراهين العلمية» (29 أكتوبر 2026، قرار صفوان: «زي ما قال المدير»): ثلاث فئات
@@ -112,4 +116,29 @@ it('applies the notes to the stored data, keeping a category that registrations 
     expect(CompetitionCategory::query()->whereKey($kept->id)->exists())->toBeTrue()
         ->and(DB::table('competition_category_competition')->where('category_id', $kept->id)->exists())->toBeFalse()
         ->and(CompetitionSubmission::query()->where('user_id', $student->id)->value('category_id'))->toBe($kept->id);
+});
+
+it('lets a registrant in the closed intermediate stage be corrected in their current category, and refreshes the round banks', function () {
+    $migration = require database_path('migrations/2026_10_29_100000_apply_brahin_director_notes.php');
+    $middle = CompetitionCategory::query()->create(['name' => 'المرحلة المتوسطة', 'grades' => ['الأول المتوسط'], 'sort_order' => 0]);
+    $this->competition->openCategories()->attach($middle->id);
+    $student = registeredStudent($this->competition, 42, ['category_id' => $middle->id, 'grade' => 'الأول المتوسط']);
+    $submission = CompetitionSubmission::query()->where('user_id', $student->id)->sole();
+    $round = $this->competition->rounds()->orderBy('sort_order')->firstOrFail();
+    $version = RoundQuestions::key($round->id);
+
+    $migration->up();
+
+    expect(RoundQuestions::key($round->id))->not->toBe($version);
+
+    $director = userWithRole(RoleName::ExecutiveDirector);
+    $data = ['reason' => 'تصحيح الاسم بطلب من المدرسة', 'full_name' => 'عبدالله محمد أحمد الزهراني', 'category_id' => $middle->id, 'grade' => 'الأول المتوسط',
+        'region_id' => $submission->region_id, 'gender' => 'male'];
+
+    app(CorrectStudentRegistration::class)->edit($director, $submission, $data);
+    expect($submission->fresh()->full_name)->toBe('عبدالله محمد أحمد الزهراني')->and($submission->fresh()->category_id)->toBe($middle->id);
+
+    // ولا تُختار الفئة المغلقة لتسجيل آخر
+    $other = CompetitionSubmission::query()->where('user_id', registeredStudent($this->competition, 43)->id)->sole();
+    expect(fn () => app(CorrectStudentRegistration::class)->edit($director, $other, [...$data, 'region_id' => $other->region_id]))->toThrow(ValidationException::class);
 });

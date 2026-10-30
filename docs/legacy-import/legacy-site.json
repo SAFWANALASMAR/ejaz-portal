@@ -1725,6 +1725,10 @@
     {
       "from": "/building-intelligent-transportation-systems/",
       "to": "/media/news"
+    },
+    {
+      "from": "/wp-content/uploads/2026/01/img-2.png",
+      "to": "/about"
     }
   ]
 }
