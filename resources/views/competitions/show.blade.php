@@ -4,13 +4,39 @@
 --}}
 @php
     use App\Enums\CompetitionStatus;
+    use App\Support\CompetitionPage;
     use App\Support\Dates;
+    use App\Support\HomeShowcase;
+    use App\Support\Icon;
 
     $status = $competition->status();
+    // مسابقة الطلاب (Final-Competition): شارة الموسم وسطر الجهة المنسَّق معها وبطاقة الجوائز في البطل، كلها من اللوحة
+    $season = $competition->student_mode ? $competition->pageText(CompetitionPage::SEASON) : null;
+    $partner = $competition->student_mode ? $competition->pageText(CompetitionPage::PARTNER) : null;
+    $prizeTotal = $competition->student_mode ? HomeShowcase::prizeTotal($competition) : 0;
 @endphp
 
 <x-layouts.app :title="$competition->title" :description="$competition->description">
-    <x-page-hero :title="$competition->title" />
+    <x-page-hero :title="$competition->title" :eyebrow="$season">
+        @if ($partner)
+            <p data-hero-partner class="rise-3 text-base text-white/90">{{ __('ui.prize.coordination', ['partner' => $partner]) }}</p>
+        @endif
+
+        @if ($competition->student_mode)
+            <x-slot:aside>
+                <div class="prize-glass concept-shine rise-3" data-prize-total data-loop>
+                    @if ($prizeTotal > 0)
+                        <span class="relative flex items-center justify-between gap-3">
+                            <span class="text-lg font-extrabold">{{ __('ui.prize.hero_title') }}</span>
+                            <span class="float-icon text-white" data-loop>{{ Icon::svg('trophy', 'size-11', ['aria-hidden' => 'true']) }}</span>
+                        </span>
+                        <x-stat-badge :value="$prizeTotal" :label="__('ui.prize.currency')" on-load class="relative items-start! text-start!" />
+                    @endif
+                    <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" hero class="relative mt-2" />
+                </div>
+            </x-slot:aside>
+        @endif
+    </x-page-hero>
 
     <section class="py-10 sm:py-14">
         <div class="container-page grid gap-8 lg:grid-cols-[1fr_22rem]">

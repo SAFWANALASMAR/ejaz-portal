@@ -77,7 +77,7 @@
 
     /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
        فإطار التركيز فيها بدرجته الفاتحة */
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) :focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, .concept-hero, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) :focus-visible {
         @apply outline-accent-light;
     }
 
@@ -86,7 +86,7 @@
         @apply outline-primary-dark;
     }
 
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) .bg-accent:focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, .concept-hero, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) .bg-accent:focus-visible {
         @apply outline-accent-light;
     }
 

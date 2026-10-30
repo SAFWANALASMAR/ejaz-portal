@@ -27,7 +27,7 @@
         </nav>
 
         <form method="GET" action="{{ route('library.section', $section->value) }}" role="search" aria-label="{{ __('library.filters.label') }}"
-            class="mt-8 flex flex-col gap-3 rounded-2xl border border-line/70 bg-surface p-4 sm:flex-row sm:items-end">
+            class="mt-8 flex flex-col gap-3 p-4 sm:flex-row sm:items-end concept-panel">
             <label class="block flex-1">
                 <span class="text-sm font-medium text-ink">{{ __('library.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('library.filters.q_placeholder') }}"
@@ -67,7 +67,8 @@
         @else
             <ul @class(['mt-8 grid gap-6 sm:grid-cols-2', 'lg:grid-cols-3' => $section !== \App\Enums\LibrarySection::Videos]) data-reveal-group>
                 @foreach ($items as $item)
-                    <li>@include('library.card', ['item' => $item])</li>
+                    {{-- المرئيات مرقّمة متصلة عبر الصفحات (01، 02…) كبطاقات الموقع السابق --}}
+                    <li>@include('library.card', ['item' => $item, 'number' => $section === \App\Enums\LibrarySection::Videos ? $items->firstItem() + $loop->index : null])</li>
                 @endforeach
             </ul>
 

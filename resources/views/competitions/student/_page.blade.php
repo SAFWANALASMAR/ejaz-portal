@@ -55,10 +55,6 @@
     $steps = $competition->pageList('guide_steps');
 @endphp
 
-@if ($partner = $competition->pageText(CompetitionPage::PARTNER))
-    <p class="text-sm text-muted">{{ __('competitions.student.page.partner') }}: <span class="font-semibold text-ink">{{ $partner }}</span></p>
-@endif
-
 @include('competitions.student._domains')
 @include('competitions.student._rounds')
 

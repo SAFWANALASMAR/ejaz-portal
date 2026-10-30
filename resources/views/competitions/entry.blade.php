@@ -13,7 +13,7 @@
 
 <x-layouts.account :title="__('competitions.entry.title', ['competition' => $competition->title])">
     @if ($submission->reference)
-        <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <div class="p-6 concept-panel">
             <dl class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <dt class="text-sm text-muted">{{ __('competitions.entry.reference') }}</dt>
@@ -41,7 +41,7 @@
         @if ($editable) data-autosave="{{ route('competitions.entry.autosave', $competition->slug) }}" @endif>
         @csrf
 
-        <fieldset class="grid gap-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs sm:grid-cols-2" @disabled(! $editable)>
+        <fieldset class="grid gap-5 p-6 sm:grid-cols-2 concept-panel" @disabled(! $editable)>
             @if ($competition->categoryList() !== [])
                 <x-field name="category" type="select" :label="__('competitions.entry.category')" required>
                     <option value="">{{ __('competitions.entry.choose') }}</option>
@@ -61,7 +61,7 @@
 
         @foreach ($submission->orderedQuestions() as $question)
             @php($error = $errors->first('answers.'.$question->id))
-            <fieldset class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs" @disabled(! $editable)
+            <fieldset class="p-6 concept-panel" @disabled(! $editable)
                 aria-describedby="answer-{{ $question->id }}-prompt{{ $error ? ' answer-'.$question->id.'-error' : '' }}">
                 <legend class="sr-only">{{ __('competitions.entry.question', ['number' => $loop->iteration]) }}</legend>
                 <p class="text-sm font-semibold text-accent-dark">
@@ -128,7 +128,7 @@
         @endforeach
 
         @if ($editable)
-            <div class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between concept-panel">
                 <p class="text-sm text-muted" data-autosave-status aria-live="polite"
                     data-saving="{{ __('competitions.entry.autosave_saving') }}"
                     data-saved="{{ __('competitions.entry.autosave_saved') }}"

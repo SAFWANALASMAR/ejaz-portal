@@ -45,3 +45,8 @@ it('renders the section heading with its eyebrow, ornament and description', fun
 
     expect($heading)->toContain('data-section-eyebrow')->toContain('data-heading-ornament')->toContain('وصف');
 });
+
+it('draws the client error pages on the concept hero with the home and contact buttons', function () {
+    $this->get('/vr2-no-such-page')->assertNotFound()
+        ->assertSeeInOrder(['data-error-page', 'concept-hero-scrim', 'error-code', '404', __('errors.404.title'), 'title-bar', 'class="hero-cta', __('errors.home'), __('errors.contact')], false);
+});

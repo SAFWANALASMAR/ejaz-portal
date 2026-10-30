@@ -37,7 +37,7 @@
             </div>
             <ul class="scroll-row" data-reveal-group>
                 @foreach ($videos as $item)
-                    <li>@include('library.card', ['item' => $item])</li>
+                    <li>@include('library.card', ['item' => $item, 'number' => $loop->iteration])</li>
                 @endforeach
             </ul>
         </div>

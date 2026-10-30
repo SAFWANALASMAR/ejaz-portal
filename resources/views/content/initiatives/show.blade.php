@@ -10,7 +10,7 @@
 <x-content-blocks :blocks="$initiative->blocks" />
 
 @if ($goals !== [])
-    <section class="bg-surface py-12 sm:py-16" aria-labelledby="goals">
+    <section class="band-sky py-12 sm:py-16" aria-labelledby="goals">
         <div class="container-page">
             <x-section-heading id="goals">{{ __('content.initiatives.goals') }}</x-section-heading>
             <ol class="mt-8 grid gap-4 sm:grid-cols-2">

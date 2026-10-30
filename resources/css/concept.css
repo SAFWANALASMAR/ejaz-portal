@@ -565,3 +565,33 @@ html[data-motion-off] .float-soft {
     transform: rotate(45deg);
     border: 1.5px solid var(--color-brand);
 }
+
+/* بطاقة جوائز المسابقة الزجاجية في بطل صفحتها (Final-Competition): خلفية بيضاء شفافة بضباب، وزر أبيض بنص داكن */
+@layer components {
+    .prize-glass {
+        @apply relative flex w-full flex-col gap-2 overflow-hidden rounded-3xl p-6 text-white lg:w-80 lg:flex-none;
+        background: color-mix(in srgb, var(--color-white) 14%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 35%, transparent);
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-cta {
+        @apply inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-lg font-black text-primary-dark transition;
+    }
+
+    .hero-cta:hover {
+        background: var(--concept-sky);
+    }
+
+    .hero-cta:focus-visible {
+        @apply outline-2 outline-offset-2 outline-white;
+    }
+}
+
+/* اللوحة الثابتة (x-card): سطح التصور النهائي نفسه بلا رفع عند المرور، لمحتوى يُقرأ لا يُنقر */
+@layer components {
+    .concept-panel {
+        @apply rounded-[1.25rem] bg-white;
+        border: 1px solid var(--concept-border);
+    }
+}

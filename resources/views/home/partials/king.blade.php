@@ -27,7 +27,7 @@
 
         <div class="relative mx-auto mb-10 w-full max-w-xs sm:max-w-sm lg:mb-16">
             <span class="absolute -inset-3 rotate-3 rounded-[2.5rem] bg-linear-to-br from-brand via-primary to-secondary opacity-90" aria-hidden="true"></span>
-            <img src="{{ $king['image'] }}" alt="{{ $king['image_alt'] }}" fetchpriority="high"
+            <img src="{{ $king['image'] }}" alt="{{ $king['image_alt'] }}" loading="lazy" decoding="async"
                 class="relative aspect-[4/5] w-full rounded-[2.5rem] bg-white object-cover object-top shadow-xl">
         </div>
     </div>

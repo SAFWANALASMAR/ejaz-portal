@@ -19,7 +19,7 @@
         <input type="hidden" name="go" value="next" disabled data-exam-auto-go>
         <input type="hidden" name="auto" value="0">
 
-        <section class="space-y-6 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:p-6">
+        <section class="space-y-6 concept-panel p-5 sm:p-6">
             <p class="text-sm font-semibold text-accent-dark">{{ __('competitions.student.unit_of', ['number' => $number, 'total' => $total]) }}</p>
 
             @if ($passage)
@@ -89,7 +89,7 @@
             </div>
         </section>
 
-        <nav aria-label="{{ __('competitions.student.units_list') }}" class="rounded-2xl border border-line/70 bg-white p-5 shadow-xs">
+        <nav aria-label="{{ __('competitions.student.units_list') }}" class="concept-panel p-5">
             <p class="mb-3 text-sm font-semibold text-ink">{{ __('competitions.student.units_list') }}</p>
             <ul class="flex flex-wrap gap-2">
                 @foreach ($attempt->layout as $index => $layoutUnit)

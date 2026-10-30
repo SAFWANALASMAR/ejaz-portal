@@ -5,7 +5,7 @@
 
 <x-layouts.account :title="__('payments.account.title')">
     @if ($payments->isEmpty())
-        <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <div class="p-6 concept-panel">
             <x-empty-state icon="banknotes" :message="__('payments.account.empty')" />
             @if ($donationsEnabled)
                 <x-button :href="route('donate')" variant="outline" class="mt-4" arrow>{{ __('payments.account.donate') }}</x-button>
@@ -14,7 +14,7 @@
     @else
         <ul class="space-y-4">
             @foreach ($payments as $payment)
-                <li class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+                <li class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between concept-panel">
                     <div>
                         <p class="font-bold text-ink">
                             {{ $payment->purpose->getLabel() }} —

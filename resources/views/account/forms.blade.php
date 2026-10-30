@@ -5,13 +5,13 @@
 
 <x-layouts.account :title="__('documents.account.title')">
     @if ($entries->isEmpty())
-        <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <div class="p-6 concept-panel">
             <x-empty-state icon="clipboard-document-list" :message="__('documents.account.empty')" />
         </div>
     @else
         <ul class="space-y-4">
             @foreach ($entries as $entry)
-                <li class="flex flex-col gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+                <li class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between concept-panel">
                     <div>
                         <p class="font-bold text-ink">{{ $entry->version->template->title }}</p>
                         <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">

@@ -31,7 +31,7 @@
         </ul>
 
         <form method="GET" action="{{ route('governance.index') }}" role="search" aria-label="{{ __('governance.filters.label') }}"
-            class="mt-10 grid gap-3 rounded-2xl border border-line/70 bg-surface p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+            class="mt-10 grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end concept-panel">
             <label class="block">
                 <span class="text-sm font-medium text-ink">{{ __('governance.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('governance.filters.q_placeholder') }}"

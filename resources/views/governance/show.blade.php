@@ -15,20 +15,20 @@
     <div class="container-page">
         <div class="flex flex-wrap items-center justify-between gap-6 card-lift p-6">
             <dl class="grid gap-x-10 gap-y-3 text-sm sm:grid-cols-3">
-                <div>
-                    <dt class="text-muted">{{ __('governance.fields.category') }}</dt>
-                    <dd class="mt-1 font-semibold text-ink">{{ $document->category->getLabel() }}</dd>
+                <div class="grid grid-cols-[auto_1fr] items-center gap-x-3">
+                    <dt class="contents text-muted"><x-icon-tile icon="folder" size="sm" :index="0" class="row-span-2" /><span>{{ __('governance.fields.category') }}</span></dt>
+                    <dd class="font-semibold text-ink">{{ $document->category->getLabel() }}</dd>
                 </div>
                 @if ($document->issued_at)
-                    <div>
-                        <dt class="text-muted">{{ __('governance.fields.issued_at') }}</dt>
-                        <dd class="mt-1 font-semibold text-ink">{{ Dates::display($document->issued_at) }}</dd>
+                    <div class="grid grid-cols-[auto_1fr] items-center gap-x-3">
+                        <dt class="contents text-muted"><x-icon-tile icon="calendar" size="sm" :index="1" class="row-span-2" /><span>{{ __('governance.fields.issued_at') }}</span></dt>
+                        <dd class="font-semibold text-ink">{{ Dates::display($document->issued_at) }}</dd>
                     </div>
                 @endif
                 @if (filled($document->version))
-                    <div>
-                        <dt class="text-muted">{{ __('governance.fields.version') }}</dt>
-                        <dd class="mt-1 font-semibold text-ink">{{ $document->version }}</dd>
+                    <div class="grid grid-cols-[auto_1fr] items-center gap-x-3">
+                        <dt class="contents text-muted"><x-icon-tile icon="tag" size="sm" :index="2" class="row-span-2" /><span>{{ __('governance.fields.version') }}</span></dt>
+                        <dd class="font-semibold text-ink">{{ $document->version }}</dd>
                     </div>
                 @endif
             </dl>
