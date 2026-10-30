@@ -9,7 +9,7 @@ const normalize = (text) =>
     text
         .toLowerCase()
         .normalize('NFKD')
-        .replace(/[ً-ٰٟـ]/g, '')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
         .replace(/[إأآا]/g, 'ا')
         .replace(/ة/g, 'ه')
         .replace(/ى/g, 'ي')
@@ -44,13 +44,14 @@ function render(dialog, query) {
         data.sections.forEach((section) => {
             const url = new URL(section.url, window.location.origin);
             url.searchParams.set('q', query.trim());
-            results.push({ label: data.in.replace(':q', query.trim()).replace(':section', section.label), url: url.toString(), icon: 'search' });
+            results.push({ label: data.in.replace(':q', () => query.trim()).replace(':section', () => section.label), url: url.toString(), icon: 'search' });
         });
     }
 
     list.replaceChildren(
         ...results.map((result, position) => {
             const item = document.createElement('li');
+            item.setAttribute('role', 'presentation');
             const link = document.createElement('a');
             link.href = result.url;
             link.id = `search-option-${position}`;
@@ -65,7 +66,13 @@ function render(dialog, query) {
         }),
     );
     empty.hidden = pages.length > 0 || term === '';
-    dialog.querySelector('[data-search-input]').setAttribute('aria-activedescendant', results.length > 0 ? 'search-option-0' : '');
+    const input = dialog.querySelector('[data-search-input]');
+    input.setAttribute('aria-expanded', String(results.length > 0));
+    if (results.length > 0) {
+        input.setAttribute('aria-activedescendant', 'search-option-0');
+    } else {
+        input.removeAttribute('aria-activedescendant');
+    }
 }
 
 function move(dialog, step) {
@@ -75,11 +82,14 @@ function move(dialog, step) {
 
     options.forEach((option) => option.setAttribute('aria-selected', String(option === next)));
     next?.scrollIntoView({ block: 'nearest' });
-    dialog.querySelector('[data-search-input]').setAttribute('aria-activedescendant', next?.id ?? '');
+    if (next) {
+        dialog.querySelector('[data-search-input]').setAttribute('aria-activedescendant', next.id);
+    }
 }
 
 document.addEventListener('keydown', (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    // بموضع المفتاح لا بحرفه، فيعمل باللوحة العربية أيضاً (حرف «ن» على المفتاح نفسه)
+    if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
         event.preventDefault();
         open();
 

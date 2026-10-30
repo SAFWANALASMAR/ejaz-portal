@@ -115,7 +115,7 @@ final class HomeContent
                 'title' => self::clean($item['title'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.title'),
                 'text' => self::clean($item['text'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.text'),
                 'image' => $path !== null ? Storage::disk('public')->url($path) : asset('images/home/value-'.($index + 1).'.jpg'),
-                'icon' => SiteIcon::tryFrom(is_string($item['icon'] ?? null) ? $item['icon'] : '')?->value ?? self::VALUE_ICONS[$index],
+                'icon' => SiteIcon::tryFrom(is_string($item['icon'] ?? null) ? $item['icon'] : '')->value ?? self::VALUE_ICONS[$index],
             ];
         }
 

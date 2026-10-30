@@ -9,7 +9,7 @@
         <x-section-header id="home-videos" :title="__('home.videos.title')"
             :href="route('library.section', \App\Enums\LibrarySection::Videos->value)" :link-label="__('home.videos.all')" />
 
-        <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+        <ul class="scroll-row mt-8" data-reveal-group>
             @foreach ($videos as $item)
                 @php($youtube = $item->youtubeId())
                 @php($thumbnail = $item->thumbnailUrl())

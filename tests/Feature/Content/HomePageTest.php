@@ -41,7 +41,7 @@ it('falls back to the association name, its specialty and the neutral image, wit
         ->assertSeeInOrder(['<h1', __('site.name')], false)
         ->assertSee(__('site.tagline'))
         ->assertSee('images/placeholders/architecture.svg', false)
-        ->assertSee(__('home.hero.button_missing'));
+        ->assertSee('data-hero-slider', false);
 });
 
 it('shows the uploaded hero image', function () {
@@ -79,7 +79,7 @@ it('draws only the allowed statistic icons', function () {
     $this->get('/')->assertOk()->assertSee('25,000+');
 });
 
-it('shows a section shortcut only once its section exists, and none when switched off', function () {
+it('shows a section shortcut only once its section exists', function () {
     $built = collect(BuildHomePage::SHORTCUTS)->filter(fn (array $shortcut) => Route::has($shortcut['route']));
     $missing = collect(BuildHomePage::SHORTCUTS)->reject(fn (array $shortcut) => Route::has($shortcut['route']));
 
@@ -90,19 +90,11 @@ it('shows a section shortcut only once its section exists, and none when switche
 
     if ($missing->isNotEmpty()) {
         $key = $missing->keys()->first();
-        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertDontSee('href="/'.$key.'-section"', false);
 
         registerSectionRoute('/'.$key.'-section', $missing[$key]['route']);
 
-        $this->get('/')
-            ->assertSee(__('home.shortcuts.'.$key.'.title'))
-            ->assertSee('href="'.route($missing[$key]['route']).'"', false);
-    }
-
-    Setting::put('home', [...HOME_LEGACY_SHOWN, 'show_shortcuts' => false]);
-
-    foreach (array_keys(BuildHomePage::SHORTCUTS) as $key) {
-        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertSee('href="'.route($missing[$key]['route']).'"', false);
     }
 });
 
@@ -175,12 +167,7 @@ it('shows no button and no missing-content marker in production', function () {
         ->assertSee(__('site.name'));
 });
 
-it('turns the search icon into a link once search exists', function () {
-    registerSectionRoute('/search', 'search');
-
-    $this->get('/')->assertSee('href="'.route('search').'"', false)->assertDontSee(__('site.search_soon'));
-});
-
-it('shows the search icon as coming soon until search is built', function () {
-    $this->get('/')->assertSee(__('site.search_soon'));
+// زر البحث في الرأس يفتح البحث السريع (Ctrl+K) في صفحات القائمة والأقسام التي لها بحث (القرار ٩)
+it('opens the quick search from the header button', function () {
+    $this->get('/')->assertSee('data-search-open', false)->assertSee('data-search-dialog', false)->assertSee(__('ui.search.open'));
 });

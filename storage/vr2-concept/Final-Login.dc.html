@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>بوابة إعجاز — الدخول</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F7FAFD}
+a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
+.pill{transition:background .2s,transform .2s}.pill:hover{background:#3E8ACA;transform:translateY(-1px)}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F7FAFD; width: 100%; font-size: 18px;">
+
+<header style="background: #1F4565; position: relative; z-index: 3;">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 14px 28px 10px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap;">
+    <a href="#" style="display: flex; flex-direction: column; gap: 4px; color: #fff;">
+      <span style="display: flex; align-items: center; gap: 12px;">
+        <img src="/_blob/ba2dfe2e548822f90326ced182bd819c" alt="" style="flex: none; height: 54px; width: auto;">
+        <img src="/_blob/ca0916d97fa59f52bbf2ff78392e793a" alt="جمعية إعجاز للدراسات والبحوث العلمية" style="height: 40px; width: auto;">
+      </span>
+      <span style="font-size: 12px; color: rgba(255,255,255,.65);">تحت إشراف وزارة التعليم — مكة المكرمة</span>
+    </a>
+    <nav aria-label="القائمة الرئيسية" style="flex: 1; display: flex; flex-direction: column; gap: 10px; font-size: 17px;">
+      <span style="display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;">
+        <a href="#" style="color: rgba(255,255,255,.85);">الرئيسية</a>
+        <sc-for list="{{nav1}}" as="n" hint-placeholder-count="6"><a href="#" style="color: rgba(255,255,255,.85);">{{n}}</a></sc-for>
+      </span>
+      <span style="display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; font-size: 16px;">
+        <sc-for list="{{nav2}}" as="n" hint-placeholder-count="3"><a href="#" style="color: rgba(255,255,255,.72);">{{n}}</a></sc-for>
+      </span>
+    </nav>
+    <span style="display: flex; gap: 10px; align-items: center;">
+      <a href="#" aria-current="page" style="background: #fff; color: #1F4565; font-weight: 800; padding: 11px 22px; border-radius: 999px; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg>تسجيل الدخول</a>
+      <button type="button" aria-label="البحث (Ctrl+K)" style="width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+    </span>
+  </div>
+</header>
+
+<main style="position: relative; overflow: hidden; min-height: 960px; display: flex; align-items: center; justify-content: center; padding: 56px 16px; box-sizing: border-box; background: #142E45;">
+  <img src="hero.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(6px) brightness(.55); transform: scale(1.06);">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(70% 70% at 50% 40%, rgba(46,104,152,.35), rgba(20,46,69,.85));"></div>
+  <form style="position: relative; width: 100%; max-width: 460px; background: #fff; border-radius: 24px; overflow: hidden; box-shadow: 0 40px 80px -30px rgba(0,0,0,.6); animation: rise .7s .1s both;">
+    <div style="padding: 36px 34px 26px; display: flex; flex-direction: column; gap: 16px;">
+      <img src="/_blob/c145e50c8979b3090f441811e229ea6f" alt="" style="align-self: center; flex: none; height: 64px; width: auto;">
+      <h1 style="margin: 0; text-align: center; font-size: 34px; font-weight: 900; color: #1F4565;">مرحباً بك</h1>
+      <p style="margin: 0; text-align: center; font-size: 16px; color: #556170;">【ناقص: سطر ترحيبي قصير】</p>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; color: #1F4565;">اسم المستخدم أو البريد الإلكتروني
+        <span style="display: flex; align-items: center; gap: 10px; height: 52px; border: 1px solid #D8E3EE; border-radius: 14px; padding: 0 14px; background: #F7FAFD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg><input type="text" autocomplete="username" style="flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 16px;"></span>
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; color: #1F4565;">كلمة المرور
+        <span style="display: flex; align-items: center; gap: 10px; height: 52px; border: 1px solid #D8E3EE; border-radius: 14px; padding: 0 6px 0 14px; background: #F7FAFD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><input type="password" autocomplete="current-password" style="flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 16px;"><button type="button" aria-label="إظهار كلمة المرور" style="width: 44px; height: 44px; border: 0; background: transparent; color: #556170; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></span>
+      </label>
+      <a href="#" style="align-self: flex-start; font-size: 15px; font-weight: 700;">نسيت كلمة المرور؟</a>
+      <button type="submit" class="pill" style="height: 54px; border: 0; border-radius: 999px; background: #1F4565; color: #fff; font-family: inherit; font-size: 19px; font-weight: 900;">تسجيل الدخول</button>
+      <div aria-hidden="true" style="display: flex; align-items: center; gap: 12px; color: #8A96A3; font-size: 14px;"><span style="flex: 1; height: 1px; background: #E3ECF4;"></span>أو<span style="flex: 1; height: 1px; background: #E3ECF4;"></span></div>
+      <span style="text-align: center; font-size: 15px; color: #556170;">ليس لديك حساب؟</span>
+      <a href="#" style="height: 52px; border: 1.5px solid #2E6898; border-radius: 999px; color: #2E6898; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center;">إنشاء حساب جديد</a>
+    </div>
+    <img src="hero.jpg" alt="" style="display: block; width: 100%; height: 110px; object-fit: cover;">
+  </form>
+</main>
+
+<footer style="background: #1F4565; color: rgba(255,255,255,.85);">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 18px 28px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 14px;">
+    <span style="display: flex; gap: 18px;"><a href="#" style="color: rgba(255,255,255,.8);">سياسة الخصوصية</a><a href="#" style="color: rgba(255,255,255,.8);">الشروط والأحكام</a><a href="#" style="color: rgba(255,255,255,.8);">خريطة الموقع</a></span>
+    <span>جميع الحقوق محفوظة © 2026 جمعية إعجاز للدراسات والبحوث العلمية</span>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nav1: ['عن الجمعية', 'الدورات والبرامج', 'المسابقات', 'مكتبة إعجاز', 'المركز الإعلامي', 'الحوكمة'],
+      nav2: ['المبادرات', 'الخدمات الإلكترونية', 'تواصل معنا']
+    };
+  }
+}
+</script>
+</body>
+</html>

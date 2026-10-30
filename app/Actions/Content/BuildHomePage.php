@@ -19,6 +19,7 @@ use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -73,8 +74,9 @@ class BuildHomePage
      *     content: array<string, mixed>,
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
      *     slides: list<array{src: string, alt: string}>,
+     *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
      *     prize: array{title: string, total: int, url: string}|null,
-     *     updates: list<array{kind: string, icon: string, title: string, url: string, date: \Illuminate\Support\Carbon}>,
+     *     updates: list<array{kind: string, icon: string, title: string, url: string, date: Carbon}>,
      *     video: string|null,
      *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
@@ -91,12 +93,14 @@ class BuildHomePage
     public function handle(): array
     {
         $home = Setting::group('home');
+        $content = HomeContent::resolved();
 
         return [
-            'content' => HomeContent::resolved(),
+            'content' => $content,
             'hero' => self::hero($home),
             // بنية مرجع المدير (30 أكتوبر): العارض، وشرائح الهوية، والجوائز، والمستجدات (HomeShowcase)
             'slides' => HomeShowcase::slides($home),
+            'identity' => HomeShowcase::identity($content),
             'prize' => HomeShowcase::prize(),
             'updates' => HomeShowcase::updates(),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض

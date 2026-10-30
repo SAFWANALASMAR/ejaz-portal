@@ -105,7 +105,7 @@ final class HomeShowcase
         $page = Page::query()->published()->where('slug', Page::ABOUT)->first();
         $sections = [];
 
-        foreach (ContentBlocks::normalize($page?->blocks ?? []) as $block) {
+        foreach (ContentBlocks::normalize($page->blocks ?? []) as $block) {
             if ($block['type'] === 'text' && is_string($block['data']['heading'] ?? null)) {
                 $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace('</p>', "</p>\n", (string) ($block['data']['body'] ?? ''))))) ?? '');
 
@@ -182,6 +182,6 @@ final class HomeShowcase
      */
     public static function isNew(NewsArticle $article): bool
     {
-        return $article->published_on !== null && $article->published_on->gte(now()->subDays(7)->startOfDay());
+        return $article->published_on->gte(now()->subDays(7)->startOfDay());
     }
 }

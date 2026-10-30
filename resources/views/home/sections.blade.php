@@ -6,7 +6,7 @@
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
 --}}
 @include('home.partials.hero', ['hero' => $hero, 'slides' => $slides, 'prize' => $prize])
-@include('home.partials.identity', ['identity' => \App\Support\HomeShowcase::identity($content), 'prize' => $prize])
+@include('home.partials.identity', ['identity' => $identity, 'prize' => $prize])
 @include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content])
 @include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize])
 

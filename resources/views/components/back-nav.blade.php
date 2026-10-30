@@ -12,7 +12,8 @@
 
 <nav data-back-nav aria-label="{{ __('ui.back_nav.label') }}" {{ $attributes->class(['back-nav']) }}>
     <div class="container-page flex flex-wrap items-center gap-2 py-2.5">
-        <a href="{{ $parent ?? $home }}" wire:navigate @if ($parent === null) data-history-back @endif class="back-nav-link group">
+        {{-- الرجوع بالتاريخ بلا wire:navigate: Livewire يبدأ تنقّله قبل click فيسبق الرجوع --}}
+        <a href="{{ $parent ?? $home }}" @if ($parent === null) data-history-back @else wire:navigate @endif class="back-nav-link group">
             {{-- السهم «للخلف» إلى اليمين في الموقع العربي --}}
             {{ \App\Support\Icon::svg('arrow-right', 'size-4 transition group-hover:translate-x-0.5', ['aria-hidden' => 'true']) }}
             {{ __('ui.back_nav.parent') }}

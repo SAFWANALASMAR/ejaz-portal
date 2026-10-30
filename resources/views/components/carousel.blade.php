@@ -8,7 +8,7 @@
 --}}
 @props(['label', 'count', 'autoplay' => false, 'interval' => 6000, 'tone' => 'light', 'status' => true])
 
-<div data-carousel aria-roledescription="{{ __('ui.slider.carousel') }}" data-slide-label="{{ __('ui.slider.slide') }}" data-of-label="{{ __('ui.slider.of') }}" aria-label="{{ $label }}" data-tone="{{ $tone }}"
+<div data-carousel role="region" aria-roledescription="{{ __('ui.slider.carousel') }}" data-slide-label="{{ __('ui.slider.slide') }}" data-of-label="{{ __('ui.slider.of') }}" aria-label="{{ $label }}" data-tone="{{ $tone }}"
     @if ($autoplay && $count > 1) data-autoplay data-interval="{{ (int) $interval }}" @endif
     {{ $attributes->class(['carousel']) }}>
     <div data-carousel-track class="carousel-track" aria-live="polite" tabindex="-1">

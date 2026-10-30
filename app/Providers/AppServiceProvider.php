@@ -17,6 +17,7 @@ use App\Enums\RoleName;
 use App\Exceptions\OnlineMeetingFailed;
 use App\Listeners\SendVerificationWhenRequired;
 use App\Models\AssistantSettings;
+use App\Models\Competition;
 use App\Models\FormEntry;
 use App\Models\SubmissionVideo;
 use App\Models\User;
@@ -37,6 +38,7 @@ use App\Services\WhatsApp\FakeWhatsAppNotifier;
 use App\Support\AssemblyArea;
 use App\Support\Assistant\AssistantIndex;
 use App\Support\ChunkedVideoUpload;
+use App\Support\ContentCache;
 use App\Support\PasswordPolicy;
 use App\Support\ReadOnlyAccess;
 use App\Support\SpaLink;
@@ -226,6 +228,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
         View::composer(['partials.header', 'partials.footer', 'partials.search-palette'], SiteChromeComposer::class);
+
+        // الرئيسية المخزّنة تعرض مجموع جوائز مسابقة الطلاب وأحدث المسابقات (HomeShowcase)، فحفظ المسابقة وحذفها يمسحانها
+        Competition::saved(fn () => ContentCache::flush());
+        Competition::deleted(fn () => ContentCache::flush());
 
         // فهرس المساعد يتبع المحتوى: كل حفظ وحذف واستعادة يعيد مقاطع السجل، فلا تبقى مسودة ولا محذوف فيه
         foreach (array_keys(AssistantIndex::MODELS) as $model) {

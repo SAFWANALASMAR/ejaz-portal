@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 | البراهين، والمستجدات — من بيانات البوابة وحدها.
 */
 
-function aboutPage(array $sections): Page
+function publishedAboutWith(array $sections): Page
 {
     return Page::factory()->create([
         'slug' => Page::ABOUT,
@@ -49,7 +49,7 @@ it('shows no prize card for an unpublished competition or an empty prize table',
 });
 
 it('takes the vision and mission from the published about page, then the four values with their icons', function () {
-    aboutPage(['الرؤية' => 'نص رؤية الاختبار', 'الرسالة' => 'نص رسالة الاختبار']);
+    publishedAboutWith(['الرؤية' => 'نص رؤية الاختبار', 'الرسالة' => 'نص رسالة الاختبار']);
 
     $slides = HomeShowcase::identity(HomeContent::resolved());
 
@@ -60,7 +60,7 @@ it('takes the vision and mission from the published about page, then the four va
 });
 
 it('prefers the panel vision over the about page and hides an empty mission', function () {
-    aboutPage(['الرؤية' => 'رؤية من الصفحة']);
+    publishedAboutWith(['الرؤية' => 'رؤية من الصفحة']);
 
     app(UpdateHomeContent::class)->handle(userWithRole(RoleName::ContentEditor), [
         'identity' => ['vision' => 'رؤية من اللوحة'],
@@ -87,7 +87,7 @@ it('rejects a value icon outside the allowed list', function () {
 });
 
 it('renders the identity slider as an accessible carousel with one active slide', function () {
-    aboutPage(['الرؤية' => 'نص رؤية الاختبار']);
+    publishedAboutWith(['الرؤية' => 'نص رؤية الاختبار']);
 
     $html = $this->get('/')->assertOk()->getContent();
 

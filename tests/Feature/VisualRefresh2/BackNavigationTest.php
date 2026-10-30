@@ -4,6 +4,7 @@ use App\Models\Document;
 use App\Models\LibraryItem;
 use App\Models\Program;
 use App\Support\BackNavigation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 
 function routeFor(string $uri): Illuminate\Routing\Route
 {
-    return Route::getRoutes()->match(Illuminate\Http\Request::create($uri));
+    return Route::getRoutes()->match(Request::create($uri));
 }
 
 it('maps every parent in the table to an existing route', function () {

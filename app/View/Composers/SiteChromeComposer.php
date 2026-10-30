@@ -5,7 +5,9 @@ namespace App\View\Composers;
 use App\Models\LiveStream;
 use App\Models\MenuItem;
 use App\Models\Page;
+use App\Models\Partner;
 use App\Models\Setting;
+use App\Support\ContentCache;
 use App\Support\MenuLink;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -19,10 +21,22 @@ class SiteChromeComposer
 {
     public function compose(View $view): void
     {
-        $view->with('siteMenu', $this->menu());
-        $view->with('siteContact', Setting::group('contact'));
-        // شارة البث الجاري أو القادم في الرأس (docs/plans/livestream.md)
-        $view->with('liveStream', LiveStream::announced());
+        // الرأس والتذييل ونافذة البحث في كل صفحة: تُبنى بياناتها مرة واحدة في الطلب (خصائص الطلب نفسه)
+        $attributes = request()->attributes;
+
+        if (! $attributes->has(self::class)) {
+            $attributes->set(self::class, [
+                'siteMenu' => $this->menu(),
+                'siteContact' => Setting::group('contact'),
+                // شارة البث الجاري أو القادم في الرأس (docs/plans/livestream.md)
+                'liveStream' => LiveStream::announced(),
+                // شعارات الشركاء في التذييل (مصفوفات لا نماذج، cache.serializable_classes = false)، تُمسح مع المحتوى
+                'footerPartners' => ContentCache::remember('footer.partners', fn (): array => Partner::query()->published()->whereNotNull('logo')
+                    ->limit(4)->get(['name', 'logo'])->map(fn (Partner $partner): array => ['name' => $partner->name, 'logo' => (string) $partner->logo])->all()),
+            ]);
+        }
+
+        $view->with((array) $attributes->get(self::class));
     }
 
     /**

@@ -38,6 +38,11 @@ function setup(root, signal) {
     const running = () => !paused && !hovering && visible && !document.hidden && total > 1;
 
     const render = () => {
+        // التركيز في شريحة تُخفى (inert) ينتقل إلى مسار الشرائح، فلا يضيع إلى الصفحة
+        if (items.some((item, position) => position !== index && item.contains(document.activeElement))) {
+            track?.focus({ preventScroll: true });
+        }
+
         items.forEach((item, position) => {
             const active = position === index;
             item.toggleAttribute('data-active', active);

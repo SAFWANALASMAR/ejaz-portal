@@ -20,8 +20,8 @@
         : \App\Support\NationalAddress::mapUrl($shortAddress);
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
     $hasContact = $email !== null || $phone !== null || $address !== null || $shortAddress !== null || $whatsapp !== null;
-    // شعارات الشركاء المنشورة بترتيبها في اللوحة، والبقية في صفحة الشركاء
-    $partners = \App\Models\Partner::query()->published()->whereNotNull('logo')->limit(4)->get();
+    // شعارات الشركاء المنشورة بترتيبها في اللوحة (SiteChromeComposer، مخزّنة)، والبقية في صفحة الشركاء
+    $partners = $footerPartners ?? [];
 @endphp
 
 <footer class="section-dark" data-site-footer>
@@ -130,13 +130,13 @@
             </div>
 
             {{-- شركاؤنا: لا يظهر العمود قبل نشر شريك بشعاره --}}
-            @if ($partners->isNotEmpty())
+            @if ($partners !== [])
                 <div data-footer-column>
                     <h2 class="footer-title">{{ __('ui.footer.partners') }}</h2>
                     <ul class="grid grid-cols-2 gap-3">
                         @foreach ($partners as $partner)
-                            <li class="flex h-20 items-center justify-center rounded-2xl bg-white p-3" title="{{ $partner->name }}">
-                                <img src="{{ Storage::disk('public')->url($partner->logo) }}" alt="{{ $partner->name }}" loading="lazy" width="160" height="80" class="max-h-full w-auto object-contain">
+                            <li class="flex h-20 items-center justify-center rounded-2xl bg-white p-3" title="{{ $partner['name'] }}">
+                                <img src="{{ Storage::disk('public')->url($partner['logo']) }}" alt="{{ $partner['name'] }}" loading="lazy" width="160" height="80" class="max-h-full w-auto object-contain">
                             </li>
                         @endforeach
                     </ul>

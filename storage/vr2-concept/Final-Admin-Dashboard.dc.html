@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>لوحة إدارة إعجاز — الإحصائيات</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
+.lift{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s}
+.lift:hover{transform:translateY(-3px);box-shadow:0 18px 36px -18px rgba(31,69,101,.3)}
+.nav a{transition:background .2s,color .2s}.nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+@keyframes draw{from{stroke-dashoffset:1200}to{stroke-dashoffset:0}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.r1{animation:rise .6s .05s both}.r2{animation:rise .6s .15s both}.r3{animation:rise .6s .25s both}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F4F7FB; width: 100%; min-height: 1500px; display: flex; font-size: 16px;">
+
+<aside style="flex: none; width: 270px; background: #1F4565; color: rgba(255,255,255,.82); display: flex; flex-direction: column; padding: 18px 14px; gap: 14px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 14px; border-bottom: 1px solid rgba(255,255,255,.12);">
+    <span style="display: flex; align-items: center; gap: 10px; color: #fff;"><img src="/_blob/ba2dfe2e548822f90326ced182bd819c" alt="" style="flex: none; height: 42px; width: auto;"><span style="font-size: 19px; font-weight: 900;">لوحة إدارة إعجاز</span></span>
+    <button type="button" aria-label="طي القائمة" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16"></path></svg></button>
+  </div>
+  <nav class="nav" aria-label="قائمة الإدارة" style="display: flex; flex-direction: column; gap: 2px;">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+      <span style="font-size: 12px; font-weight: 800; color: #8EC5F0; padding: 12px 10px 4px; letter-spacing: .5px;">{{g.label}}</span>
+      <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+        <a href="#" style="{{it.style}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.d}}"></path></svg>{{it.t}}</a>
+      </sc-for>
+    </sc-for>
+  </nav>
+</aside>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+  <header style="background: #fff; border-bottom: 1px solid #E3ECF4; padding: 12px 28px; display: flex; align-items: center; gap: 16px;">
+    <label style="flex: 1; max-width: 460px; display: flex; align-items: center; gap: 10px; background: #F4F7FB; border: 1px solid #E3ECF4; border-radius: 12px; padding: 0 14px; height: 44px; color: #556170;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">بحث شامل</span><input type="search" placeholder="ابحث في كل اللوحة…" style="flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 15px;"><span style="font-size: 12px; border: 1px solid #D8E3EE; border-radius: 6px; padding: 1px 6px;">Ctrl K</span></label>
+    <span style="flex: 1;"></span>
+    <button type="button" aria-label="الإشعارات" style="position: relative; width: 44px; height: 44px; border-radius: 12px; border: 1px solid #E3ECF4; background: #fff; color: #1F4565; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span style="position: absolute; top: -4px; left: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #5D2A92; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">[ن]</span></button>
+    <button type="button" style="display: flex; align-items: center; gap: 10px; border: 1px solid #E3ECF4; background: #fff; border-radius: 12px; padding: 4px 12px 4px 6px; font-family: inherit; color: #1F4565;"><span style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(145deg, #7DB8E8, #2E6898); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900;">ص</span><span style="display: flex; flex-direction: column; text-align: start; line-height: 1.15;"><span style="font-size: 14px; font-weight: 800;">[اسم المستخدم]</span><span style="font-size: 12px; color: #556170;">المسؤول التقني</span></span></button>
+  </header>
+
+  <main style="padding: 22px 28px 40px; display: flex; flex-direction: column; gap: 20px;">
+    <nav aria-label="مسار التنقل" style="font-size: 14px; color: #556170; display: flex; gap: 6px;"><a href="#">لوحة الإدارة</a><span aria-hidden="true">›</span><span>لوحة الإحصائيات</span></nav>
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <h1 style="margin: 0; font-size: 34px; font-weight: 900; color: #1F4565;">لوحة الإحصائيات</h1>
+      <span style="display: flex; gap: 8px;"><label style="display: flex; align-items: center; gap: 8px; border: 1px solid #D8E3EE; background: #fff; border-radius: 12px; padding: 0 12px; height: 42px; font-size: 14px; color: #556170;">الفترة<select style="border: 0; background: transparent; font-family: inherit; font-size: 14px; color: #1F4565;"><option>آخر 30 يوماً</option><option>آخر 7 أيام</option></select></label></span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+      <sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+        <div class="lift r1" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 15px; font-weight: 800; color: #556170;">{{s.t}}</span><span style="width: 40px; height: 40px; border-radius: 12px; background: #EAF3FB; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="{{s.d}}"></path></svg></span></span>
+          <span style="font-size: 34px; font-weight: 900; color: #1F4565;">[العدد]</span>
+          <svg width="100%" height="36" viewBox="0 0 160 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 28 L20 24 L40 26 L60 18 L80 20 L100 12 L120 15 L140 8 L160 10" fill="none" stroke="#3E8ACA" stroke-width="2"></path></svg>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+      <div class="r2" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <span style="display: flex; align-items: center; justify-content: space-between;"><h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">زيارات آخر 30 يوماً</h2><span style="font-size: 12px; color: #5D2A92; background: #F1EBFA; padding: 3px 10px; border-radius: 999px;">بيانات توضيحية</span></span>
+        <svg role="img" aria-label="رسم زيارات آخر 30 يوماً — بيانات توضيحية" width="100%" height="260" viewBox="0 0 600 260" preserveAspectRatio="none">
+          <g stroke="#EEF3F8"><path d="M0 50H600M0 110H600M0 170H600M0 230H600"></path></g>
+          <path d="M0 200 C 60 180, 90 190, 130 150 S 220 160, 260 120 S 350 140, 390 90 S 480 110, 520 70 S 580 80, 600 60 L600 260 L0 260 Z" fill="rgba(62,138,202,.12)"></path>
+          <path d="M0 200 C 60 180, 90 190, 130 150 S 220 160, 260 120 S 350 140, 390 90 S 480 110, 520 70 S 580 80, 600 60" fill="none" stroke="#2E6898" stroke-width="3" stroke-dasharray="1200" style="animation: draw 1.6s .3s both;"></path>
+        </svg>
+      </div>
+      <div class="r2" style="position: relative; overflow: hidden; border-radius: 18px; background: radial-gradient(90% 120% at 85% 10%, #3E8ACA, #1F4565 70%); color: #fff; padding: 22px; display: flex; flex-direction: column; gap: 10px;">
+        <span style="width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg></span>
+        <span style="font-size: 22px; font-weight: 900;">تحليل بالذكاء الاصطناعي</span>
+        <span style="font-size: 15px; color: #DCEBF8; line-height: 1.7;">تقرير عربي عن البرامج والمسابقات للفترة المختارة، من أرقام مجمّعة فقط.</span>
+        <button type="button" style="margin-top: auto; align-self: flex-start; border: 0; background: #fff; color: #1F4565; font-family: inherit; font-weight: 900; font-size: 15px; padding: 10px 20px; border-radius: 999px;">ابدأ التحليل</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="r3" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">ما يحتاج تصرفك</h2>
+        <sc-for list="{{todo}}" as="t" hint-placeholder-count="3">
+          <a href="#" class="lift" style="display: flex; align-items: center; gap: 12px; border: 1px solid #E3ECF4; border-radius: 14px; padding: 12px 14px; color: #17202E;"><span style="{{t.dot}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="{{t.d}}"></path></svg></span><span style="flex: 1; font-weight: 800; color: #1F4565;">{{t.t}}</span><span style="font-size: 14px; font-weight: 900; background: #F4F7FB; padding: 3px 12px; border-radius: 999px; color: #1F4565;">[..]</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="2.2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+        </sc-for>
+      </div>
+      <div class="r3" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
+        <span style="display: flex; justify-content: space-between; align-items: center;"><h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">آخر العمليات</h2><a href="#" style="font-weight: 800; font-size: 14px;">سجل العمليات ←</a></span>
+        <sc-for list="{{log}}" as="l" hint-placeholder-count="5">
+          <div style="display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EEF3F8;"><span style="flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: #3E8ACA;"></span><span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; color: #1F4565; font-weight: 700;">[الاسم] — {{l}}</span><span style="font-size: 13px; color: #8A96A3;">[الوقت]</span></span></div>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const base = 'display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 15px; ';
+    const off = base + 'color: rgba(255,255,255,.8);';
+    const on = base + 'color: #fff; font-weight: 800; background: rgba(142,197,240,.16); box-shadow: inset -3px 0 0 #8EC5F0;';
+    const I = (t, d, active) => ({ t, d, style: active ? on : off });
+    const dot = (bg, c) => 'flex: none; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: ' + bg + '; color: ' + c + ';';
+    return {
+      groups: [
+        { label: 'الرئيسية', items: [I('لوحة الإحصائيات', 'M3 3v18h18M7 15l4-4 3 3 5-6', true)] },
+        { label: 'المحتوى', items: [I('محتوى الرئيسية', 'M3 11l9-8 9 8v10H3z'), I('الصفحات', 'M14 3H6v18h12V7zM14 3v4h4'), I('الأخبار', 'M3 11l18-5v12L3 14v-3Z'), I('المكتبة', 'M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Z'), I('الحوكمة', 'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z'), I('الإعلانات', 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9')] },
+        { label: 'الخدمات', items: [I('الطلبات', 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2'), I('البرامج والتسجيلات', 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4'), I('المسابقات', 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z'), I('الاستبيانات', 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9')] },
+        { label: 'المؤسسة', items: [I('الجمعية العمومية', 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z'), I('الملفات والشواهد', 'M3 7h6l2 2h10v10H3z'), I('السجلات', 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5')] },
+        { label: 'النظام', items: [I('المستخدمون والأدوار', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.9'), I('الإعدادات', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1'), I('سجل العمليات', 'M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5')] }
+      ],
+      stats: [
+        { t: 'المستخدمون', d: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+        { t: 'الطلبات الجديدة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2' },
+        { t: 'المسجلون في البرامج', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4' },
+        { t: 'متسابقو البراهين', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z' }
+      ],
+      todo: [
+        { t: 'طلبات بانتظار المراجعة', d: 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2', dot: dot('#EAF3FB', '#2E6898') },
+        { t: 'وثائق تنتهي صلاحيتها', d: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', dot: dot('#F1EBFA', '#5D2A92') },
+        { t: 'اجتماعات قادمة', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4', dot: dot('#E7F4EA', '#287A37') }
+      ],
+      log: ['نشر خبراً', 'عدّل محتوى الرئيسية', 'قبل طلب انضمام', 'رفع وثيقة حوكمة', 'أضاف برنامجاً']
+    };
+  }
+}
+</script>
+</body>
+</html>

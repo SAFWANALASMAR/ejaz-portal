@@ -67,11 +67,16 @@ it('adds the store to the main menu, opening in a new tab', function () {
     $this->get('/')->assertOk()->assertSee(__('home.shortcuts.store.title'));
 });
 
-it('opens the store from the home page in a new tab without a link to the page', function () {
+// بطاقات «خدماتنا» في الرئيسية صارت ست مرجع المدير بلا المتجر (docs/decisions/2026-10-30-visual-refresh-2.md، القرار ٢)،
+// والمتجر باقٍ في القائمة الرئيسية بتبويب جديد
+it('keeps the store out of the home service cards and in the main menu in a new tab', function () {
+    $this->seed(MenuSeeder::class);
     $html = (string) $this->get('/')->assertOk()->getContent();
-    $card = (string) str($html)->after('aria-labelledby="home-shortcuts"')->before('</section>');
+    $cards = (string) str($html)->after('aria-labelledby="home-shortcuts"')->before('</section>');
+    $header = (string) str($html)->after('data-site-header')->before('</header>');
 
-    expect($card)->toMatch('#href="'.preg_quote(route('store.index'), '#').'"\s+target="_blank"\s+rel="noopener noreferrer"#');
+    expect($cards)->not->toContain(route('store.index'))
+        ->and($header)->toMatch('#href="[^"]*/store"\s+target="_blank"#');
 });
 
 it('keeps the internal store, donations and payments archived while the switch is off', function () {

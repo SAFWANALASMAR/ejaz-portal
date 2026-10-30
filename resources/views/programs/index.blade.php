@@ -4,12 +4,12 @@
     الفرعي والوصف من الجمعية (التصحيحات ٣).
 --}}
 <x-layouts.app :title="__('programs.title')">
-    <section class="bg-surface/60 py-12 sm:py-16">
+    <x-page-hero :title="__('programs.title')" />
+
+    <section class="mesh-light py-12 sm:py-16">
         <div class="container-page">
             <div class="text-center">
-                <span class="mx-auto block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-                <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('programs.title') }}</h1>
-                <x-missing :what="__('programs.intro_missing')" class="mt-4" />
+                <x-missing :what="__('programs.intro_missing')" />
             </div>
 
             {{-- محور «الدورات والبرامج» (ملاحظة المدير التنفيذي): الدورات التدريبية، والمجالس العلمية، والمسابقات --}}
@@ -18,9 +18,7 @@
                     @foreach ($hub as $entry)
                         <li>
                             <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 card-lift p-5 hover:border-brand hover:shadow-md">
-                                <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white" aria-hidden="true">
-                                    {{ \App\Support\Icon::svg($entry['icon'], 'size-6') }}
-                                </span>
+                                <x-icon-tile :icon="$entry['icon']" :tone="['green', 'blue', 'navy'][$loop->index % 3]" size="md" />
                                 <span class="text-lg font-bold text-ink">{{ $entry['label'] }}</span>
                             </a>
                         </li>
@@ -48,7 +46,7 @@
             </nav>
 
             @if ($programs->isEmpty())
-                <p class="mt-10 text-center text-muted">{{ __('programs.list.empty') }}</p>
+                <x-empty-state icon="academic-cap" :message="__('programs.list.empty')" class="mt-10" />
             @else
                 <ul class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                     @foreach ($programs as $program)

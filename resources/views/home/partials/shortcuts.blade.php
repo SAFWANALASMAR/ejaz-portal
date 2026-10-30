@@ -22,8 +22,8 @@
                     <li>
                         <a href="{{ $shortcut['url'] }}" @navigate($shortcut['url']) class="card-glow tilt group flex h-full flex-col gap-4 p-6">
                             <x-icon-tile :icon="$shortcut['icon']" :tone="$shortcut['tone']" size="lg" />
-                            <span class="text-xl font-bold text-primary-dark">{{ __($shortcut['key'] === 'library' ? 'ui.services.library.title' : 'home.shortcuts.'.$shortcut['key'].'.title') }}</span>
-                            <span class="leading-7 text-muted">{{ __($shortcut['key'] === 'library' ? 'ui.services.library.text' : 'home.shortcuts.'.$shortcut['key'].'.text') }}</span>
+                            <span class="text-xl font-bold text-primary-dark">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
+                            <span class="leading-7 text-muted">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
                             <span class="mt-auto inline-flex items-center gap-2 self-start rounded-full bg-primary-dark px-4 py-1.5 text-sm font-semibold text-white transition group-hover:bg-primary">
                                 {{ __('ui.services.enter') }}
                                 {{ \App\Support\Icon::svg('arrow-left', 'size-4 transition group-hover:-translate-x-1', ['aria-hidden' => 'true']) }}

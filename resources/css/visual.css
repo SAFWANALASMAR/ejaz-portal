@@ -399,59 +399,6 @@ html[data-reveal-ready] .flourish path {
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-white) 28%, transparent);
 }
 
-/* زر البحث وزر القائمة في الرأس: في طبقة المكونات فتغلبها nav:hidden */
-@layer components {
-    .header-icon-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.625rem;
-        height: 2.625rem;
-        border-radius: 9999px;
-        color: var(--color-white);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 25%, transparent);
-        transition: background-color 200ms;
-    }
-    
-    .header-icon-button:hover {
-        background-color: color-mix(in srgb, var(--color-white) 12%, transparent);
-    }
-}
-
-/* زر الدخول: كبسولي أبيض بأيقونة داخل دائرة */
-.login-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
-    white-space: nowrap;
-    border-radius: 9999px;
-    background-color: var(--color-white);
-    color: var(--color-primary-dark);
-    font-weight: 700;
-    padding-block: 0.3125rem;
-    padding-inline: 0.3125rem 0.875rem;
-    font-size: 0.9375rem;
-    transition:
-        transform calc(200ms * var(--motion)),
-        box-shadow 200ms;
-}
-
-.login-pill:hover {
-    transform: translateY(calc(-2px * var(--motion)));
-    box-shadow: 0 12px 26px -10px color-mix(in srgb, var(--color-brand-light) 80%, transparent);
-}
-
-.login-pill-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.875rem;
-    height: 1.875rem;
-    border-radius: 9999px;
-    background-color: var(--color-primary-soft);
-    color: var(--color-primary);
-}
-
 /* شريط تقدّم التمرير أعلى الصفحة (motion.js يضع --scroll من 0 إلى 1) */
 [data-scroll-progress] {
     position: fixed;
@@ -1301,4 +1248,17 @@ html[data-motion-off] .hero-swoosh-static path {
     background-clip: text;
     color: transparent;
     line-height: 1;
+}
+
+/* غلاف المقطع: إطار مزدوج بلون الهوية، وزر تشغيل بهالة (درس الموقع القديم) */
+.video-frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 3px var(--color-white), inset 0 0 0 5px color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+
+.play-halo {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-white) 25%, transparent), 0 12px 30px -8px color-mix(in srgb, var(--color-primary-deep) 60%, transparent);
 }

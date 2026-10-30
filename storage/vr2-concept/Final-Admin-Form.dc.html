@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>لوحة إدارة إعجاز — محتوى الرئيسية</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
+.nav a{transition:background .2s,color .2s}.nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn{transition:transform .2s,box-shadow .2s}.btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px -12px rgba(31,69,101,.6)}
+.drop{transition:border-color .2s,background .2s}.drop:hover{border-color:#3E8ACA;background:#F2F8FD}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F4F7FB; width: 100%; min-height: 1700px; display: flex; font-size: 16px;">
+
+<aside style="flex: none; width: 270px; background: #1F4565; color: rgba(255,255,255,.82); display: flex; flex-direction: column; padding: 18px 14px; gap: 14px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 14px; border-bottom: 1px solid rgba(255,255,255,.12);">
+    <span style="display: flex; align-items: center; gap: 10px; color: #fff;"><img src="/_blob/ba2dfe2e548822f90326ced182bd819c" alt="" style="flex: none; height: 42px; width: auto;"><span style="font-size: 19px; font-weight: 900;">لوحة إدارة إعجاز</span></span>
+    <button type="button" aria-label="طي القائمة" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16"></path></svg></button>
+  </div>
+  <nav class="nav" aria-label="قائمة الإدارة" style="display: flex; flex-direction: column; gap: 2px;">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+      <span style="font-size: 12px; font-weight: 800; color: #8EC5F0; padding: 12px 10px 4px;">{{g.label}}</span>
+      <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+        <a href="#" style="{{it.style}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.d}}"></path></svg>{{it.t}}</a>
+      </sc-for>
+    </sc-for>
+  </nav>
+</aside>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+  <header style="background: #fff; border-bottom: 1px solid #E3ECF4; padding: 12px 28px; display: flex; align-items: center; gap: 16px;">
+    <label style="flex: 1; max-width: 460px; display: flex; align-items: center; gap: 10px; background: #F4F7FB; border: 1px solid #E3ECF4; border-radius: 12px; padding: 0 14px; height: 44px; color: #556170;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">بحث شامل</span><input type="search" placeholder="ابحث في كل اللوحة…" style="flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 15px;"><span style="font-size: 12px; border: 1px solid #D8E3EE; border-radius: 6px; padding: 1px 6px;">Ctrl K</span></label>
+    <span style="flex: 1;"></span>
+    <button type="button" aria-label="الإشعارات" style="position: relative; width: 44px; height: 44px; border-radius: 12px; border: 1px solid #E3ECF4; background: #fff; color: #1F4565; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg><span style="position: absolute; top: -4px; left: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #5D2A92; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">[ن]</span></button>
+    <button type="button" style="display: flex; align-items: center; gap: 10px; border: 1px solid #E3ECF4; background: #fff; border-radius: 12px; padding: 4px 12px 4px 6px; font-family: inherit; color: #1F4565;"><span style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(145deg, #7DB8E8, #2E6898); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900;">ص</span><span style="display: flex; flex-direction: column; text-align: start; line-height: 1.15;"><span style="font-size: 14px; font-weight: 800;">[اسم المستخدم]</span><span style="font-size: 12px; color: #556170;">المسؤول التقني</span></span></button>
+  </header>
+
+  <main style="padding: 22px 28px 120px; display: flex; flex-direction: column; gap: 16px;">
+    <nav aria-label="مسار التنقل" style="font-size: 14px; color: #556170; display: flex; gap: 6px;"><a href="#">لوحة الإدارة</a><span aria-hidden="true">›</span><a href="#">المحتوى</a><span aria-hidden="true">›</span><span>محتوى الرئيسية</span></nav>
+    <h1 style="margin: 0; font-size: 34px; font-weight: 900; color: #1F4565;">محتوى الرئيسية</h1>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <section style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <span style="display: flex; justify-content: space-between; align-items: center;"><h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">شرائح البطل</h2><button type="button" style="border: 1px dashed #3E8ACA; background: #F2F8FD; color: #2E6898; font-family: inherit; font-weight: 800; padding: 8px 14px; border-radius: 10px;">+ إضافة شريحة</button></span>
+          <sc-for list="{{slides}}" as="s" hint-placeholder-count="2">
+            <div style="border: 1px solid #E3ECF4; border-radius: 14px; padding: 14px; display: grid; grid-template-columns: 28px 200px minmax(0, 1fr); gap: 14px; align-items: start;">
+              <button type="button" aria-label="سحب لإعادة الترتيب" style="border: 0; background: transparent; color: #8A96A3; cursor: grab; padding-top: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg></button>
+              <label class="drop" style="height: 130px; border: 2px dashed #C9D7E4; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #556170; font-size: 13px; text-align: center; overflow: hidden; position: relative;"><img src="{{s.img}}" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: {{s.op}};"><span style="position: relative; background: rgba(255,255,255,.88); padding: 4px 10px; border-radius: 8px;">اسحب الصورة هنا أو اخترها</span><input type="file" accept="image/*" style="position: absolute; width: 1px; height: 1px; opacity: 0;"></label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #556170;">العنوان<input type="text" value="{{s.title}}" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: 15px; color: #1F4565;"></label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #556170;">نص الزر<input type="text" value="[نص الزر]" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: 15px;"></label>
+                <label style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #556170;">النص<textarea rows="2" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: 15px; resize: vertical;">{{s.text}}</textarea></label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #556170;">رابط الزر<input type="url" value="[الرابط]" dir="ltr" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: 15px;"></label>
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: #1F4565; font-weight: 700; padding-top: 22px;"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #2E6898;">ظاهر</label>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <span style="display: flex; justify-content: space-between; align-items: center;"><h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">الرؤية والرسالة والقيم</h2><button type="button" style="border: 1px dashed #3E8ACA; background: #F2F8FD; color: #2E6898; font-family: inherit; font-weight: 800; padding: 8px 14px; border-radius: 10px;">+ إضافة شريحة</button></span>
+          <sc-for list="{{vv}}" as="v" hint-placeholder-count="3">
+            <div style="border: 1px solid #E3ECF4; border-radius: 14px; padding: 12px 14px; display: grid; grid-template-columns: 28px 120px 160px minmax(0, 1fr) 70px; gap: 12px; align-items: center;">
+              <button type="button" aria-label="سحب لإعادة الترتيب" style="border: 0; background: transparent; color: #8A96A3; cursor: grab;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg></button>
+              <button type="button" aria-label="اختيار الأيقونة" style="display: flex; align-items: center; gap: 8px; border: 1px solid #D8E3EE; background: #fff; border-radius: 10px; padding: 6px 10px; font-family: inherit; color: #1F4565; font-size: 14px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="{{v.d}}"></path></svg>الأيقونة ▾</button>
+              <label style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #556170;">العنوان<input type="text" value="{{v.t}}" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 7px 10px; font-family: inherit; font-size: 15px; color: #1F4565;"></label>
+              <label style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #556170;">النص<input type="text" value="{{v.body}}" style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 7px 10px; font-family: inherit; font-size: 15px;"></label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1F4565;"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #2E6898;">ظاهر</label>
+            </div>
+          </sc-for>
+          <span style="font-size: 13px; color: #556170;">الشريحة الفارغة تُخفى من الرئيسية، والتقلب يتوقف لمن يفضّل تقليل الحركة.</span>
+        </section>
+
+        <section style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">بطاقة الجوائز</h2>
+          <div style="display: flex; gap: 16px; align-items: end; flex-wrap: wrap;">
+            <label style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #556170;">المسابقة المرتبطة<select style="border: 1px solid #D8E3EE; border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: 15px; color: #1F4565; background: #fff;"><option>مسابقة البراهين العلمية — الموسم الأول</option></select></label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: #1F4565; font-weight: 700; padding-bottom: 8px;"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #2E6898;">إظهار البطاقة</label>
+          </div>
+          <span style="font-size: 13px; color: #556170;">المجموع يُحسب من جدول جوائز المسابقة، لا يُكتب يدوياً.</span>
+        </section>
+
+        <section style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">خدماتنا</h2>
+          <sc-for list="{{services}}" as="s" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 12px; border: 1px solid #E3ECF4; border-radius: 12px; padding: 10px 12px;">
+              <button type="button" aria-label="سحب لإعادة الترتيب" style="border: 0; background: transparent; color: #8A96A3; cursor: grab;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg></button>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="{{s.d}}"></path></svg>
+              <span style="flex: 1; font-weight: 800; color: #1F4565;">{{s.t}}</span>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1F4565;"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #2E6898;">ظاهرة</label>
+              <button type="button" style="border: 1px solid #D8E3EE; background: #fff; color: #2E6898; font-family: inherit; font-weight: 700; padding: 5px 12px; border-radius: 10px;">تعديل</button>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <span style="display: flex; justify-content: space-between; align-items: center;"><h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #1F4565;">الإعلانات</h2><a href="#" style="font-weight: 800;">إدارة الإعلانات ←</a></span>
+          <span style="font-size: 15px; color: #556170;">تظهر في الرئيسية الإعلانات المنشورة السارية فقط، بترتيبها في شاشة الإعلانات. [العدد] إعلان ظاهر الآن.</span>
+        </section>
+      </div>
+
+      <aside aria-label="معاينة مباشرة" style="position: sticky; top: 16px; background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+        <span style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 17px; font-weight: 900; color: #1F4565;">معاينة مباشرة</span><span style="display: flex; gap: 4px;"><button type="button" aria-label="حاسوب" aria-pressed="true" style="width: 34px; height: 34px; border-radius: 8px; border: 0; background: #EAF3FB; color: #2E6898;">▭</button><button type="button" aria-label="جوال" aria-pressed="false" style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid #E3ECF4; background: #fff; color: #556170;">▯</button></span></span>
+        <div style="border-radius: 12px; overflow: hidden; border: 1px solid #E3ECF4;">
+          <div style="background: #1F4565; height: 26px; display: flex; align-items: center; padding: 0 10px; gap: 6px;"><span style="width: 14px; height: 14px; border-radius: 4px; background: rgba(255,255,255,.2);"></span><span style="width: 60px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.5);"></span></div>
+          <div style="position: relative; height: 150px; background: #1F4565;">
+            <img src="hero.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 64%; height: 100%; object-fit: cover;">
+            <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(270deg, #1F4565 0%, #1F4565 34%, rgba(31,69,101,.2) 75%);"></span>
+            <span style="position: absolute; right: 14px; top: 40px; color: #fff; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 18px; font-weight: 900;">جمعية إعجاز</span><span style="font-size: 12px; color: #DCEBF8;">للدراسات والبحوث العلمية</span><span style="width: 30px; height: 2px; background: #8EC5F0; margin-top: 4px;"></span></span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; padding: 8px; background: #F7FAFD;"><span style="height: 46px; border-radius: 8px; background: #fff; border: 1px solid #E3ECF4;"></span><span style="height: 46px; border-radius: 8px; background: #fff; border: 1px solid #E3ECF4;"></span><span style="height: 46px; border-radius: 8px; background: #fff; border: 1px solid #E3ECF4;"></span></div>
+        </div>
+        <span style="font-size: 13px; color: #556170;">تتحدث المعاينة مع كل تعديل قبل الحفظ.</span>
+      </aside>
+    </div>
+  </main>
+
+  <div style="position: sticky; bottom: 0; background: rgba(255,255,255,.96); border-top: 1px solid #E3ECF4; padding: 12px 28px; display: flex; gap: 10px; align-items: center; box-shadow: 0 -10px 24px -16px rgba(31,69,101,.3);">
+    <button type="button" class="btn" style="border: 0; background: #2E6898; color: #fff; font-family: inherit; font-weight: 900; font-size: 16px; padding: 11px 28px; border-radius: 12px;">حفظ</button>
+    <button type="button" class="btn" style="border: 1px solid #D8E3EE; background: #fff; color: #2E6898; font-family: inherit; font-weight: 800; font-size: 16px; padding: 11px 22px; border-radius: 12px;">معاينة</button>
+    <button type="button" style="border: 0; background: transparent; color: #556170; font-family: inherit; font-weight: 700; font-size: 16px; padding: 11px 16px;">إلغاء</button>
+    <span style="margin-inline-start: auto; font-size: 13px; color: #556170;">آخر حفظ: [الاسم] — [الوقت] · يُسجَّل كل تعديل في سجل العمليات</span>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const base = 'display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 15px; ';
+    const off = base + 'color: rgba(255,255,255,.8);';
+    const on = base + 'color: #fff; font-weight: 800; background: rgba(142,197,240,.16); box-shadow: inset -3px 0 0 #8EC5F0;';
+    const I = (t, d, active) => ({ t, d, style: active ? on : off });
+    return {
+      groups: [
+        { label: 'الرئيسية', items: [I('لوحة الإحصائيات', 'M3 3v18h18M7 15l4-4 3 3 5-6')] },
+        { label: 'المحتوى', items: [I('محتوى الرئيسية', 'M3 11l9-8 9 8v10H3z', true), I('الصفحات', 'M14 3H6v18h12V7zM14 3v4h4'), I('الأخبار', 'M3 11l18-5v12L3 14v-3Z'), I('المكتبة', 'M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Z'), I('الحوكمة', 'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z'), I('الإعلانات', 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9')] },
+        { label: 'الخدمات', items: [I('الطلبات', 'M9 5h6M9 3h6v4H9zM5 5h2v16h10V5h2'), I('البرامج والتسجيلات', 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4'), I('المسابقات', 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z'), I('الاستبيانات', 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9')] },
+        { label: 'المؤسسة', items: [I('الجمعية العمومية', 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z'), I('الملفات والشواهد', 'M3 7h6l2 2h10v10H3z'), I('السجلات', 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5')] },
+        { label: 'النظام', items: [I('المستخدمون والأدوار', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z'), I('الإعدادات', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z'), I('سجل العمليات', 'M12 8v4l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5')] }
+      ],
+      slides: [
+        { title: 'جمعية إعجاز للدراسات والبحوث العلمية', text: 'جمعية تعليمية متخصصة في تعليم القرآن الكريم والسنة النبوية وبيان وجوه الإعجاز فيهما.', img: 'hero.jpg', op: '1' },
+        { title: '[عنوان الشريحة]', text: '[نص الشريحة]', img: 'side.jpg', op: '.35' }
+      ],
+      vv: [
+        { t: 'الرؤية', body: '【ناقص: نص الرؤية المعتمد】', d: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z' },
+        { t: 'الرسالة', body: '【ناقص: نص الرسالة المعتمد】', d: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z' },
+        { t: 'القيم', body: 'الإحسان والمهنية، الابتكار، التمكين، التكامل', d: 'M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9Z' }
+      ],
+      services: [
+        { t: 'الدورات والبرامج', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4' },
+        { t: 'العضوية', d: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+        { t: 'التقارير والحوكمة', d: 'M14 3H6v18h12V7zM14 3v4h4M9 13l2 2 4-4' },
+        { t: 'المسابقات', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z' },
+        { t: 'مكتبة إعجاز', d: 'M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z' },
+        { t: 'المركز الإعلامي', d: 'M3 5h18v14H3zM3 15l5-5 4 4 3-3 6 6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -7,14 +7,14 @@
 @endphp
 
 <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate
-    class="group flex h-full flex-col overflow-hidden card-lift">
+    class="shine group flex h-full flex-col overflow-hidden card-lift">
     {{-- المرفوعة، وإلا صورة مقطع يوتيوب المصغرة (LibraryItem::thumbnailUrl) --}}
     @if ($thumbnail = $item->thumbnailUrl())
-        <span class="relative block">
+        <span class="video-frame relative block">
             <span class="skeleton block overflow-hidden"><img src="{{ $thumbnail }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="aspect-[16/10] w-full bg-primary-soft object-cover transition duration-700 group-hover:scale-105"></span>
             @if ($item->youtubeId())
                 <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                    <span class="inline-flex size-14 items-center justify-center rounded-full bg-primary-dark/80 text-white shadow-lg transition group-hover:bg-primary">
+                    <span class="play-halo inline-flex size-16 items-center justify-center rounded-full bg-white/95 text-primary-dark transition group-hover:scale-110">
                         {{ \App\Support\Icon::solid('play', 'size-7') }}
                     </span>
                 </span>
