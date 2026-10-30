@@ -3,7 +3,7 @@
     <div class="container-page">
         <x-section-header id="home-initiatives" :title="__('content.initiatives.title')" :href="route('initiatives.index')" />
 
-        <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
             @foreach ($initiatives as $initiative)
                 <li>@include('content.initiatives.card', ['initiative' => $initiative])</li>
             @endforeach

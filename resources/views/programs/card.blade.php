@@ -9,7 +9,7 @@
     $status = $program->status();
 @endphp
 
-<article class="flex h-full flex-col overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
+<article class="flex h-full flex-col overflow-hidden card-lift">
     <div class="relative aspect-[16/9] bg-primary-soft">
         @if ($program->image)
             <img src="{{ Storage::disk('public')->url($program->image) }}" alt="" class="size-full object-cover" loading="lazy">
@@ -28,8 +28,8 @@
         @endif
 
         <p class="mt-auto flex items-center justify-between gap-3 pt-4 text-sm text-muted">
-            <span class="flex items-center gap-1.5">{{ svg('heroicon-o-calendar', 'size-4') }} {{ Dates::display($program->starts_at) }}</span>
-            <span class="flex items-center gap-1.5">{{ svg('heroicon-o-academic-cap', 'size-4 text-accent') }} {{ $program->type->name }}</span>
+            <span class="flex items-center gap-1.5">{{ \App\Support\Icon::svg('calendar', 'size-4') }} {{ Dates::display($program->starts_at) }}</span>
+            <span class="flex items-center gap-1.5">{{ \App\Support\Icon::svg('academic-cap', 'size-4 text-accent') }} {{ $program->type->name }}</span>
         </p>
 
         <x-button class="mt-4 w-full" :href="route('programs.show', $program->slug)">

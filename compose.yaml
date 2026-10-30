@@ -60,7 +60,7 @@ services:
   # اختبارات المتصفح ولقطات الشاشات (tests/browser/README.md). لا تعمل تلقائياً:
   # docker compose run --rm browser
   browser:
-    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    image: mcr.microsoft.com/playwright:v1.64.1-noble
     profiles: [tools]
     working_dir: /work
     volumes:

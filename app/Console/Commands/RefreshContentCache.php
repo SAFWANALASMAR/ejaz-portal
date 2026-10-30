@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\CompetitionRound;
 use App\Models\Page;
 use App\Support\ContentCache;
@@ -29,6 +30,8 @@ class RefreshContentCache extends Command
         ContentCache::flush();
         Page::flushPublishedSlugs();
         CompetitionRound::query()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
+        // صورة مقطع الرئيسية إن لم تُجلب (مقطع ضُبط قبل وجود الجلب)
+        FetchHomeVideoThumbnail::queueForCurrent();
 
         $this->info('مُسحت ذاكرة المحتوى العام وبنوك مراحل المسابقات.');
 

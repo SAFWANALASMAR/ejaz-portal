@@ -20,7 +20,7 @@
                 <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($products as $product)
                         <li class="flex h-full flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
-                            <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">{{ svg('heroicon-o-shopping-bag', 'size-6') }}</span>
+                            <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">{{ \App\Support\Icon::svg('shopping-bag', 'size-6') }}</span>
                             <h2 class="mt-4 text-lg font-bold text-ink">{{ $product->name }}</h2>
                             @if (filled($product->description))
                                 <p class="mt-2 text-sm leading-6 text-muted">{{ $product->description }}</p>

@@ -7,10 +7,7 @@
     <div class="bg-pattern pointer-events-none absolute inset-0 opacity-60" aria-hidden="true"></div>
 
     <div class="container-page relative">
-        <div class="mx-auto max-w-xl text-center">
-            <span class="mx-auto block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-            <h2 id="home-values" class="mt-3 text-2xl font-bold text-primary sm:text-3xl">{{ $values['heading'] }}</h2>
-        </div>
+        <x-section-heading id="home-values" center class="mx-auto max-w-xl">{{ $values['heading'] }}</x-section-heading>
 
         <ol class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
             @foreach ($values['items'] as $index => $value)
