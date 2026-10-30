@@ -16,7 +16,7 @@
 
 <x-layouts.auth :title="__('payments.show.title')" :image="false">
     <div class="text-center">
-        <span class="inline-flex size-16 items-center justify-center rounded-full {{ $icon[1] }}">{{ svg('heroicon-o-'.$icon[0], 'size-9') }}</span>
+        <span class="inline-flex size-16 items-center justify-center rounded-full {{ $icon[1] }}">{{ \App\Support\Icon::svg($icon[0], 'size-9') }}</span>
         <p class="mt-4 text-2xl font-bold text-ink">{{ $payment->status->getLabel() }}</p>
         <p class="mt-2 leading-7 text-muted">{{ __('payments.show.'.$payment->status->value.'_hint') }}</p>
     </div>

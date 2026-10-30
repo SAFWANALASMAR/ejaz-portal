@@ -16,6 +16,7 @@ use Database\Seeders\MenuSeeder;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,8 @@ use Illuminate\Support\Str;
 beforeEach(function () {
     Storage::fake(Document::disk());
     Storage::fake('public');
+    // استيراد إعدادات الرئيسية بمقطعها يطلب صورته من الخادم (FetchHomeVideoThumbnail)، والطابور متزامن في الاختبارات
+    Http::fake(['i.ytimg.com/*' => Http::response('', 404)]);
 
     $this->dir = sys_get_temp_dir().'/archive-import-'.Str::random(8);
     $this->file = archiveImportFixture($this->dir);

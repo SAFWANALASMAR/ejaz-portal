@@ -21,7 +21,7 @@
                 <x-card>
                     <p class="text-sm text-muted">{{ $opening->kind->getLabel() }}</p>
                     <p class="mt-2 flex items-center gap-2 text-ink">
-                        {{ svg('heroicon-o-calendar', 'size-5 text-accent') }}
+                        {{ \App\Support\Icon::svg('calendar', 'size-5 text-accent') }}
                         @if ($opening->closes_at)
                             {{ __('services.listing.closes_at') }}: {{ Dates::display($opening->closes_at, withTime: true) }}
                         @else

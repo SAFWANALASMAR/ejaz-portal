@@ -8,14 +8,14 @@
         <div class="container-page">
             <x-section-heading id="board">{{ __('content.about.board') }}</x-section-heading>
 
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4" data-reveal-group>
                 @foreach ($members as $member)
                     <li class="rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs">
                         @if ($member->photo)
                             <img src="{{ Storage::disk('public')->url($member->photo) }}" alt="" loading="lazy" class="mx-auto size-28 rounded-full object-cover">
                         @else
                             <span class="mx-auto flex size-28 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
-                                {{ svg('heroicon-o-user', 'size-12') }}
+                                {{ \App\Support\Icon::svg('user', 'size-12') }}
                             </span>
                         @endif
                         <p class="mt-4 font-bold text-ink">{{ $member->name }}</p>

@@ -40,6 +40,8 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
 
 ## فحص الوصول (WCAG 2.1 AA)
 
+صورة Playwright في كل أوامر هذا الدليل `v1.64.1-noble`، مطابقة لـ `@playwright/test` في `package.json`. وخدمة `browser` في `compose.yaml` ما زالت `v1.63.0` في main، ويصححها #95.
+
 `a11y.spec.mjs`: قواعد axe-core على صفحات الزائر ولوحة المستخدم ولوحة الإدارة، ثم التنقل بلوحة المفاتيح (رابط التخطي، وظهور إطار التركيز، وعدم حبس التركيز، والقوائم المنسدلة وقائمة الجوال). يعمل مع اللقطات في التشغيل أعلاه، ووحده:
 
 ```bash
@@ -54,7 +56,7 @@ APP_URL=http://localhost:8181 php artisan serve --host=127.0.0.1 --port=8181
 
 docker run --rm --ipc=host -v "$PWD:/work" -w /work \
   -e APP_PORT=8181 -e APP_HOST=host.docker.internal -e APP_UPSTREAM_PORT=8181 -e VITE_HOST=none \
-  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.63.0-noble \
+  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.64.1-noble \
   npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
 ```
 
@@ -216,3 +218,53 @@ demo=$(docker compose exec -T app php artisan ejaz:demo-student-competition --js
 docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="$admin" -e STUDENT_COMPETITION="$demo" browser \
   npx playwright test --config=tests/browser/playwright.config.mjs student-competition.spec.mjs
 ```
+
+## قائمة القبول
+
+`director-acceptance.spec.mjs` اختبار متصفح لكل بند يُختبر آلياً في `docs/plans/2026-10-30-acceptance-checklist.md`، على العروض الثلاثة. وكل اختبار فيه يتحقق أيضاً من `dir="rtl"` ومن عدم التمرير الأفقي.
+
+- **بنود main** اختبارات فعلية: الصفحات العامة، والحوكمة ووثيقة، وترتيب الرئيسية، وصفحة المسابقة، وحساب المستفيد بعد رابط إدارة في المتصفح نفسه (#96)، والعودة إلى التسجيل بعد الدخول من صفحة المسابقة.
+- **بنود الفروع** مكتوبة كاملة ومعلَّمة `test.fixme(true, 'يُفعَّل بعد دمج <الفرع>')`. **كل فرع يزيل علامة بنوده** في طلب دمجه، ويعدّل المحدد إن سمّى مكوّنه بغير الاسم المكتوب، ولا يكتب الاختبار من جديد.
+- **ما يحتاج غائباً يُتخطى برسالة:** المسابقة غير المنشورة، والوثيقة أو البرنامج غير الموجود، والحساب غير الممرَّر.
+
+```bash
+# حساب مستفيد تجريبي (البيئة المحلية وحدها)، والمسابقة المنشورة
+creds=$(docker compose exec -T app php artisan ejaz:demo-user --json)
+
+docker compose run --rm -e DEMO_CREDENTIALS="$creds" -e COMPETITION_SLUG=brahin-1448 browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs director-acceptance.spec.mjs
+```
+
+- `BENEFICIARY_CREDENTIALS`: يتقدم على `DEMO_CREDENTIALS` إن كان المستخدم التجريبي يدخل اللوحة، لأن اختبار #96 لمستفيد لا يدخلها.
+- `PRIZE_TOTAL`: مجموع الجوائز كما يُعرض (الافتراضي `20,000`). و`LIBRARY_READONLY_PATH`: مسار كتاب «للقراءة فقط» منشور. و`EVIDENCE_GALLERY_PATH`: مسار معرض شواهد صحيح.
+- **على حاويات شجرة عمل أخرى** بلا تشغيل حاويات جديدة: المتصفح على شبكة حاوية التطبيق، ومجلد المكتبات من حجمها للقراءة. الأمر لـ **Git Bash على ويندوز** (`MSYS_NO_PATHCONV=1` يمنع تحويل المسارات، و`pwd -W` يعطي مسار ويندوز لـ Docker). وفي لينكس أو ماك: بلا المتغير، و`$PWD` مكان `$(pwd -W)`:
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm --ipc=host --network container:<المشروع>-app-1 \
+  -v "$(pwd -W):/work" -v <المشروع>_node_modules:/work/node_modules:ro -w /work \
+  -e APP_PORT=<APP_PORT في .env المشروع> -e APP_HOST=127.0.0.1 -e APP_UPSTREAM_PORT=8000 \
+  mcr.microsoft.com/playwright:v1.64.1-noble \
+  npx playwright test --config=tests/browser/playwright.config.mjs director-acceptance.spec.mjs
+```
+
+- **معايير التفوق** (`-g excellence`): axe بوسوم WCAG **2.2** AA (`wcag22aa` مع وسوم 2.1)، والعنوان والوصف وOpen Graph، والبيانات المنظمة، و404، ورؤوس الحماية، وأهداف اللمس، وأبعاد الصور، والخطوط، و«Slow 3G». وما فشل في القياس الأول معلَّم `fixme` بسببه «فجوة حالية». أما `a11y.spec.mjs` فباقٍ على وسوم 2.1 لصفحات الحساب واللوحة.
+
+## معايير التفوق: Lighthouse
+
+بلا مكتبة في المشروع: `npx` يجلب Lighthouse بإصدار مثبّت في حاوية Playwright نفسها، ويستعمل متصفحها. والأداء يُقاس على الخادم التجريبي أو نسخة إنتاج محلية (الأصول مبنية، وopcache بلا فحص الملفات، و`SEO_INDEXABLE=true`)، لأن خادم Vite وفهرسة التطوير المطفأة يخفضان درجتي الأداء ومحركات البحث. والأرقام تُكتب في وصف طلب الدمج وفي قائمة القبول (القسم ١٧).
+
+على خادم يصل إليه المتصفح مباشرة (التجريبي مثلاً):
+
+```bash
+docker run --rm --ipc=host -v "$PWD:/lh" -w /lh mcr.microsoft.com/playwright:v1.64.1-noble sh -c '
+  export CHROME_PATH=$(ls -d /ms-playwright/chromium-*/chrome-linux*/chrome | head -1)
+  for p in / /competitions/brahin-1448 /programs/<برنامج> /library/books/<كتاب>; do
+    npx -y lighthouse@13.5.0 "https://<الخادم>$p" --quiet --chrome-flags="--headless=new --no-sandbox" \
+      --only-categories=performance,accessibility,best-practices,seo \
+      --output=json --output=html --output-path="/lh/lighthouse$(echo $p | tr / _)"
+  done'
+```
+
+- الافتراضي محاكاة الجوال، وهو المعيار (≥ 95 في المعايير الأربعة، وLCP أقل من 2.0 ث، وCLS أقل من 0.05).
+- **على حاويات شجرة عمل محلية:** على شبكة حاوية التطبيق كما في «قائمة القبول»، مع سكربت صغير ينقل منفذ `APP_URL` إلى `127.0.0.1:8000` ومنفذ Vite (5173) إلى `vite:5173` قبل Lighthouse، كما يفعل `global-setup.mjs`. وبه قيس خط الأساس في قائمة القبول.
+- ورؤوس الحماية: securityheaders.com على الخادم التجريبي بـ HTTPS (المعيار A+). والمكتبات: `composer audit` و`npm audit`.

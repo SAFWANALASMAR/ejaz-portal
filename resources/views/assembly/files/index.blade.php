@@ -18,7 +18,7 @@
                 <li>
                     <a href="{{ route('assembly.files.index') }}" wire:navigate @if ($active === null) aria-current="true" @endif
                         class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:border-primary/40 aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
-                        <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-folder', 'size-8') }}</span>
+                        <span class="text-accent" aria-hidden="true">{{ \App\Support\Icon::svg('folder', 'size-8') }}</span>
                         <span class="font-semibold text-ink">{{ __('assembly.files.all') }}</span>
                     </a>
                 </li>
@@ -26,7 +26,7 @@
                     <li>
                         <a href="{{ route('assembly.files.index', ['category' => $category->value]) }}" wire:navigate @if ($active === $category) aria-current="true" @endif
                             class="flex h-full flex-col items-center gap-3 rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs transition hover:border-primary/40 aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
-                            <span class="text-accent" aria-hidden="true">{{ svg('heroicon-o-'.$category->icon(), 'size-8') }}</span>
+                            <span class="text-accent" aria-hidden="true">{{ \App\Support\Icon::svg($category->icon(), 'size-8') }}</span>
                             <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>
                         </a>
                     </li>
@@ -41,7 +41,7 @@
                         <li>
                             <a href="{{ $file->downloadUrl() }}" class="flex items-start gap-4 p-4 transition hover:bg-surface/60 sm:p-5">
                                 <span class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft text-primary" aria-hidden="true">
-                                    {{ svg('heroicon-o-document-text', 'size-6') }}
+                                    {{ \App\Support\Icon::svg('document-text', 'size-6') }}
                                     <span class="text-[10px] font-bold">{{ __('assembly.files.pdf') }}</span>
                                 </span>
                                 <span class="min-w-0 flex-1">

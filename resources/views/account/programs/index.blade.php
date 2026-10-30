@@ -27,7 +27,7 @@
                             @endif
                             @if ($registration->certificate_path)
                                 <a href="{{ route('account.programs.certificate', $registration) }}" class="inline-flex items-center gap-1 text-primary underline decoration-accent underline-offset-4">
-                                    {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}
+                                    {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4') }}
                                     {{ __('programs.certificate.download') }}
                                 </a>
                             @endif

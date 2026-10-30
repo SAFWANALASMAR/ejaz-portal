@@ -77,6 +77,13 @@
 
     @include('partials.footer')
 
+    {{-- شريط تقدّم التمرير وزر العودة للأعلى (resources/js/motion.js). والزر في جهة البداية، والمساعد في جهة النهاية --}}
+    <span data-scroll-progress aria-hidden="true"></span>
+    <button type="button" data-back-to-top aria-label="{{ __('site.back_to_top') }}"
+        class="btn-shine fixed bottom-4 start-4 z-30 inline-flex size-12 items-center justify-center rounded-full bg-primary-dark text-white shadow-lg ring-1 ring-white/20 hover:bg-primary">
+        {{ \App\Support\Icon::svg('arrow-up', 'size-5') }}
+    </button>
+
     @include('partials.assistant')
 </body>
 </html>

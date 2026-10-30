@@ -60,7 +60,7 @@
         <div class="relative">
             @if ($icon)
                 <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-muted" aria-hidden="true">
-                    {{ svg('heroicon-o-'.$icon, 'size-5') }}
+                    {{ \App\Support\Icon::svg($icon, 'size-5') }}
                 </span>
             @endif
 
@@ -79,8 +79,8 @@
             @if ($isPassword)
                 <button type="button" data-password-toggle="{{ $id }}" aria-pressed="false" aria-label="{{ __('account.show_password') }}"
                     class="absolute inset-y-0 end-0 flex items-center pe-4 text-muted hover:text-primary">
-                    <span data-icon-show>{{ svg('heroicon-o-eye', 'size-5') }}</span>
-                    <span data-icon-hide hidden>{{ svg('heroicon-o-eye-slash', 'size-5') }}</span>
+                    <span data-icon-show>{{ \App\Support\Icon::svg('eye', 'size-5') }}</span>
+                    <span data-icon-hide hidden>{{ \App\Support\Icon::svg('eye-slash', 'size-5') }}</span>
                 </button>
             @endif
         </div>
