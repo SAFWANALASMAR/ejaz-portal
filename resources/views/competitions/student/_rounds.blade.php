@@ -41,7 +41,7 @@
                             @endif
                             @if ($competition->show_round_dates)
                                 <p class="flex items-center gap-2 text-sm text-muted" data-round-dates>
-                                    {{ svg('heroicon-o-calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
+                                    {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                                     {{ Dates::display($round->starts_at, withTime: true) }} — {{ Dates::display($round->ends_at, withTime: true) }}
                                 </p>
                             @endif

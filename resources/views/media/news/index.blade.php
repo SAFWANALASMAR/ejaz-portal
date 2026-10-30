@@ -49,7 +49,7 @@
         @if ($articles->isEmpty())
             <p class="mt-10 text-muted">{{ $filters === [] ? __('news.list.empty') : __('news.list.no_results') }}</p>
         @else
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($articles as $article)
                     <li>@include('media.news.card', ['article' => $article])</li>
                 @endforeach

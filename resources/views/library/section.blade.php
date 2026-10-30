@@ -65,7 +65,7 @@
             {{-- قسم بلا عناصر منشورة بعد (كالكتب والأبحاث من الموقع السابق) بحالة «قريباً» --}}
             <p class="mt-10 text-muted">{{ $filters === [] ? __('library.list.soon') : __('library.list.no_results') }}</p>
         @else
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($items as $item)
                     <li>@include('library.card', ['item' => $item])</li>
                 @endforeach

@@ -6,7 +6,7 @@
         @if ($albums->isEmpty())
             <p class="text-muted">{{ __('albums.list.empty') }}</p>
         @else
-            <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($albums as $album)
                     <li>@include('media.albums.card', ['album' => $album])</li>
                 @endforeach
