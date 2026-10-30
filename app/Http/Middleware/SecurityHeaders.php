@@ -17,6 +17,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SecurityHeaders
 {
+    /**
+     * علامة في الطلب يضعها LibraryController لملف كتاب «للقراءة فقط».
+     */
+    public const READER_ONLY = 'security.reader_only';
+
     public function handle(Request $request, Closure $next): Response
     {
         Vite::useCspNonce();
@@ -25,8 +30,10 @@ class SecurityHeaders
 
         // ملف PDF من الحوكمة أو المكتبة يُعرض مدمجاً في صفحته، فيُقبل تضمينه من الموقع نفسه وحده.
         // وسياسته سطر التضمين وحده، حتى لا تعطل عارض PDF في المتصفح. والاستثناء لملف PDF وحده،
-        // فصفحة الخطأ وملف الصوت على المسار نفسه يأخذان السياسة الكاملة
-        if ($request->routeIs('governance.file', 'library.file') && $response->headers->get('Content-Type') === 'application/pdf') {
+        // فصفحة الخطأ وملف الصوت على المسار نفسه يأخذان السياسة الكاملة. وكذلك كتاب «للقراءة فقط» (READER_ONLY):
+        // يقرؤه قارئ الصفحة بطلب fetch، فلا يُضمَّن في إطار، ولا يعمل عليه عارض المتصفح بزري التنزيل والطباعة
+        if ($request->routeIs('governance.file', 'library.file') && $response->headers->get('Content-Type') === 'application/pdf'
+            && $request->attributes->get(self::READER_ONLY) !== true) {
             $response->headers->set('Content-Security-Policy', "frame-ancestors 'self'");
             $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         } else {
@@ -88,6 +95,11 @@ class SecurityHeaders
         // العامل بـ script-src فيُحجب. فللوحة وحدها، ولا يتسع script-src ولا سياسة الواجهة العامة (docs/decisions.md)
         if ($request->routeIs('filament.*')) {
             $directives['worker-src'] = ["'self'", 'blob:'];
+        } else {
+            // وفي الواجهة العامة عامل قارئ الكتب (pdf.js) من أصول البناء على الموقع نفسه وحده، أضيق من الرجوع إلى
+            // script-src. وفي كل صفحة لأن التنقّل السريع يُبقي سياسة أول صفحة. وخادم Vite في التطوير أصل آخر، فيلفّ
+            // pdf.js العامل في blob: (docs/decisions.md — 30 أكتوبر 2026)
+            $directives['worker-src'] = ["'self'", $dev ? 'blob:' : null, $dev];
         }
 
         // عنصر التحدي ضد الآليات في صفحات نماذجه وحدها، متى كان مشغّله turnstile، فلا يتسع ما تسمح به الصفحات الأخرى
