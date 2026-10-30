@@ -26,8 +26,8 @@
         </span>
     @endif
     <span class="flex flex-1 flex-col p-5">
-        <span class="text-sm font-semibold text-accent-dark">{{ $item->section->getLabel() }}</span>
-        <span class="mt-1 text-lg font-bold text-ink">{{ $item->title }}</span>
+        <span class="text-sm font-extrabold text-accent">{{ $item->section->getLabel() }}</span>
+        <span class="mt-1 text-lg leading-snug font-black text-primary-dark">{{ $item->title }}</span>
         @if ($item->isReadOnly())
             <span class="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-dark">
                 {{ svg('heroicon-o-book-open', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}{{ __('library.item.read_only_short') }}
