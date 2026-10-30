@@ -13,6 +13,7 @@
 //   PRIZE_TOTAL              مجموع الجوائز كما يُعرض (الافتراضي 20,000).
 //   LIBRARY_READONLY_PATH    مسار كتاب «للقراءة فقط» منشور، مثل /library/books/<slug>.
 // التشغيل: tests/browser/README.md («قائمة القبول»).
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const AFTER = {
@@ -93,9 +94,13 @@ async function expectBefore(first, second, label) {
     expect(follows, label).toBe(true);
 }
 
-function sectionOf(page, heading) {
-    return page.getByRole('heading', { name: heading, exact: true }).first().locator('xpath=ancestor::*[self::section or self::div][.//ol or .//ul or .//table][1]');
-}
+// روابط الوثائق والبرامج في قوائمها: السمة الثابتة إن وُجدت (data-document-link وdata-program-link)، وإلا الرابط بمساره
+// إلى أن تُضاف السمتان في الدفعة الثانية
+const DOCUMENT_LINK = 'main [data-document-link], main a[href*="/governance/"]:not([href*="?"])';
+const PROGRAM_LINK = 'main [data-program-link], main a[href*="/programs/"]:not([href*="?"])';
+
+// تاريخ أو وقت بأي صيغة تعرضها البوابة: ميلادي (20xx) أو هجري (14xx أو «هـ») أو أرقام عربية أو ساعة
+const DATE_PATTERN = /20\d\d|14\d\d|هـ|[٠-٩]|\d{1,2}:\d{2}/u;
 
 // ─── مدموج في main ───────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -120,7 +125,7 @@ test.describe('acceptance: merged in main', () => {
         await expect(page.locator('h1').first()).toBeVisible();
         await expectRtlNoScroll(page, '/governance');
 
-        const documentLink = page.locator('main a[href*="/governance/"]').first();
+        const documentLink = page.locator(DOCUMENT_LINK).first();
         test.skip((await documentLink.count()) === 0, 'لا وثيقة منشورة في الحوكمة');
         const href = await documentLink.getAttribute('href');
         const documentResponse = await visit(page, href);
@@ -182,8 +187,11 @@ test.describe('acceptance: merged in main', () => {
 
         await Promise.all([page.waitForURL('**/login'), button.click()]);
         await login(page);
-        // إلى التسجيل، أو إلى صفحة المسابقة إن كان الحساب مسجلاً من قبل، لا إلى /account
-        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}(/register)?$`));
+        await page.waitForLoadState('load');
+        // الحساب المسجل من قبل تعيده صفحة التسجيل إلى المسابقة برسالته، فلا يُحكم به على الرجوع
+        const alreadyRegistered = new URL(page.url()).pathname === COMPETITION && (await page.getByText('أنت مسجّل في هذه المسابقة من قبل.').count()) > 0;
+        test.skip(alreadyRegistered, 'الحساب مسجل في المسابقة من قبل: استعمل حساباً غير مسجل');
+        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register$`));
         await expectRtlNoScroll(page);
     });
 });
@@ -241,7 +249,8 @@ test.describe('acceptance: Brahin director notes', () => {
         await expect(page.getByText('الموسم الأول 1448هـ / 2026م').first()).toBeVisible();
         await expect(page.getByText('بالتنسيق مع وزارة التعليم').first()).toBeVisible();
 
-        const prize = page.getByText('مجموع الجوائز', { exact: true }).first().locator('xpath=ancestor::*[1]/..');
+        const prize = page.locator('[data-prize-total]').first();
+        await expect(prize).toContainText('مجموع الجوائز');
         await expect(prize).toBeVisible();
         // العدّاد يصعد إلى الرقم المحسوب من prize_table
         await expect(prize).toContainText(PRIZE_TOTAL, { timeout: 10_000 });
@@ -280,18 +289,18 @@ test.describe('acceptance: Brahin director notes', () => {
             await expect(domains).toContainText(branches[index]);
         }
 
-        const rounds = sectionOf(page, 'مراحل المسابقة');
+        const rounds = page.locator('[data-rounds]');
         await expect(rounds).toContainText('تمر المسابقة بأربع مراحل متتابعة، وتُعقد كل مرحلة يوم الخميس بحسب الجدول الزمني والتواريخ المعتمدة لها.');
         await expect(rounds).not.toContainText('المشاركة في جميع المراحل شرط');
-        const first = rounds.locator('li').first();
-        await expect(first).toContainText('المرحلة الأولى');
-        await expect(first).toContainText('المجال الأول: الحقائق العلمية في الأنفس');
+        const cards = rounds.locator('[data-round-card]');
+        await expect(cards).toHaveCount(4);
+        await expect(cards.first()).toContainText('المرحلة الأولى');
+        await expect(cards.first()).toContainText('المجال الأول: الحقائق العلمية في الأنفس');
 
-        // العنوان والمجال والحالة وحدها: لا عدد أسئلة ولا مدة ولا تاريخ (التواريخ بخيار «إظهار مواعيد المراحل» وحده)
-        const cards = await rounds.locator('li').allInnerTexts();
-        for (const card of cards) {
+        // العنوان والمجال والحالة وحدها: لا عدد أسئلة ولا مدة ولا تاريخ بأي تقويم أو أرقام (التواريخ بخيار «إظهار مواعيد المراحل» وحده)
+        for (const card of await cards.allInnerTexts()) {
             expect(card).not.toMatch(/سؤال|أسئلة|دقيقة|دقائق/u);
-            expect(card).not.toMatch(/20\d\d|\d{1,2}:\d{2}/u);
+            expect(card).not.toMatch(DATE_PATTERN);
         }
         await expectRtlNoScroll(page, COMPETITION);
     });
@@ -319,6 +328,8 @@ test.describe('acceptance: Brahin director notes', () => {
         await page.keyboard.press('Enter');
         await expect(cards.first()).toHaveAttribute('open', '');
         await page.keyboard.press('Enter');
+        await expect(cards.first()).not.toHaveAttribute('open', '');
+        await expect(summary).toHaveAttribute('aria-expanded', 'false');
 
         const all = page.locator('[data-collapsible-all]').first();
         await expect(all).toContainText('عرض الكل');
@@ -376,7 +387,9 @@ test.describe('acceptance: Brahin director notes', () => {
         await expect(page.locator('label[for="field-guardian_phone"]')).toHaveText(/^\s*رقم الجوال\s*\*?\s*$/);
         const school = page.getByLabel(/الجهة التعليمية \/ المدرسة/);
         await expect(school).toHaveAttribute('required', '');
-        await expect(page.locator('main')).not.toContainText('(اختياري)');
+        // «(اختياري)» لا يلحق حقلي الجوال والمدرسة (وقد يلحق حقلاً مخصصاً آخر اختيارياً)
+        await expect(page.locator('label[for="field-guardian_phone"]')).not.toContainText('اختياري');
+        await expect(page.locator('label').filter({ hasText: 'الجهة التعليمية / المدرسة' })).not.toContainText('اختياري');
         await expect(page.locator('main')).toContainText('أتعهد بأن أجيب عن الاختبار بنفسي وبأمانة');
         await expect(page.locator('main')).not.toContainText('مثال تجريبي');
         await expectRtlNoScroll(page);
@@ -397,17 +410,19 @@ test.describe('acceptance: dark header', () => {
         expect(headerColor, 'الرأس بلون التذييل (primary-dark)').toEqual(footerColor);
 
         // الشعار والمخطوطة بالأبيض (logo-mark-white وlogo-calligraphy-white، أو ما رُفع مكانهما من اللوحة)
-        for (const image of await header.locator('img').all()) {
+        const images = await header.locator('img').all();
+        expect(images.length, 'الشعار والمخطوطة في الرأس').toBeGreaterThan(0);
+        for (const image of images) {
             expect(await image.getAttribute('src')).toMatch(/white/);
         }
 
-        // الرأس الثابت عند التمرير داكن أيضاً
+        // الرأس الثابت عند التمرير داكن أيضاً (data-scrolled يضعه سكربت الرأس)
         await page.evaluate(() => window.scrollTo({ top: 1200, behavior: 'instant' }));
-        await page.waitForTimeout(400);
-        expect(rgb(await header.evaluate((element) => getComputedStyle(element).backgroundColor))).toEqual(footerColor);
+        await expect(header).toHaveAttribute('data-scrolled', /.*/);
+        await expect.poll(async () => rgb(await header.evaluate((element) => getComputedStyle(element).backgroundColor))).toEqual(footerColor);
 
         if (testInfo.project.name === 'mobile') {
-            const calligraphy = await header.locator('img[alt]').last().boundingBox();
+            const calligraphy = await header.locator('[data-logo-calligraphy]').boundingBox();
             const toggle = await header.locator('[data-toggle="mobile-menu"]').boundingBox();
             const overlap = calligraphy.x < toggle.x + toggle.width && toggle.x < calligraphy.x + calligraphy.width;
             expect(overlap, 'المخطوطة لا تزاحم زر القائمة').toBe(false);
@@ -457,8 +472,8 @@ test.describe('acceptance: visual refresh 2', () => {
         await expect(page.getByRole('link', { name: 'العودة للقائمة السابقة' })).toHaveCount(0);
 
         const cases = [
-            { list: '/governance', link: 'main a[href*="/governance/"]', parent: /\/governance$/ },
-            { list: '/programs', link: 'main a[href*="/programs/"]', parent: /\/programs$/ },
+            { list: '/governance', link: DOCUMENT_LINK, parent: /\/governance$/ },
+            { list: '/programs', link: PROGRAM_LINK, parent: /\/programs$/ },
         ];
         let checked = 0;
         for (const { list, link, parent } of cases) {
@@ -501,7 +516,10 @@ test.describe('acceptance: visual refresh 2', () => {
 
         await expect(hero.locator('[data-hero-badge] svg')).toBeVisible();
         await expect(hero.locator('h1 [data-highlight]')).toBeVisible();
-        await expect(hero.locator('h1 svg [data-swoosh], h1 svg path').first()).toBeAttached();
+        // الخط المنحني تحت الكلمة المميزة، يُرسم عند الظهور (stroke-dashoffset يصل إلى 0)
+        const swoosh = hero.locator('h1 [data-swoosh] path').first();
+        await expect(swoosh).toBeAttached();
+        await expect.poll(() => swoosh.evaluate((element) => parseFloat(getComputedStyle(element).strokeDashoffset) || 0)).toBe(0);
 
         const tabs = hero.locator('[data-tabs-autoplay] [role="tab"]');
         await expect(tabs).toHaveText(['الرؤية', 'الرسالة', 'القيم']);
@@ -526,12 +544,24 @@ test.describe('acceptance: visual refresh 2', () => {
         const radius = await header.locator('img').first().evaluate((element) => getComputedStyle(element).borderRadius);
         expect(radius, 'شعار دائري').toMatch(/50%|9999px|\d{3,}px/);
 
-        const active = header.locator('[aria-current="page"]').first();
-        if ((await active.count()) > 0) {
-            const decoration = await active.evaluate((element) => getComputedStyle(element, '::after').content + getComputedStyle(element).textDecorationLine + getComputedStyle(element).borderBottomWidth);
-            expect(decoration, 'خط تحت النشط').not.toBe('none' + 'none' + '0px');
-        }
-        await expect(header.getByRole('link', { name: /تسجيل الدخول|حسابي/ }).locator('svg').first()).toBeAttached();
+        // الخط تحت النشط مرسوم فعلاً: ::after أو حد سفلي بعرض وارتفاع
+        const active = header.locator('[data-main-nav] [aria-current="page"]').first();
+        test.skip((await active.count()) === 0, '«عن الجمعية» غير منشورة، فلا عنصر نشط في القائمة');
+        const underline = await active.evaluate((element) => {
+            const after = getComputedStyle(element, '::after');
+            const own = getComputedStyle(element);
+            return Math.max(parseFloat(after.width) * parseFloat(after.height) || 0, parseFloat(own.borderBottomWidth) * element.offsetWidth || 0);
+        });
+        expect(underline, 'خط مرسوم تحت النشط').toBeGreaterThan(0);
+
+        // زر الدخول كبسولي أبيض بأيقونة داخل دائرة (اعتماد 11:58)
+        const login = header.getByRole('link', { name: /تسجيل الدخول|حسابي/ }).first();
+        const loginStyle = await login.evaluate((element) => ({ background: getComputedStyle(element).backgroundColor, radius: getComputedStyle(element).borderRadius }));
+        expect(loginStyle.background, 'زر أبيض').toMatch(/rgba?\(255, 255, 255/);
+        expect(loginStyle.radius, 'كبسولي').toMatch(/9999px|\d{3,}px|50%/);
+        const circle = login.locator('[data-icon-circle]');
+        await expect(circle.locator('svg')).toBeAttached();
+        expect(await circle.evaluate((element) => getComputedStyle(element).borderRadius), 'الأيقونة في دائرة').toMatch(/50%|9999px/);
         await expectRtlNoScroll(page);
     });
 
@@ -629,13 +659,174 @@ test.describe('acceptance: visual refresh 2', () => {
 
     test('visual refresh 2: reduced motion stops the slider and the tabs', async ({ page }) => {
         test.fixme(true, AFTER.refresh2);
+        test.setTimeout(120_000);
+        // الشريحة النشطة بفهرسها (data-active على شريحة واحدة، أو aria-current على نقطتها)، لا بالظهور ولا بالشفافية
+        const activeIndex = () => page.evaluate(() => {
+            const slides = [...document.querySelectorAll('[data-hero-slider] [data-hero-slide]')];
+            const byFlag = slides.findIndex((slide) => slide.hasAttribute('data-active'));
+            if (byFlag >= 0) {
+                return byFlag;
+            }
+            return [...document.querySelectorAll('[data-hero-slider] [data-hero-progress] > *')].findIndex((dot) => dot.hasAttribute('aria-current'));
+        });
+        const activeTab = () => page.evaluate(() => [...document.querySelectorAll('[data-hero-slider] [data-tabs-autoplay] [role="tab"]')].findIndex((tab) => tab.getAttribute('aria-selected') === 'true'));
+
+        // بلا تقليل الحركة: الشرائح والتبويبات تتبدل فعلاً، وإلا فلا معنى لثباتها بعده
+        await visit(page, '/');
+        const first = await activeIndex();
+        const firstTab = await activeTab();
+        expect(first, 'شريحة نشطة معلَّمة').toBeGreaterThanOrEqual(0);
+        await expect.poll(activeIndex, { timeout: 20_000, message: 'الشرائح تتبدل تلقائياً' }).not.toBe(first);
+        await expect.poll(activeTab, { timeout: 20_000, message: 'التبويبات تتبدل تلقائياً' }).not.toBe(firstTab);
+
+        // مع تقليل الحركة: تُعدّ تغيّرات الشريحة والتبويب النشطين في أطول من دورة كاملة، فلا تغيّر
         await page.emulateMedia({ reducedMotion: 'reduce' });
+        await visit(page, '/');
+        const changes = await page.evaluate(() => new Promise((resolve) => {
+            let count = 0;
+            const observer = new MutationObserver((records) => {
+                count += records.filter((record) => ['data-active', 'aria-current', 'aria-selected'].includes(record.attributeName)).length;
+            });
+            observer.observe(document.querySelector('[data-hero-slider]'), { attributes: true, subtree: true, attributeFilter: ['data-active', 'aria-current', 'aria-selected'] });
+            setTimeout(() => {
+                observer.disconnect();
+                resolve(count);
+            }, 20_000);
+        }));
+        expect(changes, 'لا تبديل تلقائي مع تقليل الحركة').toBe(0);
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('visual refresh 2: five goal cards with large icons on the about page', async ({ page }) => {
+        test.fixme(true, AFTER.refresh2);
+        const response = await visit(page, '/about');
+        test.skip(response?.status() === 404, '«عن الجمعية» غير منشورة');
+
+        const goals = page.locator('[data-goal-card]');
+        await expect(goals).toHaveCount(5);
+        for (const goal of await goals.all()) {
+            const icon = goal.locator('[data-icon-tile] svg');
+            await expect(icon).toBeVisible();
+            expect((await icon.boundingBox()).width, 'أيقونة كبيرة').toBeGreaterThanOrEqual(40);
+            await expectBefore(icon, goal.locator('h3, h4').first(), 'الأيقونة فوق العنوان');
+        }
+        await expectRtlNoScroll(page, '/about');
+    });
+});
+
+// ─── الأيقونات والتصور المعتمدان (صفوان، 30 أكتوبر 11:58) — feature/visual-refresh-2 ─────────────────────────────
+
+const iconPages = ['/', '/services', '/media', '/library', '/governance', '/programs', '/contact'];
+
+// تباين لونين بصيغة rgb() وفق WCAG
+function contrast(foreground, background) {
+    const luminance = (value) => {
+        const [r, g, b] = value.match(/[\d.]+/g).slice(0, 3).map((channel) => {
+            const c = Number(channel) / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+    return (light + 0.05) / (dark + 0.05);
+}
+
+test.describe('acceptance: approved icons and home concept', () => {
+    test('approved icons: one x-icon-tile, gradient on light and glass on dark', async ({ page }) => {
+        test.fixme(true, AFTER.refresh2);
+        for (const path of iconPages) {
+            await visit(page, path);
+            // لا مربع أيقونة خارج المكوّن
+            expect(await page.locator('main .icon-tile:not([data-icon-tile])').count(), `${path}: مربع خارج x-icon-tile`).toBe(0);
+            const tiles = await page.locator('[data-icon-tile]').evaluateAll((elements) => elements.map((element) => {
+                const style = getComputedStyle(element);
+                const dark = Boolean(element.closest('.section-dark, .bg-primary-dark, [data-site-footer], [data-site-header]'));
+                return { variant: element.dataset.variant, dark, image: style.backgroundImage, blur: style.backdropFilter || style.webkitBackdropFilter || 'none' };
+            }));
+            expect(tiles.length, path).toBeGreaterThan(0);
+            for (const tile of tiles) {
+                expect(tile.variant, `${path}: الحالة بحسب الخلفية`).toBe(tile.dark ? 'glass' : 'gradient');
+                if (tile.variant === 'gradient') {
+                    expect(tile.image, `${path}: مربع متدرج`).toMatch(/gradient/);
+                } else {
+                    expect(tile.blur, `${path}: زجاجي`).not.toBe('none');
+                }
+            }
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('approved icons: the tile moves on hover and not with reduced motion', async ({ page }, testInfo) => {
+        test.fixme(true, AFTER.refresh2);
+        test.skip(testInfo.project.name !== 'desktop', 'المرور بالمؤشر على الحاسوب');
+        const tileOf = () => page.locator('main a:has([data-icon-tile])').first().locator('[data-icon-tile]');
+        const transform = () => tileOf().evaluate((element) => getComputedStyle(element).transform);
+
+        await visit(page, '/services');
+        const before = await transform();
+        await page.locator('main a:has([data-icon-tile])').first().hover();
+        await expect.poll(transform, { message: 'الأيقونة تتحرك عند المرور' }).not.toBe(before);
+
+        // مع تقليل الحركة: لا انتقال متحرك (مدة صفر)، ولا حركة مستمرة
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await visit(page, '/services');
+        await page.locator('main a:has([data-icon-tile])').first().hover();
+        const motion = await tileOf().evaluate((element) => ({
+            durations: getComputedStyle(element).transitionDuration.split(',').map((value) => parseFloat(value)),
+            running: element.getAnimations({ subtree: true }).filter((animation) => animation.playState === 'running').length,
+        }));
+        expect(Math.max(...motion.durations), 'لا انتقال متحرك مع تقليل الحركة').toBe(0);
+        expect(motion.running, 'لا حركة مستمرة مع تقليل الحركة').toBe(0);
+        await expectRtlNoScroll(page, '/services');
+    });
+
+    test('approved identity: computed blue on the primary button with AA contrast', async ({ page }) => {
+        test.fixme(true, AFTER.refresh2);
+        await visit(page, '/');
+
+        const button = page.locator('main [data-button="primary"]').first();
+        await expect(button).toBeVisible();
+        const { background, color } = await button.evaluate((element) => ({ background: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color }));
+        const [r, g, b] = background.match(/[\d.]+/g).map(Number);
+        expect(b, `أزرق الهوية لا الأخضر ولا الذهبي (${background})`).toBeGreaterThan(Math.max(r, g));
+        expect(contrast(color, background), 'تباين نص الزر').toBeGreaterThanOrEqual(4.5);
+
+        // السطر الثاني من عنوان البطل بأزرق فاتح يجتاز التباين على خلفيته الداكنة
+        const highlight = page.locator('[data-hero-slider] h1 [data-highlight]');
+        const highlightColor = await highlight.evaluate((element) => getComputedStyle(element).color);
+        const heroBackground = await page.locator('[data-hero-slider]').evaluate((element) => getComputedStyle(element).backgroundColor);
+        expect(contrast(highlightColor, heroBackground === 'rgba(0, 0, 0, 0)' ? 'rgb(31, 69, 101)' : heroBackground), 'تباين السطر الثاني').toBeGreaterThanOrEqual(3);
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('approved home concept: header, hero, services, Brahin strip, values, library and footer', async ({ page }) => {
+        test.fixme(true, AFTER.refresh2);
         await visit(page, '/');
 
         const hero = page.locator('[data-hero-slider]');
-        const before = await hero.locator('[data-hero-slide]:not([hidden])').first().getAttribute('data-hero-slide');
-        await page.waitForTimeout(8_000);
-        expect(await hero.locator('[data-hero-slide]:not([hidden])').first().getAttribute('data-hero-slide'), 'لا تبديل تلقائي مع تقليل الحركة').toBe(before);
+        expect(await hero.evaluate((element) => getComputedStyle(element).backgroundImage), 'تدرج أزرق شعاعي').toMatch(/radial-gradient/);
+        await expect(hero.locator('[data-hero-pattern]')).toBeAttached();
+        await expect(hero.locator('[data-tabs-autoplay] [role="tab"]').first()).toBeVisible();
+        expect(await hero.locator('[data-events-slider] [data-hero-progress] > *').count(), 'عارض الفعاليات بشريط مقسّم').toBeGreaterThanOrEqual(2);
+        const prize = hero.locator('[data-prize-total]');
+        await expect(prize).toContainText('مجموع جوائز البراهين');
+        expect(await prize.evaluate((element) => getComputedStyle(element).backdropFilter), 'بطاقة زجاجية').not.toBe('none');
+
+        const services = page.locator('[data-home-services] [data-service-card]');
+        await expect(services).toHaveCount(6);
+        const gradients = await services.locator('[data-icon-tile]').evaluateAll((elements) => elements.map((element) => getComputedStyle(element).backgroundImage));
+        expect(new Set(gradients).size, 'تدرجات من ألوان الهوية تختلف بين البطاقات').toBeGreaterThanOrEqual(3);
+
+        const brahin = page.locator('[data-home-brahin]');
+        await expect(brahin.locator('[data-domain]')).toHaveCount(4);
+        await expect(brahin.locator('[data-prize-circle]')).toBeVisible();
+        await expect(brahin.getByRole('link', { name: /شارك واربح/ })).toBeVisible();
+
+        await expect(page.locator('[data-home-values] [data-value-number]').first()).toBeVisible();
+        await expect(page.locator('[data-home-library] [data-play-halo]')).toBeVisible();
+        await expect(page.locator('[data-home-library] [data-book-card]')).toBeVisible();
+        expect(await page.locator('[data-home-numbers]').evaluate((element) => element.className), 'شريط الأرقام داكن').toMatch(/section-dark|bg-primary-dark/);
+        expect(await page.locator('[data-site-footer] [data-footer-column]').count(), 'تذييل بثلاثة أعمدة').toBe(3);
         await expectRtlNoScroll(page, '/');
     });
 });
@@ -688,19 +879,18 @@ test.describe('acceptance: programs how-to', () => {
             for (const [index, step] of steps.entries()) {
                 await expect(items.nth(index)).toContainText(step);
             }
-            expect(await section.getByRole('group').getByRole('link').count(), `${path}: زر يبدأ الخطوة`).toBeGreaterThan(0);
+            expect(await section.getByRole('group', { name: 'ابدأ التسجيل' }).getByRole('link').count(), `${path}: زر يبدأ الخطوة`).toBeGreaterThan(0);
             await expectRtlNoScroll(page, path);
         };
 
         await visit(page, '/programs');
         await check('/programs');
 
-        const program = page.locator('main a[href*="/programs/"]').first();
-        if ((await program.count()) > 0) {
-            const href = await program.getAttribute('href');
-            await visit(page, href);
-            await check(href);
-        }
+        const program = page.locator(PROGRAM_LINK).first();
+        test.skip((await program.count()) === 0, 'لا برنامج منشور: فُحصت صفحة «الدورات والبرامج» وحدها');
+        const href = await program.getAttribute('href');
+        await visit(page, href);
+        await check(href);
     });
 
     test('programs-how-to: signing up from the competition returns to its registration', async ({ page, baseURL }) => {
@@ -724,8 +914,10 @@ test.describe('acceptance: programs how-to', () => {
         }
         await Promise.all([page.waitForURL((url) => url.pathname !== '/register'), page.locator('main form button[type=submit]').first().click()]);
 
-        // التوثيق مطفأ: إلى التسجيل في المسابقة مباشرة. ومفعّلاً: توثيق الجوال أولاً
-        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register$|/verify`));
+        // التوثيق مطفأ (الافتراضي): إلى التسجيل في المسابقة مباشرة. ومفعّلاً يمر بتوثيق الجوال، ولا رمز يصل في الاختبار،
+        // فيغطيه Pest: RegisterIntendedTest › «verifies the phone first, then brings the account back to the competition registration»
+        test.skip(/verif/.test(new URL(page.url()).pathname), 'التوثيق مفعّل: العودة بعده في RegisterIntendedTest');
+        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register$`));
         await expectRtlNoScroll(page);
     });
 });
@@ -743,5 +935,170 @@ test.describe('acceptance: evidence gallery', () => {
 
         const sitemap = await request.get('/sitemap.xml');
         expect(await sitemap.text()).not.toContain('/evidence/');
+
+        // ومعرض صحيح (EVIDENCE_GALLERY_PATH، رابط يولّده المسؤول من اللوحة في البيئة المحلية) لا يُفهرس ولا يُخزَّن أيضاً.
+        // والانتهاء والإلغاء وسجل الاطلاع في Pest: EvidenceGalleryTest › «answers a wrong, expired or revoked link with the
+        // same 404» و«records one visit per network a minute» و«masks the visitor address to its network»
+        const valid = process.env.EVIDENCE_GALLERY_PATH;
+        test.skip(!valid, 'يحتاج رابط معرض صحيحاً: EVIDENCE_GALLERY_PATH');
+        const gallery = await visit(page, valid);
+        expect(gallery?.status()).toBe(200);
+        expect(gallery?.headers()['x-robots-tag'] ?? '').toMatch(/noindex/);
+        expect(gallery?.headers()['cache-control'] ?? '').toMatch(/no-store/);
+        await expectRtlNoScroll(page, 'evidence gallery');
+    });
+});
+
+// ─── معايير التفوق (صفوان، 30 أكتوبر 12:00) ──────────────────────────────────────────────────────────────────────
+// ما يُقاس آلياً في المتصفح الآن. وLighthouse وCore Web Vitals وsecurityheaders.com بأوامرها في README («معايير التفوق»).
+// وما لم يُبنَ أو فشل في القياس الأول معلَّم fixme بسببه، ومسجَّل «فجوة حالية» في قائمة القبول.
+
+const corePages = ['/', '/governance', '/library', '/library/books', '/media', '/programs', '/competitions', '/services', '/contact'];
+
+// البيانات المنظمة schema.org في الصفحة: أنواع كل كتل JSON-LD
+async function jsonLdTypes(page) {
+    return (await page.locator('script[type="application/ld+json"]').allTextContents()).flatMap((text) => {
+        const data = JSON.parse(text);
+        return (Array.isArray(data) ? data : data['@graph'] ?? [data]).map((item) => item['@type']);
+    });
+}
+
+test.describe('acceptance: excellence criteria', () => {
+    test('excellence: axe finds no WCAG 2.2 AA violation on the main public pages', async ({ page }) => {
+        test.fixme(true, 'فجوة حالية (قياس 30 أكتوبر على feature/visual-refresh): color-contrast في كلمة رئيس المجلس على الرئيسية (#home-chairman)، على العروض الثلاثة. والصفحات الثماني الأخرى بلا مخالفة');
+        test.setTimeout(300_000);
+        const found = [];
+        for (const path of [...corePages, COMPETITION]) {
+            const response = await visit(page, path);
+            if (response?.status() === 404) {
+                continue;
+            }
+            const { violations } = await new AxeBuilder({ page })
+                .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+                .exclude('.cf-turnstile')
+                .analyze();
+            found.push(...violations.map((v) => `${path} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`));
+            await expectRtlNoScroll(page, path);
+        }
+        expect(found).toEqual([]);
+    });
+
+    test('excellence: every page has a title, a description, a canonical link and Open Graph', async ({ page }) => {
+        for (const path of corePages) {
+            await visit(page, path);
+            await expect(page, path).toHaveTitle(/\S/);
+            for (const selector of ['meta[name="description"]', 'meta[property="og:title"]', 'meta[property="og:description"]', 'meta[property="og:url"]', 'meta[name="twitter:card"]']) {
+                expect(await page.locator(selector).getAttribute('content'), `${path}: ${selector}`).toMatch(/\S/);
+            }
+            await expect(page.locator('link[rel="canonical"]'), path).toHaveAttribute('href', /^https?:\/\//);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('excellence: a share image on every page', async ({ page }) => {
+        test.fixme(true, 'فجوة حالية: og:image لا يظهر إلا لصفحة تمرّر صورتها، ولا صورة مشاركة افتراضية للموقع');
+        for (const path of corePages) {
+            await visit(page, path);
+            expect(await page.locator('meta[property="og:image"]').getAttribute('content'), path).toMatch(/^https?:\/\/.+\.(png|jpe?g|webp)/);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('excellence: structured data — Organization on home, BreadcrumbList on inner pages', async ({ page }) => {
+        test.fixme(true, 'فجوة حالية: لا بيانات منظمة (JSON-LD) في القوالب');
+        await visit(page, '/');
+        expect(await jsonLdTypes(page)).toContain('Organization');
+        await visit(page, '/governance');
+        expect(await jsonLdTypes(page)).toContain('BreadcrumbList');
+        await expectRtlNoScroll(page);
+    });
+
+    test('excellence: structured data — Event for the competition and programs, Book and VideoObject in the library', async ({ page }) => {
+        test.fixme(true, 'فجوة حالية: لا بيانات منظمة (JSON-LD) في القوالب');
+        const response = await visit(page, COMPETITION);
+        if (response?.status() !== 404) {
+            expect(await jsonLdTypes(page), COMPETITION).toContain('Event');
+        }
+        const cases = [
+            { list: '/programs', link: 'main a[href*="/programs/"]', type: 'Event' },
+            { list: '/library/books', link: 'main a[href*="/library/books/"]', type: 'Book' },
+            { list: '/library/videos', link: 'main a[href*="/library/videos/"]', type: 'VideoObject' },
+        ];
+        for (const { list, link, type } of cases) {
+            await visit(page, list);
+            const target = page.locator(link).first();
+            if ((await target.count()) === 0) {
+                continue;
+            }
+            await visit(page, await target.getAttribute('href'));
+            expect(await jsonLdTypes(page), list).toContain(type);
+            await expectRtlNoScroll(page);
+        }
+    });
+
+    test('excellence: a helpful Arabic 404 page', async ({ page }) => {
+        const response = await visit(page, '/no-such-page-acceptance');
+        expect(response?.status()).toBe(404);
+        await expect(page.locator('h1').first()).toBeVisible();
+        expect(await page.locator('main a').evaluateAll((links) => links.some((link) => new URL(link.href).pathname === '/')), 'رابط إلى الرئيسية').toBe(true);
+        await expect(page).toHaveTitle(/\S/);
+        await expectRtlNoScroll(page);
+    });
+
+    test('excellence: security headers on every public page', async ({ page }) => {
+        for (const path of corePages) {
+            const headers = (await visit(page, path)).headers();
+            expect(headers['content-security-policy'], `${path}: CSP`).toMatch(/default-src/);
+            expect(headers['content-security-policy'], `${path}: CSP`).toMatch(/frame-ancestors/);
+            expect(headers['x-content-type-options'], path).toBe('nosniff');
+            expect(headers['referrer-policy'], path).toMatch(/\S/);
+            expect(headers['permissions-policy'], path).toMatch(/camera=\(\)/);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('excellence: touch targets of at least 44px in the mobile header and main buttons', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'mobile', 'أهداف اللمس على الجوال');
+        for (const path of ['/', '/programs', '/governance', '/contact']) {
+            await visit(page, path);
+            const small = await page.evaluate(() => [...document.querySelectorAll('[data-site-header] a, [data-site-header] button, main button')]
+                .filter((element) => element.offsetParent !== null)
+                .map((element) => ({ element, box: element.getBoundingClientRect() }))
+                .filter(({ box }) => box.width > 0 && (box.width < 44 || box.height < 44))
+                .map(({ element, box }) => `${element.tagName.toLowerCase()} «${(element.getAttribute('aria-label') || element.textContent).trim().slice(0, 30)}» ${Math.round(box.width)}×${Math.round(box.height)}`));
+            expect(small, path).toEqual([]);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('excellence: images carry explicit width and height', async ({ page }) => {
+        test.fixme(true, 'فجوة حالية (قياس 30 أكتوبر): 11 صورة في الرئيسية بلا width وheight (صور الكلمتين والمبررات والقيم الأربع، والمخطوطة، وصورة المقطع، والزخرفة)');
+        for (const path of ['/', '/media', '/library']) {
+            await visit(page, path);
+            const missing = await page.locator('main img').evaluateAll((images) => images
+                .filter((image) => !image.getAttribute('width') || !image.getAttribute('height'))
+                .map((image) => image.getAttribute('src')));
+            expect(missing, `${path}: صور بلا width وheight`).toEqual([]);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('excellence: fonts preloaded', async ({ page }) => {
+        await visit(page, '/');
+        expect(await page.locator('link[rel="preload"][as="font"]').count()).toBeGreaterThan(0);
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('excellence: the home page works on slow 3G', async ({ page }) => {
+        test.setTimeout(180_000);
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send('Network.enable');
+        // «Slow 3G» في أدوات المطور: 400ms، و400 كيلوبت في الثانية تنزيلاً ورفعاً
+        await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: (400 * 1024) / 8, uploadThroughput: (400 * 1024) / 8 });
+        const started = Date.now();
+        await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+        await expect(page.locator('main h1, main h2').first()).toBeVisible({ timeout: 60_000 });
+        console.log(`slow 3G ${page.viewportSize().width}: first heading after ${Date.now() - started}ms`);
+        await expectRtlNoScroll(page, '/');
     });
 });
