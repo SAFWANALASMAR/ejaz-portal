@@ -7,6 +7,7 @@ use App\Actions\Accounts\VerifyPhoneCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\VerifyPhoneRequest;
 use App\Models\User;
+use App\Support\IntendedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -45,6 +46,7 @@ class PhoneVerificationController extends Controller
         $user = $request->user();
 
         $action->handle($user, $request->string('code')->toString());
+        IntendedUrl::dropAdminFor($request, $user);
 
         return redirect()->intended(route('account.dashboard'))->with('status', __('account.phone.verified'));
     }
