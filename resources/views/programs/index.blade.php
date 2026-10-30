@@ -28,7 +28,9 @@
                 </ul>
             </nav>
 
-            <nav aria-label="{{ __('programs.tabs.label') }}" class="mx-auto mt-8 max-w-full overflow-x-auto">
+            <x-programs.how-to class="mt-10" />
+
+            <nav id="programs-list" aria-label="{{ __('programs.tabs.label') }}" class="mx-auto mt-10 max-w-full scroll-mt-28 overflow-x-auto">
                 <ul class="mx-auto flex w-max gap-2 rounded-full border border-line/70 bg-white p-1.5 shadow-xs">
                     <li>
                         <a href="{{ route('programs.index') }}" wire:navigate @if (! $active) aria-current="page" @endif

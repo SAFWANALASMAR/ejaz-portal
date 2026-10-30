@@ -32,6 +32,8 @@
                         <p class="mt-3 leading-8 whitespace-pre-line text-ink">{{ $program->conditions }}</p>
                     </x-card>
                 @endif
+
+                <x-programs.how-to :program="$program" :registration="$registration" :status="$status" :confirmed="$confirmed" />
             </div>
 
             <aside class="space-y-4">

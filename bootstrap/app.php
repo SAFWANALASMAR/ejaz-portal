@@ -52,6 +52,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // التوثيق شرطاً متى فُعّل من اللوحة وحده (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
         $middleware->alias(['verified' => EnsureAccountVerified::class]);
 
+        // الزائر على صفحة تطلب الدخول يُحوَّل إلى الدخول، وتُحفظ الصفحة وجهةً في الجلسة. و«إنشاء حساب» يربط بالصفحة نفسها
+        // بـ signup=1 فيُحوَّل إلى إنشاء الحساب بدله، ويعود إليها بعده (RegisterResponse). الوجهة الصفحة المطلوبة نفسها من
+        // الخادم، فلا معامل يحمل رابطاً يُتبع
+        $middleware->redirectGuestsTo(fn (Request $request): string => $request->query('signup') === '1' ? route('register') : route('login'));
+
         // التنقّل السريع إلى ما يُحمَّل كاملاً تحميل كامل (FullPageLoadOnNavigate)، ومنه تحويل الدخول من Authenticate:
         // فيُقدَّم عليه في ترتيب الأولوية، وإلا قدّم لارافيل Authenticate على كل ما أُلحق بمجموعة web
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: FullPageLoadOnNavigate::class);

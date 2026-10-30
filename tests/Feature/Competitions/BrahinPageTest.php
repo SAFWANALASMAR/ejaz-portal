@@ -150,7 +150,8 @@ describe('the registration button component', function () {
         expect($render($this->competition))
             ->toContain(__('competitions.student.login_to_register'))
             ->toContain(route('competitions.student.register', $this->competition->slug))
-            ->toContain(route('register'));
+            // وإنشاء الحساب إلى صفحة التسجيل نفسها بـ signup=1، فيعود إليها بعد إنشائه (#100)
+            ->toContain(e(route('competitions.student.register', ['slug' => $this->competition->slug, 'signup' => 1])));
     });
 
     it('offers registration to a signed-in visitor', function () use ($render) {
