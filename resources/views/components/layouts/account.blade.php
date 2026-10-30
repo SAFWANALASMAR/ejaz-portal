@@ -21,7 +21,7 @@
                     <div class="absolute inset-0 bg-linear-to-l from-white via-white/80 to-white/0"></div>
                     <div class="absolute inset-y-0 start-0 flex items-center px-6 sm:px-10">
                         <div class="flex items-start gap-3">
-                            <span class="mt-1 text-primary">{{ svg('heroicon-o-user', 'size-8') }}</span>
+                            <span class="mt-1 text-primary">{{ \App\Support\Icon::svg('user', 'size-8') }}</span>
                             <div>
                                 <h1 class="text-2xl font-bold text-primary sm:text-3xl">{{ __('account.dashboard.welcome', ['name' => $user->name]) }}</h1>
                                 <p class="mt-1 text-muted">{{ __('account.dashboard.intro') }}</p>
@@ -39,13 +39,13 @@
                     <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 font-semibold">
                         <span class="flex items-center gap-3">
                             @if ($current)
-                                {{ svg('heroicon-o-'.$current['icon'], 'size-5 text-accent-light') }}
+                                {{ \App\Support\Icon::svg($current['icon'], 'size-5 text-accent-light') }}
                                 {{ __($current['label']) }}
                             @else
                                 {{ __('site.my_account') }}
                             @endif
                         </span>
-                        {{ svg('heroicon-o-chevron-down', 'size-5 transition group-open:rotate-180') }}
+                        {{ \App\Support\Icon::svg('chevron-down', 'size-5 transition group-open:rotate-180') }}
                     </summary>
                     <nav class="border-t border-white/10 p-2" aria-label="{{ __('site.my_account') }}">
                         @include('account.partials.navigation', ['links' => $links, 'canAdmin' => $canAdmin])

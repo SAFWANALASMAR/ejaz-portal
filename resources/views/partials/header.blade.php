@@ -27,7 +27,7 @@
                                     'text-ink/80' => ! $current,
                                 ])>
                                 {{ $item->label }}
-                                {{ svg('heroicon-o-chevron-down', 'size-3.5') }}
+                                {{ \App\Support\Icon::svg('chevron-down', 'size-3.5') }}
                             </button>
                             <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-3 min-w-56 rounded-2xl border border-line/70 bg-white p-2 shadow-lg">
                                 @foreach ($item->children as $child)
@@ -65,13 +65,13 @@
 
             @if (Route::has('search'))
                 <a href="{{ route('search') }}" wire:navigate class="rounded-full p-2.5 text-ink/80 hover:bg-surface hover:text-primary" aria-label="{{ __('site.search') }}">
-                    {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
+                    {{ \App\Support\Icon::svg('magnifying-glass', 'size-5') }}
                 </a>
             @else
                 {{-- البحث الشامل لم يُبنَ بعد (ملاحظة المشرف ٧): الأيقونة معطلة بتلميح على الشاشات
                      الأوسع، وعلى الجوال الشعار وزر القائمة فقط كما في المرجع --}}
                 <button type="button" aria-disabled="true" aria-label="{{ __('site.search_soon') }}" title="{{ __('site.search_soon') }}" class="hidden cursor-not-allowed rounded-full p-2.5 text-ink/35 sm:inline-flex">
-                    {{ svg('heroicon-o-magnifying-glass', 'size-5') }}
+                    {{ \App\Support\Icon::svg('magnifying-glass', 'size-5') }}
                 </button>
             @endif
 
@@ -87,7 +87,7 @@
             <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
                 class="rounded-full p-2.5 text-ink hover:bg-surface nav:hidden">
                 <span class="sr-only">{{ __('site.open_menu') }}</span>
-                {{ svg('heroicon-o-bars-3', 'size-6') }}
+                {{ \App\Support\Icon::svg('bars-3', 'size-6') }}
             </button>
         </div>
     </div>
@@ -102,7 +102,7 @@
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="mobile-menu-{{ $item->id }}"
                                 class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-ink hover:bg-surface">
                                 {{ $item->label }}
-                                {{ svg('heroicon-o-chevron-down', 'size-4') }}
+                                {{ \App\Support\Icon::svg('chevron-down', 'size-4') }}
                             </button>
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-accent/40 ps-3">
                                 @foreach ($item->children as $child)

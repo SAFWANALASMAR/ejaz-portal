@@ -6,7 +6,7 @@
     <div class="flex flex-col gap-4 rounded-2xl border border-primary/30 bg-primary-soft p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-start gap-4">
             <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-                {{ svg('heroicon-o-video-camera', 'size-6') }}
+                {{ \App\Support\Icon::svg('video-camera', 'size-6') }}
             </span>
             <div>
                 <p class="text-sm font-semibold text-accent-dark">{{ __('account.oversight.next_meeting', ['body' => $oversight['meeting']->committee?->name ?? $oversight['meeting']->body->getLabel()]) }}</p>
@@ -29,7 +29,7 @@
             @foreach (['programs' => 'academic-cap', 'registrations' => 'clipboard-document-check', 'members' => 'user-group', 'meetings' => 'calendar-days', 'submissions' => 'trophy'] as $key => $icon)
                 <div class="rounded-xl border border-line/70 p-4">
                     <dt class="flex items-center gap-2 text-sm text-muted">
-                        {{ svg('heroicon-o-'.$icon, 'size-5 shrink-0 text-accent') }}
+                        {{ \App\Support\Icon::svg($icon, 'size-5 shrink-0 text-accent') }}
                         {{ __('account.oversight.'.$key) }}
                     </dt>
                     <dd class="mt-2 text-2xl font-bold text-ink">{{ number_format($oversight['stats'][$key]) }}</dd>

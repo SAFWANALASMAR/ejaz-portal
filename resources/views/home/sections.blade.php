@@ -32,7 +32,7 @@
 @endif
 
 @if ($video !== null)
-    @include('home.partials.video', ['youtube' => $video])
+    @include('home.partials.video', ['youtube' => $video, 'thumbnail' => $video_thumbnail])
 @endif
 
 @if ($initiatives->isNotEmpty())

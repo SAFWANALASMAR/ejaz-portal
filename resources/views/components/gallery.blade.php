@@ -32,15 +32,15 @@
             </figure>
 
             <button type="button" data-gallery-close class="absolute end-4 top-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" aria-label="{{ __('site.gallery.close') }}">
-                {{ svg('heroicon-o-x-mark', 'size-6') }}
+                {{ \App\Support\Icon::svg('x-mark', 'size-6') }}
             </button>
             @if (count($images) > 1)
                 {{-- في الاتجاه من اليمين: السابقة يميناً والتالية يساراً --}}
                 <button type="button" data-gallery-prev class="absolute start-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" aria-label="{{ __('site.gallery.previous') }}">
-                    {{ svg('heroicon-o-chevron-right', 'size-7') }}
+                    {{ \App\Support\Icon::svg('chevron-right', 'size-7') }}
                 </button>
                 <button type="button" data-gallery-next class="absolute end-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" aria-label="{{ __('site.gallery.next') }}">
-                    {{ svg('heroicon-o-chevron-left', 'size-7') }}
+                    {{ \App\Support\Icon::svg('chevron-left', 'size-7') }}
                 </button>
             @endif
         </dialog>
