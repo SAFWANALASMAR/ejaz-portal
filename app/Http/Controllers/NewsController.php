@@ -59,7 +59,7 @@ class NewsController extends Controller implements HasMiddleware
         // الصفحة الأولى بلا تصفية مخزنة. والبحث والتصفية والصفحات التالية بلا تخزين
         $html = $filters === [] && $request->integer('page', 1) === 1 ? ContentCache::remember('media.news.index', $render) : $render();
 
-        return view('content.page', ['title' => __('news.title'), 'summary' => null, 'html' => new HtmlString($html)]);
+        return view('content.page', ['title' => __('news.title'), 'summary' => null, 'html' => new HtmlString($html), 'breadcrumb' => [[__('media.title'), route('media.index')]]]);
     }
 
     public function show(string $slug): View
@@ -85,6 +85,6 @@ class NewsController extends Controller implements HasMiddleware
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('media.title'), route('media.index')], [__('news.title'), route('media.news.index')]]]);
     }
 }

@@ -5,11 +5,19 @@
 @php
     use App\Enums\CompetitionStatus;
     use App\Support\Dates;
+    use App\Support\StructuredData;
 
     $status = $competition->status();
 @endphp
 
 <x-layouts.app :title="$competition->title" :description="$competition->description">
+    {{-- المسابقة فعاليةً ومسار التنقل إليها (StructuredData) --}}
+    @push('head')
+        {{ StructuredData::script([
+            StructuredData::competition($competition),
+            StructuredData::breadcrumbs($competition->title, route('competitions.show', $competition->slug), [[__('competitions.title'), route('competitions.index')]]),
+        ]) }}
+    @endpush
     <x-page-hero :title="$competition->title" />
 
     <section class="py-10 sm:py-14">

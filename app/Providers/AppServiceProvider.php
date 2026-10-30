@@ -43,6 +43,7 @@ use App\Support\SpaLink;
 use App\Support\TeamsConnection;
 use App\Support\UploadLimits;
 use App\View\Composers\SiteChromeComposer;
+use App\View\Composers\StructuredDataComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -226,6 +227,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewOwnFormEntries', fn (User $user): bool => FormEntry::query()->visibleToPerson($user)->exists());
 
         View::composer(['partials.header', 'partials.footer'], SiteChromeComposer::class);
+        // البيانات المنظمة schema.org في رأس كل صفحة بالتخطيط العام (StructuredData)
+        View::composer('components.layouts.app', StructuredDataComposer::class);
 
         // فهرس المساعد يتبع المحتوى: كل حفظ وحذف واستعادة يعيد مقاطع السجل، فلا تبقى مسودة ولا محذوف فيه
         foreach (array_keys(AssistantIndex::MODELS) as $model) {

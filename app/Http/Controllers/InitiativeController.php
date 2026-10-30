@@ -47,6 +47,6 @@ class InitiativeController extends Controller
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('content.initiatives.title'), route('initiatives.index')]]]);
     }
 }
