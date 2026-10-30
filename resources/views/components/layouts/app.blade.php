@@ -23,6 +23,7 @@
     @if ($noindex)
         <meta name="robots" content="noindex, nofollow">
     @endif
+    @stack('head')
     <link rel="canonical" href="{{ url()->current() }}">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ar_SA">

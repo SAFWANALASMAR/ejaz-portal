@@ -7,6 +7,7 @@ use App\Http\Requests\LibraryIndexRequest;
 use App\Models\LibraryItem;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
+use App\Support\StructuredData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -14,6 +15,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -73,7 +75,12 @@ class LibraryController extends Controller implements HasMiddleware
         // الذاكرة بمفاتيح من مدخلات الزوار
         $html = $filters === [] && $request->integer('page', 1) === 1 ? ContentCache::remember('library.section.'.$section->value, $render) : $render();
 
-        return view('content.page', ['title' => $section->getLabel(), 'summary' => null, 'html' => new HtmlString($html)]);
+        return view('content.page', [
+            'title' => $section->getLabel(),
+            'summary' => null,
+            'html' => new HtmlString($html),
+            'breadcrumb' => [[__('library.title'), route('library.index')]],
+        ]);
     }
 
     public function show(string $section, string $slug): View
@@ -81,19 +88,26 @@ class LibraryController extends Controller implements HasMiddleware
         // معرّف منشور في قسمه، فلا يُخزَّن غيره، ولا يعمل الرابط بقسم آخر
         abort_unless((self::publishedSlugs()[$slug] ?? null) === $section, 404);
 
-        /** @var array{title: string, summary: string, image: ?string, html: string} $page */
+        /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>} $page */
         $page = ContentCache::remember('library.show.'.$slug, function () use ($slug): array {
             $item = LibraryItem::query()->published()->where('slug', $slug)->firstOrFail();
 
             return [
                 'title' => $item->title,
-                'summary' => $item->section->getLabel(),
+                // الوصف لمحركات البحث والمشاركة، وإلا اسم القسم كما كان
+                'summary' => filled($item->description) ? Str::limit(trim((string) $item->description), 160) : $item->section->getLabel(),
                 'image' => $item->thumbnail ? Storage::disk('public')->url($item->thumbnail) : null,
+                // الكتاب Book والمرئية VideoObject (StructuredData)
+                'schema' => array_values(array_filter([StructuredData::libraryItem($item)])),
                 'html' => view('library.show', ['item' => $item, 'related' => self::related($item)])->render(),
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [
+            ...$page,
+            'html' => new HtmlString($page['html']),
+            'breadcrumb' => [[__('library.title'), route('library.index')], [LibrarySection::from($section)->getLabel(), route('library.section', $section)]],
+        ]);
     }
 
     /**

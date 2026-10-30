@@ -53,7 +53,8 @@ class MediaController extends Controller
             'kind' => $kind,
         ])->render());
 
-        return view('content.page', ['title' => HomeContent::text('announcements', 'title'), 'summary' => null, 'html' => new HtmlString($html)]);
+        // والوصف مقدمة القسم المعروضة في رأسه
+        return view('content.page', ['title' => HomeContent::text('announcements', 'title'), 'summary' => HomeContent::text('announcements', 'intro'), 'html' => new HtmlString($html), 'breadcrumb' => [[__('media.title'), route('media.index')]]]);
     }
 
     public function partners(): View
@@ -62,6 +63,6 @@ class MediaController extends Controller
             'partners' => Partner::query()->published()->get(),
         ])->render());
 
-        return view('content.page', ['title' => __('partners.title'), 'summary' => null, 'html' => new HtmlString($html)]);
+        return view('content.page', ['title' => __('partners.title'), 'summary' => null, 'html' => new HtmlString($html), 'breadcrumb' => [[__('media.title'), route('media.index')]]]);
     }
 }

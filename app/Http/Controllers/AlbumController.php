@@ -39,7 +39,7 @@ class AlbumController extends Controller implements HasMiddleware
 
         $html = $request->integer('page', 1) === 1 ? ContentCache::remember('media.albums.index', $render) : $render();
 
-        return view('content.page', ['title' => __('albums.title'), 'summary' => null, 'html' => new HtmlString($html)]);
+        return view('content.page', ['title' => __('albums.title'), 'summary' => null, 'html' => new HtmlString($html), 'breadcrumb' => [[__('media.title'), route('media.index')]]]);
     }
 
     public function show(string $slug): View
@@ -62,6 +62,6 @@ class AlbumController extends Controller implements HasMiddleware
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('media.title'), route('media.index')], [__('albums.title'), route('media.albums.index')]]]);
     }
 }

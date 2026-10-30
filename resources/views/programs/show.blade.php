@@ -6,6 +6,7 @@
     use App\Enums\ProgramStatus;
     use App\Enums\RegistrationStatus;
     use App\Support\Dates;
+    use App\Support\StructuredData;
 
     $status = $program->status();
     $confirmed = $program->confirmedCount();
@@ -13,6 +14,13 @@
 @endphp
 
 <x-layouts.app :title="$program->title" :description="$program->summary" :image="$image">
+    {{-- البرنامج فعاليةً ومسار التنقل إليه (StructuredData) --}}
+    @push('head')
+        {{ StructuredData::script([
+            StructuredData::program($program),
+            StructuredData::breadcrumbs($program->title, route('programs.show', $program->slug), [[__('programs.title'), route('programs.index')]]),
+        ]) }}
+    @endpush
     <x-page-hero :title="$program->title" :summary="$program->summary" :image="$image" />
 
     <section class="py-10 sm:py-14">
