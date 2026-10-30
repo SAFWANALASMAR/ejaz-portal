@@ -222,6 +222,14 @@ docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_THEME_CREDENTIALS="
 - الدخول بالتحقق الثنائي مرة واحدة، وتُحفظ الجلسة في `storage/playwright/admin-theme-state.json` للعروض الثلاثة، وتُحذف قبل كل تشغيل بحساب تجريبي جديد.
 - خدمة Vite تحمل حجم `vendor` للقراءة، لأن السمة تستورد CSS من Filament.
 
+**جرد كل الشاشات** (`admin-theme-inventory.spec.mjs`): كل مسار GET تحت `/admin`، وأول سجل لكل مسار بمعامل من روابط قائمته، وصفحتا الدخول والتحقق الثنائي، بلقطة JPEG بعرض الشاشة في `docs/design/screenshots/admin-theme/`. والفهرس `inventory.md` هناك. ويُمنح الحساب التجريبي دور المسؤول التقني محلياً فيرى كل الشاشات:
+
+```bash
+docker compose exec -T app php artisan route:list --path=admin --method=GET --json > storage/playwright/admin-routes.json
+docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_THEME_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs admin-theme-inventory.spec.mjs --project=desktop --project=mobile
+```
+
 ## مسابقة الطلاب
 
 `student-competition.spec.mjs` على العروض الثلاثة: رحلة الطالب كاملة (صفحة المسابقة، والتسجيل، والبدء، والصفحات بالعداد والنص والمقطع، والمراجعة، والتسليم، و«تم استلام إجاباتك»، و«مشاركاتي» بلا درجة قبل النشر وبها بعده)، ورحلة المدير في اللوحة على الحاسب والجوال (المراحل، والبنك، والنصوص، والحقول، والمسجلون والاطلاع على رقم الهوية، والنتائج، ونافذة السحب، والنموذج، والقائمتان). وفي كل صفحة: الاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe. واللقطات في `docs/reviews/screenshots/2026-10-25-competition/`.
