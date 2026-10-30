@@ -6,7 +6,7 @@
 <section class="border-y border-line bg-white" aria-labelledby="home-news-ticker">
     <div class="container-page flex items-center gap-3 py-3 sm:gap-4">
         <h2 id="home-news-ticker" class="flex shrink-0 items-center gap-2 rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white">
-            {{ svg('heroicon-o-newspaper', 'size-4', ['aria-hidden' => 'true']) }}
+            {{ \App\Support\Icon::svg('newspaper', 'size-4', ['aria-hidden' => 'true']) }}
             {{ $tickers['news'] }}
         </h2>
 
@@ -28,8 +28,8 @@
 
         <button type="button" data-ticker-toggle="home-news-ticker-strip" aria-pressed="false" data-label-pause="{{ __('home.ticker.pause') }}" data-label-play="{{ __('home.ticker.play') }}"
             aria-label="{{ __('home.ticker.pause') }}" class="inline-flex shrink-0 rounded-full p-2 text-muted hover:bg-surface hover:text-ink">
-            {{ svg('heroicon-o-pause', 'size-5', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
-            {{ svg('heroicon-o-play', 'size-5', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
+            {{ \App\Support\Icon::svg('pause', 'size-5', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
+            {{ \App\Support\Icon::svg('play', 'size-5', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
         </button>
 
         <a href="{{ route('media.news.index') }}" wire:navigate class="hidden shrink-0 text-sm font-semibold text-primary hover:text-primary-dark md:inline">{{ __('home.ticker.all_news') }}</a>

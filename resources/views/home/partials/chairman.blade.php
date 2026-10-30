@@ -12,7 +12,7 @@
     <div class="container-page relative grid items-center gap-10 py-14 lg:grid-cols-[1.25fr_1fr] lg:gap-12 lg:py-20">
         <div data-reveal>
             <h2 id="home-chairman" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-accent-light ring-1 ring-white/20">
-                {{ svg('heroicon-o-chat-bubble-left-right', 'size-4', ['aria-hidden' => 'true']) }}
+                {{ \App\Support\Icon::svg('chat-bubble-left-right', 'size-4', ['aria-hidden' => 'true']) }}
                 {{ $chairman['heading'] }}
             </h2>
 
@@ -31,7 +31,7 @@
                 <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-full bg-white px-6 py-2.5 font-semibold text-primary-dark shadow-sm transition hover:bg-accent-light [&::-webkit-details-marker]:hidden"
                     data-dialog-open="chairman-word">
                     {{ __('home.sections.chairman.read_more') }}
-                    {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                    {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                 </summary>
                 <div class="mt-6 space-y-4 rounded-2xl bg-white/5 p-6 leading-8 ring-1 ring-white/15">
                     @foreach ($paragraphs as $paragraph)
@@ -54,7 +54,7 @@
         <div class="sticky top-0 flex items-center justify-between gap-4 border-b border-line bg-white px-6 py-4">
             <h3 id="chairman-word-title" class="text-lg font-bold text-primary">{{ $chairman['heading'] }}</h3>
             <button type="button" data-dialog-close class="rounded-full p-2 text-muted hover:bg-surface hover:text-ink" aria-label="{{ __('home.sections.chairman.close') }}">
-                {{ svg('heroicon-o-x-mark', 'size-6', ['aria-hidden' => 'true']) }}
+                {{ \App\Support\Icon::svg('x-mark', 'size-6', ['aria-hidden' => 'true']) }}
             </button>
         </div>
         <div class="space-y-4 px-6 py-6 text-lg leading-9">

@@ -8,7 +8,7 @@
 
 <article class="flex h-full flex-col rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs">
     <span class="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
-        {{ svg('heroicon-o-calendar-days', 'size-6') }}
+        {{ \App\Support\Icon::svg('calendar-days', 'size-6') }}
     </span>
     <p class="mt-3 text-sm font-semibold text-accent-dark">{{ Dates::display($meeting->starts_at, withTime: true) }}</p>
     <h3 class="mt-2 text-lg font-bold text-ink">{{ $meeting->title }}</h3>

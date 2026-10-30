@@ -9,7 +9,7 @@
     <div class="container-page relative grid items-end gap-8 pt-10 sm:pt-14 lg:grid-cols-[1.25fr_1fr] lg:gap-12 lg:pt-16">
         <div class="pb-6 lg:pb-16" data-reveal>
             <h2 id="home-king" class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-sm font-semibold text-accent-dark shadow-xs ring-1 ring-line">
-                {{ svg('heroicon-o-chat-bubble-bottom-center-text', 'size-4', ['aria-hidden' => 'true']) }}
+                {{ \App\Support\Icon::svg('chat-bubble-bottom-center-text', 'size-4', ['aria-hidden' => 'true']) }}
                 {{ $king['heading'] }}
             </h2>
 
