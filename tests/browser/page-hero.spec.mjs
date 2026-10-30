@@ -73,9 +73,13 @@ for (const target of pages) {
 
             return { x, y: y + window.scrollY, width, height };
         });
+        // والشريط الأزرق الفاتح تحت العنوان زخرفة لا خلفية للحروف، ومربع الحروف العربية الطويلة يمسّه، فيُخفى معه
+        const decor = hero.locator('.title-bar');
         await title.evaluate((element) => (element.style.visibility = 'hidden'));
+        await decor.evaluate((element) => (element.style.visibility = 'hidden'));
         const background = await page.screenshot({ clip: text });
         await title.evaluate((element) => (element.style.visibility = ''));
+        await decor.evaluate((element) => (element.style.visibility = ''));
 
         const contrast = 1.05 / ((await maxLuminance(page, background)) + 0.05);
         expect(contrast, `title contrast ${contrast.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);

@@ -107,7 +107,7 @@ body {
     }
 
     .login-pill:hover {
-        background-color: var(--color-brand);
+        background-color: var(--color-primary-deep);
         transform: translateY(calc(-1px * var(--motion)));
     }
 
@@ -127,7 +127,9 @@ body {
     .hero-chip {
         @apply inline-flex items-center gap-1.5 self-start rounded-full text-sm;
         color: var(--concept-pale);
-        background: color-mix(in srgb, var(--color-white) 8%, transparent);
+        /* خلفية داكنة شفافة بضباب: الصورة صارت ظاهرة في أعلى البطل (31 أكتوبر)، فيبقى النص مقروءاً فوق أي صورة */
+        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        backdrop-filter: blur(6px);
         border: 1px solid color-mix(in srgb, var(--color-white) 18%, transparent);
         padding: 0.3125rem 0.875rem;
     }
@@ -143,6 +145,8 @@ body {
     .hero-pill {
         @apply inline-flex items-center gap-1.5 rounded-full text-[15px] text-white;
         border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        backdrop-filter: blur(6px);
         padding: 0.375rem 0.875rem;
         transition: background-color 200ms;
     }
@@ -157,7 +161,7 @@ body {
     }
 }
 
-/* ── البطل: الصورة في جهة النهاية (اليسار) بـ 64%، وتدرج بالأزرق الداكن صلب في جهة النص ── */
+/* ── البطل: الصورة والتدرج في آخر الملف (نمط 31 أكتوبر) ── */
 .concept-hero {
     position: relative;
     overflow: hidden;
@@ -167,13 +171,7 @@ body {
 
 .concept-hero-media {
     position: absolute;
-    inset-block: 0;
-    inset-inline-end: 0;
-    width: 64%;
-}
-
-.concept-hero[data-size='page'] .concept-hero-media {
-    width: 60%;
+    inset: 0;
 }
 
 .concept-hero-media img,
@@ -183,34 +181,6 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.concept-hero-scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(270deg, var(--color-primary-dark) 0%, var(--color-primary-dark) 34%, color-mix(in srgb, var(--color-primary-dark) 75%, transparent) 48%, color-mix(in srgb, var(--color-primary-dark) 15%, transparent) 75%, color-mix(in srgb, var(--color-primary-dark) 35%, transparent) 100%);
-}
-
-.concept-hero[data-size='page'] .concept-hero-scrim {
-    background: linear-gradient(270deg, var(--color-primary-dark) 0%, var(--color-primary-dark) 38%, color-mix(in srgb, var(--color-primary-dark) 60%, transparent) 55%, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 100%);
-}
-
-/* على الجوال واللوحي: الصورة بعرض البطل تحت تدرج موحّد، فيبقى النص مقروءاً */
-@media (max-width: 63.99rem) {
-    .concept-hero-media,
-    .concept-hero[data-size='page'] .concept-hero-media {
-        width: 100%;
-    }
-
-    .concept-hero-scrim,
-    .concept-hero[data-size='page'] .concept-hero-scrim {
-        background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 88%, transparent), color-mix(in srgb, var(--color-primary-dark) 78%, transparent));
-    }
-
-    /* بطل الرئيسية على الجوال (Final-Mobile): الصورة ظاهرة في أعلاه، والنص في أسفله فوق تدرج يشتد نحو الأسفل */
-    .concept-hero[data-size='home'] .concept-hero-scrim {
-        background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 78%, transparent) 38%, var(--color-primary-dark) 62%);
-    }
 }
 
 .concept-arrow {
@@ -601,4 +571,206 @@ html[data-motion-off] .float-soft {
     position: relative;
     overflow: hidden;
     background: var(--color-primary-dark);
+}
+
+/* ── البطل يبدأ تحت الرأس مباشرة بالصورة بعرضه كله، لا بلون صلب يلتصق بلون الرأس (المدير التنفيذي، 31 أكتوبر 00:48):
+   كنمط الجوال، الصورة ظاهرة في أعلاه، والتدرج يشتد نحو الأزرق الداكن في أسفله وفي جهة النص، وخط فاتح رفيع وظل خفيف
+   يفصلانه عن الرأس. يغلب قواعد البطل السابقة لكل العروض ── */
+.concept-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 65%, transparent) 0%, transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 15%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 60%, transparent) 28%, color-mix(in srgb, var(--color-primary-dark) 82%, transparent) 45%, color-mix(in srgb, var(--color-primary-dark) 94%, transparent) 70%, var(--color-primary-dark) 100%);
+}
+
+.concept-hero[data-size='home'] .concept-hero-scrim {
+    background:
+        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 55%, transparent) 0%, transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 50%, transparent) 30%, color-mix(in srgb, var(--color-primary-dark) 88%, transparent) 55%, var(--color-primary-dark) 100%);
+}
+
+.concept-hero::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    z-index: 3;
+    height: 0.75rem;
+    pointer-events: none;
+    border-top: 1px solid color-mix(in srgb, var(--color-white) 28%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-deep, var(--color-primary-dark)) 55%, transparent), transparent);
+}
+
+/* ── الرئيسية بملاحظات المدير التنفيذي (31 أكتوبر 01:28 — docs/design/director-notes-2026-10-31) ── */
+
+/* المقاطع متلاصقة بلا فراغ أبيض، وكل مقطع بدرجة سماوية تخالف ما قبله */
+.home-band {
+    background: var(--band-bg, var(--concept-page));
+}
+
+.home-band[data-band='1'] {
+    --band-bg: #f2f8fd;
+}
+
+.home-band[data-band='2'] {
+    --band-bg: #e6f1fa;
+}
+
+.home-band[data-band='3'] {
+    --band-bg: #dbeaf7;
+}
+
+.home-band[data-band='4'] {
+    --band-bg: #eef5fc;
+}
+
+/* بطاقات «رؤيتنا» و«قيمنا» و«مبادراتنا»: تدرج داكن لكل بطاقة بلون، ونص أبيض بتباين AA فأكثر عند الطرفين */
+.identity-card {
+    position: relative;
+    display: flex;
+    min-height: 11.5rem;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.5rem 0;
+    color: var(--color-white);
+    background: linear-gradient(150deg, var(--card-from), var(--card-to));
+    box-shadow: 0 18px 36px -22px var(--card-to);
+}
+
+.identity-card[data-tone='blue'] {
+    --card-from: #2e6898;
+    --card-to: #1f4565;
+}
+
+.identity-card[data-tone='violet'] {
+    --card-from: #5d2a92;
+    --card-to: #43206b;
+}
+
+.identity-card[data-tone='green'] {
+    --card-from: #287a37;
+    --card-to: #1d5a28;
+}
+
+.identity-card-title {
+    @apply flex items-center gap-3 text-[1.5rem] font-black text-white;
+}
+
+.identity-card-more {
+    @apply absolute bottom-3 start-6 text-sm font-bold text-white underline decoration-white/50 underline-offset-4 hover:decoration-white;
+}
+
+.identity-card .carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--color-white) 45%, transparent);
+}
+
+.identity-card .carousel-controls-compact .carousel-dot[aria-current]::before {
+    background: var(--color-white);
+}
+
+.identity-card .carousel-pause {
+    color: var(--color-white);
+}
+
+.identity-card .carousel-pause:hover {
+    background: color-mix(in srgb, var(--color-white) 15%, transparent);
+}
+
+/* «خدماتنا»: كل بطاقة بتدرج فاتح من لون مربع أيقونتها، فلا بطاقات بيضاء متشابهة */
+.service-card {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--card-tone) 16%, var(--color-white)), color-mix(in srgb, var(--card-tone) 5%, var(--color-white)));
+    border-color: color-mix(in srgb, var(--card-tone) 22%, var(--color-white));
+}
+
+.service-card[data-tone='blue'] {
+    --card-tone: #3e8aca;
+}
+
+.service-card[data-tone='violet'] {
+    --card-tone: #7a4bb0;
+}
+
+.service-card[data-tone='green'] {
+    --card-tone: #2f8a3f;
+}
+
+.service-card[data-tone='navy'] {
+    --card-tone: #2e6898;
+}
+
+.service-card[data-tone='sky'] {
+    --card-tone: #2b8fbf;
+}
+
+.service-card[data-tone='lilac'] {
+    --card-tone: #9068c4;
+}
+
+/* «أخبار الجمعية»: بطاقات بتدرج يشتد خبراً بعد خبر، من السماوي الفاتح جداً إلى أعمق قليلاً، والنص داكن */
+.news-tint[data-step='0'] {
+    background: linear-gradient(160deg, #ffffff, #f1f7fd);
+}
+
+.news-tint[data-step='1'] {
+    background: linear-gradient(160deg, #f1f7fd, #e3effa);
+}
+
+.news-tint[data-step='2'] {
+    background: linear-gradient(160deg, #e3effa, #d4e7f7);
+}
+
+.news-tint[data-step='3'] {
+    background: linear-gradient(160deg, #d4e7f7, #c6dff4);
+}
+
+/* شريطا المرئيات وأغلفة الكتب: نسختان متتاليتان تتحركان بمقدار نسخة، فيستمر الشريط بلا قفزة. ويتوقف بالمرور والتركيز وزر
+   الإيقاف (data-paused)، وخارج الشاشة، ولا يتحرك لمن طلب تقليل الحركة (يصير صفاً يُمرَّر باليد) */
+.media-strip {
+    overflow: hidden;
+    mask-image: linear-gradient(to left, transparent, #000 3%, #000 97%, transparent);
+}
+
+.media-strip-track {
+    display: flex;
+    width: max-content;
+    gap: 1rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .media-strip[data-inview] .media-strip-track {
+        animation: media-strip-move var(--strip-duration, 60s) linear infinite;
+    }
+
+    .media-strip:hover .media-strip-track,
+    .media-strip:focus-within .media-strip-track,
+    .media-strip[data-paused] .media-strip-track {
+        animation-play-state: paused;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .media-strip {
+        overflow-x: auto;
+        mask-image: none;
+    }
+
+    .media-strip [data-strip-copy] {
+        display: none;
+    }
+}
+
+html[data-motion-off] .media-strip-track {
+    animation: none;
+}
+
+@keyframes media-strip-move {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(50%);
+    }
 }

@@ -44,7 +44,7 @@
                 @if (filled($card['description']))
                     <span class="text-[15px] leading-6 text-muted">{{ $card['description'] }}</span>
                 @endif
-                <span class="mt-auto inline-flex size-[2.375rem] items-center justify-center self-end rounded-full bg-primary-dark text-white transition group-hover:bg-brand" aria-hidden="true">
+                <span class="mt-auto inline-flex size-[2.375rem] items-center justify-center self-end rounded-full bg-primary-dark text-white transition group-hover:bg-primary" aria-hidden="true">
                     {{ \App\Support\Icon::svg($card['external'] ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                 </span>
                 @if ($card['external'])

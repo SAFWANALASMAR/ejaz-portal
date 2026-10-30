@@ -1,10 +1,10 @@
 {{--
-    بطل الرئيسية (التصور النهائي — Final-Home): صور الفعاليات في جهة النهاية بعرض 64% تتبدل بتلاشٍ وتكبير بطيء، تحت تدرج
-    بالأزرق الداكن صلب في جهة النص. سهمان أبيضان دائريان على الجانبين، ونقاط في الأسفل النشطة كبسولة بشريط يمتلئ بمدة
+    بطل الرئيسية (التصور النهائي — Final-Home، ونمط الجوال على كل العروض منذ 31 أكتوبر): صور الفعاليات بعرضه كله تحت الرأس
+    مباشرة تتبدل بتلاشٍ وتكبير بطيء، والتدرج يشتد نحو الأزرق الداكن في الأسفل وفي جهة النص. سهمان أبيضان دائريان على الجانبين، ونقاط في الأسفل النشطة كبسولة بشريط يمتلئ بمدة
     الشريحة، وزر إيقاف وتشغيل بجانبها (WCAG 2.2.2). والتبديل التلقائي والحركات تتوقف لمن طلب تقليل الحركة وخارج الشاشة
     (carousel.js وconcept.css). الصورة الأولى وحدها بأولوية التحميل. والمحتوى في الـ slot.
 
-    $slides: list<array{src: string, alt: string}> من HomeShowcase::slides.
+    $slides: list<array{src: string, srcset: ?string, alt: string}> من HomeShowcase::slides (النسخ المصغّرة — HeroImage).
 --}}
 @props(['slides', 'interval' => 6000])
 
@@ -17,14 +17,14 @@
     <div class="concept-hero-media" data-carousel-track aria-live="off">
         @foreach ($slides as $index => $slide)
             <figure data-hero-slide data-carousel-item @if ($index === 0) data-active @endif class="hero-slide m-0" @if ($slide['alt'] === '') aria-hidden="true" @endif>
-                <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720"
+                <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720" @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="100vw" @endif
                     @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
             </figure>
         @endforeach
     </div>
     <div class="concept-hero-scrim" aria-hidden="true"></div>
 
-    <div class="relative mx-auto flex min-h-[30rem] max-w-[82.5rem] flex-col justify-end gap-4 px-6 pt-44 pb-14 sm:px-12 lg:h-[29.375rem] lg:min-h-0 lg:justify-center lg:px-24 lg:py-12">
+    <div class="relative mx-auto flex min-h-[30rem] max-w-[82.5rem] flex-col justify-end gap-4 px-6 pt-44 pb-14 sm:px-12 lg:h-[36rem] lg:min-h-0 lg:px-24 lg:pt-44 lg:pb-14">
         {{ $slot }}
     </div>
 

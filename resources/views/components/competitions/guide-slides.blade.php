@@ -40,7 +40,7 @@
                     </button>
                 @endforeach
             </div>
-            <button type="button" data-slide-next class="inline-flex items-center gap-1 rounded-full bg-primary-dark p-2.5 text-sm font-bold text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2">
+            <button type="button" data-slide-next class="inline-flex items-center gap-1 rounded-full bg-primary-dark p-2.5 text-sm font-bold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2">
                 <span class="sr-only sm:not-sr-only">{{ __('competitions.student.page.slide_next') }}</span>
                 {{ \App\Support\Icon::svg('chevron-left', 'size-4', ['aria-hidden' => 'true']) }}
             </button>

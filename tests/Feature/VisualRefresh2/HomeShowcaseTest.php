@@ -4,10 +4,8 @@ use App\Actions\Settings\UpdateHomeContent;
 use App\Enums\RoleName;
 use App\Models\Album;
 use App\Models\Competition;
-use App\Models\Document;
 use App\Models\NewsArticle;
 use App\Models\Page;
-use App\Models\Program;
 use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 use Illuminate\Validation\ValidationException;
@@ -113,17 +111,6 @@ it('builds the hero slides from the published albums, and a single neutral slide
         ->and(collect($slides)->pluck('src')->implode(' '))->not->toContain('draft');
 
     $this->get('/')->assertOk()->assertSee('data-hero-slider', false)->assertSee('data-hero-progress', false);
-});
-
-it('lists the latest published updates across modules, newest first', function () {
-    Program::factory()->create(['title' => 'برنامج قديم', 'is_published' => true, 'created_at' => now()->subDays(5)]);
-    Document::factory()->create(['title' => 'وثيقة حديثة', 'is_published' => true, 'created_at' => now()->subDay()]);
-    Program::factory()->create(['title' => 'برنامج مسودة', 'is_published' => false, 'created_at' => now()]);
-
-    $titles = array_column(HomeShowcase::updates(), 'title');
-
-    expect($titles)->toBe(['وثيقة حديثة', 'برنامج قديم']);
-    $this->get('/')->assertSee('id="home-updates"', false)->assertSee('وثيقة حديثة');
 });
 
 it('refreshes the cached home when the competition is saved or deleted', function () {

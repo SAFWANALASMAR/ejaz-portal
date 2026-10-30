@@ -31,7 +31,7 @@
                 <span class="text-[15px] text-muted">{{ $chairman['title'] }}</span>
             </p>
             <details class="group">
-                <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-full bg-primary-dark px-5.5 py-2.5 font-extrabold text-white transition hover:bg-brand [&::-webkit-details-marker]:hidden">
+                <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-full bg-primary-dark px-5.5 py-2.5 font-extrabold text-white transition hover:bg-primary [&::-webkit-details-marker]:hidden">
                     {{ __('home.sections.chairman.read_more') }}
                     {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
                 </summary>

@@ -31,7 +31,7 @@
     </div>
 
     <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-        <a href="{{ $href }}" @navigate($href) class="inline-flex items-center gap-1 rounded-full bg-primary-dark px-4 py-1.5 text-sm font-bold text-white transition hover:bg-brand">
+        <a href="{{ $href }}" @navigate($href) class="inline-flex items-center gap-1 rounded-full bg-primary-dark px-4 py-1.5 text-sm font-bold text-white transition hover:bg-primary">
             {{ \App\Support\Icon::svg('eye', 'size-4') }}<span>{{ __('site.file.preview') }}<span class="sr-only">: {{ $title }}</span></span>
         </a>
         @if ($download)

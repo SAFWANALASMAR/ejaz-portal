@@ -25,7 +25,7 @@
         <p class="flex items-center gap-2 text-[15px] text-muted">{{ \App\Support\Icon::svg('map-pin', 'size-[17px] shrink-0 text-primary', ['aria-hidden' => 'true']) }} {{ $program->delivery->getLabel() }}</p>
 
         <a href="{{ route('programs.show', $program->slug) }}" wire:navigate
-            class="mt-auto block rounded-full bg-primary-dark py-3 text-center text-lg font-extrabold text-white transition hover:bg-brand">
+            class="mt-auto block rounded-full bg-primary-dark py-3 text-center text-lg font-extrabold text-white transition hover:bg-primary">
             {{ $status === ProgramStatus::Open ? __('programs.list.register') : __('programs.list.details') }}
         </a>
     </div>

@@ -4,7 +4,7 @@
     «ولأجل تحقيق هذه الرؤية تأسست:» واسم الجمعية. والمخطوطة زخرفة، فلا يقرؤها قارئ الشاشة واسم الجمعية مكتوب بعدها.
     النصوص والصورة والمخطوطة من اللوحة (App\Support\HomeContent).
 --}}
-<section class="relative overflow-hidden bg-white py-14 lg:py-20" aria-labelledby="home-rationale">
+<section class="home-band relative overflow-hidden py-14 lg:py-20" data-band="2" aria-labelledby="home-rationale">
     <div class="container-page grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <div class="relative order-2 lg:order-1" data-reveal>
             <div class="relative overflow-hidden rounded-[2rem] bg-primary-dark shadow-xl">

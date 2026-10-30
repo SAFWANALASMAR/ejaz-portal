@@ -9,7 +9,7 @@
     $grouped = $sponsors->isNotEmpty();
 @endphp
 
-<section class="bg-white py-12 lg:py-16" aria-labelledby="home-partners">
+<section class="home-band py-12 lg:py-16" data-band="3" aria-labelledby="home-partners">
     <div class="container-page">
         <x-section-header id="home-partners" :title="__('home.partners.title')" :href="route('media.partners')" />
 

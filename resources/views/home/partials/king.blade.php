@@ -3,7 +3,7 @@
     الصفحة، النص في جهة البداية (اليمين) والصورة في جهة النهاية (اليسار). وعلى الجوال: النص ثم الصورة.
     النص والصورة من اللوحة (App\Support\HomeContent).
 --}}
-<section class="relative overflow-hidden bg-linear-to-b from-primary-soft to-white" aria-labelledby="home-king">
+<section class="home-band relative overflow-hidden" data-band="1" aria-labelledby="home-king">
     <img src="{{ asset('images/decor/pattern-corner.svg') }}" alt="" aria-hidden="true" class="pointer-events-none absolute -top-6 start-0 w-56 opacity-60 sm:w-72">
 
     <div class="container-page relative grid items-end gap-8 pt-10 sm:pt-14 lg:grid-cols-[1.25fr_1fr] lg:gap-12 lg:pt-16">

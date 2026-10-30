@@ -4,14 +4,14 @@
       اللون بالترتيب من موضع البطاقة (index): أزرق، بنفسجي، أخضر، كحلي، سماوي، بنفسجي فاتح (App\Support\IconTones)، أو tone صريحاً.
     - glass على الأقسام الداكنة: زجاجي بضبابية وطبقة ملونة خلفه.
     - line: أيقونة خطية بالأزرق في مربع فاتح جداً.
-    والأيقونة Phosphor duotone عبر App\Support\Icon. زخرفة، فاسم البطاقة يكفي. size: sm أو md أو lg أو xl.
+    والأيقونة Phosphor duotone عبر App\Support\Icon. زخرفة، فاسم البطاقة يكفي. size: xs (قائمة الرأس وروابط التذييل) أو sm أو md أو lg أو xl.
 --}}
 @props(['icon', 'variant' => 'gradient', 'tone' => null, 'index' => 0, 'size' => 'md'])
 
 @php
     $variant = in_array($variant, ['line', 'glass', 'gradient'], true) ? $variant : 'gradient';
     $tone = in_array($tone, \App\Support\IconTones::ORDER, true) ? $tone : \App\Support\IconTones::at((int) $index);
-    $iconSize = ['sm' => 'size-5', 'md' => 'size-7', 'lg' => 'size-8', 'xl' => 'size-11'][$size] ?? 'size-7';
+    $iconSize = ['xs' => 'size-3.5', 'sm' => 'size-5', 'md' => 'size-7', 'lg' => 'size-8', 'xl' => 'size-11'][$size] ?? 'size-7';
 @endphp
 
 <span data-icon-tile data-variant="{{ $variant }}" data-tone="{{ $tone }}"

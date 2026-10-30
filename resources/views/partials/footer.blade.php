@@ -29,9 +29,10 @@
         <div data-footer-column class="flex flex-col gap-3">
             @if ($partners !== [])
                 <h2 class="text-[19px] font-black text-white">{{ __('ui.footer.partners') }}</h2>
-                <ul class="grid grid-cols-2 gap-3">
+                {{-- مربعات منتظمة بالقدر نفسه (المدير التنفيذي، 31 أكتوبر 01:28) --}}
+                <ul class="grid grid-cols-3 gap-2.5" data-footer-partners>
                     @foreach ($partners as $partner)
-                        <li class="flex h-[4.75rem] items-center justify-center rounded-[0.875rem] bg-white p-3" title="{{ $partner['name'] }}">
+                        <li class="flex aspect-square items-center justify-center rounded-[0.875rem] bg-white p-2.5" title="{{ $partner['name'] }}">
                             <img src="{{ Storage::disk('public')->url($partner['logo']) }}" alt="{{ $partner['name'] }}" loading="lazy" width="160" height="80" class="max-h-full w-auto object-contain">
                         </li>
                     @endforeach
@@ -43,16 +44,16 @@
         <div data-footer-column class="flex flex-col gap-3">
             <h2 class="text-[19px] font-black text-white">{{ $text('contact') }}</h2>
             @if ($hasContact)
-                <ul class="space-y-3">
+                <ul class="space-y-2 text-[15px]">
                     @if ($email !== null)
                         <li class="flex items-center gap-2">
-                            {{ \App\Support\Icon::svg('envelope', 'size-[18px] shrink-0 text-brand-light', ['aria-hidden' => 'true']) }}
+                            <x-icon-tile icon="envelope" size="xs" :index="0" />
                             <a href="mailto:{{ $email }}" class="hover:text-white" dir="ltr">{{ $email }}</a>
                         </li>
                     @endif
                     @if ($phone !== null)
                         <li class="flex items-center gap-2">
-                            {{ \App\Support\Icon::svg('phone', 'size-[18px] shrink-0 text-brand-light', ['aria-hidden' => 'true']) }}
+                            <x-icon-tile icon="phone" size="xs" :index="1" />
                             <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="hover:text-white"><bdi dir="ltr">{{ $phone }}</bdi></a>
                         </li>
                     @endif
@@ -68,8 +69,8 @@
                     @endif
                     @if ($address !== null || $shortAddress !== null)
                         <li class="flex items-start gap-2">
-                            {{ \App\Support\Icon::svg('map-pin', 'mt-1 size-[18px] shrink-0 text-brand-light', ['aria-hidden' => 'true']) }}
-                            <span class="space-y-1 leading-7">
+                            <x-icon-tile icon="map-pin" size="xs" :index="2" class="mt-0.5" />
+                            <span class="space-y-0.5 leading-6">
                                 @if ($address !== null)
                                     <span class="block">{{ $address }}</span>
                                 @endif
@@ -93,12 +94,13 @@
         {{-- روابط سريعة --}}
         <nav data-footer-column aria-labelledby="footer-links" class="flex flex-col gap-2.5">
             <h2 id="footer-links" class="text-[19px] font-black text-white">{{ $text('quick_links') }}</h2>
-            <ul class="flex flex-col gap-2 text-[15px]">
+            {{-- كل رابط بمربع أيقونة ملون من قسمه (App\Support\MenuIcon — المدير التنفيذي، 31 أكتوبر 01:28) --}}
+            <ul class="grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] lg:grid-cols-1">
                 {{-- العنصر الذي يشير إلى صفحة غير منشورة يبقى في الرأس لعناصره الفرعية، ولا رابط له هنا (SiteChromeComposer) --}}
                 @foreach ($menu->where('linkable', true) as $item)
                     <li>
                         <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
-                            class="text-white/80 transition hover:text-white">{{ $item->label }}</a>
+                            class="inline-flex items-center gap-2 text-white/85 transition hover:text-white"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</a>
                     </li>
                 @endforeach
             </ul>
@@ -142,7 +144,7 @@
         </ul>
         <p>{{ $text('rights') }} © {{ now()->year }} {{ __('site.name') }}</p>
         <button type="button" data-back-to-top data-static aria-label="{{ __('site.back_to_top') }}"
-            class="inline-flex size-[2.875rem] items-center justify-center rounded-full border border-white/25 bg-primary text-white transition hover:bg-brand">
+            class="inline-flex size-[2.875rem] items-center justify-center rounded-full border border-white/25 bg-primary text-white transition hover:bg-primary-deep">
             {{ \App\Support\Icon::svg('chevron-up', 'size-[18px]', ['aria-hidden' => 'true']) }}
         </button>
     </div>

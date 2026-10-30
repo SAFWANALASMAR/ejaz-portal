@@ -127,7 +127,8 @@ it('shows the published initiatives on the home page unless the section is switc
 
     showLegacyHomeSections(['show_initiatives' => false]);
 
-    $this->get('/')->assertDontSee(route('initiatives.show', 'qiyam'), false);
+    // المقطع السابق يُطفأ من الإعدادات، وتبقى بطاقة «مبادراتنا» تحت البطل (ملاحظات المدير التنفيذي، 31 أكتوبر 01:28)
+    $this->get('/')->assertDontSee('aria-labelledby="home-initiatives"', false)->assertSee('data-identity-card="initiatives"', false);
 });
 
 it('marks the missing board members in development, and shows nothing of them in production', function () {
@@ -206,5 +207,7 @@ it('shares the initiative image, and shows at most three initiatives on the home
 
     $this->get('/initiatives/qiyam')->assertSee('<meta property="og:image" content="'.Storage::disk('public')->url('initiatives/cover.jpg').'">', false);
 
-    expect(substr_count($this->get('/')->getContent(), 'href="'.route('initiatives.index').'/'))->toBe(3);
+    // ثلاث في مقطع المبادرات السابق، والبقية في دوّار بطاقة «مبادراتنا» تحت البطل
+    preg_match('/<section[^>]*aria-labelledby="home-initiatives".*?<\/section>/s', $this->get('/')->getContent(), $section);
+    expect(substr_count($section[0], 'href="'.route('initiatives.index').'/'))->toBe(3);
 });

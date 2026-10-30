@@ -19,7 +19,6 @@ use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -65,6 +64,11 @@ class BuildHomePage
     public const ANNOUNCEMENTS = 12;
 
     /**
+     * عناصر كل شريط متحرك في الرئيسية (المرئيات، وأغلفة الكتب) وبطاقة «مبادراتنا».
+     */
+    public const STRIP = 12;
+
+    /**
      * الرئيسية بترتيب المدير التنفيذي (ملاحظاته عبر صفوان، 25 أكتوبر 2026): كلمة خادم الحرمين الشريفين، ثم كلمة رئيس مجلس
      * الإدارة، ثم المبررات، ثم القيم الأربع (content — HomeContent)، ثم شريط الأخبار، ثم شريط الإعلانات، ثم قنوات التواصل.
      * والمقاطع السابقة (البطل والإحصائيات والاختصارات والمقطع والمبادرات والمرئيات والشركاء) باقية تُظهر من الإعدادات،
@@ -76,7 +80,10 @@ class BuildHomePage
      *     slides: list<array{src: string, alt: string}>,
      *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
      *     prize: array{title: string, total: int, url: string}|null,
-     *     updates: list<array{kind: string, icon: string, title: string, url: string, date: Carbon}>,
+     *     top_initiatives: Collection<int, Initiative>,
+     *     strip_videos: Collection<int, LibraryItem>,
+     *     strip_books: Collection<int, LibraryItem>,
+     *     x_account: array{url: string, handle: string|null}|null,
      *     video: string|null,
      *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
@@ -102,7 +109,12 @@ class BuildHomePage
             'slides' => HomeShowcase::slides($home),
             'identity' => HomeShowcase::identity($content),
             'prize' => HomeShowcase::prize(),
-            'updates' => HomeShowcase::updates(),
+            // ملاحظات المدير (31 أكتوبر 01:28): «مبادراتنا» بطاقة تحت البطل، وشريطا المرئيات وأغلفة الكتب بدل «المستجدات»
+            'top_initiatives' => Initiative::query()->published()->limit(self::STRIP)->get(['id', 'slug', 'name', 'summary']),
+            'strip_videos' => self::stripVideos(),
+            // بطاقة «تابعنا على X» من حساب إكس في «الحسابات الرسمية» (قرار صفوان، 31 أكتوبر 01:38): بلا سكربت من إكس، وتختفي بلا رابط
+            'x_account' => self::xAccount(),
+            'strip_books' => LibraryItem::query()->published()->where('section', LibrarySection::Books)->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get(),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
@@ -120,6 +132,25 @@ class BuildHomePage
             'partners' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
             'sponsors' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
+    }
+
+    /**
+     * شريط المرئيات: أحدث مقاطع يوتيوب في المكتبة بصورها التي جلبها الخادم، ولا تشغيل في الرئيسية: الضغط إلى صفحة المقطع.
+     *
+     * @return Collection<int, LibraryItem>
+     */
+    private static function stripVideos(): Collection
+    {
+        return LibraryItem::query()
+            ->published()
+            ->where('section', LibrarySection::Videos)
+            ->whereNotNull('video_url')
+            ->newestFirst()
+            ->limit(self::STRIP * 2)
+            ->get()
+            ->filter(fn (LibraryItem $item): bool => $item->youtubeId() !== null && $item->thumbnailUrl() !== null)
+            ->take(self::STRIP)
+            ->values();
     }
 
     /**
@@ -161,6 +192,30 @@ class BuildHomePage
         }
 
         return $accounts;
+    }
+
+    /**
+     * حساب إكس الرسمي من «إعدادات الموقع» (contact.social.x): رابط https إلى x.com أو twitter.com، واسم الحساب من مساره.
+     *
+     * @return array{url: string, handle: string|null}|null
+     */
+    private static function xAccount(): ?array
+    {
+        $url = ((array) (Setting::group('contact')['social'] ?? []))['x'] ?? null;
+
+        if (! is_string($url) || ! str_starts_with($url, 'https://') || ! SafeUrl::isSafe($url)) {
+            return null;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        if (! in_array(preg_replace('/^(www|mobile)\./', '', $host), ['x.com', 'twitter.com'], true)) {
+            return null;
+        }
+
+        $handle = explode('/', trim((string) parse_url($url, PHP_URL_PATH), '/'))[0];
+
+        return ['url' => $url, 'handle' => preg_match('/^[A-Za-z0-9_]{1,15}$/', $handle) === 1 ? '@'.$handle : null];
     }
 
     /**

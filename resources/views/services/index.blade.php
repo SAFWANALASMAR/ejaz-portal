@@ -17,7 +17,7 @@
                             <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="card-lift group flex items-center gap-4 px-6 py-5">
                                 <x-icon-tile :icon="$tile['icon']" tone="lilac" size="lg" />
                                 <span class="flex-1 text-xl font-black text-primary-dark">{{ __($tile['label']) }}</span>
-                                <span class="rounded-full bg-primary-dark px-4.5 py-2 text-sm font-extrabold text-white transition group-hover:bg-brand" aria-hidden="true">{{ __('ui.media.survey_cta') }}</span>
+                                <span class="rounded-full bg-primary-dark px-4.5 py-2 text-sm font-extrabold text-white transition group-hover:bg-primary" aria-hidden="true">{{ __('ui.media.survey_cta') }}</span>
                             </a>
                         </li>
                     @else
@@ -25,7 +25,7 @@
                             <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="card-lift group flex h-full flex-col gap-3 px-6 py-6">
                                 <x-icon-tile :icon="$tile['icon']" :index="$loop->index" size="lg" />
                                 <span class="text-xl font-black text-primary-dark">{{ __($tile['label']) }}</span>
-                                <span class="mt-auto self-start rounded-full bg-primary-dark px-4.5 py-2 text-sm font-extrabold text-white transition group-hover:bg-brand" aria-hidden="true">{{ __('ui.services.start') }}</span>
+                                <span class="mt-auto self-start rounded-full bg-primary-dark px-4.5 py-2 text-sm font-extrabold text-white transition group-hover:bg-primary" aria-hidden="true">{{ __('ui.services.start') }}</span>
                             </a>
                         </li>
                     @endif

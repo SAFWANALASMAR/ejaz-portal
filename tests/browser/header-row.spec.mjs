@@ -21,16 +21,20 @@ async function headerLayout(page) {
         const actions = box(row.lastElementChild);
         const list = box(nav.querySelector('ul'));
         const lineHeight = parseFloat(getComputedStyle(links[0]).lineHeight);
+        // اسم العنصر تحت أيقونته (الخيار «ب» — صفوان، 31 أكتوبر 01:38): سطره من نص الرابط وحده لا من المربع كله
+        const textHeight = (link) => {
+            const range = document.createRange();
+            const text = [...link.childNodes].concat([...link.querySelectorAll(':scope > span:not([data-icon-tile])')].flatMap((span) => [...span.childNodes])).find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '');
+            range.selectNodeContents(text);
+            return range.getBoundingClientRect().height;
+        };
         const hamburger = header.querySelector('[data-toggle="mobile-menu"]');
 
         return {
             navShown: getComputedStyle(nav).display !== 'none',
             hamburgerShown: getComputedStyle(hamburger).display !== 'none',
-            // ارتفاع النص في كل رابط سطر واحد: ارتفاع الرابط ناقص حشوه الرأسي
-            lines: links.map((link) => {
-                const style = getComputedStyle(link);
-                return Math.round((box(link).height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / lineHeight);
-            }),
+            // اسم كل عنصر سطر واحد
+            lines: links.map((link) => Math.round(textHeight(link) / lineHeight)),
             clearOfBrand: list.right <= brand.left + 0.5,
             clearOfActions: list.left >= actions.right - 0.5,
             noHorizontalScroll: document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -54,8 +58,8 @@ for (const width of WIDTHS) {
     });
 }
 
-// الخط الأصغر قليلاً دون 1440 وحده، وما فوقه كما كان. و1240 أول ظهور القائمة (--breakpoint-nav) و1439 آخر الخط الأصغر
-for (const [width, size] of [[1240, '13.5px'], [1280, '13.5px'], [1439, '13.5px'], [1440, '14.5px'], [1920, '14.5px']]) {
+// اسم العنصر بخط 13 تحت أيقونته على كل عروض الحاسوب (الخيار «ب»). و1240 أول ظهور القائمة (--breakpoint-nav)
+for (const [width, size] of [[1240, '13px'], [1280, '13px'], [1439, '13px'], [1440, '13px'], [1920, '13px']]) {
     test(`uses ${size} menu text at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
@@ -106,7 +110,7 @@ test('switches to the menu button when the items do not fit, instead of wrapping
     await page.evaluate(() => {
         const list = document.querySelector('[data-main-nav] ul');
         const item = [...list.children].find((li) => li.querySelector(':scope > a'));
-        for (const label of ['خدماتنا الإلكترونية', 'الدورات والبرامج', 'المركز الإعلامي']) {
+        for (const label of ['خدماتنا الإلكترونية', 'الدورات والبرامج', 'المركز الإعلامي', 'الجمعية العمومية', 'قياس الرضا', 'البث المباشر', 'معرض الشواهد', 'الأسئلة الشائعة']) {
             const copy = item.cloneNode(true);
             copy.querySelector('a').textContent = label;
             list.append(copy);

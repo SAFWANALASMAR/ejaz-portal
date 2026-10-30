@@ -1,9 +1,11 @@
 {{--
     رأس الصفحة (التصور النهائي الملزم — docs/design/final-concept، وقرارا صفوان: الرأس داكن والشعار والمخطوطة بالأبيض والمخطوطة
     أكبر): أزرق داكن صلب بلون التذييل. في جهة البداية الشعار الرسمي والمخطوطة وتحتهما سطر الإشراف، ثم القائمة الرئيسية في
-    المنتصف (تُدار من اللوحة، وتلتف صفين كما في التصور) والنشط بخط تحته بالأزرق الفاتح، ثم زر الدخول الكبسولي الأزرق
+    المنتصف (تُدار من اللوحة، وتلتف صفين إن لم تتسع)، والنشط بخلفية أفتح وحد بالأزرق الفاتح، ثم زر الدخول الكبسولي الأزرق
     وزر البحث السريع (Ctrl+K). وتحت عرض nav (app.css) زر القائمة بدل القائمة.
     $siteMenu يأتي من App\View\Composers\SiteChromeComposer.
+
+    كل عنصر في الحاسوب مربع صغير وأيقونته المتدرجة فوق اسمه (الخيار «ب» — صفوان، 31 أكتوبر 01:38)، وفي قائمة الجوال بجانبه، والأيقونة من مسار رابطه (App\Support\MenuIcon).
 --}}
 @php($menu = $siteMenu ?? collect())
 
@@ -15,16 +17,16 @@
         </a>
 
         <nav data-main-nav class="hidden min-w-0 flex-1 justify-center nav:flex" aria-label="{{ __('site.main_navigation') }}">
-            <ul class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+            <ul class="flex flex-wrap items-stretch justify-center gap-1.5">
                 @foreach ($menu as $item)
                     @php($current = $item->isCurrent() || $item->hasCurrentChild())
                     <li class="relative shrink-0">
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @if ($current) data-current @endif
-                                class="nav-link relative flex shrink-0 items-center gap-1 whitespace-nowrap pb-1 text-[17px]">
-                                {{ $item->label }}
-                                {{ \App\Support\Icon::svg('chevron-down', 'size-3.5') }}
+                                class="nav-link relative flex h-full shrink-0 items-center whitespace-nowrap text-[13px]">
+                                <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />
+                                <span class="flex items-center gap-0.5">{{ $item->label }}{{ \App\Support\Icon::svg('chevron-down', 'size-3') }}</span>
                             </button>
                             <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-3 min-w-56 rounded-2xl border border-line/70 bg-white p-2 text-ink shadow-xl">
                                 @foreach ($item->children as $child)
@@ -38,7 +40,8 @@
                         @else
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 @if ($current) aria-current="page" @endif
-                                class="nav-link relative block shrink-0 whitespace-nowrap pb-1 text-[17px]">
+                                class="nav-link relative flex h-full shrink-0 items-center whitespace-nowrap text-[13px]">
+                                <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />
                                 {{ $item->label }}
                             </a>
                         @endif
@@ -94,7 +97,7 @@
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="mobile-menu-{{ $item->id }}"
                                 class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-white hover:bg-white/10">
-                                {{ $item->label }}
+                                <span class="flex items-center gap-2.5"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</span>
                                 {{ \App\Support\Icon::svg('chevron-down', 'size-4') }}
                             </button>
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-brand-light/50 ps-3">
@@ -106,7 +109,7 @@
                             </ul>
                         @else
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif @if ($item->isCurrent()) aria-current="page" @endif
-                                class="block rounded-xl px-4 py-3 font-medium text-white hover:bg-white/10 aria-[current=page]:font-bold aria-[current=page]:text-brand-light">{{ $item->label }}</a>
+                                class="flex items-center gap-2.5 rounded-xl px-4 py-3 font-medium text-white hover:bg-white/10 aria-[current=page]:font-bold aria-[current=page]:text-brand-light"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</a>
                         @endif
                     </li>
                 @endforeach

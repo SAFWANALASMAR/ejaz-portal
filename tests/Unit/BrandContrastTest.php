@@ -85,3 +85,28 @@ it('never puts dark text on the purple accent or the purple accent on the dark b
 
     expect($offenders)->toBe([]);
 });
+
+it('never puts white text on the brand blue, even on hover (3.69:1 is under AA)', function () {
+    $offenders = [];
+    $classes = "[^\"'\n]*";
+
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/resources/views')) as $file) {
+        if (! str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        foreach (file($file->getPathname()) ?: [] as $number => $line) {
+            // في سلسلة الأصناف نفسها: خلفية brand (بحالة أو بلا حالة) ونص أبيض
+            if (preg_match("/[\"']({$classes}\b([a-z-]+:)?bg-brand\b(?![\/-]){$classes}\btext-white\b|{$classes}\btext-white\b{$classes}\b([a-z-]+:)?bg-brand\b(?![\/-]))/", $line)) {
+                $offenders[] = $file->getFilename().':'.($number + 1);
+            }
+        }
+    }
+
+    // وزر الدخول في الرأس: نصه أبيض، فلونه عند المرور ليس brand
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+    preg_match('/\.login-pill:hover \{([^}]*)\}/', $css, $hover);
+
+    expect($offenders)->toBe([])
+        ->and($hover[1] ?? '')->not->toContain('--color-brand)');
+});
