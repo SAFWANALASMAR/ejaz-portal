@@ -87,16 +87,23 @@ final class Icon
     }
 
     /**
+     * اسم الأيقونة في حزمة Phosphor لاسمها في Heroicons.
+     */
+    public static function phosphor(string $name, bool $solid = false): string
+    {
+        return 'phosphor-'.(self::MAP[$name] ?? $name).($solid ? '-fill' : '-duotone');
+    }
+
+    /**
      * @param  array<string, mixed>  $attributes
      */
     private static function make(string $name, string $class, array $attributes, bool $solid): Svg
     {
         $attributes = ['aria-hidden' => 'true', ...$attributes];
         $factory = app(Factory::class);
-        $phosphor = 'phosphor-'.(self::MAP[$name] ?? $name).($solid ? '-fill' : '-duotone');
 
         try {
-            return $factory->svg($phosphor, $class, $attributes);
+            return $factory->svg(self::phosphor($name, $solid), $class, $attributes);
         } catch (SvgNotFound) {
             return $factory->svg('heroicon-'.($solid ? 's' : 'o').'-'.$name, $class, $attributes);
         }

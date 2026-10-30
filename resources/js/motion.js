@@ -17,6 +17,8 @@ let firstPage = true;
 onPage((signal) => {
     const off = motionOff();
     document.documentElement.toggleAttribute('data-motion-off', off);
+    // ما يُخفى حتى يكمله السكربت (صور .skeleton) يُخفى بهذا الوسم وحده، فبلا JavaScript يظهر كما هو
+    document.documentElement.setAttribute('data-motion-ready', '');
 
     // الظهور المتدرج لأبناء المجموعة، قبل أن يراقبها home.js
     document.querySelectorAll('[data-reveal-group]').forEach((group) => {
@@ -29,7 +31,14 @@ onPage((signal) => {
     if (!firstPage && !off) {
         const main = document.getElementById('main');
         main?.setAttribute('data-entering', '');
-        main?.addEventListener('animationend', () => main.removeAttribute('data-entering'), { once: true, signal });
+        // حركة الصفحة نفسها لا حركة عنصر داخلها تنتهي قبلها
+        const entered = (event) => {
+            if (event.target === main) {
+                main.removeAttribute('data-entering');
+                main.removeEventListener('animationend', entered);
+            }
+        };
+        main?.addEventListener('animationend', entered, { signal });
     }
 
     firstPage = false;
@@ -81,6 +90,8 @@ function scrollWatch(signal) {
 
 function words() {
     document.querySelectorAll('[data-words]:not([data-words-ready])').forEach((element) => {
+        // قارئ الشاشة يقرأ العنوان جملةً واحدة لا كلمات مجزأة
+        element.setAttribute('aria-label', element.textContent.replace(/\s+/g, ' ').trim());
         let index = 0;
         const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
         const nodes = [];
@@ -101,6 +112,7 @@ function words() {
 
                 const word = document.createElement('span');
                 word.setAttribute('data-word', '');
+                word.setAttribute('aria-hidden', 'true');
                 word.style.setProperty('--i', String(index++));
                 word.textContent = part;
                 fragment.append(word);
@@ -154,7 +166,16 @@ function counters(signal) {
         { threshold: 0.4 },
     );
 
-    items.forEach((item) => observer.observe(item));
+    // ما ظهر رقمه النهائي في الشاشة الأولى يبقى كما هو، فلا يقفز إلى الصفر ثم يعدّ
+    items.forEach((item) => {
+        const box = item.getBoundingClientRect();
+
+        if (box.top < window.innerHeight && box.bottom > 0) {
+            return;
+        }
+
+        observer.observe(item);
+    });
     signal.addEventListener('abort', () => observer.disconnect());
 }
 

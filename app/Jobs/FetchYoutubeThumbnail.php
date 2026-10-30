@@ -52,9 +52,11 @@ class FetchYoutubeThumbnail implements ShouldQueue
      */
     public static function download(string $youtube): ?string
     {
-        $response = Http::timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
+        $response = Http::connectTimeout(5)->timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
 
-        $bytes = $response->successful() ? $response->body() : '';
+        // الحجم المعلن قبل قراءة الجسم، ثم الحجم الفعلي
+        $declared = (int) $response->header('Content-Length');
+        $bytes = $response->successful() && $declared <= self::MAX_BYTES ? $response->body() : '';
         $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;
 
         if ($image === false) {

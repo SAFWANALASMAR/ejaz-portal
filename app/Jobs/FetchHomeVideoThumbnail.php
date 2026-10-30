@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 
 /**
  * صورة مقطع الرئيسية المفرد (رابط يوتيوب في «إعدادات الموقع») تُجلب مرة من الخادم بآلية صور المكتبة نفسها
@@ -20,6 +21,9 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 {
     use Queueable;
 
+    /** نمط معرّف يوتيوب، والمعرّف جزء من مسار الملف */
+    public const ID_PATTERN = '/^[A-Za-z0-9_-]{11}$/';
+
     public int $tries = 3;
 
     /** @var list<int> */
@@ -29,6 +33,10 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 
     public static function path(string $youtube): string
     {
+        if (preg_match(self::ID_PATTERN, $youtube) !== 1) {
+            throw new InvalidArgumentException('Invalid YouTube id.');
+        }
+
         return UpdateSiteSettings::IMAGE_DIRECTORY.'/'.FetchYoutubeThumbnail::PREFIX.$youtube.'.jpg';
     }
 
@@ -66,6 +74,10 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 
     public function handle(): void
     {
+        if (preg_match(self::ID_PATTERN, $this->youtube) !== 1) {
+            return;
+        }
+
         if (Storage::disk('public')->exists(self::path($this->youtube))) {
             return;
         }
@@ -83,7 +95,7 @@ class FetchHomeVideoThumbnail implements ShouldQueue
         }
 
         Storage::disk('public')->put(self::path($this->youtube), $jpeg);
-        // الرئيسية مخزّنة، فتظهر الصورة فوراً
-        ContentCache::flush();
+        // الرئيسية مخزّنة، فتظهر الصورة فوراً بمسح مفتاحها وحده (HomeController)
+        ContentCache::forget('home');
     }
 }

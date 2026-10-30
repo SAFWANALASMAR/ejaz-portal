@@ -16,7 +16,7 @@
     /* مربع الأيقونة: زوايا مستديرة وتدرج خفيف من ألوان الهوية (بطاقات «قيمنا» في المرجع) */
     .icon-tile {
         @apply inline-flex shrink-0 items-center justify-center rounded-2xl text-primary;
-        background: linear-gradient(135deg, var(--color-primary-soft), #fff 70%);
+        background: linear-gradient(135deg, var(--color-primary-soft), var(--color-white) 70%);
         box-shadow:
             inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 18%, transparent),
             0 10px 24px -14px color-mix(in srgb, var(--color-primary) 55%, transparent);
@@ -32,8 +32,8 @@
     .section-dark .icon-tile,
     .icon-tile-dark {
         @apply text-highlight-on-dark;
-        background: linear-gradient(135deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.04));
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-white) 16%, transparent), color-mix(in srgb, var(--color-white) 4%, transparent));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 18%, transparent);
     }
 
     /* العبارة الصغيرة فوق العنوان */
@@ -54,7 +54,7 @@
     }
 
     .section-dark .text-gradient {
-        background-image: linear-gradient(90deg, #fff, var(--color-highlight-on-dark));
+        background-image: linear-gradient(90deg, var(--color-white), var(--color-highlight-on-dark));
     }
 
     /* الخط الزخرفي تحت العنوان: يُرسم عند ظهوره (data-revealed من motion.js) */
@@ -73,7 +73,10 @@
 
     /* البطاقة: ظل ناعم ورفع عند المرور */
     .card-lift {
-        @apply rounded-3xl border border-line/70 bg-white shadow-[0_8px_30px_-18px_rgb(31_69_101_/_0.35)];
+        @apply rounded-3xl border border-line/70 bg-white;
+        box-shadow: 0 8px 30px -18px color-mix(in srgb, var(--color-primary-dark) 35%, transparent);
+        /* الرفع بمتغير (--lift)، فتجمعه .tilt مع الإمالة في transform واحد */
+        transform: translateY(var(--lift, 0px));
         transition:
             transform calc(300ms * var(--motion)) ease,
             box-shadow calc(300ms * var(--motion)) ease,
@@ -82,18 +85,17 @@
 
     .card-lift:hover,
     .card-lift:focus-within {
-        @apply border-primary/30 shadow-[0_18px_40px_-20px_rgb(31_69_101_/_0.45)];
-        transform: translateY(calc(-4px * var(--motion)));
+        @apply border-primary/30;
+        box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--color-primary-dark) 45%, transparent);
+        --lift: calc(-4px * var(--motion));
     }
 
-    /* القسم الداكن: لون الهوية بدوائر باهتة وتدرج يتحرك ببطء */
+    /* القسم الداكن: لون الهوية بدوائر باهتة ثابتة (لا حركة مستمرة: مراجعة المشرف على #95) */
     .section-dark {
         @apply relative isolate overflow-hidden bg-primary-dark text-white;
         background-image:
-            radial-gradient(circle at 15% 20%, rgb(62 138 202 / 0.35), transparent 45%),
-            radial-gradient(circle at 85% 80%, rgb(93 42 146 / 0.35), transparent 45%);
-        background-size: 140% 140%;
-        animation: section-glow 24s ease-in-out infinite alternate;
+            radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--color-brand) 35%, transparent), transparent 45%),
+            radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--color-accent) 35%, transparent), transparent 45%);
     }
 
     .section-dark::before,
@@ -103,7 +105,7 @@
         position: absolute;
         z-index: -1;
         border-radius: 9999px;
-        border: 1px solid rgb(255 255 255 / 0.08);
+        border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
     }
 
     .section-dark::before {
@@ -112,8 +114,8 @@
         width: 26rem;
         height: 26rem;
         box-shadow:
-            0 0 0 3rem rgb(255 255 255 / 0.025),
-            0 0 0 6rem rgb(255 255 255 / 0.02);
+            0 0 0 3rem color-mix(in srgb, var(--color-white) 2.5%, transparent),
+            0 0 0 6rem color-mix(in srgb, var(--color-white) 2%, transparent);
     }
 
     .section-dark::after {
@@ -121,12 +123,13 @@
         bottom: -10rem;
         width: 20rem;
         height: 20rem;
-        box-shadow: 0 0 0 2.5rem rgb(255 255 255 / 0.025);
+        box-shadow: 0 0 0 2.5rem color-mix(in srgb, var(--color-white) 2.5%, transparent);
     }
 
     /* بطاقة على القسم الداكن: حدود رفيعة بلون التمييز */
     .card-dark {
         @apply rounded-3xl border border-highlight-on-dark/25 bg-white/[0.06];
+        transform: translateY(var(--lift, 0px));
         transition:
             transform calc(300ms * var(--motion)) ease,
             border-color 200ms,
@@ -135,7 +138,7 @@
 
     .card-dark:hover {
         @apply border-highlight-on-dark/50 bg-white/10;
-        transform: translateY(calc(-4px * var(--motion)));
+        --lift: calc(-4px * var(--motion));
     }
 
     /* زخرفة هندسية بيضاء باهتة للأقسام الداكنة */
@@ -158,7 +161,7 @@
         inset-inline-start: -60%;
         z-index: -1;
         width: 40%;
-        background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.35), transparent);
+        background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-white) 35%, transparent), transparent);
         transform: skewX(-20deg);
         transition: inset-inline-start calc(700ms * var(--motion)) ease;
     }
@@ -170,9 +173,8 @@
     /* هيكل تحميل الصورة: لمعة تتحرك حتى تُحمَّل (data-loaded من motion.js) */
     .skeleton {
         @apply bg-surface;
-        background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.7) 50%, transparent 70%);
+        background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-white) 70%, transparent) 50%, transparent 70%);
         background-size: 200% 100%;
-        animation: skeleton 1.4s linear infinite;
     }
 
     .skeleton[data-loaded] {
@@ -183,7 +185,8 @@
 
 /* الإمالة الخفيفة بلمعة (motion.js يضع --tilt-x و--tilt-y و--shine-x و--shine-y مع حركة الفأرة وحدها) */
 .tilt {
-    transform: perspective(900px) rotateX(calc(var(--tilt-x, 0deg) * var(--motion))) rotateY(calc(var(--tilt-y, 0deg) * var(--motion)));
+    transform: perspective(900px) translateY(var(--lift, 0px)) rotateX(calc(var(--tilt-x, 0deg) * var(--motion)))
+        rotateY(calc(var(--tilt-y, 0deg) * var(--motion)));
 }
 
 .tilt::after {
@@ -193,7 +196,7 @@
     inset: 0;
     border-radius: inherit;
     opacity: 0;
-    background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 50%), rgb(255 255 255 / 0.5), transparent 55%);
+    background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 50%), color-mix(in srgb, var(--color-white) 50%, transparent), transparent 55%);
     transition: opacity 300ms;
 }
 
@@ -205,7 +208,7 @@
     pointer-events: none;
     position: absolute;
     border-radius: 9999px;
-    background: rgb(255 255 255 / 0.45);
+    background: color-mix(in srgb, var(--color-white) 45%, transparent);
     transform: scale(0);
     animation: ripple calc(600ms * var(--motion)) ease-out forwards;
 }
@@ -214,7 +217,8 @@
     transition: opacity calc(500ms * var(--motion));
 }
 
-.skeleton:not([data-loaded]) img {
+/* تُخفى الصورة حتى تُحمَّل متى عمل السكربت وحده (html[data-motion-ready] من motion.js)، فبلا JavaScript تظهر كما هي */
+html[data-motion-ready] .skeleton:not([data-loaded]) img {
     opacity: 0;
 }
 
@@ -229,8 +233,18 @@ html[data-reveal-ready] .flourish path {
 
 /* البطل: تكبير بطيء للصورة (Ken Burns)، وظهور النص كلمة كلمة (motion.js يقسّمه إلى [data-word]) */
 .ken-burns {
-    animation: ken-burns 22s ease-in-out infinite alternate;
     transform-origin: center;
+}
+
+/* الحلقات المستمرة لمن لم يطلب تقليل الحركة وحده، فتحترمه ولو بلا JavaScript */
+@media (prefers-reduced-motion: no-preference) {
+    .ken-burns {
+        animation: ken-burns 22s ease-in-out infinite alternate;
+    }
+
+    .skeleton:not([data-loaded]) {
+        animation: skeleton 1.4s linear infinite;
+    }
 }
 
 [data-words-ready] [data-word] {
@@ -243,7 +257,7 @@ html[data-reveal-ready] .flourish path {
 
 /* الرأس الزجاجي: شفاف بضبابية فوق الصفحة، ويصير صلباً بظل عند التمرير (data-scrolled من app.js) */
 [data-site-header] {
-    background-color: rgb(255 255 255 / 0.72);
+    background-color: color-mix(in srgb, var(--color-white) 72%, transparent);
     -webkit-backdrop-filter: saturate(1.6) blur(14px);
     backdrop-filter: saturate(1.6) blur(14px);
     transition:
@@ -252,7 +266,7 @@ html[data-reveal-ready] .flourish path {
 }
 
 [data-site-header][data-scrolled] {
-    background-color: rgb(255 255 255 / 0.97);
+    background-color: color-mix(in srgb, var(--color-white) 97%, transparent);
 }
 
 /* مؤشر العنصر النشط: يُرسم من الوسط عند التحميل، وغير النشط يظهر خطه عند المرور */
@@ -287,6 +301,7 @@ html[data-reveal-ready] .flourish path {
     height: 3px;
     background: linear-gradient(270deg, var(--color-brand), var(--color-highlight));
     transform: scaleX(var(--scroll, 0));
+    /* الموقع عربي وحده (dir="rtl" في التخطيط)، فيمتد الشريط من اليمين، والتدرج من جهة البداية كذلك (270deg) */
     transform-origin: right;
     pointer-events: none;
 }
@@ -295,13 +310,17 @@ html[data-reveal-ready] .flourish path {
 [data-back-to-top] {
     transition:
         opacity 300ms,
-        transform calc(300ms * var(--motion));
+        transform calc(300ms * var(--motion)),
+        visibility 0s;
 }
 
+/* المخفي لا يُركَّز عليه ولا يقرؤه قارئ الشاشة (visibility)، وتتأخر بعد انتهاء الإخفاء فيبقى التلاشي */
 [data-back-to-top]:not([data-visible]) {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
     transform: translateY(calc(1rem * var(--motion)));
+    transition-delay: 0s, 0s, 300ms;
 }
 
 /* انتقال ناعم بين الصفحات مع التنقّل السريع (motion.js يضع data-entering على main) */
@@ -312,16 +331,6 @@ html[data-reveal-ready] .flourish path {
 /* عارض الصور يدخل بحركة */
 [data-gallery-dialog][open] img {
     animation: zoom-in calc(400ms * var(--motion)) cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-@keyframes section-glow {
-    from {
-        background-position: 0% 0%;
-    }
-
-    to {
-        background-position: 100% 100%;
-    }
 }
 
 @keyframes ripple {
@@ -394,7 +403,6 @@ html[data-reveal-ready] .flourish path {
 
 /* الحلقات المستمرة والظهور بالكلمة تتوقف كلها بالمفتاح نفسه: لمن طلب تقليل الحركة، أو بـ --motion: 0 للجميع
    (html[data-motion-off] يضعه motion.js متى كانت قيمته صفراً، لأن CSS لا يوقف animation بمتغير) */
-html[data-motion-off] .section-dark,
 html[data-motion-off] .ken-burns,
 html[data-motion-off] .skeleton,
 html[data-motion-off] [data-main-nav] ::after {
