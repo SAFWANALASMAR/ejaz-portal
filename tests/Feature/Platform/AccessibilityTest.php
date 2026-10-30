@@ -7,7 +7,6 @@ use App\Models\MenuItem;
 use App\Models\NewsArticle;
 use App\Models\Program;
 use App\Models\User;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 
@@ -218,9 +217,8 @@ it('gives the skip link and the unavailable search icon an accessible name', fun
     expect(trim($x->query('//a[@href="#main"]')->item(0)->textContent))->toBe(__('site.skip_to_content'))
         ->and($x->query('//main[@id="main"][@tabindex="-1"]')->length)->toBe(1);
 
-    if (! Route::has('search')) {
-        expect($x->query("//button[@aria-disabled='true'][@aria-label='".__('site.search_soon')."']")->length)->toBe(1);
-    }
+    // زر البحث السريع (Ctrl+K) في الرأس باسمه
+    expect($x->query("//button[@data-search-open][@aria-label='".__('ui.search.open')."']")->length)->toBe(1);
 });
 
 it('describes each competition question group by its prompt', function () {

@@ -140,7 +140,8 @@ it('marks the missing board members in development, and shows nothing of them in
 
     $this->withoutVite()->get('/about')->assertOk()
         ->assertDontSee(__('content.about.board_missing'))
-        ->assertDontSee(__('content.about.board'));
+        // «مجلس الإدارة» في عنوان كلمة رئيسه في الصفحة (التصور النهائي)، فيُفحص مقطع المجلس نفسه
+        ->assertDontSee('id="board"', false);
 });
 
 it('keeps the cache of each initiative apart from the list, whatever its slug', function (array $visits) {

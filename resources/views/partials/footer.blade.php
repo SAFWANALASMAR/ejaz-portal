@@ -107,6 +107,7 @@
         {{-- الشعار والإشراف والحسابات --}}
         <div data-footer-column class="flex flex-col items-start gap-3">
             <x-brand light size="footer" />
+            <p class="max-w-sm text-sm leading-7 text-white/80">{{ $text('about') }}</p>
             <p class="text-[13px]">{{ $text('supervision') }}</p>
             <p class="text-xs text-white/75">{{ $text('license') }}</p>
             @if ($social !== [])

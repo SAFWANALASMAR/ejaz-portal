@@ -11,20 +11,20 @@
 @endphp
 
 @if ($first || $latest->isNotEmpty())
-    <section class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7" aria-label="{{ __('ui.announcements.title') }} — {{ __('ui.news.title') }}">
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7" aria-label="{{ $tickers['announcements'] }} — {{ $tickers['news'] }}">
         <div @class(['grid gap-8', 'lg:grid-cols-2' => $first && $latest->isNotEmpty()])>
             @if ($first)
                 <div class="flex flex-col gap-4" data-reveal>
                     @if ($slides > 0)
                         <div class="flex items-center justify-between gap-4">
                             <h2 id="home-announcements" class="flex items-center gap-2.5 text-[1.875rem] font-black text-primary-dark">
-                                {{ __('ui.announcements.title') }}
+                                {{ $tickers['announcements'] }}
                                 <span class="icon-line">{{ \App\Support\Icon::svg('bell', 'size-[1.875rem]', ['aria-hidden' => 'true']) }}</span>
                             </h2>
                             <a href="{{ route('media.announcements') }}" wire:navigate class="more-link">{{ __('ui.announcements.more') }}</a>
                         </div>
 
-                        <x-carousel :label="__('ui.announcements.title')" :count="$slides" autoplay :interval="7000" :status="false">
+                        <x-carousel :label="$tickers['announcements']" :count="$slides" autoplay :interval="7000" :status="false">
                             @if ($prize !== null)
                                 <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-carousel-item data-active class="announcement-feature group relative flex min-h-[14.375rem] flex-col gap-2 overflow-hidden rounded-[1.25rem] px-7.5 py-7 text-white">
                                     <svg class="pointer-events-none absolute -top-15 -end-12 size-75 opacity-15" viewBox="0 0 200 200" fill="none" stroke="currentColor" aria-hidden="true">
@@ -79,7 +79,7 @@
                 <div class="flex flex-col gap-4" data-reveal style="--reveal-delay: 120ms">
                     <div class="flex items-center justify-between gap-4">
                         <h2 id="home-news" class="flex items-center gap-2.5 text-[1.875rem] font-black text-primary-dark">
-                            {{ __('ui.news.title') }}
+                            {{ $tickers['news'] }}
                             <span class="icon-line">{{ \App\Support\Icon::svg('megaphone', 'size-[1.875rem]', ['aria-hidden' => 'true']) }}</span>
                         </h2>
                         <a href="{{ route('media.news.index') }}" wire:navigate class="more-link">{{ __('ui.news.more') }}</a>

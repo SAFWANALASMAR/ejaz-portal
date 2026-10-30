@@ -43,7 +43,8 @@ it('shows up to three chosen published YouTube videos, playing only on request',
     LibraryItem::factory()->create(['title' => 'كتاب مختار', 'section' => LibrarySection::Books, 'on_home' => true]);
     LibraryItem::factory()->video('https://media.example.org/talk.mp4')->create(['title' => 'مرئي مستضاف مختار', 'on_home' => true]);
 
-    $html = (string) $this->get('/')->assertOk()->getContent();
+    // مقطع المرئيات وحده: «مستجدات الجمعية» في الرئيسية تعرض أحدث المنشور من المكتبة كله (التصور النهائي)
+    $html = (string) str((string) $this->get('/')->assertOk()->getContent())->after('id="home-videos"')->before('</section>');
 
     expect($html)->toContain(__('home.videos.title'))
         ->toContain('مرئي مختار 0')->toContain('مرئي مختار 2')

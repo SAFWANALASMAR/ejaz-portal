@@ -8,7 +8,7 @@
 @include('home.partials.hero', ['hero' => $hero, 'slides' => $slides])
 @include('home.partials.identity', ['identity' => $identity, 'prize' => $prize])
 @include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content])
-@include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize, 'updates' => $updates])
+@include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize, 'updates' => $updates, 'tickers' => $content['tickers']])
 
 @include('home.partials.king', ['king' => $content['king']])
 @include('home.partials.chairman', ['chairman' => $content['chairman']])

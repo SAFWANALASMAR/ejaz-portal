@@ -22,7 +22,7 @@
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @if ($current) data-current @endif
-                                class="nav-link relative flex items-center gap-1 whitespace-nowrap pb-1 text-[17px]">
+                                class="nav-link relative flex shrink-0 items-center gap-1 whitespace-nowrap pb-1 text-[17px]">
                                 {{ $item->label }}
                                 {{ \App\Support\Icon::svg('chevron-down', 'size-3.5') }}
                             </button>
@@ -38,7 +38,7 @@
                         @else
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 @if ($current) aria-current="page" @endif
-                                class="nav-link relative block whitespace-nowrap pb-1 text-[17px]">
+                                class="nav-link relative block shrink-0 whitespace-nowrap pb-1 text-[17px]">
                                 {{ $item->label }}
                             </a>
                         @endif
@@ -71,11 +71,11 @@
                 @endauth
             </div>
 
-            {{-- البحث السريع (partials/search-palette): نافذة بـ Ctrl+K أو بالضغط. وبلا سكربت رابط إلى بحث الحوكمة --}}
-            <a href="{{ Route::has('governance.index') ? route('governance.index') : route('home') }}" data-search-open role="button"
+            {{-- البحث السريع (partials/search-palette): نافذة بـ Ctrl+K أو بالضغط --}}
+            <button type="button" data-search-open
                 class="header-icon-button" aria-label="{{ __('ui.search.open') }}" aria-keyshortcuts="Control+K Meta+K" title="{{ __('ui.search.open') }} ({{ __('ui.search.shortcut') }})">
                 {{ \App\Support\Icon::svg('magnifying-glass', 'size-[19px]', ['aria-hidden' => 'true']) }}
-            </a>
+            </button>
 
             <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
                 class="header-icon-button nav:hidden">

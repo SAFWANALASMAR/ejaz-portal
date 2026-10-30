@@ -60,14 +60,16 @@ function expectQueryBudget(Closure $seed, Closure $request, int $max): void
     expect($many)->toBe($few)->toBeLessThanOrEqual($max);
 }
 
+// وكل سقف +1 منذ شعارات الشركاء في التذييل (مخزّنة مع المحتوى، فتُسأل مرة بعد مسحه)، والرئيسية +5 منذ بنية التصور النهائي:
+// صور العارض، والجوائز، والمستجدات من البرامج والمسابقات والمكتبة والحوكمة (docs/decisions/2026-10-30-visual-refresh-2.md)
 it('keeps the public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
-    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 3],
-    'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
-    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 3],
-    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 5],
-    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 3],
+    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 4],
+    'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 3],
+    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 4],
+    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
+    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 4],
 ]);
 
 it('serves the cached public pages without queries', function () {
@@ -104,10 +106,10 @@ it('keeps the account pages within a fixed number of queries', function (string 
 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
-    // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)
-    'dashboard' => ['/account', 14],
-    'programs' => ['/account/programs', 5],
-    'requests' => ['/account/requests', 4],
+    // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+1 منذ شعارات الشركاء في التذييل
+    'dashboard' => ['/account', 15],
+    'programs' => ['/account/programs', 6],
+    'requests' => ['/account/requests', 5],
 ]);
 
 it('keeps the program types table to one query for all rows', function () {

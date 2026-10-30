@@ -545,3 +545,14 @@ html[data-motion-off] .card-glow:hover::after {
         inset-inline-start: 130%;
     }
 }
+
+/* الأيقونة العائمة بخفة (الحالة الفارغة وصفحة الخطأ)، في الشاشة وحدها ولمن لم يطلب تقليل الحركة */
+@media (prefers-reduced-motion: no-preference) {
+    [data-inview].float-soft {
+        animation: float-soft 6s ease-in-out infinite;
+    }
+}
+
+html[data-motion-off] .float-soft {
+    animation: none;
+}

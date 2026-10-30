@@ -11,7 +11,7 @@
     $details = array_values(array_filter([...$meta, $size]));
 @endphp
 
-<article {{ $attributes->class('card-lift group flex items-center gap-4 rounded-[1.125rem] px-4 py-3.5') }}>
+<article data-file-card {{ $attributes->class('card-lift group flex items-center gap-4 rounded-[1.125rem] px-4 py-3.5') }}>
     <span class="relative shrink-0">
         <x-icon-tile icon="document-text" :index="$index" size="md" />
         <span class="absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none font-bold tracking-wide text-white" aria-hidden="true">{{ $type }}</span>

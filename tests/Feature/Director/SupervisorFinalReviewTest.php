@@ -191,8 +191,9 @@ it('draws the rationale with the calligraphy file, and replaces the logo files f
     Storage::disk('public')->put('settings/new-mark.png', imageBytes('png', 40, 40));
     saveHomeContent(userWithRole(RoleName::ContentEditor), ['brand' => ['mark' => 'settings/new-mark.png']]);
 
+    // الشعار الملون في بطاقة الدخول (الرأس والتذييل بالأبيض — التصور النهائي)
     expect(HomeContent::brand('mark'))->toBe(Storage::disk('public')->url('settings/new-mark.png'))
-        ->and((string) $this->get('/')->getContent())->toContain(Storage::disk('public')->url('settings/new-mark.png'));
+        ->and((string) $this->get('/login')->getContent())->toContain(Storage::disk('public')->url('settings/new-mark.png'));
 
     // ولا مسار خارج مجلد الإعدادات
     expect(fn () => saveHomeContent(userWithRole(RoleName::TechnicalAdmin), ['brand' => ['mark' => '../.env']]))->toThrow(ValidationException::class);
