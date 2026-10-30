@@ -30,7 +30,7 @@
                         @endif
                         <span class="absolute inset-0 bg-primary-dark/40" aria-hidden="true"></span>
                         <span class="relative inline-flex size-20 items-center justify-center rounded-full bg-white/20 backdrop-blur transition group-hover:bg-white/30" aria-hidden="true">
-                            {{ svg('heroicon-s-play', 'size-10') }}
+                            {{ \App\Support\Icon::solid('play', 'size-10') }}
                         </span>
                         <span class="relative text-lg font-semibold">{{ __('library.item.play') }}</span>
                         <span class="relative text-sm text-white/85">{{ __('library.item.youtube_notice') }}</span>
@@ -41,7 +41,7 @@
             </div>
         @endif
 
-        <div class="flex flex-wrap items-center justify-between gap-6 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-6 card-lift p-6">
             <dl class="grid gap-x-10 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
                     <dt class="text-muted">{{ __('library.fields.section') }}</dt>
@@ -121,7 +121,7 @@
     <section class="bg-surface py-12 sm:py-16" aria-labelledby="related">
         <div class="container-page">
             <x-section-heading id="related">{{ __('library.item.related') }}</x-section-heading>
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($related as $other)
                     <li>@include('library.card', ['item' => $other])</li>
                 @endforeach

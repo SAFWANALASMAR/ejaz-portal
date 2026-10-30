@@ -29,16 +29,16 @@
                 <dl class="mt-6 grid gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-sm text-muted">{{ __('assembly.meetings.when') }}</dt>
-                        <dd class="mt-1 flex items-center gap-2 font-semibold text-ink">{{ svg('heroicon-o-calendar-days', 'size-5 text-accent') }} {{ Dates::display($meeting->starts_at, withTime: true) }}</dd>
+                        <dd class="mt-1 flex items-center gap-2 font-semibold text-ink">{{ \App\Support\Icon::svg('calendar-days', 'size-5 text-accent') }} {{ Dates::display($meeting->starts_at, withTime: true) }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-muted">{{ __('assembly.meetings.where') }}</dt>
                         <dd class="mt-1 space-y-1 font-semibold text-ink">
                             @if (filled($meeting->location))
-                                <span class="flex items-center gap-2">{{ svg('heroicon-o-map-pin', 'size-5 text-accent') }} {{ $meeting->location }}</span>
+                                <span class="flex items-center gap-2">{{ \App\Support\Icon::svg('map-pin', 'size-5 text-accent') }} {{ $meeting->location }}</span>
                             @endif
                             @if ($meeting->is_online)
-                                <span class="flex items-center gap-2">{{ svg('heroicon-o-video-camera', 'size-5 text-accent') }} {{ __('assembly.meetings.online') }}</span>
+                                <span class="flex items-center gap-2">{{ \App\Support\Icon::svg('video-camera', 'size-5 text-accent') }} {{ __('assembly.meetings.online') }}</span>
                             @endif
                         </dd>
                     </div>
@@ -69,7 +69,7 @@
                         @foreach ($meeting->attachments as $index => $file)
                             <li>
                                 <a href="{{ $meeting->attachmentUrl($index) }}" class="flex items-center gap-3 py-3 text-ink hover:text-primary">
-                                    {{ svg('heroicon-o-document-arrow-down', 'size-6 shrink-0 text-accent') }}
+                                    {{ \App\Support\Icon::svg('document-arrow-down', 'size-6 shrink-0 text-accent') }}
                                     <span class="min-w-0 flex-1 break-words">{{ $file['name'] }}</span>
                                 </a>
                             </li>

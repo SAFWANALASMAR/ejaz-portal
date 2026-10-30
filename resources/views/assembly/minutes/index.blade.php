@@ -18,7 +18,7 @@
                     @foreach ($meetings as $meeting)
                         <li class="flex flex-wrap items-center gap-4 p-4 sm:p-5">
                             <span class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft text-primary" aria-hidden="true">
-                                {{ svg('heroicon-o-document-text', 'size-6') }}
+                                {{ \App\Support\Icon::svg('document-text', 'size-6') }}
                             </span>
                             <span class="min-w-0 flex-1">
                                 <a href="{{ route('assembly.meetings.show', $meeting) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $meeting->title }}</a>

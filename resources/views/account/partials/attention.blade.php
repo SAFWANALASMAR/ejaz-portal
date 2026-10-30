@@ -2,7 +2,7 @@
 @if ($summary['needs_completion']->isNotEmpty() || $summary['open_drafts']->isNotEmpty())
     <section aria-labelledby="attention" class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
         <h2 id="attention" class="flex items-center gap-2 font-semibold">
-            {{ svg('heroicon-o-exclamation-triangle', 'size-5') }}
+            {{ \App\Support\Icon::svg('exclamation-triangle', 'size-5') }}
             {{ __('account.summary.attention') }}
         </h2>
         <ul class="mt-3 space-y-2">

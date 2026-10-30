@@ -10,6 +10,8 @@ import './competition-exam';
 import './student-competition';
 import './assistant';
 import './password-rules';
+// قبل home.js: يضع data-reveal على أبناء [data-reveal-group] قبل أن يراقبها
+import './motion';
 import './home';
 import './pdf-reader';
 
