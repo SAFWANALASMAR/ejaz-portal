@@ -362,7 +362,7 @@ return [
     ],
 
     // ملخص «بياناتي» ببياناته مخفية حتى يظهرها صاحبها (account/partials/profile-summary — تدقيق المشرف)
-    'summary' => [
+    'profile_summary' => [
         'title' => 'ملخص بياناتي',
         'show' => 'إظهار البيانات',
         'hide' => 'إخفاء البيانات',

@@ -20,7 +20,7 @@ it('shows the owner a masked summary with the reveal button', function () {
 
     $this->actingAs($user)->get('/account/profile')->assertOk()
         ->assertSee('data-profile-summary', false)
-        ->assertSeeInOrder([__('account.summary.title'), 'aria-expanded="false"', 'aria-controls="profile-summary-list"', __('account.summary.show')], false)
+        ->assertSeeInOrder([__('account.profile_summary.title'), 'aria-expanded="false"', 'aria-controls="profile-summary-list"', __('account.profile_summary.show')], false)
         ->assertSeeInOrder(['data-masked', 's••••@example.test', 'data-full dir="ltr" hidden', 'sara@example.test'], false)
         ->assertSee('data-icon-tile', false);
 });

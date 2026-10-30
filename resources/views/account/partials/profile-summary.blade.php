@@ -18,13 +18,13 @@
 
 <x-card data-profile-summary>
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="flex items-center gap-2 text-lg font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('account.summary.title') }}</h2>
+        <h2 class="flex items-center gap-2 text-lg font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('account.profile_summary.title') }}</h2>
         @if ($hasMasked)
             <button type="button" data-reveal-toggle aria-expanded="false" aria-controls="profile-summary-list"
-                data-label-show="{{ __('account.summary.show') }}" data-label-hide="{{ __('account.summary.hide') }}"
+                data-label-show="{{ __('account.profile_summary.show') }}" data-label-hide="{{ __('account.profile_summary.hide') }}"
                 class="inline-flex items-center gap-2 rounded-full border border-primary bg-white px-4 py-1.5 text-sm font-bold text-primary transition hover:bg-primary-soft">
                 {{ \App\Support\Icon::svg('eye', 'size-4', ['aria-hidden' => 'true']) }}
-                <span data-reveal-label>{{ __('account.summary.show') }}</span>
+                <span data-reveal-label>{{ __('account.profile_summary.show') }}</span>
             </button>
         @endif
     </div>
@@ -32,7 +32,7 @@
     <dl id="profile-summary-list" class="mt-5 grid gap-4 sm:grid-cols-2" data-revealed="false">
         @foreach (array_values($rows) as $row)
             <div class="grid grid-cols-[auto_1fr] items-center gap-x-3">
-                <dt class="contents text-sm text-muted"><x-icon-tile :icon="$row['icon']" size="sm" :index="$loop->index" class="row-span-2" /><span>{{ __('account.summary.'.$row['key']) }}</span></dt>
+                <dt class="contents text-sm text-muted"><x-icon-tile :icon="$row['icon']" size="sm" :index="$loop->index" class="row-span-2" /><span>{{ __('account.profile_summary.'.$row['key']) }}</span></dt>
                 <dd class="min-w-0 font-bold break-words text-ink">
                     @if ($row['masked'] !== null)
                         <span data-masked dir="ltr">{{ $row['masked'] }}</span>

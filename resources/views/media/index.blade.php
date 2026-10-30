@@ -56,7 +56,7 @@
                                 <a href="{{ route('media.news.show', $article->slug) }}" wire:navigate class="group flex items-center gap-4 py-4">
                                     <span class="flex min-w-0 flex-1 flex-col gap-1">
                                         @if (filled($article->category))
-                                            <span class="self-start rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-extrabold text-accent">{{ $article->category }}</span>
+                                            <span class="self-start rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-extrabold text-accent-dark">{{ $article->category }}</span>
                                         @endif
                                         <span class="text-lg leading-snug font-black text-primary-dark group-hover:text-primary">{{ $article->title }}</span>
                                         <time datetime="{{ $article->published_on->toDateString() }}" class="text-sm text-muted">{{ \App\Support\Dates::display($article->published_on) }}</time>
