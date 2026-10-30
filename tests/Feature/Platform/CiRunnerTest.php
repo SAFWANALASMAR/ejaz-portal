@@ -78,12 +78,21 @@ it('recreates the private Docker server and its volumes before every job, and ke
 
     // خادم جديد ومجلدان جديدان قبل المهمة، بخطوات متسلسلة (&&)، ولا مهمة إن تعذّر
     expect($loop[1] ?? '')->toMatch('/if ! clean; then.*?continue.*?docker compose run --rm -T runner ephemeral/s')
-        ->and($clean[1] ?? '')->toMatch('/docker compose rm -sf dind[^\n]*\\\\\n\s*&& docker volume rm -f ejaz-ci-runner_docker-data ejaz-ci-runner_work[^\n]*\\\\\n\s*&& docker compose up -d --wait dind/');
+        ->and($clean[1] ?? '')->toMatch('/docker compose rm -sf dind[^\n]*\\\\\n\s*&& docker volume rm -f "\$\{project\}_docker-data" "\$\{project\}_work"[^\n]*\\\\\n\s*&& docker compose up -d --wait dind/');
 
     preg_match('/^  runner:\n(.*?)(?=^  \S|^\S|\z)/ms', $compose, $runner);
 
     expect($runner[1] ?? '')->not->toContain('/ejaz-ci-state')
-        ->and($register)->toContain('-v ejaz-ci-runner_state:/ejaz-ci-state runner remove');
+        ->and($register)->toContain('-v "${project}_state:/ejaz-ci-state" runner remove');
+});
+
+it('names its compose project and volumes from COMPOSE_PROJECT_NAME, so a second runner never touches the first', function () {
+    $register = ciRunnerFile('register.sh');
+
+    // الافتراضي اسم المشغّل الأول، ولا اسم مجلد مكتوب بلا المتغير
+    expect($register)->toContain('export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ejaz-ci-runner}"')
+        ->toContain('project=$COMPOSE_PROJECT_NAME')
+        ->not->toMatch('/ejaz-ci-runner_(docker-data|work|state)/');
 });
 
 // على جهاز صفوان (28 أكتوبر 2026): بقيت حاوية المشغّل الدائم القديمة تعمل بعد remove ومعها مجلد state، لأن خدمة runner في
@@ -93,10 +102,10 @@ it('stops the old persistent runner container on remove, then deletes only its r
     $steps = array_values(array_filter(array_map('trim', explode("\n", $remove[1] ?? '')), fn (string $line): bool => $line !== '' && ! str_starts_with($line, '#')));
 
     expect($steps)->toBe([
-        'token | docker compose run --rm -T -v ejaz-ci-runner_state:/ejaz-ci-state runner remove',
+        'token | docker compose run --rm -T -v "${project}_state:/ejaz-ci-state" runner remove',
         'docker compose --profile ephemeral rm -sf runner',
         'docker compose down',
-        'docker volume rm -f ejaz-ci-runner_state >/dev/null',
+        'docker volume rm -f "${project}_state" >/dev/null',
         'exit 0',
     ]);
 });
