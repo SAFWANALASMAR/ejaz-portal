@@ -41,16 +41,24 @@ bash backup-<المجلد>/rollback.sh
 
 ## الرجوع إلى وسم بلا مجلد نسخة له
 
-إن لم يكن للوسم مجلد نسخة، فالشيفرة والصورة ترجعان، والقاعدة من أقرب نسخة قبلها. وكل الأوامر بـ `MSYS_NO_PATHCONV=1`، داخل `..\ejaz-demo`:
+إن لم يكن للوسم مجلد نسخة، فالشيفرة والصورة ترجعان، والقاعدة بأحد طريقين أدناه. وكل الأوامر بـ `MSYS_NO_PATHCONV=1`، داخل `..\ejaz-demo`:
 
-1. نسخة طازجة أولاً: `docker exec ejaz-demo-pgsql-1 pg_dump -U ejaz -d ejaz -Fc > ../ejaz-demo-ops/backup-<التاريخ>-pre-rollback/ejaz.dump`.
-2. `docker compose stop app queue scheduler`، ثم `git fetch origin --tags`، ثم `git checkout --detach <الوسم>`.
-3. الصورة: `docker tag ejaz-php:demo-rollback-<الوسم> ejaz-php:demo` إن وُجدت، وإلا `docker compose build --pull app`.
-4. `docker compose run --rm -T --no-deps app composer install --no-interaction`، ثم `docker compose run --rm -T --no-deps vite sh -c "npm ci && npm run build"`.
-5. **القاعدة:**
-   - إن كانت ترحيلات ما بعد الوسم تُرجع بأمان، فبـ `php artisan migrate:rollback --step=<عددها> --force`.
-   - وإلا فمن نسخة `ejaz.dump` لمجلد ذلك الوسم، بأوامر `pg_restore` في `rollback.sh`.
-6. `docker compose run --rm -T --no-deps app sh -c "php artisan optimize:clear && php artisan ejaz:refresh-content"`، ثم `docker compose up -d --no-deps app queue scheduler`.
+1. **نسخة طازجة أولاً:**
+   ```bash
+   mkdir -p ../ejaz-demo-ops/backup-<التاريخ>-pre-rollback
+   docker exec ejaz-demo-pgsql-1 pg_dump -U ejaz -d ejaz -Fc > ../ejaz-demo-ops/backup-<التاريخ>-pre-rollback/ejaz.dump
+   ```
+2. **إيقاف الخدمات:** `docker compose stop app queue scheduler`.
+3. **القاعدة، قبل تبديل الشيفرة** (ترحيلات ما بعد الوسم موجودة في الشيفرة الحالية وحدها، فلو بُدّلت الشيفرة أولاً لطبع `migrate:rollback` «Migration not found» وبقي المخطط الجديد مع شيفرة قديمة):
+   - **(أ) إن كانت ترحيلات ما بعد الوسم تُرجع بأمان** (لها `down()` لا يحذف بيانات): بالشيفرة الحالية
+     `docker compose run --rm -T --no-deps app php artisan migrate:rollback --step=<عددها> --force`.
+     وعددها من `php artisan migrate:status`: الترحيلات بعد آخر ترحيل في الوسم.
+   - **(ب) وإلا فالطريق الوحيد الاستعادة من أقرب نسخة قبل الوسم** (أحدث مجلد `backup-*` تاريخه قبل تحويل العرض إلى ما بعد الوسم)، بأوامر `pg_restore` في `rollback.sh`. **وما أُدخل في العرض بعد تلك النسخة يضيع**، فيُعاد بسكربته في `ejaz-demo-ops`.
+4. **الشيفرة:** `git fetch origin --tags`، ثم `git checkout --detach <الوسم>`.
+5. **الصورة:** `docker tag ejaz-php:demo-rollback-<الوسم> ejaz-php:demo` إن وُجدت، وإلا `docker compose build --pull app`.
+6. **المكتبات والواجهة:** `docker compose run --rm -T --no-deps app composer install --no-interaction`، ثم `docker compose run --rm -T --no-deps vite sh -c "npm ci && npm run build"`.
+7. **الذاكرة والتشغيل:** بلا `optimize:clear` ولا `cache:clear` (يصفّران قفل الدخول وحدود الرسائل ويبطلان رموز التحقق المعلّقة، `security.md`)، كما في `scripts/deploy-compose.sh`:
+   `docker compose run --rm -T --no-deps app sh -c "php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan ejaz:refresh-content"`، ثم `docker compose up -d --no-deps app queue scheduler`.
 
 ## بعد الرجوع
 
