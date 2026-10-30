@@ -229,5 +229,11 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('assistant-rating', fn (Request $request): Limit => Limit::perMinutes(10, 30)
             ->by('assistant-rating:'.NetworkPrefix::subscriber($request->ip())));
+
+        // معرض الشواهد برابط سري: فتح الصفحة (والرمز الخاطئ معه) لكل مشترك، وملفاتها بحد أوسع لأن صور المعرض تُطلب معاً
+        RateLimiter::for('evidence', fn (Request $request): Limit => Limit::perMinute((int) config('security.evidence_per_minute'))
+            ->by('evidence:'.NetworkPrefix::subscriber($request->ip())));
+        RateLimiter::for('evidence-files', fn (Request $request): Limit => Limit::perMinute((int) config('security.evidence_files_per_minute'))
+            ->by('evidence-files:'.NetworkPrefix::subscriber($request->ip())));
     }
 }

@@ -72,6 +72,14 @@ return [
     // كشف رقم هوية طالب واحد في اللوحة (RevealStudentIdentity): حد لكل مستخدم في الساعة، بعد تأكيد كلمة المرور
     'national_id_reveals_per_hour' => (int) env('NATIONAL_ID_REVEALS_PER_HOUR', 60),
 
+    // معرض الشواهد برابط سري: فتح الصفحة في الدقيقة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، وملفاتها (صور المعرض
+    // تُطلب معاً عند الفتح)، ومدة رابط الملف الموقّع بالدقائق، ومدة رابط التخزين الموقّع على S3 بعده (أقصر، فلا يبقى
+    // بعد الإلغاء إلا دقائق: كل فتح يمر بالتطبيق أولاً)
+    'evidence_per_minute' => (int) env('EVIDENCE_PER_MINUTE', 20),
+    'evidence_files_per_minute' => (int) env('EVIDENCE_FILES_PER_MINUTE', 300),
+    'evidence_file_url_minutes' => (int) env('EVIDENCE_FILE_URL_MINUTES', 30),
+    'evidence_storage_url_minutes' => (int) env('EVIDENCE_STORAGE_URL_MINUTES', 5),
+
     // طلبات رابط استعادة كلمة المرور في الساعة لكل مشترك (عنوان IPv4، أو /64 في IPv6)، فوق حد Fortify
     // لكل بريد (دقيقة)، حتى لا يُرسل بريد استعادة لكل الحسابات من مصدر واحد
     'password_reset_per_subscriber_per_hour' => (int) env('PASSWORD_RESET_PER_SUBSCRIBER_PER_HOUR', 20),

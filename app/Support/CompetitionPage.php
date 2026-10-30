@@ -28,6 +28,11 @@ final class CompetitionPage
      */
     public const PARTNER = 'partner';
 
+    /**
+     * مقدمة «مراحل المسابقة» فوق بطاقات المراحل (فقرة).
+     */
+    public const ROUNDS_INTRO = 'rounds_intro';
+
     public const PARAGRAPH_MAX = 3000;
 
     public const ITEM_MAX = 600;
