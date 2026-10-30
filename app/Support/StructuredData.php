@@ -40,7 +40,10 @@ class StructuredData
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR,
         );
 
-        return new HtmlString('<script type="application/ld+json" nonce="'.e((string) Vite::cspNonce()).'">'.$json.'</script>');
+        // ولا يُقارن Livewire الرمز عند دمج الرأس في التنقّل السريع، فلا تتكرر كتلة الجمعية بتغيّره
+        $nonce = Vite::cspNonce();
+
+        return new HtmlString('<script type="application/ld+json"'.($nonce !== null ? ' nonce="'.e($nonce).'"' : '').'>'.$json.'</script>');
     }
 
     /**
@@ -92,15 +95,20 @@ class StructuredData
 
     /**
      * البرنامج فعاليةً: الموعدان، والحضور أو عن بعد بموقعه، والجهة المنظِّمة. ورابط الاجتماع لا يُكتب (للمسجل
-     * المؤكد وحده)، فمكان الحضور عن بعد صفحة البرنامج نفسها.
+     * المؤكد وحده)، فمكان الحضور عن بعد صفحة البرنامج نفسها. والحضوري بلا موقع مُدخل لا فعالية له، لأن Google
+     * يشترط المكان.
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    public static function program(Program $program): array
+    public static function program(Program $program): ?array
     {
         $url = route('programs.show', $program->slug);
         $place = filled($program->location) ? ['@type' => 'Place', 'name' => $program->location, 'address' => $program->location] : null;
         $virtual = ['@type' => 'VirtualLocation', 'url' => $url];
+
+        if ($program->delivery === ProgramDelivery::InPerson && $place === null) {
+            return null;
+        }
 
         return self::filled([
             '@type' => 'Event',
@@ -126,7 +134,8 @@ class StructuredData
     }
 
     /**
-     * المسابقة فعاليةً على البوابة: من فتحها إلى إغلاقها، والمشاركة من صفحتها.
+     * المسابقة فعاليةً على البوابة: من فتحها إلى إغلاقها، والمشاركة من صفحتها. وإغلاق مسابقة الطلاب نهاية التسجيل
+     * لا نهاية فروعها، فلا نهاية لها هنا.
      *
      * @return array<string, mixed>
      */
@@ -140,7 +149,7 @@ class StructuredData
             'description' => self::text($competition->description),
             'url' => $url,
             'startDate' => self::date($competition->opens_at),
-            'endDate' => self::date($competition->closes_at),
+            'endDate' => $competition->student_mode ? null : self::date($competition->closes_at),
             'eventStatus' => 'https://schema.org/EventScheduled',
             'eventAttendanceMode' => 'https://schema.org/OnlineEventAttendanceMode',
             'location' => ['@type' => 'VirtualLocation', 'url' => $url],
@@ -149,7 +158,8 @@ class StructuredData
     }
 
     /**
-     * عنصر المكتبة: الكتاب Book، والمرئية VideoObject بصورتها المخزّنة ورابط تضمينها. وما سواهما لا شيء.
+     * عنصر المكتبة: الكتاب Book، والمرئية VideoObject بصورتها المخزّنة ورابط تضمينها. وما سواهما لا شيء، ولا المرئية
+     * بلا صورة أو تاريخ نشر (يشترطهما Google، ولا يُخترع لهما بديل).
      *
      * @return array<string, mixed>|null
      */
@@ -176,6 +186,10 @@ class StructuredData
             return null;
         }
 
+        if ($thumbnail === null || $item->published_on === null) {
+            return null;
+        }
+
         $youtube = $item->youtubeId();
 
         return self::filled([
@@ -184,7 +198,7 @@ class StructuredData
             'description' => self::text($item->description) ?? $item->title,
             'url' => $url,
             'thumbnailUrl' => $thumbnail,
-            'uploadDate' => $item->published_on?->toDateString(),
+            'uploadDate' => $item->published_on->toDateString(),
             'embedUrl' => $youtube !== null ? 'https://www.youtube-nocookie.com/embed/'.$youtube : null,
             'contentUrl' => $youtube === null && filled($item->video_url) && SafeUrl::isSafe($item->video_url, allowInternal: false) ? $item->video_url : null,
             'inLanguage' => 'ar',
@@ -207,11 +221,14 @@ class StructuredData
         return $date?->copy()->setTimezone((string) config('app.display_timezone'))->toIso8601String();
     }
 
-    private static function text(?string $text): ?string
+    /**
+     * نص مسطّح بلا وسوم ولا أسطر، بحد أقصى. ومنه وصف الصفحة (LibraryController).
+     */
+    public static function text(?string $text, int $limit = self::DESCRIPTION_LIMIT): ?string
     {
         $plain = trim((string) preg_replace('/\s+/u', ' ', strip_tags((string) $text)));
 
-        return $plain === '' ? null : Str::limit($plain, self::DESCRIPTION_LIMIT);
+        return $plain === '' ? null : Str::limit($plain, $limit);
     }
 
     /**

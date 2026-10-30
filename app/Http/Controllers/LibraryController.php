@@ -15,7 +15,6 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -95,10 +94,10 @@ class LibraryController extends Controller implements HasMiddleware
             return [
                 'title' => $item->title,
                 // الوصف لمحركات البحث والمشاركة، وإلا اسم القسم كما كان
-                'summary' => filled($item->description) ? Str::limit(trim((string) $item->description), 160) : $item->section->getLabel(),
+                'summary' => StructuredData::text($item->description, 160) ?? $item->section->getLabel(),
                 'image' => $item->thumbnail ? Storage::disk('public')->url($item->thumbnail) : null,
                 // الكتاب Book والمرئية VideoObject (StructuredData)
-                'schema' => array_values(array_filter([StructuredData::libraryItem($item)])),
+                'schema' => array_filter([StructuredData::libraryItem($item)]),
                 'html' => view('library.show', ['item' => $item, 'related' => self::related($item)])->render(),
             ];
         });

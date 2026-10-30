@@ -12,7 +12,7 @@ class ShareImage
 
     public static function url(?string $image = null): string
     {
-        $path = is_string($image) ? (string) parse_url($image, PHP_URL_PATH) : '';
+        $path = $image !== null ? (string) parse_url($image, PHP_URL_PATH) : '';
 
         return $image !== null && preg_match('/\.(png|jpe?g|webp)$/i', $path) === 1
             ? url($image)

@@ -1,11 +1,17 @@
 <?php
 
 use App\Enums\LibrarySection;
+use App\Enums\ProgramDelivery;
+use App\Models\Album;
 use App\Models\Competition;
 use App\Models\Document;
+use App\Models\Initiative;
 use App\Models\LibraryItem;
+use App\Models\NewsArticle;
 use App\Models\Program;
 use App\Models\Setting;
+use App\Support\ContentCache;
+use App\Support\HomeContent;
 use App\Support\ShareImage;
 use Illuminate\Testing\TestResponse;
 
@@ -79,6 +85,28 @@ it('gives inner pages a breadcrumb from the home page down', function () {
     // مسار واحد بأقسامه، لا الافتراضي معه
     expect($crumbs)->toHaveCount(1)
         ->and(array_column($crumbs->first()['itemListElement'], 'name'))->toBe([__('site.home'), __('governance.title'), 'اللائحة الأساسية']);
+});
+
+it('gives detail pages one breadcrumb through their sections', function () {
+    NewsArticle::factory()->create(['slug' => 'first-news', 'title' => 'خبر']);
+    Album::factory()->create(['slug' => 'first-album', 'title' => 'ألبوم']);
+    Initiative::factory()->create(['slug' => 'qiyam', 'name' => 'قيم']);
+
+    $cases = [
+        '/media/news/first-news' => [__('site.home'), __('media.title'), __('news.title'), 'خبر'],
+        '/media/albums/first-album' => [__('site.home'), __('media.title'), __('albums.title'), 'ألبوم'],
+        '/initiatives/qiyam' => [__('site.home'), __('content.initiatives.title'), 'قيم'],
+        '/media/partners' => [__('site.home'), __('media.title'), __('partners.title')],
+    ];
+
+    foreach ($cases as $path => $names) {
+        $crumbs = collect(jsonLdNodes($this->get($path)->assertOk()))->where('@type', 'BreadcrumbList');
+        $items = $crumbs->first()['itemListElement'];
+
+        expect($crumbs)->toHaveCount(1)
+            ->and(array_column($items, 'name'))->toBe($names)
+            ->and(end($items)['item'])->toBe(url($path));
+    }
 });
 
 it('leaves the breadcrumb out of pages that are not indexed', function () {
@@ -210,4 +238,55 @@ it('gives every block the request nonce of the content security policy', functio
 
     expect($blocks[1])->not->toBeEmpty()
         ->and(array_unique($blocks[1]))->toBe([$nonce[1]]);
+});
+
+it('writes no event or video the search engine would reject for a missing required field', function () {
+    Program::factory()->create(['slug' => 'no-place', 'location' => null]);
+    LibraryItem::factory()->video()->create(['slug' => 'no-thumbnail', 'thumbnail' => null]);
+    LibraryItem::factory()->video()->create(['slug' => 'no-date', 'thumbnail' => 'library/thumbnails/a.jpg', 'published_on' => null]);
+
+    $program = $this->get('/programs/no-place')->assertOk();
+    expect(jsonLdNode($program, 'Event'))->toBeNull()
+        ->and(jsonLdNode($program, 'BreadcrumbList'))->not->toBeNull()
+        ->and(jsonLdNode($this->get('/library/videos/no-thumbnail')->assertOk(), 'VideoObject'))->toBeNull()
+        ->and(jsonLdNode($this->get('/library/videos/no-date')->assertOk(), 'VideoObject'))->toBeNull();
+});
+
+it('places a hybrid program both at its venue and on its page', function () {
+    Program::factory()->create(['slug' => 'hybrid', 'delivery' => ProgramDelivery::Hybrid, 'location' => 'مكة المكرمة', 'meeting_url' => 'https://teams.microsoft.com/l/meetup-join/x']);
+
+    expect(jsonLdNode($this->get('/programs/hybrid')->assertOk(), 'Event'))->toMatchArray([
+        'eventAttendanceMode' => 'https://schema.org/MixedEventAttendanceMode',
+        'location' => [
+            ['@type' => 'Place', 'name' => 'مكة المكرمة', 'address' => 'مكة المكرمة'],
+            ['@type' => 'VirtualLocation', 'url' => route('programs.show', 'hybrid')],
+        ],
+    ]);
+});
+
+it('gives a student competition no end date, as its closing is the end of registration', function () {
+    Competition::factory()->student()->create(['slug' => 'students']);
+
+    expect(jsonLdNode($this->get('/competitions/students')->assertOk(), 'Event'))
+        ->toHaveKey('startDate')
+        ->not->toHaveKey('endDate');
+});
+
+it('describes the announcements page by its intro only once it replaces the sample text', function () {
+    $this->get('/media/announcements')->assertOk()->assertSee('<meta name="description" content="'.e(__('site.description')).'">', false);
+
+    Setting::put(HomeContent::KEY, ['announcements' => ['intro' => 'مقدمة الإعلانات من اللوحة']]);
+
+    $this->get('/media/announcements')->assertOk()->assertSee('<meta name="description" content="مقدمة الإعلانات من اللوحة">', false);
+});
+
+it('renders a library page cached before the structured data existed', function () {
+    $item = LibraryItem::factory()->create(['slug' => 'old-cache', 'title' => 'كتاب قديم']);
+    ContentCache::remember('library.show.old-cache', fn (): array => ['title' => 'كتاب قديم', 'summary' => 'الكتب', 'image' => null, 'html' => '<p>قديم</p>']);
+
+    $response = $this->get('/library/books/old-cache')->assertOk()->assertSee('قديم');
+
+    expect(jsonLdNode($response, 'Book'))->toBeNull()
+        ->and(jsonLdNode($response, 'BreadcrumbList'))->not->toBeNull()
+        ->and($item->exists)->toBeTrue();
 });

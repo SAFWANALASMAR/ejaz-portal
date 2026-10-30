@@ -16,10 +16,10 @@
 <x-layouts.app :title="$program->title" :description="$program->summary" :image="$image">
     {{-- البرنامج فعاليةً ومسار التنقل إليه (StructuredData) --}}
     @push('head')
-        {{ StructuredData::script([
+        {{ StructuredData::script(array_values(array_filter([
             StructuredData::program($program),
             StructuredData::breadcrumbs($program->title, route('programs.show', $program->slug), [[__('programs.title'), route('programs.index')]]),
-        ]) }}
+        ]))) }}
     @endpush
     <x-page-hero :title="$program->title" :summary="$program->summary" :image="$image" />
 
