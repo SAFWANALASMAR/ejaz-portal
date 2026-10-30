@@ -166,14 +166,23 @@ function counters(signal) {
         { threshold: 0.4 },
     );
 
-    // ما ظهر رقمه النهائي في الشاشة الأولى يبقى كما هو، فلا يقفز إلى الصفر ثم يعدّ
+    // ما ظهر رقمه النهائي في الشاشة الأولى يبقى كما هو، فلا يقفز إلى الصفر ثم يعدّ، إلا ما طلب العدّ عند التحميل
+    // (data-count-on-load، كعدّاد في البطل). وما خارجها يبدأ من الصفر وهو مخفي، فيعدّ حين يظهر بلا قفزة
     items.forEach((item) => {
         const box = item.getBoundingClientRect();
+        const onScreen = box.top < window.innerHeight && box.bottom > 0;
 
-        if (box.top < window.innerHeight && box.bottom > 0) {
+        if (onScreen && 'countOnLoad' in item.dataset) {
+            run(item);
+
             return;
         }
 
+        if (onScreen) {
+            return;
+        }
+
+        item.textContent = '0' + (item.dataset.countSuffix ?? '');
         observer.observe(item);
     });
     signal.addEventListener('abort', () => observer.disconnect());

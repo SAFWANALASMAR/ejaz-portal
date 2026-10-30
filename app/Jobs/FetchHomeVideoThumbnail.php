@@ -21,9 +21,6 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 {
     use Queueable;
 
-    /** نمط معرّف يوتيوب، والمعرّف جزء من مسار الملف */
-    public const ID_PATTERN = '/^[A-Za-z0-9_-]{11}$/';
-
     public int $tries = 3;
 
     /** @var list<int> */
@@ -33,7 +30,7 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 
     public static function path(string $youtube): string
     {
-        if (preg_match(self::ID_PATTERN, $youtube) !== 1) {
+        if (preg_match(VideoUrl::YOUTUBE_ID, $youtube) !== 1) {
             throw new InvalidArgumentException('Invalid YouTube id.');
         }
 
@@ -74,7 +71,7 @@ class FetchHomeVideoThumbnail implements ShouldQueue
 
     public function handle(): void
     {
-        if (preg_match(self::ID_PATTERN, $this->youtube) !== 1) {
+        if (preg_match(VideoUrl::YOUTUBE_ID, $this->youtube) !== 1) {
             return;
         }
 

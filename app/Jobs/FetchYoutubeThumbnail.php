@@ -54,7 +54,7 @@ class FetchYoutubeThumbnail implements ShouldQueue
     {
         $response = Http::connectTimeout(5)->timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
 
-        // الحجم المعلن قبل قراءة الجسم، ثم الحجم الفعلي
+        // الحجم المعلن ثم الفعلي قبل فك الصورة (عميل HTTP ينزّل الجسم كاملاً، والمهلة تحده)
         $declared = (int) $response->header('Content-Length');
         $bytes = $response->successful() && $declared <= self::MAX_BYTES ? $response->body() : '';
         $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;

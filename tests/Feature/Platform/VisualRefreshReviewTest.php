@@ -9,6 +9,7 @@ use App\Jobs\FetchHomeVideoThumbnail;
 use App\Support\ContentCache;
 use App\Support\Icon;
 use BladeUI\Icons\Factory;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -42,7 +43,8 @@ it('runs endless animations only without a reduced-motion preference, and has no
     $noPreference = (string) str($visual)->after('@media (prefers-reduced-motion: no-preference) {')->before("\n}\n");
     $outside = str_replace($noPreference, '', $visual);
 
-    expect($noPreference)->toContain('animation: ken-burns')->toContain('animation: skeleton')
+    expect($noPreference)->toContain('animation: ken-burns')
+        ->toContain("html[data-motion-ready] .skeleton:not([data-loaded]) {\n        animation: skeleton")
         ->and($outside)->not->toContain('animation: ken-burns')->not->toContain('animation: skeleton')
         // الحلقتان المستمرتان وحدهما (ken-burns وskeleton)، وكلتاهما داخل الكتلة
         ->and($visual)->not->toContain('section-glow')
@@ -57,14 +59,25 @@ it('takes colours from the identity tokens, not hard-coded values', function () 
 });
 
 it('has a Phosphor icon for every icon name the site can show', function () {
+    // من التعدادات والإعدادات، ومن القوالب (Icon::svg('…') وIcon::solid('…'))، والمملوءة بوزن fill
     $names = collect(SiteIcon::cases())->map(fn (SiteIcon $icon): string => $icon->value)
         ->merge(collect([AssemblyFileCategory::cases(), DocumentCategory::cases(), LibrarySection::cases(), OpeningKind::cases()])
             ->flatten()->map(fn ($case): string => $case->icon()))
-        ->unique();
+        ->map(fn (string $name): array => [$name, false]);
 
-    $missing = $names->reject(function (string $name): bool {
+    foreach (File::allFiles(resource_path('views')) as $view) {
+        preg_match_all("/Icon::(svg|solid)\\('([a-z0-9-]+)'/", $view->getContents(), $found, PREG_SET_ORDER);
+
+        foreach ($found as [, $kind, $name]) {
+            $names->push([$name, $kind === 'solid']);
+        }
+    }
+
+    expect($names->count())->toBeGreaterThan(40);
+
+    $missing = $names->unique(fn (array $icon): string => $icon[0].($icon[1] ? '-s' : ''))->reject(function (array $icon): bool {
         try {
-            app(Factory::class)->svg(Icon::phosphor($name));
+            app(Factory::class)->svg(Icon::phosphor(...$icon));
 
             return true;
         } catch (Throwable) {
@@ -72,7 +85,7 @@ it('has a Phosphor icon for every icon name the site can show', function () {
         }
     });
 
-    expect($missing->values()->all())->toBe([]);
+    expect($missing->map(fn (array $icon): string => $icon[0].($icon[1] ? ' (solid)' : ''))->values()->all())->toBe([]);
 });
 
 it('rejects a thumbnail path or job for a value that is not a YouTube id', function () {
@@ -86,21 +99,29 @@ it('rejects a thumbnail path or job for a value that is not a YouTube id', funct
     Http::assertNothingSent();
 });
 
-it('skips a thumbnail whose declared size is too large', function () {
+function tinyJpeg(): string
+{
+    ob_start();
+    imagejpeg(imagecreatetruecolor(4, 4));
+
+    return (string) ob_get_clean();
+}
+
+it('skips a valid image whose declared size is too large, and keeps one within the limit', function (int $declared, bool $kept) {
     Storage::fake('public');
-    Http::fake(['i.ytimg.com/*' => Http::response('', 200, ['Content-Length' => (string) (50 * 1024 * 1024)])]);
+    Http::fake(['i.ytimg.com/*' => Http::response(tinyJpeg(), 200, ['Content-Length' => (string) $declared])]);
 
     (new FetchHomeVideoThumbnail('ccccccccccc'))->handle();
 
-    expect(Storage::disk('public')->exists(FetchHomeVideoThumbnail::path('ccccccccccc')))->toBeFalse();
-});
+    expect(Storage::disk('public')->exists(FetchHomeVideoThumbnail::path('ccccccccccc')))->toBe($kept);
+})->with([
+    'declared too large' => [50 * 1024 * 1024, false],
+    'declared small' => [1024, true],
+]);
 
 it('clears only the home cache key when the home video image arrives', function () {
     Storage::fake('public');
-    $image = imagecreatetruecolor(4, 4);
-    ob_start();
-    imagejpeg($image);
-    Http::fake(['i.ytimg.com/*' => Http::response((string) ob_get_clean())]);
+    Http::fake(['i.ytimg.com/*' => Http::response(tinyJpeg())]);
     $other = ContentCache::remember('other', fn (): string => 'kept');
     ContentCache::remember('home', fn (): string => 'old');
 

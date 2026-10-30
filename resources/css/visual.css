@@ -6,6 +6,13 @@
     --motion: 1;
 }
 
+/* رفع البطاقة لا يرثه أبناؤها (بطاقة داخل بطاقة) */
+@property --lift {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     :root {
         --motion: 0;
@@ -75,7 +82,8 @@
     .card-lift {
         @apply rounded-3xl border border-line/70 bg-white;
         box-shadow: 0 8px 30px -18px color-mix(in srgb, var(--color-primary-dark) 35%, transparent);
-        /* الرفع بمتغير (--lift)، فتجمعه .tilt مع الإمالة في transform واحد */
+        /* الرفع بمتغير (--lift)، فتجمعه .tilt مع الإمالة في transform واحد. وtransform الدائم يجعل البطاقة سياق تكديس
+           وحاوية لأي ابن بموضع fixed، فلا يوضع فيها ابن fixed */
         transform: translateY(var(--lift, 0px));
         transition:
             transform calc(300ms * var(--motion)) ease,
@@ -178,7 +186,6 @@
     }
 
     .skeleton[data-loaded] {
-        animation: none;
         background-image: none;
     }
 }
@@ -242,7 +249,8 @@ html[data-reveal-ready] .flourish path {
         animation: ken-burns 22s ease-in-out infinite alternate;
     }
 
-    .skeleton:not([data-loaded]) {
+    /* بوسم السكربت وحده: بلا JavaScript لا يُوضع data-loaded فلا تبقى اللمعة تدور خلف الصورة */
+    html[data-motion-ready] .skeleton:not([data-loaded]) {
         animation: skeleton 1.4s linear infinite;
     }
 }
