@@ -26,8 +26,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property LibrarySection $section
  * @property Carbon|null $published_on
  * @property array<mixed>|null $tags
+ * @property bool $is_downloadable
  */
-#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home'])]
+#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home', 'is_downloadable'])]
 class LibraryItem extends Model implements HasPublicImages
 {
     /** @use HasFactory<LibraryItemFactory> */
@@ -59,7 +60,17 @@ class LibraryItem extends Model implements HasPublicImages
             'file_size' => 'integer',
             'is_published' => 'boolean',
             'on_home' => 'boolean',
+            'is_downloadable' => 'boolean',
         ];
+    }
+
+    /**
+     * كتاب أو بحث «للقراءة فقط — بلا تحميل»: يُعرض في قارئ الصفحة وحده، بلا تنزيل ولا فتح للملف نفسه
+     * (LibraryController). والخيار للكتب والأبحاث وحدها، فالصوت والمرئي لا يأخذانه.
+     */
+    public function isReadOnly(): bool
+    {
+        return $this->section->takesPdf() && $this->is_downloadable === false;
     }
 
     /**
