@@ -6,7 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // والثالث سمة لوحة الإدارة (viteTheme في AdminPanelProvider)
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'],
             refresh: true,
             fonts: [
                 // خط الهوية الرسمي (دليل الهوية) بكل أوزانه، يُنزَّل عند البناء ويُقدَّم من البوابة — docs/design-system.md
