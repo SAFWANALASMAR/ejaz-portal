@@ -29,17 +29,15 @@
     @include('account.partials.oversight', ['oversight' => $oversight])
 
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
-    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" data-reveal-group>
         {{-- البطاقات من اللوحة (AccountCard): ومنها لوحة الإدارة لمن يدخلها، تحميلاً كاملاً (SpaLink) --}}
         @foreach (\App\Support\AccountNavigation::cards($user) as $card)
             <a href="{{ $card['href'] }}" @if ($card['external']) target="_blank" rel="noopener noreferrer" @else @navigate($card['href']) @endif
-                class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+                class="card-glow tilt group flex flex-col p-6">
                 <span class="flex items-start gap-4">
-                    <span class="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white">
-                        {{ \App\Support\Icon::svg($card['icon'], 'size-7', ['aria-hidden' => 'true']) }}
-                    </span>
+                    <x-icon-tile :icon="$card['icon']" :tone="['blue', 'violet', 'green', 'navy', 'sky'][$loop->index % 5]" size="md" />
                     <span>
-                        <span class="flex items-center gap-2 text-lg font-bold text-ink">
+                        <span class="flex items-center gap-2 text-lg font-bold text-primary-dark">
                             {{ $card['title'] }}
                             @if (($counts[$card['route']] ?? 0) > 0)
                                 <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-accent px-2 text-sm font-semibold text-white">{{ number_format($counts[$card['route']]) }}</span>

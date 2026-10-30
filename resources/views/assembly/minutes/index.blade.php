@@ -12,7 +12,7 @@
             <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.minutes.title') }}</h1>
 
             @if ($meetings->isEmpty())
-                <p class="mt-6 text-muted">{{ __('assembly.minutes.empty') }}</p>
+                <x-empty-state icon="document-text" :message="__('assembly.minutes.empty')" class="mt-6" />
             @else
                 <ul class="mt-6 divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
                     @foreach ($meetings as $meeting)

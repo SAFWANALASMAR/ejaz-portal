@@ -47,7 +47,7 @@
         <h2 class="sr-only">{{ __('news.list.items') }}</h2>
 
         @if ($articles->isEmpty())
-            <p class="mt-10 text-muted">{{ $filters === [] ? __('news.list.empty') : __('news.list.no_results') }}</p>
+            <x-empty-state icon="newspaper" :message="$filters === [] ? __('news.list.empty') : __('news.list.no_results')" class="mt-10" />
         @else
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($articles as $article)

@@ -14,7 +14,7 @@
     <section class="py-10 sm:py-14">
         <div class="container-page">
             @if ($openings->isEmpty())
-                <p class="text-muted">{{ $kind === OpeningKind::Membership ? __('services.listing.membership_closed') : __('services.listing.empty') }}</p>
+                <x-empty-state icon="briefcase" :message="$kind === OpeningKind::Membership ? __('services.listing.membership_closed') : __('services.listing.empty')" />
             @else
                 <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                     @foreach ($openings as $opening)

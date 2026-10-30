@@ -92,7 +92,11 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    // Esc يغلق النافذة مرة واحدة، ولو كان في حقل البحث نص (المتصفح يمسحه أولاً لحقل search)
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.close();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         move(dialog, event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter' && event.target.matches('[data-search-input]')) {

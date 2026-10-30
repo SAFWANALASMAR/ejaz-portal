@@ -147,24 +147,32 @@
         stroke-dashoffset: 0;
     }
 
-    /* البطاقة: ظل ناعم ورفع عند المرور */
-    .card-lift {
+    /* البطاقة الموحّدة (card-lift، وcard-glow اسمها في الدفعة الثانية): بيضاء بظلال متعددة الطبقات، ترتفع عند المرور بحد
+       متوهج بلون الهوية. الرفع بمتغير (--lift)، فتجمعه .tilt مع الإمالة في transform واحد. وtransform الدائم يجعل البطاقة
+       سياق تكديس وحاوية لأي ابن بموضع fixed، فلا يوضع فيها ابن fixed */
+    .card-lift,
+    .card-glow {
         @apply rounded-3xl border border-line/70 bg-white;
-        box-shadow: 0 8px 30px -18px color-mix(in srgb, var(--color-primary-dark) 35%, transparent);
-        /* الرفع بمتغير (--lift)، فتجمعه .tilt مع الإمالة في transform واحد. وtransform الدائم يجعل البطاقة سياق تكديس
-           وحاوية لأي ابن بموضع fixed، فلا يوضع فيها ابن fixed */
+        box-shadow:
+            0 1px 2px color-mix(in srgb, var(--color-primary-dark) 6%, transparent),
+            0 12px 32px -18px color-mix(in srgb, var(--color-primary-dark) 35%, transparent);
         transform: translateY(var(--lift, 0px));
         transition:
-            transform calc(300ms * var(--motion)) ease,
-            box-shadow calc(300ms * var(--motion)) ease,
+            transform calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+            box-shadow calc(350ms * var(--motion)),
             border-color 200ms;
     }
 
     .card-lift:hover,
-    .card-lift:focus-within {
-        @apply border-primary/30;
-        box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--color-primary-dark) 45%, transparent);
-        --lift: calc(-4px * var(--motion));
+    .card-lift:focus-within,
+    .card-glow:hover,
+    .card-glow:focus-within {
+        --lift: calc(-6px * var(--motion));
+        border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
+        box-shadow:
+            0 0 0 4px color-mix(in srgb, var(--color-brand) 12%, transparent),
+            0 2px 4px color-mix(in srgb, var(--color-primary-dark) 6%, transparent),
+            0 22px 44px -14px color-mix(in srgb, var(--color-primary-dark) 32%, transparent);
     }
 
     /* القسم الداكن: لون الهوية بدوائر باهتة ثابتة (لا حركة مستمرة: مراجعة المشرف على #95) */
@@ -884,28 +892,6 @@ html[data-motion-off] [data-words-ready] [data-word] {
 }
 
 /* ── البطاقات: توهج الحد عند المرور، وظلال متعددة الطبقات، ولمعة تعبر البطاقات المميزة ── */
-.card-glow {
-    @apply rounded-3xl border border-line/70 bg-white;
-    box-shadow:
-        0 1px 2px color-mix(in srgb, var(--color-primary-dark) 6%, transparent),
-        0 12px 32px -18px color-mix(in srgb, var(--color-primary-dark) 35%, transparent);
-    transform: translateY(var(--lift, 0px));
-    transition:
-        transform calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
-        box-shadow calc(350ms * var(--motion)),
-        border-color 200ms;
-}
-
-.card-glow:hover,
-.card-glow:focus-within {
-    --lift: calc(-6px * var(--motion));
-    border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
-    box-shadow:
-        0 0 0 4px color-mix(in srgb, var(--color-brand) 12%, transparent),
-        0 2px 4px color-mix(in srgb, var(--color-primary-dark) 6%, transparent),
-        0 22px 44px -14px color-mix(in srgb, var(--color-primary-dark) 32%, transparent);
-}
-
 .shine {
     position: relative;
     overflow: hidden;
@@ -1164,4 +1150,155 @@ html[data-motion-off] .hero-scroll-cue,
 html[data-motion-off] .hero-swoosh path,
 html[data-motion-off] .hero-progress-bar {
     animation: none;
+}
+
+/* ── رأس الصفحات الداخلية (x-page-hero) ── */
+.page-hero-scrim {
+    background:
+        radial-gradient(70% 120% at 90% 0%, color-mix(in srgb, var(--color-brand) 35%, transparent), transparent 60%),
+        radial-gradient(50% 90% at 0% 100%, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 65%),
+        color-mix(in srgb, var(--color-primary-dark) 90%, transparent);
+}
+
+.page-hero .hero-geometry {
+    width: 30rem;
+    height: 30rem;
+    top: -8rem;
+    inset-inline-end: -8rem;
+    opacity: 0.1;
+}
+
+.hero-swoosh-static path {
+    stroke-dasharray: 420;
+    stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .hero-swoosh-static path {
+        animation: swoosh 1.2s 0.4s ease-out both;
+    }
+}
+
+html[data-motion-off] .hero-swoosh-static path {
+    animation: none;
+}
+
+/* ── الحالة الفارغة (x-empty-state) ── */
+.empty-state {
+    @apply flex flex-col items-center gap-3 rounded-3xl border border-dashed border-line px-6 py-12 text-center;
+    background:
+        radial-gradient(18rem 10rem at 50% 0%, color-mix(in srgb, var(--color-brand) 8%, transparent), transparent 70%),
+        var(--color-white);
+}
+
+/* ── البطاقات المرقمة المتراكمة (content/blocks/stack) ── */
+.stack-cards {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.stack-card {
+    --tile-from: #7db8e8;
+    --tile-to: var(--color-primary);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-line) 80%, transparent);
+    padding: 2rem 1.75rem;
+    background:
+        radial-gradient(26rem 14rem at 100% 0%, color-mix(in srgb, var(--tile-from) 22%, transparent), transparent 70%),
+        linear-gradient(160deg, var(--color-white), color-mix(in srgb, var(--color-primary-soft) 70%, var(--color-white)));
+    box-shadow:
+        0 1px 2px color-mix(in srgb, var(--color-primary-dark) 6%, transparent),
+        0 24px 48px -28px color-mix(in srgb, var(--color-primary-dark) 40%, transparent);
+}
+
+.stack-card::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 5px;
+    background: linear-gradient(to bottom, var(--tile-from), var(--tile-to));
+}
+
+.stack-card[data-tone='violet'] {
+    --tile-from: #9c7ed0;
+    --tile-to: var(--color-accent);
+}
+
+.stack-card[data-tone='green'] {
+    --tile-from: #5fb36d;
+    --tile-to: var(--color-secondary);
+}
+
+.stack-card[data-tone='navy'] {
+    --tile-from: #6fa9da;
+    --tile-to: var(--color-primary-dark);
+}
+
+.stack-card[data-tone='sky'] {
+    --tile-from: var(--color-brand-light);
+    --tile-to: var(--color-brand);
+}
+
+.stack-number {
+    position: absolute;
+    inset-inline-end: 1.5rem;
+    top: 0.75rem;
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 900;
+    color: color-mix(in srgb, var(--tile-to) 14%, transparent);
+    pointer-events: none;
+}
+
+@media (min-width: 48rem) {
+    .stack-card {
+        padding: 2.5rem 2.75rem;
+    }
+
+    .stack-number {
+        font-size: 6rem;
+    }
+}
+
+/* التراكم مع التمرير لمن لم يطلب تقليل الحركة: كل بطاقة تلتصق أسفل سابقتها قليلاً */
+@media (prefers-reduced-motion: no-preference) and (min-width: 48rem) {
+    .stack-card {
+        position: sticky;
+        top: calc(6.5rem + var(--stack-index, 0) * 1.25rem);
+    }
+}
+
+/* صورة الشخص بحلقة متوهجة من ألوان الهوية (مجلس الإدارة) */
+.person-ring {
+    position: relative;
+    border-radius: 9999px;
+    padding: 4px;
+    background: conic-gradient(from 180deg, var(--color-brand-light), var(--color-accent-light), var(--color-brand), var(--color-brand-light));
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-white) 6%, transparent), 0 0 32px -4px color-mix(in srgb, var(--color-brand-light) 55%, transparent);
+}
+
+/* بطاقة النموذج البيضاء فوق خلفية داكنة (صفحات الدخول): إطار التركيز بلون التمييز لا بالفاتح */
+.auth-stage .bg-white :focus-visible {
+    outline-color: var(--color-accent);
+}
+
+/* الشريط الجانبي في حساب المستخدم: أزرق داكن بزخرفة باهتة، والنشط بزجاج وخط بالأزرق الفاتح */
+.account-nav {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(16rem 12rem at 100% 0%, color-mix(in srgb, var(--color-brand) 30%, transparent), transparent 70%),
+        var(--color-primary-dark);
+}
+
+/* رقم الخطأ بنص متدرج من الأبيض إلى الأزرق الفاتح */
+.error-code {
+    background: linear-gradient(180deg, var(--color-white), var(--color-brand-light));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
 }

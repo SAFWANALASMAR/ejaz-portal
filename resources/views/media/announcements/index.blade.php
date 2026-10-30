@@ -25,7 +25,7 @@
         </nav>
 
         @if ($announcements->isEmpty())
-            <p class="mt-8 text-muted">{{ __('announcements.list.empty') }}</p>
+            <x-empty-state icon="bell" :message="__('announcements.list.empty')" class="mt-8" />
         @else
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($announcements as $announcement)

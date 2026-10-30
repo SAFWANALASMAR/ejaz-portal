@@ -30,7 +30,7 @@
         <x-section-header id="latest-news" :title="__('media.latest_news')" :href="$latest->isNotEmpty() ? route('media.news.index') : null" />
 
         @if ($latest->isEmpty())
-            <p class="mt-6 text-muted">{{ __('news.list.empty') }}</p>
+            <x-empty-state icon="newspaper" :message="__('news.list.empty')" class="mt-6" />
         @else
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($latest as $article)

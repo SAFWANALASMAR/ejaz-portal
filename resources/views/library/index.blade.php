@@ -24,7 +24,7 @@
         <x-section-heading id="latest">{{ __('library.list.latest') }}</x-section-heading>
 
         @if ($latest->isEmpty())
-            <p class="mt-6 text-muted">{{ __('library.list.empty') }}</p>
+            <x-empty-state icon="book-open" :message="__('library.list.empty')" class="mt-6" />
         @else
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($latest as $item)

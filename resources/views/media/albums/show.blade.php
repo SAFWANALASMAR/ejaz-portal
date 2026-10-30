@@ -16,7 +16,7 @@
         @endif
 
         @if ($photos === [])
-            <p class="text-muted">{{ __('albums.album.empty') }}</p>
+            <x-empty-state icon="photo" :message="__('albums.album.empty')" />
         @else
             <x-gallery :images="collect($photos)->values()->map(fn (string $path, int $i): array => [
                 'src' => Storage::disk('public')->url($path),

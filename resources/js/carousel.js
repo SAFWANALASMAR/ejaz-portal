@@ -101,18 +101,21 @@ function setup(root, signal) {
         { signal },
     );
 
-    const hold = (value) => () => {
-        hovering = value;
+    // المرور والتركيز كلٌّ بعلامته: خروج الفأرة لا يعيد التبديل والتركيز ما زال داخل الدوّار
+    const hold = (key, value) => () => {
+        holds[key] = value;
+        hovering = holds.pointer || holds.focus;
         schedule();
     };
-    root.addEventListener('pointerenter', hold(true), { signal });
-    root.addEventListener('pointerleave', hold(false), { signal });
-    root.addEventListener('focusin', hold(true), { signal });
+    const holds = { pointer: false, focus: false };
+    root.addEventListener('pointerenter', hold('pointer', true), { signal });
+    root.addEventListener('pointerleave', hold('pointer', false), { signal });
+    root.addEventListener('focusin', hold('focus', true), { signal });
     root.addEventListener(
         'focusout',
         (event) => {
             if (!root.contains(event.relatedTarget)) {
-                hold(false)();
+                hold('focus', false)();
             }
         },
         { signal },

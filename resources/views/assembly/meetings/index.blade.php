@@ -10,7 +10,7 @@
             <h2 class="mt-10 text-xl font-bold text-ink">{{ __('assembly.meetings.upcoming') }}</h2>
 
             @if ($upcoming->isEmpty())
-                <p class="mt-6 text-muted">{{ __('assembly.meetings.empty') }}</p>
+                <x-empty-state icon="calendar-days" :message="__('assembly.meetings.empty')" class="mt-6" />
             @else
                 <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($upcoming as $meeting)
@@ -22,7 +22,7 @@
             <h2 class="mt-14 text-xl font-bold text-ink">{{ __('assembly.meetings.past') }}</h2>
 
             @if ($past->isEmpty())
-                <p class="mt-6 text-muted">{{ __('assembly.meetings.past_empty') }}</p>
+                <x-empty-state icon="calendar-days" :message="__('assembly.meetings.past_empty')" class="mt-6" />
             @else
                 <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($past as $meeting)

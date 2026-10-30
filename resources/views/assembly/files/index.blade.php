@@ -34,7 +34,7 @@
             </ul>
 
             @if ($files->isEmpty())
-                <p class="mt-10 text-muted">{{ __('assembly.files.empty') }}</p>
+                <x-empty-state icon="folder-open" :message="__('assembly.files.empty')" class="mt-10" />
             @else
                 <ul class="mt-8 divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
                     @foreach ($files as $file)

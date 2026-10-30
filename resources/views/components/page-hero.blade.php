@@ -1,29 +1,41 @@
 {{--
-    رأس صفحات الأقسام (الصورة 05 — النمط الموحد): صورة بعرض الصفحة، والعنوان ووصفه القصير بالأبيض في جهة البداية، ورمز
-    الشهب من دليل الهوية في جهة النهاية. والصورة المؤقتة المحايدة حتى تصل صور الجمعية.
-    متوازن على كامل العرض (docs/decisions.md — 14 أكتوبر): حافة سفلية مستقيمة، وغطاء موحّد من primary-dark بشفافية 90%
-    لا تدرج أفقي، والعنوان الأبيض بتباين 7:1 فأكثر. ومع التحسين البصري (docs/plans/visual-refresh.md): تكبير بطيء للصورة،
-    وظهور العنوان كلمة كلمة، ودوائر باهتة، وخط زخرفي بلون التمييز.
---}}
-@props(['title', 'summary' => null, 'image' => null])
+    رأس الصفحات الداخلية (الدفعة الثانية — نطاق صفوان 18:15: «كل صفحة بمستوى الرئيسية»): الصورة بعرض الصفحة تحت تدرج
+    شعاعي بألوان الهوية ونقش هندسي يدور ببطء، وشارة صغيرة فوق العنوان بأيقونة، والعنوان يظهر كلمة كلمة بخط منحني يُرسم
+    تحته، ثم الوصف. ورمز الشهب من دليل الهوية في جهة النهاية. متوازن على كامل العرض (decisions.md — 14 أكتوبر): حافة
+    سفلية مستقيمة، والعنوان الأبيض بتباين 7:1 فأكثر فوق الغطاء. وكل الحركة تتوقف لمن طلب تقليلها وخارج الشاشة.
 
-<section data-page-hero class="section-dark">
-    <img src="{{ $image ?? asset('images/placeholders/architecture.svg') }}" alt="" class="ken-burns absolute inset-0 -z-10 size-full object-cover">
-    {{-- غطاء موحّد، وتدرج عمودي خفيف من الأسفل يفصل الشريط عما تحته --}}
-    <div class="absolute inset-0 -z-10 bg-primary-dark/90" aria-hidden="true"></div>
+    الشارة: اسم القسم وأيقونته من اسم المسار (App\Support\PageSections)، وفي صفحة القسم نفسه اسم الجمعية المختصر. ويمرر
+    القالب eyebrow وicon ليغيّرهما.
+--}}
+@props(['title', 'summary' => null, 'image' => null, 'eyebrow' => null, 'icon' => null])
+
+@php
+    $section = \App\Support\PageSections::for(request()->route());
+    $badge = $eyebrow ?? ($section['label'] === $title ? __('site.short_name') : $section['label']);
+@endphp
+
+<section data-page-hero class="page-hero section-dark">
+    <img src="{{ $image ?? asset('images/placeholders/architecture.svg') }}" alt="" width="1920" height="640"
+        class="ken-burns absolute inset-0 -z-10 size-full object-cover">
+    <div class="page-hero-scrim absolute inset-0 -z-10" aria-hidden="true"></div>
     <div class="bg-pattern-light absolute inset-0 -z-10" aria-hidden="true"></div>
-    <div class="absolute inset-0 -z-10 bg-linear-to-t from-primary-dark/50 to-transparent to-60%" aria-hidden="true"></div>
+    <div class="hero-geometry absolute -z-10" data-loop aria-hidden="true"></div>
 
     {{-- رمز الشهب السبعة من دليل الهوية زخرفةً في جهة النهاية --}}
-    <span class="brand-emblem end-6 top-0 hidden h-full w-28 opacity-70 sm:block lg:end-16 lg:w-36" aria-hidden="true"></span>
+    <span class="brand-emblem end-6 top-0 hidden h-full w-28 opacity-60 sm:block lg:end-16 lg:w-36" aria-hidden="true"></span>
 
-    <div class="container-page relative py-14 sm:py-20 lg:py-24">
-        <h1 data-words class="max-w-3xl text-3xl leading-tight font-bold text-balance text-white sm:text-4xl lg:text-5xl">{{ $title }}</h1>
-        <svg class="flourish mt-4 w-32 text-highlight-on-dark" viewBox="0 0 120 12" fill="none" aria-hidden="true">
-            <path d="M2 8c18-6 36-6 54 0s38 6 62-2" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+    <div class="container-page relative py-12 sm:py-16 lg:py-20">
+        <p data-hero-badge class="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-white">
+            {{ \App\Support\Icon::svg($icon ?? $section['icon'], 'size-4 shrink-0 text-brand-light', ['aria-hidden' => 'true']) }}
+            {{ $badge }}
+        </p>
+        <h1 data-words class="mt-5 max-w-3xl text-3xl leading-tight font-black text-balance text-white sm:text-4xl lg:text-5xl">{{ $title }}</h1>
+        <svg class="hero-swoosh-static mt-4 h-3 w-40 text-brand-light" viewBox="0 0 420 24" preserveAspectRatio="none" fill="none" aria-hidden="true">
+            <path d="M4 16 C 110 2, 300 2, 416 14" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
         </svg>
         @if (filled($summary))
-            <p class="mt-4 max-w-2xl text-lg leading-8 text-white/85">{{ $summary }}</p>
+            <p class="mt-4 max-w-2xl text-lg leading-8 text-white/90">{{ $summary }}</p>
         @endif
+        {{ $slot ?? '' }}
     </div>
 </section>

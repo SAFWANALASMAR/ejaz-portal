@@ -6,7 +6,7 @@
 <x-layouts.account :title="__('programs.mine.title')">
     @if ($registrations->isEmpty())
         <x-card>
-            <p class="text-muted">{{ __('programs.mine.empty') }}</p>
+            <x-empty-state icon="academic-cap" :message="__('programs.mine.empty')" />
             <x-button class="mt-4" variant="outline" :href="route('programs.index')" arrow>{{ __('programs.mine.browse') }}</x-button>
         </x-card>
     @else

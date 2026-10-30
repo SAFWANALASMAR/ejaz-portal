@@ -65,7 +65,7 @@
         <h2 class="sr-only">{{ __('governance.list.title') }}</h2>
 
         @if ($documents->isEmpty())
-            <p class="mt-10 text-muted">{{ $filters === [] ? __('governance.list.empty') : __('governance.list.no_results') }}</p>
+            <x-empty-state icon="shield-check" :message="$filters === [] ? __('governance.list.empty') : __('governance.list.no_results')" class="mt-10" />
         @else
             <ul class="mt-8 grid gap-4 lg:grid-cols-2" data-reveal-group>
                 @foreach ($documents as $document)

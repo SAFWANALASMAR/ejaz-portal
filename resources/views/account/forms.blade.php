@@ -6,7 +6,7 @@
 <x-layouts.account :title="__('documents.account.title')">
     @if ($entries->isEmpty())
         <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
-            <p class="text-muted">{{ __('documents.account.empty') }}</p>
+            <x-empty-state icon="clipboard-document-list" :message="__('documents.account.empty')" />
         </div>
     @else
         <ul class="space-y-4">
