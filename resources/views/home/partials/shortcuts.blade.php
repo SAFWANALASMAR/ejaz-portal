@@ -18,13 +18,15 @@
             <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-reveal-group>
                 @foreach ($shortcuts as $shortcut)
                     <li>
-                        <a href="{{ $shortcut['url'] }}" @navigate($shortcut['url']) class="card-lift group flex h-full flex-col gap-2 px-5.5 pt-5.5 pb-4.5">
-                            <span class="flex items-center justify-between gap-3">
-                                <span class="text-[1.3125rem] font-black text-primary-dark">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
-                                <x-icon-tile :icon="$shortcut['icon']" :index="$loop->index" />
+                        {{-- على الجوال (Final-Mobile) بطاقة أفقية: الأيقونة، ثم الاسم والوصف، ثم «ادخل» في جهة النهاية --}}
+                        <a href="{{ $shortcut['url'] }}" @navigate($shortcut['url'])
+                            class="card-lift group grid h-full grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 px-4 py-4 sm:flex sm:flex-col sm:items-stretch sm:gap-2 sm:px-5.5 sm:pt-5.5 sm:pb-4.5">
+                            <span class="contents sm:flex sm:items-center sm:justify-between sm:gap-3">
+                                <span class="col-start-2 row-start-1 text-lg font-black text-primary-dark sm:text-[1.3125rem]">{{ __('home.shortcuts.'.$shortcut['key'].'.title') }}</span>
+                                <x-icon-tile :icon="$shortcut['icon']" :index="$loop->index" class="col-start-1 row-span-2 row-start-1" />
                             </span>
-                            <span class="min-h-[3.375rem] text-base leading-[1.7] text-muted">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
-                            <span class="mt-auto self-center rounded-full bg-primary-dark px-5.5 py-1 text-sm font-extrabold text-white transition group-hover:bg-brand">{{ __('ui.services.enter') }}</span>
+                            <span class="col-start-2 row-start-2 text-sm leading-6 text-muted sm:min-h-[3.375rem] sm:text-base sm:leading-[1.7]">{{ __('home.shortcuts.'.$shortcut['key'].'.text') }}</span>
+                            <span class="col-start-3 row-span-2 row-start-1 rounded-full bg-primary-dark px-4 py-1 text-sm font-extrabold text-white transition group-hover:bg-brand sm:mt-auto sm:self-center sm:px-5.5">{{ __('ui.services.enter') }}</span>
                         </a>
                     </li>
                 @endforeach

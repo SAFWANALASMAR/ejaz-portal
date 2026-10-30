@@ -33,22 +33,18 @@
         {{-- البطاقات من اللوحة (AccountCard): ومنها لوحة الإدارة لمن يدخلها، تحميلاً كاملاً (SpaLink) --}}
         @foreach (\App\Support\AccountNavigation::cards($user) as $card)
             <a href="{{ $card['href'] }}" @if ($card['external']) target="_blank" rel="noopener noreferrer" @else @navigate($card['href']) @endif
-                class="card-glow tilt group flex flex-col p-6">
-                <span class="flex items-start gap-4">
-                    <x-icon-tile :icon="$card['icon']" variant="gradient" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="md" />
-                    <span>
-                        <span class="flex items-center gap-2 text-lg font-bold text-primary-dark">
-                            {{ $card['title'] }}
-                            @if (($counts[$card['route']] ?? 0) > 0)
-                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-accent px-2 text-sm font-semibold text-white">{{ number_format($counts[$card['route']]) }}</span>
-                            @endif
-                        </span>
-                        @if (filled($card['description']))
-                            <span class="mt-1 block text-sm leading-6 text-muted">{{ $card['description'] }}</span>
-                        @endif
-                    </span>
+                class="card-lift tilt group flex flex-col gap-2 p-5.5">
+                <span class="flex items-center justify-between gap-3">
+                    <x-icon-tile :icon="$card['icon']" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="md" />
+                    @if (($counts[$card['route']] ?? 0) > 0)
+                        <span class="text-[1.625rem] font-black text-primary-dark tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
+                    @endif
                 </span>
-                <span class="mt-5 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
+                <span class="text-[1.3125rem] font-black text-primary-dark">{{ $card['title'] }}</span>
+                @if (filled($card['description']))
+                    <span class="text-[15px] leading-6 text-muted">{{ $card['description'] }}</span>
+                @endif
+                <span class="mt-auto inline-flex size-[2.375rem] items-center justify-center self-end rounded-full bg-primary-dark text-white transition group-hover:bg-brand" aria-hidden="true">
                     {{ \App\Support\Icon::svg($card['external'] ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                 </span>
                 @if ($card['external'])
