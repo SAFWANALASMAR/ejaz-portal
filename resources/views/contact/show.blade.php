@@ -28,27 +28,37 @@
     <section class="py-10 sm:py-14">
         <div @class(['container-page grid gap-8 lg:items-start', 'lg:grid-cols-[1fr_2fr]' => $showInfo])>
             @if ($showInfo)
-            <aside class="rounded-2xl border border-line/70 bg-surface p-6" aria-labelledby="contact-info">
-                <h2 id="contact-info" class="text-xl font-bold text-primary">{{ __('contact.info.title') }}</h2>
+            {{-- بلغة التصور النهائي (Final-Contact): كل وسيلة بطاقة بمربع أيقونة متدرج بلونه من موضعه --}}
+            <aside aria-labelledby="contact-info">
+                <h2 id="contact-info" class="text-2xl font-black text-primary-dark">{{ __('contact.info.title') }}</h2>
 
                 @if ($hasInfo)
-                    <dl class="mt-5 space-y-4">
+                    <dl class="mt-5 space-y-3.5">
                         @if (filled($email))
-                            <div>
-                                <dt class="text-sm text-muted">{{ __('contact.info.email') }}</dt>
-                                <dd class="mt-1 font-semibold"><a href="mailto:{{ $email }}" dir="ltr" class="text-primary hover:underline">{{ $email }}</a></dd>
+                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
+                                <x-icon-tile icon="envelope" :index="0" />
+                                <div>
+                                    <dt class="text-sm text-muted">{{ __('contact.info.email') }}</dt>
+                                    <dd class="mt-0.5 text-lg font-black"><a href="mailto:{{ $email }}" dir="ltr" class="text-primary-dark hover:underline">{{ $email }}</a></dd>
+                                </div>
                             </div>
                         @endif
                         @if (filled($phone))
-                            <div>
-                                <dt class="text-sm text-muted">{{ __('contact.info.phone') }}</dt>
-                                <dd class="mt-1 font-semibold"><a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" dir="ltr" class="text-primary hover:underline">{{ $phone }}</a></dd>
+                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
+                                <x-icon-tile icon="phone" :index="1" />
+                                <div>
+                                    <dt class="text-sm text-muted">{{ __('contact.info.phone') }}</dt>
+                                    <dd class="mt-0.5 text-lg font-black"><a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" dir="ltr" class="text-primary-dark hover:underline">{{ $phone }}</a></dd>
+                                </div>
                             </div>
                         @endif
                         @if (filled($address))
-                            <div>
-                                <dt class="text-sm text-muted">{{ __('contact.info.address') }}</dt>
-                                <dd class="mt-1 leading-7 text-ink">{{ $address }}</dd>
+                            <div class="card-lift group flex items-center gap-4 px-5 py-4">
+                                <x-icon-tile icon="map-pin" :index="2" />
+                                <div>
+                                    <dt class="text-sm text-muted">{{ __('contact.info.address') }}</dt>
+                                    <dd class="mt-0.5 leading-7 font-black text-primary-dark">{{ $address }}</dd>
+                                </div>
                             </div>
                         @endif
                     </dl>
@@ -84,7 +94,7 @@
             @endif
 
             <div class="card-lift p-6 sm:p-8">
-                <h2 class="text-xl font-bold text-primary">{{ __('contact.form.title') }}</h2>
+                <h2 class="flex items-center gap-2 text-2xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('contact.form.title') }}</h2>
                 <p class="mt-2 text-muted">{{ __('contact.form.intro') }}</p>
 
                 <x-flash class="mt-6" />

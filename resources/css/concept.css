@@ -556,3 +556,12 @@ html[data-motion-off] .card-glow:hover::after {
 html[data-motion-off] .float-soft {
     animation: none;
 }
+
+/* معيّن صغير قبل عنوان البطاقة (Final-Contact) */
+.heading-flank-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    transform: rotate(45deg);
+    border: 1.5px solid var(--color-brand);
+}
