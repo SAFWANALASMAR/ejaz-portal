@@ -4,6 +4,8 @@
     'description' => null,
     'image' => null,
     'noindex' => false,
+    // false: بلا canonical ولا og:url، لصفحة في رابطها سر (معرض الشواهد)
+    'canonical' => true,
 ])
 
 @php
@@ -23,13 +25,18 @@
     @if ($noindex)
         <meta name="robots" content="noindex, nofollow">
     @endif
-    <link rel="canonical" href="{{ url()->current() }}">
+    @stack('head')
+    @if ($canonical)
+        <link rel="canonical" href="{{ url()->current() }}">
+    @endif
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ar_SA">
     <meta property="og:site_name" content="{{ $siteName }}">
     <meta property="og:title" content="{{ $title ?? $siteName }}">
     <meta property="og:description" content="{{ $pageDescription }}">
-    <meta property="og:url" content="{{ url()->current() }}">
+    @if ($canonical)
+        <meta property="og:url" content="{{ url()->current() }}">
+    @endif
     @if ($image)
         <meta property="og:image" content="{{ $image }}">
     @endif
