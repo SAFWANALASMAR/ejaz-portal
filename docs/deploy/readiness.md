@@ -94,12 +94,14 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
   - `FILESYSTEM_PRIVATE_DISK=s3` في `.env.production.example`.
   - `deploy/storage/` (CORS، ودورة حياة الملفات الخاصة).
   - ملفات الحوكمة والمكتبة بتحويل إلى رابط موقّع قصير بعد فحص النشر (`PrivateFileResponse::temporaryRedirect`)، ونطاق التخزين في `CSP_MEDIA_SRC` و`CSP_FRAME_SRC`.
+  - **الاستثناء:** كتب المكتبة «للقراءة فقط — بلا تحميل» تُبث من PHP لقارئ الصفحة لا برابط موقّع (`decisions.md` — 30 أكتوبر 2026)، بحد 20 فتحة في الدقيقة لكل عنوان. ويلزمها مهلة في nginx وPHP تكفي بث ملف حتى 20 ميجابايت على اتصال بطيء، ومراقبة عمال PHP-FPM في الذروة.
 - **الدليل:** `deploy/storage/README.md`، و`docs/deploy.md` «الملفات الخاصة».
 - **التحقق:**
   - فحص «التخزين الخاص» في `ejaz:health` (كتابة وقراءة وحذف على القرص الخاص).
   - واختبار `tests/Feature/Platform/S3CompatibleStorageTest.php` (الروابط الموقّعة بعنوان مخصص).
   - و`tests/Feature/Security/ContentFilesSignedUrlTest.php` (التحويل، ورفض غير المنشور، وبقاء الرابط خارج الصفحات المخزنة).
   - ورفع وثيقة من اللوحة ثم فتحها من الموقع: العارض المدمج يعمل، والتنزيل باسم الملف، وملف صوتي يُسمع ويُقدَّم ويُؤخَّر.
+  - وكتاب «للقراءة فقط»: القارئ يرسم صفحاته، و`/download` يرد 404، و`curl -I` على `/file` يرد `200` بلا `Location` وبـ `Cache-Control: no-store, private` (`tests/Feature/Library/LibraryReadOnlyTest.php`).
 
 ## ٧. فهرسة محركات البحث
 

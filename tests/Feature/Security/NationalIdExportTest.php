@@ -133,7 +133,8 @@ it('refuses the full export to whoever lacks competition.export_national_id, wha
 function deniedNationalIdExports(): array
 {
     return Activity::query()->where('event', 'national_id_export_denied')->get()
-        ->countBy(fn (Activity $log): string => (string) $log->properties['reason'])->all();
+        // مرتبة بالسبب: ترتيب الصفوف بلا ORDER BY غير مضمون، فتفشل المقارنة بـ toBe أحياناً
+        ->countBy(fn (Activity $log): string => (string) $log->properties['reason'])->sortKeys()->all();
 }
 
 it('requires the current password for every full export, and locks guessing after five wrong tries', function () {
@@ -146,7 +147,7 @@ it('requires the current password for every full export, and locks guessing afte
     expect(fn () => nationalIdExports($this->competition)['results']($this->director, true, 'wrong'))->toThrow(ValidationException::class, __('auth.password'))
         ->and(fn () => nationalIdExports($this->competition)['results']($this->director, true, 'password'))->toThrow(ValidationException::class)
         ->and(Activity::query()->where('event', 'competition_results_exported')->count())->toBe(0)
-        ->and(deniedNationalIdExports())->toBe(['password' => 5, 'locked' => 1]);
+        ->and(deniedNationalIdExports())->toBe(['locked' => 1, 'password' => 5]);
 });
 
 it('exports the national ID and guardian phone in full with the password, recording the row count and the exporter', function () {

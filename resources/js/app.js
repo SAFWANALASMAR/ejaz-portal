@@ -14,6 +14,7 @@ import './password-rules';
 // قبل home.js: يضع data-reveal على أبناء [data-reveal-group] قبل أن يراقبها
 import './motion';
 import './home';
+import './pdf-reader';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

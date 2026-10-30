@@ -77,6 +77,11 @@ class LibraryItemForm
                     // لا رابط مؤقت موقّع: الملف يُنزَّل من إجراء «تنزيل الملف» بعد فحص الصلاحية
                     ->previewable(false)
                     ->columnSpanFull(),
+                // «للقراءة فقط — بلا تحميل» (طلب المدير التنفيذي، 30 أكتوبر 2026): للكتب والأبحاث وحدها، ويُعاد ضبطه في SaveLibraryItem
+                Toggle::make('is_downloadable')->label(__('library.fields.is_downloadable'))->helperText(__('library.fields.is_downloadable_hint'))
+                    ->default(true)
+                    ->visible(fn (Get $get): bool => self::section($get)?->takesPdf() ?? false)
+                    ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('library.fields.publish_hint'))->live(),
                 // نماذج الفيديو في الرئيسية (ملاحظة المدير التنفيذي): للمرئية برابط يوتيوب
                 Toggle::make('on_home')->label(__('library.fields.on_home'))->helperText(__('library.fields.on_home_hint'))
