@@ -163,3 +163,23 @@ it('says the mobile number is required in the guide, for new installs and in the
 
     $this->get('/competitions/'.$this->competition->slug.'/guide')->assertOk();
 });
+
+it('leaves the national ID out of the guide step, since the platform does not ask for it', function () {
+    $step = 'أدخل البيانات المطلوبة بدقة، مثل الاسم والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة. ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
+    $withId = 'مثل الاسم ورقم الهوية أو الإقامة والمرحلة التعليمية';
+
+    // البذرة للتثبيت الجديد: النص المعتمد حرفياً
+    expect($this->competition->pageList('guide_steps'))->toContain($step)
+        ->and(implode(' ', $this->competition->pageList('guide_steps')))->not->toContain('رقم الهوية');
+
+    // والمخزّن قبل التصحيح: يصحّحه الترحيل، ويعيده الرجوع
+    $steps = array_map(fn (string $item): string => str_replace('مثل الاسم والمرحلة التعليمية', $withId, $item), $this->competition->pageList('guide_steps'));
+    $this->competition->forceFill(['page_content' => [...$this->competition->page_content, 'guide_steps' => $steps]])->save();
+    $migration = require database_path('migrations/2026_10_30_233000_drop_national_id_from_brahin_guide.php');
+
+    $migration->up();
+    expect($this->competition->fresh()->pageList('guide_steps'))->toContain($step);
+
+    $migration->down();
+    expect(implode(' ', $this->competition->fresh()->pageList('guide_steps')))->toContain($withId);
+});
