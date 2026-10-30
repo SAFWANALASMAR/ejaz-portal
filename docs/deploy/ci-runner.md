@@ -45,7 +45,7 @@ bash deploy/ci-runner/register.sh     # الحلقة: تبقى تعمل في ن�
 
 ## مشغّل ثانٍ (مؤقت حتى v0.15.0)
 
-بموافقة المشرف (30 أكتوبر 2026) لتفريغ الطابور مع الفروع المتوازية. من مجلد مستقل (شجرة عمل على `main`، مثل `ejaz-ci-runner-2`):
+بموافقة المشرف (30 أكتوبر 2026) لتفريغ الطابور مع الفروع المتوازية. من مجلد مستقل (شجرة عمل على `main`، مثل `ejaz-ci-runner-2`)، لأن الحلقة تقرأ `register.sh` من ملفه وهي تعمل: فلكل مشغّل نسخته، وتحديث نسخة أحدهما (`git pull`) لا يكسر حلقة الآخر:
 
 ```bash
 COMPOSE_PROJECT_NAME=ejaz-ci-runner-2 RUNNER_NAME=ejaz-local-2 bash deploy/ci-runner/register.sh

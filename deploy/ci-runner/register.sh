@@ -11,6 +11,8 @@ repo=SAFWANALASMAR/ejaz-portal
 # فلا يمس خادم الأول ولا مجلداته (docs/deploy/ci-runner.md «مشغّل ثانٍ»)
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ejaz-ci-runner}"
 project=$COMPOSE_PROJECT_NAME
+# ومشغّل ثانٍ بلا اسم آخر يحل محل الأول في GitHub (التسجيل بـ --replace)، فلا يبدأ
+[ "$project" = ejaz-ci-runner ] || [ "${RUNNER_NAME:-ejaz-local}" != ejaz-local ] || { echo "مشغّل ثانٍ يلزمه RUNNER_NAME آخر" >&2; exit 2; }
 action="${1:-loop}"
 case "$action" in
   loop) endpoint=registration-token ;;

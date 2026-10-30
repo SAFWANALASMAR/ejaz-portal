@@ -92,7 +92,9 @@ it('names its compose project and volumes from COMPOSE_PROJECT_NAME, so a second
     // الافتراضي اسم المشغّل الأول، ولا اسم مجلد مكتوب بلا المتغير
     expect($register)->toContain('export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ejaz-ci-runner}"')
         ->toContain('project=$COMPOSE_PROJECT_NAME')
-        ->not->toMatch('/ejaz-ci-runner_(docker-data|work|state)/');
+        ->not->toMatch('/ejaz-ci-runner_(docker-data|work|state)/')
+        // ومشغّل ثانٍ بلا RUNNER_NAME آخر لا يبدأ، فلا يحل محل الأول بـ --replace
+        ->toContain('[ "$project" = ejaz-ci-runner ] || [ "${RUNNER_NAME:-ejaz-local}" != ejaz-local ] || { echo "مشغّل ثانٍ يلزمه RUNNER_NAME آخر" >&2; exit 2; }');
 });
 
 // على جهاز صفوان (28 أكتوبر 2026): بقيت حاوية المشغّل الدائم القديمة تعمل بعد remove ومعها مجلد state، لأن خدمة runner في
