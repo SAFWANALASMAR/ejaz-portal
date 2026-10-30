@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>خيارات الأيقونات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zain:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#3E8ACA;--primary:#2E6898;--primary-dark:#1F4565;--primary-soft:#EAF3FB;
+  --accent:#5D2A92;--accent-light:#D9CCF0;--green:#287A37;--surface:#F3F7FB;
+  --ink:#1B2B3A;--muted:#5B6B7B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:"Zain","Segoe UI","Noto Sans Arabic",Tahoma,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1320px;margin:0 auto;padding:48px 32px 56px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px}
+.top h1{margin:0;font-size:38px;font-weight:800;color:var(--primary-dark);line-height:1.15}
+.top h1::before{content:"";display:block;width:44px;height:4px;border-radius:4px;background:var(--brand);margin-bottom:12px}
+.top p{margin:6px 0 0;color:var(--muted);font-size:19px}
+.legend{font-size:16px;color:var(--muted);white-space:nowrap}
+
+.style{background:#fff;border-radius:24px;padding:24px;margin-top:22px;box-shadow:0 1px 0 rgba(31,69,101,.06),0 18px 40px -30px rgba(31,69,101,.45);border:1px solid #E3ECF5}
+.shead{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.letter{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--brand),var(--primary-dark))}
+.shead h2{margin:0;font-size:26px;font-weight:800;color:var(--primary-dark);line-height:1.2}
+.shead p{margin:2px 0 0;color:var(--muted);font-size:17px;line-height:1.35}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panel{position:relative;border-radius:18px;padding:18px 14px 20px;overflow:hidden}
+.panel.light{background:#fff;border:1px solid #E6EEF6}
+.panel.dark{background:var(--primary-dark);color:#fff}
+.ptag{position:absolute;top:12px;inset-inline-start:14px;font-size:14px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary)}
+.dark .ptag{background:rgba(255,255,255,.12);color:var(--accent-light)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 8px;padding-top:30px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:10px;text-decoration:none;color:inherit;outline:none}
+.lbl{font-size:17px;font-weight:700;line-height:1.2;text-align:center;color:var(--primary-dark)}
+.dark .lbl{color:#fff}
+.cap{white-space:nowrap;font-size:13px;color:var(--accent);margin-top:-6px;font-weight:700}
+.dark .cap{color:var(--accent-light)}
+.tile{width:64px;height:64px;display:grid;place-items:center;border-radius:18px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s,background .35s,color .35s}
+.ic{width:32px;height:32px;display:block}
+
+/* (أ) Phosphor duotone الحالي */
+.s-a .tile{color:var(--primary);background:linear-gradient(135deg,var(--primary-soft),#fff 70%);
+  box-shadow:inset 0 0 0 1px rgba(62,138,202,.18),0 10px 24px -14px rgba(46,104,152,.55)}
+.s-a .dark .tile{color:var(--accent-light);background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.s-a .cell:hover .tile,.s-a .cell.is-hover .tile{transform:translateY(-3px) rotate(-6deg);box-shadow:inset 0 0 0 1px rgba(62,138,202,.3),0 16px 28px -14px rgba(46,104,152,.65)}
+.s-a .dark .cell:hover .tile,.s-a .dark .cell.is-hover .tile{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),0 14px 26px -12px rgba(0,0,0,.45)}
+
+/* (ب) زجاجي ثلاثي الأبعاد */
+.s-b .panel::before,.s-b .panel::after{content:"";position:absolute;border-radius:50%;filter:blur(38px);pointer-events:none}
+.s-b .panel.light::before{width:220px;height:160px;background:rgba(62,138,202,.22);top:-40px;inset-inline-end:10%}
+.s-b .panel.light::after{width:200px;height:140px;background:rgba(93,42,146,.12);bottom:-50px;inset-inline-start:15%}
+.s-b .panel.dark::before{width:240px;height:170px;background:rgba(62,138,202,.55);top:-50px;inset-inline-end:8%}
+.s-b .panel.dark::after{width:200px;height:150px;background:rgba(93,42,146,.45);bottom:-60px;inset-inline-start:12%}
+.s-b .grid{position:relative;z-index:1}
+.s-b .panel.light{background:linear-gradient(160deg,#F1F7FD,#F7F4FC)}
+.s-b .tile{background:linear-gradient(150deg,rgba(255,255,255,.92),rgba(234,243,251,.45));border:1px solid rgba(255,255,255,.95);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 #fff,inset 0 -8px 16px -10px rgba(62,138,202,.35),0 14px 28px -16px rgba(31,69,101,.55)}
+.s-b .dark .tile{background:linear-gradient(150deg,rgba(255,255,255,.26),rgba(255,255,255,.06));border-color:rgba(255,255,255,.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 14px 28px -14px rgba(0,0,0,.5)}
+.s-b .ic{width:38px;height:38px;filter:drop-shadow(0 4px 6px rgba(31,69,101,.25))}
+.s-b .cell:hover .tile,.s-b .cell.is-hover .tile{transform:perspective(300px) translateY(-5px) rotateX(10deg) rotateY(-10deg);
+  box-shadow:inset 0 1px 0 #fff,inset 0 -8px 16px -10px rgba(62,138,202,.45),0 22px 30px -16px rgba(31,69,101,.6),0 0 0 4px rgba(62,138,202,.12)}
+.s-b .dark .cell:hover .tile,.s-b .dark .cell.is-hover .tile{box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 22px 30px -14px rgba(0,0,0,.55),0 0 22px 2px rgba(111,180,236,.35)}
+
+/* (ج) خطوط مرسومة متحركة */
+.s-c .tile{color:var(--primary);background:#fff;border:1px solid #DCE8F3;border-radius:50%}
+.s-c .dark .tile{color:#fff;background:transparent;border-color:rgba(255,255,255,.28)}
+.s-c .ic path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s cubic-bezier(.65,0,.35,1) forwards;animation-delay:calc(var(--n)*110ms + var(--i)*170ms + 150ms)}
+@keyframes draw{to{stroke-dashoffset:0}}
+.s-c .cell:hover .tile,.s-c .cell.is-hover .tile{color:var(--accent);border-color:var(--accent-light);background:#FAF7FE;transform:translateY(-3px);box-shadow:0 12px 22px -14px rgba(93,42,146,.6)}
+.s-c .dark .cell:hover .tile,.s-c .dark .cell.is-hover .tile{color:var(--accent-light);background:rgba(255,255,255,.08);border-color:var(--accent-light)}
+.s-c .cell:hover .ic,.s-c .cell.is-hover .ic{transform:scale(1.08) rotate(-4deg);transition:transform .35s}
+.s-c .cell:hover .ic path{animation:redraw .9s cubic-bezier(.65,0,.35,1) both;animation-delay:calc(var(--i)*120ms)}
+@keyframes redraw{0%{stroke-dashoffset:1}100%{stroke-dashoffset:0}}
+/* حالة اللقطة: «المرور» برسم مكتمل وأثر خط ثانٍ، و«أثناء الرسم» متوقفة عند منتصفها */
+.shot .s-c .ic path{animation:none;stroke-dashoffset:0}
+.shot .s-c .is-mid .ic path{stroke-dashoffset:.55}
+.shot .s-c .is-mid .ic path:first-child{stroke-dashoffset:.18}
+.shot .s-c .is-mid .ic path:last-child{stroke-dashoffset:.85}
+
+.note{margin-top:22px;color:var(--muted);font-size:15px;text-align:center}
+
+@media (max-width:900px){
+  .wrap{padding:28px 16px 36px}
+  .top{flex-direction:column;align-items:flex-start}
+  .top h1{font-size:30px}
+  .top p{font-size:17px}
+  .style{padding:16px;border-radius:20px}
+  .shead h2{font-size:22px}.shead p{font-size:15px}
+  .panels{grid-template-columns:1fr}
+  .grid{gap:16px 4px}
+  .lbl{font-size:14px}
+  .cap{font-size:11px}
+}
+@media (prefers-reduced-motion:reduce){.s-c .ic path{animation:none;stroke-dashoffset:0}.tile{transition:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gBack" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7DBDF0"/><stop offset=".5" stop-color="#3E8ACA"/><stop offset="1" stop-color="#1F4565"/>
+    </linearGradient>
+    <linearGradient id="gFront" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".92"/><stop offset=".45" stop-color="#E4F0FB" stop-opacity=".7"/><stop offset="1" stop-color="#9CC8EE" stop-opacity=".72"/>
+    </linearGradient>
+    <linearGradient id="gEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset="1" stop-color="#ffffff" stop-opacity=".25"/>
+    </linearGradient>
+    <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A27DDA"/><stop offset="1" stop-color="#5D2A92"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="b"/>
+      <feOffset in="b" dy="2.5" result="o"/>
+      <feFlood flood-color="#3E8ACA" flood-opacity=".45"/>
+      <feComposite in2="o" operator="in" result="s"/>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<main class="wrap">
+  <header class="top">
+    <div>
+      <h1>ثلاثة أنماط لأيقونات البوابة</h1>
+      <p>الأيقونات الثماني نفسها بالحجم المستعمل في البطاقات (مربع 64 وأيقونة 32)، على خلفية فاتحة وداكنة.</p>
+    </div>
+    <div class="legend">الأيقونة الأولى في كل لوحة بحالة المرور</div>
+  </header>
+
+  <section class="style s-a">
+    <div class="shead"><span class="letter">أ</span><div><h2>ثنائية اللون — الحالية مع حركة</h2><p>Phosphor بوزن duotone داخل مربع بتدرج ناعم وظل داخلي، وترتفع وتميل قليلاً عند المرور.</p></div></div>
+    <div class="panels">
+      <div class="panel light"><span class="ptag">فاتح</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,56v56c0,96-88,120-88,120S40,208,40,112V56a8,8,0,0,1,8-8H208A8,8,0,0,1,216,56Z" opacity="0.2"/><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell" href="#" style="--n:1"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M168,144a40,40,0,1,1-40-40A40,40,0,0,1,168,144ZM64,56A32,32,0,1,0,96,88,32,32,0,0,0,64,56Zm128,0a32,32,0,1,0,32,32A32,32,0,0,0,192,56Z" opacity="0.2"/><path d="M244.8,150.4a8,8,0,0,1-11.2-1.6A51.6,51.6,0,0,0,192,128a8,8,0,0,1,0-16,24,24,0,1,0-23.24-30,8,8,0,1,1-15.5-4A40,40,0,1,1,219,117.51a67.94,67.94,0,0,1,27.43,21.68A8,8,0,0,1,244.8,150.4ZM190.92,212a8,8,0,1,1-13.85,8,57,57,0,0,0-98.15,0,8,8,0,1,1-13.84-8,72.06,72.06,0,0,1,33.74-29.92,48,48,0,1,1,58.36,0A72.06,72.06,0,0,1,190.92,212ZM128,176a32,32,0,1,0-32-32A32,32,0,0,0,128,176ZM72,120a8,8,0,0,0-8-8A24,24,0,1,1,87.24,82a8,8,0,1,0,15.5-4A40,40,0,1,0,37,117.51,67.94,67.94,0,0,0,9.6,139.19a8,8,0,1,0,12.8,9.61A51.6,51.6,0,0,1,64,128,8,8,0,0,0,72,120Z"/></svg></span><span class="lbl">العضوية</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,113.07v53.22a8,8,0,0,1-2,5.31c-11.3,12.59-38.9,36.4-86,36.4s-74.68-23.81-86-36.4a8,8,0,0,1-2-5.31V113.07L128,160Z" opacity="0.2"/><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48v63.1c0,39.7-31.75,72.6-71.45,72.9A72,72,0,0,1,56,112V48Z" opacity="0.2"/><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M48,72h64V184H48ZM190.64,38.39a8,8,0,0,0-9.5-6.21l-46.81,10a8.07,8.07,0,0,0-6.15,9.57L139.79,107l62.46-13.42Z" opacity="0.2"/><path d="M231.65,194.55,198.46,36.75a16,16,0,0,0-19-12.39L132.65,34.42a16.08,16.08,0,0,0-12.3,19l33.19,157.8A16,16,0,0,0,169.16,224a16.25,16.25,0,0,0,3.38-.36l46.81-10.06A16.09,16.09,0,0,0,231.65,194.55ZM136,50.15c0-.06,0-.09,0-.09l46.8-10,3.33,15.87L139.33,66Zm6.62,31.47,46.82-10.05,3.34,15.9L146,97.53Zm6.64,31.57,46.82-10.06,13.3,63.24-46.82,10.06ZM216,197.94l-46.8,10-3.33-15.87L212.67,182,216,197.85C216,197.91,216,197.94,216,197.94ZM104,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32ZM56,48h48V64H56Zm0,32h48v96H56Zm48,128H56V192h48v16Z"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M240,120a40,40,0,0,1-40,40H160V80h40A40,40,0,0,1,240,120Z" opacity="0.2"/><path d="M248,120a48.05,48.05,0,0,0-48-48H160.2c-2.91-.17-53.62-3.74-101.91-44.24A16,16,0,0,0,32,40V200a16,16,0,0,0,26.29,12.25c37.77-31.68,77-40.76,93.71-43.3v31.72A16,16,0,0,0,159.12,214l11,7.33A16,16,0,0,0,194.5,212l11.77-44.36A48.07,48.07,0,0,0,248,120ZM48,199.93V40h0c42.81,35.91,86.63,45,104,47.24v65.48C134.65,155,90.84,164.07,48,199.93Zm131,8,0,.11-11-7.33V168h21.6ZM200,152H168V88h32a32,32,0,1,1,0,64Z"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,56V200a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H216A8,8,0,0,1,224,56Z" opacity="0.2"/><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a48,48,0,0,1-96,0,8,8,0,0,1,16,0,32,32,0,0,0,64,0,8,8,0,0,1,16,0Z"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M231.66,213.73a8,8,0,0,1-9.93,9.93L194,215.5A72.05,72.05,0,0,1,92.06,175.89h0c1.31.07,2.62.11,3.94.11a72,72,0,0,0,67.93-95.88h0A72,72,0,0,1,223.5,186Z" opacity="0.2"/><path d="M232.07,186.76a80,80,0,0,0-62.5-114.17A80,80,0,1,0,23.93,138.76l-7.27,24.71a16,16,0,0,0,19.87,19.87l24.71-7.27a80.39,80.39,0,0,0,25.18,7.35,80,80,0,0,0,108.34,40.65l24.71,7.27a16,16,0,0,0,19.87-19.86ZM62,159.5a8.28,8.28,0,0,0-2.26.32L32,168l8.17-27.76a8,8,0,0,0-.63-6,64,64,0,1,1,26.26,26.26A8,8,0,0,0,62,159.5Zm153.79,28.73L224,216l-27.76-8.17a8,8,0,0,0-6,.63,64.05,64.05,0,0,1-85.87-24.88A79.93,79.93,0,0,0,174.7,89.71a64,64,0,0,1,41.75,92.48A8,8,0,0,0,215.82,188.23Z"/></svg></span><span class="lbl">التواصل</span></a></div></div>
+      <div class="panel dark"><span class="ptag">داكن</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,56v56c0,96-88,120-88,120S40,208,40,112V56a8,8,0,0,1,8-8H208A8,8,0,0,1,216,56Z" opacity="0.2"/><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell" href="#" style="--n:1"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M168,144a40,40,0,1,1-40-40A40,40,0,0,1,168,144ZM64,56A32,32,0,1,0,96,88,32,32,0,0,0,64,56Zm128,0a32,32,0,1,0,32,32A32,32,0,0,0,192,56Z" opacity="0.2"/><path d="M244.8,150.4a8,8,0,0,1-11.2-1.6A51.6,51.6,0,0,0,192,128a8,8,0,0,1,0-16,24,24,0,1,0-23.24-30,8,8,0,1,1-15.5-4A40,40,0,1,1,219,117.51a67.94,67.94,0,0,1,27.43,21.68A8,8,0,0,1,244.8,150.4ZM190.92,212a8,8,0,1,1-13.85,8,57,57,0,0,0-98.15,0,8,8,0,1,1-13.84-8,72.06,72.06,0,0,1,33.74-29.92,48,48,0,1,1,58.36,0A72.06,72.06,0,0,1,190.92,212ZM128,176a32,32,0,1,0-32-32A32,32,0,0,0,128,176ZM72,120a8,8,0,0,0-8-8A24,24,0,1,1,87.24,82a8,8,0,1,0,15.5-4A40,40,0,1,0,37,117.51,67.94,67.94,0,0,0,9.6,139.19a8,8,0,1,0,12.8,9.61A51.6,51.6,0,0,1,64,128,8,8,0,0,0,72,120Z"/></svg></span><span class="lbl">العضوية</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,113.07v53.22a8,8,0,0,1-2,5.31c-11.3,12.59-38.9,36.4-86,36.4s-74.68-23.81-86-36.4a8,8,0,0,1-2-5.31V113.07L128,160Z" opacity="0.2"/><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48v63.1c0,39.7-31.75,72.6-71.45,72.9A72,72,0,0,1,56,112V48Z" opacity="0.2"/><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M48,72h64V184H48ZM190.64,38.39a8,8,0,0,0-9.5-6.21l-46.81,10a8.07,8.07,0,0,0-6.15,9.57L139.79,107l62.46-13.42Z" opacity="0.2"/><path d="M231.65,194.55,198.46,36.75a16,16,0,0,0-19-12.39L132.65,34.42a16.08,16.08,0,0,0-12.3,19l33.19,157.8A16,16,0,0,0,169.16,224a16.25,16.25,0,0,0,3.38-.36l46.81-10.06A16.09,16.09,0,0,0,231.65,194.55ZM136,50.15c0-.06,0-.09,0-.09l46.8-10,3.33,15.87L139.33,66Zm6.62,31.47,46.82-10.05,3.34,15.9L146,97.53Zm6.64,31.57,46.82-10.06,13.3,63.24-46.82,10.06ZM216,197.94l-46.8,10-3.33-15.87L212.67,182,216,197.85C216,197.91,216,197.94,216,197.94ZM104,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32ZM56,48h48V64H56Zm0,32h48v96H56Zm48,128H56V192h48v16Z"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M240,120a40,40,0,0,1-40,40H160V80h40A40,40,0,0,1,240,120Z" opacity="0.2"/><path d="M248,120a48.05,48.05,0,0,0-48-48H160.2c-2.91-.17-53.62-3.74-101.91-44.24A16,16,0,0,0,32,40V200a16,16,0,0,0,26.29,12.25c37.77-31.68,77-40.76,93.71-43.3v31.72A16,16,0,0,0,159.12,214l11,7.33A16,16,0,0,0,194.5,212l11.77-44.36A48.07,48.07,0,0,0,248,120ZM48,199.93V40h0c42.81,35.91,86.63,45,104,47.24v65.48C134.65,155,90.84,164.07,48,199.93Zm131,8,0,.11-11-7.33V168h21.6ZM200,152H168V88h32a32,32,0,1,1,0,64Z"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,56V200a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H216A8,8,0,0,1,224,56Z" opacity="0.2"/><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a48,48,0,0,1-96,0,8,8,0,0,1,16,0,32,32,0,0,0,64,0,8,8,0,0,1,16,0Z"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M231.66,213.73a8,8,0,0,1-9.93,9.93L194,215.5A72.05,72.05,0,0,1,92.06,175.89h0c1.31.07,2.62.11,3.94.11a72,72,0,0,0,67.93-95.88h0A72,72,0,0,1,223.5,186Z" opacity="0.2"/><path d="M232.07,186.76a80,80,0,0,0-62.5-114.17A80,80,0,1,0,23.93,138.76l-7.27,24.71a16,16,0,0,0,19.87,19.87l24.71-7.27a80.39,80.39,0,0,0,25.18,7.35,80,80,0,0,0,108.34,40.65l24.71,7.27a16,16,0,0,0,19.87-19.86ZM62,159.5a8.28,8.28,0,0,0-2.26.32L32,168l8.17-27.76a8,8,0,0,0-.63-6,64,64,0,1,1,26.26,26.26A8,8,0,0,0,62,159.5Zm153.79,28.73L224,216l-27.76-8.17a8,8,0,0,0-6,.63,64.05,64.05,0,0,1-85.87-24.88A79.93,79.93,0,0,0,174.7,89.71a64,64,0,0,1,41.75,92.48A8,8,0,0,0,215.82,188.23Z"/></svg></span><span class="lbl">التواصل</span></a></div></div>
+    </div>
+  </section>
+
+  <section class="style s-b">
+    <div class="shead"><span class="letter">ب</span><div><h2>زجاجية ثلاثية الأبعاد</h2><p>طبقتان: خلفية متدرجة بأزرق الهوية، وأمامية شفافة بحد أبيض لامع، على مربع زجاجي ضبابي يميل عند المرور.</p></div></div>
+    <div class="panels">
+      <div class="panel light"><span class="ptag">فاتح</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M22 5l14 5.6v10.6c0 9.3-6 16.6-14 20-8-3.4-14-10.7-14-20V10.6z"/>
+    <circle fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="31" cy="31" r="11"/><path d="M26 31.2l3.4 3.4 6.4-6.8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell" href="#" style="--n:1"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g fill="url(#gBack)" filter="url(#glow)"><circle cx="11" cy="17" r="5"/><circle cx="37" cy="17" r="5"/><path d="M2.5 36c0-6 3.8-10 8.5-10s8.5 4 8.5 10z"/><path d="M28.5 36c0-6 3.8-10 8.5-10s8.5 4 8.5 10z"/></g>
+    <circle fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="24" cy="15" r="7.5"/><path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M11 42c0-8.6 5.8-14 13-14s13 5.4 13 14a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2z"/></svg></span><span class="lbl">العضوية</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M3 18.5L24 9l21 9.5L24 28z"/><path d="M42 19.5v10" stroke="url(#gAccent)" stroke-width="2.6" stroke-linecap="round"/><circle cx="42" cy="31.5" r="2.6" fill="url(#gAccent)"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M12 23.5l12 5.4 12-5.4v9.3c0 3.5-5.4 6.7-12 6.7s-12-3.2-12-6.7z"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g filter="url(#glow)"><path d="M13 12H7v3a8 8 0 0 0 8 8M35 12h6v3a8 8 0 0 1-8 8" fill="none" stroke="url(#gBack)" stroke-width="3.4" stroke-linecap="round"/><rect fill="url(#gBack)" x="21" y="30" width="6" height="8"/><rect fill="url(#gBack)" x="14" y="37" width="20" height="6" rx="2.5"/></g>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M12 6h24v13a12 12 0 0 1-24 0z"/><path d="M24 11.5l1.9 3.9 4.2.6-3 3 .7 4.2-3.8-2-3.8 2 .7-4.2-3-3 4.2-.6z" fill="url(#gAccent)"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g fill="url(#gBack)" filter="url(#glow)"><rect x="5" y="8" width="9" height="33" rx="2.5"/><rect x="15.5" y="12" width="9" height="29" rx="2.5"/></g>
+    <rect fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" x="27" y="7" width="10" height="34" rx="2.5" transform="rotate(14 32 24)"/><path d="M8 15h3M18.5 19h3" stroke="#fff" stroke-opacity=".8" stroke-width="2" stroke-linecap="round"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M9 17h8l17-9v32l-17-9H9a4 4 0 0 1-4-4v-6a4 4 0 0 1 4-4z"/><path d="M14 31l3 9h4.5l-3-9" fill="url(#gAccent)"/>
+    <ellipse fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="34.5" cy="24" rx="7" ry="15"/><path d="M42 18.5a7 7 0 0 1 0 11" fill="none" stroke="url(#gAccent)" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" transform="rotate(-10 20 28)" d="M6 16h24l-1.8 24a3 3 0 0 1-3 2.8H10.8a3 3 0 0 1-3-2.8z"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M14 17h28l-2 24.5a3 3 0 0 1-3 2.7H19a3 3 0 0 1-3-2.7z"/><path d="M22 21v-6a6 6 0 0 1 12 0v6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M19 5C10.2 5 3 11 3 18.5c0 4 2 7.6 5.3 10L7 35l7-3.2c1.6.4 3.2.6 5 .6 8.8 0 16-6 16-13.5S27.8 5 19 5z"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M31 18c7.7 0 14 5.2 14 11.7 0 3.4-1.7 6.5-4.5 8.6L42 44l-6.2-2.8c-1.5.3-3 .5-4.8.5-7.7 0-14-5.2-14-11.7S23.3 18 31 18z"/><g fill="#fff"><circle cx="25.5" cy="30" r="1.8"/><circle cx="31" cy="30" r="1.8"/><circle cx="36.5" cy="30" r="1.8"/></g></svg></span><span class="lbl">التواصل</span></a></div></div>
+      <div class="panel dark"><span class="ptag">داكن</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M22 5l14 5.6v10.6c0 9.3-6 16.6-14 20-8-3.4-14-10.7-14-20V10.6z"/>
+    <circle fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="31" cy="31" r="11"/><path d="M26 31.2l3.4 3.4 6.4-6.8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell" href="#" style="--n:1"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g fill="url(#gBack)" filter="url(#glow)"><circle cx="11" cy="17" r="5"/><circle cx="37" cy="17" r="5"/><path d="M2.5 36c0-6 3.8-10 8.5-10s8.5 4 8.5 10z"/><path d="M28.5 36c0-6 3.8-10 8.5-10s8.5 4 8.5 10z"/></g>
+    <circle fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="24" cy="15" r="7.5"/><path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M11 42c0-8.6 5.8-14 13-14s13 5.4 13 14a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2z"/></svg></span><span class="lbl">العضوية</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M3 18.5L24 9l21 9.5L24 28z"/><path d="M42 19.5v10" stroke="url(#gAccent)" stroke-width="2.6" stroke-linecap="round"/><circle cx="42" cy="31.5" r="2.6" fill="url(#gAccent)"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M12 23.5l12 5.4 12-5.4v9.3c0 3.5-5.4 6.7-12 6.7s-12-3.2-12-6.7z"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g filter="url(#glow)"><path d="M13 12H7v3a8 8 0 0 0 8 8M35 12h6v3a8 8 0 0 1-8 8" fill="none" stroke="url(#gBack)" stroke-width="3.4" stroke-linecap="round"/><rect fill="url(#gBack)" x="21" y="30" width="6" height="8"/><rect fill="url(#gBack)" x="14" y="37" width="20" height="6" rx="2.5"/></g>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M12 6h24v13a12 12 0 0 1-24 0z"/><path d="M24 11.5l1.9 3.9 4.2.6-3 3 .7 4.2-3.8-2-3.8 2 .7-4.2-3-3 4.2-.6z" fill="url(#gAccent)"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><g fill="url(#gBack)" filter="url(#glow)"><rect x="5" y="8" width="9" height="33" rx="2.5"/><rect x="15.5" y="12" width="9" height="29" rx="2.5"/></g>
+    <rect fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" x="27" y="7" width="10" height="34" rx="2.5" transform="rotate(14 32 24)"/><path d="M8 15h3M18.5 19h3" stroke="#fff" stroke-opacity=".8" stroke-width="2" stroke-linecap="round"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M9 17h8l17-9v32l-17-9H9a4 4 0 0 1-4-4v-6a4 4 0 0 1 4-4z"/><path d="M14 31l3 9h4.5l-3-9" fill="url(#gAccent)"/>
+    <ellipse fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" cx="34.5" cy="24" rx="7" ry="15"/><path d="M42 18.5a7 7 0 0 1 0 11" fill="none" stroke="url(#gAccent)" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" transform="rotate(-10 20 28)" d="M6 16h24l-1.8 24a3 3 0 0 1-3 2.8H10.8a3 3 0 0 1-3-2.8z"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M14 17h28l-2 24.5a3 3 0 0 1-3 2.7H19a3 3 0 0 1-3-2.7z"/><path d="M22 21v-6a6 6 0 0 1 12 0v6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="url(#gBack)" filter="url(#glow)" d="M19 5C10.2 5 3 11 3 18.5c0 4 2 7.6 5.3 10L7 35l7-3.2c1.6.4 3.2.6 5 .6 8.8 0 16-6 16-13.5S27.8 5 19 5z"/>
+    <path fill="url(#gFront)" stroke="url(#gEdge)" stroke-width="1" d="M31 18c7.7 0 14 5.2 14 11.7 0 3.4-1.7 6.5-4.5 8.6L42 44l-6.2-2.8c-1.5.3-3 .5-4.8.5-7.7 0-14-5.2-14-11.7S23.3 18 31 18z"/><g fill="#fff"><circle cx="25.5" cy="30" r="1.8"/><circle cx="31" cy="30" r="1.8"/><circle cx="36.5" cy="30" r="1.8"/></g></svg></span><span class="lbl">التواصل</span></a></div></div>
+    </div>
+  </section>
+
+  <section class="style s-c">
+    <div class="shead"><span class="letter">ج</span><div><h2>خطية متحركة</h2><p>خطوط رفيعة 1.5 بنهايات مستديرة، تُرسم عند ظهورها وتُعاد رسماً بلون بنفسجي عند المرور.</p></div></div>
+    <div class="panels">
+      <div class="panel light"><span class="ptag">فاتح</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path pathLength="1" style="--i:1" d="M9 12l2.2 2.2L15.2 10"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell  is-mid" href="#" style="--n:1"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M12 5.2a2.9 2.9 0 1 1 0 5.8a2.9 2.9 0 1 1 0-5.8z"/><path pathLength="1" style="--i:1" d="M6.6 19c.8-2.9 2.9-4.4 5.4-4.4s4.6 1.5 5.4 4.4"/><path pathLength="1" style="--i:2" d="M5.6 8.2a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/><path pathLength="1" style="--i:3" d="M18.4 8.2a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/><path pathLength="1" style="--i:4" d="M2.6 17.2c.4-1.8 1.5-2.9 3-3.2"/><path pathLength="1" style="--i:5" d="M21.4 17.2c-.4-1.8-1.5-2.9-3-3.2"/></svg></span><span class="lbl">العضوية</span><span class="cap">(أثناء الرسم)</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M2.5 9.2L12 4.5l9.5 4.7L12 14z"/><path pathLength="1" style="--i:1" d="M6.2 11.3v4.9c0 1.4 2.6 2.8 5.8 2.8s5.8-1.4 5.8-2.8v-4.9"/><path pathLength="1" style="--i:2" d="M21.5 9.2v5.6"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M7.2 4h9.6v5a4.8 4.8 0 0 1-9.6 0z"/><path pathLength="1" style="--i:1" d="M7.2 6H4.5v1.3A3.4 3.4 0 0 0 7.6 10.7"/><path pathLength="1" style="--i:2" d="M16.8 6h2.7v1.3a3.4 3.4 0 0 1-3.1 3.4"/><path pathLength="1" style="--i:3" d="M12 13.8v4.2"/><path pathLength="1" style="--i:4" d="M8.5 20h7"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M4 4.5h3.6v15H4z"/><path pathLength="1" style="--i:1" d="M7.6 4.5h3.6v15H7.6z"/><path pathLength="1" style="--i:2" d="M13.6 5.6l3.4-.9 3.9 14.5-3.4.9z"/><path pathLength="1" style="--i:3" d="M4 8.2h3.6"/><path pathLength="1" style="--i:4" d="M7.6 15.8h3.6"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M4.5 10v4a1 1 0 0 0 1 1h2.8l7.7 4V5L8.3 9H5.5a1 1 0 0 0-1 1z"/><path pathLength="1" style="--i:1" d="M8.3 15l1.4 4.6h2.2l-1.3-4.1"/><path pathLength="1" style="--i:2" d="M18.6 9.6a3 3 0 0 1 0 4.8"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M5.2 7.5h13.6l-1 12.5H6.2z"/><path pathLength="1" style="--i:1" d="M9 10.2V6.8a3 3 0 0 1 6 0v3.4"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M9.6 3.8a6.4 6.4 0 0 0-5.6 9.5L3.2 16.6l3.3-.8A6.4 6.4 0 1 0 9.6 3.8z"/><path pathLength="1" style="--i:1" d="M15.9 9.3a6 6 0 0 1 4.3 8.8l.7 2.6-2.6-.7a6 6 0 0 1-8.3-1.6"/></svg></span><span class="lbl">التواصل</span></a></div></div>
+      <div class="panel dark"><span class="ptag">داكن</span><div class="grid"><a class="cell is-hover" href="#" style="--n:0"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path pathLength="1" style="--i:1" d="M9 12l2.2 2.2L15.2 10"/></svg></span><span class="lbl">الحوكمة</span><span class="cap">(حالة المرور)</span></a>
+<a class="cell  is-mid" href="#" style="--n:1"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M12 5.2a2.9 2.9 0 1 1 0 5.8a2.9 2.9 0 1 1 0-5.8z"/><path pathLength="1" style="--i:1" d="M6.6 19c.8-2.9 2.9-4.4 5.4-4.4s4.6 1.5 5.4 4.4"/><path pathLength="1" style="--i:2" d="M5.6 8.2a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/><path pathLength="1" style="--i:3" d="M18.4 8.2a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/><path pathLength="1" style="--i:4" d="M2.6 17.2c.4-1.8 1.5-2.9 3-3.2"/><path pathLength="1" style="--i:5" d="M21.4 17.2c-.4-1.8-1.5-2.9-3-3.2"/></svg></span><span class="lbl">العضوية</span><span class="cap">(أثناء الرسم)</span></a>
+<a class="cell" href="#" style="--n:2"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M2.5 9.2L12 4.5l9.5 4.7L12 14z"/><path pathLength="1" style="--i:1" d="M6.2 11.3v4.9c0 1.4 2.6 2.8 5.8 2.8s5.8-1.4 5.8-2.8v-4.9"/><path pathLength="1" style="--i:2" d="M21.5 9.2v5.6"/></svg></span><span class="lbl">البرامج</span></a>
+<a class="cell" href="#" style="--n:3"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M7.2 4h9.6v5a4.8 4.8 0 0 1-9.6 0z"/><path pathLength="1" style="--i:1" d="M7.2 6H4.5v1.3A3.4 3.4 0 0 0 7.6 10.7"/><path pathLength="1" style="--i:2" d="M16.8 6h2.7v1.3a3.4 3.4 0 0 1-3.1 3.4"/><path pathLength="1" style="--i:3" d="M12 13.8v4.2"/><path pathLength="1" style="--i:4" d="M8.5 20h7"/></svg></span><span class="lbl">المسابقات</span></a>
+<a class="cell" href="#" style="--n:4"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M4 4.5h3.6v15H4z"/><path pathLength="1" style="--i:1" d="M7.6 4.5h3.6v15H7.6z"/><path pathLength="1" style="--i:2" d="M13.6 5.6l3.4-.9 3.9 14.5-3.4.9z"/><path pathLength="1" style="--i:3" d="M4 8.2h3.6"/><path pathLength="1" style="--i:4" d="M7.6 15.8h3.6"/></svg></span><span class="lbl">المكتبة</span></a>
+<a class="cell" href="#" style="--n:5"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M4.5 10v4a1 1 0 0 0 1 1h2.8l7.7 4V5L8.3 9H5.5a1 1 0 0 0-1 1z"/><path pathLength="1" style="--i:1" d="M8.3 15l1.4 4.6h2.2l-1.3-4.1"/><path pathLength="1" style="--i:2" d="M18.6 9.6a3 3 0 0 1 0 4.8"/></svg></span><span class="lbl">المركز الإعلامي</span></a>
+<a class="cell" href="#" style="--n:6"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M5.2 7.5h13.6l-1 12.5H6.2z"/><path pathLength="1" style="--i:1" d="M9 10.2V6.8a3 3 0 0 1 6 0v3.4"/></svg></span><span class="lbl">المتجر</span></a>
+<a class="cell" href="#" style="--n:7"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" style="--i:0" d="M9.6 3.8a6.4 6.4 0 0 0-5.6 9.5L3.2 16.6l3.3-.8A6.4 6.4 0 1 0 9.6 3.8z"/><path pathLength="1" style="--i:1" d="M15.9 9.3a6 6 0 0 1 4.3 8.8l.7 2.6-2.6-.7a6 6 0 0 1-8.3-1.6"/></svg></span><span class="lbl">التواصل</span></a></div></div>
+    </div>
+  </section>
+
+  <p class="note">الأيقونات في (ب) و(ج) مرسومة بالشيفرة (SVG)، لا صور منسوخة. ومرّر المؤشر على أي أيقونة لرؤية حركتها.</p>
+</main>
+</body>
+</html>
