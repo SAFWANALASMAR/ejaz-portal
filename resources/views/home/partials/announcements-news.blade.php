@@ -26,7 +26,8 @@
 
                         <x-carousel :label="$tickers['announcements']" :count="$slides" autoplay :interval="7000" :status="false">
                             @if ($prize !== null)
-                                <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-carousel-item data-active class="announcement-feature group relative flex min-h-[14.375rem] flex-col gap-2 overflow-hidden rounded-[1.25rem] px-7.5 py-7 text-white">
+                                <div data-carousel-item data-active>
+                                <a href="{{ $prize['url'] }}" @navigate($prize['url']) class="announcement-feature group relative flex min-h-[14.375rem] flex-col gap-2 overflow-hidden rounded-[1.25rem] px-7.5 py-7 text-white">
                                     <svg class="pointer-events-none absolute -top-15 -end-12 size-75 opacity-15" viewBox="0 0 200 200" fill="none" stroke="currentColor" aria-hidden="true">
                                         <path d="M100 10 L190 100 L100 190 L10 100 Z" /><path d="M100 40 L160 100 L100 160 L40 100 Z" /><circle cx="100" cy="100" r="40" />
                                     </svg>
@@ -40,6 +41,7 @@
                                         </span>
                                     </span>
                                 </a>
+                                </div>
                             @endif
                             @foreach ($announcements as $announcement)
                                 <div data-carousel-item @if ($prize === null && $loop->first) data-active @endif>

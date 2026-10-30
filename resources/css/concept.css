@@ -386,8 +386,8 @@ html[data-motion-off] .float-icon {
 }
 
 .carousel-controls-compact .carousel-dot {
-    width: 1.125rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 .carousel-controls-compact .carousel-dot::before {

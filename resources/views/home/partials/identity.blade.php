@@ -19,13 +19,13 @@
                 <x-carousel :label="__('ui.identity.statements')" :count="count($statements)" autoplay :interval="6000" compact
                     class="concept-card group min-h-[10.5rem]" data-identity-slider>
                     @foreach ($statements as $index => $slide)
-                        <article data-carousel-item @if ($index === 0) data-active @endif data-kind="{{ $slide['kind'] }}" class="flex flex-col gap-2.5 px-7 pt-6 pb-10">
+                        <div data-carousel-item @if ($index === 0) data-active @endif data-kind="{{ $slide['kind'] }}" class="flex flex-col gap-2.5 px-7 pt-6 pb-10">
                             <h2 class="flex items-center gap-3 text-[1.625rem] font-black text-primary-dark">
                                 <x-icon-tile :icon="$slide['icon']" :index="$index" />
                                 {{ $slide['title'] }}
                             </h2>
                             <p class="text-[17px] leading-[1.8] text-[var(--concept-text)]">{{ $slide['text'] }}</p>
-                        </article>
+                        </div>
                     @endforeach
                 </x-carousel>
             @endif
@@ -38,11 +38,11 @@
                     </h2>
                     <x-carousel :label="__('ui.identity.values')" :count="count($values)" autoplay :interval="4000" compact class="static" data-values-slider>
                         @foreach ($values as $index => $slide)
-                            <p data-carousel-item @if ($index === 0) data-active @endif data-kind="value"
+                            <div data-carousel-item @if ($index === 0) data-active @endif data-kind="value"
                                 class="flex items-center gap-2 pt-4 pb-10 text-[1.375rem] font-extrabold text-primary" title="{{ $slide['text'] }}">
                                 {{ \App\Support\Icon::svg($slide['icon'], 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
                                 {{ $slide['title'] }}
-                            </p>
+                            </div>
                         @endforeach
                     </x-carousel>
                 </div>
