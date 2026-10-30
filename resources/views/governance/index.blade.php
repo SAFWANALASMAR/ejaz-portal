@@ -71,8 +71,8 @@
                 @foreach ($documents as $document)
                     <li>
                         <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"
-                            :download="route('governance.download', $document->slug)" :bytes="$document->file_size"
-                            :type="__('governance.list.pdf')" class="h-full"
+                            :download="$document->file === null ? null : route('governance.download', $document->slug)" :bytes="$document->file_size"
+                            :type="$document->file === null ? __('governance.list.link') : __('governance.list.pdf')" class="h-full"
                             :meta="[
                                 $document->category->getLabel(),
                                 $document->issued_at ? Dates::display($document->issued_at) : null,
