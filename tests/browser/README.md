@@ -216,3 +216,31 @@ demo=$(docker compose exec -T app php artisan ejaz:demo-student-competition --js
 docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="$admin" -e STUDENT_COMPETITION="$demo" browser \
   npx playwright test --config=tests/browser/playwright.config.mjs student-competition.spec.mjs
 ```
+
+## قائمة القبول
+
+`director-acceptance.spec.mjs` اختبار متصفح لكل بند يُختبر آلياً في `docs/plans/2026-10-30-acceptance-checklist.md`، على العروض الثلاثة. وكل اختبار فيه يتحقق أيضاً من `dir="rtl"` ومن عدم التمرير الأفقي.
+
+- **بنود main** اختبارات فعلية: الصفحات العامة، والحوكمة ووثيقة، وترتيب الرئيسية، وصفحة المسابقة، وحساب المستفيد بعد رابط إدارة في المتصفح نفسه (#96)، والعودة إلى التسجيل بعد الدخول من صفحة المسابقة.
+- **بنود الفروع** مكتوبة كاملة ومعلَّمة `test.fixme(true, 'يُفعَّل بعد دمج <الفرع>')`. **كل فرع يزيل علامة بنوده** في طلب دمجه، ويعدّل المحدد إن سمّى مكوّنه بغير الاسم المكتوب، ولا يكتب الاختبار من جديد.
+- **ما يحتاج غائباً يُتخطى برسالة:** المسابقة غير المنشورة، والوثيقة أو البرنامج غير الموجود، والحساب غير الممرَّر.
+
+```bash
+# حساب مستفيد تجريبي (البيئة المحلية وحدها)، والمسابقة المنشورة
+creds=$(docker compose exec -T app php artisan ejaz:demo-user --json)
+
+docker compose run --rm -e DEMO_CREDENTIALS="$creds" -e COMPETITION_SLUG=brahin-1448 browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs director-acceptance.spec.mjs
+```
+
+- `BENEFICIARY_CREDENTIALS`: يتقدم على `DEMO_CREDENTIALS` إن كان المستخدم التجريبي يدخل اللوحة، لأن اختبار #96 لمستفيد لا يدخلها.
+- `PRIZE_TOTAL`: مجموع الجوائز كما يُعرض (الافتراضي `20,000`). و`LIBRARY_READONLY_PATH`: مسار كتاب «للقراءة فقط» منشور.
+- **على حاويات شجرة عمل أخرى** بلا تشغيل حاويات جديدة: المتصفح على شبكة حاوية التطبيق، ومجلد المكتبات من حجمها للقراءة:
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm --ipc=host --network container:<المشروع>-app-1 \
+  -v "$(pwd -W):/work" -v <المشروع>_node_modules:/work/node_modules:ro -w /work \
+  -e APP_PORT=<APP_PORT في .env المشروع> -e APP_HOST=127.0.0.1 -e APP_UPSTREAM_PORT=8000 \
+  mcr.microsoft.com/playwright:v1.64.1-noble \
+  npx playwright test --config=tests/browser/playwright.config.mjs director-acceptance.spec.mjs
+```
