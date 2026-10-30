@@ -5,6 +5,7 @@ use App\Enums\RoleName;
 use App\Models\Album;
 use App\Models\Competition;
 use App\Models\Document;
+use App\Models\NewsArticle;
 use App\Models\Page;
 use App\Models\Program;
 use App\Support\HomeContent;
@@ -142,7 +143,7 @@ it('stacks the short text sections on the about page only, and keeps a news body
         ['type' => 'text', 'data' => ['heading' => 'الثاني', 'body' => '<p>نص قصير آخر</p>']],
     ];
     publishedAboutWith(['الأول' => 'نص قصير', 'الثاني' => 'نص قصير آخر']);
-    $article = \App\Models\NewsArticle::factory()->create(['is_published' => true, 'blocks' => $blocks]);
+    $article = NewsArticle::factory()->create(['is_published' => true, 'blocks' => $blocks]);
 
     $this->get('/about')->assertOk()->assertSee('data-stack', false);
     $this->get(route('media.news.show', $article->slug))->assertOk()->assertSee('نص قصير آخر')->assertDontSee('data-stack', false);
