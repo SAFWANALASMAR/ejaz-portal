@@ -1,93 +1,112 @@
 {{--
-    «إعلانات» و«أخبار الجمعية» جنباً إلى جنب (مرجع المدير التنفيذي — plans/2026-10-30-director-home-reference.md):
-    - الإعلانات دوّار (x-carousel) بشريحة أولى لمسابقة البراهين ومجموع جوائزها متى نُشرت، ثم إعلانات اللوحة، و«المزيد».
-    - الأخبار قائمة بصورة مصغرة وتاريخ ميلادي وهجري ومقتطف، وشارة «جديد» على ما نُشر في أسبوعه، و«المزيد».
-    وكل منهما يختفي إن فرغ. والمحتوى من اللوحة وحدها.
+    عمودان (التصور النهائي — Final-Home): في الأول «إعلانات» دوّاراً بشريحة أولى لمسابقة البراهين ومجموع جوائزها متى نُشرت ثم
+    إعلانات اللوحة، وتحته «مستجدات الجمعية» ثلاث بطاقات بأيقونة نوعها وتاريخها. وفي الثاني «أخبار الجمعية» قائمة بعنوان وتاريخ
+    ميلادي وهجري ومقتطف وصورة مصغرة، وشارة «جديد» على ما نُشر في أسبوعه. ولكل منها «المزيد». وكل ما فرغ يختفي، والمحتوى من
+    اللوحة وحدها.
 --}}
 @php
     $slides = $announcements->count() + ($prize !== null ? 1 : 0);
     $latest = $news->take(3);
+    $first = $slides > 0 || $updates !== [];
 @endphp
 
-@if ($slides > 0 || $latest->isNotEmpty())
-    <section class="bg-white py-16 lg:py-20" aria-label="{{ __('ui.announcements.title') }} — {{ __('ui.news.title') }}">
-        <div @class(['container-page grid gap-10', 'lg:grid-cols-2' => $slides > 0 && $latest->isNotEmpty()])>
-            @if ($slides > 0)
-                <div data-reveal>
-                    <div class="flex items-center justify-between gap-4">
-                        <h2 id="home-announcements" class="flex items-center gap-3 text-2xl font-bold text-primary-dark">
-                            <x-icon-tile icon="bell" tone="violet" size="sm" />
-                            {{ __('ui.announcements.title') }}
-                        </h2>
-                        <a href="{{ route('media.announcements') }}" wire:navigate class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
-                            {{ __('ui.announcements.more') }}
-                            {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-                        </a>
-                    </div>
+@if ($first || $latest->isNotEmpty())
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7" aria-label="{{ __('ui.announcements.title') }} — {{ __('ui.news.title') }}">
+        <div @class(['grid gap-8', 'lg:grid-cols-2' => $first && $latest->isNotEmpty()])>
+            @if ($first)
+                <div class="flex flex-col gap-4" data-reveal>
+                    @if ($slides > 0)
+                        <div class="flex items-center justify-between gap-4">
+                            <h2 id="home-announcements" class="flex items-center gap-2.5 text-[1.875rem] font-black text-primary-dark">
+                                {{ __('ui.announcements.title') }}
+                                <span class="icon-line">{{ \App\Support\Icon::svg('bell', 'size-[1.875rem]', ['aria-hidden' => 'true']) }}</span>
+                            </h2>
+                            <a href="{{ route('media.announcements') }}" wire:navigate class="more-link">{{ __('ui.announcements.more') }}</a>
+                        </div>
 
-                    <x-carousel :label="__('ui.announcements.title')" :count="$slides" autoplay :interval="7000" class="mt-5">
-                        @if ($prize !== null)
-                            <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-carousel-item data-active class="prize-card shine group relative flex min-h-64 flex-col justify-between gap-6 p-7">
-                                <span class="bg-pattern-light absolute inset-0 -z-10" aria-hidden="true"></span>
-                                <span class="text-3xl leading-snug font-black">{{ $prize['title'] }}</span>
-                                <span class="glass flex items-center gap-4 self-start rounded-2xl px-5 py-3">
-                                    <x-icon-tile icon="trophy" variant="glass" tone="sky" size="md" class="float-soft" data-loop />
-                                    <span>
-                                        <span class="block text-sm text-white/85">{{ __('ui.prize.title') }}</span>
-                                        <span class="block text-3xl font-black tabular-nums">{{ number_format($prize['total']) }}</span>
-                                        <span class="block text-sm text-white/85">{{ __('ui.prize.currency') }}</span>
+                        <x-carousel :label="__('ui.announcements.title')" :count="$slides" autoplay :interval="7000" :status="false">
+                            @if ($prize !== null)
+                                <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-carousel-item data-active class="announcement-feature group relative flex min-h-[14.375rem] flex-col gap-2 overflow-hidden rounded-[1.25rem] px-7.5 py-7 text-white">
+                                    <svg class="pointer-events-none absolute -top-15 -end-12 size-75 opacity-15" viewBox="0 0 200 200" fill="none" stroke="currentColor" aria-hidden="true">
+                                        <path d="M100 10 L190 100 L100 190 L10 100 Z" /><path d="M100 40 L160 100 L100 160 L40 100 Z" /><circle cx="100" cy="100" r="40" />
+                                    </svg>
+                                    <span class="relative text-3xl leading-snug font-black sm:text-[2.5rem]">{{ $prize['title'] }}</span>
+                                    <span class="relative mt-auto flex items-center gap-3.5 self-end rounded-full bg-linear-to-br from-white to-[var(--concept-sky)] py-2.5 ps-3.5 pe-6 text-primary-dark shadow-[0_16px_30px_-14px_rgba(0,0,0,.6)]">
+                                        <span class="inline-flex size-13 items-center justify-center rounded-full bg-primary-dark text-brand-light">{{ \App\Support\Icon::svg('trophy', 'size-7', ['aria-hidden' => 'true']) }}</span>
+                                        <span class="flex flex-col leading-[1.05]">
+                                            <span class="text-[13px]">{{ __('ui.prize.title') }}</span>
+                                            <span class="text-[2rem] font-black tabular-nums">{{ number_format($prize['total']) }}</span>
+                                            <span class="text-[13px]">{{ __('ui.prize.currency') }}</span>
+                                        </span>
                                     </span>
-                                </span>
-                            </a>
-                        @endif
-                        @foreach ($announcements as $announcement)
-                            <div data-carousel-item @if ($prize === null && $loop->first) data-active @endif>
-                                @include('media.announcements.card', ['announcement' => $announcement])
-                            </div>
-                        @endforeach
-                    </x-carousel>
+                                </a>
+                            @endif
+                            @foreach ($announcements as $announcement)
+                                <div data-carousel-item @if ($prize === null && $loop->first) data-active @endif>
+                                    @include('media.announcements.card', ['announcement' => $announcement])
+                                </div>
+                            @endforeach
+                        </x-carousel>
+                    @endif
+
+                    @if ($updates !== [])
+                        <div class="mt-1.5 flex items-center justify-between gap-4">
+                            <h2 id="home-updates" class="flex items-center gap-2 text-2xl font-black text-primary-dark">
+                                {{ __('ui.updates.title') }}
+                                <span class="icon-line">{{ \App\Support\Icon::svg('calendar-days', 'size-6', ['aria-hidden' => 'true']) }}</span>
+                            </h2>
+                            @if (Route::has('media.index'))
+                                <a href="{{ route('media.index') }}" wire:navigate class="more-link">{{ __('ui.updates.more') }}</a>
+                            @endif
+                        </div>
+                        <ul class="grid grid-cols-1 gap-3 sm:grid-cols-3" data-reveal-group>
+                            @foreach ($updates as $update)
+                                <li>
+                                    <a href="{{ $update['url'] }}" @navigate($update['url']) class="card-lift group flex h-full flex-col items-center gap-2 rounded-2xl px-3 py-4 text-center">
+                                        <x-icon-tile :icon="$update['icon']" :index="$loop->index" size="sm" />
+                                        <span class="sr-only">{{ __('ui.updates.kinds.'.$update['kind']) }}:</span>
+                                        <span class="line-clamp-2 text-base font-extrabold text-primary-dark">{{ $update['title'] }}</span>
+                                        <time datetime="{{ $update['date']->toDateString() }}" class="text-[13px] text-muted">{{ \App\Support\Dates::display($update['date']) }}</time>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             @endif
 
             @if ($latest->isNotEmpty())
-                <div data-reveal style="--reveal-delay: 120ms">
+                <div class="flex flex-col gap-4" data-reveal style="--reveal-delay: 120ms">
                     <div class="flex items-center justify-between gap-4">
-                        <h2 id="home-news" class="flex items-center gap-3 text-2xl font-bold text-primary-dark">
-                            <x-icon-tile icon="megaphone" tone="blue" size="sm" />
+                        <h2 id="home-news" class="flex items-center gap-2.5 text-[1.875rem] font-black text-primary-dark">
                             {{ __('ui.news.title') }}
+                            <span class="icon-line">{{ \App\Support\Icon::svg('megaphone', 'size-[1.875rem]', ['aria-hidden' => 'true']) }}</span>
                         </h2>
-                        <a href="{{ route('media.news.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
-                            {{ __('ui.news.more') }}
-                            {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-                        </a>
+                        <a href="{{ route('media.news.index') }}" wire:navigate class="more-link">{{ __('ui.news.more') }}</a>
                     </div>
 
-                    <ul class="card-glow mt-5 divide-y divide-line/70 overflow-hidden">
+                    <ul class="concept-card px-4.5 py-1.5">
                         @foreach ($latest as $article)
-                            <li>
-                                <a href="{{ route('media.news.show', $article->slug) }}" wire:navigate class="group flex gap-4 p-4 transition hover:bg-surface sm:p-5">
-                                    <span class="skeleton relative block aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36">
-                                        @if ($article->image)
-                                            <img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" width="288" height="216"
-                                                class="size-full object-cover transition duration-500 group-hover:scale-105">
-                                        @endif
-                                    </span>
-                                    <span class="min-w-0">
-                                        <span class="flex flex-wrap items-center gap-2">
+                            <li class="border-b border-[#EEF3F8] last:border-0">
+                                <a href="{{ route('media.news.show', $article->slug) }}" wire:navigate class="group flex gap-4.5 py-4">
+                                    <span class="flex min-w-0 flex-1 flex-col gap-1.5">
+                                        <span class="text-[19px] leading-snug font-black text-primary-dark group-hover:text-primary">{{ $article->title }}</span>
+                                        <span class="flex flex-wrap items-center gap-2 text-sm text-muted">
                                             @if (\App\Support\HomeShowcase::isNew($article))
                                                 <span class="badge-new">{{ __('ui.news.new') }}</span>
                                             @endif
-                                            @if ($article->published_on)
-                                                <time datetime="{{ $article->published_on->toDateString() }}" class="text-sm text-muted">
-                                                    {{ \App\Support\Dates::display($article->published_on) }}
-                                                    <span aria-hidden="true">·</span>
-                                                    {{ \App\Support\Dates::hijri($article->published_on) }}
-                                                </time>
-                                            @endif
+                                            <time datetime="{{ $article->published_on->toDateString() }}">
+                                                {{ \App\Support\Dates::display($article->published_on) }} · {{ \App\Support\Dates::hijri($article->published_on) }}
+                                            </time>
                                         </span>
-                                        <span class="mt-1 line-clamp-2 block font-bold leading-7 text-primary-dark group-hover:text-primary">{{ $article->title }}</span>
                                         @if ($article->summary)
-                                            <span class="mt-1 line-clamp-2 block text-sm leading-6 text-muted">{{ $article->summary }}</span>
+                                            <span class="line-clamp-2 text-[15px] leading-[1.7] text-muted">{{ $article->summary }}</span>
+                                        @endif
+                                    </span>
+                                    <span class="skeleton block h-[6.75rem] w-[9.375rem] shrink-0 overflow-hidden rounded-xl max-sm:h-20 max-sm:w-28">
+                                        @if ($article->image)
+                                            <img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" width="300" height="216"
+                                                class="size-full object-cover transition duration-500 group-hover:scale-105">
                                         @endif
                                     </span>
                                 </a>

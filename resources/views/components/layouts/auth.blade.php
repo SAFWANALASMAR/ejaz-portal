@@ -1,41 +1,38 @@
 {{--
-    صفحات الدخول والتسجيل والاستعادة والتحقق (ui-reference.md — صفحة الدخول، والدفعة الثانية): بطاقة بيضاء في المنتصف فوق
-    خلفية الهوية الداكنة بتدرج شعاعي ونقش هندسي يدور ببطء، في رأسها مربع أيقونة زجاجي وشارة اسم الجمعية، ثم العنوان والوصف
-    والنموذج، وصورة معمارية في أسفلها. والحركة تتوقف لمن طلب تقليلها.
+    صفحات الدخول والتسجيل والاستعادة والتحقق (التصور النهائي — Final-Login): بطاقة بيضاء في المنتصف فوق صورة مموّهة تحت
+    غطاء بالأزرق الداكن، في أعلاها الشعار الرسمي في مربع فاتح، ثم العنوان في الوسط والوصف، ثم النموذج، وصورة في أسفلها.
 --}}
-@props(['title', 'heading' => null, 'intro' => null, 'image' => true, 'noindex' => true, 'icon' => 'lock-closed'])
+@props(['title', 'heading' => null, 'intro' => null, 'image' => true, 'noindex' => true])
 
 <x-layouts.app :title="$title" :noindex="$noindex">
-    <div class="auth-stage section-dark relative py-10 sm:py-16">
-        <div class="page-hero-scrim absolute inset-0 -z-10" aria-hidden="true"></div>
-        <div class="bg-pattern-light absolute inset-0 -z-10" aria-hidden="true"></div>
-        <div class="hero-geometry absolute -z-10" data-loop aria-hidden="true"></div>
+    <div class="auth-stage relative isolate overflow-hidden py-12 sm:py-17">
+        <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" aria-hidden="true" width="1440" height="960"
+            class="absolute inset-0 -z-10 size-full scale-110 object-cover blur-md">
+        <div class="absolute inset-0 -z-10 bg-primary-dark/80" aria-hidden="true"></div>
 
-        <div class="relative mx-auto w-full max-w-md px-4">
-            <div class="overflow-hidden rounded-[2rem] bg-white text-ink shadow-[0_30px_70px_-30px_rgba(10,30,50,0.65)] ring-1 ring-white/20">
-                <div class="relative overflow-hidden bg-linear-to-bl from-primary-dark to-primary px-6 pt-6 pb-8 text-white sm:px-8">
-                    <div class="bg-pattern-light absolute inset-0" aria-hidden="true"></div>
-                    <div class="relative flex items-center justify-between gap-3">
-                        <span class="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs">{{ __('site.short_name') }}</span>
-                        <x-icon-tile :icon="$icon" variant="glass" tone="sky" size="md" />
+        <div class="relative mx-auto w-full max-w-[28.75rem] px-4">
+            <div class="overflow-hidden rounded-[1.75rem] bg-white text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]">
+                <div class="px-6 pt-9 pb-8 sm:px-8.5">
+                    <div class="flex flex-col items-center text-center">
+                        <span class="inline-flex size-16 items-center justify-center rounded-[1.125rem] bg-primary-soft p-2.5" aria-hidden="true">
+                            <img src="{{ \App\Support\HomeContent::brand('mark') }}" alt="" width="495" height="505" class="h-full w-auto">
+                        </span>
+                        <h1 class="mt-4 text-[2.125rem] font-black text-primary-dark">{{ $heading ?? $title }}</h1>
+                        @if ($intro)
+                            <p class="mt-2 leading-7 text-muted">{{ $intro }}</p>
+                        @endif
                     </div>
-                    <h1 class="relative mt-5 text-2xl font-black sm:text-3xl">{{ $heading ?? $title }}</h1>
-                    @if ($intro)
-                        <p class="relative mt-2 leading-7 text-white/90">{{ $intro }}</p>
-                    @endif
-                </div>
 
-                <div class="p-6 sm:p-8">
-                    <x-flash />
+                    <x-flash class="mt-5" />
 
-                    <div class="mt-2">
+                    <div class="mt-6">
                         {{ $slot }}
                     </div>
                 </div>
 
                 @if ($image)
-                    <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" aria-hidden="true" width="448" height="160"
-                        class="h-28 w-full object-cover opacity-80 sm:h-32">
+                    <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" aria-hidden="true" width="460" height="110"
+                        class="h-[6.875rem] w-full object-cover">
                 @endif
             </div>
         </div>

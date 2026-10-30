@@ -18,7 +18,7 @@
                     @foreach ($hub as $entry)
                         <li>
                             <a href="{{ $entry['url'] }}" @navigate($entry['url']) class="group flex h-full items-center gap-4 card-lift p-5 hover:border-brand hover:shadow-md">
-                                <x-icon-tile :icon="$entry['icon']" :tone="['green', 'blue', 'navy'][$loop->index % 3]" size="md" />
+                                <x-icon-tile :icon="$entry['icon']" :index="$loop->index" size="md" />
                                 <span class="text-lg font-bold text-ink">{{ $entry['label'] }}</span>
                             </a>
                         </li>

@@ -35,7 +35,7 @@
             <a href="{{ $card['href'] }}" @if ($card['external']) target="_blank" rel="noopener noreferrer" @else @navigate($card['href']) @endif
                 class="card-glow tilt group flex flex-col p-6">
                 <span class="flex items-start gap-4">
-                    <x-icon-tile :icon="$card['icon']" :tone="['blue', 'violet', 'green', 'navy', 'sky'][$loop->index % 5]" size="md" />
+                    <x-icon-tile :icon="$card['icon']" variant="gradient" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="md" />
                     <span>
                         <span class="flex items-center gap-2 text-lg font-bold text-primary-dark">
                             {{ $card['title'] }}

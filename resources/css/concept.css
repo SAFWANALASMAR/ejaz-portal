@@ -206,6 +206,11 @@ body {
     .concept-hero[data-size='page'] .concept-hero-scrim {
         background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 88%, transparent), color-mix(in srgb, var(--color-primary-dark) 78%, transparent));
     }
+
+    /* بطل الرئيسية على الجوال (Final-Mobile): الصورة ظاهرة في أعلاه، والنص في أسفله فوق تدرج يشتد نحو الأسفل */
+    .concept-hero[data-size='home'] .concept-hero-scrim {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 78%, transparent) 38%, var(--color-primary-dark) 62%);
+    }
 }
 
 .concept-arrow {
@@ -368,5 +373,175 @@ html[data-motion-off] .float-icon {
 
     to {
         transform: translateX(330%) skewX(-20deg);
+    }
+}
+
+/* ── الدوّار الصغير في بطاقات الرؤية والقيم: نقاط كبسولية وزر إيقاف في زاوية النهاية السفلية ── */
+.carousel-controls-compact {
+    position: absolute;
+    bottom: 0.625rem;
+    inset-inline-end: 1rem;
+    margin: 0;
+    gap: 0.25rem;
+}
+
+.carousel-controls-compact .carousel-dot {
+    width: 1.125rem;
+    height: 1.25rem;
+}
+
+.carousel-controls-compact .carousel-dot::before {
+    width: 6px;
+    height: 6px;
+    background: #c9d7e4;
+}
+
+.carousel-controls-compact .carousel-dot[aria-current]::before {
+    width: 18px;
+    background: var(--color-primary);
+}
+
+.carousel-pause {
+    display: inline-flex;
+    width: 1.5rem;
+    height: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: var(--color-primary);
+}
+
+.carousel-pause:hover {
+    background: var(--color-primary-soft);
+}
+
+/* شريحة الإعلان المميزة: تدرج شعاعي من الأزرق الرسمي إلى الداكن */
+.announcement-feature {
+    background: radial-gradient(80% 120% at 85% 20%, var(--color-brand), var(--color-primary-dark) 65%);
+}
+
+/* «المزيد ←» */
+.more-link {
+    @apply inline-flex items-center gap-1 font-extrabold text-primary hover:text-primary-dark;
+}
+
+.more-link::after {
+    content: '←' / '';
+}
+
+/* x-icon-tile بحالة line (التصور النهائي): أيقونة خطية بالأزرق في مربع فاتح جداً بحد رفيع */
+.icon-tile[data-variant='line'] {
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+    box-shadow: inset 0 0 0 1px var(--concept-border);
+}
+
+.group:hover .icon-tile[data-variant='line'],
+.group:focus-visible .icon-tile[data-variant='line'] {
+    color: var(--color-brand);
+    box-shadow: inset 0 0 0 1px var(--concept-border-hover);
+}
+
+/* زر العودة للأعلى في سطر التذييل ظاهر دائماً */
+[data-back-to-top][data-static] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+}
+
+/* أيقونات الشريط الجانبي في حساب المستفيد (ملاحظة المدير التنفيذي، 30 أكتوبر 19:06): مربع متدرج لكل عنصر، والنشط بحلقة
+   فاتحة وتوهج، وميل خفيف عند المرور. والحركة بالمفتاح --motion، فلا ميل لمن طلب تقليلها */
+.nav-tile {
+    transition:
+        transform calc(300ms * var(--motion)) ease,
+        box-shadow 300ms;
+}
+
+.group:hover .nav-tile {
+    transform: rotate(calc(-6deg * var(--motion))) translateY(calc(-1px * var(--motion)));
+}
+
+.nav-tile-active {
+    box-shadow:
+        0 0 0 2px var(--color-white),
+        0 0 0 4px color-mix(in srgb, var(--color-brand-light) 60%, transparent),
+        0 0 18px 2px color-mix(in srgb, var(--color-brand-light) 55%, transparent);
+}
+
+/* ── ألوان مربعات الأيقونات الستة بالترتيب (App\Support\IconTones — صفوان 19:18): طرفا كل تدرج بتباين 3:1 فأكثر مع الأيقونة
+   البيضاء (tests/Unit/IconTileContrastTest.php) ── */
+.icon-tile[data-tone='blue'] {
+    --tile-from: #3e8aca;
+    --tile-to: #2e6898;
+}
+
+.icon-tile[data-tone='violet'] {
+    --tile-from: #7a4bb0;
+    --tile-to: #5d2a92;
+}
+
+.icon-tile[data-tone='green'] {
+    --tile-from: #2f8a3f;
+    --tile-to: #287a37;
+}
+
+.icon-tile[data-tone='navy'] {
+    --tile-from: #2e6898;
+    --tile-to: #1f4565;
+}
+
+.icon-tile[data-tone='sky'] {
+    --tile-from: #2b8fbf;
+    --tile-to: #1e6f99;
+}
+
+.icon-tile[data-tone='lilac'] {
+    --tile-from: #9068c4;
+    --tile-to: #6e44a8;
+}
+
+/* ── البطاقة (.lift في التصور): لمعة تمر عند المرور، وظهور متتابع عند التحميل بـ 0.07 ثانية لكل بطاقة، وكله لمن لم يطلب
+   تقليل الحركة وحده (media query بلا سكربت) ── */
+.card-lift,
+.card-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-lift::after,
+.card-glow::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: -60%;
+    width: 40%;
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-white) 55%, transparent), transparent);
+    transform: skewX(-18deg);
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .card-lift:hover::after,
+    .card-glow:hover::after {
+        opacity: 1;
+        animation: card-shine 0.9s ease-out;
+    }
+
+}
+
+html[data-motion-off] .card-lift:hover::after,
+html[data-motion-off] .card-glow:hover::after {
+    animation: none;
+}
+
+@keyframes card-shine {
+    from {
+        inset-inline-start: -60%;
+    }
+
+    to {
+        inset-inline-start: 130%;
     }
 }

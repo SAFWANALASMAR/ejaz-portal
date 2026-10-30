@@ -21,7 +21,7 @@
                         <li>
                             <a href="{{ route('services.openings.show', $opening->slug) }}" wire:navigate
                                 class="group flex h-full flex-col card-lift p-6">
-                                <x-icon-tile :icon="$kind->icon()" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="md" />
+                                <x-icon-tile :icon="$kind->icon()" :index="$loop->index" size="md" />
                                 <span class="mt-3 block text-lg font-bold text-ink">{{ $opening->title }}</span>
                                 @if (filled($opening->summary))
                                     <span class="mt-2 block text-sm leading-6 text-muted">{{ $opening->summary }}</span>

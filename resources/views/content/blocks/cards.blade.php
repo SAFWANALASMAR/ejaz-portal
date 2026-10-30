@@ -4,7 +4,6 @@
 --}}
 @php
     $items = array_values(array_filter((array) ($data['items'] ?? []), fn ($item) => is_array($item) && filled($item['title'] ?? null)));
-    $tones = ['blue', 'violet', 'green', 'navy', 'sky'];
     $columns = count($items) === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : (count($items) === 5 ? 'sm:grid-cols-2 lg:grid-cols-5' : 'sm:grid-cols-2 lg:grid-cols-3');
 @endphp
 
@@ -21,7 +20,7 @@
                     @php($picture = is_string($item['picture'] ?? null) && $item['picture'] !== '' ? $item['picture'] : null)
                     <li class="card-glow group flex flex-col items-center p-6 text-center" data-card-item>
                         @if ($icon)
-                            <x-icon-tile :icon="$icon->value" :tone="$tones[$index % count($tones)]" size="xl" />
+                            <x-icon-tile :icon="$icon->value" :index="$index" size="xl" />
                         @elseif ($picture)
                             {{-- صورة البطاقة أيقونة فوق عنوانها، فهي زخرفية --}}
                             <span class="inline-flex size-20 items-center justify-center rounded-3xl bg-primary-soft p-3 transition group-hover:-translate-y-1">

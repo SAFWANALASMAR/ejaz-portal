@@ -70,8 +70,9 @@
 
     @include('partials.header')
 
-    {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation) --}}
-    @if (\App\Support\BackNavigation::shows(request()->route()))
+    {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation). وفي صفحة لها رأس (x-page-hero) يرسمه الرأس
+         في أعلاه كما في التصور النهائي، والمحتوى يُرسم قبل التخطيط فيُعرف ذلك هنا --}}
+    @if (\App\Support\BackNavigation::shows(request()->route()) && ! str_contains((string) $slot, 'data-page-hero'))
         <x-back-nav />
     @endif
 
@@ -82,12 +83,8 @@
 
     @include('partials.footer')
 
-    {{-- شريط تقدّم التمرير وزر العودة للأعلى (resources/js/motion.js). والزر في جهة البداية، والمساعد في جهة النهاية --}}
+    {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
     <span data-scroll-progress aria-hidden="true"></span>
-    <button type="button" data-back-to-top aria-label="{{ __('site.back_to_top') }}"
-        class="btn-shine fixed bottom-4 start-4 z-30 inline-flex size-12 items-center justify-center rounded-full bg-primary-dark text-white shadow-lg ring-1 ring-white/20 hover:bg-primary">
-        {{ \App\Support\Icon::svg('arrow-up', 'size-5') }}
-    </button>
 
     @include('partials.search-palette')
     @include('partials.assistant')

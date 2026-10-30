@@ -14,7 +14,6 @@ import './password-rules';
 import './motion';
 import './home';
 import './carousel';
-import './hero-grid';
 import './back-nav';
 import './search-palette';
 import './pdf-reader';
@@ -173,8 +172,8 @@ onPage((signal) => {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true, signal });
 
-    // قائمة الرأس صف واحد أو زر القائمة: إن لم تتسع عناصرها بهامش مريح (قائمة أطول من القياس، أو شارة البث)
-    // ظهر زر القائمة بدلها، فلا تنكسر عبارة ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة.
+    // قائمة الرأس تلتف صفين في المنتصف كما في التصور النهائي. فإن لم تتسع في صفين (قائمة أطول من القياس، أو شارة البث)
+    // ظهر زر القائمة بدلها، فلا تتكدس صفوفاً ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة.
     // والرأس عنصر جديد في كل صفحة، والعنصر النشط فيه (aria-current) من الخادم
     const mainNav = header.querySelector('[data-main-nav]');
 
@@ -185,7 +184,9 @@ onPage((signal) => {
     const list = mainNav.querySelector('ul');
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && list.offsetWidth + 24 > mainNav.clientWidth);
+        const item = list.querySelector('li');
+        const rows = item ? Math.round(list.offsetHeight / (item.offsetHeight + 10)) : 0;
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && rows > 2);
     };
 
     const observer = new ResizeObserver(fit);

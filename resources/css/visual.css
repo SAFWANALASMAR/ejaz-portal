@@ -1210,13 +1210,6 @@ html[data-motion-off] .hero-swoosh-static path {
     }
 }
 
-/* التراكم مع التمرير لمن لم يطلب تقليل الحركة: كل بطاقة تلتصق أسفل سابقتها قليلاً */
-@media (prefers-reduced-motion: no-preference) and (min-width: 48rem) {
-    .stack-card {
-        position: sticky;
-        top: calc(6.5rem + var(--stack-index, 0) * 1.25rem);
-    }
-}
 
 /* صورة الشخص بحلقة متوهجة من ألوان الهوية (مجلس الإدارة) */
 .person-ring {

@@ -111,7 +111,7 @@ it('builds the hero slides from the published albums, and a single neutral slide
         ->and($slides[0]['src'])->toEndWith('settings/hero.jpg')
         ->and(collect($slides)->pluck('src')->implode(' '))->not->toContain('draft');
 
-    $this->get('/')->assertOk()->assertSee('data-hero-slider', false)->assertSee('data-hero-progress', false)->assertSee('data-swoosh', false);
+    $this->get('/')->assertOk()->assertSee('data-hero-slider', false)->assertSee('data-hero-progress', false);
 });
 
 it('lists the latest published updates across modules, newest first', function () {

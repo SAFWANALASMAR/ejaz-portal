@@ -38,7 +38,7 @@ test('home: the dark header, the live hero and the identity slider', async ({ pa
     }
 });
 
-test('the identity slider pauses on hover and focus, and moves by its arrows', async ({ page }, info) => {
+test('the identity slider pauses on hover and focus, and moves by its dots', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'المرور بالفأرة على الحاسوب');
     await page.goto('/');
     const identity = page.locator('[data-identity-slider]');
@@ -52,11 +52,11 @@ test('the identity slider pauses on hover and focus, and moves by its arrows', a
 
     const active = () => identity.locator('[data-carousel-item]').evaluateAll((items) => items.findIndex((item) => item.hasAttribute('data-active')));
     const before = await active();
-    await identity.locator('[data-carousel-next]').click();
+    await identity.locator('[data-carousel-dot]').nth(1).click();
     expect(await active()).not.toBe(before);
 
     await page.mouse.move(0, 0);
-    await identity.locator('[data-carousel-next]').focus();
+    await identity.locator('[data-carousel-dot]').first().focus();
     await expect(identity).not.toHaveAttribute('data-running', '');
 });
 
@@ -130,4 +130,49 @@ test('Ctrl+K opens the quick search, finds a page by keyboard, and Esc closes it
     await page.locator('[data-site-header] [data-search-open]').click();
     await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
+});
+
+// قائمة التحقق في التصور النهائي (صفوان 19:15): كل صفحة بلغة الرئيسية، بالمكونات المشتركة نفسها
+for (const path of ['/about', '/initiatives', '/programs', '/governance', '/library', '/media', '/services', '/contact']) {
+    test(`final concept markers on ${path}`, async ({ page }) => {
+        const response = await page.goto(path);
+        test.skip(response?.status() === 404, 'غير منشورة');
+
+        await expect(page.locator('[data-site-header] [data-logo-calligraphy]')).toBeVisible();
+        await expect(page.locator('[data-site-footer] [data-logo-calligraphy]')).toBeAttached();
+
+        const hero = page.locator('[data-page-hero]');
+        await expect(hero).toBeVisible();
+        await expect(hero.locator('h1')).toBeVisible();
+        await expect(hero.locator('.title-bar')).toBeAttached();
+        await expect(hero.locator('[data-hero-badge]')).toBeVisible();
+        await expect(hero.locator('[data-back-nav]')).toBeVisible();
+        await expect(page.locator('[data-back-nav]'), 'شريط عودة واحد').toHaveCount(1);
+
+        // البطاقات والأيقونات بالأنماط المشتركة متى وُجدت في الصفحة
+        const cards = page.locator('main .card-lift, main .card-glow, main .concept-card, main [data-empty-state]');
+        expect(await cards.count(), 'بطاقات مشتركة أو حالة فارغة').toBeGreaterThan(0);
+        await expectRtlNoScroll(page);
+    });
+}
+
+test('card icons cycle the six identity gradients in order, and cards shine and stagger only with motion', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'المرور بالفأرة على الحاسوب');
+    await page.goto('/');
+    const tones = await page.locator('[aria-labelledby="home-shortcuts"] .card-lift [data-icon-tile]').evaluateAll((tiles) => tiles.map((tile) => tile.dataset.tone));
+    expect(tones.length).toBeGreaterThan(0);
+    expect(tones).toEqual(['blue', 'violet', 'green', 'navy', 'sky', 'lilac'].slice(0, tones.length));
+
+    // اللمعة تعمل عند المرور مع الحركة
+    const card = page.locator('[aria-labelledby="home-shortcuts"] .card-lift').first();
+    await card.hover();
+    expect(await card.evaluate((element) => getComputedStyle(element, '::after').animationName)).toBe('card-shine');
+
+    // ومع تقليل الحركة: لا لمعة ولا ظهور متتابع
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const still = page.locator('[aria-labelledby="home-shortcuts"] .card-lift').first();
+    await still.hover();
+    expect(await still.evaluate((element) => getComputedStyle(element, '::after').animationName)).toBe('none');
+    expect(await still.evaluate((element) => getComputedStyle(element.closest('li')).opacity)).toBe('1');
 });

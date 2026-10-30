@@ -1,20 +1,14 @@
 {{--
-    مقاطع الرئيسية ببنية مرجع المدير التنفيذي (قرار صفوان، 30 أكتوبر 2026 — plans/2026-10-30-director-home-reference.md و
-    docs/decisions/2026-10-30-visual-refresh-2.md): البطل الحي، ثم شرائح الهوية وجوائز البراهين، ثم «خدماتنا»، ثم الإعلانات
-    والأخبار، ثم «مستجدات الجمعية». ثم مقاطع الخطة الاستراتيجية بترتيب 25 أكتوبر (كلمة خادم الحرمين الشريفين، وكلمة رئيس مجلس
-    الإدارة، والمبررات)، والقيم صارت شرائح تحت البطل. ثم المقاطع التي تُظهر من الإعدادات، وقنوات التواصل.
+    مقاطع الرئيسية ببنية التصور النهائي (صفوان، 30 أكتوبر 2026، 18:36 — docs/design/final-concept/Final-Home.dc.html، والقرار ١٣
+    في docs/decisions/2026-10-30-visual-refresh-2.md): البطل، ثم الرؤية والرسالة والقيم وجوائز البراهين، ثم «خدماتنا»، ثم
+    الإعلانات والمستجدات والأخبار. ثم مقاطع الخطة الاستراتيجية بترتيب 25 أكتوبر (كلمة خادم الحرمين الشريفين، وكلمة رئيس مجلس
+    الإدارة، والمبررات)، ثم المقاطع التي تُظهر من الإعدادات، وقنوات التواصل.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
 --}}
-@include('home.partials.hero', ['hero' => $hero, 'slides' => $slides, 'prize' => $prize])
+@include('home.partials.hero', ['hero' => $hero, 'slides' => $slides])
 @include('home.partials.identity', ['identity' => $identity, 'prize' => $prize])
 @include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content])
-@include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize])
-
-@if ($updates !== [])
-    @include('home.partials.updates', ['updates' => $updates])
-@endif
-
-<x-divider-ornament class="container-page my-2" />
+@include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize, 'updates' => $updates])
 
 @include('home.partials.king', ['king' => $content['king']])
 @include('home.partials.chairman', ['chairman' => $content['chairman']])

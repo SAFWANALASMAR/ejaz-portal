@@ -24,7 +24,7 @@ onPage((signal) => {
     document.querySelectorAll('[data-reveal-group]').forEach((group) => {
         [...group.children].forEach((child, index) => {
             child.setAttribute('data-reveal', '');
-            child.style.setProperty('--reveal-delay', `${Math.min(index, 8) * 90}ms`);
+            child.style.setProperty('--reveal-delay', `${Math.min(index, 12) * 70}ms`);
         });
     });
 

@@ -1,52 +1,63 @@
 {{--
-    تحت البطل (مرجع المدير التنفيذي، وإضافة صفوان 30 أكتوبر — plans/2026-10-30-director-home-reference.md): شرائح الهوية
-    المتحركة (الرؤية، ثم الرسالة، ثم القيم واحدة واحدة بأيقوناتها) في x-carousel بتبديل تلقائي لطيف، وبجانبها بطاقة «مجموع
-    جوائز البراهين» ثابتة بعدّاد. الشرائح من اللوحة (HomeShowcase::identity)، والفارغة لا شريحة لها، والجوائز من جدول المسابقة.
-    ترتفع فوق حافة البطل قليلاً.
+    تحت البطل (التصور النهائي — Final-Home، وإضافة صفوان): ثلاث بطاقات بارتفاع واحد. الأولى شرائح الرؤية ثم الرسالة، والثانية
+    «القيم» بشرائح لكل قيمة بأيقونتها، كلتاهما بتبديل تلقائي لطيف (x-carousel compact) يتوقف بالمرور والتركيز وزر الإيقاف،
+    ولا يعمل لمن طلب تقليل الحركة. والثالثة «مجموع جوائز البراهين» ثابتة بلمعة تمر وكأس تطفو. الشرائح من اللوحة
+    (HomeShowcase::identity) والفارغة لا شريحة لها، والجوائز من جدول المسابقة.
 
     $identity: list<array{kind, title, text, icon}>، و$prize: array{title, total, url}|null.
 --}}
-@php($count = count($identity))
+@php
+    $statements = array_values(array_filter($identity, fn (array $slide): bool => $slide['kind'] !== 'value'));
+    $values = array_values(array_filter($identity, fn (array $slide): bool => $slide['kind'] === 'value'));
+    $cards = count(array_filter([$statements !== [], $values !== [], $prize !== null]));
+@endphp
 
-@if ($count > 0 || $prize !== null)
-    <section id="home-identity" class="relative z-10 -mt-24 pb-6 sm:-mt-20" aria-label="{{ __('ui.identity.label') }}">
-        <div @class(['container-page grid gap-5', 'lg:grid-cols-[1fr_22rem]' => $count > 0 && $prize !== null])>
-            @if ($count > 0)
-                <x-carousel :label="__('ui.identity.label')" :count="$count" autoplay :interval="6500"
-                    class="card-glow p-6 sm:p-8" data-identity-slider>
-                    @foreach ($identity as $index => $slide)
-                        <article data-carousel-item @if ($index === 0) data-active @endif data-kind="{{ $slide['kind'] }}"
-                            class="flex items-start gap-5">
-                            <x-icon-tile :icon="$slide['icon']" :tone="['vision' => 'blue', 'mission' => 'violet'][$slide['kind']] ?? ['green', 'sky', 'navy', 'violet'][$index % 4]" size="lg" />
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-accent">
-                                    {{ $slide['kind'] === 'value' ? __('ui.identity.values') : __('ui.identity.label') }}
-                                </p>
-                                <h2 class="mt-1 text-2xl font-bold text-primary-dark">{{ $slide['title'] }}</h2>
-                                @if ($slide['text'] !== '')
-                                    <p class="mt-3 max-w-2xl text-lg leading-9 text-ink/85">{{ $slide['text'] }}</p>
-                                @endif
-                            </div>
+@if ($cards > 0)
+    <section id="home-identity" class="mx-auto max-w-[82.5rem] px-4 pt-7 pb-10 sm:px-7" aria-label="{{ __('ui.identity.label') }}">
+        <div @class(['grid gap-5', 'lg:grid-cols-[1.55fr_1fr_1fr]' => $cards === 3, 'lg:grid-cols-2' => $cards === 2])>
+            @if ($statements !== [])
+                <x-carousel :label="__('ui.identity.statements')" :count="count($statements)" autoplay :interval="6000" compact
+                    class="concept-card group min-h-[10.5rem]" data-identity-slider>
+                    @foreach ($statements as $index => $slide)
+                        <article data-carousel-item @if ($index === 0) data-active @endif data-kind="{{ $slide['kind'] }}" class="flex flex-col gap-2.5 px-7 pt-6 pb-10">
+                            <h2 class="flex items-center gap-3 text-[1.625rem] font-black text-primary-dark">
+                                <x-icon-tile :icon="$slide['icon']" :index="$index" />
+                                {{ $slide['title'] }}
+                            </h2>
+                            <p class="text-[17px] leading-[1.8] text-[var(--concept-text)]">{{ $slide['text'] }}</p>
                         </article>
                     @endforeach
                 </x-carousel>
             @endif
 
+            @if ($values !== [])
+                <div class="concept-card group min-h-[10.5rem] px-6 pt-6">
+                    <h2 class="flex items-center gap-3 text-[1.625rem] font-black text-primary-dark">
+                        <x-icon-tile icon="heart" :index="2" />
+                        {{ __('ui.identity.values') }}
+                    </h2>
+                    <x-carousel :label="__('ui.identity.values')" :count="count($values)" autoplay :interval="4000" compact class="static" data-values-slider>
+                        @foreach ($values as $index => $slide)
+                            <p data-carousel-item @if ($index === 0) data-active @endif data-kind="value"
+                                class="flex items-center gap-2 pt-4 pb-10 text-[1.375rem] font-extrabold text-primary" title="{{ $slide['text'] }}">
+                                {{ \App\Support\Icon::svg($slide['icon'], 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
+                                {{ $slide['title'] }}
+                            </p>
+                        @endforeach
+                    </x-carousel>
+                </div>
+            @endif
+
             @if ($prize !== null)
-                <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-prize-card class="prize-card shine group flex flex-col justify-between gap-5 p-6 sm:p-7">
-                    <span class="flex items-center justify-between gap-3">
-                        <span class="text-base font-semibold text-white/90">{{ __('ui.prize.title') }}</span>
-                        <x-icon-tile icon="trophy" variant="glass" tone="sky" size="md" />
-                    </span>
-                    <span class="block">
-                        <span class="block text-5xl leading-none font-black tabular-nums" data-prize-total
+                <a href="{{ $prize['url'] }}" @navigate($prize['url']) data-prize-card
+                    class="concept-card concept-shine group flex min-h-[10.5rem] items-center justify-between px-6 py-5" data-loop>
+                    <span class="relative flex flex-col gap-0.5">
+                        <span class="text-[19px] font-extrabold text-primary-dark">{{ __('ui.prize.title') }}</span>
+                        <span class="text-[3.375rem] leading-[1.05] font-black text-primary-dark tabular-nums" data-prize-total
                             data-count-to="{{ $prize['total'] }}" data-count-on-load>{{ number_format($prize['total']) }}</span>
-                        <span class="mt-2 block text-white/85">{{ __('ui.prize.currency') }}</span>
+                        <span class="text-base text-muted">{{ __('ui.prize.currency') }}</span>
                     </span>
-                    <span class="glass inline-flex items-center justify-between gap-2 rounded-full px-4 py-2 text-sm font-semibold">
-                        {{ $prize['title'] }}
-                        {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0 transition group-hover:-translate-x-1', ['aria-hidden' => 'true']) }}
-                    </span>
+                    <span class="float-icon relative text-brand" data-loop>{{ \App\Support\Icon::svg('trophy', 'size-[3.625rem]', ['aria-hidden' => 'true']) }}</span>
                 </a>
             @endif
         </div>

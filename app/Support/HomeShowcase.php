@@ -71,7 +71,7 @@ final class HomeShowcase
         $slides = [];
         $about = null;
 
-        foreach (['vision' => 'eye', 'mission' => 'flag'] as $key => $icon) {
+        foreach (['vision' => 'eye', 'mission' => 'paper-airplane'] as $key => $icon) {
             $text = trim((string) ($content['identity'][$key] ?? ''));
 
             if ($text === '') {

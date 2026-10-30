@@ -7,7 +7,7 @@
 @endphp
 
 <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate
-    class="shine group flex h-full flex-col overflow-hidden card-lift">
+    class="group flex h-full flex-col overflow-hidden card-lift">
     {{-- المرفوعة، وإلا صورة مقطع يوتيوب المصغرة (LibraryItem::thumbnailUrl) --}}
     @if ($thumbnail = $item->thumbnailUrl())
         <span class="video-frame relative block">

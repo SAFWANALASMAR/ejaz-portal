@@ -6,15 +6,22 @@ use Illuminate\Support\Facades\Blade;
 | مكونات الدفعة الثانية المشتركة: x-icon-tile بحالتيه، والدوّار، وشارة الرقم، وعنوان القسم بشارته وزخرفته، والفاصل.
 */
 
-it('renders one icon tile with the gradient variant on light and glass on dark', function () {
-    $gradient = Blade::render('<x-icon-tile icon="trophy" tone="violet" size="lg" />');
+// التصور النهائي (صفوان 19:18): المتدرجة افتراضاً بلون من موضع البطاقة، والزجاجية على الداكن، والخطية عند الطلب
+it('renders one icon tile: gradient by position by default, glass on dark and line on request', function () {
+    $first = Blade::render('<x-icon-tile icon="trophy" size="lg" />');
+    $fourth = Blade::render('<x-icon-tile icon="trophy" :index="3" />');
+    $explicit = Blade::render('<x-icon-tile icon="trophy" tone="lilac" :index="1" />');
     $glass = Blade::render('<x-icon-tile icon="trophy" variant="glass" />');
-    $unknown = Blade::render('<x-icon-tile icon="trophy" variant="neon" />');
+    $line = Blade::render('<x-icon-tile icon="trophy" variant="line" />');
+    $unknown = Blade::render('<x-icon-tile icon="trophy" variant="neon" tone="red" />');
 
-    expect($gradient)->toContain('data-icon-tile')->toContain('data-variant="gradient"')->toContain('data-tone="violet"')->toContain('icon-tile-lg')
+    expect($first)->toContain('data-icon-tile')->toContain('data-variant="gradient"')->toContain('data-tone="blue"')->toContain('icon-tile-lg')
         ->toContain('viewBox="0 0 256 256"')
+        ->and($fourth)->toContain('data-tone="navy"')
+        ->and($explicit)->toContain('data-tone="lilac"')
         ->and($glass)->toContain('data-variant="glass"')
-        ->and($unknown)->toContain('data-variant="gradient"');
+        ->and($line)->toContain('data-variant="line"')
+        ->and($unknown)->toContain('data-variant="gradient"')->toContain('data-tone="blue"');
 });
 
 it('renders a carousel with its arrows, dots, status and pause button only when it has several slides', function () {
@@ -34,8 +41,7 @@ it('renders the counter number in full for readers without JavaScript', function
 });
 
 it('renders the section heading with its eyebrow, ornament and description', function () {
-    $heading = Blade::render('<x-section-heading eyebrow="خدماتنا" description="وصف">عنوان</x-section-heading>');
+    $heading = Blade::render('<x-section-heading eyebrow="خدماتنا" description="وصف" center>عنوان</x-section-heading>');
 
-    expect($heading)->toContain('data-section-eyebrow')->toContain('data-heading-ornament')->toContain('وصف')
-        ->and(Blade::render('<x-divider-ornament />'))->toContain('data-divider-ornament');
+    expect($heading)->toContain('data-section-eyebrow')->toContain('data-heading-ornament')->toContain('وصف');
 });

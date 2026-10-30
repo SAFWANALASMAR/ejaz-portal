@@ -7,7 +7,7 @@
 @endphp
 
 <a href="{{ route('media.albums.show', $album->slug) }}" wire:navigate
-    class="shine group flex h-full flex-col overflow-hidden card-lift">
+    class="group flex h-full flex-col overflow-hidden card-lift">
     @if ($cover)
         <img src="{{ Storage::disk('public')->url($cover) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover">
     @else

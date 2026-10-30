@@ -7,7 +7,7 @@
 @endphp
 
 <a href="{{ route('media.news.show', $article->slug) }}" wire:navigate
-    class="shine group flex h-full flex-col overflow-hidden card-lift">
+    class="group flex h-full flex-col overflow-hidden card-lift">
     @if ($article->image)
         <span class="skeleton block overflow-hidden"><img src="{{ Storage::disk('public')->url($article->image) }}" alt="" loading="lazy" class="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-105"></span>
     @else
