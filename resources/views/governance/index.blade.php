@@ -67,12 +67,12 @@
         @if ($documents->isEmpty())
             <x-empty-state icon="shield-check" :message="$filters === [] ? __('governance.list.empty') : __('governance.list.no_results')" class="mt-10" />
         @else
-            <ul class="mt-8 grid gap-4 lg:grid-cols-2" data-reveal-group>
+            <ul class="mt-8 grid gap-3" data-reveal-group>
                 @foreach ($documents as $document)
                     <li>
                         <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"
                             :download="route('governance.download', $document->slug)" :bytes="$document->file_size"
-                            :type="__('governance.list.pdf')" class="h-full"
+                            :type="__('governance.list.pdf')" :index="$loop->index" class="h-full"
                             :meta="[
                                 $document->category->getLabel(),
                                 $document->issued_at ? Dates::display($document->issued_at) : null,
