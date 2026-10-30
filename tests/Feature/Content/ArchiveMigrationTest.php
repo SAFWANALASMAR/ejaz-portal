@@ -15,6 +15,7 @@ use Database\Seeders\LegacyRedirectsSeeder;
 use Database\Seeders\MenuSeeder;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -84,9 +85,10 @@ it('imports the whole archive as drafts with the counts of the archive', functio
         ->expectsOutputToContain('رُفض 0')
         ->assertSuccessful();
 
-    expect(MediaAsset::query()->count())->toBe(75)
+    // بلا صورة «البكرة» (img-2-png) المحذوفة من صفحة «عن الجمعية» (طلب صفوان، 29 أكتوبر 2026)
+    expect(MediaAsset::query()->count())->toBe(74)
         ->and(MediaAsset::query()->where('mime_type', 'image/svg+xml')->count())->toBe(18)
-        ->and(MediaAsset::query()->whereNotNull('web_path')->count())->toBe(57)
+        ->and(MediaAsset::query()->whereNotNull('web_path')->count())->toBe(56)
         ->and(MediaAsset::query()->where('from_template', true)->where('mime_type', '!=', 'image/svg+xml')->count())->toBe(30)
         ->and(Page::query()->pluck('slug')->sort()->values()->all())->toBe(['about', 'assembly-membership', 'contact', 'inquiries', 'jobs', 'reports', 'volunteering'])
         ->and(Initiative::query()->count())->toBe(5)
@@ -152,11 +154,13 @@ it('applies the archive corrections: audio order and titles, videos, documents, 
             'whatsapp' => 'https://whatsapp.com/channel/0029VbDMz0kIt5rzj8sZo23U',
         ]);
 
-    // صور الأهداف في بطاقاتها، وصورتا طلب الانضمام زخرفيتان، والبريد المصحَّح
+    // صور الأهداف في بطاقاتها، وصورتا طلب الانضمام زخرفيتان، والبريد المصحَّح. وصورة «البكرة» الخضراء (img-2-png) محذوفة
+    // من صفحة «عن الجمعية» ومن الوسائط بطلب صفوان (29 أكتوبر 2026)، فلا تعود عند استيراد الإطلاق
     $about = Page::query()->where('slug', 'about')->sole();
     $join = Page::query()->where('slug', 'assembly-membership')->sole();
 
-    expect(ContentBlocks::images($about->blocks))->toHaveCount(6)
+    expect(ContentBlocks::images($about->blocks))->toHaveCount(5)
+        ->and(json_encode($about->blocks))->not->toContain('img-2')
         ->and(collect($join->blocks)->where('type', 'image')->pluck('data.alt')->all())->toBe(['', ''])
         ->and(json_encode($join->blocks, JSON_UNESCAPED_UNICODE))->toContain('mailto:info@ejaz.sa')->not->toContain('ejaz.org');
 
@@ -188,6 +192,7 @@ it('sends every old link in redirects.csv permanently to a page that answers', f
 
     $rows = array_map(str_getcsv(...), array_slice(file(base_path('docs/legacy-import/redirects.csv'), FILE_IGNORE_NEW_LINES), 1));
 
+    // ورابط صورة «البكرة» المحذوفة من الصفحة باقٍ يحوّل إلى «عن الجمعية» بتحويل مسجل في ملف الاستيراد (مراجعة المشرف على #102)
     expect($rows)->toHaveCount(154);
 
     foreach ($rows as [$source, $target, $kind]) {
@@ -379,4 +384,52 @@ it('adds the missing social accounts one by one, keeps what the editor entered, 
     }
 
     expect(Setting::group('contact')['social'])->toBe($social);
+});
+
+// قرار صفوان (29 أكتوبر 2026): صفحة «عن الجمعية» المستوردة قبل #66 بعناوين ممطوطة ومرادفة، ثم ترحيل الخطة الاستراتيجية،
+// فتكررت المقاطع. الترحيل الجديد يزيل القديم ويبقي مقاطع الخطة، وتنتقل صور البطاقات إليها
+it('removes the old about sections duplicated by the strategic plan migration, keeping the plan and the card pictures', function () {
+    Page::query()->where('slug', 'about')->delete();
+    $old = Page::factory()->create(['slug' => 'about', 'title' => 'عن الجمعية', 'blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'من نحن', 'body' => '<p>نص من نحن</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الرســــالة', 'body' => '<p>رسالة قديمة</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الرؤيــــة', 'body' => '<p>رؤية قديمة</p>']],
+        ['type' => 'cards', 'data' => ['heading' => 'الأهداف الاستراتيجية', 'items' => [
+            ['icon' => null, 'title' => 'هدف قديم', 'text' => null, 'picture' => 'pages/goal-1.png'],
+        ]]],
+        ['type' => 'cards', 'data' => ['heading' => 'قيمنا', 'items' => [['icon' => 'star', 'title' => 'قيمة قديمة', 'text' => null]]]],
+    ]]);
+    DB::table('settings')->where('key', 'about_page_before_plan')->delete();
+
+    (require database_path('migrations/2026_10_26_094000_align_about_page_with_strategic_plan.php'))->up();
+    $doubled = collect($old->fresh()->blocks)->pluck('data.heading')->all();
+    expect($doubled)->toHaveCount(9);
+
+    (require database_path('migrations/2026_10_29_100100_remove_duplicate_about_sections.php'))->up();
+    $blocks = collect($old->fresh()->blocks);
+    $headings = $blocks->pluck('data.heading')->all();
+
+    expect($headings)->toBe(['من نحن', 'الرؤية', 'الرسالة', 'أهداف الجمعية', 'قيم الجمعية'])
+        ->and(array_unique($headings))->toHaveCount(5)
+        ->and($blocks->firstWhere('data.heading', 'أهداف الجمعية')['data']['items'][0])->toMatchArray(['title' => 'تعزيز القيم والانتماء الوطني.', 'picture' => 'pages/goal-1.png'])
+        ->and($blocks->firstWhere('data.heading', 'قيم الجمعية')['data']['items'][0]['icon'])->toBe('star')
+        ->and(json_encode($blocks->all(), JSON_UNESCAPED_UNICODE))->not->toContain('رسالة قديمة')->not->toContain('ـــ');
+
+    // صفحة بلا تكرار لا تُمس، ولا نسخة لها
+    DB::table('settings')->where('key', 'about_page_before_dedupe')->delete();
+    (require database_path('migrations/2026_10_29_100100_remove_duplicate_about_sections.php'))->up();
+    expect(collect($old->fresh()->blocks)->pluck('data.heading')->all())->toBe($headings)
+        ->and(DB::table('settings')->where('key', 'about_page_before_dedupe')->exists())->toBeFalse();
+});
+
+it('imports the current file and runs both about migrations without a duplicated heading', function () {
+    $this->artisan('import:legacy-site', ['file' => $this->file, '--actor' => $this->admin->email])->assertSuccessful();
+    DB::table('settings')->where('key', 'about_page_before_plan')->delete();
+
+    (require database_path('migrations/2026_10_26_094000_align_about_page_with_strategic_plan.php'))->up();
+    (require database_path('migrations/2026_10_29_100100_remove_duplicate_about_sections.php'))->up();
+
+    $headings = collect(Page::query()->where('slug', 'about')->sole()->blocks)->pluck('data.heading')->filter()->values()->all();
+    expect($headings)->toBe(array_values(array_unique($headings)))
+        ->and($headings)->toContain('الرؤية')->toContain('قيم الجمعية');
 });

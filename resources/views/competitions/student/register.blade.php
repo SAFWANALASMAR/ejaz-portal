@@ -57,7 +57,7 @@
             @endforeach
         </x-field>
 
-        <x-field name="guardian_phone" type="tel" :label="__('competitions.student.attributes.guardian_phone').' ('.__('competitions.exam.optional').')'" inputmode="tel" maxlength="20" dir="ltr" autocomplete="off" />
+        <x-field name="guardian_phone" type="tel" :label="__('competitions.student.attributes.guardian_phone')" inputmode="tel" maxlength="20" dir="ltr" autocomplete="off" required />
 
         @foreach ($fields as $field)
             @php($label = $field->label.($field->is_required ? '' : ' ('.__('competitions.exam.optional').')'))
@@ -89,7 +89,7 @@
         <div>
             <label class="flex items-start gap-3">
                 <input type="checkbox" name="pledge" value="1" required class="mt-1 accent-primary" @checked(old('pledge'))>
-                <span class="font-medium text-ink">{{ __('competitions.student.pledge') }} <x-sample /></span>
+                <span class="font-medium text-ink">{{ __('competitions.student.pledge') }}</span>
             </label>
             @error('pledge')
                 <p class="mt-1 text-sm font-medium text-red-700">{{ $message }}</p>

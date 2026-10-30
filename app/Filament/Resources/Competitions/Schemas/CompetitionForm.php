@@ -119,6 +119,10 @@ class CompetitionForm
                         ->helperText(__('competitions.student.admin.page_hint')),
                     ...array_map(fn (string $key): Textarea => Textarea::make('page_content.'.$key)->label(__('competitions.student.page.'.$key))
                         ->rows(3)->maxLength(CompetitionPage::PARAGRAPH_MAX), CompetitionPage::PARAGRAPHS),
+                    Textarea::make('page_content.'.CompetitionPage::ROUNDS_INTRO)->label(__('competitions.student.page.rounds_intro'))
+                        ->rows(2)->maxLength(CompetitionPage::PARAGRAPH_MAX),
+                    // مواعيد المراحل في بطاقاتها العامة بهذا الخيار وحده، والنوافذ تعمل بها في الحالين
+                    Toggle::make('show_round_dates')->label(__('competitions.student.admin.show_round_dates'))->helperText(__('competitions.student.admin.show_round_dates_hint')),
                     ...array_map(fn (string $key): Textarea => self::listField($key), CompetitionPage::LISTS),
                     ...array_map(fn (string $key): Textarea => self::listField($key)->helperText(__('competitions.student.admin.guide_hint').' '.__('competitions.student.admin.list_hint')), CompetitionPage::GUIDE),
                 ]),
