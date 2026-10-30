@@ -33,7 +33,7 @@
                     </x-card>
                 @endif
 
-                <x-programs.how-to :program="$program" :registration="$registration" />
+                <x-programs.how-to :program="$program" :registration="$registration" :status="$status" :confirmed="$confirmed" />
             </div>
 
             <aside class="space-y-4">

@@ -29,10 +29,15 @@ for (const target of pages) {
         await expect(section).toBeVisible();
         await expect(section.locator('ol > li')).toHaveCount(5);
 
-        // زر الخطوة الأولى رابط يصله Tab ويظهر إطار تركيزه
+        // زر الخطوة الأولى يصله Tab من عنوان القسم
         const start = section.locator('[data-how-to-start]').first();
-        await start.focus();
-        await expect(start).toBeFocused();
+        await section.locator('h2').click();
+        let reached = false;
+        for (let i = 0; i < 10 && !reached; i++) {
+            await page.keyboard.press('Tab');
+            reached = await start.evaluate((el) => el === document.activeElement);
+        }
+        expect(reached).toBe(true);
 
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow).toBeLessThanOrEqual(0);

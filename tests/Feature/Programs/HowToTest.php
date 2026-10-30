@@ -26,7 +26,7 @@ beforeEach(function () {
  */
 function howToStepTitles(): array
 {
-    $replace = ['button' => __('programs.show.register'), 'waitlist' => __('programs.show.join_waitlist'), 'confirm' => __('programs.register.confirm'), 'mine' => __('programs.how_to.my_programs')];
+    $replace = ['button' => __('programs.show.register'), 'waitlist' => __('programs.show.join_waitlist'), 'login' => __('programs.show.login_to_register'), 'confirm' => __('programs.register.confirm'), 'mine' => __('programs.how_to.my_programs')];
 
     return array_map(fn (string $key): string => __('programs.how_to.steps.'.$key.'.title', $replace), ['account', 'choose', 'press', 'details', 'confirm']);
 }
@@ -34,12 +34,17 @@ function howToStepTitles(): array
 it('shows the five steps in order on the programs index and on a program page', function (string $path) {
     $response = $this->get($path)->assertOk()
         ->assertSee('data-programs-how-to', false)
-        ->assertSee('<ol aria-label="'.__('programs.how_to.steps_label').'"', false)
+        ->assertSee(__('programs.how_to.steps_label'))
         ->assertSee(__('programs.how_to.title'))
         ->assertSeeInOrder(howToStepTitles());
 
+    preg_match('/<ol\b[^>]*>(.*?)<\/ol>/s', (string) $response->getContent(), $list);
+    expect(substr_count($list[1] ?? '', '<li'))->toBe(5);
+
     // أسماء الأزرار في الخطوات هي أسماؤها في الصفحات نفسها
-    $response->assertSee('اضغط «سجّل الآن»')->assertSee('«تأكيد التسجيل»')->assertSee('«البرامج المسجل بها»');
+    $response->assertSee('«'.__('programs.show.register').'»', false)
+        ->assertSee('«'.__('programs.register.confirm').'»', false)
+        ->assertSee('«'.__('programs.how_to.my_programs').'»', false);
 })->with(['index' => '/programs', 'program page' => '/programs/research-skills']);
 
 it('mentions verification only when the account settings require it', function () {
@@ -112,6 +117,21 @@ it('offers the waitlist when seats are full and other programs when registration
     $this->actingAs($user)->get('/programs/research-skills')->assertOk()->assertSee(__('programs.show.join_waitlist'));
 
     $this->program->update(['registration_closes_at' => now()->subHour()]);
-    $closed = $this->actingAs($user)->get('/programs/research-skills')->assertOk()->assertSee(__('programs.how_to.unavailable'));
+    $closed = $this->actingAs($user)->get('/programs/research-skills')->assertOk()->assertSee(__('programs.show.closed'));
     expect(howToStartLinks($closed))->toBe([route('programs.index')]);
 });
+
+it('does not invite a guest to log in for a program that is not open', function (array $state, bool $fill) {
+    $this->program->update($state);
+
+    if ($fill) {
+        ProgramRegistration::factory()->for($this->program)->create(['status' => RegistrationStatus::Confirmed]);
+    }
+
+    $response = $this->get('/programs/research-skills')->assertOk()->assertSee(__('programs.show.closed'));
+    expect(howToStartLinks($response))->toBe([route('programs.index')]);
+})->with([
+    'soon' => [['registration_opens_at' => now()->addDay()], false],
+    'full without a waitlist' => [['seats' => 1, 'has_waitlist' => false], true],
+    'ended' => [['starts_at' => now()->subDays(2), 'ends_at' => now()->subDay()], false],
+]);

@@ -4,6 +4,7 @@ use App\Models\Competition;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Tests\Fakes\FakeSmsGateway;
 
 /*
@@ -81,13 +82,39 @@ it('drops an admin link left in the session for a new account that cannot enter 
     expect(session('url.intended'))->toBeNull();
 });
 
-it('does not follow an outside address passed in the query', function () {
+it('saves no destination from the query', function () {
     // لا معامل وجهة: signup وحده يختار صفحة الدخول أو التسجيل، والوجهة الصفحة المطلوبة نفسها
-    $this->get('/register?redirect=https://evil.example/&intended=//evil.example')->assertOk();
-    $this->get('/login?signup=1&redirect=https://evil.example/')->assertOk();
+    $this->get('/register?redirect=https://evil.example/&intended=//evil.example&signup=1')->assertOk();
+    expect(session('url.intended'))->toBeNull();
 
     $this->post('/register', intendedRegistration())->assertRedirect(route('account.dashboard'));
     expect(User::where('email', 'student@example.test')->exists())->toBeTrue();
+});
+
+it('drops an outside address saved from the referrer of a non-GET request', function () {
+    // redirect()->guest() يحفظ الـ Referer لطلب ليس GET، ومنه HEAD الذي لا يفحصه CSRF
+    $this->call('HEAD', route('account.programs.index'), server: ['HTTP_REFERER' => 'https://evil.example/phish'])
+        ->assertRedirect(route('login'));
+    expect(session('url.intended'))->toBe('https://evil.example/phish');
+
+    $this->post('/register', intendedRegistration())->assertRedirect(route('account.dashboard'));
+    expect(session('url.intended'))->toBeNull();
+});
+
+it('verifies the email first when the account has no phone, then brings it back to the program registration', function () {
+    enableVerification();
+    Program::factory()->create(['slug' => 'research-skills']);
+    $this->target = route('programs.register', ['slug' => 'research-skills', 'signup' => 1]);
+    $this->get($this->target)->assertRedirect(route('register'));
+
+    // التسجيل يتبع الوجهة، فيحوّلها التوثيق المطلوب إلى إشعار البريد ويحفظها من جديد
+    $this->post('/register', intendedRegistration(['phone' => null]))->assertRedirect($this->target);
+    $this->get($this->target)->assertRedirect(route('verification.notice'));
+    expect(session('url.intended'))->toBe($this->target);
+
+    $user = User::where('email', 'student@example.test')->firstOrFail();
+    $link = URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $user->id, 'hash' => sha1((string) $user->email)]);
+    $this->get($link)->assertRedirect($this->target);
 });
 
 it('keeps sending a guest to the login page without signup', function () {
