@@ -17,6 +17,7 @@ import './carousel';
 import './hero-grid';
 import './back-nav';
 import './search-palette';
+import './pdf-reader';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

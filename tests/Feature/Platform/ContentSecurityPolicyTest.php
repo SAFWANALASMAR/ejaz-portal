@@ -81,12 +81,14 @@ it('lets the admin forms draw image previews in a blob worker, without widening 
     'news form' => fn () => NewsArticleResource::getUrl('create'),
 ]);
 
-it('keeps workers out of the public site and the account', function (string $path) {
+// قارئ كتب المكتبة (pdf.js) يشغّل عامله من أصول البناء: worker-src 'self' وحده، أضيق من الرجوع إلى script-src،
+// وفي كل صفحة لأن التنقّل السريع يُبقي سياسة أول صفحة (docs/decisions.md — 30 أكتوبر 2026)
+it('allows public and account workers from the site itself alone, never blob:', function (string $path) {
     $user = User::factory()->create();
     $response = str_starts_with($path, '/account') ? $this->actingAs($user)->get($path) : $this->get($path);
     $csp = (string) $response->assertOk()->headers->get('Content-Security-Policy');
 
-    expect($csp)->not->toContain('worker-src')
+    expect(cspDirective($csp, 'worker-src'))->toBe("worker-src 'self'")
         ->and(cspDirective($csp, 'script-src'))->not->toContain('blob:');
 })->with(['/', '/register', '/contact', '/account/profile']);
 
