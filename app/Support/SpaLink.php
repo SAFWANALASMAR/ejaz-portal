@@ -34,6 +34,8 @@ final class SpaLink
         'filament.*', 'horizon.*', 'sitemap', 'robots',
         // إشعارات واتساب من خادم Meta: نص لا صفحة
         'messaging.whatsapp.*',
+        // معرض الشواهد برابطه السري: يُحمَّل كاملاً برؤوسه (لا Referer ولا فهرسة)، ولا يبقى رابطه في تاريخ التنقّل السريع
+        'evidence.*',
     ];
 
     /**

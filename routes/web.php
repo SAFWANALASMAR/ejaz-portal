@@ -11,6 +11,7 @@ use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\EvidenceGalleryController;
 use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
@@ -160,6 +161,13 @@ require __DIR__.'/job-files.php';
 
 // قنوات التواصل: إشعارات حالة تسليم واتساب (docs/guides/messaging.md)
 require __DIR__.'/messaging.php';
+
+// معرض الشواهد برابط سري بلا حساب (docs/decisions.md — 30 أكتوبر 2026): الرمز في المسار بأي صيغة حتى يرد كل رفض
+// 404 واحدة من المتحكم نفسه وبحده، والملفات برابط موقّع قصير بعد فحص الرمز. ولا تُفهرس ولا تُخزَّن (SecurityHeaders)
+Route::middleware('cache.headers:private;no_store')->prefix('evidence')->name('evidence.')->group(function () {
+    Route::get('/files/{item}/{key}', [EvidenceGalleryController::class, 'file'])->whereNumber('item')->where('key', '[a-f0-9]{24}')->middleware('throttle:evidence-files')->name('file');
+    Route::get('/{token}', [EvidenceGalleryController::class, 'show'])->where('token', '[^/]{1,200}')->middleware('throttle:evidence')->name('show');
+});
 
 // البث المباشر (المرحلة 5): يظهر ويختفي بالموعد (docs/plans/livestream.md)
 Route::get('/live', LiveStreamController::class)->middleware('throttle:60,1')->name('live');
