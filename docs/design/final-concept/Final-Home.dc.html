@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>بوابة إعجاز — الرئيسية النهائية</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F7FAFD}
+a{color:#2E6898;text-decoration:none}a:hover{color:#1F4565}
+.lift{transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,border-color .35s}
+.lift:hover{transform:translateY(-5px);border-color:#BFE0FA;box-shadow:0 22px 44px -18px rgba(31,69,101,.28)}
+.lift:hover .ico{transform:translateY(-3px) rotate(-6deg);color:#3E8ACA}
+.ico{transition:transform .45s cubic-bezier(.34,1.56,.64,1),color .3s}
+.pill{transition:background .2s,transform .2s}.pill:hover{background:#3E8ACA;transform:translateY(-1px)}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.07)}}
+@keyframes word{from{opacity:0;transform:translateY(16px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes grow{from{width:0}to{width:72px}}
+@keyframes vA{0%,45%{opacity:1;transform:none}50%,95%{opacity:0;transform:translateY(-10px)}100%{opacity:1}}
+@keyframes vB{0%,45%{opacity:0;transform:translateY(10px)}50%,95%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes q{0%,22%{opacity:1;transform:none}25%,97%{opacity:0;transform:translateX(-14px)}100%{opacity:1}}
+@keyframes shine{from{transform:translateX(130%) skewX(-20deg)}to{transform:translateX(-230%) skewX(-20deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes dot{from{width:0}to{width:100%}}
+.w1{animation:word .8s .15s both}.w2{animation:word .8s .35s both}.w3{animation:word .8s .6s both}
+.vA{animation:vA 12s infinite}.vB{animation:vB 12s infinite}
+.q1{animation:q 16s infinite}.q2{animation:q 16s 4s infinite;opacity:0}.q3{animation:q 16s 8s infinite;opacity:0}.q4{animation:q 16s 12s infinite;opacity:0}
+.card:hover .vA,.card:hover .vB,.card:hover .q1,.card:hover .q2,.card:hover .q3,.card:hover .q4{animation-play-state:paused}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.vB,.q2,.q3,.q4{display:none}.q1,.vA{opacity:1!important}}
+@media (max-width: 960px){.r3{grid-template-columns:1fr!important}.r2{grid-template-columns:1fr!important}.svc{grid-template-columns:1fr 1fr!important}.ft{grid-template-columns:1fr 1fr!important}}
+</style>
+</helmet>
+<div style="font-family: 'Zain', system-ui, sans-serif; color: #17202E; background: #F7FAFD; width: 100%; font-size: 18px;">
+
+<header style="background: #1F4565; position: relative; z-index: 3;">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 14px 28px 10px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap;">
+    <a href="#" style="display: flex; flex-direction: column; gap: 4px; color: #fff;">
+      <span style="display: flex; align-items: center; gap: 12px;">
+        <span style="width: 54px; height: 54px; border-radius: 16px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 26px;">إ</span>
+        <span style="display: flex; flex-direction: column; line-height: 1.05;"><span style="font-size: 30px; font-weight: 900;">جمعية إعجاز</span><span style="font-size: 14px; color: #BFE0FA;">للدراسات والبحوث العلمية</span></span>
+      </span>
+      <span style="font-size: 12px; color: rgba(255,255,255,.65);">تحت إشراف وزارة التعليم — مكة المكرمة</span>
+    </a>
+    <nav aria-label="القائمة الرئيسية" style="flex: 1; display: flex; flex-direction: column; gap: 10px; font-size: 17px;">
+      <span style="display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;">
+        <a href="#" aria-current="page" style="color: #fff; font-weight: 800; border-bottom: 2px solid #8EC5F0; padding-bottom: 4px;">الرئيسية</a>
+        <sc-for list="{{nav1}}" as="n" hint-placeholder-count="6"><a href="#" style="color: rgba(255,255,255,.85);">{{n}}</a></sc-for>
+      </span>
+      <span style="display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; font-size: 16px;">
+        <sc-for list="{{nav2}}" as="n" hint-placeholder-count="3"><a href="#" style="color: rgba(255,255,255,.72);">{{n}}</a></sc-for>
+      </span>
+    </nav>
+    <span style="display: flex; gap: 10px; align-items: center;">
+      <a href="#" class="pill" style="background: #2E6898; color: #fff; font-weight: 800; padding: 11px 22px; border-radius: 999px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.2);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg>تسجيل الدخول</a>
+      <button type="button" aria-label="البحث (Ctrl+K)" style="width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+    </span>
+  </div>
+</header>
+
+<section aria-roledescription="شرائح" aria-label="الشرائح الرئيسية" style="position: relative; overflow: hidden; height: 470px; color: #fff; background: #1F4565;">
+  <img src="/_blob/0c77df45f4e924162f364b39f3f754b5" alt="" style="position: absolute; left: 0; top: 0; width: 64%; height: 100%; object-fit: cover; animation: kenburns 20s ease-in-out infinite alternate;">
+  <div style="position: absolute; inset: 0; background: linear-gradient(270deg, #1F4565 0%, #1F4565 34%, rgba(31,69,101,.75) 48%, rgba(31,69,101,.15) 75%, rgba(31,69,101,.35) 100%);"></div>
+  <div style="position: relative; max-width: 1320px; margin: 0 auto; height: 100%; padding: 0 96px; display: flex; flex-direction: column; justify-content: center; gap: 16px;">
+    <h1 style="margin: 0; display: flex; flex-direction: column; gap: 6px;"><span class="w1" style="font-size: 64px; font-weight: 900; line-height: 1.05;">جمعية إعجاز</span><span class="w2" style="font-size: 40px; font-weight: 800; color: #DCEBF8;">للدراسات والبحوث العلمية</span></h1>
+    <span aria-hidden="true" style="display: block; height: 4px; border-radius: 4px; background: linear-gradient(90deg, #8EC5F0, #3E8ACA); animation: grow 1s .8s both; width: 72px;"></span>
+    <p class="w3" style="margin: 0; font-size: 22px; line-height: 1.75; color: rgba(255,255,255,.9); max-width: 520px;">جمعية تعليمية متخصصة في تعليم القرآن الكريم والسنة النبوية وبيان وجوه الإعجاز فيهما.</p>
+  </div>
+  <button type="button" aria-label="الشريحة السابقة" style="position: absolute; right: 22px; top: 50%; margin-top: -24px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); color: #1F4565; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -8px rgba(0,0,0,.5);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+  <button type="button" aria-label="الشريحة التالية" style="position: absolute; left: 22px; top: 50%; margin-top: -24px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); color: #1F4565; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -8px rgba(0,0,0,.5);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+  <div style="position: absolute; bottom: 22px; right: 0; left: 0; display: flex; justify-content: center; gap: 10px;">
+    <span style="width: 40px; height: 8px; border-radius: 8px; background: rgba(255,255,255,.3); overflow: hidden;"><span style="display: block; height: 100%; background: #fff; animation: dot 6s linear infinite;"></span></span>
+    <span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #fff;"></span><span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #fff;"></span><span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #fff;"></span>
+  </div>
+</section>
+
+<section style="max-width: 1320px; margin: 0 auto; padding: 28px 28px 40px;">
+  <div class="r3" style="display: grid; grid-template-columns: 1.55fr 1fr 1fr; gap: 20px;">
+    <div class="card" aria-roledescription="شرائح" aria-label="الرؤية والرسالة" style="position: relative; height: 168px; background: #fff; border: 1px solid #E3ECF4; border-radius: 20px; overflow: hidden;">
+      <div class="vA" style="position: absolute; inset: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 10px;"><span style="display: flex; align-items: center; gap: 12px;"><svg class="ico" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span style="font-size: 26px; font-weight: 900; color: #1F4565;">الرؤية</span></span><span style="font-size: 17px; line-height: 1.8; color: #3A4756;">【ناقص: نص الرؤية المعتمد من الجمعية】</span></div>
+      <div class="vB" style="position: absolute; inset: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 10px; opacity: 0;"><span style="display: flex; align-items: center; gap: 12px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"></path></svg><span style="font-size: 26px; font-weight: 900; color: #1F4565;">الرسالة</span></span><span style="font-size: 17px; line-height: 1.8; color: #3A4756;">【ناقص: نص الرسالة المعتمد】</span></div>
+      <span style="position: absolute; bottom: 14px; left: 20px; display: flex; gap: 6px;"><span style="width: 18px; height: 6px; border-radius: 6px; background: #2E6898;"></span><span style="width: 6px; height: 6px; border-radius: 6px; background: #C9D7E4;"></span></span>
+    </div>
+    <div class="card" aria-roledescription="شرائح" aria-label="القيم" style="position: relative; height: 168px; background: #fff; border: 1px solid #E3ECF4; border-radius: 20px; overflow: hidden;">
+      <div style="padding: 24px 24px 0; display: flex; align-items: center; gap: 12px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9Z"></path></svg><span style="font-size: 26px; font-weight: 900; color: #1F4565;">القيم</span></div>
+      <span class="q1" style="position: absolute; right: 24px; left: 24px; bottom: 30px; font-size: 22px; font-weight: 800; color: #2E6898;">الإحسان والمهنية</span>
+      <span class="q2" style="position: absolute; right: 24px; left: 24px; bottom: 30px; font-size: 22px; font-weight: 800; color: #2E6898;">الابتكار</span>
+      <span class="q3" style="position: absolute; right: 24px; left: 24px; bottom: 30px; font-size: 22px; font-weight: 800; color: #2E6898;">التمكين</span>
+      <span class="q4" style="position: absolute; right: 24px; left: 24px; bottom: 30px; font-size: 22px; font-weight: 800; color: #2E6898;">التكامل</span>
+      <span style="position: absolute; bottom: 14px; left: 20px; display: flex; gap: 6px;"><span style="width: 18px; height: 6px; border-radius: 6px; background: #2E6898;"></span><span style="width: 6px; height: 6px; border-radius: 6px; background: #C9D7E4;"></span><span style="width: 6px; height: 6px; border-radius: 6px; background: #C9D7E4;"></span><span style="width: 6px; height: 6px; border-radius: 6px; background: #C9D7E4;"></span></span>
+    </div>
+    <div style="position: relative; height: 168px; overflow: hidden; background: #fff; border: 1px solid #E3ECF4; border-radius: 20px; padding: 22px 24px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between;">
+      <span aria-hidden="true" style="position: absolute; inset: 0; width: 36%; background: linear-gradient(90deg, transparent, rgba(142,197,240,.35), transparent); animation: shine 5s 1s infinite;"></span>
+      <span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 19px; font-weight: 800; color: #1F4565;">مجموع جوائز البراهين</span><span style="font-size: 54px; font-weight: 900; color: #1F4565; line-height: 1.05;">20,000</span><span style="font-size: 16px; color: #556170;">ريال سعودي</span></span>
+      <svg style="animation: float 4s ease-in-out infinite;" width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="#3E8ACA" stroke-width="1.4" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"></path></svg>
+    </div>
+  </div>
+</section>
+
+<section style="background: linear-gradient(180deg, #EAF3FB, #F2F8FD);">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 44px 28px 52px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 26px;">
+      <span style="display: flex; align-items: center; gap: 14px;"><span aria-hidden="true" style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid #3E8ACA;"></span><span style="width: 60px; height: 1.5px; background: #3E8ACA;"></span></span><h2 style="margin: 0; font-size: 40px; font-weight: 900; color: #1F4565;">خدماتنا</h2><span aria-hidden="true" style="display: flex; align-items: center; gap: 4px;"><span style="width: 60px; height: 1.5px; background: #3E8ACA;"></span><span style="width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid #3E8ACA;"></span></span></span>
+      <span style="font-size: 20px; color: #3A4756;">كل ما تحتاجه في بوابة واحدة</span>
+    </div>
+    <div class="r2" style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px;">
+      <div class="svc" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+        <sc-for list="{{services}}" as="s" hint-placeholder-count="6">
+          <a href="#" class="lift" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 18px; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 8px; color: #17202E;">
+            <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 21px; font-weight: 900; color: #1F4565;">{{s.t}}</span><svg class="ico" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{s.d}}"></path></svg></span>
+            <span style="font-size: 16px; line-height: 1.7; color: #556170; min-height: 54px;">{{s.desc}}</span>
+            <span class="pill" style="align-self: center; font-size: 14px; font-weight: 800; color: #fff; background: #1F4565; padding: 5px 22px; border-radius: 999px;">ادخل</span>
+          </a>
+        </sc-for>
+      </div>
+      <div style="position: relative; overflow: hidden; border-radius: 20px; min-height: 360px; color: #fff; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; box-sizing: border-box;">
+        <img src="/_blob/8245d46d38ba6986ac7d3929e43c07e4" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+        <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(31,69,101,.15) 20%, rgba(20,46,69,.92) 80%);"></span>
+        <span style="position: relative; font-size: 28px; font-weight: 900; line-height: 1.3;">نحو فهم أعمق لإعجاز القرآن والسنة</span>
+        <span style="position: relative; font-size: 16px; color: #BFE0FA;">【ناقص: شعار فرعي معتمد】</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="max-width: 1320px; margin: 0 auto; padding: 44px 28px 56px;">
+  <div class="r2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;"><h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #1F4565; display: flex; align-items: center; gap: 10px;">إعلانات<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg></h2><a href="#" style="font-weight: 800;">المزيد ←</a></div>
+      <div style="position: relative; overflow: hidden; border-radius: 20px; background: radial-gradient(80% 120% at 85% 20%, #3E8ACA, #1F4565 65%); color: #fff; padding: 28px 30px; min-height: 230px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;">
+        <svg aria-hidden="true" width="300" height="300" viewBox="0 0 200 200" style="position: absolute; left: -50px; top: -60px; opacity: .14;"><g fill="none" stroke="#fff"><path d="M100 10 L190 100 L100 190 L10 100 Z"></path><path d="M100 40 L160 100 L100 160 L40 100 Z"></path><circle cx="100" cy="100" r="40"></circle></g></svg>
+        <span style="position: relative; font-size: 40px; font-weight: 900; letter-spacing: 1px;">مسابقة البراهين العلمية</span>
+        <span style="position: relative; font-size: 20px; color: #DCEBF8;">الموسم الأول 1448هـ / 2026م</span>
+        <span style="position: relative; margin-top: auto; align-self: flex-end; display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #fff, #DCEBF8); color: #1F4565; border-radius: 999px; padding: 10px 14px 10px 24px; box-shadow: 0 16px 30px -14px rgba(0,0,0,.6);"><span style="width: 52px; height: 52px; border-radius: 50%; background: #1F4565; display: flex; align-items: center; justify-content: center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8EC5F0" stroke-width="1.7" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"></path></svg></span><span style="display: flex; flex-direction: column; line-height: 1.05;"><span style="font-size: 13px;">مجموع الجوائز</span><span style="font-size: 32px; font-weight: 900;">20,000</span><span style="font-size: 13px;">ريال سعودي</span></span></span>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2E6898;"></span><span style="width: 8px; height: 8px; border-radius: 50%; background: #C9D7E4;"></span><span style="width: 8px; height: 8px; border-radius: 50%; background: #C9D7E4;"></span></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;"><h3 style="margin: 0; font-size: 24px; font-weight: 900; color: #1F4565; display: flex; align-items: center; gap: 8px;">مستجدات الجمعية<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.7" aria-hidden="true"><path d="M3 4h18v16H3zM3 9h18M8 2v4M16 2v4"></path></svg></h3><a href="#" style="font-weight: 800;">المزيد ←</a></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+        <sc-for list="{{updates}}" as="u" hint-placeholder-count="3">
+          <a href="#" class="lift" style="background: #fff; border: 1px solid #E3ECF4; border-radius: 16px; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; color: #17202E;"><svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="{{u}}"></path></svg><span style="font-size: 16px; font-weight: 800; color: #1F4565;">[مستجد من اللوحة]</span><span style="font-size: 13px; color: #556170;">[التاريخ]</span></a>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;"><h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #1F4565; display: flex; align-items: center; gap: 10px;">أخبار الجمعية<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2E6898" stroke-width="1.6" aria-hidden="true"><path d="M3 11l18-5v12L3 14v-3ZM11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg></h2><a href="#" style="font-weight: 800;">المزيد ←</a></div>
+      <div style="background: #fff; border: 1px solid #E3ECF4; border-radius: 20px; padding: 6px 18px;">
+        <sc-for list="{{news}}" as="n" hint-placeholder-count="3">
+          <a href="#" style="display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid #EEF3F8; color: #17202E;">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 19px; font-weight: 900; color: #1F4565;">[عنوان خبر منشور من المركز الإعلامي]</span><span style="font-size: 14px; color: #8A96A3;">[التاريخ]</span><span style="font-size: 15px; line-height: 1.7; color: #556170;">[مقتطف الخبر من المركز الإعلامي]</span></span>
+            <img src="{{n}}" alt="" style="flex: none; width: 150px; height: 108px; object-fit: cover; border-radius: 12px;">
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer style="background: #1F4565; color: rgba(255,255,255,.85);">
+  <div class="ft" style="max-width: 1320px; margin: 0 auto; padding: 44px 28px 28px; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.3fr; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;"><span style="color: #fff; font-weight: 900; font-size: 19px;">شركاؤنا</span><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"><span style="height: 76px; border-radius: 14px; border: 1px dashed rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; font-size: 13px;">[شعار شريك]</span><span style="height: 76px; border-radius: 14px; border: 1px dashed rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; font-size: 13px;">[شعار شريك]</span></div></div>
+    <div style="display: flex; flex-direction: column; gap: 12px;"><span style="color: #fff; font-weight: 900; font-size: 19px;">تواصل معنا</span><span style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8EC5F0" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4zM4 7l8 6 8-6"></path></svg>info@ejaz.sa</span><span style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8EC5F0" stroke-width="2" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>[رقم التواصل المعتمد]</span><span style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8EC5F0" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"></path></svg>مكة المكرمة</span></div>
+    <div style="display: flex; flex-direction: column; gap: 9px;"><span style="color: #fff; font-weight: 900; font-size: 19px;">روابط سريعة</span><sc-for list="{{nav1}}" as="n" hint-placeholder-count="6"><a href="#" style="color: rgba(255,255,255,.8); font-size: 15px;">{{n}}</a></sc-for></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+      <span style="display: flex; align-items: center; gap: 12px; color: #fff;"><span style="width: 52px; height: 52px; border-radius: 16px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 24px;">إ</span><span style="display: flex; flex-direction: column; line-height: 1.05;"><span style="font-size: 26px; font-weight: 900;">جمعية إعجاز</span><span style="font-size: 13px; color: #BFE0FA;">للدراسات والبحوث العلمية</span></span></span>
+      <span style="font-size: 13px;">تحت إشراف وزارة التعليم — مكة المكرمة</span>
+      <div style="display: flex; gap: 8px;"><sc-for list="{{social}}" as="x" hint-placeholder-count="5"><a href="#" aria-label="{{x}}" style="width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">{{x}}</a></sc-for></div>
+    </div>
+  </div>
+  <div style="max-width: 1320px; margin: 0 auto; padding: 16px 28px 24px; border-top: 1px solid rgba(255,255,255,.14); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 14px;">
+    <span style="display: flex; gap: 18px;"><a href="#" style="color: rgba(255,255,255,.8);">سياسة الخصوصية</a><a href="#" style="color: rgba(255,255,255,.8);">الشروط والأحكام</a><a href="#" style="color: rgba(255,255,255,.8);">خريطة الموقع</a></span>
+    <span>جميع الحقوق محفوظة © 2026 جمعية إعجاز للدراسات والبحوث العلمية</span>
+    <a href="#" aria-label="العودة للأعلى" style="width: 46px; height: 46px; border-radius: 50%; background: #2E6898; border: 1px solid rgba(255,255,255,.25); color: #fff; display: flex; align-items: center; justify-content: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg></a>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nav1: ['عن الجمعية', 'الدورات والبرامج', 'المسابقات', 'مكتبة إعجاز', 'المركز الإعلامي', 'الحوكمة'],
+      nav2: ['المبادرات', 'الخدمات الإلكترونية', 'تواصل معنا'],
+      services: [
+        { t: 'الدورات والبرامج', desc: 'دورات ومجالس علمية بالتسجيل الإلكتروني', d: 'M3 4h18v16H3zM3 9h18M8 2v4M16 2v4M7 13h3M7 16h6' },
+        { t: 'العضوية', desc: 'الانضمام إلى الجمعية العمومية ومتابعة الطلب', d: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 21v-2a3 3 0 0 0-2-2.8M17 3.2a3 3 0 0 1 0 5.6' },
+        { t: 'التقارير والحوكمة', desc: 'اللوائح والسياسات والتقارير والوثائق الرسمية', d: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M9 13l2 2 4-4' },
+        { t: 'المسابقات', desc: 'مسابقة البراهين العلمية ومراحلها ونتائجها', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4' },
+        { t: 'مكتبة إعجاز', desc: 'مرئيات وصوتيات وكتب وأبحاث في الإعجاز العلمي', d: 'M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z' },
+        { t: 'المركز الإعلامي', desc: 'الأخبار ومكتبة الصور والفعاليات', d: 'M3 5h18v14H3zM3 15l5-5 4 4 3-3 6 6M15 9h.01' }
+      ],
+      updates: ['M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7', 'M12 8v4l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M2 7l10-4 10 4-10 4L2 7Zm4 2.5V15c0 1.7 2.7 3 6 3s6-1.3 6-3V9.5'],
+      news: ['/_blob/5ecc7b0ca2b48182e0ba9a2517ebd9ea', '/_blob/1a301bae9050a44a13fb7bdb083eb7d8', '/_blob/c870cc13418765c1ca855090deb73ec1'],
+      social: ['X', 'IG', 'YT', 'TT', 'in']
+    };
+  }
+}
+</script>
+</body>
+</html>
