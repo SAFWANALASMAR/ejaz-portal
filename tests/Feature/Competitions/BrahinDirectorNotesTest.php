@@ -142,3 +142,24 @@ it('lets a registrant in the closed intermediate stage be corrected in their cur
     $other = CompetitionSubmission::query()->where('user_id', registeredStudent($this->competition, 43)->id)->sole();
     expect(fn () => app(CorrectStudentRegistration::class)->edit($director, $other, [...$data, 'region_id' => $other->region_id]))->toThrow(ValidationException::class);
 });
+
+it('says the mobile number is required in the guide, for new installs and in the stored page', function () {
+    $required = 'ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
+    $optional = 'ورقم الجوال والبريد الإلكتروني اختياريان.';
+
+    // البذرة للتثبيت الجديد
+    expect(implode(' ', $this->competition->pageList('guide_steps')))->toContain($required)->not->toContain($optional);
+
+    // والمخزّن قبل التصحيح: يصحّحه الترحيل، ويعيده الرجوع
+    $steps = array_map(fn (string $step): string => str_replace($required, $optional, $step), $this->competition->pageList('guide_steps'));
+    $this->competition->forceFill(['page_content' => [...$this->competition->page_content, 'guide_steps' => $steps]])->save();
+    $migration = require database_path('migrations/2026_10_30_223000_correct_brahin_guide_phone_step.php');
+
+    $migration->up();
+    expect(implode(' ', $this->competition->fresh()->pageList('guide_steps')))->toContain($required)->not->toContain($optional);
+
+    $migration->down();
+    expect(implode(' ', $this->competition->fresh()->pageList('guide_steps')))->toContain($optional);
+
+    $this->get('/competitions/'.$this->competition->slug.'/guide')->assertOk();
+});
