@@ -41,3 +41,13 @@ it('never skips the quality steps on a condition that keeps the run green', func
         ->and($workflow)->toContain('php artisan test')
         ->and($workflow)->toContain('composer audit');
 });
+
+it('runs once per commit: on pushes to main and on pull requests only', function () {
+    // المشغّل واحد، فلا يُفحص إيداع فرع ذي طلب دمج مرتين (docs/decisions.md — 30 أكتوبر 2026)
+    $on = (string) str(ciWorkflow())->after("\non:\n")->before("\npermissions:");
+
+    expect($on)->toContain("push:\n    branches: [main]")
+        ->toContain('pull_request:')
+        ->toContain('workflow_dispatch:')
+        ->not->toContain("'**'");
+});

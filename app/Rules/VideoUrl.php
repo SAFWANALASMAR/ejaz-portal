@@ -14,6 +14,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class VideoUrl implements ValidationRule
 {
+    /** نمط معرّف مقطع يوتيوب، ويستعمله ما يبني من المعرّف مسار ملف (FetchHomeVideoThumbnail) */
+    public const YOUTUBE_ID = '/^[A-Za-z0-9_-]{11}$/';
+
     private const YOUTUBE_HOSTS = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com'];
 
     private const FILE_EXTENSIONS = ['mp4', 'webm'];
@@ -55,7 +58,7 @@ class VideoUrl implements ValidationRule
             default => null,
         };
 
-        return is_string($id) && preg_match('/^[A-Za-z0-9_-]{11}$/', $id) === 1 ? $id : null;
+        return is_string($id) && preg_match(self::YOUTUBE_ID, $id) === 1 ? $id : null;
     }
 
     /**

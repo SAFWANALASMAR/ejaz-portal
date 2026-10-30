@@ -56,7 +56,7 @@
                     @if ($map !== null)
                         <p class="mt-4">
                             <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                                {{ svg('heroicon-o-map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('map-pin', 'size-5 text-accent', ['aria-hidden' => 'true']) }}
                                 {{ __('contact.info.map') }}
                                 @if (\App\Support\NationalAddress::normalize($contact['short_address'] ?? null))
                                     <bdi dir="ltr" class="font-normal text-muted">{{ \App\Support\NationalAddress::normalize($contact['short_address']) }}</bdi>
@@ -83,7 +83,7 @@
             </aside>
             @endif
 
-            <div class="rounded-2xl border border-line/70 bg-white p-6 shadow-xs sm:p-8">
+            <div class="card-lift p-6 sm:p-8">
                 <h2 class="text-xl font-bold text-primary">{{ __('contact.form.title') }}</h2>
                 <p class="mt-2 text-muted">{{ __('contact.form.intro') }}</p>
 

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\Album;
 use App\Models\Announcement;
 use App\Models\BoardMember;
@@ -135,6 +136,13 @@ class PrunePublicFiles extends Command
 
         if (is_string($hero) && $hero !== '') {
             $paths[] = $hero;
+        }
+
+        // وصورة مقطع الرئيسية الحالي، واسمها من معرّفه (FetchHomeVideoThumbnail)
+        $video = FetchHomeVideoThumbnail::currentId();
+
+        if ($video !== null) {
+            $paths[] = FetchHomeVideoThumbnail::path($video);
         }
 
         // وصور «محتوى الرئيسية» (HomeContent) في مجلد الإعدادات نفسه

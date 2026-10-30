@@ -2,6 +2,8 @@
 | مصادر الأصناف محددة صراحةً بدل فحص المشروع كله، لأن الفحص عبر قرص ويندوز المشترك بطيء جداً.
 */
 @import 'tailwindcss' source(none);
+/* التحسين البصري والحركة (docs/plans/visual-refresh.md) */
+@import './visual.css';
 
 @source '../views';
 @source '../js';
@@ -28,6 +30,11 @@
     --color-accent: #5D2A92;
     --color-accent-dark: #4A2175;
     --color-accent-light: #D9CCF0;
+
+    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): «الذهبي» في المرجع
+       الأسلوبي يقابله في الهوية البنفسجي، ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
+    --color-highlight: var(--color-accent);
+    --color-highlight-on-dark: var(--color-accent-light);
 
     --color-surface: #F3F7FB;
     --color-ink: #17202E;
@@ -58,7 +65,16 @@
 
     /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
        فإطار التركيز فيها بدرجته الفاتحة */
-    :where(.bg-primary, .bg-primary-dark, .section-band, footer, [data-gallery-dialog]) :focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) :focus-visible {
+        @apply outline-accent-light;
+    }
+
+    /* والزر البنفسجي (variant="accent") لا يُرى حوله إطار بنفسجي: على الفاتح بالأزرق الداكن، وعلى الداكن بالفاتح */
+    .bg-accent:focus-visible {
+        @apply outline-primary-dark;
+    }
+
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) .bg-accent:focus-visible {
         @apply outline-accent-light;
     }
 
