@@ -40,6 +40,10 @@ for (const target of pages) {
     test(`${target.name} hero is balanced and readable`, async ({ page }) => {
         await page.goto(target.path);
         await page.evaluate(() => document.fonts.ready);
+        // ظهور العنوان كلمة كلمة ينتهي قبل اللقطة والقياس (الحلقات المستمرة لا تنتهي فتُستثنى)
+        await page.waitForFunction(() =>
+            document.getAnimations().every((animation) => animation.playState !== 'running' || animation.effect?.getTiming().iterations === Infinity),
+        );
 
         const hero = page.locator('[data-page-hero]');
         await expect(hero).toBeVisible();

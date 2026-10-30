@@ -20,7 +20,7 @@
         <div class="flex flex-wrap gap-2">
             @if ($submission->certificate_path)
                 <x-button :href="route('account.competitions.certificate', $submission->uuid)" size="sm">
-                    {{ svg('heroicon-o-arrow-down-tray', 'size-4', ['aria-hidden' => 'true']) }}
+                    {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4', ['aria-hidden' => 'true']) }}
                     {{ __('competitions.student.certificate') }}
                 </x-button>
             @endif

@@ -14,7 +14,7 @@
 <section class="py-10 sm:py-14">
     <div class="container-page">
         <h2 class="sr-only">{{ __('media.tiles.label') }}</h2>
-        <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-reveal-group>
             @foreach ($tiles as $tile)
                 <li><x-section-tile :href="$tile['url']" :icon="$tile['icon']" :label="__('media.tiles.'.$tile['key'])" /></li>
             @endforeach
@@ -32,7 +32,7 @@
         @if ($latest->isEmpty())
             <p class="mt-6 text-muted">{{ __('news.list.empty') }}</p>
         @else
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($latest as $article)
                     <li>@include('media.news.card', ['article' => $article])</li>
                 @endforeach

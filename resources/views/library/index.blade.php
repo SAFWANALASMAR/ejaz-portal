@@ -11,7 +11,7 @@
 <section class="py-10 sm:py-14">
     <div class="container-page">
         <h2 class="sr-only">{{ __('library.list.sections') }}</h2>
-        <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <ul class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-reveal-group>
             @foreach (LibrarySection::cases() as $section)
                 <li><x-section-tile :href="route('library.section', $section->value)" :icon="$section->icon()" :label="$section->getLabel()" /></li>
             @endforeach
@@ -26,7 +26,7 @@
         @if ($latest->isEmpty())
             <p class="mt-6 text-muted">{{ __('library.list.empty') }}</p>
         @else
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($latest as $item)
                     <li>@include('library.card', ['item' => $item])</li>
                 @endforeach
