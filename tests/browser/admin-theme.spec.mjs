@@ -100,6 +100,12 @@ test.describe('admin panel theme', () => {
             await page.screenshot({ path: `docs/design/screenshots/admin-theme-${screen.name}-${viewport.width}.png`, fullPage: true });
         }
 
+        // أيقونات الإحصاء: أول ثلاث بثلاثة ألوان (أزرق ثم بنفسجي ثم أخضر)
+        await page.goto('/admin');
+        const stats = await page.locator('.fi-wi-stats-overview-stat-label-ctn > .fi-icon').evaluateAll((icons) => icons.slice(0, 3).map((icon) => getComputedStyle(icon).backgroundImage));
+        expect(stats).toHaveLength(3);
+        expect(new Set(stats).size).toBe(3);
+
         // الشريط الجانبي: الشعار الأبيض، وكل أيقونة في مربع متدرج، وأول ثلاثة مربعات بثلاثة ألوان مختلفة
         await page.goto('/admin/menu-items');
         await expect(page.locator('.ej-sidebar-brand img')).toHaveCount(2);
