@@ -120,7 +120,10 @@ it('builds a gallery from albums and archive items in order, issues a link shown
         ->assertSee('تقرير.pdf')
         ->assertSee('data-gallery', false)
         ->assertDontSee($this->photo, false)
-        ->assertDontSee($this->pdf, false);
+        ->assertDontSee($this->pdf, false)
+        // ولا يُكتب الرابط (وفيه الرمز) في canonical ولا og:url
+        ->assertDontSee('rel="canonical"', false)
+        ->assertDontSee('og:url', false);
     expect($response->headers->get('Cache-Control'))->toContain('no-store');
 
     // الصورة من الأرشيف أولاً (ترتيب البنود) ثم صورة الألبوم
@@ -233,6 +236,42 @@ it('drops a photo or file that left its source, and an archive item deleted from
         ->assertDontSee('/evidence/files/', false);
 });
 
+it('drops an album unpublished after it was added, since its photos stay on public links the revoke cannot reach', function () {
+    $gallery = evidenceGalleryWith($this, [['source' => 'album', 'album_id' => $this->album->id]]);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $this->get($url)->assertOk()->assertSee(Storage::disk('public')->url('albums/one.webp'), false);
+
+    $this->album->update(['is_published' => false]);
+
+    $this->get($url)->assertOk()
+        ->assertDontSee(Storage::disk('public')->url('albums/one.webp'), false)
+        ->assertDontSee(Storage::disk('public')->url('albums/two.webp'), false);
+
+    // وفتح التعديل والحفظ يُسقطه، فلا يعود إن أُعيد نشره دون أن يختاره أحد
+    $this->actingAs($this->secretary);
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])->call('save')->assertHasNoFormErrors();
+    expect($gallery->items()->count())->toBe(0);
+});
+
+it('drops an archive item that is no longer evidence, and serves no file type outside images and PDF', function () {
+    $odd = storedPrivateFile(ArchiveItem::DIRECTORY, 'plain text', 'txt');
+    $this->archive->forceFill(['files' => [...$this->archive->files, ['path' => $odd, 'name' => 'ملاحظة.txt', 'size' => 10]]])->save();
+    $gallery = evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $this->archive->id]]);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $item = $gallery->items()->sole();
+
+    $this->get($url)->assertOk()->assertSee('تقرير.pdf')->assertDontSee('ملاحظة.txt');
+    $link = $gallery->fresh()->linkKey();
+    $this->get(URL::temporarySignedRoute('evidence.file', now()->addMinutes(30), ['item' => $item->id, 'key' => EvidenceGalleryItem::fileKey($odd), 'link' => $link]))->assertNotFound();
+
+    $pdf = URL::temporarySignedRoute('evidence.file', now()->addMinutes(30), ['item' => $item->id, 'key' => EvidenceGalleryItem::fileKey($this->pdf), 'link' => $link]);
+    $this->get($pdf)->assertOk();
+
+    $this->archive->forceFill(['type' => ArchiveItemType::Document])->save();
+    $this->get($url)->assertOk()->assertDontSee('تقرير.pdf');
+    $this->get($pdf)->assertNotFound();
+});
+
 it('rejects an archive item the editor may not see and a path that is not in its source', function () {
     $secret = ArchiveItem::factory()->create(['type' => ArchiveItemType::Evidence, 'archive_category_id' => ArchiveCategory::factory()->roles(['board_member'])->create()->id]);
     $letter = ArchiveItem::factory()->create(['type' => ArchiveItemType::Incoming]);
@@ -242,14 +281,15 @@ it('rejects an archive item the editor may not see and a path that is not in its
         ->and(fn () => evidenceGalleryWith($this, [['source' => 'album', 'album_id' => $this->album->id, 'paths' => ['albums/other.webp']]]))->toThrow(ValidationException::class)
         ->and(fn () => evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $this->archive->id, 'paths' => ['archive/elsewhere.pdf']]]))->toThrow(ValidationException::class)
         ->and(fn () => evidenceGalleryWith($this, [['source' => 'album', 'album_id' => 999999]]))->toThrow(ValidationException::class)
-        // المراسلات والوثائق ليست شواهد، والألبوم غير المنشور لمن لا يطّلع على مكتبة الصور
+        // المراسلات والوثائق ليست شواهد، والألبوم غير المنشور لا يُضاف
         ->and(fn () => evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $letter->id]]))->toThrow(ValidationException::class)
         ->and(fn () => evidenceGalleryWith($this, [['source' => 'album', 'album_id' => $draft->id]]))->toThrow(ValidationException::class)
         ->and(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, evidenceGalleryWith($this, []), now()->subDay()))->toThrow(ValidationException::class)
         ->and(EvidenceGallery::count())->toBe(1);
 
+    // ولو كان الحافظ ممن يطّلع على مكتبة الصور: صور غير المنشور على روابط عامة دائمة لا يسري عليها إلغاء المعرض
     $admin = userWithRole(RoleName::TechnicalAdmin);
-    expect(app(SaveEvidenceGallery::class)->handle($admin, new EvidenceGallery, evidenceData(['items' => [['source' => 'album', 'album_id' => $draft->id]]]))->items)->toHaveCount(1);
+    expect(fn () => app(SaveEvidenceGallery::class)->handle($admin, new EvidenceGallery, evidenceData(['items' => [['source' => 'album', 'album_id' => $draft->id]]])))->toThrow(ValidationException::class);
 });
 
 it('keeps the screens and the link actions from users without the permission', function () {

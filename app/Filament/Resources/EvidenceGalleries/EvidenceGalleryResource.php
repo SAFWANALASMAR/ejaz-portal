@@ -39,8 +39,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 /**
  * معارض الشواهد برابط سري (evidence_galleries.* — EvidenceGalleryPolicy): العنوان والوصف والبرنامج والفترة، والبنود
  * ألبومات وشواهد موجودة في الأرشيف بترتيبها. والشواهد من التصنيفات التي يطّلع عليها الحساب وحدها، والألبومات
- * المنشورة (وغير المنشورة لمن يطّلع على مكتبة الصور). والحفظ عبر
- * SaveEvidenceGallery، والرابط من صفحة التعديل (IssueEvidenceLink وRevokeEvidenceLink).
+ * المنشورة وحدها. والحفظ عبر SaveEvidenceGallery، والرابط من صفحة التعديل (IssueEvidenceLink وRevokeEvidenceLink).
  */
 class EvidenceGalleryResource extends Resource
 {
@@ -178,7 +177,7 @@ class EvidenceGalleryResource extends Resource
     }
 
     /**
-     * والعكس عند فتح النموذج. والبند الذي غاب مصدره (ألبوم حُذف، أو شاهد حُذف من الأرشيف أو صار غير شاهد) لا يُعرض،
+     * والعكس عند فتح النموذج. والبند الذي غاب مصدره (ألبوم حُذف أو أُلغي نشره، أو شاهد حُذف من الأرشيف أو صار غير شاهد) لا يُعرض،
      * وما اختير منه يُقصر على ما بقي في مصدره. فإن لم يبق منه شيء حُذف البند، لا أن يصير «كله» فيُنشر ما لم يُختر.
      *
      * @param  array<string, mixed>  $data
@@ -191,7 +190,7 @@ class EvidenceGalleryResource extends Resource
         foreach ($gallery->items()->with(['album', 'archiveItem'])->get() as $item) {
             $source = $item->album_id !== null ? 'album' : 'archive';
             $available = match (true) {
-                $item->album !== null => $item->album->photoList(),
+                $item->album !== null && $item->album->is_published => $item->album->photoList(),
                 $item->archiveItem !== null && $item->archiveItem->type === ArchiveItemType::Evidence => array_column($item->archiveItem->files ?? [], 'path'),
                 default => null,
             };
@@ -225,13 +224,13 @@ class EvidenceGalleryResource extends Resource
     }
 
     /**
-     * الألبومات المنشورة، وكلها لمن يطّلع على مكتبة الصور (media.view) — كما في SaveEvidenceGallery.
+     * الألبومات المنشورة وحدها — كما في SaveEvidenceGallery.
      *
      * @return Builder<Album>
      */
     private static function albums(): Builder
     {
-        return Album::query()->when(! self::user()->can('viewAny', Album::class), fn (Builder $query) => $query->where('is_published', true));
+        return Album::query()->where('is_published', true);
     }
 
     /**

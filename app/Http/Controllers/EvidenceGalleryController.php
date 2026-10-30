@@ -42,6 +42,11 @@ class EvidenceGalleryController extends Controller
             }
 
             foreach ($item->archiveFiles() as $file) {
+                // صور وPDF وحدها (EvidenceGalleryItem::fileMime)، كما يقدّمها ServeEvidenceFile
+                if (EvidenceGalleryItem::fileMime($file['path']) === null) {
+                    continue;
+                }
+
                 $url = URL::temporarySignedRoute('evidence.file', now()->addMinutes($minutes), [
                     'item' => $item->id,
                     'key' => EvidenceGalleryItem::fileKey($file['path']),

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ArchiveItemType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,16 +80,23 @@ class EvidenceGalleryItem extends Model
     }
 
     /**
-     * يُعرض البند في المعرض: صور الألبوم دائماً، وعنصر الأرشيف ما دام موجوداً ومُصدر الرابط يطّلع عليه الآن (فتضييق
-     * تصنيفه أو نقل العنصر إلى تصنيف لا يراه يُخفيه من الرابط فوراً). والعلاقات محمّلة قبلها.
+     * يُعرض البند في المعرض:
+     * - الألبوم ما دام منشوراً: صوره على القرص العام برابط دائم، فلا يُعرض منها إلا ما هو منشور أصلاً، ولا يبقى برابط
+     *   المعرض ما لا يسري عليه إلغاؤه. وإلغاء نشر الألبوم يُخفيه من المعرض.
+     * - والشاهد ما دام موجوداً ومن نوع «شاهد»، ومُصدر الرابط يطّلع عليه الآن (فتضييق تصنيفه أو نقل العنصر إلى تصنيف لا
+     *   يراه يُخفيه من الرابط فوراً).
+     * والعلاقات محمّلة قبلها.
      */
     public function visibleTo(EvidenceGallery $gallery): bool
     {
         if ($this->album_id !== null) {
-            return true;
+            return $this->album?->is_published === true;
         }
 
-        return $this->archiveItem !== null && $gallery->issuer !== null && $gallery->issuer->can('view', $this->archiveItem);
+        return $this->archiveItem !== null
+            && $this->archiveItem->type === ArchiveItemType::Evidence
+            && $gallery->issuer !== null
+            && $gallery->issuer->can('view', $this->archiveItem);
     }
 
     /**
@@ -102,5 +110,13 @@ class EvidenceGalleryItem extends Model
     public static function imageMime(string $path): ?string
     {
         return self::IMAGE_TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+    }
+
+    /**
+     * نوع الملف من قائمة صريحة (صور الأرشيف وPDF، كما يقبلها رفعه)، وnull لما سواها فلا يُقدَّم.
+     */
+    public static function fileMime(string $path): ?string
+    {
+        return self::imageMime($path) ?? (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf' ? 'application/pdf' : null);
     }
 }

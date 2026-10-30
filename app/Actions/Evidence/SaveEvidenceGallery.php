@@ -19,7 +19,8 @@ use Illuminate\Validation\ValidationException;
  * حفظ معرض شواهد ببنوده مرتبة: كل بند ألبوم من مكتبة الصور أو شاهد من الأرشيف، ومعه ما اختير منه (وبلا اختيار
  * كله). لا يُنسخ ملف: البند إشارة إلى السجل.
  * - الشاهد من تصنيف يطّلع عليه الحافظ وحده (ArchiveItemPolicy)، ومن نوع «شاهد» لا المراسلات والوثائق.
- * - والألبوم منشور، أو غير منشور لمن يطّلع على مكتبة الصور (media.view).
+ * - والألبوم منشور وحده: صوره على القرص العام برابط دائم لا يسري عليه إلغاء رابط المعرض، فلا يُكشف به ما لم يُنشر
+ *   (مراجعة المشرف على #103، م١). ويُفحص النشر عند العرض أيضاً (EvidenceGalleryItem::visibleTo).
  * - والبند الباقي من مصدره نفسه يبقى صفه، فلا تنكسر روابط ملفاته في صفحة مفتوحة بحفظ لم يغيّره.
  * - وتغيّر البنود يُسجَّل بما قبله وما بعده (من يجعل ملفاً خاصاً في متناول رابط بلا حساب).
  */
@@ -159,7 +160,7 @@ class SaveEvidenceGallery
         if ($item['source'] === 'album') {
             $album = Album::query()->find((int) $item['album_id']);
 
-            if ($album === null || (! $album->is_published && ! $actor->can('viewAny', Album::class))) {
+            if ($album === null || ! $album->is_published) {
                 throw ValidationException::withMessages([$key.'.album_id' => __('evidence.validation.source')]);
             }
 

@@ -29,7 +29,8 @@ class ServeEvidenceFile
         $file = collect($item->archiveFiles())->first(fn (array $file): bool => hash_equals(EvidenceGalleryItem::fileKey($file['path']), $key));
         abort_if($file === null, 404);
 
-        $mime = EvidenceGalleryItem::imageMime($file['path']) ?? 'application/pdf';
+        $mime = EvidenceGalleryItem::fileMime($file['path']);
+        abort_if($mime === null, 404);
 
         return PrivateFileResponse::make(ArchiveItem::disk(), $file['path'], $mime, $file['name'], (int) config('security.evidence_storage_url_minutes'), download: $mime === 'application/pdf');
     }
