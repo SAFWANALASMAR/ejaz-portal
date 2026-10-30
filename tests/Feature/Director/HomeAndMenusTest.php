@@ -37,7 +37,8 @@ it('shows the home sections in the director\'s order with the strategic plan tex
 
     $html = $this->get('/')->assertOk()->getContent();
 
-    $order = ['home-king', 'home-chairman', 'home-rationale', 'home-values', 'home-news-ticker', 'home-announcements'];
+    // بنية مرجع المدير (30 أكتوبر): الهوية والخدمات والإعلانات والأخبار، ثم مقاطع الخطة بترتيبها، والقيم شرائح الهوية
+    $order = ['home-identity', 'home-shortcuts', 'home-announcements', 'home-news', 'home-king', 'home-chairman', 'home-rationale'];
     $positions = array_map(fn (string $id): int|false => strpos($html, 'id="'.$id.'"'), $order);
     expect($positions)->not->toContain(false)->and($positions)->toBe(collect($positions)->sort()->values()->all());
 

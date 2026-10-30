@@ -11,18 +11,18 @@
 
 <header data-site-header class="site-header sticky top-0 z-40 text-white">
     {{-- أعرض من محتوى الصفحة، لتتسع القائمة بجانب الشعار الكامل ومخطوطته (ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
-    <div class="container-page flex h-20 max-w-[88rem] items-center justify-between gap-4 nav:max-[90rem]:gap-2">
+    <div class="container-page flex h-20 max-w-[88rem] items-center justify-between gap-3 lg:px-6 nav:max-[90rem]:gap-2">
         <x-brand light round />
 
         <nav data-main-nav class="hidden min-w-0 flex-1 justify-center nav:flex" aria-label="{{ __('site.main_navigation') }}">
-            <ul class="flex items-center gap-0.5 nav:max-[90rem]:gap-0">
+            <ul class="flex items-center">
                 @foreach ($menu as $item)
                     @php($current = $item->isCurrent() || $item->hasCurrentChild())
                     <li class="relative shrink-0">
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                                 @if ($current) data-current @endif
-                                class="nav-link relative flex shrink-0 items-center gap-1 whitespace-nowrap px-1.5 py-2 text-[14.5px] font-medium nav:max-[90rem]:px-1 nav:max-[90rem]:text-[13.5px]">
+                                class="nav-link relative flex shrink-0 items-center gap-1 whitespace-nowrap px-[0.3rem] py-2 text-[14.5px] font-medium nav:max-[90rem]:px-1 nav:max-[90rem]:text-[13.5px]">
                                 {{ $item->label }}
                                 {{ \App\Support\Icon::svg('chevron-down', 'size-3.5') }}
                             </button>
@@ -38,7 +38,7 @@
                         @else
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 @if ($current) aria-current="page" @endif
-                                class="nav-link relative block shrink-0 whitespace-nowrap px-1.5 py-2 text-[14.5px] font-medium nav:max-[90rem]:px-1 nav:max-[90rem]:text-[13.5px]">
+                                class="nav-link relative block shrink-0 whitespace-nowrap px-[0.3rem] py-2 text-[14.5px] font-medium nav:max-[90rem]:px-1 nav:max-[90rem]:text-[13.5px]">
                                 {{ $item->label }}
                             </a>
                         @endif

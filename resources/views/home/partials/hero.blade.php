@@ -13,13 +13,13 @@
 @endphp
 
 <x-hero-slider :slides="$slides">
-    <div class="max-w-2xl">
+    <div class="max-w-3xl">
         <p data-hero-badge class="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-white" data-reveal>
             {{ \App\Support\Icon::svg('academic-cap', 'size-4 shrink-0 text-brand-light', ['aria-hidden' => 'true']) }}
             {{ \App\Support\HomeContent::text('footer', 'supervision') }}
         </p>
 
-        <h1 data-words class="mt-6 text-4xl leading-[1.15] font-black text-balance text-white sm:text-6xl lg:text-7xl">
+        <h1 data-words class="mt-6 text-[2.6rem] leading-[1.15] font-black text-balance text-white sm:text-6xl xl:text-7xl">
             @if ($rest !== '')
                 {{ $short }}<br>
                 <span data-highlight class="hero-highlight">{{ $rest }}<svg data-swoosh class="hero-swoosh" viewBox="0 0 420 24" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 110 2, 300 2, 416 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg></span>
