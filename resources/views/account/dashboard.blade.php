@@ -36,7 +36,7 @@
                 class="group flex flex-col rounded-2xl border border-line/70 bg-white p-6 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <span class="flex items-start gap-4">
                     <span class="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white">
-                        {{ svg('heroicon-o-'.$card['icon'], 'size-7', ['aria-hidden' => 'true']) }}
+                        {{ \App\Support\Icon::svg($card['icon'], 'size-7', ['aria-hidden' => 'true']) }}
                     </span>
                     <span>
                         <span class="flex items-center gap-2 text-lg font-bold text-ink">
@@ -51,7 +51,7 @@
                     </span>
                 </span>
                 <span class="mt-5 inline-flex size-9 items-center justify-center self-end rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
-                    {{ svg($card['external'] ? 'heroicon-o-arrow-up-left' : 'heroicon-o-arrow-left', 'size-4') }}
+                    {{ \App\Support\Icon::svg($card['external'] ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                 </span>
                 @if ($card['external'])
                     <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>

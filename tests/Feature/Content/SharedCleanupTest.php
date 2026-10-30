@@ -28,7 +28,8 @@ it('sends a wrong page number back to the first page of every list', function (s
 it('renders a section header with its view-all link, or the title alone without one', function () {
     $html = Blade::render('<x-section-header id="s" title="العنوان" href="/all" />');
 
-    expect($html)->toMatch('/<div id="s">\s*<span[^>]*bg-accent/')
+    // العنوان بخطه الزخرفي (التحسين البصري — docs/plans/visual-refresh.md)
+    expect($html)->toMatch('/<div[^>]*id="s"[^>]*data-reveal>\s*<h2[^>]*>\s*العنوان\s*<\/h2>\s*<svg class="flourish/')
         ->toContain('العنوان')
         ->toContain('href="/all"')
         ->toContain(__('site.view_all'));
@@ -49,7 +50,7 @@ it('renders a section tile with its icon, label and link', function () {
     expect($html)->toContain('href="/news"')
         ->toContain('الأخبار')
         ->toContain('<svg')
-        ->toContain('bg-primary-soft');
+        ->toContain('icon-tile');
 
     expect(Blade::render('<x-section-tile href="/x" icon="user" label="س" tone="primary" size="size-10" class="justify-center" />'))
         ->toContain('text-primary')

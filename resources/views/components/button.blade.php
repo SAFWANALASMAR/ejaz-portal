@@ -17,9 +17,10 @@
     ];
 
     $variants = [
-        'primary' => 'bg-primary text-white shadow-sm hover:bg-primary-dark',
+        // الممتلئة بلمعة عند المرور وتموّج عند الضغط (.btn-shine — التحسين البصري)
+        'primary' => 'btn-shine bg-primary text-white shadow-sm hover:bg-primary-dark',
         'outline' => 'border border-primary bg-white text-primary hover:bg-primary-soft',
-        'accent' => 'bg-accent text-white shadow-sm hover:bg-accent-dark',
+        'accent' => 'btn-shine bg-accent text-white shadow-sm hover:bg-accent-dark',
         'secondary' => 'border border-line bg-white text-primary hover:border-primary',
         'danger' => 'bg-red-700 text-white hover:bg-red-800',
         'link' => 'rounded-none px-0 py-0 text-primary underline decoration-accent underline-offset-4 hover:text-primary-dark',
@@ -33,14 +34,14 @@
     <a href="{{ $href }}" @navigate($attributes->has('target') ? null : $href) {{ $attributes->merge(['class' => $classes]) }}>
         {{ $slot }}
         @if ($arrow)
-            {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0') }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0') }}
         @endif
     </a>
 @else
     <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }}>
         {{ $slot }}
         @if ($arrow)
-            {{ svg('heroicon-o-arrow-left', 'size-4 shrink-0') }}
+            {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0') }}
         @endif
     </button>
 @endif

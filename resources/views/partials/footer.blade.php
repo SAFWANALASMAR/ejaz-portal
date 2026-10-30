@@ -21,7 +21,9 @@
     $hasContact = $email !== null || $phone !== null || $address !== null || $shortAddress !== null || $whatsapp !== null;
 @endphp
 
-<footer class="relative overflow-hidden bg-primary-dark text-white" data-site-footer>
+{{-- بخلفية القسم الداكن ودوائره وزخرفته الهندسية (التحسين البصري — docs/plans/visual-refresh.md) --}}
+<footer class="section-dark" data-site-footer>
+    <div class="bg-pattern-light pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
     <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-l from-accent-light via-brand to-secondary" aria-hidden="true"></span>
     <img src="{{ asset('images/decor/palms-line.svg') }}" alt="" aria-hidden="true"
         class="pointer-events-none absolute bottom-0 end-0 w-[420px] max-w-[70%] opacity-15">
@@ -35,7 +37,7 @@
             </div>
             <div class="flex flex-col gap-2 text-sm lg:items-end">
                 <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-accent-light ring-1 ring-white/15">
-                    {{ svg('heroicon-o-academic-cap', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                    {{ \App\Support\Icon::svg('academic-cap', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                     {{ $text('supervision') }}
                 </p>
                 <p class="text-xs text-white/75">{{ $text('license') }}</p>
@@ -53,7 +55,7 @@
                         <li>
                             <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                                 class="inline-flex items-center gap-1.5 text-white/80 transition hover:text-white">
-                                {{ svg('heroicon-o-chevron-left', 'size-3 shrink-0 text-accent-light', ['aria-hidden' => 'true']) }}
+                                {{ \App\Support\Icon::svg('chevron-left', 'size-3 shrink-0 text-accent-light', ['aria-hidden' => 'true']) }}
                                 {{ $item->label }}
                             </a>
                         </li>
@@ -69,13 +71,13 @@
                     <ul class="space-y-3">
                         @if ($email !== null)
                             <li class="flex items-center gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ svg('heroicon-o-envelope', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
+                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('envelope', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
                                 <a href="mailto:{{ $email }}" class="text-white/85 hover:text-white" dir="ltr">{{ $email }}</a>
                             </li>
                         @endif
                         @if ($phone !== null)
                             <li class="flex items-center gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ svg('heroicon-o-phone', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
+                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('phone', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
                                 <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="text-white/85 hover:text-white"><bdi dir="ltr">{{ $phone }}</bdi></a>
                             </li>
                         @endif
@@ -91,7 +93,7 @@
                         @endif
                         @if ($address !== null || $shortAddress !== null)
                             <li class="flex items-start gap-3">
-                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ svg('heroicon-o-map-pin', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
+                                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">{{ \App\Support\Icon::svg('map-pin', 'size-4 text-accent-light', ['aria-hidden' => 'true']) }}</span>
                                 <span class="space-y-1 leading-7 text-white/85">
                                     @if ($address !== null)
                                         <span class="block">{{ $address }}</span>
@@ -102,7 +104,7 @@
                                     @if ($map !== null)
                                         <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-accent-light hover:text-white">
                                             {{ __('contact.info.map') }}
-                                            {{ svg('heroicon-o-arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
+                                            {{ \App\Support\Icon::svg('arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
                                             <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                                         </a>
                                     @endif

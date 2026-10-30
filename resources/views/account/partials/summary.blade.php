@@ -26,7 +26,7 @@
                                 <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
                             @endif
                             <span class="mt-1 flex items-center gap-1.5 text-sm text-muted">
-                                {{ svg('heroicon-o-calendar', 'size-4 text-accent') }}
+                                {{ \App\Support\Icon::svg('calendar', 'size-4 text-accent') }}
                                 {{ Dates::display($registration->program->starts_at, withTime: true) }}
                             </span>
                         </span>

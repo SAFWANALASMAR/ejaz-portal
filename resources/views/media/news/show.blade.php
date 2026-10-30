@@ -44,7 +44,7 @@
     <section class="bg-surface py-12 sm:py-16" aria-labelledby="more-news">
         <div class="container-page">
             <x-section-heading id="more-news">{{ __('news.article.more') }}</x-section-heading>
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($more as $other)
                     <li>@include('media.news.card', ['article' => $other])</li>
                 @endforeach

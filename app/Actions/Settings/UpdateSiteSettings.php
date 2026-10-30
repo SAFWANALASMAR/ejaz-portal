@@ -2,6 +2,7 @@
 
 namespace App\Actions\Settings;
 
+use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\AccountSettings;
@@ -83,6 +84,9 @@ class UpdateSiteSettings
         });
 
         PublicImages::discard($before, $after, self::IMAGE_DIRECTORY);
+
+        // صورة مقطع الرئيسية من الخادم، فلا يتصل متصفح الزائر بجوجل قبل ضغطه
+        FetchHomeVideoThumbnail::queueForCurrent();
     }
 
     /**

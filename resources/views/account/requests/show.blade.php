@@ -41,7 +41,7 @@
                             @if ($field['type'] === FormFieldType::Pdf)
                                 @isset($serviceRequest->files[$field['key']])
                                     <a href="{{ route('account.requests.file', [$serviceRequest, $field['key']]) }}" class="inline-flex items-center gap-2 text-primary underline decoration-accent underline-offset-4">
-                                        {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}
+                                        {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4') }}
                                         {{ __('services.requests.download') }}: {{ $serviceRequest->files[$field['key']]['name'] }}
                                     </a>
                                 @else

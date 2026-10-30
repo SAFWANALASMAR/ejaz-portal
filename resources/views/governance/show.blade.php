@@ -13,7 +13,7 @@
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        <div class="flex flex-wrap items-center justify-between gap-6 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-6 card-lift p-6">
             <dl class="grid gap-x-10 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
                     <dt class="text-muted">{{ __('governance.fields.category') }}</dt>
