@@ -8,6 +8,7 @@
     use App\Support\Dates;
     use App\Support\HomeShowcase;
     use App\Support\Icon;
+    use App\Support\StructuredData;
 
     $status = $competition->status();
     // مسابقة الطلاب (Final-Competition): شارة الموسم وسطر الجهة المنسَّق معها وبطاقة الجوائز في البطل، كلها من اللوحة
@@ -17,6 +18,13 @@
 @endphp
 
 <x-layouts.app :title="$competition->title" :description="$competition->description">
+    {{-- المسابقة فعاليةً ومسار التنقل إليها (StructuredData) --}}
+    @push('head')
+        {{ StructuredData::script([
+            StructuredData::competition($competition),
+            StructuredData::breadcrumbs($competition->title, route('competitions.show', $competition->slug), [[__('competitions.title'), route('competitions.index')]]),
+        ]) }}
+    @endpush
     <x-page-hero :title="$competition->title" :eyebrow="$season">
         @if ($partner)
             <p data-hero-partner class="rise-3 text-base text-white/90">{{ __('ui.prize.coordination', ['partner' => $partner]) }}</p>

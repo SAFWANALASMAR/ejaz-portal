@@ -73,7 +73,7 @@ class GovernanceController extends Controller implements HasMiddleware
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('governance.title'), route('governance.index')]]]);
     }
 
     /**

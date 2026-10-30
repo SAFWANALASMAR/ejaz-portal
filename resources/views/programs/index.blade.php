@@ -45,7 +45,10 @@
                 </ul>
             </nav>
 
+            <x-programs.how-to class="mt-10" />
 
+            {{-- وجهة «اختر برنامجاً» في الدليل: أول القائمة، والتبويبات بالأنواع في الشريط العائم أعلى الصفحة --}}
+            <div id="programs-list" class="scroll-mt-28"></div>
 
             @if ($programs->isEmpty())
                 <x-empty-state icon="academic-cap" :message="__('programs.list.empty')" class="mt-10" />

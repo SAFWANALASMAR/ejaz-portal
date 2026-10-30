@@ -37,9 +37,8 @@
     @if ($canonical)
         <meta property="og:url" content="{{ url()->current() }}">
     @endif
-    @if ($image)
-        <meta property="og:image" content="{{ $image }}">
-    @endif
+    <meta property="og:image" content="{{ \App\Support\ShareImage::url($image) }}">
+    <meta name="twitter:image" content="{{ \App\Support\ShareImage::url($image) }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#1F4565">
     @include('partials.favicons')

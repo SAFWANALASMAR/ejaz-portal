@@ -6,6 +6,7 @@
     use App\Enums\ProgramStatus;
     use App\Enums\RegistrationStatus;
     use App\Support\Dates;
+    use App\Support\StructuredData;
 
     $status = $program->status();
     $confirmed = $program->confirmedCount();
@@ -13,6 +14,13 @@
 @endphp
 
 <x-layouts.app :title="$program->title" :description="$program->summary" :image="$image">
+    {{-- البرنامج فعاليةً ومسار التنقل إليه (StructuredData) --}}
+    @push('head')
+        {{ StructuredData::script(array_values(array_filter([
+            StructuredData::program($program),
+            StructuredData::breadcrumbs($program->title, route('programs.show', $program->slug), [[__('programs.title'), route('programs.index')]]),
+        ]))) }}
+    @endpush
     <x-page-hero :title="$program->title" :summary="$program->summary" :image="$image" />
 
     <section class="py-10 sm:py-14">
@@ -32,6 +40,8 @@
                         <p class="mt-3 leading-8 whitespace-pre-line text-ink">{{ $program->conditions }}</p>
                     </x-card>
                 @endif
+
+                <x-programs.how-to :program="$program" :registration="$registration" :status="$status" :confirmed="$confirmed" />
             </div>
 
             <aside class="space-y-4">
