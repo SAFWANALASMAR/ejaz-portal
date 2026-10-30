@@ -208,7 +208,7 @@ it('builds a random order per student, keeping passage questions together under 
 });
 
 it('asks every student of a category the whole bank of their category and the shared questions, recording count and maximum', function () {
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->firstOrFail();
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->firstOrFail();
     collect(range(1, 12))->each(fn () => studentQuestion($this->round));
     $other = studentQuestion($this->round, ['category_id' => $middle->id]);
     $own = studentQuestion($this->round, ['category_id' => $this->secondary->id, 'points' => 3]);
@@ -348,9 +348,10 @@ it('shows the pledge and the exam instructions with a visible sample tag until t
     studentQuestion($this->round);
     $user = User::factory()->create();
 
-    $this->actingAs($user)->get('/competitions/students/register')->assertSee(__('competitions.student.pledge'))->assertSee(__('site.sample'));
+    // بلا وسم «مثال تجريبي» للعامة (قرار صفوان، 29 أكتوبر 2026)
+    $this->actingAs($user)->get('/competitions/students/register')->assertSee(__('competitions.student.pledge'))->assertDontSee('مثال تجريبي');
     $this->post('/competitions/students/register', studentForm());
-    $this->get('/competitions/students/rounds/'.$this->round->uuid)->assertSee(__('competitions.student.instructions_heading'))->assertSee(__('site.sample'));
+    $this->get('/competitions/students/rounds/'.$this->round->uuid)->assertSee(__('competitions.student.instructions_heading'))->assertDontSee('مثال تجريبي');
 });
 
 it('shows a visible timer, never the correct answer or option keys, and saves answers by opaque tokens', function () {

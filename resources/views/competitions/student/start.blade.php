@@ -27,7 +27,7 @@
             </div>
         </dl>
 
-        {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة بوسم «مثال تجريبي» --}}
+        {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة --}}
         @php($alerts = $competition->pageList('guide_alerts'))
         @if ($alerts !== [])
             <p class="font-semibold text-ink">{{ __('competitions.student.page.guide_alerts') }}</p>
@@ -37,7 +37,7 @@
                 @endforeach
             </ul>
         @else
-            <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }} <x-sample /></p>
+            <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }}</p>
             <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
                 @foreach (__('competitions.student.instructions') as $line)
                     <li>{{ $line }}</li>

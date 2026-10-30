@@ -12,9 +12,6 @@
             <x-section-heading id="home-accounts" center>{{ $channels['title'] }}</x-section-heading>
             <p class="mt-2 text-white/80">
                 {{ $channels['intro'] }}
-                @if (\App\Support\HomeContent::isSample('channels', 'intro'))
-                    <x-sample class="ms-1" />
-                @endif
             </p>
         </div>
 

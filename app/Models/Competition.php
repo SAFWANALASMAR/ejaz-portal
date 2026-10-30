@@ -37,7 +37,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property RankingScope $ranking_scope
  * @property Carbon|null $ranking_locked_at
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope', 'show_round_dates'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -63,6 +63,7 @@ class Competition extends Model
             'page_content' => 'array',
             'prize_table' => 'array',
             'ranking_scope' => RankingScope::class,
+            'show_round_dates' => 'boolean',
             'ranking_locked_at' => 'datetime',
         ];
     }

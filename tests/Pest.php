@@ -331,6 +331,8 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
 {
     $user = User::factory()->create(['phone' => null, 'phone_verified_at' => null]);
     $category = CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->firstOrFail();
+    // رقم الجوال والحقول الإلزامية (الجهة التعليمية في البراهين) إلزامية للجميع (ملاحظات المدير التنفيذي، 29 أكتوبر 2026)
+    $fields = $competition->fields()->where('is_required', true)->pluck('id')->mapWithKeys(fn (int $id): array => [$id => 'مدرسة تجريبية'])->all();
 
     app(RegisterStudent::class)->handle($user, $competition, [
         'full_name' => 'طالب تجريبي بن مثال',
@@ -338,8 +340,10 @@ function registeredStudent(Competition $competition, int $serial = 1, array $ove
         'category_id' => $category->id,
         'grade' => 'الأول الثانوي',
         'region_id' => CompetitionRegion::query()->where('is_active', true)->value('id'),
+        'guardian_phone' => '0551234567',
         'gender' => 'male',
         'pledge' => '1',
+        'fields' => $fields,
         ...$overrides,
     ]);
 
