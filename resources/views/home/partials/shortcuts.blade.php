@@ -7,7 +7,7 @@
 @php
     $headings = $content['headings'];
     $sideTitle = trim((string) ($content['identity']['side_title'] ?? ''));
-    $sideText = trim((string) ($content['identity']['side_text'] ?? ''));
+    $sideText = (string) \App\Support\MissingText::shown($content['identity']['side_text'] ?? null);
     $side = $sideTitle !== '';
     // رابط إلى «عن الجمعية» متى نُشرت وحدها، وإلا بطاقة بلا رابط فلا يفتح الزائر صفحة 404
     $sideLink = Route::has('about') && \App\Models\Page::isPublishedSlug(\App\Models\Page::ABOUT);

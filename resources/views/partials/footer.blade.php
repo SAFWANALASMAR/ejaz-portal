@@ -76,10 +76,13 @@
                         </span>
                     </li>
                 @endif
-                <li class="flex items-center gap-2.5" data-footer-hours>
-                    <x-icon-tile icon="clock" size="xs" class="footer-line-icon" />
-                    <span>{{ $text('hours') }}</span>
-                </li>
+                {{-- ساعات العمل أصلها 【ناقص】 حتى تُعتمد، فلا يظهر سطرها في الإنتاج قبل ذلك (MissingText) --}}
+                @if (filled($hours = \App\Support\MissingText::shown($text('hours'))))
+                    <li class="flex items-center gap-2.5" data-footer-hours>
+                        <x-icon-tile icon="clock" size="xs" class="footer-line-icon" />
+                        <span>{{ $hours }}</span>
+                    </li>
+                @endif
             </ul>
         </section>
 

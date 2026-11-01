@@ -2,6 +2,7 @@
 
 namespace App\Actions\Assembly;
 
+use App\Actions\Accounts\BuildOversight;
 use App\Enums\AgendaItemStatus;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
@@ -40,17 +41,23 @@ class BuildBoardPortal
             ? fn (): Builder => MeetingAgendaItem::query()->whereNotNull('decision')->whereHas('meeting', fn (Builder $query) => $query->visibleTo($user))
             : null;
 
+        // السنة بتوقيت العرض (الرياض) محوّلةً إلى UTC، فلا تنحرف اجتماعات ليلة رأس السنة
+        $year = now(config('app.display_timezone'));
+
         return [
             'stats' => [
                 'members' => AssemblyMembership::activeUsers()->count(),
-                'meetings_this_year' => $this->meetings($user)->whereYear('starts_at', now()->year)->where('status', '!=', MeetingStatus::Cancelled->value)->count(),
+                'meetings_this_year' => $this->meetings($user)
+                    ->whereBetween('starts_at', [$year->copy()->startOfYear()->utc(), $year->copy()->endOfYear()->utc()])
+                    ->where('status', '!=', MeetingStatus::Cancelled->value)->count(),
                 'approved_minutes' => Meeting::query()->generalAssembly()->whereNotNull('minutes_file')->whereNotNull('minutes_approved_at')->count(),
                 // التكليفات قيد التنفيذ لمن يرى البنود في اللوحة وحده، وإلا لا تظهر البطاقة
                 'open_assignments' => $decisions !== null ? $decisions()->where('status', AgendaItemStatus::InProgress->value)->count() : null,
             ],
             'upcoming' => $this->meetings($user)->with('committee')->withCount('agendaItems')
                 ->where('status', MeetingStatus::Scheduled->value)
-                ->where('starts_at', '>=', now())
+                // والجاري منها يبقى بزر تيمز حتى ثلاث ساعات بعد بدئه، كما في رئيسية المشرف العام
+                ->where('starts_at', '>', now()->subHours(BuildOversight::RUNNING_HOURS))
                 ->orderBy('starts_at')
                 ->limit(self::UPCOMING)
                 ->get(),

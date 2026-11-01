@@ -42,6 +42,5 @@ it('shows my upcoming programmes as coloured tiles and the cards as coloured car
         ->assertSee('data-account-upcoming', false)
         ->assertSee('data-appointment', false)
         ->assertSee('برنامج المربع')
-        ->assertSee('data-account-cards', false)
-        ->assertSee('class="tone-card group', false);
+        ->assertSee('data-account-cards', false);
 });

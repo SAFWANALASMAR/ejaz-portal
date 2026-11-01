@@ -21,7 +21,9 @@
         {{-- مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران يُعدَّلان من «محتوى الرئيسية» --}}
         <p data-header-licence class="header-licence hidden lg:flex">
             <span class="font-extrabold">{{ $header('licensed_by') }}</span>
-            <span class="text-brand-light">{{ $header('license_number') }}</span>
+            @if (filled($licenseNumber = \App\Support\MissingText::shown($header('license_number'))))
+                <span class="text-brand-light">{{ $licenseNumber }}</span>
+            @endif
         </p>
 
         <span class="flex-1" aria-hidden="true"></span>

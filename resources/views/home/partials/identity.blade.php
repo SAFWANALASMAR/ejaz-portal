@@ -22,7 +22,7 @@
             @if ($statements === [])
                 <div class="home-card-body">
                     <h2 class="home-card-head"><x-icon-tile icon="eye" size="sm" class="home-card-icon" />{{ $headings['vision'] }}</h2>
-                    <p class="home-card-text">{{ __('home.cards.vision_missing') }}</p>
+                    <p class="home-card-text">{{ \App\Support\MissingText::shown(__('home.cards.vision_missing')) }}</p>
                 </div>
             @else
                 <x-carousel :label="$headings['vision'].' — '.$headings['mission']" :count="count($statements)" autoplay :interval="6000" compact class="static" data-identity-slider>
@@ -40,7 +40,7 @@
             <div class="tone-card home-card" data-tone="light" data-identity-card="goals">
                 <div class="home-card-body">
                     <h2 class="home-card-head"><x-icon-tile icon="flag" size="sm" class="home-card-icon" />{{ $headings['goals'] }}</h2>
-                    <p class="home-card-text">{{ $content['identity']['goals'] }}</p>
+                    <p class="home-card-text">{{ \App\Support\MissingText::shown($content['identity']['goals']) }}</p>
                 </div>
             </div>
 
@@ -66,7 +66,7 @@
             <div class="tone-card home-card" data-tone="light" data-identity-card="principles">
                 <div class="home-card-body">
                     <h2 class="home-card-head"><x-icon-tile icon="scale" size="sm" class="home-card-icon" />{{ $headings['principles'] }}</h2>
-                    <p class="home-card-text">{{ $content['identity']['principles'] }}</p>
+                    <p class="home-card-text">{{ \App\Support\MissingText::shown($content['identity']['principles']) }}</p>
                 </div>
             </div>
 
