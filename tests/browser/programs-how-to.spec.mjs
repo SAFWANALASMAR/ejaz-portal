@@ -31,7 +31,11 @@ for (const target of pages) {
 
         // زر الخطوة الأولى يصله Tab من عنوان القسم
         const start = section.locator('[data-how-to-start]').first();
-        await section.locator('h2').click();
+        // نقطة البدء عنوان القسم نفسه (الصف المضغوط منذ 1 نوفمبر: النقر على عنوانه الضيق لا يضع نقطة البدء فيه دائماً)
+        await section.locator('h2').evaluate((heading) => {
+            heading.tabIndex = -1;
+            heading.focus();
+        });
         let reached = false;
         for (let i = 0; i < 10 && !reached; i++) {
             await page.keyboard.press('Tab');

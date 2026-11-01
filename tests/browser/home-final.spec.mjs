@@ -30,10 +30,11 @@ test('home: the five cards in order, one row on desktop and a moving row on mobi
         }));
 
     if (info.project.name === 'desktop') {
-        expect(new Set(boxes.map((box) => box.top)).size, 'صف واحد').toBe(1);
-        expect(boxes[0].width, 'رؤيتنا ورسالتنا أعرض').toBeGreaterThan(boxes[1].width);
+        // ثلاث في الصف الأول ثم اثنتان أعرض في الثاني، كاللوحة الأولى من ملف التصور (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٧)
+        expect(new Set(boxes.map((box) => box.top)).size, 'صفان').toBe(2);
+        expect(boxes[3].width, 'مبادئنا ومبادراتنا أعرض').toBeGreaterThan(boxes[0].width);
         for (const box of boxes) {
-            expect(Math.abs(box.height - 150)).toBeLessThanOrEqual(2);
+            expect(Math.abs(box.height - 168)).toBeLessThanOrEqual(2);
         }
         await expect(section.locator('[data-ticker-toggle="home-cards-track"]')).toBeHidden();
     } else {

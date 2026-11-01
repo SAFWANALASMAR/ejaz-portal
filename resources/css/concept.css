@@ -2396,3 +2396,9 @@ html[data-motion-off] .home-card-pick-icon {
     font-size: 1rem;
     letter-spacing: 0.04em;
 }
+
+/* شارة «جديد» على بطاقة الخبر الملونة بلونها هي لا بلون نص البطاقة الخافت (فحص الوصول، 1 نوفمبر 2026) */
+.tone-card .badge-new {
+    background: var(--blue-900, #1f4565);
+    color: #fff;
+}

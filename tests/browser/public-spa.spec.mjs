@@ -44,11 +44,13 @@ async function openMobileMenu(page) {
 async function viaMenu(page, path) {
     let link;
 
-    if (await desktopNav(page)) {
-        link = page.locator(`[data-main-nav] > ul > li > a[href$="${path}"]`).first();
-    } else {
-        await openMobileMenu(page);
-        link = page.locator(`#mobile-menu nav > ul > li > a[href$="${path}"]`).first();
+    // العنصر الرئيسي رابطاً، أو داخل قائمته المنسدلة (أولها الصفحة الأم — ملاحظات المدير، 1 نوفمبر 2026، البند ٤): تُفتح بزرها
+    const root = (await desktopNav(page)) ? page.locator('[data-main-nav]') : (await openMobileMenu(page), page.locator('#mobile-menu nav'));
+    link = root.locator(`a[href$="${path}"]`).first();
+
+    if (!(await link.isVisible())) {
+        const menu = link.locator('xpath=ancestor::ul[@id][1]');
+        await root.locator(`[data-toggle="dropdown"][aria-controls="${await menu.getAttribute('id')}"]`).click();
     }
 
     await follow(page, link, path);
@@ -91,7 +93,7 @@ test.describe('public site quick navigation', () => {
         }
 
         // والرابع الرئيسية من الشعار
-        await follow(page, page.locator('[data-site-header] .container-page > a').first(), '/');
+        await follow(page, page.locator('[data-site-header] .header-top > a').first(), '/');
         expect(await marker(page)).toBe('kept');
 
         // شريط التقدّم من الموقع لا من Livewire، ويزول بعد التنقّل
@@ -175,7 +177,8 @@ test.describe('public site quick navigation', () => {
         const header = page.locator('[data-site-header]');
         await expect(page.locator('[data-main-nav]')).toBeVisible();
         await expect(header).not.toHaveAttribute('data-nav-overflow', /.*/);
-        const lines = await page.evaluate(() => [...document.querySelectorAll('[data-main-nav] > ul > li > :is(a, button)')].map((link) => {
+        // سطر الاسم نفسه (.truncate) لا ارتفاع الكبسولة الثابت (44 بكسل وسطرها 24.5، فكان يُحسب سطرين)
+        const lines = await page.evaluate(() => [...document.querySelectorAll('[data-main-nav] > ul > li > :is(a, button) > .truncate')].map((link) => {
             const style = getComputedStyle(link);
             return Math.round((link.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight));
         }));
@@ -228,7 +231,7 @@ test.describe('public site quick navigation', () => {
 
     test('loads the login page fully, and logs no console errors on the way', async ({}, testInfo) => {
         const login = page.locator((await desktopNav(page)) || testInfo.project.name !== 'mobile'
-            ? '[data-site-header] .container-page a[href$="/login"]'
+            ? '[data-site-header] .header-top a[href$="/login"]'
             : '#mobile-menu a[href$="/login"]').first();
 
         if (testInfo.project.name === 'mobile') {
