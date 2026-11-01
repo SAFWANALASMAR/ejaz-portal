@@ -35,6 +35,9 @@
             </p>
             <h1 class="rise-2 max-w-3xl text-[2.25rem] leading-[1.1] font-black text-balance sm:text-[3.25rem]">{{ $title }}</h1>
             <span class="title-bar" aria-hidden="true"></span>
+            {{-- مخطوطة اسم الجمعية كبيرة تحت العنوان في كل صفحة داخلية (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٤). زخرفة، والاسم في الرأس --}}
+            <img src="{{ \App\Support\HomeContent::brand('calligraphy_white') }}" alt="" aria-hidden="true" width="1218" height="185" data-page-calligraphy class="page-hero-calligraphy rise-3">
+
             @if (filled($summary))
                 <p class="rise-3 max-w-[32.5rem] text-lg leading-[1.75] text-white/90 sm:text-[1.1875rem]">{{ $summary }}</p>
             @endif

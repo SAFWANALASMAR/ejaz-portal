@@ -15,8 +15,10 @@
 
 <nav data-back-nav aria-label="{{ __('ui.back_nav.label') }}" {{ $attributes->class(['back-nav' => ! $inline]) }}>
     <div @class(['flex flex-wrap items-center gap-2.5', 'container-page py-2.5' => ! $inline])>
-        {{-- الرجوع بالتاريخ بلا wire:navigate: Livewire يبدأ تنقّله قبل click فيسبق الرجوع --}}
-        <a href="{{ $parent ?? $home }}" @if ($parent === null) data-history-back @else wire:navigate @endif class="hero-pill group">
+        {{-- يرجع دائماً بتاريخ المتصفح متى كانت الصفحة السابقة في البوابة، والأم المنطقية ثم الرئيسية بديل لمن فتح الصفحة مباشرة
+             (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٩: كان ما له أم يذهب إليها ولو جاء الزائر من غيرها). بلا wire:navigate:
+             Livewire يبدأ تنقّله قبل click فيسبق الرجوع --}}
+        <a href="{{ $parent ?? $home }}" data-history-back class="hero-pill group">
             {{-- السهم «للخلف» إلى اليمين في الموقع العربي --}}
             {{ \App\Support\Icon::svg('chevron-right', 'size-3.5', ['aria-hidden' => 'true']) }}
             {{ __('ui.back_nav.parent') }}
