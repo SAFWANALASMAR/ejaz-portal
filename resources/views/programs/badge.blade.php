@@ -7,4 +7,4 @@
     ];
 @endphp
 
-<span class="inline-flex items-center rounded-full px-3 py-0.5 text-sm font-extrabold shadow-sm {{ $colors[$status->getColor()] }} {{ $class ?? '' }}">{{ $status->getLabel() }}</span>
+<span class="keep-color inline-flex items-center rounded-full px-3 py-0.5 text-sm font-extrabold shadow-sm {{ $colors[$status->getColor()] }} {{ $class ?? '' }}">{{ $status->getLabel() }}</span>

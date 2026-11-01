@@ -1,6 +1,7 @@
 {{--
-    صفحات الدخول والتسجيل والاستعادة والتحقق (التصور النهائي — Final-Login): بطاقة بيضاء في المنتصف فوق صورة مموّهة تحت
-    غطاء بالأزرق الداكن، في أعلاها الشعار الرسمي في مربع فاتح، ثم العنوان في الوسط والوصف، ثم النموذج، وصورة في أسفلها.
+    صفحات الدخول والتسجيل والاستعادة والتحقق (التصور النهائي — Final-Login، المرحلة ج): بطاقة بتدرج أزرق فاتح جداً (البند R1،
+    والحقول وحدها بيضاء) في المنتصف فوق صورة مموّهة تحت غطاء بالأزرق الداكن، في أعلاها الشعار الرسمي الكامل بالرمز والمخطوطة
+    (البند P9)، ثم العنوان في الوسط والوصف، ثم النموذج، وصورة في أسفلها.
 --}}
 @props(['title', 'heading' => null, 'intro' => null, 'image' => true, 'noindex' => true])
 
@@ -11,12 +12,10 @@
         <div class="absolute inset-0 -z-10 bg-primary-dark/80" aria-hidden="true"></div>
 
         <div class="relative mx-auto w-full max-w-[28.75rem] px-4">
-            <div class="overflow-hidden rounded-[1.75rem] bg-white text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]">
+            <div class="form-sky overflow-hidden rounded-[1.75rem] text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]" data-auth-card>
                 <div class="px-6 pt-9 pb-8 sm:px-8.5">
                     <div class="flex flex-col items-center text-center">
-                        <span class="inline-flex size-16 items-center justify-center rounded-[1.125rem] bg-primary-soft p-2.5" aria-hidden="true">
-                            <img src="{{ \App\Support\HomeContent::brand('mark') }}" alt="" width="495" height="505" class="h-full w-auto">
-                        </span>
+                        <x-brand :link="false" class="justify-center" data-auth-logo />
                         <h1 class="mt-4 text-[2.125rem] font-black text-primary-dark">{{ $heading ?? $title }}</h1>
                         @if ($intro)
                             <p class="mt-2 leading-7 text-muted">{{ $intro }}</p>

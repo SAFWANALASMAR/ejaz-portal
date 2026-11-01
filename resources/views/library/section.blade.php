@@ -13,12 +13,12 @@
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        <nav aria-label="{{ __('library.list.sections') }}">
-            <ul class="flex flex-wrap gap-2">
+        <nav aria-label="{{ __('library.list.sections') }}" class="tabs-bar overflow-x-auto">
+            <ul class="flex w-max gap-2">
                 @foreach (LibrarySection::cases() as $tab)
                     <li>
                         <a href="{{ route('library.section', $tab->value) }}" wire:navigate @if ($tab === $section) aria-current="page" @endif
-                            class="inline-flex rounded-full border border-line bg-white px-5 py-2 text-sm font-semibold text-ink transition hover:border-primary hover:text-primary aria-[current=page]:border-primary aria-[current=page]:bg-primary aria-[current=page]:text-white">
+                            class="tab-pill">
                             {{ $tab->getLabel() }}
                         </a>
                     </li>
@@ -27,7 +27,7 @@
         </nav>
 
         <form method="GET" action="{{ route('library.section', $section->value) }}" role="search" aria-label="{{ __('library.filters.label') }}"
-            class="mt-8 flex flex-col gap-3 p-4 sm:flex-row sm:items-end concept-panel">
+            class="form-sky mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
             <label class="block flex-1">
                 <span class="text-sm font-medium text-ink">{{ __('library.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('library.filters.q_placeholder') }}"

@@ -1,13 +1,13 @@
 {{--
     بطاقة عنصر في المكتبة (الصورتان 06 و07): الصورة المصغرة، أو أيقونة القسم على خلفية فاتحة،
-    ثم القسم بخط بنفسجي صغير والعنوان، ثم المؤلف والتاريخ بأيقونتيهما، ودائرة سهم.
+    ثم القسم شارةً والعنوان، في بطاقة ملونة تتعاقب درجتها (المرحلة ج)، ثم المؤلف والتاريخ بأيقونتيهما، ودائرة سهم.
 --}}
 @php
     use App\Support\Dates;
 @endphp
 
 <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate
-    class="group flex h-full flex-col overflow-hidden card-lift">
+    class="tone-card group relative flex h-full flex-col overflow-hidden">
     @if (($number ?? null) !== null)
         <x-video-number :number="$number" />
     @endif
@@ -24,20 +24,20 @@
             @endif
         </span>
     @else
-        <span class="flex aspect-[16/10] w-full items-center justify-center bg-primary-soft text-primary/70" aria-hidden="true">
+        <span class="tone-card-media flex aspect-[16/10] w-full items-center justify-center" aria-hidden="true">
             {{ \App\Support\Icon::svg($item->section->icon(), 'size-14') }}
         </span>
     @endif
     <span class="flex flex-1 flex-col p-5">
-        <span class="text-sm font-extrabold text-accent">{{ $item->section->getLabel() }}</span>
-        <span class="mt-1 text-lg leading-snug font-black text-primary-dark">{{ $item->title }}</span>
+        <span class="tone-chip">{{ $item->section->getLabel() }}</span>
+        <span class="mt-1.5 text-lg leading-snug font-black">{{ $item->title }}</span>
         @if ($item->isReadOnly())
-            <span class="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-dark">
+            <span class="tone-chip mt-2">
                 {{ svg('heroicon-o-book-open', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}{{ __('library.item.read_only_short') }}
             </span>
         @endif
         @if (filled($item->author) || $item->published_on)
-            <span class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+            <span class="tone-card-muted mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 @if (filled($item->author))
                     <span class="inline-flex items-center gap-1.5">{{ \App\Support\Icon::svg('user', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}{{ $item->author }}</span>
                 @endif
@@ -48,7 +48,7 @@
         @endif
         {{-- السهم «للأمام» إلى اليسار في الموقع العربي، كما في x-button --}}
         <span class="mt-auto self-end pt-4" aria-hidden="true">
-            <span class="inline-flex size-9 items-center justify-center rounded-full bg-primary text-white transition group-hover:bg-primary-dark">
+            <span class="tone-pill size-9 p-0!">
                 {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
             </span>
         </span>

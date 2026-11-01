@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
-it('shows the media center tiles, news and announcements only, and the latest news', function () {
+// المرحلة ج من التصور النهائي (Final-Media): الأخبار والإعلانات ثم مكتبة الصور والشركاء بلاطاتٍ ملونة، والمكتبة المرئية في «مكتبة إعجاز»
+it('shows the media center tiles, news, announcements, albums and partners, and the latest news', function () {
     NewsArticle::factory()->create(['title' => 'خبر منشور']);
     NewsArticle::factory()->unpublished()->create(['title' => 'خبر غير منشور']);
 
@@ -17,7 +18,9 @@ it('shows the media center tiles, news and announcements only, and the latest ne
         ->assertSeeInOrder(['<h1', __('media.title')], false)
         ->assertSee('href="'.route('media.news.index').'"', false)
         ->assertSee('href="'.route('media.announcements').'"', false)
-        ->assertDontSee('href="'.route('media.albums.index').'"', false)
+        ->assertSee('href="'.route('media.albums.index').'"', false)
+        ->assertSee('href="'.route('media.partners').'"', false)
+        ->assertDontSee('href="'.route('library.section', 'videos').'"', false)
         ->assertSee('خبر منشور')
         ->assertDontSee('خبر غير منشور');
 

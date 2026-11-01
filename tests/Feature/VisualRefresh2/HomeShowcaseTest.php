@@ -126,7 +126,7 @@ it('builds the hero slides in the approved order, with the Brahin slide only for
         ->and($slides[0]['src'])->toContain('images/placeholders/architecture.svg')
         ->and($slides[1]['src'])->toBe($content['king']['image'])
         ->and($slides[1]['title'])->toBe(__('home.sections.king.signature_title'))
-        ->and($slides[2]['title'])->toBe(__('home.sections.chairman.name'))
+        ->and($slides[2]['title'])->toBe(__('home.sections_final.chairman.name'))
         ->and($slides[3]['button']['url'])->toBe(route('library.index'));
 
     Competition::factory()->create(['student_mode' => true, 'is_published' => false, 'title' => 'مسودة']);

@@ -42,8 +42,9 @@
         </div>
     </div>
 
-    <div data-pdf-stage tabindex="0" aria-label="{{ __('library.reader.stage') }}" class="h-[75vh] max-h-[60rem] overflow-auto bg-[#EEF2F6] p-2 sm:p-6">
-        <canvas data-pdf-canvas role="img" class="mx-auto block bg-white shadow-[0_20px_50px_-25px_rgba(31,69,101,.45)]"></canvas>
+    {{-- الصفحة تملأ الإطار (البند R14): بلا حواش، والإطار بطول الصفحة حتى 85% من الشاشة، وما زاد يُمرَّر داخله (.pdf-stage) --}}
+    <div data-pdf-stage tabindex="0" aria-label="{{ __('library.reader.stage') }}" class="pdf-stage">
+        <canvas data-pdf-canvas role="img" class="mx-auto block bg-white"></canvas>
     </div>
 
     <p data-pdf-status role="status" class="border-t border-line/70 px-4 py-3 text-sm text-muted">{{ __('library.reader.loading') }}</p>

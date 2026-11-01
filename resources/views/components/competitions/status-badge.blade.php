@@ -11,4 +11,4 @@
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'inline-flex rounded-full px-3 py-1 text-xs font-bold shadow-sm '.$classes]) }}>{{ $status->getLabel() }}</span>
+<span {{ $attributes->merge(['class' => 'keep-color inline-flex rounded-full px-3 py-1 text-xs font-bold shadow-sm '.$classes]) }}>{{ $status->getLabel() }}</span>

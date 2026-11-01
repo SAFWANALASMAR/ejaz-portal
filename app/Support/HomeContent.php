@@ -161,6 +161,26 @@ final class HomeContent
     }
 
     /**
+     * صورة المقطع (خادم الحرمين الشريفين، ورئيس المجلس، والمبررات) مرفوعة من اللوحة لا الأصل المؤقت. وبدونها يُوسم إطارها
+     * «صورة معتمدة من الجمعية» في التطوير (x-missing).
+     */
+    public static function hasStoredImage(string $section): bool
+    {
+        return self::clean(Setting::group(self::KEY)[$section]['image'] ?? null) !== null;
+    }
+
+    /**
+     * رابط صورة شريحة البطل المرفوعة من اللوحة، أو null. وتستعملها صفحتها الداخلية صورةً لبطلها (المرحلة ج من التصور النهائي):
+     * مكتبة إعجاز بصورة شريحتها، ومسابقة البراهين بصورة شريحتها، فلا يُضاف موضع صورة جديد.
+     */
+    public static function heroSlideUrl(string $key): ?string
+    {
+        $path = self::heroSlideImage($key);
+
+        return $path !== null ? Storage::disk('public')->url($path) : null;
+    }
+
+    /**
      * رابط ملف الشعار أو المخطوطة: المرفوع من اللوحة، وإلا الأصل.
      */
     public static function brand(string $key): string

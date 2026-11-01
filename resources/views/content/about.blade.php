@@ -1,71 +1,43 @@
 {{--
-    «عن الجمعية» (التصور النهائي — Final-About): رأس القسم، ثم مقاطع الصفحة من اللوحة (النصوص القصيرة المتتالية بطاقات متجاورة
-    بأيقوناتها، والبطاقات مرقمة على الشريط السماوي)، ثم كلمة رئيس مجلس الإدارة في بطاقة (نصها المعتمد من «محتوى الرئيسية»)،
-    ثم مجلس الإدارة، ثم المبادرات. يُخزَّن نصاً (PageController::about)، فلا يدخله ما يتغير بالطلب.
+    «عن الجمعية» (التصور النهائي — Final-About، المرحلة ج): البطل بصورة المبررات من «محتوى الرئيسية» (صورة تخص الصفحة — البندان P1
+    وN5)، ثم مقاطع الصفحة من اللوحة (النصوص القصيرة بطاقات ملونة متجاورة، والبطاقات كالقيم شريطاً متحركاً)، ثم كلمة خادم الحرمين
+    الشريفين، ثم كلمة رئيس مجلس الإدارة بإطار صورته (البند P4)، ثم المبررات (المقاطع الثلاثة خرجت من الرئيسية بالنسخة 63)، ثم مجلس
+    الإدارة شريطاً متحركاً (البند R16)، ثم المبادرات بطاقات ملونة. يُخزَّن نصاً (PageController::about)، فلا يدخله ما يتغير بالطلب.
 --}}
 @php
-    $chairman = \App\Support\HomeContent::resolved()['chairman'];
+    $content = \App\Support\HomeContent::resolved();
     $initiatives = \App\Models\Initiative::query()->published()->limit(5)->get();
     // أيقونات المبادرات بموضعها (زخرفة لا محتوى)، كما في التصور
     $initiativeIcons = ['heart', 'arrow-trending-up', 'cube', 'light-bulb', 'arrow-up'];
 @endphp
 
-<x-page-hero :title="$page->title" :summary="$page->summary" />
+<x-page-hero :title="$page->title" :summary="$page->summary" :image="$content['rationale']['image']" />
 
 <x-content-blocks :blocks="$page->blocks" stack />
 
-{{-- كلمة رئيس مجلس الإدارة: الصورة، والمقتطف، والاسم والصفة، والكلمة كاملة تنفتح في مكانها --}}
-<section class="mx-auto max-w-[82.5rem] px-4 pt-12 pb-6 sm:px-7" aria-labelledby="about-chairman">
-    <div class="card-lift flex flex-col gap-8 p-7 md:flex-row md:items-center" data-reveal>
-        <img src="{{ $chairman['image'] }}" alt="{{ $chairman['image_alt'] }}" loading="lazy" width="220" height="240"
-            class="h-60 w-full shrink-0 rounded-[1.25rem] bg-[var(--concept-sky)] object-cover object-top shadow-[0_20px_40px_-24px_rgba(31,69,101,.5)] md:w-[13.75rem]">
-        <div class="flex flex-col gap-3">
-            <h2 id="about-chairman" class="self-start rounded-full bg-primary-soft px-3.5 py-1 text-sm font-extrabold text-primary">{{ $chairman['heading'] }}</h2>
-            <div class="space-y-2 text-xl leading-[1.9] text-[var(--concept-text)]">
-                @foreach (\App\Support\HomeContent::paragraphs($chairman['excerpt']) as $paragraph)
-                    <p>{{ $paragraph }}</p>
-                @endforeach
-            </div>
-            <p class="flex flex-col border-s-[3px] border-brand ps-3">
-                <span class="text-[19px] font-black text-primary-dark">{{ $chairman['name'] }}</span>
-                <span class="text-[15px] text-muted">{{ $chairman['title'] }}</span>
-            </p>
-            <details class="group">
-                <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-full bg-primary-dark px-5.5 py-2.5 font-extrabold text-white transition hover:bg-primary [&::-webkit-details-marker]:hidden">
-                    {{ __('home.sections.chairman.read_more') }}
-                    {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-                </summary>
-                <div class="mt-5 space-y-4 leading-8">
-                    @foreach (\App\Support\HomeContent::paragraphs($chairman['full']) as $paragraph)
-                        <p>{{ $paragraph }}</p>
-                    @endforeach
-                </div>
-            </details>
-        </div>
-    </div>
-</section>
+@include('home.partials.king', ['king' => $content['king']])
+@include('home.partials.chairman', ['chairman' => $content['chairman']])
+@include('home.partials.rationale', ['rationale' => $content['rationale']])
 
 @if ($members->isNotEmpty())
-    <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-6 sm:px-7" aria-labelledby="board">
-        <x-section-heading id="board" center class="mb-6">{{ __('content.about.board') }}</x-section-heading>
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-4 sm:px-7" aria-labelledby="board">
+        <x-section-heading id="board" icon="user-group" center class="mb-5">{{ __('content.about.board') }}</x-section-heading>
 
-        <ul class="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+        <x-marquee id="about-board-strip" :label="__('content.about.board')" :duration="max(30, $members->count() * 8)" class="media-marquee-reverse">
             @foreach ($members as $member)
-                <li class="card-lift group flex items-center gap-4 p-4.5" data-person-card>
+                <article class="tone-card strip-card" data-person-card>
                     @if ($member->photo)
-                        <img src="{{ Storage::disk('public')->url($member->photo) }}" alt="" loading="lazy" width="76" height="76" class="size-19 shrink-0 rounded-full object-cover">
+                        <img src="{{ Storage::disk('public')->url($member->photo) }}" alt="" loading="lazy" width="64" height="64" class="size-16 shrink-0 rounded-full object-cover ring-2 ring-white/40">
                     @else
-                        <span class="flex size-19 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[var(--concept-sky)] to-[var(--concept-pale)] text-primary" aria-hidden="true">
-                            {{ \App\Support\Icon::svg('user', 'size-8') }}
-                        </span>
+                        <x-icon-tile icon="user" size="md" />
                     @endif
-                    <span class="flex flex-col gap-1">
-                        <span class="text-[19px] font-black text-primary-dark">{{ $member->name }}</span>
-                        <span class="text-[15px] text-muted">{{ $member->position }}</span>
+                    <span class="flex min-w-0 flex-col gap-0.5">
+                        <span class="text-lg leading-snug font-black">{{ $member->name }}</span>
+                        <span class="tone-card-muted text-sm">{{ $member->position }}</span>
                     </span>
-                </li>
+                </article>
             @endforeach
-        </ul>
+        </x-marquee>
     </section>
 @elseif (! app()->isProduction())
     {{-- مجلس الإدارة لا يظهر في الموقع حتى تُدخل أسماؤه بموافقة أصحابها --}}
@@ -75,19 +47,19 @@
 @endif
 
 @if ($initiatives->isNotEmpty())
-    <section class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-14 sm:px-7" aria-labelledby="about-initiatives">
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-12 sm:px-7" aria-labelledby="about-initiatives">
         <div class="mb-4.5 flex items-center justify-between gap-4">
-            <h2 id="about-initiatives" class="text-[1.875rem] font-black text-primary-dark">{{ __('content.initiatives.title') }}</h2>
-            <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link">{{ __('site.view_all') }}</a>
+            <x-section-heading id="about-initiatives" icon="flag">{{ __('content.initiatives.title') }}</x-section-heading>
+            <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}</a>
         </div>
         <ul class="grid gap-3.5 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>
             @foreach ($initiatives as $initiative)
-                <li>
-                    <a href="{{ route('initiatives.show', $initiative->slug) }}" wire:navigate class="card-lift group flex h-full flex-col items-center gap-2.5 px-4 py-5.5 text-center">
-                        <x-icon-tile :icon="$initiativeIcons[$loop->index % count($initiativeIcons)]" :index="$loop->index" size="lg" />
-                        <span class="text-[1.375rem] font-black text-primary-dark">{{ $initiative->name }}</span>
+                <li class="tone-card">
+                    <a href="{{ route('initiatives.show', $initiative->slug) }}" wire:navigate class="group flex h-full flex-col items-center gap-2.5 px-4 py-5.5 text-center">
+                        <x-icon-tile :icon="$initiativeIcons[$loop->index % count($initiativeIcons)]" size="lg" />
+                        <span class="text-[1.375rem] font-black">{{ $initiative->name }}</span>
                         @if (filled($initiative->summary))
-                            <span class="line-clamp-3 text-sm text-muted">{{ $initiative->summary }}</span>
+                            <span class="tone-card-muted line-clamp-3 text-sm">{{ $initiative->summary }}</span>
                         @endif
                     </a>
                 </li>

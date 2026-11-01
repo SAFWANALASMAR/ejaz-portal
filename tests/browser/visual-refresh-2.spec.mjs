@@ -13,8 +13,15 @@ test('home: the dark header, the live hero and the identity slider', async ({ pa
     await expectRtlNoScroll(page);
 
     const header = page.locator('[data-site-header]');
-    const background = await header.evaluate((element) => getComputedStyle(element).backgroundColor);
-    expect(background, 'الرأس أزرق داكن صلب').toBe('rgb(31, 69, 101)');
+    // الرأس بتدرج الهوية الداكن منذ المرحلة أ (--chrome-gradient، القرار ٦): ينتهي بالأزرق الداكن #1F4565، بحد سفلي #8EC5F0
+    const style = await header.evaluate((element) => {
+        const computed = getComputedStyle(element);
+
+        return { image: computed.backgroundImage, border: computed.borderBottomColor };
+    });
+    expect(style.image, 'الرأس بتدرج الهوية الداكن').toContain('linear-gradient');
+    expect(style.image, 'ينتهي بالأزرق الداكن').toContain('rgb(31, 69, 101)');
+    expect(style.border, 'الحد السفلي #8EC5F0').toBe('rgb(142, 197, 240)');
     await expect(header.locator('[data-logo-calligraphy]')).toBeVisible();
 
     const hero = page.locator('[data-hero-slider]');
@@ -149,8 +156,8 @@ for (const path of ['/about', '/initiatives', '/programs', '/governance', '/libr
         await expect(hero.locator('[data-back-nav]')).toBeVisible();
         await expect(page.locator('[data-back-nav]'), 'شريط عودة واحد').toHaveCount(1);
 
-        // البطاقات والأيقونات بالأنماط المشتركة متى وُجدت في الصفحة
-        const cards = page.locator('main .card-lift, main .card-glow, main .concept-card, main [data-empty-state]');
+        // البطاقات والأيقونات بالأنماط المشتركة متى وُجدت في الصفحة: الملونة (.tone-card — البند G2، المرحلة ج) أو الفاتحة
+        const cards = page.locator('main .tone-card, main .card-lift, main .card-glow, main .concept-card, main [data-empty-state]');
         expect(await cards.count(), 'بطاقات مشتركة أو حالة فارغة').toBeGreaterThan(0);
         await expectRtlNoScroll(page);
     });

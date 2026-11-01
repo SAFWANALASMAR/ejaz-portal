@@ -5,9 +5,10 @@
 
     الشارة: اسم القسم من اسم المسار (App\Support\PageSections)، وفي صفحة القسم نفسه اسم الجمعية المختصر. ويمرر القالب eyebrow.
     والصورة المؤقتة المحايدة حتى تصل صور الجمعية. وما بعد الوصف في الـ slot (أزرار أو شارات)، وبطاقة جانبية في
-    جهة النهاية في الـ slot المسمى aside (بطاقة جوائز المسابقة)، تنزل تحت النص على الجوال.
+    جهة النهاية في الـ slot المسمى aside (بطاقة جوائز المسابقة)، تنزل تحت النص على الجوال. وcompact: أقصر بمسافات أقل (صفحة
+    المسابقة، البند P3). والصورة صورة الصفحة متى مررتها (المرحلة ج)، وإلا الرسم المؤقت.
 --}}
-@props(['title', 'summary' => null, 'image' => null, 'eyebrow' => null, 'icon' => null])
+@props(['title', 'summary' => null, 'image' => null, 'eyebrow' => null, 'icon' => null, 'compact' => false])
 
 @php
     $section = \App\Support\PageSections::for(request()->route());
@@ -15,7 +16,7 @@
     $back = \App\Support\BackNavigation::shows(request()->route());
 @endphp
 
-<section data-page-hero class="concept-hero" data-size="page">
+<section data-page-hero class="concept-hero" data-size="page" @if ($compact) data-compact @endif>
     <div class="concept-hero-media">
         <img src="{{ $image ?? asset('images/placeholders/architecture.svg') }}" alt="" width="1280" height="640">
     </div>

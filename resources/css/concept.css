@@ -1502,3 +1502,238 @@ html[data-motion-off] .page-transition-fill {
         width: 12rem;
     }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   المرحلة ج: الصفحات الداخلية (أمر التصور النهائي، النسخة 63 — docs/decisions/2026-10-31-visual-refresh-2.md، القسم ٢٠ فما بعده):
+   كلها بالمكونات المشتركة نفسها (البطاقة الملونة، ومربع الأيقونة، وعنوان القسم، والشريط المتحرك)، وهذه إضافاتها وحدها
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* مكوّنات المرحلة ج في طبقة المكوّنات، فتغلبها أصناف Tailwind عند الحاجة (w-full وmt-auto وp-0!) */
+@layer components {
+    /* زر داخل البطاقة الملونة (.cc .pill في التصور): بأغمق طرفي تدرج البطاقة وحد بلون نصها، فيبقى النص مقروءاً على الدرجتين */
+    .tone-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        border-radius: 999px;
+        padding: 0.5rem 1.125rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        white-space: nowrap;
+        color: var(--tc-text, var(--color-white));
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 60%, transparent);
+        border: 1px solid color-mix(in srgb, var(--tc-text, var(--color-white)) 35%, transparent);
+        transition: background-color 200ms;
+    }
+
+    .tone-card:hover .tone-pill,
+    .tone-pill:hover {
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 85%, transparent);
+    }
+
+    /* شارة صغيرة داخل البطاقة الملونة (تصنيف أو حالة) */
+    .tone-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 0.125rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--tc-text, var(--color-white));
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 55%, transparent);
+    }
+
+    /* صورة في أعلى البطاقة الملونة بلا فاصل أبيض */
+    .tone-card-media {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 40%, transparent);
+    }
+
+    /* شريط التبويبات (Final-Page وFinal-Library): لوح بتدرج فاتح جداً، والكبسولات بيضاء والنشطة داكنة */
+    .tabs-bar {
+        border-radius: 1.375rem;
+        padding: 0.625rem;
+        background: linear-gradient(135deg, var(--blue-50), var(--blue-100));
+        border: 1px solid var(--concept-border);
+        box-shadow: 0 18px 40px -22px rgb(31 69 101 / 0.45);
+    }
+
+    .tab-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9375rem;
+        font-weight: 800;
+        white-space: nowrap;
+        color: var(--blue-900);
+        background: var(--color-white);
+        border: 1px solid var(--concept-border);
+        transition:
+            border-color 200ms,
+            background-color 200ms;
+    }
+
+    .tab-pill:hover {
+        border-color: var(--blue-300);
+    }
+
+    .tab-pill[aria-current] {
+        color: var(--color-white);
+        background: var(--blue-900);
+        border-color: var(--blue-900);
+    }
+
+    /* لوح النموذج بتدرج أزرق فاتح (Final-Contact وFinal-Login): الحقول وحدها بيضاء (البند R1) */
+    .form-sky {
+        border-radius: 1.25rem;
+        background: linear-gradient(135deg, var(--blue-50), var(--blue-200));
+        border: 1px solid var(--concept-border);
+    }
+
+    /* بطاقة في شريط متحرك بعرض ثابت (أعضاء المجلس، والقيم، والأخبار الأفقية) */
+    .strip-card {
+        display: flex;
+        width: 16.25rem;
+        flex: none;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1rem 1.125rem;
+    }
+
+    /* مكتبة الصور شريطاً متحركاً (Final-Media): الصورة تملأ الإطار وتكبر قليلاً عند المرور */
+    .gallery-tile {
+        position: relative;
+        display: block;
+        width: 15rem;
+        height: 10rem;
+        flex: none;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: linear-gradient(150deg, var(--blue-300), var(--blue-900));
+    }
+
+    .gallery-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform calc(600ms * var(--motion));
+    }
+
+    .gallery-tile:hover img,
+    .gallery-tile:focus-visible img {
+        transform: scale(calc(1 + 0.06 * var(--motion)));
+    }
+
+    .gallery-tile-caption {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        padding: 1.5rem 0.75rem 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        color: var(--color-white);
+        background: linear-gradient(180deg, transparent, rgb(20 46 69 / 0.85));
+    }
+}
+
+/* المادة الصوتية في الشريط: صورة القسم بدل الغلاف */
+.media-tile-audio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue-900);
+    background: linear-gradient(150deg, var(--blue-100), var(--blue-300));
+}
+
+/* الحركة في الصفحات الداخلية (البند R16): طفو خفيف لمربع أيقونة عنوان القسم وهو في الشاشة، ولا حركة لمن طلب تقليلها.
+   وتكبير صورة البطل البطيء وظهور البطاقات عند التمرير قائمان (kenburns-concept وdata-reveal-group) */
+@media (prefers-reduced-motion: no-preference) {
+    .section-heading-icon[data-inview] {
+        animation: float-soft 5s ease-in-out infinite;
+    }
+}
+
+html[data-motion-off] .section-heading-icon {
+    animation: none;
+}
+
+@layer components {
+    /* بطل مسابقة البراهين (Final-Competition): «بادر بالتسجيل» مربع أيقونة كبير بجانب كلمته، وعلى الجوال بعرض كامل تحت بطاقة الجوائز */
+    .hero-register {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 0.75rem;
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 0.375rem 1.25rem 0.375rem 0.375rem;
+        font-size: 1.125rem;
+        font-weight: 900;
+        color: var(--color-white);
+        background: color-mix(in srgb, var(--color-white) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 35%, transparent);
+        transition: background-color 200ms;
+    }
+
+    .hero-register:hover {
+        background: color-mix(in srgb, var(--color-white) 20%, transparent);
+    }
+
+    .hero-register:focus-visible {
+        outline: 2px solid var(--color-white);
+        outline-offset: 2px;
+    }
+
+    /* نسخة الحاسوب تحت العنوان، ونسخة الجوال بعرض كامل تحت بطاقة الجوائز */
+    .hero-register[data-at='desktop'] {
+        display: none;
+    }
+
+    @media (max-width: 63.99rem) {
+        .hero-register {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (min-width: 64rem) {
+        .hero-register[data-at='desktop'] {
+            display: inline-flex;
+        }
+
+        .hero-register[data-at='mobile'] {
+            display: none;
+        }
+    }
+}
+
+/* البطل في صفحة المسابقة أقصر ومسافاته أقل (البند P3) */
+.concept-hero[data-compact] > .relative {
+    min-height: 17rem;
+    padding-bottom: 2rem;
+}
+
+/* قارئ الكتاب (البند R14): الصفحة تملأ إطاره بلا حواش، والإطار بطول الصفحة حتى حد، وعرضه ثابت مع شريط التمرير */
+.pdf-stage {
+    max-height: 85vh;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    background: var(--blue-50);
+}
+
+/* ما له لونه الخاص داخل البطاقة الملونة (شارات الحالة، وعلامة 【ناقص】): يعود إلى لون صنفه بدل لون البطاقة */
+.tone-card .keep-color,
+.tone-card .keep-color * {
+    color: revert-layer;
+}
+
+/* غلاف الكتاب والبحث في شريط المكتبة: بطاقة أضيق بارتفاع الغلاف */
+.media-tile.media-tile-narrow {
+    width: 9rem;
+}

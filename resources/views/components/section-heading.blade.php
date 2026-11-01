@@ -23,7 +23,7 @@
             <span class="heading-flank hidden sm:flex" data-heading-ornament aria-hidden="true"></span>
         @endif
         <h2 class="section-heading-title flex items-center gap-2.5 font-black leading-tight text-primary-dark [.section-dark_&]:text-white">
-            <x-icon-tile :icon="$icon" shade="medium" size="sm" class="section-heading-icon" />
+            <x-icon-tile :icon="$icon" shade="medium" size="sm" class="section-heading-icon" data-loop />
             <span>
                 @if ($parts)
                     {!! $parts[0] !!}<span class="text-gradient">{!! $mark !!}</span>{!! $parts[1] !!}
