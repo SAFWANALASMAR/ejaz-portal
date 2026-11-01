@@ -12,6 +12,7 @@ use App\Enums\AttemptStatus;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
+use App\Models\LibraryProgress;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\SurveyResponse;
@@ -27,7 +28,7 @@ use Throwable;
  * - الإجابات النصية في الاستبيانات، وإجابات الطلبات ومرفقاتها وردود الموظفين وملاحظاتهم الداخلية عليها،
  *   وإجابات التسجيل في البرامج، وإجابات النماذج المعبأة في ملفه ومرفقاتها وتواقيعها: من إخفاء بيانات الحساب.
  * ونص رسائل «تواصل معنا» يُحذف عند الإخفاء نفسه (AnonymizeUser) بلا مدة، فيُحذف هنا ولو لم تُضبط المدة
- * لما بقي فيه نص: رسائل من أُخفي قبل قرار الحذف (14 أكتوبر 2026)، أو أعادتها استعادة من نسخة.
+ * لما بقي فيه نص: رسائل من أُخفي قبل قرار الحذف (14 أكتوبر 2026)، أو أعادتها استعادة من نسخة. وكذلك «قراءاتي».
  * وما عولج لا يُعاد، فلا يتكرر سجله كل يوم. وسجل يتعذر حذفه يبقى كما هو للدورة التالية ولا يوقف الباقي.
  */
 class PurgeAnonymizedData extends Command
@@ -62,6 +63,14 @@ class PurgeAnonymizedData extends Command
 
         // الرسائل لها عدّها هنا، فلا تُحسب ثانية في «سجلات حُذفت بياناتها»
         $this->info('رسائل تواصل حُذف نصها: '.$this->clearInquiryText($fail).'.');
+
+        // و«قراءاتي» تُحذف عند الإخفاء نفسه بلا مدة، فما بقي منها لحساب مخفى (أعادته استعادة من نسخة) يُحذف هنا أيضاً
+        // (docs/decisions/2026-11-01-my-reading.md)
+        try {
+            $this->info('سجلات قراءة حُذفت: '.LibraryProgress::query()->whereIn('user_id', User::query()->select('id')->whereNotNull('anonymized_at'))->delete().'.');
+        } catch (Throwable $exception) {
+            $fail($exception);
+        }
 
         $days = Retention::days();
 

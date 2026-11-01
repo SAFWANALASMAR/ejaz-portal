@@ -1,0 +1,58 @@
+<?php
+
+// «قراءاتي»: تقدّم صاحب الحساب في المكتبة (docs/decisions/2026-11-01-my-reading.md)
+return [
+
+    'nav' => 'قراءاتي',
+    'title' => 'قراءاتي ومسموعاتي',
+    'description' => 'يُحفظ موضعك تلقائياً، فتكمل من حيث توقفت.',
+    'view_all' => 'الكل',
+    'empty' => 'لم تبدأ قراءة كتاب أو الاستماع إلى مادة أو مشاهدة مقطع بعد. ما تقرؤه في مكتبة إعجاز وأنت مسجّل الدخول يظهر هنا.',
+    'browse' => 'تصفّح مكتبة إعجاز',
+    'section_empty' => 'لا شيء هنا بعد.',
+    'clear' => 'امسح سجل قراءاتي',
+    'clear_hint' => 'يحذف ما حُفظ من تقدّمك في المكتبة كله، ولا يمس حسابك. ويُحفظ ما تقرؤه بعدها من جديد.',
+    'clear_confirm' => 'سيُحذف سجل قراءاتك ومسموعاتك كله ولا يمكن استعادته. هل تريد المتابعة؟',
+    'cleared' => 'حُذف سجل قراءاتك.',
+
+    'sections' => [
+        'books' => 'الكتب والأبحاث',
+        'audio' => 'الصوتيات',
+        'videos' => 'المرئيات',
+    ],
+
+    'totals' => [
+        'label' => 'مجموع ما قرأت وسمعت وشاهدت',
+        'pages_read' => 'صفحات قرأتها',
+        'listened_minutes' => 'دقائق استمعت إليها',
+        'watched_minutes' => 'دقائق شاهدتها',
+    ],
+
+    'status' => [
+        'pages' => 'وصلت إلى الصفحة :page من :total — قرأت :read صفحة',
+        'pages_unknown_total' => 'وصلت إلى الصفحة :page — قرأت :read صفحة',
+        'completed' => 'مكتمل — قرأت :read من :total صفحة',
+        'listened' => 'استمعت حتى :position من :duration',
+        'watched' => 'شاهدت حتى :position من :duration',
+        'listened_no_duration' => 'استمعت حتى :position',
+        'watched_no_duration' => 'شاهدت حتى :position',
+        'opened_book' => 'فتحت الكتاب',
+        'opened_audio' => 'فتحت المادة الصوتية',
+        'opened_video' => 'فتحت المقطع',
+        'last_activity' => 'آخر نشاط :date',
+    ],
+
+    'progress' => 'نسبة الإنجاز في «:title»',
+
+    'actions' => [
+        'continue_reading' => 'أكمل القراءة',
+        'continue_listening' => 'أكمل الاستماع',
+        'continue_watching' => 'أكمل المشاهدة',
+        'open' => 'افتح',
+    ],
+
+    'validation' => [
+        'seconds' => 'مدة الاستماع أو المشاهدة أطول من الوقت المنقضي منذ آخر حفظ.',
+    ],
+
+];
