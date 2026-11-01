@@ -4,7 +4,7 @@
     $styles = [
         'success' => 'border-brand-light bg-pale text-primary-dark',
         'error' => 'border-red-200 bg-red-50 text-red-900',
-        'warning' => 'border-amber-200 bg-amber-50 text-amber-900',
+        'warning' => 'border-brand-light bg-primary-soft text-primary-dark',
         'info' => 'border-line bg-surface text-ink',
     ];
 @endphp
