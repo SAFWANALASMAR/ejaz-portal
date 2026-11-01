@@ -52,7 +52,7 @@ function readingBook(int $pages = 5, array $attributes = []): LibraryItem
     $item = LibraryItem::factory()->create(['slug' => 'reading-book', 'title' => 'كتاب القراءة', 'is_downloadable' => false, ...$attributes]);
     Storage::disk(LibraryItem::disk())->put((string) $item->file, readingPdf($pages));
     // العدد كما تحسبه المهمة بعد حفظ الملف
-    (new CountLibraryPages($item->id))->handle();
+    countPages($item);
 
     return $item->refresh();
 }
@@ -112,7 +112,7 @@ it('counts the pages again when the library item gets a new file', function () {
     expect($book->fresh()->page_count)->toBeNull();
     Queue::assertPushed(CountLibraryPages::class);
 
-    (new CountLibraryPages($book->id))->handle();
+    countPages($book);
     expect($book->fresh()->page_count)->toBe(3);
 });
 
@@ -417,4 +417,111 @@ it('deletes the reading of an account on its deletion, purges leftovers, and inc
     LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $book->id, 'pages_count' => 2, 'last_reported_at' => now()]);
     $this->artisan('ejaz:purge-anonymized-data')->assertSuccessful();
     expect(progressOf($this->reader, $book))->toBeNull()->and(progressOf($other, $book))->not->toBeNull();
+});
+
+/**
+ * مهمة العد كما يشغّلها عامل طابور library.
+ */
+function countPages(LibraryItem $item): void
+{
+    app()->call([new CountLibraryPages($item->id), 'handle']);
+}
+
+it('queues the page count once on its own queue for a book that cannot be counted, until its file changes', function () {
+    Queue::fake();
+    $book = LibraryItem::factory()->create(['slug' => 'uncountable', 'is_downloadable' => false]);
+    Storage::disk('local')->put((string) $book->file, 'not a pdf at all');
+    $this->actingAs($this->reader);
+
+    reportProgress($book, ['pages' => [1], 'page' => 1])->assertOk();
+    Queue::assertPushedOn(CountLibraryPages::QUEUE, CountLibraryPages::class);
+    expect((new CountLibraryPages($book->id))->timeout)->toBe(120);
+
+    // العامل يحاول ويتعذر العد: تُحفظ المحاولة، فلا يعيدها بلاغ تالٍ من أي حساب
+    countPages($book);
+    expect($book->fresh()->page_count)->toBeNull()->and($book->fresh()->page_count_checked_at)->not->toBeNull();
+
+    $this->travel(20)->seconds();
+    reportProgress($book, ['pages' => [2], 'page' => 2])->assertOk();
+    $this->actingAs(User::factory()->create());
+    reportProgress($book, ['pages' => [1]])->assertOk();
+    Queue::assertPushedTimes(CountLibraryPages::class, 1);
+
+    // ملف جديد يعيد المحاولة
+    app(SaveLibraryItem::class)->handle(userWithRole(RoleName::ContentEditor), $book->fresh(), ['file' => storedPrivateFile(LibraryItem::FILE_DIRECTORY, readingPdf(3))]);
+    expect($book->fresh()->page_count_checked_at)->toBeNull();
+    Queue::assertPushedTimes(CountLibraryPages::class, 2);
+});
+
+it('clips pages stored above the real count once it is known, so the book neither completes nor counts more than its pages', function () {
+    Queue::fake();
+    $book = LibraryItem::factory()->create(['slug' => 'late-count', 'is_downloadable' => false]);
+    Storage::disk('local')->put((string) $book->file, readingPdf(5));
+    $this->actingAs($this->reader);
+
+    // قبل العد يُقبل حتى 10,000
+    reportProgress($book, ['pages' => [1, 2, 3], 'page' => 3])->assertOk();
+    $this->travel(20)->seconds();
+    reportProgress($book, ['pages' => [8, 9, 10, 11, 12], 'page' => 12])->assertOk();
+    expect(progressOf($this->reader, $book)->pages_count)->toBe(8);
+
+    // يُعرف العدد: يُقصّ المحفوظ في المهمة نفسها
+    countPages($book);
+    $progress = progressOf($this->reader, $book);
+    expect($progress->pages_count)->toBe(3)->and($progress->pages_seen)->toBe('1-3')->and($progress->total_pages)->toBe(5)
+        ->and($progress->last_page)->toBe(5)->and($progress->completed_at)->toBeNull();
+
+    // وكتاب استُعيد بتقدّم قديم فوق عدده يُقصّ في البلاغ التالي أيضاً، ولا يكتمل بصفحات ليست فيه
+    $progress->forceFill(['pages_seen' => '1-3,6-40', 'pages_count' => 38, 'completed_at' => now()])->save();
+    $this->travel(20)->seconds();
+    reportProgress($book, ['pages' => [4]])->assertOk();
+    $progress = progressOf($this->reader, $book);
+    expect($progress->pages_count)->toBe(4)->and($progress->pages_seen)->toBe('1-4')->and($progress->completed_at)->toBeNull();
+
+    $this->travel(20)->seconds();
+    reportProgress($book, ['pages' => [5]])->assertOk();
+    expect(progressOf($this->reader, $book)->completed_at)->not->toBeNull();
+});
+
+it('falls back to counting page objects when a file has more than the cap of page-tree nodes', function () {
+    $nodes = str_repeat("<< /Type /Pages /Count 999 >>\n", LibraryPageCount::MAX_PAGES_NODES + 1);
+    $pages = str_repeat("<< /Type /Page >>\n", 4);
+
+    expect(LibraryPageCount::count("%PDF-1.4\n".$nodes.$pages))->toBe(4)
+        ->and(LibraryPageCount::count("%PDF-1.4\n<< /Type /Pages /Count 7 >>\n".$pages))->toBe(7);
+});
+
+it('lets the owner turn off saving: reports are accepted silently and nothing is stored, and the browser is told not to send them', function () {
+    $book = readingBook(5);
+    $this->actingAs($this->reader);
+
+    // الافتراضي: الحفظ تلقائي، ولا وسم إيقاف في الرأس
+    $this->get('/library/books/reading-book')->assertOk()->assertDontSee('name="reading-tracking"', false);
+    $this->get('/account/my-reading')->assertOk()->assertSee('data-reading-tracking-note="on"', false)->assertSee(__('reading.tracking.on_note'));
+    $this->get('/account/profile')->assertOk()->assertSee(__('reading.tracking.label'))->assertSee(route('account.my-reading.tracking'));
+
+    $this->post(route('account.my-reading.tracking'), ['disabled' => '1'])->assertRedirect(route('account.profile'))->assertSessionHas('status', __('reading.tracking.disabled'));
+    expect($this->reader->fresh()->reading_tracking_disabled_at)->not->toBeNull();
+
+    // صفحة المكتبة المخزنة نفسها للجميع، والإيقاف في الرأس غير المخزن لهذا الحساب وحده
+    $this->get('/library/books/reading-book')->assertOk()->assertSee('<meta name="reading-tracking" content="off">', false);
+    $this->get('/account/my-reading')->assertOk()->assertSee('data-reading-tracking-note="off"', false);
+    reportProgress($book, ['pages' => [1, 2], 'page' => 2])->assertOk()->assertExactJson(['pages' => [1, 2]]);
+    expect(LibraryProgress::query()->count())->toBe(0);
+
+    // حساب آخر يبقى الحفظ له
+    $this->actingAs($other = User::factory()->create());
+    $this->get('/library/books/reading-book')->assertOk()->assertDontSee('name="reading-tracking"', false);
+    reportProgress($book, ['pages' => [1]])->assertOk();
+    expect(progressOf($other, $book))->not->toBeNull();
+
+    // وإعادة الحفظ
+    $this->actingAs($this->reader->fresh());
+    $this->post(route('account.my-reading.tracking'), ['disabled' => '0'])->assertSessionHas('status', __('reading.tracking.enabled'));
+    reportProgress($book, ['pages' => [1]])->assertOk();
+    expect(progressOf($this->reader, $book))->not->toBeNull();
+
+    $this->post(route('account.my-reading.tracking'), ['disabled' => 'maybe'])->assertSessionHasErrors('disabled');
+    $this->post('/logout');
+    $this->post(route('account.my-reading.tracking'), ['disabled' => '1'])->assertRedirect('/login');
 });

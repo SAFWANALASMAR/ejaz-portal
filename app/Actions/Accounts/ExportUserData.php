@@ -54,6 +54,7 @@ class ExportUserData
                 'created_at' => $date($user->created_at),
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
+                'reading_tracking_disabled_at' => $date($user->reading_tracking_disabled_at),
             ],
             // والمحذوف من اللوحة داخل: بياناته باقية حتى مدة الاحتفاظ، فيشملها حق الاطلاع
             'service_requests' => ServiceRequest::query()->withTrashed()->whereBelongsTo($user)->with('opening')->orderBy('id')->get()

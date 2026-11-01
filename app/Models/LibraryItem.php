@@ -27,7 +27,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $published_on
  * @property array<mixed>|null $tags
  * @property bool $is_downloadable
- * @property int|null $page_count عدد صفحات الكتاب من ملفه (CountLibraryPages)، وفارغ حتى يُحسب
+ * @property int|null $page_count عدد صفحات الكتاب من ملفه (CountLibraryPages)، وفارغ حتى يُحسب أو إن تعذّر
+ * @property Carbon|null $page_count_checked_at وقت محاولة عدّ الملف الحالي، فلا تُعاد مع كل بلاغ
  */
 #[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home', 'is_downloadable'])]
 class LibraryItem extends Model implements HasPublicImages
@@ -63,6 +64,7 @@ class LibraryItem extends Model implements HasPublicImages
             'on_home' => 'boolean',
             'is_downloadable' => 'boolean',
             'page_count' => 'integer',
+            'page_count_checked_at' => 'datetime',
         ];
     }
 

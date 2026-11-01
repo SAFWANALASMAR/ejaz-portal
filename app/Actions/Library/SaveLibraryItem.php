@@ -114,7 +114,7 @@ class SaveLibraryItem
         $countPages = $item->file !== $previousFile || $item->section !== $previousSection;
 
         if ($countPages) {
-            $item->forceFill(['page_count' => null]);
+            $item->forceFill(['page_count' => null, 'page_count_checked_at' => null]);
         }
 
         // صورة يوتيوب التي جلبها الخادم لمقطع آخر لا تبقى بعد تغيّر الرابط (FetchYoutubeThumbnail::isFetchedFor)
@@ -136,7 +136,7 @@ class SaveLibraryItem
         }
 
         if ($countPages && $item->section->takesPdf() && filled($item->file)) {
-            CountLibraryPages::dispatch($item->getKey());
+            CountLibraryPages::dispatch($item->getKey(), (string) $item->file);
         }
 
         return $item;

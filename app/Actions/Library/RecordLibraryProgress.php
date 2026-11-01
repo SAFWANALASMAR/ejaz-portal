@@ -49,7 +49,7 @@ class RecordLibraryProgress
 
     /**
      * @param  array{pages?: list<int>, page?: int, seconds?: int, position?: int, duration?: int}  $data
-     * @return array{progress: LibraryProgress, pages: list<int>} التقدّم، والصفحات المقبولة من البلاغ (ومنها ما سبق قبوله)
+     * @return array{progress: LibraryProgress|null, pages: list<int>} التقدّم (ولا شيء لمن أوقف الحفظ)، والصفحات المقبولة من البلاغ (ومنها ما سبق قبوله)
      *
      * @throws AuthorizationException
      * @throws LockTimeoutException
@@ -57,6 +57,11 @@ class RecordLibraryProgress
     public function handle(User $user, LibraryItem $item, array $data): array
     {
         Gate::forUser($user)->authorize('create', [LibraryProgress::class, $item]);
+
+        // «لا تحفظ قراءاتي» (قرار صفوان، 2 نوفمبر 2026): البلاغ يُقبل بصمت ولا يُكتب شيء، وصفحاته «مقبولة» فلا يعيدها القارئ
+        if ($user->reading_tracking_disabled_at !== null) {
+            return ['progress' => null, 'pages' => array_values(array_unique($data['pages'] ?? []))];
+        }
 
         $total = $item->tracksPages() ? LibraryPageCount::for($item) : null;
 
@@ -108,7 +113,8 @@ class RecordLibraryProgress
         $allowance = max(0, (int) floor(($now - $clock) / self::SECONDS_PER_PAGE));
 
         $reported = array_values(array_unique(array_filter($data['pages'] ?? [], fn (int $page): bool => $page >= 1 && $page <= $max)));
-        $seen = $progress->pages();
+        // المحفوظ قبل معرفة العدد (أو لملف استُبدل، أو لكتاب استُعيد) يُقصّ إلى العدد الحقيقي قبل العدّ والإتمام (م٢ ون٤)
+        $seen = $total === null ? $progress->pages() : PageSet::clip($progress->pages(), $total);
         $new = array_values(array_diff($reported, $seen));
         sort($new);
         $taken = array_slice($new, 0, $allowance);
@@ -121,8 +127,13 @@ class RecordLibraryProgress
             'pages_seen' => PageSet::encode($seen),
             'pages_count' => $count,
             'total_pages' => $total,
-            'last_page' => isset($data['page']) ? min($data['page'], $max) : $progress->last_page,
-            'completed_at' => $progress->completed_at ?? ($total !== null && $count >= $total ? now() : null),
+            'last_page' => isset($data['page']) ? min($data['page'], $max) : ($progress->last_page === null ? null : min($progress->last_page, $max)),
+            // والإتمام بالعدد الحقيقي وحده: يُلغى إتمام لم يعد يبلغ العدد بعد القص
+            'completed_at' => match (true) {
+                $total === null => $progress->completed_at,
+                $count >= $total => $progress->completed_at ?? now(),
+                default => null,
+            },
         ]);
 
         return array_values(array_intersect($reported, $seen));

@@ -10,7 +10,7 @@
         </h2>
         <a href="{{ route('account.my-reading') }}" wire:navigate class="more-link shrink-0">{{ __('reading.view_all') }}</a>
     </div>
-    <p class="mt-1 text-sm text-muted">{{ __('reading.description') }}</p>
+    <p class="mt-1 text-sm text-muted" data-reading-tracking-note="{{ $trackingDisabled ? 'off' : 'on' }}">{{ __($trackingDisabled ? 'reading.tracking.off_note' : 'reading.description') }}</p>
 
     @if ($reading['latest']->isEmpty())
         <x-empty-state icon="book-open" :message="__('reading.empty')" class="mt-4">

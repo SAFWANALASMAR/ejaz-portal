@@ -135,6 +135,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
 
     Route::get('/my-reading', [MyReadingController::class, 'show'])->name('my-reading');
     Route::post('/my-reading/clear', [MyReadingController::class, 'clear'])->middleware('throttle:10,1')->name('my-reading.clear');
+    Route::post('/my-reading/tracking', [MyReadingController::class, 'tracking'])->middleware('throttle:10,1')->name('my-reading.tracking');
 
     Route::get('/data', [DataRightsController::class, 'show'])->name('data');
     Route::get('/data/export', [DataRightsController::class, 'export'])->middleware(['password.confirm', 'throttle:5,60'])->name('data.export');

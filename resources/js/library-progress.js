@@ -1,4 +1,4 @@
-// «قراءاتي» (docs/decisions/2026-11-01-my-reading.md): بلاغات تقدّم صاحب الحساب في المكتبة إلى الخادم. لمسجّل الدخول وحده
+// «قراءاتي» (docs/decisions/2026-11-01-my-reading.md): بلاغات تقدّم صاحب الحساب في المكتبة إلى الخادم. لمسجّل الدخول وحده ما لم يختر «لا تحفظ قراءاتي»
 // (meta[name=signed-in] في القالب العام، فصفحة العنصر المخزنة نصاً واحدة للجميع). تُجمع ثم تُرسل كل عشرين ثانية على الأكثر،
 // وعند مغادرة الصفحة أو إخفائها (keepalive)، بحد الخادم ورمز CSRF. وما يرفضه الخادم (حد أو تحقق) يُترك ولا يُعاد.
 // - الكتاب في قارئ الصفحة (pdf-reader.js): كل صفحة رُسمت.
@@ -15,7 +15,8 @@ const MAX_SECONDS = 120;
 // فجوة أطول من هذا بين تحديثين للمشغّل (تعليق التحميل، أو تبويب نائم) لا تُحسب استماعاً
 const MAX_TICK = 2;
 
-const signedIn = () => document.querySelector('meta[name="signed-in"]') !== null;
+// لمسجّل الدخول الذي لم يختر «لا تحفظ قراءاتي» (meta[name=reading-tracking] في الرأس غير المخزن لكل طلب)
+const tracking = () => document.querySelector('meta[name="signed-in"]') !== null && document.querySelector('meta[name="reading-tracking"][content="off"]') === null;
 
 function post(url, body, keepalive = false) {
     return fetch(url, {
@@ -41,7 +42,7 @@ export function resumePoint() {
 
 // مُبلّغ لعنصر واحد في الصفحة، أو null لزائر. ويتوقف بإشارة الصفحة (التنقّل السريع) بعد بلاغ أخير
 export function progressReporter(url, signal) {
-    if (!url || !signedIn()) {
+    if (!url || !tracking()) {
         return null;
     }
 
@@ -205,7 +206,7 @@ onPage((signal) => {
     document.querySelectorAll('[data-library-media][data-progress]').forEach((element) => setupMedia(element, signal));
 
     // الكتاب في عارض المتصفح: لا يُعرف ما قُرئ منه، فعلامة «فتحته» متى ظهر العارض. وعلى الجوال لا عارض (مخفي)، فلا علامة
-    if (signedIn()) {
+    if (tracking()) {
         document.querySelectorAll('[data-progress-open]').forEach((element) => {
             if (element.offsetParent !== null) {
                 post(element.dataset.progressOpen, {});
@@ -218,7 +219,7 @@ onPage((signal) => {
 document.addEventListener('click', (event) => {
     const video = event.target.closest('[data-video-embed][data-progress]');
 
-    if (video && signedIn()) {
+    if (video && tracking()) {
         post(video.dataset.progress, {});
     }
 }, { capture: true });

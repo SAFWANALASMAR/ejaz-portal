@@ -40,6 +40,17 @@ final class PageSet
     }
 
     /**
+     * الصفحات من 1 إلى عدد صفحات الكتاب وحدها، فلا تُحسب صفحة فوق العدد الحقيقي (مراجعة المشرف على #117، م٢).
+     *
+     * @param  list<int>  $pages
+     * @return list<int>
+     */
+    public static function clip(array $pages, int $total): array
+    {
+        return array_values(array_filter($pages, fn (int $page): bool => $page >= 1 && $page <= $total));
+    }
+
+    /**
      * @param  iterable<int>  $pages
      */
     public static function encode(iterable $pages): ?string

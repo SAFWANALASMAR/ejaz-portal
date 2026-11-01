@@ -3,6 +3,12 @@
     الصوتيات، ثم المرئيات، لكل عنصر تقدّمه وزر المتابعة من موضعه. والعناصر المنشورة وحدها، وبياناته وحده (BuildMyReading).
 --}}
 <x-layouts.account :title="__('reading.nav')">
+    {{-- الحفظ تلقائي افتراضياً، ويوقفه صاحب الحساب من «بياناتي» (قرار صفوان، 2 نوفمبر 2026) --}}
+    <p class="text-sm text-muted" data-reading-tracking-note="{{ $trackingDisabled ? 'off' : 'on' }}">
+        {{ __($trackingDisabled ? 'reading.tracking.off_note' : 'reading.tracking.on_note') }}
+        <a href="{{ route('account.profile') }}#reading-tracking" wire:navigate class="font-semibold text-primary underline decoration-accent underline-offset-4">{{ __('reading.tracking.settings') }}</a>
+    </p>
+
     @if ($latest->isEmpty())
         <x-card>
             <x-empty-state icon="book-open" :message="__('reading.empty')">

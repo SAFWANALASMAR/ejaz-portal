@@ -20,7 +20,13 @@ final class LibraryPageCount
     private const SCAN = 100_000;
 
     /**
-     * العدد المحفوظ، أو null حتى يُحسب: ترسل مهمة العد (واحدة لكل عنصر في وقت واحد) ويُعامل الكتاب بلا عدد.
+     * أكثر عقد /Type /Pages تُفحص قبل الرجوع إلى عدّ كائنات /Type /Page.
+     */
+    public const MAX_PAGES_NODES = 1_000;
+
+    /**
+     * العدد المحفوظ، أو null حتى يُحسب. والكتاب الذي لم يُحاول عدّه قط (ومنه ما سبق هذا الفرع) يرسل مهمة العد مرة. أما ما تعذّر
+     * عدّه فلا تُعاد مهمته مع كل بلاغ، بل عند تغيّر ملفه في SaveLibraryItem (مراجعة المشرف على #117، م١).
      */
     public static function for(LibraryItem $item): ?int
     {
@@ -32,7 +38,9 @@ final class LibraryPageCount
             return $item->page_count;
         }
 
-        CountLibraryPages::dispatch($item->id);
+        if ($item->page_count_checked_at === null) {
+            CountLibraryPages::dispatch($item->id, (string) $item->file);
+        }
 
         return null;
     }
@@ -46,8 +54,16 @@ final class LibraryPageCount
         $text = $contents."\n".RealPdf::inflatedStreams($contents);
         $best = 0;
         $offset = 0;
+        $examined = 0;
 
         while (preg_match('#/Type\s*/Pages(?![A-Za-z0-9])#', $text, $match, PREG_OFFSET_CAPTURE, $offset) === 1) {
+            // ملف بعقد /Pages فوق السقف لا يُمسح قاموساً قاموساً: يُعدّ بكائنات الصفحات وحدها (مراجعة المشرف على #117، ن١)
+            if (++$examined > self::MAX_PAGES_NODES) {
+                $best = 0;
+
+                break;
+            }
+
             $position = $match[0][1];
             $offset = $position + strlen($match[0][0]);
             $dictionary = self::topLevelOf($text, $position);
