@@ -3,6 +3,7 @@
 use App\Enums\RoleName;
 use App\Filament\Pages\HomeContentPage;
 use App\Models\MenuItem;
+use App\Models\Page;
 use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\ContentCache;
@@ -71,6 +72,7 @@ it('marks e-services as the active item on the programs and competitions pages',
 
 it('builds the footer from three boxes with an icon tile beside each title, and no partners in it', function () {
     $this->seed(MenuSeeder::class);
+    Page::factory()->create(['slug' => Page::ABOUT]);
     Partner::factory()->create(['name' => 'شريك الاختبار', 'logo' => 'partners/a.png', 'is_published' => true]);
     Setting::put('contact', ['email' => 'info@ejaz.sa', 'phone' => '0550556758', 'address' => 'مكة المكرمة', 'whatsapp' => '+966550556758', 'social' => ['x' => 'https://x.com/ejazsa2025']]);
     ContentCache::flush();

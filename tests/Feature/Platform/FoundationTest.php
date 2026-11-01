@@ -64,7 +64,9 @@ it('shows only visible menu items and refreshes the cached menu on change', func
 
     $about->update(['label' => 'من نحن']);
 
-    $this->get('/')->assertSee('من نحن')->assertDontSee('عن الجمعية');
+    // في الرأس: وروابط التذييل السريعة أسماء ثابتة مختصرة منذ النسخة 63 من التصور، منها «عن الجمعية»
+    $header = (string) str($this->get('/')->getContent())->after('data-site-header')->before('</header>');
+    expect($header)->toContain('من نحن')->not->toContain('عن الجمعية');
 });
 
 it('shows contact details from the site settings', function () {

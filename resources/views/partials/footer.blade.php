@@ -21,7 +21,8 @@
         ? $contact['map_url']
         : \App\Support\NationalAddress::mapUrl($shortAddress);
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
-    // الروابط السريعة بأسمائها المختصرة وأيقونات أقسامها. و«إنجازاتنا» تُضاف متى بُني مسارها (feature/achievements)
+    // الروابط السريعة بأسمائها المختصرة وأيقونات أقسامها. و«إنجازاتنا» تُضاف متى بُني مسارها (feature/achievements). ولا رابط
+    // إلى «عن الجمعية» وصفحتها غير منشورة، فلا يفتح الزائر صفحة 404 (التجربة الشاملة، 18 أكتوبر — الخلل 2)
     $links = collect([
         'about' => ['about', 'building-library'],
         'programs' => ['programs.index', 'academic-cap'],
@@ -33,7 +34,8 @@
         'services' => ['services.index', 'squares-2x2'],
         'achievements' => ['achievements.index', 'trophy'],
         'contact' => ['contact', 'chat-bubble-left-right'],
-    ])->filter(fn (array $link): bool => \Illuminate\Support\Facades\Route::has($link[0]));
+    ])->filter(fn (array $link, string $key): bool => \Illuminate\Support\Facades\Route::has($link[0])
+        && ($key !== 'about' || \App\Models\Page::isPublishedSlug(\App\Models\Page::ABOUT)));
 @endphp
 
 <footer class="site-footer text-white/85" data-site-footer>
