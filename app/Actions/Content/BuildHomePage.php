@@ -152,11 +152,13 @@ class BuildHomePage
     }
 
     /**
+     * شريط «من مكتبة إعجاز: الكتب والأبحاث»: أغلفة القسمين معاً، «الكتب والمؤلفات» و«الأبحاث والدراسات» (البند R9).
+     *
      * @return Collection<int, LibraryItem>
      */
     private static function stripBooks(): Collection
     {
-        return LibraryItem::query()->published()->where('section', LibrarySection::Books)->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get();
+        return LibraryItem::query()->published()->whereIn('section', [LibrarySection::Books, LibrarySection::Research])->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**

@@ -14,7 +14,7 @@
                 <div class="flex flex-col gap-3">
                     <div class="flex items-center justify-between gap-4">
                         <x-section-heading id="home-strip-{{ $kind }}" :icon="$kind === 'videos' ? 'play-circle' : 'book-open'">{{ $headings[$kind] }}</x-section-heading>
-                        <a href="{{ route('library.section', $kind === 'videos' ? \App\Enums\LibrarySection::Videos->value : \App\Enums\LibrarySection::Books->value) }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}</a>
+                        <a href="{{ $kind === 'videos' ? route('library.section', \App\Enums\LibrarySection::Videos->value) : route('library.index') }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}</a>
                     </div>
 
                     <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7)" data-media-strip="{{ $kind }}"
