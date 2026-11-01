@@ -156,23 +156,4 @@ for (const path of ['/about', '/initiatives', '/programs', '/governance', '/libr
     });
 }
 
-test('card icons cycle the six identity gradients in order, and cards shine and stagger only with motion', async ({ page }, info) => {
-    test.skip(info.project.name !== 'desktop', 'المرور بالفأرة على الحاسوب');
-    await page.goto('/');
-    const tones = await page.locator('[aria-labelledby="home-shortcuts"] .card-lift [data-icon-tile]').evaluateAll((tiles) => tiles.map((tile) => tile.dataset.tone));
-    expect(tones.length).toBeGreaterThan(0);
-    expect(tones).toEqual(['blue', 'violet', 'green', 'navy', 'sky', 'lilac'].slice(0, tones.length));
-
-    // اللمعة تعمل عند المرور مع الحركة
-    const card = page.locator('[aria-labelledby="home-shortcuts"] .card-lift').first();
-    await card.hover();
-    expect(await card.evaluate((element) => getComputedStyle(element, '::after').animationName)).toBe('card-shine');
-
-    // ومع تقليل الحركة: لا لمعة ولا ظهور متتابع
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
-    const still = page.locator('[aria-labelledby="home-shortcuts"] .card-lift').first();
-    await still.hover();
-    expect(await still.evaluate((element) => getComputedStyle(element, '::after').animationName)).toBe('none');
-    expect(await still.evaluate((element) => getComputedStyle(element.closest('li')).opacity)).toBe('1');
-});
+// بطاقات «خدماتنا» في الرئيسية صارت بطاقات ملونة في شريط متحرك (النسخة 63): تعاقب درجاتها في home-final.spec.mjs

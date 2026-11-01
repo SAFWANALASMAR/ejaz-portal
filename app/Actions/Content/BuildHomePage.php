@@ -19,6 +19,7 @@ use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,19 +35,23 @@ class BuildHomePage
      * أسماء المسارات عقد مع بنودها في docs/roadmap.md، فلا تُغيَّر هناك دون تغييرها هنا.
      */
     public const SHORTCUTS = [
-        'governance' => ['icon' => 'shield-check', 'route' => 'governance.index'],
-        'membership' => ['icon' => 'user-group', 'route' => 'services.assembly-membership'],
+        // بترتيب لوحة التصور النهائي (النسخة 63 — Final-Home)، و«الخدمات الإلكترونية» تضم الدورات والمسابقات والمبادرات (البند R4)
         'services' => ['icon' => 'squares-2x2', 'route' => 'programs.index'],
+        'membership' => ['icon' => 'user-group', 'route' => 'services.assembly-membership'],
+        'governance' => ['icon' => 'shield-check', 'route' => 'governance.index'],
         // أيقونة مستقلة للمسابقات (ملاحظة المدير التنفيذي)
         'competitions' => ['icon' => 'trophy', 'route' => 'competitions.index'],
+        'initiatives' => ['icon' => 'sparkles', 'route' => 'initiatives.index'],
         'library' => ['icon' => 'book-open', 'route' => 'library.index'],
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
+        // أيقونة للشركاء في الرئيسية (البند H5)
+        'partners' => ['icon' => 'hand-raised', 'route' => 'media.partners'],
     ];
 
     /**
      * لون مربع الأيقونة لكل بطاقة في «خدماتنا» (x-icon-tile): من ألوان الهوية بالتناوب.
      */
-    public const SHORTCUT_TONES = ['governance' => 'pale', 'membership' => 'light', 'services' => 'medium', 'competitions' => 'dark', 'library' => 'pale', 'media' => 'light'];
+    public const SHORTCUT_TONES = ['services' => 'pale', 'membership' => 'light', 'governance' => 'medium', 'competitions' => 'dark', 'initiatives' => 'pale', 'library' => 'light', 'media' => 'medium', 'partners' => 'dark'];
 
     /**
      * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.
@@ -87,7 +92,7 @@ class BuildHomePage
      *     video: string|null,
      *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
-     *     shortcuts: list<array{key: string, icon: string, url: string, external: bool, tone: string}>,
+     *     shortcuts: list<array{key: string, icon: string, url: string, external: bool, tone: string, title: string, text: string}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
      *     announcements: Collection<int, Announcement>,
@@ -131,8 +136,8 @@ class BuildHomePage
             'videos' => self::shows($home, 'videos', false) ? self::videos() : new Collection,
             'accounts' => self::shows($home, 'accounts') ? self::accounts() : [],
             // اثنا عشر شريكاً واثنا عشر راعياً كلٌّ باستعلامه، فلا يحجب أحدهما الآخر، والبقية في صفحة الشركاء
-            'partners' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
-            'sponsors' => self::shows($home, 'partners', false) ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
+            'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
+            'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
     }
 
@@ -289,7 +294,7 @@ class BuildHomePage
     }
 
     /**
-     * @return list<array{key: string, icon: string, url: string, external: bool, tone: string}>
+     * @return list<array{key: string, icon: string, url: string, external: bool, tone: string, title: string, text: string}>
      */
     private static function shortcuts(): array
     {
@@ -297,7 +302,12 @@ class BuildHomePage
 
         foreach (self::SHORTCUTS as $key => $shortcut) {
             if (Route::has($shortcut['route'])) {
-                $shortcuts[] = ['key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route']), 'external' => false, 'tone' => self::SHORTCUT_TONES[$key]];
+                // البطاقتان المضافتان في النسخة 63 نصاهما في home.shortcuts_final
+                $text = Lang::has('home.shortcuts.'.$key.'.title') ? 'home.shortcuts.'.$key : 'home.shortcuts_final.'.$key;
+                $shortcuts[] = [
+                    'key' => $key, 'icon' => $shortcut['icon'], 'url' => route($shortcut['route']), 'external' => false, 'tone' => self::SHORTCUT_TONES[$key],
+                    'title' => (string) __($text.'.title'), 'text' => (string) __($text.'.text'),
+                ];
             }
         }
 

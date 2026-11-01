@@ -61,14 +61,15 @@ function expectQueryBudget(Closure $seed, Closure $request, int $max): void
 }
 
 // وكل سقف +1 منذ شعارات الشركاء في التذييل (مخزّنة مع المحتوى، فتُسأل مرة بعد مسحه)، والرئيسية +5 منذ بنية التصور النهائي:
-// صور العارض، والجوائز، والمستجدات من البرامج والمسابقات والمكتبة والحوكمة (docs/decisions/2026-10-30-visual-refresh-2.md)
+// صور العارض، والجوائز، والمستجدات من البرامج والمسابقات والمكتبة والحوكمة (docs/decisions/2026-10-30-visual-refresh-2.md)،
+// والرئيسية +1 بالنسخة 63: الشركاء ظاهرون افتراضياً، وحالة نشر «عن الجمعية» لرابط بطاقة «نحو فهم أعمق»، بلا الحسابات الرسمية
 it('keeps the public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
     'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 4],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 3],
     'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 4],
-    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
+    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 12],
     'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 4],
 ]);
 

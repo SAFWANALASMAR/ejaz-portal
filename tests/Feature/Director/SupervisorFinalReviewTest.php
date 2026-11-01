@@ -13,6 +13,7 @@ use App\Filament\Resources\ContentPages\Pages\EditContentPage;
 use App\Models\AccountCard;
 use App\Models\Committee;
 use App\Models\Meeting;
+use App\Models\NewsArticle;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Models\User;
@@ -66,7 +67,8 @@ it('marks the texts written by the portal team in the admin panel only, never to
     $editor = userWithRole(RoleName::ContentEditor);
     Setting::put('contact', ['social' => ['x' => 'https://x.com/ejazsa2025']]);
 
-    expect($this->get('/')->getContent())->toContain(__('home.sections.channels.intro'))->not->toContain('مثال تجريبي');
+    // «قنوات التواصل» خرجت من الرئيسية بالنسخة 63 (الحسابات في التذييل)، ومقدمتها باقية في اللوحة
+    expect($this->get('/')->getContent())->not->toContain('مثال تجريبي');
     $this->get('/media/announcements')->assertOk()->assertSee(__('home.sections.announcements.intro'))->assertDontSee('مثال تجريبي');
 
     // واللوحة تدل المسؤول عليه: التلميح على الحقل، وحالته في الإعدادات
@@ -76,7 +78,7 @@ it('marks the texts written by the portal team in the admin panel only, never to
 
     saveHomeContent($editor, ['channels' => ['intro' => 'نص الجمعية المعتمد'], 'announcements' => ['intro' => 'مقدمة الجمعية']]);
 
-    expect($this->get('/')->getContent())->toContain('نص الجمعية المعتمد')
+    expect(HomeContent::text('channels', 'intro'))->toBe('نص الجمعية المعتمد')
         ->and(HomeContent::isSample('channels', 'intro'))->toBeFalse();
     $this->get('/media/announcements')->assertSee('مقدمة الجمعية');
     // وبعد استبدال النصين يزول الوسم من اللوحة أيضاً (مراجعة المشرف على #102)
@@ -106,7 +108,8 @@ it('shows the chairman opening and the first real paragraph of the introduction,
         ->and($excerpt)->toBe(array_slice($full, 0, 2))
         ->and($excerpt[1])->toStartWith('فإن القرآن الكريم كلام الله المُعجز');
 
-    $this->get('/')->assertSee('ومصدر عزتها ورشدها.')->assertSee(__('home.sections.chairman.read_more'));
+    // والفقرة في شريحة رئيس الجمعية بالبطل (النسخة 63)، والكلمة كاملة تنتقل إلى «عن الجمعية» في المرحلة ج
+    $this->get('/')->assertSee('ومصدر عزتها ورشدها.');
 });
 
 // ٤ و٥
@@ -131,7 +134,9 @@ it('builds the footer and the interface texts from the panel, with the national 
     ]);
 
     // والنبذة خرجت من التذييل بمربعاته الثلاثة (أمر التصور النهائي، النسخة 63)، ويبقى حقلها في اللوحة
-    expect((string) $this->get('/')->getContent())->toContain('حقوق من اللوحة')->toContain('قنواتنا من اللوحة');
+    // وعنوان الأخبار يظهر بخبر منشور
+    NewsArticle::factory()->create();
+    expect((string) $this->get('/')->getContent())->toContain('حقوق من اللوحة')->toContain('عنوان شريط من اللوحة');
     $this->get('/media/announcements')->assertSee('إعلانات من اللوحة')->assertDontSee('نبذة من اللوحة');
 
     // والنصوص في صفحة «محتوى الرئيسية»
@@ -184,7 +189,8 @@ it('describes roles as granted by the two administrators, and self-demotion as o
 // ٨
 it('draws the rationale with the calligraphy file, and replaces the logo files from the panel', function () {
     Storage::fake('public');
-    $html = (string) $this->get('/')->getContent();
+    // مقطع المبررات خرج من الرئيسية بالنسخة 63، وقالبه باقٍ لصفحة «عن الجمعية» (المرحلة ج)
+    $html = view('home.partials.rationale', ['rationale' => HomeContent::resolved()['rationale']])->render();
 
     expect($html)->toContain('data-rationale-calligraphy')
         ->toContain('images/brand/logo-calligraphy-white.png')

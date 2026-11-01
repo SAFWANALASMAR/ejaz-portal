@@ -1,11 +1,13 @@
 <?php
 
+use App\Actions\Settings\UpdateHomeContent;
 use App\Enums\LibrarySection;
+use App\Enums\RoleName;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
+use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\ContentCache;
-use App\Support\IconTones;
 use App\Support\MenuIcon;
 use App\Support\MenuLink;
 use Database\Seeders\MenuSeeder;
@@ -43,21 +45,42 @@ it('maps a menu link to the icon of its section, and an outside link to the gene
         ->and(MenuIcon::for(new MenuLink(1, 'x', 'https://ejaz.org.sa', false, collect())))->toBe(MenuIcon::FALLBACK);
 });
 
-it('shows vision, values and initiatives as gradient cards instead of the prize card', function () {
+// أمر التصور النهائي، النسخة 63 (البندان R6 وR11): خمس بطاقات ملونة بالترتيب، داكنة ثم فاتحة بالتعاقب
+it('shows the five home cards in order as alternating tone cards instead of the prize card', function () {
     Initiative::factory()->create(['name' => 'مبادرة قيم', 'is_published' => true]);
 
-    $this->get('/')->assertOk()
-        ->assertSeeInOrder(['data-identity-card="initiatives"', __('ui.identity.our_initiatives'), 'مبادرة قيم', __('ui.identity.all_initiatives')], false)
-        ->assertSee('class="identity-card group" data-tone="deep"', false)
-        ->assertDontSee('data-prize-card', false);
+    $html = (string) str($this->get('/')->assertOk()->getContent())->after('id="home-identity"')->before('data-marquee-copy');
+    preg_match_all('/class="tone-card home-card" data-tone="(\w+)" data-identity-card="(\w+)"/', $html, $cards);
+
+    expect($cards[2])->toBe(['vision', 'goals', 'values', 'principles', 'initiatives'])
+        ->and($cards[1])->toBe(['dark', 'light', 'dark', 'light', 'dark'])
+        ->and($html)->toContain('مبادرة قيم')
+        ->and($html)->toContain('【ناقص: أهداف الجمعية المعتمدة】')
+        ->and($html)->toContain('【ناقص: مبادئ الجمعية المعتمدة】')
+        ->and($html)->not->toContain('data-prize-card');
 });
 
-it('tints each service card from its tile colour, in order', function () {
-    $html = $this->get('/')->getContent();
-    preg_match_all('/data-tone="(\w+)" data-service-card/', $html, $tones);
+it('takes the goals, principles and section headings from the home content panel', function () {
+    app(UpdateHomeContent::class)->handle(userWithRole(RoleName::ContentEditor), [
+        'identity' => ['goals' => 'هدف اختباري', 'principles' => 'مبدأ اختباري'],
+        'headings' => ['services' => 'خدمات اختبارية', 'partners' => 'شركاء اختباريون'],
+        'values' => ['items' => array_fill(0, 4, [])],
+    ]);
+    Partner::factory()->create(['name' => 'شريك الشريط']);
 
-    expect($tones[1])->not->toBeEmpty()
-        ->and($tones[1])->toBe(array_map(fn (int $index): string => IconTones::at($index), array_keys($tones[1])));
+    $this->get('/')->assertOk()
+        ->assertSee('هدف اختباري')->assertSee('مبدأ اختباري')
+        ->assertSee('خدمات اختبارية')->assertSee('شركاء اختباريون')
+        ->assertDontSee('【ناقص: أهداف الجمعية المعتمدة】');
+});
+
+it('runs the services as one moving row with programmes, competitions, initiatives and partners', function () {
+    $html = (string) str($this->get('/')->getContent())->after('id="home-services-track"')->before('data-marquee-copy');
+    preg_match_all('/data-service-card="(\w+)"/', $html, $keys);
+
+    expect($keys[1])->toBe(['services', 'membership', 'governance', 'competitions', 'initiatives', 'library', 'media', 'partners'])
+        ->and($html)->toContain(__('home.shortcuts_final.partners.title'))
+        ->and($html)->toContain(__('home.shortcuts_final.initiatives.text'));
 });
 
 it('runs the video and book strips from the library, with a hidden copy for the loop', function () {
@@ -72,7 +95,11 @@ it('runs the video and book strips from the library, with a hidden copy for the 
         ->assertDontSee('id="home-updates"', false)
         ->getContent();
 
-    expect(substr_count($html, 'data-strip-copy aria-hidden="true" inert'))->toBe(2)
+    $strips = (string) str($html)->after('data-home-strips')->before('</section>');
+
+    // نسخة ثانية خاملة لكل شريط، والمقاطع مرقّمة (x-video-number)
+    expect(substr_count($strips, 'data-marquee-copy aria-hidden="true" inert'))->toBe(2)
+        ->and($strips)->toContain('data-video-number')
         ->and($html)->not->toContain('youtube-nocookie.com/embed');
 });
 

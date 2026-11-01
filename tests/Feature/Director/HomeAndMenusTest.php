@@ -37,18 +37,20 @@ it('shows the home sections in the director\'s order with the strategic plan tex
 
     $html = $this->get('/')->assertOk()->getContent();
 
-    // بنية مرجع المدير (30 أكتوبر): الهوية والخدمات والإعلانات والأخبار، ثم مقاطع الخطة بترتيبها، والقيم شرائح الهوية
-    $order = ['home-identity', 'home-shortcuts', 'home-announcements', 'home-news', 'home-king', 'home-chairman', 'home-rationale'];
+    // ترتيب التصور النهائي، النسخة 63 (§٢ب): البطاقات، ثم الخدمات، ثم الإعلانات والأخبار متجاورتين. وكلمتا خادم الحرمين
+    // الشريفين ورئيس الجمعية شريحتان في البطل، فلا مقطع لهما ولا للمبررات ولا لقنوات التواصل (الحسابات في التذييل)
+    $order = ['home-identity', 'home-shortcuts', 'home-announcements', 'home-news'];
     $positions = array_map(fn (string $id): int|false => strpos($html, 'id="'.$id.'"'), $order);
-    expect($positions)->not->toContain(false)->and($positions)->toBe(collect($positions)->sort()->values()->all());
+    expect($positions)->not->toContain(false)->and($positions)->toBe(collect($positions)->sort()->values()->all())
+        ->and($html)->not->toContain('id="home-king"')
+        ->and($html)->not->toContain('id="home-chairman"')
+        ->and($html)->not->toContain('id="home-rationale"')
+        ->and($html)->not->toContain('aria-labelledby="home-accounts"');
 
     $this->get('/')
         ->assertSee(__('home.sections.king.text'))
         ->assertSee('الملك سلمان بن عبدالعزيز آل سعود')
-        ->assertSee('الحمد لله الذي أنزل القرآن، هدىً للناس وبيناتٍ من الهدى والفرقان')
-        ->assertSee('النمل:93')
         ->assertSee('رئيس مجلس إدارة جمعية إعجاز للدراسات والبحوث العلمية والتعليمية')
-        ->assertSee('في إطار الحرص على تقديم المبادرات المبتكرة')
         ->assertSee('تبني الابتكار المؤدي إلى التميز لإيجاد بيئة جاذبة ومحفزة للإبداع.')
         ->assertSee('خبر الشريط')
         ->assertSee('إعلان الشريط')

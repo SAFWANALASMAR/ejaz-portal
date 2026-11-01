@@ -155,7 +155,7 @@ it('shows the latest news and the partners on the home page, each hidden from th
     Partner::factory()->create(['name' => 'شريك في الرئيسية']);
 
     $this->get('/')
-        ->assertSee(__('home.sections.tickers.news'))
+        ->assertSee(__('home.sections_final.tickers.news'))
         ->assertSee('خبر في الرئيسية')
         ->assertSee('شريك في الرئيسية')
         // وبطاقة المركز الإعلامي في الاختصارات بوجود مساره

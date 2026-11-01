@@ -157,12 +157,18 @@ class HomeContentPage extends Page
                 ]),
                 // شرائح الهوية تحت البطل والبطاقة الجانبية في «خدماتنا» (مرجع المدير، 30 أكتوبر 2026). فارغة تعني: الرؤية والرسالة من
                 // صفحة «عن الجمعية» المنشورة، والبطاقة بلا نص
-                Section::make(__('ui.admin.identity'))->description(__('ui.admin.identity_hint'))->columns(2)->schema([
+                Section::make(__('ui.admin.identity'))->description(__('settings.home_content.identity_hint_final'))->columns(2)->schema([
                     Textarea::make('identity.vision')->label(__('ui.identity.vision'))->rows(3)->maxLength(6000),
                     Textarea::make('identity.mission')->label(__('ui.identity.mission'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.goals')->label(__('settings.home_content.goals'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.principles')->label(__('settings.home_content.principles'))->rows(3)->maxLength(6000),
                     TextInput::make('identity.side_title')->label(__('ui.admin.side_title'))->maxLength(300),
                     TextInput::make('identity.side_text')->label(__('ui.admin.side_text'))->maxLength(300),
                 ]),
+                // عناوين أقسام الرئيسية الظاهرة للزائر (أمر التصور النهائي §٢ب: تُدار من اللوحة لا من القوالب)
+                Section::make(__('settings.home_content.headings'))->description(__('settings.home_content.headings_hint'))->columns(3)->schema(
+                    array_map(fn (string $key): TextInput => TextInput::make('headings.'.$key)->label(__('settings.home_content.headings_fields.'.$key))->maxLength(300), HomeContent::TEXTS['headings']),
+                ),
                 // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
                 Section::make(__('settings.home_content.interface'))->columns(2)->schema([
                     TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),

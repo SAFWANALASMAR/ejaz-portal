@@ -35,7 +35,21 @@ it('sums the published Brahin prize table for both genders', function () {
     expect(HomeShowcase::prizeTotal($competition))->toBe(7700)
         ->and(HomeShowcase::prize())->toMatchArray(['total' => 7700, 'url' => route('competitions.show', $competition->slug)]);
 
-    $this->get('/')->assertOk()->assertSee('data-prize-total', false)->assertSee('7,700');
+    // في بطاقة المسابقة بالإعلانات، يعدّ تصاعدياً حتى المجموع (البند 4 من المرحلة ب)
+    $this->get('/')->assertOk()->assertSee('data-prize-total', false)->assertSee('data-count-to="7700">7,700', false);
+});
+
+// بطاقة «نحو فهم أعمق» بجانب «خدماتنا» (البند H4): ظاهرة دائماً، ورابطها إلى «عن الجمعية» متى نُشرت وحدها
+it('shows the deeper-understanding card beside the services, linking to the about page only once published', function () {
+    $card = fn (): string => (string) str($this->get('/')->assertOk()->getContent())->after('aria-labelledby="home-shortcuts"')->before('</section>');
+
+    expect($card())->toContain('data-side-card')
+        ->and($card())->toContain(__('home.sections_final.identity.side_title'))
+        ->and($card())->not->toContain('href="'.route('about').'"');
+
+    publishedAboutWith(['الرؤية' => 'نص']);
+
+    expect($card())->toContain('href="'.route('about').'"');
 });
 
 it('shows no prize card for an unpublished competition or an empty prize table', function () {

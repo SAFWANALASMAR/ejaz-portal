@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -61,11 +62,12 @@ it('never renders an unsafe hero link even if one reaches the database', functio
 });
 
 it('shows approved statistics with thousands separators, and no strip without them', function () {
-    $this->get('/')->assertDontSee(__('home.stats.title'));
+    $this->get('/')->assertDontSee('data-portal-stats', false);
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [approvedStat()]]);
 
-    $this->get('/')->assertSee(__('home.stats.title'))->assertSee('25,000+')->assertSee('مستفيد');
+    // «البوابة بالأرقام» آخر الرئيسية قبل «شركاؤنا» (النسخة 63 — البند H9)
+    $this->get('/')->assertSee('data-portal-stats', false)->assertSee(__('home.sections_final.headings.stats'))->assertSee('25,000+')->assertSee('مستفيد');
 });
 
 it('hides the statistics when switched off, and skips incomplete entries', function () {
@@ -73,7 +75,7 @@ it('hides the statistics when switched off, and skips incomplete entries', funct
     $this->get('/')->assertDontSee('25,000');
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [['label' => '', 'value' => 10, 'icon' => 'users'], ['label' => 'بلا رقم', 'value' => 'x']]]);
-    $this->get('/')->assertDontSee(__('home.stats.title'));
+    $this->get('/')->assertDontSee('data-portal-stats', false);
 });
 
 it('draws only the allowed statistic icons', function () {
@@ -88,7 +90,7 @@ it('shows a section shortcut only once its section exists', function () {
 
     // الأقسام المبنية لها بطاقاتها، والباقية بلا بطاقة حتى يُبنى مسارها
     foreach ($built->keys() as $key) {
-        $this->get('/')->assertSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertSee(__(Lang::has('home.shortcuts.'.$key.'.title') ? 'home.shortcuts.'.$key.'.title' : 'home.shortcuts_final.'.$key.'.title'));
     }
 
     if ($missing->isNotEmpty()) {

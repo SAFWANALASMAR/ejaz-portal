@@ -93,7 +93,7 @@ class SiteSettings extends Page
                 'show_announcements' => true,
                 'show_initiatives' => false,
                 'show_stats' => false,
-                'show_partners' => false,
+                'show_partners' => true,
                 'show_videos' => false,
                 'show_accounts' => true,
                 ...Setting::group('home'),

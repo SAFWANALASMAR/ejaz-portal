@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\SiteIcon;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -43,7 +44,9 @@ final class HomeContent
         'header' => ['licensed_by', 'license_number'],
         // شريحة الهوية تحت البطل وبطاقة «خدماتنا» الجانبية (مرجع المدير، 30 أكتوبر — plans/2026-10-30-director-home-reference.md).
         // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
-        'identity' => ['vision', 'mission', 'side_title', 'side_text'],
+        'identity' => ['vision', 'mission', 'side_title', 'side_text', 'goals', 'principles'],
+        // عناوين أقسام الرئيسية وبطاقاتها الظاهرة للزائر (أمر التصور النهائي، النسخة 63 — المرحلة ب)
+        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats'],
     ];
 
     /**
@@ -56,7 +59,7 @@ final class HomeContent
     /**
      * النصوص الطويلة (حد 6000 حرف، وغيرها 300).
      */
-    public const LONG = ['full', 'text', 'excerpt', 'vision', 'mission'];
+    public const LONG = ['full', 'text', 'excerpt', 'vision', 'mission', 'goals', 'principles'];
 
     /**
      * نصوص كتبناها مكان محتوى ناقص من الجمعية، فتُوسم «مثال تجريبي» ما لم تُستبدل من اللوحة (قرار صفوان، 26 أكتوبر 2026).
@@ -216,9 +219,14 @@ final class HomeContent
         return is_string($value) && $normalize($value) === $normalize(self::default($section, $key));
     }
 
+    /**
+     * الأصل: ما في home.sections_final (أصول النسخة 63 من التصور، مضافة لا معدِّلة لما قبلها)، وإلا home.sections.
+     */
     private static function default(string $section, string $key): string
     {
-        return (string) __('home.sections.'.$section.'.'.$key);
+        $final = 'home.sections_final.'.$section.'.'.$key;
+
+        return (string) __(Lang::has($final) ? $final : 'home.sections.'.$section.'.'.$key);
     }
 
     private static function clean(mixed $value): ?string

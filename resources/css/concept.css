@@ -654,148 +654,6 @@ html[data-motion-off] .float-soft {
     --band-bg: #eef5fc;
 }
 
-/* بطاقات «رؤيتنا» و«قيمنا» و«مبادراتنا»: تدرج داكن لكل بطاقة بلون، ونص أبيض بتباين AA فأكثر عند الطرفين */
-.identity-card {
-    position: relative;
-    display: flex;
-    min-height: 11.5rem;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 1.25rem;
-    padding: 1.5rem 1.5rem 0;
-    color: var(--color-white);
-    background: linear-gradient(150deg, var(--card-from), var(--card-to));
-    box-shadow: 0 18px 36px -22px var(--card-to);
-}
-
-.identity-card[data-tone='blue'] {
-    --card-from: #2e6898;
-    --card-to: #1f4565;
-}
-
-.identity-card[data-tone='ocean'] {
-    --card-from: #1f5f8f;
-    --card-to: #174a70;
-}
-
-.identity-card[data-tone='deep'] {
-    --card-from: #1f4565;
-    --card-to: #142e45;
-}
-
-.identity-card-title {
-    @apply flex items-center gap-3 text-[1.5rem] font-black text-white;
-}
-
-.identity-card-more {
-    @apply absolute bottom-3 start-6 text-sm font-bold text-white underline decoration-white/50 underline-offset-4 hover:decoration-white;
-}
-
-.identity-card .carousel-controls-compact .carousel-dot::before {
-    background: color-mix(in srgb, var(--color-white) 45%, transparent);
-}
-
-.identity-card .carousel-controls-compact .carousel-dot[aria-current]::before {
-    background: var(--color-white);
-}
-
-.identity-card .carousel-pause {
-    color: var(--color-white);
-}
-
-.identity-card .carousel-pause:hover {
-    background: color-mix(in srgb, var(--color-white) 15%, transparent);
-}
-
-/* «خدماتنا»: كل بطاقة بتدرج فاتح من لون مربع أيقونتها، فلا بطاقات بيضاء متشابهة */
-.service-card {
-    background: linear-gradient(160deg, color-mix(in srgb, var(--card-tone) 16%, var(--color-white)), color-mix(in srgb, var(--card-tone) 5%, var(--color-white)));
-    border-color: color-mix(in srgb, var(--card-tone) 22%, var(--color-white));
-}
-
-.service-card[data-tone='pale'] {
-    --card-tone: #8ec5f0;
-}
-
-.service-card[data-tone='light'] {
-    --card-tone: #6aaee6;
-}
-
-.service-card[data-tone='medium'] {
-    --card-tone: #3e8aca;
-}
-
-.service-card[data-tone='dark'] {
-    --card-tone: #2e6898;
-}
-
-/* «أخبار الجمعية»: بطاقات بتدرج يشتد خبراً بعد خبر، من السماوي الفاتح جداً إلى أعمق قليلاً، والنص داكن */
-.news-tint[data-step='0'] {
-    background: linear-gradient(160deg, #ffffff, #f1f7fd);
-}
-
-.news-tint[data-step='1'] {
-    background: linear-gradient(160deg, #f1f7fd, #e3effa);
-}
-
-.news-tint[data-step='2'] {
-    background: linear-gradient(160deg, #e3effa, #d4e7f7);
-}
-
-.news-tint[data-step='3'] {
-    background: linear-gradient(160deg, #d4e7f7, #c6dff4);
-}
-
-/* شريطا المرئيات وأغلفة الكتب: نسختان متتاليتان تتحركان بمقدار نسخة، فيستمر الشريط بلا قفزة. ويتوقف بالمرور والتركيز وزر
-   الإيقاف (data-paused)، وخارج الشاشة، ولا يتحرك لمن طلب تقليل الحركة (يصير صفاً يُمرَّر باليد) */
-.media-strip {
-    overflow: hidden;
-    mask-image: linear-gradient(to left, transparent, #000 3%, #000 97%, transparent);
-}
-
-.media-strip-track {
-    display: flex;
-    width: max-content;
-    gap: 1rem;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .media-strip[data-inview] .media-strip-track {
-        animation: media-strip-move var(--strip-duration, 60s) linear infinite;
-    }
-
-    .media-strip:hover .media-strip-track,
-    .media-strip:focus-within .media-strip-track,
-    .media-strip[data-paused] .media-strip-track {
-        animation-play-state: paused;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .media-strip {
-        overflow-x: auto;
-        mask-image: none;
-    }
-
-    .media-strip [data-strip-copy] {
-        display: none;
-    }
-}
-
-html[data-motion-off] .media-strip-track {
-    animation: none;
-}
-
-@keyframes media-strip-move {
-    from {
-        transform: translateX(0);
-    }
-
-    to {
-        transform: translateX(50%);
-    }
-}
-
 /* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
    الأساس المشترك للنسخة 63 من التصور (أمر التصور النهائي، المرحلة أ — docs/decisions/2026-10-31-visual-refresh-2.md):
    الأزرق وحده، وخلفية #D6E7F6، وعنوان القسم، والبطاقة الملونة، والرأس صفان، والتذييل ثلاثة مربعات، والشريط المتحرك،
@@ -1316,5 +1174,331 @@ html[data-motion-off] .page-transition-fill {
 
     to {
         background-position: -50% 0;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   الرئيسية بالنسخة 63 (أمر التصور النهائي، المرحلة ب — docs/decisions/2026-10-31-visual-refresh-2.md): خلفيات متعاقبة بدرجتين،
+   والبطاقات الخمس، و«خدماتنا» صفاً متحركاً، والإعلانات والأخبار بارتفاع واحد، وشريطا المقاطع والكتب، وبطاقة X، والشركاء.
+   والجوال بمقاسات البند R12: أيقونة 38، وعنوان بطاقة 19، ونص 14–15 ── يغلب ما قبله في هذا الملف
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* المقاطع بتدرجين متعاقبين من #CFE3F4 و#D6E7F6 (البند H10)، والمسافات بينها مضغوطة (البند G3) */
+.home-band[data-band='1'] {
+    background: linear-gradient(180deg, var(--section-bg), var(--page-bg));
+}
+
+.home-band[data-band='2'] {
+    background: linear-gradient(180deg, var(--page-bg), var(--section-bg));
+}
+
+/* ── البطاقات الخمس: «رؤيتنا ورسالتنا» بعرض كامل على الجوال ثم البقية صف متحرك، وصف واحد ثابت من 1024 بكسل ── */
+.home-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.home-card {
+    flex: none;
+    height: 9.375rem;
+    border-radius: 1.125rem;
+}
+
+.home-cards-static .marquee-group > .home-card {
+    width: 16.25rem;
+}
+
+.home-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.125rem;
+}
+
+.home-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 1.1875rem;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.home-card .home-card-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+}
+
+.home-card-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.home-card-slide {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.375rem 1.125rem 2rem;
+}
+
+.home-card-pick {
+    font-size: 1.0625rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.home-card-more {
+    margin-inline-start: auto;
+    font-size: 0.8125rem;
+}
+
+.tone-card .carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--tc-text) 40%, transparent);
+}
+
+.tone-card .carousel-controls-compact .carousel-dot[aria-current]::before {
+    background: var(--tc-text);
+}
+
+.tone-card .carousel-pause {
+    color: var(--tc-text);
+}
+
+.tone-card .carousel-pause:hover {
+    background: color-mix(in srgb, var(--tc-text) 15%, transparent);
+}
+
+@media (min-width: 64rem) {
+    .home-cards {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, var(--home-cards-fr, 4fr));
+        gap: 0.875rem;
+    }
+
+    .home-cards > * {
+        min-width: 0;
+    }
+
+    /* الشريط صف ثابت على الحاسوب: بلا حركة ولا نسخة ثانية ولا زر إيقاف */
+    .home-cards-static .marquee[data-direction] {
+        overflow: visible;
+        mask-image: none;
+    }
+
+    .home-cards-static .marquee[data-direction] .marquee-track {
+        display: block;
+        width: auto;
+        animation: none !important;
+    }
+
+    .home-cards-static .marquee[data-direction] .marquee-group {
+        display: grid;
+        grid-template-columns: repeat(var(--home-cards-cols, 4), minmax(0, 1fr));
+        gap: 0.875rem;
+        padding: 0;
+    }
+
+    .home-cards-static .marquee-group > .home-card {
+        width: auto;
+    }
+
+    .home-cards-static .marquee[data-direction] [data-marquee-copy],
+    .home-cards-static .marquee-toggle {
+        display: none;
+    }
+
+    .home-card-head {
+        font-size: 1.25rem;
+    }
+
+    .home-card .home-card-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .home-card-text {
+        font-size: 0.90625rem;
+    }
+}
+
+/* ── «خدماتنا»: بطاقات ملونة بعرض 226 بكسل في صف متحرك ── */
+.service-tile {
+    display: flex;
+    width: 13.5rem;
+    flex: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 1.125rem;
+    padding: 1rem 1rem 0.875rem;
+}
+
+.service-tile-title {
+    font-size: 1.1875rem;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.service-tile .service-tile-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+}
+
+.service-tile-text {
+    display: -webkit-box;
+    min-height: 3.4em;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.service-tile-enter {
+    align-self: center;
+    margin-top: auto;
+    border-radius: 999px;
+    padding: 0.3125rem 1.375rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    background: color-mix(in srgb, var(--tc-text) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+}
+
+@media (min-width: 64rem) {
+    .service-tile {
+        width: 14.125rem;
+        padding: 1.375rem 1.375rem 1.125rem;
+    }
+
+    .service-tile-title {
+        font-size: 1.3125rem;
+    }
+
+    .service-tile .service-tile-icon {
+        width: 3.625rem;
+        height: 3.625rem;
+    }
+
+    .service-tile-text {
+        font-size: 1rem;
+    }
+}
+
+/* ── الإعلانات والأخبار بارتفاع واحد: 260 بكسل على الجوال و320 على الحاسوب، والأخبار تمتد لارتفاع العمود المجاور ── */
+.home-feed-box {
+    height: 16.25rem;
+}
+
+.home-news-box {
+    min-height: 16.25rem;
+}
+
+.home-feed-box > .card-lift {
+    background: var(--concept-surface);
+}
+
+.home-feed-box > .card-lift > img {
+    min-height: 0;
+    flex: 1 1 0;
+    aspect-ratio: auto;
+}
+
+.home-announcements .carousel-controls {
+    margin-top: 0.625rem;
+}
+
+@media (min-width: 64rem) {
+    .home-feed-box {
+        height: 20rem;
+    }
+
+    .home-news-box {
+        min-height: 20rem;
+    }
+}
+
+/* ── شريطا المقاطع والكتب: بطاقات ملونة، والكتب بالاتجاه المعاكس ── */
+.media-tile {
+    display: flex;
+    width: 12.5rem;
+    flex: none;
+    flex-direction: column;
+    border-radius: 1rem;
+}
+
+.media-tile-thumb {
+    position: relative;
+    display: block;
+    height: 7.375rem;
+    overflow: hidden;
+    background: var(--blue-200);
+}
+
+.media-tile-book {
+    height: 12rem;
+}
+
+.media-marquee-reverse .marquee-group > .media-tile {
+    width: 9rem;
+}
+
+.media-tile-caption {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.youtube-play {
+    display: inline-flex;
+    width: 2.875rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5625rem;
+    background: var(--youtube-red);
+    color: var(--color-white);
+}
+
+.media-marquee-reverse .marquee-track {
+    animation-direction: reverse;
+}
+
+@media (min-width: 64rem) {
+    .media-tile-caption {
+        font-size: 0.9375rem;
+    }
+}
+
+/* ── «تابعنا على X»: الأسود المستثنى إلى الأزرق الداكن، بنص أبيض ── */
+.x-card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    border-radius: 1.125rem;
+    padding: 1rem 1.25rem;
+    color: var(--color-white);
+    background: linear-gradient(135deg, var(--x-black), var(--blue-900));
+    box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
+}
+
+/* ── «شركاؤنا»: شعارات بعرض ثابت في شريط متحرك ── */
+.partner-logo {
+    width: 10rem;
+    flex: none;
+}
+
+@media (min-width: 64rem) {
+    .partner-logo {
+        width: 12rem;
     }
 }
