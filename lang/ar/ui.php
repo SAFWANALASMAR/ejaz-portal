@@ -202,7 +202,7 @@ return [
     'about_anchors' => [
         'goals' => 'الأهداف',
         'principles' => 'المبادئ',
-        'values' => 'قيم',
+        'values' => 'قيم الجمعية',
     ],
 
 ];

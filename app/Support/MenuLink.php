@@ -23,10 +23,14 @@ final readonly class MenuLink
         public bool $opensInNewTab,
         public Collection $children,
         public bool $linkable = true,
+        public bool $isParent = false,
+        public bool $generated = false,
     ) {}
 
     /**
-     * @param  array{id: int, label: string, url: ?string, opens_in_new_tab: bool, linkable?: bool, children?: list<array<string, mixed>>}  $row
+     * isParent: أول عنصر في القائمة المنسدلة وهو الصفحة الأم نفسها، وgenerated: قسم من البيانات لا من «القائمة» (MenuSections).
+     *
+     * @param  array{id: int, label: string, url: ?string, opens_in_new_tab: bool, linkable?: bool, is_parent?: bool, generated?: bool, children?: list<array<string, mixed>>}  $row
      */
     public static function fromArray(array $row): self
     {
@@ -37,6 +41,8 @@ final readonly class MenuLink
             opensInNewTab: $row['opens_in_new_tab'],
             children: collect($row['children'] ?? [])->map(fn (array $child): self => self::fromArray($child)),
             linkable: $row['linkable'] ?? true,
+            isParent: $row['is_parent'] ?? false,
+            generated: $row['generated'] ?? false,
         );
     }
 
@@ -121,8 +127,13 @@ final readonly class MenuLink
         return $query !== [] || ! request()->has('category');
     }
 
+    /**
+     * العنصر الرئيسي نشط بعنصر فرعي من «القائمة» نشط. والأقسام المولّدة (MenuSections) لا تُحسب، لأن بعضها رابط عنصر رئيسي آخر
+     * (المكتبة المرئية في المركز الإعلامي، والاستفسارات في الخدمات) فيُعلَّم عنصران، وأقسام العنصر نفسه تحت مساره أصلاً. وكذلك
+     * رابط باستعلام (تصنيف في الحوكمة تحت «عن الجمعية»)، فصفحته لعنصرها الرئيسي.
+     */
     public function hasCurrentChild(): bool
     {
-        return $this->children->contains(fn (MenuLink $child): bool => $child->isCurrent());
+        return $this->children->contains(fn (MenuLink $child): bool => ! $child->generated && ! str_contains($child->url, '?') && $child->isCurrent());
     }
 }

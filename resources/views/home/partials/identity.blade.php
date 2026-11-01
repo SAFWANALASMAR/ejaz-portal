@@ -91,7 +91,8 @@
 
             @if ($initiatives->isNotEmpty())
                 <div class="tone-card home-card home-card-wide" data-tone="dark" data-identity-card="initiatives">
-                    <a href="{{ route('initiatives.index') }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['initiatives'] }}</span></a>
+                    {{-- رابط البطاقة للفأرة واللمس، ولوحة المفاتيح وقارئ الشاشة يصلان الوجهة نفسها من «الكل» فلا تقف مرتين --}}
+                    <a href="{{ route('initiatives.index') }}" wire:navigate class="home-card-link" data-identity-link tabindex="-1" aria-hidden="true"></a>
                     <div class="home-card-body pb-0!">
                         <h2 class="home-card-head">
                             <x-icon-tile icon="sparkles" size="sm" class="home-card-icon" />{{ $headings['initiatives'] }}

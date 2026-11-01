@@ -159,3 +159,31 @@ it('refuses the option change to anyone without the documents update permission,
     expect(fn () => app(SaveDocument::class)->handle(userWithRole(RoleName::ContentEditor), $document, ['is_view_only' => 'perhaps']))
         ->toThrow(ValidationException::class);
 });
+
+it('streams a view-only document from S3 without signing a storage link, while an open one keeps its signed redirect', function () {
+    config(['filesystems.disks.content-s3' => ['driver' => 'local', 'root' => storage_path('framework/testing/disks/content-s3')]]);
+    $disk = Storage::fake('content-s3');
+    config(['filesystems.disks.content-s3.driver' => 's3', 'filesystems.private_disk' => 'content-s3']);
+
+    $signed = new ArrayObject;
+    $disk->buildTemporaryUrlsUsing(function (string $path) use ($signed) {
+        $signed[] = $path;
+
+        return 'https://storage.example.test/'.$path.'?signature=x';
+    });
+
+    $viewOnly = Document::factory()->create(['slug' => 'view-only', 'is_view_only' => true]);
+    $open = Document::factory()->create(['slug' => 'open-doc', 'is_view_only' => false]);
+    $disk->put((string) $viewOnly->file, pdfContents());
+    $disk->put((string) $open->file, pdfContents());
+
+    $response = $this->get('/governance/view-only/file')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+
+    expect($response->headers->get('Location'))->toBeNull()
+        ->and($response->headers->get('Content-Disposition'))->toStartWith('inline')
+        ->and($response->headers->get('Cache-Control'))->toContain('no-store')
+        ->and($signed->getArrayCopy())->toBe([]);
+
+    $this->get('/governance/view-only/download')->assertNotFound();
+    $this->get('/governance/open-doc/file')->assertRedirect('https://storage.example.test/'.$open->file.'?signature=x');
+});

@@ -74,8 +74,8 @@
                 <li class="relative min-w-0" @if ($item->children->isNotEmpty()) data-nav-dropdown @endif>
                     @if ($item->children->isNotEmpty())
                         {{-- تفتح بمرور الفأرة بمهلة قصيرة، وبالضغط واللمس ولوحة المفاتيح (app.js — ملاحظات المدير، 1 نوفمبر، البند ٣).
-                             وأولها الصفحة الأم ثم أقسامها (MenuSections، البند ٤)، والروابط تُجلب مسبقاً عند المرور (.hover) --}}
-                        <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}" aria-haspopup="true"
+                             وأولها الصفحة الأم ثم أقسامها (MenuSections، البند ٤) --}}
+                        <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
                             @if ($current) data-current @endif
                             class="nav-capsule">
                             <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
@@ -85,14 +85,14 @@
                         <ul id="menu-{{ $item->id }}" hidden data-dropdown-menu class="nav-dropdown absolute start-0 top-full z-50 min-w-56 rounded-2xl border border-line/70 bg-pale p-2 text-ink shadow-xl">
                             @foreach ($item->children as $child)
                                 <li>
-                                    <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate.hover @endif
-                                        @if ($loop->first ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
-                                        @class(['block rounded-xl px-4 py-2.5 text-ink hover:bg-sky-light/60 hover:text-primary-dark focus-visible:bg-sky-light/60 aria-[current=page]:font-bold aria-[current=page]:text-primary-dark', 'mb-1 border-b border-line/60 font-extrabold' => $loop->first])>{{ $child->label }}</a>
+                                    <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
+                                        @if ($child->isParent ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
+                                        @class(['block rounded-xl px-4 py-2.5 text-ink hover:bg-sky-light/60 hover:text-primary-dark focus-visible:bg-sky-light/60 aria-[current=page]:font-bold aria-[current=page]:text-primary-dark', 'mb-1 border-b border-line/60 font-extrabold' => $child->isParent])>{{ $child->label }}</a>
                                 </li>
                             @endforeach
                         </ul>
                     @else
-                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate.hover @endif
+                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
                             @if ($current) aria-current="page" @endif
                             class="nav-capsule">
                             <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
@@ -121,7 +121,7 @@
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-brand-light/50 ps-3">
                                 @foreach ($item->children as $child)
                                     <li><a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
-                                        @if ($loop->first ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
+                                        @if ($child->isParent ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
                                         class="block rounded-xl px-4 py-2.5 text-white/90 hover:bg-white/10 aria-[current=page]:font-bold aria-[current=page]:text-brand-light">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>

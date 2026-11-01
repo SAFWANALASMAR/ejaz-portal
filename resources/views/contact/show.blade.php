@@ -104,12 +104,12 @@
                 </div>
 
                 <form method="POST" action="{{ route('contact.store') }}" class="mt-6 space-y-5" novalidate data-async-form
-                    data-sending="{{ __('contact.success.sending') }}" data-failed="{{ __('contact.success.failed') }}" @if ($sentReference) hidden @endif>
+                    data-sending="{{ __('contact.success.sending') }}" data-failed="{{ __('contact.success.failed') }}" data-expired="{{ __('contact.success.expired') }}" data-too-many="{{ __('contact.success.too_many') }}" @if ($sentReference) hidden @endif>
                     @csrf
                     <input type="hidden" name="form_token" value="{{ $token }}">
 
                     {{-- أخطاء الإرسال بلا إعادة تحميل (contact-form.js)، وبجانبها خطأ كل حقل تحته --}}
-                    <div data-form-errors role="alert" hidden class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"></div>
+                    <div data-form-errors role="alert" tabindex="-1" hidden class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"></div>
 
                     {{-- فخ للروبوتات: مخفي عن العين (sr-only)، وعن القارئات الصوتية (aria-hidden) ولوحة المفاتيح --}}
                     <div class="sr-only" aria-hidden="true">

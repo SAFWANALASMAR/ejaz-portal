@@ -6,7 +6,8 @@
 function fieldError(form, name, message) {
     const input = form.querySelector(`[name="${CSS.escape(name)}"]`);
 
-    if (!input) {
+    // بلا حقل ظاهر (الختم المخفي): في التنبيه أعلى النموذج وحده
+    if (!input || input.type === 'hidden') {
         return;
     }
 
@@ -30,7 +31,8 @@ function fieldError(form, name, message) {
 }
 
 function clearErrors(form) {
-    form.querySelectorAll('[data-async-error]').forEach((note) => note.remove());
+    // ومعها أخطاء الخادم من إرسال سابق بلا سكربت (x-field: <id>-error)
+    form.querySelectorAll('[data-async-error], [id$="-error"]').forEach((note) => note.remove());
     form.querySelectorAll('[aria-invalid="true"]').forEach((input) => input.removeAttribute('aria-invalid'));
     const summary = form.querySelector('[data-form-errors]');
 
@@ -98,13 +100,16 @@ document.addEventListener('submit', async (event) => {
 
         if (response.status === 422 && data.errors) {
             Object.entries(data.errors).forEach(([name, messages]) => fieldError(form, name, messages[0]));
-            showSummary(form, data.message ?? Object.values(data.errors)[0]?.[0] ?? form.dataset.failed);
+            // أول خطأ وحده بالعربية، لا ملخص لارافيل («and N more errors»)
+            showSummary(form, Object.values(data.errors)[0]?.[0] ?? form.dataset.failed);
         } else {
-            // انتهت الجلسة (419) أو الحد (429) أو غيرهما: الرسالة من الخادم إن وُجدت
-            showSummary(form, data.message && response.status < 500 ? data.message : form.dataset.failed);
+            // انتهت الجلسة (419) أو الحد (429) أو غيرهما: نص عربي من الصفحة لا رسالة لارافيل الإنجليزية
+            showSummary(form, { 419: form.dataset.expired, 429: form.dataset.tooMany }[response.status] ?? form.dataset.failed);
         }
 
-        (form.querySelector('[aria-invalid="true"]') ?? form.querySelector('[data-form-errors]'))?.focus?.();
+        // التركيز إلى أول حقل ظاهر فيه خطأ، وإلا إلى التنبيه (خطأ الختم على حقل مخفي)
+        const invalid = [...form.querySelectorAll('[aria-invalid="true"]')].find((input) => input.type !== 'hidden' && input.offsetParent !== null);
+        (invalid ?? form.querySelector('[data-form-errors]'))?.focus();
         form.querySelector('[data-form-errors]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } catch {
         showSummary(form, form.dataset.failed);

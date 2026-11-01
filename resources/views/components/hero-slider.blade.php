@@ -49,7 +49,7 @@
                         @endif
                         <span class="title-bar" aria-hidden="true"></span>
                         @if (filled($slide['text'] ?? null))
-                            <p @class(['max-w-[34rem] text-lg leading-[1.75] text-white/90 sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3' => $index > 0, 'max-sm:line-clamp-2'])>{{ $slide['text'] }}</p>
+                            <p @class(['max-w-[34rem] text-lg leading-[1.75] text-white/90 sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0])>{{ $slide['text'] }}</p>
                         @endif
                         @if ($slide['button'] ?? null)
                             <a href="{{ $slide['button']['url'] }}" @navigate($slide['button']['url']) class="login-pill mt-2 self-start">

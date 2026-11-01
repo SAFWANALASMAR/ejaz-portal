@@ -123,13 +123,15 @@ function setup(root, signal) {
         schedule();
     };
     const holds = { pointer: false, focus: false };
-    root.addEventListener('pointerenter', hold('pointer', true), { signal });
-    root.addEventListener('pointerleave', hold('pointer', false), { signal });
-    root.addEventListener('focusin', hold('focus', true), { signal });
-    root.addEventListener(
+    // وفي بطاقات الهوية البطاقة كلها (رابطها يغطيها وهو أخ للدوّار): المرور عليها وتركيز رابطها يوقفانه أيضاً
+    const area = card ?? root;
+    area.addEventListener('pointerenter', hold('pointer', true), { signal });
+    area.addEventListener('pointerleave', hold('pointer', false), { signal });
+    area.addEventListener('focusin', hold('focus', true), { signal });
+    area.addEventListener(
         'focusout',
         (event) => {
-            if (!root.contains(event.relatedTarget)) {
+            if (!area.contains(event.relatedTarget)) {
                 hold('focus', false)();
             }
         },

@@ -26,7 +26,9 @@ window.addEventListener(
             return;
         }
 
-        const sameOrigin = document.referrer !== '' && new URL(document.referrer).origin === window.location.origin;
+        // والمرجع الصفحة نفسها (إرسال نموذج ثم تحويل إليها) لا يُحسب، وإلا عاد الرجوع إلى الصفحة نفسها
+        const referrer = document.referrer !== '' ? new URL(document.referrer) : null;
+        const sameOrigin = referrer !== null && referrer.origin === window.location.origin && referrer.pathname !== window.location.pathname;
 
         if (window.history.length > 1 && (forwardVisits > 0 || sameOrigin)) {
             event.preventDefault();

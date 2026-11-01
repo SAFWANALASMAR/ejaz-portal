@@ -36,7 +36,7 @@ final class MenuSections
     }
 
     /**
-     * عناصر القائمة المنسدلة: الصفحة الأم أولاً، ثم الأقسام، ثم عناصر المحرر الفرعية التي ليست منها (بالمسار نفسه).
+     * عناصر القائمة المنسدلة: الصفحة الأم أولاً، ثم الأقسام، ثم بقية عناصر المحرر الفرعية كلها.
      *
      * @param  array{label: string, url: ?string, children: list<array<string, mixed>>}  $row
      * @return list<array<string, mixed>>
@@ -44,27 +44,39 @@ final class MenuSections
     public static function children(array $row): array
     {
         $sections = self::for((string) $row['url']);
+        $children = $row['children'];
 
-        if ($sections === [] && $row['children'] === []) {
+        if ($sections === [] && $children === []) {
             return [];
         }
 
-        $items = [['id' => 0, 'label' => $row['label'], 'url' => $row['url'], 'opens_in_new_tab' => false]];
+        // عناصر المحرر لا يسقط منها شيء (ولو شارك عنصرٌ الأمَّ رابطها، كـ«التوجه الاستراتيجي» في «عن الجمعية»). فإن كان أولها برابط
+        // الأم فهو الأم، وإلا أُضيفت الأم أولاً
+        $parentKey = self::key((string) $row['url']);
+        $first = $children !== [] && self::key((string) $children[0]['url']) === $parentKey;
+        $items = $first
+            ? [[...array_shift($children), 'is_parent' => true]]
+            : [['id' => 0, 'label' => $row['label'], 'url' => $row['url'], 'opens_in_new_tab' => (bool) ($row['opens_in_new_tab'] ?? false), 'is_parent' => true]];
 
+        // ثم الأقسام بترتيبها، وما كان منها في عناصر المحرر يأخذ عنصره (باسمه) مكانه، ثم بقية عناصر المحرر
         foreach ($sections as $section) {
-            $items[] = ['id' => 0, 'label' => $section['label'], 'url' => $section['url'], 'opens_in_new_tab' => false];
-        }
+            $key = self::key($section['url']);
 
-        $seen = array_map(fn (array $item): string => self::key((string) $item['url']), $items);
+            if ($key === $parentKey) {
+                continue;
+            }
 
-        foreach ($row['children'] as $child) {
-            if (! in_array(self::key((string) $child['url']), $seen, true)) {
-                $items[] = $child;
-                $seen[] = self::key((string) $child['url']);
+            $match = array_key_first(array_filter($children, fn (array $child): bool => self::key((string) $child['url']) === $key));
+
+            if ($match !== null) {
+                $items[] = $children[$match];
+                unset($children[$match]);
+            } else {
+                $items[] = ['id' => 0, 'label' => $section['label'], 'url' => $section['url'], 'opens_in_new_tab' => false, 'generated' => true];
             }
         }
 
-        return $items;
+        return [...$items, ...array_values($children)];
     }
 
     /**

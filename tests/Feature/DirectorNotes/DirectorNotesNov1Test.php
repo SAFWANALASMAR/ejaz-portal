@@ -22,6 +22,7 @@ use App\Support\MenuSections;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /*
@@ -50,7 +51,7 @@ it('opens every header dropdown with the parent page itself, then its real secti
     $html = $this->get('/contact')->assertOk()->getContent();
 
     // المكتبة: الأم ثم أقسامها الأربعة
-    expect($html)->toContain('data-nav-dropdown')->toContain('aria-haspopup="true"')
+    expect($html)->toContain('data-nav-dropdown')->not->toContain('aria-haspopup')
         ->and(MenuSections::for('/library'))->toHaveCount(4)
         ->and(array_column(MenuSections::for('/library'), 'url'))->toBe(array_map(fn (LibrarySection $section): string => '/library/'.$section->value, LibrarySection::cases()));
 
@@ -256,4 +257,46 @@ it('shows a compact one-row how-to on the programs page and the full one on a pr
 
 it('shows the full licence number centred in the header licence box (item 1)', function () {
     $this->get('/contact')->assertOk()->assertSeeInOrder(['data-header-licence', '1000723700'], false);
+});
+
+it('keeps every editor item of a dropdown, even one sharing the parent link, and puts the parent first', function () {
+    $children = MenuSections::children(['label' => 'عن الجمعية', 'url' => '/about', 'opens_in_new_tab' => false, 'children' => [
+        ['id' => 1, 'label' => 'عن الجمعية', 'url' => '/about', 'opens_in_new_tab' => false],
+        ['id' => 2, 'label' => 'التوجه الاستراتيجي', 'url' => '/about', 'opens_in_new_tab' => false],
+        ['id' => 3, 'label' => 'اللوائح والسياسات', 'url' => '/governance?category=policies', 'opens_in_new_tab' => false],
+    ]]);
+
+    expect(array_column($children, 'label'))->toBe(['عن الجمعية', 'التوجه الاستراتيجي', 'اللوائح والسياسات'])
+        ->and($children[0]['is_parent'] ?? false)->toBeTrue();
+});
+
+it('marks a single top-level item current when a generated section repeats another item\'s link', function () {
+    nov1MenuItem('مكتبة إعجاز', '/library', ['sort' => 1]);
+    nov1MenuItem('المركز الإعلامي', '/media', ['sort' => 2]);
+    $about = nov1MenuItem('عن الجمعية', '/about', ['sort' => 0]);
+    nov1MenuItem('اللوائح', '/governance?category=policies', ['parent_id' => $about->id]);
+    nov1MenuItem('الحوكمة', '/governance', ['sort' => 3]);
+    Page::factory()->create(['slug' => Page::ABOUT, 'is_published' => true]);
+    Document::factory()->create(['category' => DocumentCategory::Policies]);
+
+    foreach (['/library/videos', '/governance?category=policies'] as $path) {
+        preg_match('/<nav data-main-nav.*?<\/nav>/s', $this->get($path)->assertOk()->getContent(), $nav);
+        expect(substr_count($nav[0], 'data-current'))->toBe(1, $path);
+    }
+});
+
+it('answers the daily mailbox limit as a JSON error in Arabic (item 23)', function () {
+    Notification::fake();
+    $session = Str::random(40);
+    $token = FormTimer::token($session);
+    $this->travel(5)->seconds();
+    $form = ['name' => 'زائر', 'email' => 'limit@example.com', 'type' => InquiryType::Inquiry->value, 'subject' => 'سؤال', 'message' => 'نص', 'form_token' => $token];
+
+    $key = 'contact-email:'.hash('sha256', 'limit@example.com');
+    foreach (range(1, 5) as $i) {
+        RateLimiter::hit($key, 86400);
+    }
+
+    $this->withCookie(config('session.cookie'), $session)->withCredentials()->postJson('/contact', $form)
+        ->assertStatus(422)->assertJsonPath('errors.email.0', __('contact.form.daily_limit'));
 });
