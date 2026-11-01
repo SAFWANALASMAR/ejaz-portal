@@ -24,7 +24,7 @@
                     {{-- صورة طولية (خادم الحرمين الشريفين، ورئيس الجمعية): في إطار بجانب النص على الحاسوب وفوقه على الجوال، بلا تمديد ولا قص للوجه --}}
                     <div class="hero-portrait-bg" aria-hidden="true"></div>
                 @else
-                    <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720" @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="100vw" @endif
+                    <img data-fit-adaptive src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720" @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="100vw" @endif
                         @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
                 @endif
                 <div class="concept-hero-scrim" aria-hidden="true"></div>

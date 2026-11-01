@@ -20,7 +20,7 @@
 
 <section data-page-hero class="concept-hero" data-size="page" @if ($compact) data-compact @endif>
     <div class="concept-hero-media">
-        <img src="{{ $heroSrc }}" alt="" width="1280" height="640">
+        <img src="{{ $heroSrc }}" alt="" width="1280" height="640" data-fit-adaptive>
     </div>
     <div class="concept-hero-scrim" aria-hidden="true"></div>
 

@@ -189,6 +189,38 @@ body {
     object-position: 50% 30%;
 }
 
+/* صورة البطل الأصغر من مساحتها (image-fit.js): كاملة بمقاسها في جهة النهاية (اليسار في الاتجاه من اليمين)، فوق نسخة مموّهة تملأ
+   الخلفية، فلا تُمدّ فتضبب */
+img[data-fit-small] {
+    object-fit: scale-down !important;
+    animation: none !important;
+}
+
+.concept-hero-media img[data-fit-small] {
+    z-index: 0;
+    object-position: 0% 50%;
+}
+
+/* مصغّرات المعرض: الصورة الصغيرة في وسط مربعها فوق نسختها المموّهة */
+[data-fit-frame] {
+    position: relative;
+}
+
+[data-fit-frame] > img[data-fit-small] {
+    position: relative;
+    z-index: 1;
+}
+
+.concept-hero-media:has(> img[data-fit-small])::before,
+.concept-hero-media .hero-slide:has(> img[data-fit-small])::before,
+[data-fit-frame]:has(> img[data-fit-small])::before {
+    content: '';
+    position: absolute;
+    inset: -2rem;
+    background: var(--fit-backdrop) center / cover no-repeat;
+    filter: blur(24px) brightness(0.6);
+}
+
 /* الصورة الطولية في إطار (HomeShowcase: portrait): فوق التدرج بخلفية الهوية، أعلاها ظاهر دائماً، ولا تُكبَّر فوق مقاسها */
 .hero-portrait-bg {
     position: absolute;
