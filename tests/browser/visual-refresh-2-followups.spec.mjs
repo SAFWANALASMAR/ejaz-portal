@@ -90,3 +90,33 @@ test('governance: the page renders right to left with no horizontal scroll', asy
     await expectRtlNoScroll(page);
     await expect(page.locator('[data-page-hero] h1')).toBeVisible();
 });
+
+// صورتا خادم الحرمين الشريفين ورئيس الجمعية (ملاحظة صفوان، 1 نوفمبر 2026): في إطار بلا تمديد، أعلاها ظاهر، ولا تُكبَّر فوق مقاسها
+test('home: the portrait slides show the whole face in a frame, undistorted and not upscaled', async ({ page }) => {
+    await page.goto('/');
+
+    for (const key of ['king', 'chairman']) {
+        const img = page.locator(`[data-hero-slide="${key}"] [data-hero-portrait] img`);
+        if ((await img.count()) === 0) {
+            continue; // صورة عريضة مرفوعة للشريحة: بعرض البطل
+        }
+
+        await img.evaluate((element) => {
+            element.loading = 'eager';
+        });
+        await expect.poll(() => img.evaluate((element) => element.complete && element.naturalWidth > 0)).toBe(true);
+
+        const metrics = await img.evaluate((element) => {
+            const style = getComputedStyle(element);
+            const box = element.getBoundingClientRect();
+
+            return { fit: style.objectFit, position: style.objectPosition, width: box.width, height: box.height, naturalWidth: element.naturalWidth, naturalHeight: element.naturalHeight };
+        });
+
+        expect(metrics.fit, key).toBe('cover');
+        expect(metrics.position, key).toMatch(/^50% 0(%|px)$/);
+        // تغطية الإطار تكبّر بأكبر النسبتين، فلا تتجاوز مقاس الصورة الطبيعي
+        const scale = Math.max(metrics.width / metrics.naturalWidth, metrics.height / metrics.naturalHeight);
+        expect(scale, `${key} لا تُكبَّر`).toBeLessThanOrEqual(1);
+    }
+});
