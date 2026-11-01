@@ -3,9 +3,12 @@
 namespace App\Actions\Competitions;
 
 use App\Enums\AttemptStatus;
+use App\Jobs\SendExamReceipt;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionQuestion;
 use App\Models\User;
+use App\Notifications\AttemptReceived;
+use App\Services\Messaging\MessagingSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +16,10 @@ use Illuminate\Support\Facades\DB;
  * تسليم المحاولة وتصحيحها آلياً: من الطالب («تسليم الإجابات»)، أو آلياً عند انتهاء الوقت (المتصفح، أو أول
  * طلب بعد الموعد، أو ejaz:close-expired-attempts). يقفل الصف، والمسلَّمة تُعاد كما هي بلا أثر، فالتسليم
  * متكرر الأمان. والدرجة تُحفظ ولا تُعرض للطالب حتى تُنشر نتائج المرحلة. والمقالي يُصحَّح يدوياً.
+ *
+ * وبعد التسليم الأول وحده: بريد تأكيد الاستلام لمن في حسابه بريد (receipt_sent_at يمنع تكراره)، وواتساب خلف مفتاحه
+ * برسالة واحدة إلى جوال ولي الأمر وإلا جوال الطالب (قرار صفوان والمدير التنفيذي، 30 أكتوبر 2026، وقرار صفوان 31 أكتوبر).
+ * وكلاهما في الطابور بعد حفظ التسليم.
  */
 class SubmitAttempt
 {
@@ -27,13 +34,17 @@ class SubmitAttempt
             throw new AuthorizationException;
         }
 
-        return DB::transaction(function () use ($attempt, $auto): CompetitionAttempt {
+        $fresh = false;
+
+        $locked = DB::transaction(function () use ($attempt, $auto, &$fresh): CompetitionAttempt {
             /** @var CompetitionAttempt $locked */
             $locked = CompetitionAttempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
 
             if (! $locked->isInProgress()) {
                 return $locked;
             }
+
+            $fresh = true;
 
             $late = now()->gt($locked->deadline_at);
             [$score, $max] = $this->grade($locked);
@@ -44,10 +55,30 @@ class SubmitAttempt
             $locked->submitted_at = $late ? $locked->deadline_at : now();
             $locked->score = (float) $score;
             $locked->max_score = (float) $max;
+
+            // بلا بريد في الحساب (التسجيل باسم المستخدم) لا إشعار ولا خطأ. والبريد غير الموثق يصله الإيصال كما أُدخل ومعه
+            // رابط التوثيق (قرار صفوان، 31 أكتوبر 2026 — AttemptReceived). والموقوف أو المجهَّل لا شيء. وreceipt_sent_at سجل الإرسال
+            $student = $locked->receipt_sent_at === null ? $locked->user : null;
+            $notify = $student !== null && $student->is_active && filled($student->email);
+
+            if ($notify) {
+                $locked->receipt_sent_at = now();
+            }
+
             $locked->save();
+
+            if ($notify) {
+                $student->notify(new AttemptReceived($locked));
+            }
 
             return $locked;
         });
+
+        if ($fresh && MessagingSettings::usageEnabled('whatsapp', 'exam_receipt')) {
+            SendExamReceipt::dispatch($locked->submission_id, $locked->id)->onQueue('receipts')->afterCommit();
+        }
+
+        return $locked;
     }
 
     /**

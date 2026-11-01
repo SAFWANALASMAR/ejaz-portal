@@ -3,9 +3,9 @@
     @include('competitions.exam._steps', ['current' => 'instructions'])
 
     <form method="POST" action="{{ route('competitions.exam.instructions', $competition->slug) }}" data-exam-gate
-        class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        class="space-y-5 concept-panel p-6">
         @csrf
-        <h2 class="text-xl font-bold text-primary">{{ __('competitions.exam.instructions_heading') }}</h2>
+        <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('competitions.exam.instructions_heading') }}</h2>
 
         <ul class="list-disc space-y-2 ps-6 leading-8 text-ink">
             @foreach (__('competitions.exam.instructions') as $line)

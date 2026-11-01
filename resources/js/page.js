@@ -39,10 +39,55 @@ const announcer = () => document.querySelector('[data-page-announcer]');
 let progress = null;
 let progressLimit = null;
 
+// انتقال الصفحات بالشعار (أمر التصور النهائي، البند R25 — Final-Transition): طبقة بتدرج الهوية الداكن ورمز الشعار مؤشراً للتحميل
+// (partials/page-transition، @persist فتبقى هي نفسها عبر التنقّل). تظهر مع شريط التقدّم بعد 150 ملّي ثانية وحدها فلا تومض،
+// وتبقى 300 على الأقل متى ظهرت، ثم يكتمل الشعار ويلمع (done) وتتلاشى (leaving). والحركة كلها في CSS، وتقليلها يتركه ثابتاً
+const transition = () => document.querySelector('[data-page-transition]');
+let shownAt = 0;
+let transitionTimer = null;
+
+function showTransition() {
+    const overlay = transition();
+
+    if (!overlay) {
+        return;
+    }
+
+    clearTimeout(transitionTimer);
+    overlay.hidden = false;
+    overlay.dataset.state = 'loading';
+    overlay.setAttribute('aria-busy', 'true');
+    shownAt = performance.now();
+}
+
+function finishTransition() {
+    const overlay = transition();
+
+    if (!overlay || shownAt === 0) {
+        return;
+    }
+
+    const wait = Math.max(0, 300 - (performance.now() - shownAt));
+    shownAt = 0;
+    clearTimeout(transitionTimer);
+    transitionTimer = setTimeout(() => {
+        overlay.dataset.state = 'done';
+        overlay.setAttribute('aria-busy', 'false');
+        transitionTimer = setTimeout(() => {
+            overlay.dataset.state = 'leaving';
+            transitionTimer = setTimeout(() => {
+                overlay.hidden = true;
+                delete overlay.dataset.state;
+            }, 300);
+        }, 450);
+    }, wait);
+}
+
 function stopProgress() {
     clearTimeout(progress);
     clearTimeout(progressLimit);
     document.documentElement.removeAttribute('data-navigating');
+    finishTransition();
 }
 
 export function start() {
@@ -84,7 +129,10 @@ export function start() {
         }
 
         stopProgress();
-        progress = setTimeout(() => document.documentElement.setAttribute('data-navigating', ''), 150);
+        progress = setTimeout(() => {
+            document.documentElement.setAttribute('data-navigating', '');
+            showTransition();
+        }, 150);
         progressLimit = setTimeout(stopProgress, 15000);
     });
 

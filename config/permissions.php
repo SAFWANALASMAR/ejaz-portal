@@ -91,6 +91,8 @@ $modules = [
     'archive' => $crud,
     // التصنيفات تحدد من يطّلع على ماذا، فلا تُربط بدور غير المدير التنفيذي والمسؤول التقني
     'archive_categories' => $crud,
+    // معرض الشواهد برابط سري لمانح أو مسؤول بلا حساب (قرار صفوان، 30 أكتوبر 2026): إصدار الرابط وتجديده تعديل، وإلغاؤه revoke
+    'evidence_galleries' => [...$crud, 'revoke'],
 
     // السجلات والمستندات ذات الصلاحية، واللجان وعضويتها، والخطة السنوية، وحسابات المنصات بلا كلمات مرور (requirements/13)
     'registers' => $crud,
@@ -138,6 +140,7 @@ return [
             'openings.*',
             'assembly_members.view', 'meetings.*', 'minutes.create', 'assembly_files.*',
             'forms.*', 'form_entries.view', 'form_entries.create', 'form_entries.update', 'form_entries.delete', 'form_entries.export', 'archive.*',
+            'evidence_galleries.*',
             'registers.*', 'committees.*', 'platform_accounts.*',
             // من فئة الموظفين: «متابعة البرامج» و«تسجيل الحضور»
             'programs.view', 'programs.attend',

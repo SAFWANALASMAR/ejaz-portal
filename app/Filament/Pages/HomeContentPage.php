@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Actions\Settings\UpdateHomeContent;
 use App\Actions\Settings\UpdateSiteSettings;
+use App\Enums\SiteIcon;
 use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\Setting;
 use App\Models\User;
@@ -12,6 +13,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -87,12 +89,17 @@ class HomeContentPage extends Page
             $data['brand'][$key] = $stored['brand'][$key] ?? null;
         }
 
+        foreach (HomeContent::HERO_SLIDES as $key) {
+            $data['hero_slides'][$key] = $stored['hero_slides'][$key] ?? null;
+        }
+
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);
             $data['values']['items'][] = [
                 'title' => $item['title'] ?? __('home.sections.values.items.'.$index.'.title'),
                 'text' => $item['text'] ?? __('home.sections.values.items.'.$index.'.text'),
                 'image' => $item['image'] ?? null,
+                'icon' => $item['icon'] ?? HomeContent::VALUE_ICONS[$index],
             ];
         }
 
@@ -105,6 +112,10 @@ class HomeContentPage extends Page
             ->statePath('data')
             ->disabled(fn (): bool => ! static::canWrite())
             ->components([
+                // صور شرائح البطل بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). فارغة تعني بديلها: صورة البطل وصورتا المقطعين
+                Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
+                    array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
+                ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('king.signature_title')->label(__('settings.home_content.signature_title'))->maxLength(300),
@@ -140,17 +151,35 @@ class HomeContentPage extends Page
                         ->schema([
                             TextInput::make('title')->label(__('settings.home_content.value_title'))->maxLength(80),
                             Textarea::make('text')->label(__('settings.home_content.value_text'))->rows(2)->maxLength(300),
+                            Select::make('icon')->label(__('ui.admin.value_icon'))->options(SiteIcon::class)->required(),
                             self::image('image', 'values')->columnSpanFull(),
                         ]),
                 ]),
+                // شرائح الهوية تحت البطل والبطاقة الجانبية في «خدماتنا» (مرجع المدير، 30 أكتوبر 2026). فارغة تعني: الرؤية والرسالة من
+                // صفحة «عن الجمعية» المنشورة، والبطاقة بلا نص
+                Section::make(__('ui.admin.identity'))->description(__('settings.home_content.identity_hint_final'))->columns(2)->schema([
+                    Textarea::make('identity.vision')->label(__('ui.identity.vision'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.mission')->label(__('ui.identity.mission'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.goals')->label(__('settings.home_content.goals'))->rows(3)->maxLength(6000),
+                    Textarea::make('identity.principles')->label(__('settings.home_content.principles'))->rows(3)->maxLength(6000),
+                    TextInput::make('identity.side_title')->label(__('ui.admin.side_title'))->maxLength(300),
+                    TextInput::make('identity.side_text')->label(__('ui.admin.side_text'))->maxLength(300),
+                ]),
+                // عناوين أقسام الرئيسية الظاهرة للزائر (أمر التصور النهائي §٢ب: تُدار من اللوحة لا من القوالب)
+                Section::make(__('settings.home_content.headings'))->description(__('settings.home_content.headings_hint'))->columns(3)->schema(
+                    array_map(fn (string $key): TextInput => TextInput::make('headings.'.$key)->label(__('settings.home_content.headings_fields.'.$key))->maxLength(300), HomeContent::TEXTS['headings']),
+                ),
                 // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
                 Section::make(__('settings.home_content.interface'))->columns(2)->schema([
                     TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),
                     TextInput::make('tickers.announcements')->label(__('settings.home_content.tickers_announcements'))->maxLength(300),
                     TextInput::make('channels.title')->label(__('settings.home_content.channels_title'))->maxLength(300),
-                    TextInput::make('channels.intro')->label(__('settings.home_content.channels_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                    // وسم «مثال تجريبي» في اللوحة وحدها ما دام النص الذي كتبه فريق البوابة لم يُستبدل (HomeContent::SAMPLE)
+                    TextInput::make('channels.intro')->label(__('settings.home_content.channels_intro'))
+                        ->helperText(fn (): ?string => HomeContent::isSample('channels', 'intro') ? __('settings.home_content.sample_hint') : null)->maxLength(300),
                     TextInput::make('announcements.title')->label(__('settings.home_content.announcements_title'))->maxLength(300),
-                    TextInput::make('announcements.intro')->label(__('settings.home_content.announcements_intro'))->helperText(__('settings.home_content.sample_hint'))->maxLength(300),
+                    TextInput::make('announcements.intro')->label(__('settings.home_content.announcements_intro'))
+                        ->helperText(fn (): ?string => HomeContent::isSample('announcements', 'intro') ? __('settings.home_content.sample_hint') : null)->maxLength(300),
                 ]),
                 Section::make(__('settings.home_content.footer'))->columns(2)->schema([
                     Textarea::make('footer.about')->label(__('settings.home_content.footer_about'))->rows(2)->maxLength(300)->columnSpanFull(),
@@ -160,6 +189,13 @@ class HomeContentPage extends Page
                     TextInput::make('footer.contact')->label(__('settings.home_content.footer_contact'))->maxLength(300),
                     TextInput::make('footer.channels')->label(__('settings.home_content.footer_channels'))->maxLength(300),
                     TextInput::make('footer.rights')->label(__('settings.home_content.footer_rights'))->maxLength(300),
+                    TextInput::make('footer.hours')->label(__('settings.home_content.footer_hours'))->maxLength(300),
+                    TextInput::make('footer.accounts')->label(__('settings.home_content.footer_accounts'))->maxLength(300),
+                ]),
+                // مربع الترخيص في الصف الأول من الرأس (أمر التصور النهائي، النسخة 63 — البند R2)
+                Section::make(__('settings.home_content.header'))->columns(2)->schema([
+                    TextInput::make('header.licensed_by')->label(__('settings.home_content.header_licensed_by'))->maxLength(300),
+                    TextInput::make('header.license_number')->label(__('settings.home_content.header_license_number'))->maxLength(300),
                 ]),
                 // ملفات الشعار والمخطوطة (HomeContent::BRAND): PNG أو WebP بخلفية شفافة، وفارغة تعني الأصل
                 Section::make(__('settings.home_content.brand'))->description(__('settings.home_content.brand_hint'))->columns(2)->schema(

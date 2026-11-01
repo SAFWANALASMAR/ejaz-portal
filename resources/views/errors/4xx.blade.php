@@ -8,17 +8,27 @@
 @endphp
 
 <x-layouts.app :title="__($key.'.title')" noindex>
-    <section class="py-16 sm:py-24">
-        <div class="container-page flex flex-col items-center text-center">
-            <p class="text-6xl font-bold text-accent sm:text-7xl" dir="ltr">{{ $code }}</p>
-            <span class="mt-6 block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-            <h1 class="mt-4 text-2xl font-bold text-primary sm:text-3xl">{{ __($key.'.title') }}</h1>
-            <p class="mt-4 max-w-xl text-lg leading-8 text-muted">{{ __($key.'.message') }}</p>
+    {{-- برأس الصفحات الداخلية في التصور النهائي (concept-hero): الصورة في جهة النهاية تحت التدرج الداكن، ورقم الخطأ كبيراً ثم
+         العنوان والشريط الأزرق والرسالة والزران. والحركة تتوقف لمن طلب تقليلها --}}
+    <section class="concept-hero" data-size="page" data-error-page>
+        <div class="concept-hero-media">
+            <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" width="1280" height="640">
+        </div>
+        <div class="concept-hero-scrim" aria-hidden="true"></div>
+        <div class="relative mx-auto flex min-h-[26rem] max-w-[82.5rem] flex-col justify-center gap-3 px-4 py-12 sm:px-7">
+            <x-icon-tile icon="exclamation-triangle" variant="glass" size="lg" class="rise-1" />
+            <p class="error-code rise-1 text-7xl font-black sm:text-8xl" dir="ltr">{{ $code }}</p>
+            <h1 class="rise-2 text-[2rem] leading-[1.15] font-black text-white sm:text-[2.75rem]">{{ __($key.'.title') }}</h1>
+            <span class="title-bar" aria-hidden="true"></span>
+            <p class="rise-3 max-w-xl text-lg leading-8 text-white/90">{{ __($key.'.message') }}</p>
 
-            <div class="mt-8 flex flex-wrap justify-center gap-3">
-                <x-button :href="route('home')" arrow>{{ __('errors.home') }}</x-button>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a href="{{ route('home') }}" wire:navigate class="hero-cta w-auto! px-7">
+                    {{ __('errors.home') }}
+                    {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
+                </a>
                 @if (Route::has('contact'))
-                    <x-button variant="outline" :href="route('contact')">{{ __('errors.contact') }}</x-button>
+                    <a href="{{ route('contact') }}" wire:navigate class="hero-pill px-7! py-3! text-lg!">{{ __('errors.contact') }}</a>
                 @endif
             </div>
         </div>

@@ -6,6 +6,7 @@ use App\Enums\CompetitionStatus;
 use App\Enums\RankingScope;
 use App\Enums\SubmissionStatus;
 use App\Enums\WorkType;
+use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
 use App\Support\CompetitionPage;
 use Database\Factories\CompetitionFactory;
@@ -37,11 +38,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property RankingScope $ranking_scope
  * @property Carbon|null $ranking_locked_at
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope', 'show_round_dates'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
-    use HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
+    use FlushesContentCache, HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -63,6 +64,7 @@ class Competition extends Model
             'page_content' => 'array',
             'prize_table' => 'array',
             'ranking_scope' => RankingScope::class,
+            'show_round_dates' => 'boolean',
             'ranking_locked_at' => 'datetime',
         ];
     }

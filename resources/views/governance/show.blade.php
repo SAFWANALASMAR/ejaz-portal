@@ -1,59 +1,75 @@
 {{--
-    صفحة الوثيقة: بياناتها، وزرا الفتح والتنزيل، والعرض المدمج على الحاسوب. ومتصفحات الجوال
-    لا تعرض PDF داخل الصفحة، فعليها الزران وحدهما. (تُخزَّن نصاً — GovernanceController)
+    صفحة الوثيقة (Final-Governance «صفحة الوثيقة»، المرحلة ج — البند P7): مدمجة مع بياناتها، بطاقة البيانات الملونة (التصنيف وتاريخ
+    الإصدار والإصدار والحجم وزرا التنزيل والفتح) في جهة البداية، والعرض المدمج بشريطه الداكن في جهة النهاية على الحاسوب. ومتصفحات
+    الجوال لا تعرض PDF داخل الصفحة، فعليها الزران وحدهما. ووثيقة الرابط المباشر بزر يفتحه وحده. (تُخزَّن نصاً — GovernanceController)
 --}}
 @php
     use App\Support\Dates;
     use App\Support\FileSize;
 
     $size = FileSize::display($document->file_size);
+    $rows = array_filter([
+        ['icon' => 'folder', 'label' => __('governance.fields.category'), 'value' => $document->category->getLabel()],
+        $document->issued_at ? ['icon' => 'calendar', 'label' => __('governance.fields.issued_at'), 'value' => Dates::display($document->issued_at)] : null,
+        filled($document->version) ? ['icon' => 'tag', 'label' => __('governance.fields.version'), 'value' => $document->version] : null,
+        $size ? ['icon' => 'document-text', 'label' => __('ui.inner.size'), 'value' => $size] : null,
+    ]);
 @endphp
 
 <x-page-hero :title="$document->title" :summary="$document->category->getLabel()" />
 
-<section class="py-10 sm:py-14">
-    <div class="container-page">
-        <div class="flex flex-wrap items-center justify-between gap-6 card-lift p-6">
-            <dl class="grid gap-x-10 gap-y-3 text-sm sm:grid-cols-3">
-                <div>
-                    <dt class="text-muted">{{ __('governance.fields.category') }}</dt>
-                    <dd class="mt-1 font-semibold text-ink">{{ $document->category->getLabel() }}</dd>
-                </div>
-                @if ($document->issued_at)
-                    <div>
-                        <dt class="text-muted">{{ __('governance.fields.issued_at') }}</dt>
-                        <dd class="mt-1 font-semibold text-ink">{{ Dates::display($document->issued_at) }}</dd>
+<section class="py-8 sm:py-10">
+    <div @class(['container-page grid gap-5 lg:items-start', 'lg:grid-cols-[1fr_2.2fr]' => $document->file !== null])>
+        <aside class="tone-card flex flex-col gap-4 p-6" data-tone="dark" data-document-meta>
+            <h2 class="text-xl leading-snug font-black">{{ $document->title }}</h2>
+            <dl class="flex flex-col gap-3 text-sm">
+                @foreach ($rows as $row)
+                    <div class="grid grid-cols-[auto_1fr] items-center gap-x-3 border-b border-white/15 pb-3 last:border-0 last:pb-0">
+                        <dt class="contents"><x-icon-tile :icon="$row['icon']" size="sm" class="row-span-2" /><span class="tone-card-muted">{{ $row['label'] }}</span></dt>
+                        <dd class="font-black">{{ $row['value'] }}</dd>
                     </div>
-                @endif
-                @if (filled($document->version))
-                    <div>
-                        <dt class="text-muted">{{ __('governance.fields.version') }}</dt>
-                        <dd class="mt-1 font-semibold text-ink">{{ $document->version }}</dd>
-                    </div>
-                @endif
+                @endforeach
             </dl>
 
-            <div class="flex flex-wrap gap-3">
-                <x-button :href="route('governance.download', $document->slug)">
-                    {{ __('governance.document.download') }}
-                    {{-- بلا شفافية: الأبيض على الأزرق 5.9:1، وبشفافية 80% كان 4.4:1 دون حد WCAG --}}
-                    @if ($size)
-                        <span class="font-normal">({{ $size }})</span>
+            @if (filled($document->description))
+                <p class="tone-card-muted leading-7">{{ $document->description }}</p>
+            @endif
+
+            <div class="flex flex-wrap gap-2.5">
+                {{-- وثيقة الرابط المباشر: زر يفتحه في تبويب جديد، بلا تنزيل ولا عرض مدمج --}}
+                @if ($document->file === null)
+                    @if ($document->isLink())
+                        <a href="{{ $document->url }}" target="_blank" rel="noopener noreferrer" class="tone-pill">
+                            {{ __('governance.document.open_link') }}
+                            <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                        </a>
                     @endif
-                </x-button>
-                <x-button variant="outline" :href="route('governance.file', $document->slug)" target="_blank" rel="noopener">
-                    {{ __('governance.document.open') }}
-                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
-                </x-button>
+                @else
+                    <a href="{{ route('governance.download', $document->slug) }}" class="tone-pill">
+                        {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4', ['aria-hidden' => 'true']) }}
+                        {{ __('governance.document.download') }}
+                        @if ($size)
+                            <span class="font-normal">({{ $size }})</span>
+                        @endif
+                    </a>
+                    <a href="{{ route('governance.file', $document->slug) }}" target="_blank" rel="noopener" class="tone-pill">
+                        {{ __('governance.document.open') }}
+                        <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                    </a>
+                @endif
             </div>
-        </div>
+        </aside>
 
-        @if (filled($document->description))
-            <p class="mt-6 max-w-4xl text-lg leading-8 text-ink/85">{{ $document->description }}</p>
-        @endif
-
-        <iframe src="{{ route('governance.file', $document->slug) }}" title="{{ __('governance.document.viewer', ['title' => $document->title]) }}"
-            loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
-        <p class="mt-6 text-sm text-muted lg:hidden">{{ __('governance.document.mobile_hint') }}</p>
+        @unless ($document->file === null)
+            <div class="concept-panel hidden overflow-hidden lg:block" data-document-viewer>
+                <p class="flex items-center gap-2.5 bg-primary-dark px-4 py-3 text-sm font-bold text-white">
+                    <x-icon-tile icon="document-text" variant="glass" size="xs" />
+                    {{ $document->title }}
+                </p>
+                <iframe src="{{ route('governance.file', $document->slug) }}" title="{{ __('governance.document.viewer', ['title' => $document->title]) }}"
+                    loading="lazy" class="block h-[80vh] w-full bg-[var(--blue-50)]"></iframe>
+            </div>
+            <p class="text-sm text-muted lg:hidden">{{ __('governance.document.mobile_hint') }}</p>
+        @endunless
     </div>
 </section>

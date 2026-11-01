@@ -4,15 +4,65 @@
 --}}
 @php
     use App\Enums\CompetitionStatus;
+    use App\Support\CompetitionPage;
     use App\Support\Dates;
+    use App\Support\HomeContent;
+    use App\Support\HomeShowcase;
+    use App\Support\Icon;
+    use App\Support\StructuredData;
 
     $status = $competition->status();
+    // مسابقة الطلاب (Final-Competition): شارة الموسم وسطر الجهة المنسَّق معها وبطاقة الجوائز في البطل، كلها من اللوحة
+    $season = $competition->student_mode ? $competition->pageText(CompetitionPage::SEASON) : null;
+    $partner = $competition->student_mode ? $competition->pageText(CompetitionPage::PARTNER) : null;
+    $prizeTotal = $competition->student_mode ? HomeShowcase::prizeTotal($competition) : 0;
+    // صورة المسابقة (البند P3): صورة شريحتها في بطل الرئيسية من «محتوى الرئيسية»، فلا موضع صورة جديد، وإلا الرسم المؤقت
+    $heroImage = $competition->student_mode ? HomeContent::heroSlideUrl('brahin') : null;
 @endphp
 
 <x-layouts.app :title="$competition->title" :description="$competition->description">
-    <x-page-hero :title="$competition->title" />
+    {{-- المسابقة فعاليةً ومسار التنقل إليها (StructuredData) --}}
+    @push('head')
+        {{ StructuredData::script([
+            StructuredData::competition($competition),
+            StructuredData::breadcrumbs($competition->title, route('competitions.show', $competition->slug), [[__('competitions.title'), route('competitions.index')]]),
+        ]) }}
+    @endpush
+    {{-- بطل مسابقة البراهين (Final-Competition، المرحلة ج): الموسم والجهة المنسَّق معها من نصوص الصفحة في اللوحة، وفارغين علامة
+         【ناقص】 في التطوير. و«بادر بالتسجيل» تحت العنوان على الحاسوب، وعلى الجوال بعرض كامل تحت بطاقة الجوائز (العنوان ثم البطاقة
+         ثم الزر)، وكلاهما من x-competitions.student-cta بحالاته --}}
+    <x-page-hero :title="$competition->title" :eyebrow="$season" :image="$heroImage" :compact="$competition->student_mode">
+        @if ($partner)
+            <p data-hero-partner class="rise-3 text-base text-white/90">{{ __('ui.prize.coordination', ['partner' => $partner]) }}</p>
+        @endif
+        @if ($competition->student_mode)
+            @if (blank($season))
+                <x-missing :what="__('ui.inner.season_missing')" class="self-start" />
+            @endif
+            @if (blank($partner))
+                <x-missing :what="__('ui.inner.partner_missing')" class="self-start" />
+            @endif
+            <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" register data-at="desktop" class="rise-3 mt-1" />
+        @endif
 
-    <section class="py-10 sm:py-14">
+        @if ($competition->student_mode)
+            <x-slot:aside>
+                <div class="prize-glass concept-shine rise-3" data-prize-total data-loop>
+                    @if ($prizeTotal > 0)
+                        <span class="relative flex items-center justify-between gap-3">
+                            <span class="text-lg font-extrabold">{{ __('ui.prize.hero_title') }}</span>
+                            <span class="float-icon text-white" data-loop>{{ Icon::svg('trophy', 'size-11', ['aria-hidden' => 'true']) }}</span>
+                        </span>
+                        <x-stat-badge :value="$prizeTotal" :label="__('ui.prize.currency')" on-load class="relative items-start! text-start!" />
+                    @endif
+                    <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" hero class="relative mt-2" />
+                </div>
+                <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" register data-at="mobile" />
+            </x-slot:aside>
+        @endif
+    </x-page-hero>
+
+    <section @class(['py-10 sm:py-14' => ! $competition->student_mode, 'py-7 sm:py-9' => $competition->student_mode])>
         <div class="container-page grid gap-8 lg:grid-cols-[1fr_22rem]">
             <div class="min-w-0 space-y-8">
                 <x-flash />
@@ -28,7 +78,6 @@
 
                 @if ($competition->student_mode)
                     @include('competitions.student._page')
-                    @include('competitions.student._rounds')
                 @endif
 
                 @if ($competition->categoryList() !== [])

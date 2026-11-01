@@ -1,22 +1,35 @@
 {{--
-    خدماتنا الإلكترونية (الصورة 06 — اللوحي): العنوان ووصفه في المنتصف، ثم شبكة بطاقات بيضاء،
-    لكل بطاقة أيقونة خطية في الأعلى واسم الخدمة تحتها. والبطاقة العريضة بعرض كامل (قياس الرضا).
+    خدماتنا الإلكترونية (التصور النهائي — Final-Services): الرأس، ثم «اختر الخدمة» بعنوانها بين الخطين، ثم بطاقات ملونة تتعاقب
+    درجتها (المرحلة ج — البند P8)، في كل منها مربع الأيقونة واسم الخدمة وكبسولة «ابدأ الطلب»، وأولها الدورات والبرامج والمسابقات
+    والمبادرات (البند R4)، والبطاقة العريضة (قياس الرضا) أفقية بزرها.
     ولا تظهر بطاقة خدمة لم تُبنَ وحدتها (config/eservices.php).
 --}}
 <x-layouts.app :title="__('services.title')" :description="__('services.intro')">
-    <section class="bg-surface/60 py-12 sm:py-16">
-        <div class="container-page max-w-4xl">
-            <div class="text-center">
-                <span class="mx-auto block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-                <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('services.title') }}</h1>
-                <p class="mt-3 text-lg text-muted">{{ __('services.intro') }}</p>
-            </div>
+    <x-page-hero :title="__('services.title')" :summary="__('services.intro')" />
 
-            <ul class="mt-10 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3" data-reveal-group>
+    <section class="band-sky">
+        <div class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7">
+            <x-section-heading center :description="__('ui.services.choose_hint')" class="mb-6.5">{{ __('ui.services.choose') }}</x-section-heading>
+
+            <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                 @foreach ($tiles as $tile)
-                    <li @class(['col-span-2 lg:col-span-3' => $tile['wide'] ?? false])>
-                        <x-section-tile :href="route($tile['route'])" :icon="$tile['icon']" :label="__($tile['label'])" tone="primary" size="size-10" class="justify-center" />
-                    </li>
+                    @if ($tile['wide'] ?? false)
+                        <li class="sm:col-span-2 lg:col-span-3">
+                            <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="tone-card group flex items-center gap-4 px-6 py-5" data-tone="dark">
+                                <x-icon-tile :icon="$tile['icon']" size="lg" />
+                                <span class="flex-1 text-xl font-black">{{ __($tile['label']) }}</span>
+                                <span class="tone-pill" aria-hidden="true">{{ __('ui.media.survey_cta') }}</span>
+                            </a>
+                        </li>
+                    @else
+                        <li class="tone-card">
+                            <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="group flex h-full flex-col gap-3 px-6 py-6">
+                                <x-icon-tile :icon="$tile['icon']" size="lg" />
+                                <span class="text-xl font-black">{{ __($tile['label']) }}</span>
+                                <span class="tone-pill mt-auto self-start" aria-hidden="true">{{ __('ui.services.start') }}</span>
+                            </a>
+                        </li>
+                    @endif
                 @endforeach
             </ul>
         </div>

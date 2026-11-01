@@ -73,7 +73,7 @@ class GovernanceController extends Controller implements HasMiddleware
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html'])]);
+        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('governance.title'), route('governance.index')]]]);
     }
 
     /**
@@ -96,16 +96,18 @@ class GovernanceController extends Controller implements HasMiddleware
      */
     private static function serve(Document $document, bool $download): Response
     {
+        $file = (string) $document->file;
+
         if (! PrivateFileResponse::isLocal(Document::disk())) {
-            return PrivateFileResponse::temporaryRedirect(Document::disk(), $document->file, 'application/pdf', $document->downloadName(), (int) config('filesystems.content_url_minutes'), $download);
+            return PrivateFileResponse::temporaryRedirect(Document::disk(), $file, 'application/pdf', $document->downloadName(), (int) config('filesystems.content_url_minutes'), $download);
         }
 
         $disk = Storage::disk(Document::disk());
         $headers = ['Content-Type' => 'application/pdf'];
 
         return $download
-            ? $disk->download($document->file, $document->downloadName(), $headers)
-            : $disk->response($document->file, $document->downloadName(), $headers, 'inline');
+            ? $disk->download($file, $document->downloadName(), $headers)
+            : $disk->response($file, $document->downloadName(), $headers, 'inline');
     }
 
     /**
@@ -157,7 +159,8 @@ class GovernanceController extends Controller implements HasMiddleware
     {
         $document = Document::query()->published()->where('slug', $slug)->firstOrFail();
 
-        abort_unless(Storage::disk(Document::disk())->exists($document->file), 404);
+        // ووثيقة الرابط المباشر بلا ملف يُقدَّم
+        abort_if($document->file === null || ! Storage::disk(Document::disk())->exists($document->file), 404);
 
         return $document;
     }

@@ -43,6 +43,18 @@ bash deploy/ci-runner/register.sh     # الحلقة: تبقى تعمل في ن�
   - مدة «الجودة والاختبارات» نحو مدة `composer check` على الجهاز.
 - **والجهاز مطفأ أو Docker Desktop متوقف أو الحلقة متوقفة:** لا فحص. والمهام تبقى في الطابور حتى 24 ساعة، ثم تُلغى فيُعاد تشغيلها.
 
+## مشغّل ثانٍ (مؤقت حتى v0.15.0)
+
+بموافقة المشرف (30 أكتوبر 2026) لتفريغ الطابور مع الفروع المتوازية. من مجلد مستقل (شجرة عمل على `main`، مثل `ejaz-ci-runner-2`)، لأن الحلقة تقرأ `register.sh` من ملفه وهي تعمل: فلكل مشغّل نسخته، وتحديث نسخة أحدهما (`git pull`) لا يكسر حلقة الآخر:
+
+```bash
+COMPOSE_PROJECT_NAME=ejaz-ci-runner-2 RUNNER_NAME=ejaz-local-2 bash deploy/ci-runner/register.sh
+```
+
+- **مشروع compose آخر:** خادم Docker خاص به ومجلداته (`ejaz-ci-runner-2_docker-data` و`_work`)، فلا يمس الأول. والعلامة `ejaz` نفسها، فيلتقط أيهما المهمة التالية.
+- **الكلفة على الجهاز:** نحو 1.5–3 جيجابايت ذاكرة ونواتان إلى ثلاث وقت المهمة.
+- **الإيقاف:** Ctrl+C في نافذته، ثم `COMPOSE_PROJECT_NAME=ejaz-ci-runner-2 docker compose -f deploy/ci-runner/compose.yaml down` و`docker volume rm ejaz-ci-runner-2_docker-data ejaz-ci-runner-2_work`.
+
 ## الانتقال من المشغّل الدائم (قبل 0.14.1)
 
 مرة واحدة:

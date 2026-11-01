@@ -1,13 +1,11 @@
 {{--
-    بلاطة قسم: أيقونة في مربع مستدير بتدرج خفيف من ألوان الهوية (.icon-tile)، ثم الاسم، في بطاقة بيضاء بظل ناعم ترتفع عند
-    المرور وتميل قليلاً مع الفأرة (التحسين البصري — docs/plans/visual-refresh.md). وtone باقٍ لمن يمرره ولا يغيّر الشكل.
+    بلاطة قسم (التصور النهائي — بلاطات المكتبة والمركز الإعلامي والخدمات): بطاقة بيضاء ترتفع وتلمع، فيها مربع أيقونة متدرج
+    بلونه من موضعه في القائمة (nth-child — App\Support\IconTones) بجانب اسم القسم. وtone وsize باقيان لمن يمررهما: tone يثبّت الدرجة.
 --}}
-@props(['href', 'icon', 'label', 'tone' => 'primary', 'size' => 'size-8'])
+@props(['href', 'icon', 'label', 'tone' => null, 'size' => null, 'index' => 0])
 
 <a href="{{ $href }}" @navigate($href)
-    {{ $attributes->class(['card-lift tilt group flex h-full flex-col items-center gap-4 p-6 text-center']) }}>
-    <span class="icon-tile size-16" aria-hidden="true">
-        {{ \App\Support\Icon::svg($icon, $size) }}
-    </span>
-    <span class="font-semibold text-ink group-hover:text-primary">{{ $label }}</span>
+    {{ $attributes->class(['card-glow group flex h-full items-center gap-4 px-5 py-4.5']) }}>
+    <x-icon-tile :icon="$icon" :shade="['primary' => 'medium', 'accent' => 'dark', 'secondary' => 'dark'][$tone ?? ''] ?? $tone" :index="$index" />
+    <span class="text-xl font-black text-primary-dark">{{ $label }}</span>
 </a>

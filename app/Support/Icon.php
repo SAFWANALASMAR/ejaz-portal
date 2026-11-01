@@ -22,6 +22,8 @@ final class Icon
     private const MAP = [
         'academic-cap' => 'graduation-cap',
         'arrow-down-tray' => 'download-simple',
+        'arrow-right-end-on-rectangle' => 'sign-in',
+        'arrow-trending-up' => 'trend-up',
         'arrow-right-start-on-rectangle' => 'sign-out',
         'banknotes' => 'money',
         'bars-3' => 'list',

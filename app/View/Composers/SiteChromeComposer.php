@@ -19,10 +19,19 @@ class SiteChromeComposer
 {
     public function compose(View $view): void
     {
-        $view->with('siteMenu', $this->menu());
-        $view->with('siteContact', Setting::group('contact'));
-        // شارة البث الجاري أو القادم في الرأس (docs/plans/livestream.md)
-        $view->with('liveStream', LiveStream::announced());
+        // الرأس والتذييل ونافذة البحث في كل صفحة: تُبنى بياناتها مرة واحدة في الطلب (خصائص الطلب نفسه)
+        $attributes = request()->attributes;
+
+        if (! $attributes->has(self::class)) {
+            $attributes->set(self::class, [
+                'siteMenu' => $this->menu(),
+                'siteContact' => Setting::group('contact'),
+                // شارة البث الجاري أو القادم في الرأس (docs/plans/livestream.md)
+                'liveStream' => LiveStream::announced(),
+            ]);
+        }
+
+        $view->with((array) $attributes->get(self::class));
     }
 
     /**

@@ -39,7 +39,7 @@ it('lists governance documents as file cards with their type, size, preview and 
 
     $html = (string) $this->get('/governance')->assertOk()->getContent();
 
-    expect(substr_count($html, 'class="file-card'))->toBe(2)
+    expect(substr_count($html, 'data-file-card'))->toBe(2)
         ->and($html)->toContain(e(__('site.file.size_mb', ['size' => '2.0'])))
         ->toContain(e(__('site.file.size_kb', ['size' => 3])))
         ->toContain(route('governance.show', 'bylaws'))

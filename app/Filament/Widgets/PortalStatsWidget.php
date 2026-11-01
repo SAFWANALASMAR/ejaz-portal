@@ -49,8 +49,22 @@ abstract class PortalStatsWidget extends StatsOverviewWidget
 
         return collect($this->keys())
             ->filter(fn (string $key): bool => array_key_exists($key, $values))
-            ->map(fn (string $key): Stat => Stat::make(__('surveys.stats.'.$key), number_format($values[$key])))
+            ->map(fn (string $key): Stat => Stat::make(__('surveys.stats.'.$key), number_format($values[$key]))->icon($this->icon()))
             ->values()
             ->all();
+    }
+
+    /**
+     * أيقونة المجموعة، تظهر في مربع متدرج بسمة اللوحة (resources/css/filament/admin/theme.css).
+     */
+    protected function icon(): string
+    {
+        return match ($this->group()) {
+            'people' => 'heroicon-o-users',
+            'requests' => 'heroicon-o-clipboard-document-list',
+            'programs' => 'heroicon-o-academic-cap',
+            'assembly' => 'heroicon-o-building-library',
+            default => 'heroicon-o-chart-bar',
+        };
     }
 }

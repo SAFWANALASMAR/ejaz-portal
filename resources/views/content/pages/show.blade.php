@@ -1,11 +1,5 @@
-{{-- صفحة محتوى عامة: رأس القسم، ثم وسم «مثال تجريبي» إن كان نصها من فريق البوابة (Page::is_sample)، ثم مقاطعها
-     (تُخزَّن نصاً — PageController) --}}
+{{-- صفحة محتوى عامة: رأس القسم، ثم مقاطعها (تُخزَّن نصاً — PageController). ووسم نص فريق البوابة (Page::is_sample) في
+     اللوحة وحدها لا للعامة (قرار صفوان، 29 أكتوبر 2026) --}}
 <x-page-hero :title="$page->title" :summary="$page->summary" />
-
-@if ($page->is_sample)
-    <div class="container-page pt-8">
-        <x-sample />
-    </div>
-@endif
 
 <x-content-blocks :blocks="$page->blocks" />

@@ -6,6 +6,7 @@ use App\Enums\DocumentCategory;
 use App\Filament\Forms\ContentFields;
 use App\Models\Document;
 use App\Rules\RealPdf;
+use App\Rules\SafeUrl;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -31,7 +32,10 @@ class DocumentForm
                 FileUpload::make('file')
                     ->label(__('governance.fields.file'))
                     ->helperText(__('governance.fields.file_hint'))
-                    ->required()
+                    // الملف أو الرابط، أحدهما وحده، ويفحصه SaveDocument أيضاً
+                    ->requiredWithout('url')
+                    ->prohibits('url')
+                    ->validationMessages(['required_without' => __('governance.errors.file_or_url'), 'prohibits' => __('governance.errors.file_and_url')])
                     ->disk(Document::disk())
                     ->directory(Document::DIRECTORY)
                     ->visibility('private')
@@ -40,6 +44,16 @@ class DocumentForm
                     ->rules([new RealPdf])
                     // لا رابط مؤقت موقّع: الملف يُنزَّل من إجراء «تنزيل الملف» بعد فحص الصلاحية
                     ->previewable(false)
+                    ->columnSpanFull(),
+                // بديل الملف: يُفتح في تبويب جديد، ولا يُضمَّن في الصفحة
+                TextInput::make('url')
+                    ->label(__('governance.fields.url'))
+                    ->helperText(__('governance.fields.url_hint'))
+                    ->requiredWithout('file')
+                    ->validationMessages(['required_without' => __('governance.errors.file_or_url')])
+                    ->maxLength(2048)
+                    ->rules([new SafeUrl(allowInternal: false)])
+                    ->extraInputAttributes(['dir' => 'ltr'])
                     ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),

@@ -43,7 +43,8 @@ it('shows up to three chosen published YouTube videos, playing only on request',
     LibraryItem::factory()->create(['title' => 'كتاب مختار', 'section' => LibrarySection::Books, 'on_home' => true]);
     LibraryItem::factory()->video('https://media.example.org/talk.mp4')->create(['title' => 'مرئي مستضاف مختار', 'on_home' => true]);
 
-    $html = (string) $this->get('/')->assertOk()->getContent();
+    // مقطع المرئيات وحده: «مستجدات الجمعية» في الرئيسية تعرض أحدث المنشور من المكتبة كله (التصور النهائي)
+    $html = (string) str((string) $this->get('/')->assertOk()->getContent())->after('id="home-videos"')->before('</section>');
 
     expect($html)->toContain(__('home.videos.title'))
         ->toContain('مرئي مختار 0')->toContain('مرئي مختار 2')
@@ -60,34 +61,30 @@ it('shows up to three chosen published YouTube videos, playing only on request',
     $this->get('/')->assertSeeInOrder(['مرئي مختار 0', 'مرئي مختار 1', 'مرئي مختار 2']);
 });
 
-it('shows the official accounts from the site settings, and no section without them', function () {
-    $this->get('/')->assertDontSee(__('home.sections.channels.title'));
-
+// النسخة 63 من التصور: الحسابات الرسمية في مربع التذييل وحده، ولا مقطع «قنوات التواصل» في الرئيسية
+it('shows the official accounts in the footer box, and no accounts section on the home page', function () {
     Setting::put('contact', ['social' => ['x' => 'https://x.com/example', 'youtube' => 'https://www.youtube.com/@example', 'instagram' => 'http://insecure.example']]);
 
     $html = (string) $this->get('/')->assertOk()->getContent();
-    // المقطع وحده، فالتذييل يعرض الحسابات أيضاً
-    $section = (string) str($html)->after('aria-labelledby="home-accounts"')->before('</section>');
+    $footer = (string) str($html)->after('<footer');
 
-    expect($html)->toContain(__('home.sections.channels.title'))
-        ->and($section)->toContain(__('settings.social.x'))
-        ->toContain(__('settings.social.youtube'))
-        ->toContain('href="https://x.com/example"')
-        ->toContain('rel="noopener noreferrer"')
-        ->not->toContain('insecure.example');
+    expect($html)->not->toContain('aria-labelledby="home-accounts"')
+        ->and($footer)->toContain('href="https://x.com/example"')
+        ->and($footer)->toContain('href="https://www.youtube.com/@example"')
+        ->and($html)->not->toContain('insecure.example');
 });
 
-it('groups partners and sponsors, and keeps one group without sponsors', function () {
+// «شركاؤنا» شريط واحد متحرك قبل التذييل (البند R17): الشركاء ثم الرعاة بترتيبهم
+it('runs partners then sponsors in one moving strip before the footer', function () {
     Partner::factory()->create(['name' => 'شريك تجريبي']);
-
-    $this->get('/')->assertOk()
-        ->assertSee(__('home.partners.title'))
-        ->assertDontSee('>'.__('home.partners.sponsors').'</h3>', false);
-
     Partner::factory()->create(['name' => 'راعٍ تجريبي', 'kind' => PartnerKind::Sponsor]);
 
-    $this->get('/')->assertOk()
-        ->assertSeeInOrder(['>'.__('home.partners.partners').'</h3>', 'شريك تجريبي', '>'.__('home.partners.sponsors').'</h3>', 'راعٍ تجريبي'], false);
+    $html = (string) $this->get('/')->assertOk()->getContent();
+    $strip = (string) str($html)->after('id="home-partners-track"')->before('data-marquee-copy');
+
+    expect($html)->toContain(__('home.sections_final.headings.partners'))
+        ->and(strpos($strip, 'شريك تجريبي'))->toBeLessThan(strpos($strip, 'راعٍ تجريبي'))
+        ->and(strrpos($html, 'id="home-partners"'))->toBeLessThan(strpos($html, '<footer'));
 });
 
 it('keeps sponsors on the home page however many partners come before them', function () {

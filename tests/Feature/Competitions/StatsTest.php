@@ -176,11 +176,11 @@ it('counts the attempts of a student competition: registered, running and submit
     $competition = Competition::factory()->student()->create(['slug' => 'students-stats']);
     $round = $competition->rounds()->firstOrFail();
     studentQuestion($round);
-    $middle = CompetitionCategory::query()->where('name', 'المرحلة المتوسطة')->value('id');
+    $middle = CompetitionCategory::query()->where('name', 'المرحلة الجامعية')->value('id');
 
-    // خمسة يسلّمون (أربعة من الثانوية وواحد من المتوسطة)، وواحد يختبر الآن، وواحد سجّل ولم يبدأ، وواحد أُلغي تسجيله
+    // خمسة يسلّمون (أربعة من الثانوية وواحد من الجامعية)، وواحد يختبر الآن، وواحد سجّل ولم يبدأ، وواحد أُلغي تسجيله
     foreach (range(1, 5) as $serial) {
-        $student = registeredStudent($competition, $serial, $serial === 5 ? ['category_id' => $middle, 'grade' => 'الأول المتوسط'] : []);
+        $student = registeredStudent($competition, $serial, $serial === 5 ? ['category_id' => $middle, 'grade' => null] : []);
         $attempt = app(StartAttempt::class)->handle($student, $round);
         app(SubmitAttempt::class)->handle($student, $attempt);
     }
@@ -195,7 +195,7 @@ it('counts the attempts of a student competition: registered, running and submit
         'registered' => 7,
         'drafts' => 1,
         'submitted' => 5,
-        'categories' => ['المرحلة الثانوية' => 4, 'المرحلة المتوسطة' => 1],
+        'categories' => ['المرحلة الثانوية' => 4, 'المرحلة الجامعية' => 1],
         'regions' => ['منطقة مكة المكرمة' => 5],
     ]);
 

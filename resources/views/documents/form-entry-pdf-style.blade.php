@@ -6,7 +6,7 @@ body { font-family: xbriyaz; color: #111111; font-size: 12pt; line-height: 1.5; 
 .logo { height: 16mm; }
 .org-name { color: #2E6898; font-size: 14pt; font-weight: bold; }
 .org-contact { color: #444444; font-size: 9pt; }
-.missing { color: #4A2175; }
+.missing { color: #1F4565; }
 .page-footer { width: 100%; border-top: 1px solid #999999; font-size: 9pt; color: #444444; padding-top: 4px; }
 .page-footer td { border: none; padding: 0; }
 .page-number { text-align: left; }

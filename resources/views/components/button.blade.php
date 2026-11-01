@@ -8,7 +8,7 @@
 ])
 
 @php
-    $base = 'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+    $base = 'keep-color inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
 
     $sizes = [
         'sm' => 'px-4 py-1.5 text-sm',

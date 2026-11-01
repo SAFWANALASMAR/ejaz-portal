@@ -42,7 +42,14 @@ class SecurityHeaders
         }
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        // معرض الشواهد: الرمز السري في الرابط، فلا يُرسل في Referer إلى الصور وروابط التخزين الموقّعة ولا إلى ما يُفتح منه،
+        // ولا تُفهرس الصفحة ولا ملفاتها ولا رد الرفض (docs/decisions.md — 30 أكتوبر 2026)
+        if ($request->routeIs('evidence.*')) {
+            $response->headers->set('Referrer-Policy', 'no-referrer');
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        } else {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
         // عزل النافذة عن صفحات المواقع الأخرى التي تفتحها، ومنع تضمين ردودنا في مواقع أخرى (فحص ZAP،
         // docs/security/). ولا Cross-Origin-Embedder-Policy: يمنع تضمين مقاطع يوتيوب

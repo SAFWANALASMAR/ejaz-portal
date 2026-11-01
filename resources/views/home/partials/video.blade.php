@@ -3,7 +3,7 @@
     (FetchHomeVideoThumbnail، بآلية صور المكتبة نفسها) تحت تدرج داكن بزر تشغيل (ملاحظة المدير التنفيذي، 29 أكتوبر 2026)،
     وإلى أن تُجلب الخلفية الداكنة. والمشغّل لا يُحمَّل إلا بضغط الزائر ومن youtube-nocookie.com (resources/js/app.js).
 --}}
-<section class="py-12 lg:py-16" aria-label="{{ __('home.video.label') }}">
+<section class="home-band py-12 lg:py-16" data-band="4" aria-label="{{ __('home.video.label') }}">
     <div class="container-page">
         <div class="card-lift mx-auto aspect-video max-w-4xl overflow-hidden">
             <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"

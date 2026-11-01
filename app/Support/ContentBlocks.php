@@ -29,6 +29,48 @@ final class ContentBlocks
     }
 
     /**
+     * أقصى طول لنص المقطع (بلا وسوم) ليدخل البطاقات المرقمة المتراكمة. الأطول (سياسة أو لائحة) يبقى مقطعاً عادياً.
+     */
+    public const STACK_TEXT = 700;
+
+    /**
+     * المقاطع للعرض: مقاطع النص القصيرة المتتالية بعناوينها (اثنان فأكثر) بطاقات مرقمة متراكمة (stack) كما في الموقع السابق
+     * («من نحن» و«الرؤية» و«الرسالة» — الدفعة الثانية من التحسين البصري)، والبقية كما هي.
+     *
+     * @return list<array{type: string, data: array<string, mixed>}>
+     */
+    public static function grouped(mixed $blocks): array
+    {
+        $grouped = [];
+        $run = [];
+
+        foreach (self::normalize($blocks) as $block) {
+            $body = is_string($block['data']['body'] ?? null) ? $block['data']['body'] : '';
+            $heading = $block['data']['heading'] ?? null;
+
+            if ($block['type'] === 'text' && is_string($heading) && trim($heading) !== '' && mb_strlen(trim(strip_tags($body))) <= self::STACK_TEXT) {
+                $run[] = $block;
+
+                continue;
+            }
+
+            $grouped = [...$grouped, ...self::stack($run), $block];
+            $run = [];
+        }
+
+        return [...$grouped, ...self::stack($run)];
+    }
+
+    /**
+     * @param  list<array{type: string, data: array<string, mixed>}>  $run
+     * @return list<array{type: string, data: array<string, mixed>}>
+     */
+    private static function stack(array $run): array
+    {
+        return count($run) >= 2 ? [['type' => 'stack', 'data' => ['items' => array_column($run, 'data')]]] : $run;
+    }
+
+    /**
      * مسارات صور المقاطع وصور البطاقات، لتنظيف الجديدة وحذف المحذوفة.
      *
      * @return list<string>

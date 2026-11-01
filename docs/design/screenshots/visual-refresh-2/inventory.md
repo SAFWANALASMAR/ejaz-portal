@@ -1,0 +1,189 @@
+# جرد صفحات الواجهة العامة والحساب — التحسين البصري ٢
+
+قرار صفوان (30 أكتوبر 22:38): الطابع على كل الصفحات بلا استثناء، والمرجع أقرب صفحة في التصور النهائي من النمط نفسه. هذا الجرد من
+`php artisan route:list --except-vendor --method=GET --json` (بلا `/admin`، فله فرع `feature/admin-theme`)، مع صفحات الدخول من Fortify،
+ولقطة لكل صفحة على 1440 و390 من جولة Playwright على بيانات المعاينة المحلية (`tests/browser/vr2-inventory.spec.mjs`، ملف عمل خارج قيت).
+
+اللقطات JPEG بجودة 55 لتخفيف المستودع، وكاملة الطول، والحركة موقوفة قبل التصوير.
+
+## الصفحات المصوّرة
+
+- **home** `/` (200): [1440](inventory/home-1440.jpg) · [390](inventory/home-390.jpg)
+- **about** `/about` (200): [1440](inventory/about-1440.jpg) · [390](inventory/about-390.jpg)
+- **page** `/pages/reports` (200 ← حُوّل إلى `/governance`): [1440](inventory/page-1440.jpg) · [390](inventory/page-390.jpg)
+- **initiatives** `/initiatives` (200): [1440](inventory/initiatives-1440.jpg) · [390](inventory/initiatives-390.jpg)
+- **initiative** `/initiatives/qiyam` (200): [1440](inventory/initiative-1440.jpg) · [390](inventory/initiative-390.jpg)
+- **governance** `/governance` (200): [1440](inventory/governance-1440.jpg) · [390](inventory/governance-390.jpg)
+- **governance-document** `/governance/license-certificate` (200): [1440](inventory/governance-document-1440.jpg) · [390](inventory/governance-document-390.jpg)
+- **library** `/library` (200): [1440](inventory/library-1440.jpg) · [390](inventory/library-390.jpg)
+- **library-videos** `/library/videos` (200): [1440](inventory/library-videos-1440.jpg) · [390](inventory/library-videos-390.jpg)
+- **library-audio** `/library/audio` (200): [1440](inventory/library-audio-1440.jpg) · [390](inventory/library-audio-390.jpg)
+- **library-books** `/library/books` (200): [1440](inventory/library-books-1440.jpg) · [390](inventory/library-books-390.jpg)
+- **library-research** `/library/research` (200): [1440](inventory/library-research-1440.jpg) · [390](inventory/library-research-390.jpg)
+- **library-video** `/library/videos/video-03` (200): [1440](inventory/library-video-1440.jpg) · [390](inventory/library-video-390.jpg)
+- **library-audio-item** `/library/audio/audio-01` (200): [1440](inventory/library-audio-item-1440.jpg) · [390](inventory/library-audio-item-390.jpg)
+- **media** `/media` (200): [1440](inventory/media-1440.jpg) · [390](inventory/media-390.jpg)
+- **news** `/media/news` (200): [1440](inventory/news-1440.jpg) · [390](inventory/news-390.jpg)
+- **news-article** `/media/news/vr2-demo-news-1` (200): [1440](inventory/news-article-1440.jpg) · [390](inventory/news-article-390.jpg)
+- **albums** `/media/albums` (200): [1440](inventory/albums-1440.jpg) · [390](inventory/albums-390.jpg)
+- **album** `/media/albums/vr2-demo` (200): [1440](inventory/album-1440.jpg) · [390](inventory/album-390.jpg)
+- **announcements** `/media/announcements` (200): [1440](inventory/announcements-1440.jpg) · [390](inventory/announcements-390.jpg)
+- **partners** `/media/partners` (200): [1440](inventory/partners-1440.jpg) · [390](inventory/partners-390.jpg)
+- **programs** `/programs` (200): [1440](inventory/programs-1440.jpg) · [390](inventory/programs-390.jpg)
+- **program** `/programs/vr2-demo-program-1` (200): [1440](inventory/program-1440.jpg) · [390](inventory/program-390.jpg)
+- **competitions** `/competitions` (200): [1440](inventory/competitions-1440.jpg) · [390](inventory/competitions-390.jpg)
+- **competition** `/competitions/brahin-1448` (200): [1440](inventory/competition-1440.jpg) · [390](inventory/competition-390.jpg)
+- **competition-guide** `/competitions/brahin-1448/guide` (200): [1440](inventory/competition-guide-1440.jpg) · [390](inventory/competition-guide-390.jpg)
+- **services** `/services` (200): [1440](inventory/services-1440.jpg) · [390](inventory/services-390.jpg)
+- **service-assembly-membership** `/services/assembly-membership` (200): [1440](inventory/service-assembly-membership-1440.jpg) · [390](inventory/service-assembly-membership-390.jpg)
+- **service-jobs** `/services/jobs` (200): [1440](inventory/service-jobs-1440.jpg) · [390](inventory/service-jobs-390.jpg)
+- **service-volunteering** `/services/volunteering` (200): [1440](inventory/service-volunteering-1440.jpg) · [390](inventory/service-volunteering-390.jpg)
+- **opening** `/services/openings/vr2-demo-opening` (200): [1440](inventory/opening-1440.jpg) · [390](inventory/opening-390.jpg)
+- **contact** `/contact` (200): [1440](inventory/contact-1440.jpg) · [390](inventory/contact-390.jpg)
+- **surveys** `/surveys` (404): [1440](inventory/surveys-1440.jpg) · [390](inventory/surveys-390.jpg)
+- **survey** `/surveys/g9hG8fyY5BF3gAZnlJxv7kRLIS00U79V` (200): [1440](inventory/survey-1440.jpg) · [390](inventory/survey-390.jpg)
+- **live** `/live` (200): [1440](inventory/live-1440.jpg) · [390](inventory/live-390.jpg)
+- **privacy** `/privacy` (200): [1440](inventory/privacy-1440.jpg) · [390](inventory/privacy-390.jpg)
+- **evidence-gallery** `/evidence/ZUQMi0l3akhqOJTwEPI3NUo2Bg6KVUKUtzQqAU0a9TOpNLHw` (200): [1440](inventory/evidence-gallery-1440.jpg) · [390](inventory/evidence-gallery-390.jpg)
+- **error-404** `/vr2-no-such-page` (404): [1440](inventory/error-404-1440.jpg) · [390](inventory/error-404-390.jpg)
+- **login** `/login` (200): [1440](inventory/login-1440.jpg) · [390](inventory/login-390.jpg)
+- **register** `/register` (200): [1440](inventory/register-1440.jpg) · [390](inventory/register-390.jpg)
+- **forgot-password** `/forgot-password` (200): [1440](inventory/forgot-password-1440.jpg) · [390](inventory/forgot-password-390.jpg)
+- **forgot-password-phone** `/forgot-password/phone` (200 ← حُوّل إلى `/forgot-password`): [1440](inventory/forgot-password-phone-1440.jpg) · [390](inventory/forgot-password-phone-390.jpg)
+- **reset-password** `/reset-password/vr2-sample-token?email=demo%40ejaz.test` (200): [1440](inventory/reset-password-1440.jpg) · [390](inventory/reset-password-390.jpg)
+- **account-dashboard** `/account` (200): [1440](inventory/account-dashboard-1440.jpg) · [390](inventory/account-dashboard-390.jpg)
+- **account-profile** `/account/profile` (200): [1440](inventory/account-profile-1440.jpg) · [390](inventory/account-profile-390.jpg)
+- **account-security** `/account/security` (200 ← حُوّل إلى `/user/confirm-password`): [1440](inventory/account-security-1440.jpg) · [390](inventory/account-security-390.jpg)
+- **account-data** `/account/data` (200): [1440](inventory/account-data-1440.jpg) · [390](inventory/account-data-390.jpg)
+- **account-programs** `/account/programs` (200): [1440](inventory/account-programs-1440.jpg) · [390](inventory/account-programs-390.jpg)
+- **account-requests** `/account/requests` (200): [1440](inventory/account-requests-1440.jpg) · [390](inventory/account-requests-390.jpg)
+- **account-forms** `/account/forms` (200): [1440](inventory/account-forms-1440.jpg) · [390](inventory/account-forms-390.jpg)
+- **account-competitions** `/account/competitions` (200): [1440](inventory/account-competitions-1440.jpg) · [390](inventory/account-competitions-390.jpg)
+- **account-verify-phone** `/account/verify-phone` (200 ← حُوّل إلى `/account`): [1440](inventory/account-verify-phone-1440.jpg) · [390](inventory/account-verify-phone-390.jpg)
+- **account-payments** `/account/payments` (404): [1440](inventory/account-payments-1440.jpg) · [390](inventory/account-payments-390.jpg)
+- **assembly** `/assembly` (200): [1440](inventory/assembly-1440.jpg) · [390](inventory/assembly-390.jpg)
+- **assembly-meetings** `/assembly/meetings` (403): [1440](inventory/assembly-meetings-1440.jpg) · [390](inventory/assembly-meetings-390.jpg)
+- **assembly-minutes** `/assembly/minutes` (403): [1440](inventory/assembly-minutes-1440.jpg) · [390](inventory/assembly-minutes-390.jpg)
+- **assembly-files** `/assembly/files` (403): [1440](inventory/assembly-files-1440.jpg) · [390](inventory/assembly-files-390.jpg)
+- **email-verify** `/email/verify` (200 ← حُوّل إلى `/user/confirm-password`): [1440](inventory/email-verify-1440.jpg) · [390](inventory/email-verify-390.jpg)
+- **competition-register** `/competitions/brahin-1448/register` (200): [1440](inventory/competition-register-1440.jpg) · [390](inventory/competition-register-390.jpg)
+- **program-register** `/programs/vr2-demo-program-1/register` (200): [1440](inventory/program-register-1440.jpg) · [390](inventory/program-register-390.jpg)
+- **opening-apply** `/services/openings/vr2-demo-opening/apply` (200): [1440](inventory/opening-apply-1440.jpg) · [390](inventory/opening-apply-390.jpg)
+
+## مسارات لم تُصوَّر ولماذا
+
+- `account/data/export`: تنزيل ملف JSON لا صفحة
+- `account/forms/{entry:uuid}, account/forms/{entry:uuid}/pdf`: لا نموذج محفوظ للحساب التجريبي، والـPDF ملف لا صفحة. وقائمة «نماذجي» مصوّرة
+- `account/requests/{serviceRequest:uuid}, …/files/{key}`: لا طلب للحساب التجريبي، والملف تنزيل. وقائمة «طلباتي» مصوّرة
+- `account/programs/{registration:uuid}/certificate, account/competitions/{submission}/certificate`: شهادة PDF لا صفحة
+- `assembly/files/{file}, assembly/meetings/{meeting}/attachments/{index}, assembly/meetings/{meeting}/minutes`: تنزيل ملفات
+- `assembly/meetings/{meeting}`: لا اجتماع في بيانات المعاينة. والبطاقة نفسها في «الاجتماعات» مصوّرة
+- `c/{code}`: تحويل إلى صفحة المسابقة (مصوّرة)
+- `competition-reviews/…, competition-videos/{video}, competition-works/{work}`: ملفات المشاركات للمحكّم وصاحبها، لا صفحات
+- `competitions/{slug}/entry, competitions/{slug}/exam, …/exam/questions/{number}, …/exam/review, …/exam/intro/video, …/exam/questions/{number}/media`: رحلة المسابقة العامة بالاختبار الإلكتروني: لا مسابقة من هذا النوع في بيانات المعاينة (البراهين مسابقة طلاب). والقوالب حُوّلت إلى أسطح التصور نفسها (concept-panel وعنوان بنقطة)
+- `competitions/{slug}/rounds/{round}, …/status, …/review, …/units/{number}`: تلزمها مرحلة نافذتها مفتوحة وتسجيل الحساب التجريبي فيها. والقوالب على أسطح التصور نفسها، وتُصوَّر في اختبار التحمل على التجريبية
+- `documents/entries/{entry:uuid}/pdf, documents/entries/{entry:uuid}/print`: طباعة النموذج على الترويسة الرسمية (مستند وورد/PDF) لا صفحة من صفحات الموقع
+- `donate, payments/{payment:uuid}/fake-checkout, payments/{payment:uuid}/return, store/catalog`: الدفع مؤرشف خلف PAYMENTS_ENABLED=false (404)
+- `store`: تحويل إلى متجر سلة الخارجي
+- `evidence/files/{item}/{key}`: ملف من معرض الشواهد (المعرض نفسه مصوّر)
+- `governance/{slug}/download, governance/{slug}/file, library/{section}/{slug}/download, library/{section}/{slug}/file, job-files/documents/{document}/download`: ملفات
+- `sitemap.xml, robots.txt, webhooks/whatsapp`: ليست صفحات
+- `two-factor-challenge, user/confirm-password`: تلزمهما جلسة دخول بتحقق ثنائي؛ على قالب الدخول نفسه (auth layout) المصوّر في الدخول والتسجيل والاستعادة
+
+## كل مسارات GET (229)
+
+- `/` — home
+- `/about` — about
+- `/account` — account.dashboard
+- `/account/competitions` — account.competitions
+- `/account/competitions/{submission}/certificate` — account.competitions.certificate
+- `/account/data` — account.data
+- `/account/data/export` — account.data.export
+- `/account/forms` — account.forms.index
+- `/account/forms/{entry:uuid}` — account.forms.show
+- `/account/forms/{entry:uuid}/pdf` — account.forms.pdf
+- `/account/payments` — account.payments
+- `/account/profile` — account.profile
+- `/account/programs` — account.programs.index
+- `/account/programs/{registration:uuid}/certificate` — account.programs.certificate
+- `/account/requests` — account.requests.index
+- `/account/requests/{serviceRequest:uuid}` — account.requests.show
+- `/account/requests/{serviceRequest:uuid}/files/{key}` — account.requests.file
+- `/account/security` — account.security
+- `/account/verify-phone` — account.phone.verify
+- `/assembly` — assembly.index
+- `/assembly/files` — assembly.files.index
+- `/assembly/files/{file}` — assembly.files.download
+- `/assembly/meetings` — assembly.meetings.index
+- `/assembly/meetings/{meeting}` — assembly.meetings.show
+- `/assembly/meetings/{meeting}/attachments/{index}` — assembly.meetings.attachment
+- `/assembly/meetings/{meeting}/minutes` — assembly.meetings.minutes
+- `/assembly/minutes` — assembly.minutes.index
+- `/c/{code}` — competitions.short
+- `/competition-reviews/{review}/videos/{video}` — competitions.reviews.video
+- `/competition-reviews/{review}/works/{work}` — competitions.reviews.work
+- `/competition-videos/{video}` — competitions.videos.status
+- `/competition-works/{work}` — competitions.works.show
+- `/competitions` — competitions.index
+- `/competitions/{slug}` — competitions.show
+- `/competitions/{slug}/entry` — competitions.entry
+- `/competitions/{slug}/exam` — competitions.exam
+- `/competitions/{slug}/exam/intro/video` — competitions.exam.intro.video
+- `/competitions/{slug}/exam/questions/{number}` — competitions.exam.question
+- `/competitions/{slug}/exam/questions/{number}/media` — competitions.exam.media
+- `/competitions/{slug}/exam/review` — competitions.exam.review
+- `/competitions/{slug}/guide` — competitions.student.guide
+- `/competitions/{slug}/register` — competitions.student.register
+- `/competitions/{slug}/rounds/{round}` — competitions.student.round
+- `/competitions/{slug}/rounds/{round}/review` — competitions.student.review
+- `/competitions/{slug}/rounds/{round}/status` — competitions.student.status
+- `/competitions/{slug}/rounds/{round}/units/{number}` — competitions.student.unit
+- `/contact` — contact
+- `/documents/entries/{entry:uuid}/pdf` — documents.entries.pdf
+- `/documents/entries/{entry:uuid}/print` — documents.entries.print
+- `/donate` — donate
+- `/evidence/files/{item}/{key}` — evidence.file
+- `/evidence/{token}` — evidence.show
+- `/filament/imports/{import}/failed-rows/download` — filament.imports.failed-rows.download
+- `/forgot-password/phone` — password.phone.reset
+- `/governance` — governance.index
+- `/governance/{slug}` — governance.show
+- `/governance/{slug}/download` — governance.download
+- `/governance/{slug}/file` — governance.file
+- `/initiatives` — initiatives.index
+- `/initiatives/{slug}` — initiatives.show
+- `/job-files/documents/{document}/download` — job-files.documents.download
+- `/library` — library.index
+- `/library/{section}` — library.section
+- `/library/{section}/{slug}` — library.show
+- `/library/{section}/{slug}/download` — library.download
+- `/library/{section}/{slug}/file` — library.file
+- `/live` — live
+- `/media` — media.index
+- `/media/albums` — media.albums.index
+- `/media/albums/{slug}` — media.albums.show
+- `/media/announcements` — media.announcements
+- `/media/news` — media.news.index
+- `/media/news/{slug}` — media.news.show
+- `/media/partners` — media.partners
+- `/pages/{slug}` — pages.show
+- `/payments/{payment:uuid}/fake-checkout` — payments.fake-checkout
+- `/payments/{payment:uuid}/return` — payments.return
+- `/privacy` — privacy
+- `/programs` — programs.index
+- `/programs/{slug}` — programs.show
+- `/programs/{slug}/register` — programs.register
+- `/robots.txt` — robots
+- `/services` — services.index
+- `/services/assembly-membership` — services.assembly-membership
+- `/services/jobs` — services.jobs
+- `/services/openings/{slug}` — services.openings.show
+- `/services/openings/{slug}/apply` — services.apply
+- `/services/volunteering` — services.volunteering
+- `/sitemap.xml` — sitemap
+- `/store` — store.index
+- `/store/catalog` — store.catalog
+- `/surveys` — surveys.index
+- `/surveys/{token}` — surveys.show
+- `/webhooks/whatsapp` — messaging.whatsapp.verify
+- `/{fallbackPlaceholder}` — —

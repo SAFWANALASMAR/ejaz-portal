@@ -10,8 +10,8 @@
 
 <x-layouts.account :title="__('competitions.student.round_title', ['round' => $round->name, 'competition' => $competition->title])">
 
-    <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
-        <h2 class="text-xl font-bold text-primary">{{ $round->name }}</h2>
+    <section class="space-y-5 concept-panel p-6">
+        <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ $round->name }}</h2>
         @if ($round->branch)
             <p class="font-semibold text-accent">{{ $round->branch }}</p>
         @endif
@@ -27,7 +27,7 @@
             </div>
         </dl>
 
-        {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة بوسم «مثال تجريبي» --}}
+        {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة --}}
         @php($alerts = $competition->pageList('guide_alerts'))
         @if ($alerts !== [])
             <p class="font-semibold text-ink">{{ __('competitions.student.page.guide_alerts') }}</p>
@@ -37,7 +37,7 @@
                 @endforeach
             </ul>
         @else
-            <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }} <x-sample /></p>
+            <p class="flex items-center gap-2 font-semibold text-ink">{{ __('competitions.student.instructions_heading') }}</p>
             <ul class="list-disc space-y-2 ps-5 leading-7 text-ink">
                 @foreach (__('competitions.student.instructions') as $line)
                     <li>{{ $line }}</li>

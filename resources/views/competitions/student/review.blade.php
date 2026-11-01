@@ -5,8 +5,8 @@
 <x-layouts.account :title="__('competitions.student.round_title', ['round' => $round->name, 'competition' => $competition->title])">
     @include('competitions.student._timer')
 
-    <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
-        <h2 class="text-xl font-bold text-primary">{{ __('competitions.exam.review_heading') }}</h2>
+    <section class="space-y-5 concept-panel p-6">
+        <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('competitions.exam.review_heading') }}</h2>
         <p class="text-muted">{{ __('competitions.student.review_text') }}</p>
 
         <ul class="grid gap-2 sm:grid-cols-2">

@@ -19,6 +19,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon $started_at
  * @property Carbon $deadline_at
  * @property Carbon|null $submitted_at
+ * @property Carbon|null $receipt_sent_at
  * @property Carbon|null $qualified_at
  * @property list<array{passage: int|null, questions: list<array{id: int, options: list<string>}>}> $layout
  * @property array<mixed>|null $answers
@@ -51,6 +52,7 @@ class CompetitionAttempt extends Model
             'started_at' => 'datetime',
             'deadline_at' => 'datetime',
             'submitted_at' => 'datetime',
+            'receipt_sent_at' => 'datetime',
             'auto_submitted' => 'boolean',
             'layout' => 'array',
             'answers' => 'array',

@@ -1,62 +1,66 @@
 {{--
-    أسفل رئيسية اللوحة: أقرب البرامج المسجل بها، وآخر الطلبات، بطاقتان متجاورتان على الحاسوب
-    ومتتاليتان على الجوال. لكل منهما رابط «عرض الكل».
+    أسفل رئيسية اللوحة (Final-Dashboard): «مواعيدي القادمة» مربعات ملونة متجاورة (اليوم والشهر في مربع، ثم البرنامج، ثم الوقت
+    وطريقة الحضور)، ثم آخر الطلبات. لكل منهما رابط «الكل».
 --}}
 @php
     use App\Support\Dates;
 @endphp
 
-<div class="grid gap-6 xl:grid-cols-2">
-    <x-card>
-        <div class="flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.upcoming') }}</h2>
-            <a href="{{ route('account.programs.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
-        </div>
+<section class="concept-panel rounded-[1.25rem] p-5 sm:p-6" aria-labelledby="account-upcoming" data-account-upcoming>
+    <div class="flex items-center justify-between gap-3">
+        <h2 id="account-upcoming" class="flex items-center gap-2.5 text-[1.375rem] font-black text-primary-dark sm:text-2xl">
+            <x-icon-tile icon="calendar-days" size="sm" shade="dark" />
+            {{ __('account.summary.upcoming') }}
+        </h2>
+        <a href="{{ route('account.programs.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}</a>
+    </div>
 
-        @if ($summary['upcoming']->isEmpty())
-            <p class="mt-4 text-muted">{{ __('account.summary.upcoming_empty') }}</p>
-        @else
-            <ul class="mt-4 divide-y divide-line/70">
-                @foreach ($summary['upcoming'] as $registration)
-                    <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <span class="min-w-0">
-                            @if ($registration->program->is_published)
-                                <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
-                            @else
-                                <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
-                            @endif
-                            <span class="mt-1 flex items-center gap-1.5 text-sm text-muted">
-                                {{ \App\Support\Icon::svg('calendar', 'size-4 text-accent') }}
-                                {{ Dates::display($registration->program->starts_at, withTime: true) }}
-                            </span>
-                        </span>
-                        @include('account.requests.status', ['status' => $registration->status])
-                    </li>
-                @endforeach
-            </ul>
-        @endif
-    </x-card>
+    @if ($summary['upcoming']->isEmpty())
+        <p class="mt-4 text-muted">{{ __('account.summary.upcoming_empty') }}</p>
+    @else
+        <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($summary['upcoming'] as $registration)
+                @php($starts = Dates::local($registration->program->starts_at))
+                <li class="tone-card flex min-h-[10.625rem] flex-col items-center justify-center gap-2.5 p-4 text-center" data-appointment>
+                    <span class="flex size-15 flex-none flex-col items-center justify-center rounded-[0.875rem] border border-current/30 bg-white/15 leading-tight font-black">
+                        <span class="text-xl tabular-nums">{{ $starts->translatedFormat('j') }}</span>
+                        <span class="text-xs">{{ $starts->translatedFormat('F') }}</span>
+                    </span>
+                    @if ($registration->program->is_published)
+                        <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="text-lg font-extrabold hover:underline">{{ $registration->program->title }}</a>
+                    @else
+                        <span class="text-lg font-extrabold">{{ $registration->program->title }}</span>
+                    @endif
+                    <span class="tone-card-muted text-sm">{{ Dates::display($registration->program->starts_at, withTime: true) }} — {{ $registration->program->delivery->getLabel() }}</span>
+                    <span class="keep-color">@include('account.requests.status', ['status' => $registration->status])</span>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+</section>
 
-    <x-card>
-        <div class="flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-ink">{{ __('account.summary.latest_requests') }}</h2>
-            <a href="{{ route('account.requests.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('account.summary.view_all') }}</a>
-        </div>
+<section class="concept-panel rounded-[1.25rem] p-5 sm:p-6" aria-labelledby="account-latest-requests">
+    <div class="flex items-center justify-between gap-3">
+        <h2 id="account-latest-requests" class="flex items-center gap-2.5 text-[1.375rem] font-black text-primary-dark sm:text-2xl">
+            <x-icon-tile icon="clipboard-document-list" size="sm" shade="medium" />
+            {{ __('account.summary.latest_requests') }}
+        </h2>
+        <a href="{{ route('account.requests.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}</a>
+    </div>
 
-        @if ($summary['latest_requests']->isEmpty())
-            <p class="mt-4 text-muted">{{ __('account.summary.requests_empty') }}</p>
-        @else
-            <ul class="mt-4 divide-y divide-line/70">
-                @foreach ($summary['latest_requests'] as $request)
-                    <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <span class="min-w-0">
-                            <a href="{{ route('account.requests.show', $request) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $request->opening->title }}</a>
-                            <span class="mt-1 block text-sm text-muted"><span dir="ltr">{{ $request->reference }}</span></span>
-                        </span>
-                        @include('account.requests.status', ['status' => $request->status])
-                    </li>
-                @endforeach
-            </ul>
-        @endif
-    </x-card>
-</div>
+    @if ($summary['latest_requests']->isEmpty())
+        <p class="mt-4 text-muted">{{ __('account.summary.requests_empty') }}</p>
+    @else
+        <ul class="mt-4 divide-y divide-line/70">
+            @foreach ($summary['latest_requests'] as $request)
+                <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <span class="min-w-0">
+                        <a href="{{ route('account.requests.show', $request) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $request->opening->title }}</a>
+                        <span class="mt-1 block text-sm text-muted"><span dir="ltr">{{ $request->reference }}</span></span>
+                    </span>
+                    @include('account.requests.status', ['status' => $request->status])
+                </li>
+            @endforeach
+        </ul>
+    @endif
+</section>

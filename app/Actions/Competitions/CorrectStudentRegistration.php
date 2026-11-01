@@ -40,7 +40,8 @@ class CorrectStudentRegistration
         $validated = Validator::make($data, [
             'reason' => ['required', 'string', 'min:10', 'max:500'],
             'full_name' => ['required', 'string', 'min:3', 'max:150'],
-            'category_id' => ['required', 'integer', Rule::in($submission->competition->openCategories()->pluck('competition_categories.id')->all())],
+            // والفئة الحالية مقبولة ولو أُغلقت بعد التسجيل (المتوسطة في البراهين)، فيُصحَّح غيرها من البيانات بلا نقل
+            'category_id' => ['required', 'integer', Rule::in([...$submission->competition->openCategories()->pluck('competition_categories.id')->all(), $submission->category_id])],
             'grade' => $grades === [] ? ['nullable', 'prohibited'] : ['required', 'string', Rule::in($grades)],
             'region_id' => ['required', 'integer', Rule::exists(CompetitionRegion::class, 'id')->where('is_active', true)],
             'gender' => ['required', Rule::enum(StudentGender::class)],

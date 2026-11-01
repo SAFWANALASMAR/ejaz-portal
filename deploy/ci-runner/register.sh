@@ -7,6 +7,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 repo=SAFWANALASMAR/ejaz-portal
+# اسم مشروع compose ومجلداته: الافتراضي للمشغّل الأول، ومشغّل ثانٍ باسم آخر (COMPOSE_PROJECT_NAME=ejaz-ci-runner-2 وRUNNER_NAME)
+# فلا يمس خادم الأول ولا مجلداته (docs/deploy/ci-runner.md «مشغّل ثانٍ»)
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ejaz-ci-runner}"
+project=$COMPOSE_PROJECT_NAME
+# ومشغّل ثانٍ بلا اسم آخر يحل محل الأول في GitHub (التسجيل بـ --replace)، فلا يبدأ
+[ "$project" = ejaz-ci-runner ] || [ "${RUNNER_NAME:-ejaz-local}" != ejaz-local ] || { echo "مشغّل ثانٍ يلزمه RUNNER_NAME آخر" >&2; exit 2; }
 action="${1:-loop}"
 case "$action" in
   loop) endpoint=registration-token ;;
@@ -30,7 +36,7 @@ token() {
 # المشترك. وثمنه تنزيل الصور في كل مهمة (المراجعة الأمنية لـ 0.14.1). ويفشل بأي خطوة فاشلة، فلا تبدأ المهمة
 clean() {
   docker compose rm -sf dind >/dev/null \
-    && docker volume rm -f ejaz-ci-runner_docker-data ejaz-ci-runner_work >/dev/null \
+    && docker volume rm -f "${project}_docker-data" "${project}_work" >/dev/null \
     && docker compose up -d --wait dind >/dev/null
 }
 
@@ -40,10 +46,10 @@ if [ "$action" = remove ]; then
   # مجلد التسجيل الدائم القديم يُركَّب هنا وحده. ثم تُوقف حاوية المشغّل الدائم القديمة وتُحذف (خدمة runner في ملف
   # ephemeral، فلا يراها down بلا الملف، وتبقى تمسك المجلد)، ثم dind والشبكة، ثم مجلد التسجيل state وحده: docker-data
   # وwork تعيد الحلقة إنشاءهما قبل كل مهمة
-  token | docker compose run --rm -T -v ejaz-ci-runner_state:/ejaz-ci-state runner remove
+  token | docker compose run --rm -T -v "${project}_state:/ejaz-ci-state" runner remove
   docker compose --profile ephemeral rm -sf runner
   docker compose down
-  docker volume rm -f ejaz-ci-runner_state >/dev/null
+  docker volume rm -f "${project}_state" >/dev/null
   exit 0
 fi
 

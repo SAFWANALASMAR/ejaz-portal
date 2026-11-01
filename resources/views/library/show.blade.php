@@ -111,14 +111,14 @@
         {{-- متصفحات الجوال لا تعرض PDF داخل الصفحة، فعليها زرا الفتح والتنزيل وحدهما --}}
         @elseif (filled($item->file) && $item->section->takesPdf())
             <iframe src="{{ route('library.file', $route) }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"
-                loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
+                loading="lazy" class="mt-8 hidden h-[80vh] w-full lg:block concept-panel"></iframe>
             <p class="mt-6 text-sm text-muted lg:hidden">{{ __('library.item.mobile_hint') }}</p>
         @endif
     </div>
 </section>
 
 @if ($related->isNotEmpty())
-    <section class="bg-surface py-12 sm:py-16" aria-labelledby="related">
+    <section class="band-sky py-12 sm:py-16" aria-labelledby="related">
         <div class="container-page">
             <x-section-heading id="related">{{ __('library.item.related') }}</x-section-heading>
             <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>

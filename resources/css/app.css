@@ -4,6 +4,8 @@
 @import 'tailwindcss' source(none);
 /* التحسين البصري والحركة (docs/plans/visual-refresh.md) */
 @import './visual.css';
+/* التصور النهائي الملزم (docs/design/final-concept) فوق ما قبله */
+@import './concept.css';
 
 @source '../views';
 @source '../js';
@@ -21,18 +23,30 @@
     --color-primary: #2E6898;
     --color-primary-dark: #1F4565;
     --color-primary-soft: #EAF3FB;
-    /* الثانوي (أخضر) */
-    --color-secondary: #287A37;
-    --color-secondary-soft: #E8F3EA;
+    /* الأزرق الفاتح على الداكن (التصور المعتمد، 30 أكتوبر 11:58): السطر الثاني من عنوان البطل، والنشط في الرأس الداكن.
+       5.4:1 على primary-dark (tests/Unit/BrandContrastTest.php). وأعمق الداكن لقاع التدرج الشعاعي في البطل والتذييل */
+    --color-brand-light: #8EC5F0;
+    --color-primary-deep: #142E45;
+    /* الأزرق وحده (أمر التصور النهائي، النسخة 63 — 31 أكتوبر 2026، البند G1): لا بنفسجي ولا أخضر في أي مكان. فالرمزان
+       الثانوي والمميز باقيان باسميهما لكل قالب يستعملهما، وقيمتهما من درجات الأزرق. والاستثناءات ثلاثة لا غير: أحمر يوتيوب،
+       وحالة «مرفوض»، وأسود بطاقة X (docs/decisions/2026-10-31-visual-refresh-2.md) */
+    --color-secondary: #24527A;
+    --color-secondary-soft: #E3F1FC;
     /* الداعم (أبيض) */
     --color-white: #FFFFFF;
-    /* المميز (بنفسجي): البارز والعبارات المميزة. وعلى الخلفيات الداكنة درجته الفاتحة */
-    --color-accent: #5D2A92;
-    --color-accent-dark: #4A2175;
-    --color-accent-light: #D9CCF0;
+    /* المميز: الأزرق العميق للبارز والعبارات المميزة وإطار التركيز. وعلى الخلفيات الداكنة درجته الفاتحة */
+    --color-accent: #1F5F8F;
+    --color-accent-dark: #174A70;
+    --color-accent-light: #BFE0FA;
 
-    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): «الذهبي» في المرجع
-       الأسلوبي يقابله في الهوية البنفسجي، ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
+    /* خلفية كل الصفحات والأقسام (البند R1): أزرق فاتح لا أبيض، والأقسام بتدرج قريب، والأفتح للحاويات بدل الأبيض الكبير */
+    --color-page: #D6E7F6;
+    --color-section: #CFE3F4;
+    --color-pale: #E3F1FC;
+    --color-sky-light: #BFE0FA;
+
+    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): من درجات الأزرق،
+       ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
     --color-highlight: var(--color-accent);
     --color-highlight-on-dark: var(--color-accent-light);
 
@@ -47,14 +61,44 @@
     --breakpoint-nav: 77.5rem;
 }
 
+/* سلّم الأزرق وحده (أمر التصور النهائي، النسخة 63 — البندان G1 وR1): منه كل لون في الواجهة، ولا بنفسجي ولا أخضر. والاستثناءات
+   ثلاثة: أحمر يوتيوب، وحالة «مرفوض»، وأسود بطاقة X. والقيم هنا مع رموز الهوية لا في visual.css ولا concept.css */
+:root {
+    --blue-950: #142e45;
+    --blue-900: #1f4565;
+    --blue-850: #24527a;
+    --blue-700: #2e6898;
+    --blue-600: #3e8aca;
+    --blue-400: #6aaee6;
+    --blue-300: #8ec5f0;
+    --blue-200: #bfe0fa;
+    --blue-100: #e3f1fc;
+    --blue-50: #f2f8fd;
+    /* خلفية الصفحة، والأقسام بتدرج قريب، والحاويات بتدرج فاتح جداً بدل الأبيض الكبير (الحقول وحدها بيضاء) */
+    --page-bg: #d6e7f6;
+    --section-bg: #cfe3f4;
+    --concept-surface: linear-gradient(160deg, var(--blue-50) 0%, #e8f2fb 100%);
+    /* الرأس والتذييل: تدرج الهوية الداكن */
+    --chrome-gradient: linear-gradient(180deg, #17344f 0%, var(--blue-900) 100%);
+    /* استثناءان من الأزرق (البند G1): زر تشغيل يوتيوب في شريط المقاطع، وأسود بطاقة «تابعنا على X» */
+    --youtube-red: #e5322d;
+    --x-black: #0b1622;
+}
+
 @layer base {
     html {
         -webkit-text-size-adjust: 100%;
-        scroll-behavior: smooth;
+    }
+
+    /* التمرير الناعم لمن لم يطلب تقليل الحركة وحده */
+    @media (prefers-reduced-motion: no-preference) {
+        html {
+            scroll-behavior: smooth;
+        }
     }
 
     body {
-        @apply bg-white text-ink antialiased;
+        @apply bg-page text-ink antialiased;
         /* Zain أعرض قليلاً من خطوط النظام، فالسطر أريح بهذا الارتفاع */
         line-height: 1.75;
     }
@@ -63,18 +107,17 @@
         @apply outline-2 outline-offset-2 outline-accent;
     }
 
-    /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
-       فإطار التركيز فيها بدرجته الفاتحة */
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) :focus-visible {
+    /* المميز الأزرق العميق لا يُرى على الأزرق الداكن ولا على خلفية عارض الصور، فإطار التركيز فيها بدرجته الفاتحة */
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, .concept-hero, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) :focus-visible {
         @apply outline-accent-light;
     }
 
-    /* والزر البنفسجي (variant="accent") لا يُرى حوله إطار بنفسجي: على الفاتح بالأزرق الداكن، وعلى الداكن بالفاتح */
+    /* والزر المميز (variant="accent") لا يُرى حوله إطار بلونه: على الفاتح بالأزرق الداكن، وعلى الداكن بالفاتح */
     .bg-accent:focus-visible {
         @apply outline-primary-dark;
     }
 
-    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, footer, [data-gallery-dialog]) .bg-accent:focus-visible {
+    :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, .concept-hero, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) .bg-accent:focus-visible {
         @apply outline-accent-light;
     }
 
@@ -125,7 +168,7 @@
 
     /* بطاقة الملف: أيقونة بنوعه، والبيانات، وزرا المعاينة والتنزيل */
     .file-card {
-        @apply flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:border-brand hover:shadow-md;
+        @apply flex items-center gap-4 rounded-2xl border border-line bg-pale p-4 shadow-sm transition hover:border-brand hover:shadow-md;
     }
 
     .prose-ar {
@@ -239,35 +282,5 @@ html[data-reveal-ready] [data-reveal] {
     }
 }
 
-/* شريط التقدّم أثناء التنقّل السريع (resources/js/page.js): زخرفة على html لا عنصر يقرؤه قارئ الشاشة، والصفحة
-   نفسها تُستبدل تحته */
-html[data-navigating]::before {
-    content: '';
-    position: fixed;
-    inset-inline: 0;
-    top: 0;
-    z-index: 60;
-    height: 3px;
-    background: var(--color-primary);
-    /* يبدأ من جهة البداية؛ ولا قيمة منطقية لـ transform-origin، والموقع من اليمين وحده */
-    transform-origin: right;
-    animation: navigating 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
-    pointer-events: none;
-}
-
-@keyframes navigating {
-    from {
-        transform: scaleX(0.1);
-    }
-
-    to {
-        transform: scaleX(0.95);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    html[data-navigating]::before {
-        animation: none;
-        transform: scaleX(0.6);
-    }
-}
+/* أثناء التنقّل السريع (resources/js/page.js) تبقى html[data-navigating] علامةً، والمؤشر هو انتقال الصفحات بالشعار
+   (partials/page-transition وconcept.css — البند R25)، بلا خط تقدم منفصل */

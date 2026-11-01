@@ -206,6 +206,30 @@ docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_STATS_CREDENTIALS="
 - كل عرض دخول بالتحقق الثنائي، والحساب نفسه لا يتجاوز عشر محاولات في ربع ساعة (`two-factor` في `FortifyServiceProvider`). فإن تكرر التشغيل ورُدّ بـ 429، فيُنتظر ربع ساعة.
 - الأرقام في اللقطات من قاعدة التطوير كما هي، والزيارات من تصفح حقيقي لها. ولا تُدخل أرقام ولا أيام زيارات تجريبية في قيت ولا في بذرة.
 
+## سمة لوحة الإدارة
+
+`admin-theme.spec.mjs` (`docs/decisions/2026-10-30-admin-theme.md`): كل أيقونة في الشريط الجانبي في مربع متدرج بثلاثة ألوان على الأقل، والعنصر النشط بحلقة فاتحة، والأيقونة البيضاء على أفتح نقطة في كل مربع لا تقل عن 3:1، والميل عند المرور، وتقليل الحركة يوقف الميل وخط العنوان النامي، ورأس الصفحة بتدرج ونقش، وبلا تمرير أفقي. واللقطات في `docs/design/screenshots/admin-theme-<الشاشة>-<العرض>.png` لأربع شاشات: الرئيسية، والقائمة (`menu-items`)، والنموذج (`home-content`)، والحالة الفارغة (`announcements`).
+
+```bash
+docker compose exec -T app php artisan ejaz:refresh-stats
+creds=$(docker compose exec -T app php artisan ejaz:demo-user --admin --json)
+rm -f storage/playwright/admin-theme-state.json
+
+docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_THEME_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs admin-theme.spec.mjs
+```
+
+- الدخول بالتحقق الثنائي مرة واحدة، وتُحفظ الجلسة في `storage/playwright/admin-theme-state.json` للعروض الثلاثة، وتُحذف قبل كل تشغيل بحساب تجريبي جديد.
+- خدمة Vite تحمل حجم `vendor` للقراءة، لأن السمة تستورد CSS من Filament.
+
+**جرد كل الشاشات** (`admin-theme-inventory.spec.mjs`): كل مسار GET تحت `/admin`، وأول سجل لكل مسار بمعامل من روابط قائمته، وصفحتا الدخول والتحقق الثنائي، بلقطة JPEG بعرض الشاشة في `docs/design/screenshots/admin-theme/`. والفهرس `inventory.md` هناك. ويُمنح الحساب التجريبي دور المسؤول التقني محلياً فيرى كل الشاشات:
+
+```bash
+docker compose exec -T app php artisan route:list --path=admin --method=GET --json > storage/playwright/admin-routes.json
+docker compose run --rm --no-deps -e VITE_HOST=none -e ADMIN_THEME_CREDENTIALS="$creds" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs admin-theme-inventory.spec.mjs --project=desktop --project=mobile
+```
+
 ## مسابقة الطلاب
 
 `student-competition.spec.mjs` على العروض الثلاثة: رحلة الطالب كاملة (صفحة المسابقة، والتسجيل، والبدء، والصفحات بالعداد والنص والمقطع، والمراجعة، والتسليم، و«تم استلام إجاباتك»، و«مشاركاتي» بلا درجة قبل النشر وبها بعده)، ورحلة المدير في اللوحة على الحاسب والجوال (المراحل، والبنك، والنصوص، والحقول، والمسجلون والاطلاع على رقم الهوية، والنتائج، ونافذة السحب، والنموذج، والقائمتان). وفي كل صفحة: الاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe. واللقطات في `docs/reviews/screenshots/2026-10-25-competition/`.

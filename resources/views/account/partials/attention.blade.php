@@ -1,8 +1,9 @@
 {{-- ما يحتاج تصرف المستخدم: طلب طُلب استكماله، أو مسودة لم تُرسل وفرصتها مفتوحة --}}
 @if ($summary['needs_completion']->isNotEmpty() || $summary['open_drafts']->isNotEmpty())
-    <section aria-labelledby="attention" class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
-        <h2 id="attention" class="flex items-center gap-2 font-semibold">
-            {{ \App\Support\Icon::svg('exclamation-triangle', 'size-5') }}
+    {{-- بلغة التصور النهائي (11): صندوق سماوي بحد، ومربع أيقونة متدرج (ملاحظة المدير 19:06) --}}
+    <section aria-labelledby="attention" class="rounded-[1.125rem] border border-[var(--concept-pale)] bg-primary-soft p-5 text-ink">
+        <h2 id="attention" class="flex items-center gap-3 text-[19px] font-black text-primary-dark">
+            <x-icon-tile icon="exclamation-triangle" shade="dark" size="sm" />
             {{ __('account.summary.attention') }}
         </h2>
         <ul class="mt-3 space-y-2">
