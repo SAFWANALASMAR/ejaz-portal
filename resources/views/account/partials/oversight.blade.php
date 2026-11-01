@@ -27,12 +27,12 @@
         <p class="mt-1 text-sm text-muted">{{ __('account.oversight.description') }}</p>
         <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             @foreach (['programs' => 'academic-cap', 'registrations' => 'clipboard-document-check', 'members' => 'user-group', 'meetings' => 'calendar-days', 'submissions' => 'trophy'] as $key => $icon)
-                <div class="rounded-xl border border-line/70 p-4">
-                    <dt class="flex items-center gap-2 text-sm text-muted">
-                        {{ \App\Support\Icon::svg($icon, 'size-5 shrink-0 text-accent') }}
+                <div class="tone-card p-4">
+                    <dt class="tone-card-muted flex items-center gap-2 text-sm">
+                        <x-icon-tile :icon="$icon" size="xs" />
                         {{ __('account.oversight.'.$key) }}
                     </dt>
-                    <dd class="mt-2 text-2xl font-bold text-ink">{{ number_format($oversight['stats'][$key]) }}</dd>
+                    <dd class="mt-2 text-2xl font-black tabular-nums">{{ number_format($oversight['stats'][$key]) }}</dd>
                 </div>
             @endforeach
         </dl>

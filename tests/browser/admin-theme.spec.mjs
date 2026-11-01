@@ -67,13 +67,18 @@ async function signedInPage(browser, baseURL, use, reducedMotion = 'no-preferenc
     return context.newPage();
 }
 
-// نسبة التباين (WCAG) بين الأبيض ولون rgb()
-function contrastWithWhite(rgb) {
+// نسبة التباين (WCAG) بين لونين rgb()
+function luminance(rgb) {
     const [r, g, b] = rgb.map((channel) => {
         const c = channel / 255;
         return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
     });
-    return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrast(a, b) {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
 }
 
 test.describe('admin panel theme', () => {
@@ -100,31 +105,36 @@ test.describe('admin panel theme', () => {
             await page.screenshot({ path: `docs/design/screenshots/admin-theme-${screen.name}-${viewport.width}.png`, fullPage: true });
         }
 
-        // أيقونات الإحصاء: أول ثلاث بثلاثة ألوان (أزرق ثم بنفسجي ثم أخضر)
+        // بطاقات الإحصاء ملونة بالتعاقب (المرحلة د من #111 — البند A1): داكنة بنص أبيض ثم فاتحة بنص #142E45
         await page.goto('/admin');
-        const stats = await page.locator('.fi-wi-stats-overview-stat-label-ctn > .fi-icon').evaluateAll((icons) => icons.slice(0, 3).map((icon) => getComputedStyle(icon).backgroundImage));
-        expect(stats).toHaveLength(3);
-        expect(new Set(stats).size).toBe(3);
+        const cards = await page.locator('.fi-wi-stats-overview-stat').evaluateAll((items) => items.slice(0, 2).map((item) => ({ bg: getComputedStyle(item).backgroundImage, color: getComputedStyle(item).color })));
+        expect(cards).toHaveLength(2);
+        for (const card of cards) expect(card.bg).toContain('linear-gradient');
+        expect(cards[0].color).toBe('rgb(255, 255, 255)');
+        expect(cards[1].color).toBe('rgb(20, 46, 69)');
 
-        // الشريط الجانبي: الشعار الأبيض، وكل أيقونة في مربع متدرج، وأول ثلاثة مربعات بثلاثة ألوان مختلفة
+        // الشريط العلوي أزرق بحد #8EC5F0
+        expect(await page.locator('.fi-topbar').first().evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('linear-gradient');
+
+        // الشريط الجانبي: الشعار الأبيض، وكل أيقونة في مربع متدرج بدرجتين تتعاقبان (القرار ١١ في 2026-10-31-visual-refresh-2.md)
         await page.goto('/admin/menu-items');
         await expect(page.locator('.ej-sidebar-brand img')).toHaveCount(2);
-        const tiles = await page.locator('.fi-sidebar-item-icon').evaluateAll((icons) => icons.map((icon) => getComputedStyle(icon).backgroundImage));
+        const tiles = await page.locator('.fi-sidebar-item-icon').evaluateAll((icons) => icons.map((icon) => ({ bg: getComputedStyle(icon).backgroundImage, color: getComputedStyle(icon).color })));
         expect(tiles.length).toBeGreaterThan(3);
-        for (const tile of tiles) expect(tile).toContain('linear-gradient');
-        expect(new Set(tiles).size).toBeGreaterThanOrEqual(3);
+        for (const tile of tiles) expect(tile.bg).toContain('linear-gradient');
+        expect(new Set(tiles.map((tile) => tile.bg)).size).toBeGreaterThanOrEqual(2);
 
-        // العنصر النشط: حلقة فاتحة (#8EC5F0) حول مربعه
-        const active = page.locator('.fi-sidebar-item.fi-active .fi-sidebar-item-icon').first();
-        expect(await active.evaluate((icon) => getComputedStyle(icon).boxShadow)).toContain('rgba(142, 197, 240');
+        // العنصر النشط: كبسولة بحد #8EC5F0
+        const active = page.locator('.fi-sidebar-item.fi-active > .fi-sidebar-item-btn').first();
+        expect(await active.evaluate((btn) => getComputedStyle(btn).borderTopColor)).toBe('rgb(142, 197, 240)');
 
-        // التباين: الأيقونة البيضاء على أفتح نقطة في كل لون من الألوان الثلاثة لا تقل عن 3:1 (WCAG 1.4.11)
-        for (const tile of new Set(tiles)) {
-            const stops = [...tile.matchAll(/rgb\((\d+), (\d+), (\d+)\)/g)].map((match) => match.slice(1, 4).map(Number));
+        // التباين: رسم الأيقونة على كل نقطة من تدرج مربعه لا يقل عن 3:1 (WCAG 1.4.11)
+        for (const tile of tiles) {
+            const glyph = tile.color.match(/\d+/g).slice(0, 3).map(Number);
+            const stops = [...tile.bg.matchAll(/rgb\((\d+), (\d+), (\d+)\)/g)].map((match) => match.slice(1, 4).map(Number));
             expect(stops.length).toBeGreaterThanOrEqual(2);
-            for (const stop of stops) expect(contrastWithWhite(stop), tile).toBeGreaterThanOrEqual(3);
+            for (const stop of stops) expect(contrast(glyph, stop), tile.bg).toBeGreaterThanOrEqual(3);
         }
-        expect(await active.evaluate((icon) => getComputedStyle(icon).color)).toBe('rgb(255, 255, 255)');
 
         // الميل عند المرور (الحاسوب، فالشريط ظاهر)
         if (viewport.width >= 1024) {

@@ -121,7 +121,7 @@ class BuildHomePage
             'strip_videos' => self::stripVideos(),
             // بطاقة «تابعنا على X» من حساب إكس في «الحسابات الرسمية» (قرار صفوان، 31 أكتوبر 01:38): بلا سكربت من إكس، وتختفي بلا رابط
             'x_account' => self::xAccount(),
-            'strip_books' => LibraryItem::query()->published()->where('section', LibrarySection::Books)->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get(),
+            'strip_books' => self::stripBooks(),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
@@ -139,6 +139,24 @@ class BuildHomePage
             'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
             'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
         ];
+    }
+
+    /**
+     * شريط «جديد مكتبة إعجاز وقناتها» في لوحة المستفيد (Final-Dashboard — البند D1): المقاطع والأغلفة نفسها التي في شريطي الرئيسية.
+     *
+     * @return array{videos: Collection<int, LibraryItem>, books: Collection<int, LibraryItem>}
+     */
+    public static function libraryStrip(): array
+    {
+        return ['videos' => self::stripVideos(), 'books' => self::stripBooks()];
+    }
+
+    /**
+     * @return Collection<int, LibraryItem>
+     */
+    private static function stripBooks(): Collection
+    {
+        return LibraryItem::query()->published()->where('section', LibrarySection::Books)->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**

@@ -34,6 +34,9 @@
             </div>
         @endif
 
+        {{-- ما تحت الترحيب بعرض المحتوى كله (شريط المكتبة في لوحة المستفيد — Final-Dashboard) --}}
+        {{ $belowWelcome ?? '' }}
+
         <div class="mx-auto grid max-w-[82.5rem] gap-6 px-4 pt-6 sm:px-7 lg:grid-cols-[17.5rem_1fr]">
             <aside>
                 {{-- الجوال واللوحي: قائمة منسدلة --}}
