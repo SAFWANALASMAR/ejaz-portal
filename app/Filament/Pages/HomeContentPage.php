@@ -93,6 +93,13 @@ class HomeContentPage extends Page
             $data['hero_slides'][$key] = $stored['hero_slides'][$key] ?? null;
         }
 
+        foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
+            $data['page_heroes'][$key] = $stored['page_heroes'][$key] ?? null;
+        }
+
+        // رقم الترخيص في الرأس: أصله من نص الترخيص في التذييل (HomeContent::default)، لا السطر بمتغيّره
+        $data['header']['license_number'] = $stored['header']['license_number'] ?? HomeContent::text('header', 'license_number');
+
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);
             $data['values']['items'][] = [
@@ -115,6 +122,10 @@ class HomeContentPage extends Page
                 // صور شرائح البطل بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). فارغة تعني بديلها: صورة البطل وصورتا المقطعين
                 Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
                     array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
+                ),
+                // صورة رأس كل صفحة داخلية (1 نوفمبر 2026). فارغة تعني البديل الحالي
+                Section::make(__('settings.home_content.page_heroes'))->description(__('settings.home_content.page_heroes_hint'))->columns(2)->collapsed()->schema(
+                    array_map(fn (string $key): FileUpload => self::image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(HomeContent::PAGE_HEROES)),
                 ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
