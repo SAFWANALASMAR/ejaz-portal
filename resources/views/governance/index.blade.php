@@ -14,6 +14,21 @@
     <x-page-intro slug="reports" />
 @endif
 
+{{-- عدد أعضاء الجمعية العمومية الفعّالين للجميع: رقم محسوب ومخزّن بلا أسماء (AssemblyMembersCount)، ولا يظهر وهو صفر --}}
+@if (($membersCount = \App\Support\AssemblyMembersCount::get()) > 0)
+    <section data-assembly-members-count class="pt-10 sm:pt-14" aria-label="{{ __('governance.members_count.label') }}">
+        <div class="container-page">
+            <p class="tone-card inline-flex items-center gap-3 p-4">
+                <x-icon-tile icon="user-group" size="sm" />
+                <span class="flex flex-col">
+                    <span class="text-2xl font-black tabular-nums">{{ number_format($membersCount) }}</span>
+                    <span class="tone-card-muted text-sm font-bold">{{ __('governance.members_count.label') }}</span>
+                </span>
+            </p>
+        </div>
+    </section>
+@endif
+
 <section class="py-10 sm:py-14">
     <div class="container-page">
         <h2 class="sr-only">{{ __('governance.fields.category') }}</h2>
