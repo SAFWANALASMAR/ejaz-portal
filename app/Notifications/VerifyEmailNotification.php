@@ -15,6 +15,14 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
     use Queueable;
 
     /**
+     * رابط التوثيق الموقّع المنتهي نفسه لرسالة أخرى تحمله (إيصال محاولة البراهين — AttemptReceived)، لا رمز ثانٍ.
+     */
+    public function urlFor(object $notifiable): string
+    {
+        return $this->verificationUrl($notifiable);
+    }
+
+    /**
      * @param  string  $url
      */
     protected function buildMailMessage($url): MailMessage
