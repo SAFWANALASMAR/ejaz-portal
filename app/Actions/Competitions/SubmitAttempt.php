@@ -9,7 +9,6 @@ use App\Models\CompetitionQuestion;
 use App\Models\User;
 use App\Notifications\AttemptReceived;
 use App\Services\Messaging\MessagingSettings;
-use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
@@ -19,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * متكرر الأمان. والدرجة تُحفظ ولا تُعرض للطالب حتى تُنشر نتائج المرحلة. والمقالي يُصحَّح يدوياً.
  *
  * وبعد التسليم الأول وحده: بريد تأكيد الاستلام لمن في حسابه بريد (receipt_sent_at يمنع تكراره)، وواتساب خلف مفتاحه
- * (قرار صفوان والمدير التنفيذي، 30 أكتوبر 2026). وكلاهما في الطابور بعد حفظ التسليم.
+ * برسالة واحدة إلى جوال ولي الأمر وإلا جوال الطالب (قرار صفوان والمدير التنفيذي، 30 أكتوبر 2026، وقرار صفوان 31 أكتوبر).
+ * وكلاهما في الطابور بعد حفظ التسليم.
  */
 class SubmitAttempt
 {
@@ -56,11 +56,10 @@ class SubmitAttempt
             $locked->score = (float) $score;
             $locked->max_score = (float) $max;
 
-            // بلا بريد في الحساب (التسجيل باسم المستخدم) لا إشعار ولا خطأ. وحين يكون التوثيق شرطاً فالموثّق وحده، لأن
-            // البريد غير الموثق لا يتفرد فقد يكون لغيره. والموقوف أو المجهَّل لا شيء. وreceipt_sent_at سجل الإرسال
+            // بلا بريد في الحساب (التسجيل باسم المستخدم) لا إشعار ولا خطأ. والبريد غير الموثق يصله الإيصال كما أُدخل ومعه
+            // رابط التوثيق (قرار صفوان، 31 أكتوبر 2026 — AttemptReceived). والموقوف أو المجهَّل لا شيء. وreceipt_sent_at سجل الإرسال
             $student = $locked->receipt_sent_at === null ? $locked->user : null;
-            $notify = $student !== null && $student->is_active && filled($student->email)
-                && ($student->hasVerifiedEmail() || ! AccountSettings::verificationEnabled());
+            $notify = $student !== null && $student->is_active && filled($student->email);
 
             if ($notify) {
                 $locked->receipt_sent_at = now();

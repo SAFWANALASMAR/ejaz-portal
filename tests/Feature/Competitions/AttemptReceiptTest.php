@@ -9,6 +9,7 @@ use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\MessagingChannel;
+use App\Models\User;
 use App\Notifications\AttemptReceived;
 use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
@@ -125,7 +126,9 @@ it('does not send the WhatsApp receipt while its switch is off, and sends it wit
     Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.Y']]])]);
     (new SendExamReceipt($second->submission_id, $second->id))->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
 
-    Http::assertSent(fn (Request $request): bool => $request['template']['name'] === 'ejaz_exam_receipt');
+    // registeredStudent يضع «رقم الجوال» في التسجيل، فإليه تذهب الرسالة لا إلى جوال الحساب (قرار صفوان، 31 أكتوبر 2026)
+    Http::assertSent(fn (Request $request): bool => $request['template']['name'] === 'ejaz_exam_receipt'
+        && $request['to'] === $second->submission->guardian_phone && $request['to'] !== '+966500000124');
 });
 
 it('skips the WhatsApp receipt for an attempt of another registration', function () {
@@ -141,7 +144,36 @@ it('skips the WhatsApp receipt for an attempt of another registration', function
     Http::assertNothingSent();
 });
 
-it('sends only to a verified email while verification is required, and never to a deactivated account', function () {
+/*
+| البريد غير الموثق يصله الإيصال كما أدخله صاحبه، ومعه رابط التوثيق الموقّع نفسه (قرار صفوان، 31 أكتوبر 2026).
+*/
+
+/**
+ * رابط التوثيق في الإيصال كما يظهر في HTML الرسالة بعد فك ترميزه كما يقرؤه المتصفح، أو null إن لم يكن فيه.
+ */
+function receiptVerificationLink(AttemptReceived $notification, User $user): ?string
+{
+    $html = (string) $notification->toMail($user)->render();
+
+    return preg_match('/href="([^"]*\/email\/verify\/[^"]*)"/', $html, $match) === 1 ? html_entity_decode($match[1]) : null;
+}
+
+/**
+ * رابط التوثيق في الإيصال الوحيد المرسل إلى الطالب.
+ */
+function sentReceiptLink(User $student): ?string
+{
+    $link = null;
+    Notification::assertSentTo($student, AttemptReceived::class, function (AttemptReceived $notification, array $channels, User $notifiable) use (&$link): bool {
+        $link = receiptVerificationLink($notification, $notifiable);
+
+        return true;
+    });
+
+    return $link;
+}
+
+it('emails the receipt to an unverified email as entered, with a link that verifies it, and never to a deactivated account', function () {
     Notification::fake();
     enableVerification();
     $unverified = receiptAttempt();
@@ -152,12 +184,167 @@ it('sends only to a verified email while verification is required, and never to 
     $inactive->user->forceFill(['email_verified_at' => now(), 'is_active' => false])->save();
     app(SubmitAttempt::class)->handle(null, $inactive, auto: true);
 
-    $verified = receiptAttempt(serial: 3);
+    Notification::assertSentTimes(AttemptReceived::class, 1);
+    Notification::assertSentTo($unverified->user, AttemptReceived::class, fn (AttemptReceived $notification, array $channels, User $notifiable): bool => $notifiable->routeNotificationFor('mail') === 'student1@example.test'
+        && str_contains(implode("\n", $notification->toMail($notifiable)->outroLines), __('competitions.student.receipt_mail.verify_line', ['minutes' => 60])));
+
+    $link = sentReceiptLink($unverified->user);
+    expect($link)->toStartWith(url('/email/verify/'.$unverified->user->id.'/'))->toContain('signature=')->toContain('expires=');
+
+    $this->actingAs($unverified->user)->get((string) $link)->assertRedirect();
+
+    expect($unverified->user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+it('adds no verification link when the email is already verified, or once it is verified before the receipt goes out', function () {
+    Notification::fake();
+    enableVerification();
+    $verified = receiptAttempt();
     $verified->user->forceFill(['email_verified_at' => now()])->save();
     app(SubmitAttempt::class)->handle($verified->user, $verified);
 
-    Notification::assertSentTimes(AttemptReceived::class, 1);
-    Notification::assertSentTo($verified->user, AttemptReceived::class);
+    $late = receiptAttempt(serial: 2);
+    $late->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($late->user, $late);
+    $late->user->forceFill(['email_verified_at' => now()])->save();
+
+    Notification::assertSentTimes(AttemptReceived::class, 2);
+    foreach ([$verified->user, $late->user] as $user) {
+        Notification::assertSentTo($user, AttemptReceived::class, fn (AttemptReceived $notification, array $channels, User $notifiable): bool => receiptVerificationLink($notification, $notifiable->fresh()) === null
+            && ! str_contains(implode("\n", $notification->toMail($notifiable->fresh())->outroLines), __('competitions.student.receipt_mail.verify_line', ['minutes' => 60])));
+    }
+});
+
+it('sends the unverified receipt with its link while verification is off too', function () {
+    Notification::fake();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+
+    expect(sentReceiptLink($attempt->user))->not->toBeNull();
+});
+
+it('rejects the receipt link without signing in, for another signed-in account, a tampered link, or after it expires', function () {
+    Notification::fake();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+    $link = (string) sentReceiptLink($attempt->user);
+    $intruder = receiptAttempt(serial: 2)->user;
+    $intruder->forceFill(['email_verified_at' => null])->save();
+
+    $this->get($link)->assertRedirect(route('login'));
+    $this->actingAs($intruder)->get($link)->assertForbidden();
+    $this->actingAs($attempt->user)->get(str_replace('signature=', 'signature=0', $link))->assertForbidden();
+    $this->travel(61)->minutes();
+    $this->actingAs($attempt->user)->get($link)->assertForbidden();
+
+    expect($attempt->user->fresh()->hasVerifiedEmail())->toBeFalse()
+        ->and($intruder->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+it('does not verify through the receipt link an email another account already verified', function () {
+    Notification::fake();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+    $link = (string) sentReceiptLink($attempt->user);
+    User::factory()->create(['email' => 'student1@example.test', 'email_verified_at' => now()]);
+
+    $this->actingAs($attempt->user)->get($link);
+
+    expect($attempt->user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+it('sends no receipt to an unverified email that another account has verified, since it belongs to someone else', function () {
+    Notification::fake();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['email_verified_at' => null])->save();
+    User::factory()->create(['email' => 'student1@example.test', 'email_verified_at' => now()]);
+
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+
+    Notification::assertNothingSent();
+    expect($attempt->fresh()->submitted_at)->not->toBeNull();
+});
+
+/*
+| واتساب عند التسليم خلف مفتاحه: رسالة واحدة إلى جوال ولي الأمر إن وُجد، وإلا جوال الطالب (قرار صفوان، 31 أكتوبر 2026).
+*/
+
+function enableExamWhatsApp(): void
+{
+    config(['services.whatsapp.driver' => 'log']);
+    MessagingChannel::query()->create([
+        'channel' => MessagingChannel::WHATSAPP,
+        'provider' => 'cloud',
+        'options' => ['phone_number_id' => '1234567890', 'templates' => ['exam_receipt' => 'ejaz_exam_receipt'], 'usages' => ['exam_receipt' => true]],
+        'secrets' => ['access_token' => 'wa-token'],
+    ]);
+}
+
+/**
+ * يسلّم المحاولة ثلاث مرات (يدوياً مرتين ثم آلياً)، ويشغّل كل مهمة واتساب دُفعت، ويعيد الأرقام التي أُرسل إليها.
+ *
+ * @return list<string>
+ */
+function submitAndCollectWhatsApp(CompetitionAttempt $attempt): array
+{
+    Queue::fake([SendExamReceipt::class]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.Z']]])]);
+
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+    app(SubmitAttempt::class)->handle($attempt->user, $attempt);
+    app(SubmitAttempt::class)->handle(null, $attempt->fresh(), auto: true);
+
+    Queue::pushed(SendExamReceipt::class)->each(fn (SendExamReceipt $job) => $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class)));
+
+    return Http::recorded()->map(fn (array $pair): string => (string) $pair[0]['to'])->values()->all();
+}
+
+it('sends one WhatsApp receipt to the guardian phone when the registration has one', function () {
+    enableExamWhatsApp();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['phone' => '+966500000124'])->save();
+    $attempt->submission->forceFill(['guardian_phone' => '+966511111111'])->save();
+
+    expect(submitAndCollectWhatsApp($attempt))->toBe(['+966511111111']);
+});
+
+it('sends one WhatsApp receipt to the student phone when the registration has no guardian phone', function () {
+    enableExamWhatsApp();
+    $attempt = receiptAttempt();
+    $attempt->user->forceFill(['phone' => '+966500000124'])->save();
+    $attempt->submission->forceFill(['guardian_phone' => null])->save();
+
+    expect(submitAndCollectWhatsApp($attempt))->toBe(['+966500000124']);
+});
+
+it('sends no WhatsApp receipt without a guardian or a student phone, or while the switch is off', function () {
+    enableExamWhatsApp();
+    $attempt = receiptAttempt();
+    $attempt->submission->forceFill(['guardian_phone' => null])->save();
+
+    expect(submitAndCollectWhatsApp($attempt))->toBe([]);
+
+    MessagingChannel::query()->delete();
+    $off = receiptAttempt(serial: 2);
+    $off->user->forceFill(['phone' => '+966500000126'])->save();
+
+    expect(submitAndCollectWhatsApp($off))->toBe([]);
+    Queue::assertNotPushed(SendExamReceipt::class);
+});
+
+it('keeps the WhatsApp receipt of the older electronic exam on the account phone, which has no guardian phone', function () {
+    enableExamWhatsApp();
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.E']]])]);
+    $submission = CompetitionSubmission::factory()->submitted()->create(['user_id' => User::factory()->create(['phone' => '+966500000127'])->id]);
+
+    (new SendExamReceipt($submission->id))->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+
+    expect($submission->fresh()->guardian_phone)->toBeNull();
+    Http::assertSentCount(1);
+    Http::assertSent(fn (Request $request): bool => $request['to'] === '+966500000127');
 });
 
 it('puts the receipts on their own queue', function () {
