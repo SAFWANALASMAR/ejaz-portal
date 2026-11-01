@@ -38,7 +38,7 @@ final class MenuSections
     /**
      * عناصر القائمة المنسدلة: الصفحة الأم أولاً، ثم الأقسام، ثم بقية عناصر المحرر الفرعية كلها.
      *
-     * @param  array{label: string, url: ?string, children: list<array<string, mixed>>}  $row
+     * @param  array{label: string, url: ?string, opens_in_new_tab?: bool, children: list<array<string, mixed>>}  $row
      * @return list<array<string, mixed>>
      */
     public static function children(array $row): array
