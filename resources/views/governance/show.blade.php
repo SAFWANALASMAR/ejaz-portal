@@ -44,6 +44,11 @@
                             <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                         </a>
                     @endif
+                @elseif ($document->isViewOnly())
+                    {{-- «للاطلاع فقط» (البند ٢٢): لا زر تنزيل ولا فتح للملف، والقراءة في القارئ بجانبه --}}
+                    <p class="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/15 px-3.5 py-1.5 text-sm font-extrabold" data-view-only-badge>
+                        {{ \App\Support\Icon::svg('eye', 'size-4', ['aria-hidden' => 'true']) }}{{ __('governance.view_only.badge') }}
+                    </p>
                 @else
                     <a href="{{ route('governance.download', $document->slug) }}" class="tone-pill">
                         {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4', ['aria-hidden' => 'true']) }}
@@ -60,7 +65,13 @@
             </div>
         </aside>
 
-        @unless ($document->file === null)
+        @if ($document->isViewOnly())
+            {{-- قارئ المكتبة نفسه «للقراءة فقط» على كل العروض: يرسم الصفحات في <canvas> بلا شريط عارض المتصفح ولا تنزيل ولا طباعة
+                 (resources/js/pdf-reader.js). يصعّب الحفظ ولا يمنعه منعاً تاماً --}}
+            <div class="min-w-0 [&>[data-pdf-reader]]:mt-0" data-document-reader>
+                @include('library.reader', ['url' => route('governance.file', $document->slug), 'title' => $document->title, 'texts' => 'governance.view_only.reader'])
+            </div>
+        @elseif ($document->file !== null)
             <div class="concept-panel hidden overflow-hidden lg:block" data-document-viewer>
                 <p class="flex items-center gap-2.5 bg-primary-dark px-4 py-3 text-sm font-bold text-white">
                     <x-icon-tile icon="document-text" variant="glass" size="xs" />
@@ -70,6 +81,6 @@
                     loading="lazy" class="block h-[80vh] w-full bg-[var(--blue-50)]"></iframe>
             </div>
             <p class="text-sm text-muted lg:hidden">{{ __('governance.document.mobile_hint') }}</p>
-        @endunless
+        @endif
     </div>
 </section>

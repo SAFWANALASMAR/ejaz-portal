@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\LibrarySection;
-use App\Http\Middleware\SecurityHeaders;
 use App\Http\Requests\LibraryIndexRequest;
 use App\Models\LibraryItem;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
+use App\Support\ReaderFileResponse;
 use App\Support\StructuredData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,11 +34,6 @@ class LibraryController extends Controller implements HasMiddleware
     }
 
     private const PER_PAGE = 12;
-
-    /**
-     * فتحات كتب «للقراءة فقط» في الدقيقة لكل عنوان (serveToReader).
-     */
-    private const READER_PER_MINUTE = 20;
 
     /**
      * عناصر كل قسم في شريطه المتحرك في صفحة المكتبة (التصور النهائي — البندان R9 وR20).
@@ -155,25 +149,8 @@ class LibraryController extends Controller implements HasMiddleware
      */
     private static function serveToReader(Request $request, LibraryItem $item): Response
     {
-        if (in_array($request->headers->get('Sec-Fetch-Dest'), ['document', 'iframe', 'frame', 'embed', 'object'], true)) {
-            return redirect()->route('library.show', [$item->section->value, $item->slug]);
-        }
-
-        // الملف كاملاً عبر PHP، والقارئ يطلبه مرة لكل فتح: فحد أضيق لكل عنوان من حد المسار، فلا يحجز التكرار عمال PHP
-        // ولا حصة التخزين (المراجعة الأمنية م١)
-        $key = 'library-reader:'.$request->ip();
-        abort_if(RateLimiter::tooManyAttempts($key, self::READER_PER_MINUTE), 429);
-        RateLimiter::hit($key, 60);
-
-        // علامة لـ SecurityHeaders: السياسة الكاملة لا سطر التضمين، فلا يُضمَّن الملف في إطار ولا يعمل عليه عارض المتصفح
-        $request->attributes->set(SecurityHeaders::READER_ONLY, true);
-
-        return Storage::disk(LibraryItem::disk())->response((string) $item->file, $item->downloadName(), [
-            'Content-Type' => 'application/pdf',
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-            'X-Robots-Tag' => 'noindex, nofollow',
-        ], 'inline');
+        // الحماية نفسها لوثائق الحوكمة «للاطلاع فقط» (ReaderFileResponse — البند ٢٢ من ملاحظات 1 نوفمبر)
+        return ReaderFileResponse::make($request, LibraryItem::disk(), (string) $item->file, $item->downloadName(), 'library', route('library.show', [$item->section->value, $item->slug]));
     }
 
     /**

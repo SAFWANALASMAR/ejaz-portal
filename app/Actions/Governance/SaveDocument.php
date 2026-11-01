@@ -34,8 +34,12 @@ class SaveDocument
             throw new AuthorizationException;
         }
 
+        // خيار «للاطلاع فقط» قيمة منطقية وحدها، وغيابه يُبقي القائم (والجديدة للاطلاع فقط — البند ٢٢ من ملاحظات 1 نوفمبر)
+        Validator::make($data, ['is_view_only' => ['sometimes', 'boolean']])->validate();
+
         $previous = $document->exists ? $document->file : null;
         $document->fill($data);
+        $document->is_view_only = (bool) ($document->is_view_only ?? true);
         // الحقل الفارغ غياب، فلا يُحسب ملفاً ولا رابطاً
         $document->file = filled($document->file) ? $document->file : null;
         $document->url = filled($document->url) ? $document->url : null;
