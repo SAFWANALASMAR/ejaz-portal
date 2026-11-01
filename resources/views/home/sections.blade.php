@@ -43,9 +43,9 @@
     @include('home.partials.videos', ['videos' => $videos])
 @endif
 
-{{-- «البوابة بالأرقام» آخراً (البند H9): مكانها هنا، ومحتواها في فرع feature/site-stats-v2. ولا يظهر فارغاً --}}
-@if ($stats !== [])
-    @include('home.partials.portal-stats', ['stats' => $stats, 'title' => $headings['stats'], 'band' => $next()])
+{{-- «البوابة بالأرقام» آخراً (البند H9 — docs/decisions/2026-11-01-site-stats-v2.md). ولا يظهر بلا رقم ولا رسم --}}
+@if ($stats !== [] || $portal_chart !== null)
+    @include('home.partials.portal-stats', ['stats' => $stats, 'chart' => $portal_chart, 'title' => $headings['stats'], 'intro' => $headings['stats_intro'], 'band' => $next()])
 @endif
 
 @if ($partners->isNotEmpty() || $sponsors->isNotEmpty())

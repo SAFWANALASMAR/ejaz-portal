@@ -16,6 +16,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -76,9 +77,12 @@ class HomeContentPage extends Page
         // النص المحفوظ، وإلا الأصل، فيرى المحرر ما يُعرض ويعدّله
         foreach (HomeContent::TEXTS as $section => $keys) {
             foreach ($keys as $key) {
-                $data[$section][$key] = $stored[$section][$key] ?? __('home.sections.'.$section.'.'.$key);
+                // الأصل كما يُعرض (home.sections_final ثم home.sections)، فلا يظهر اسم المفتاح في حقل أصله في sections_final وحده
+                $data[$section][$key] = HomeContent::text($section, $key);
             }
         }
+
+        $data['portal_stats']['enabled'] = HomeContent::showsPortalStats();
 
         foreach (array_keys(HomeContent::IMAGES) as $section) {
             $data[$section]['image'] = $stored[$section]['image'] ?? null;
@@ -169,6 +173,10 @@ class HomeContentPage extends Page
                 Section::make(__('settings.home_content.headings'))->description(__('settings.home_content.headings_hint'))->columns(3)->schema(
                     array_map(fn (string $key): TextInput => TextInput::make('headings.'.$key)->label(__('settings.home_content.headings_fields.'.$key))->maxLength(300), HomeContent::TEXTS['headings']),
                 ),
+                // «البوابة بالأرقام» الآلية (البند H9): مفتاح إظهارها، وعنوانها ووصفها في «عناوين أقسام الرئيسية» أعلاه
+                Section::make(__('settings.home_content_portal_stats.section'))->description(__('settings.home_content_portal_stats.hint'))->schema([
+                    Toggle::make('portal_stats.enabled')->label(__('settings.home_content_portal_stats.enabled')),
+                ]),
                 // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
                 Section::make(__('settings.home_content.interface'))->columns(2)->schema([
                     TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),
