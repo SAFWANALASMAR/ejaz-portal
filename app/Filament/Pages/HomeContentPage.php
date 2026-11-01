@@ -76,7 +76,7 @@ class HomeContentPage extends Page
         // النص المحفوظ، وإلا الأصل، فيرى المحرر ما يُعرض ويعدّله
         foreach (HomeContent::TEXTS as $section => $keys) {
             foreach ($keys as $key) {
-                $data[$section][$key] = $stored[$section][$key] ?? __('home.sections.'.$section.'.'.$key);
+                $data[$section][$key] = $stored[$section][$key] ?? HomeContent::defaultText($section, $key);
             }
         }
 
@@ -96,9 +96,6 @@ class HomeContentPage extends Page
         foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
             $data['page_heroes'][$key] = $stored['page_heroes'][$key] ?? null;
         }
-
-        // رقم الترخيص في الرأس: أصله من نص الترخيص في التذييل (HomeContent::default)، لا السطر بمتغيّره
-        $data['header']['license_number'] = $stored['header']['license_number'] ?? HomeContent::text('header', 'license_number');
 
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);

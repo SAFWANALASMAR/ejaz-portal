@@ -279,6 +279,14 @@ final class HomeContent
     }
 
     /**
+     * الأصل نفسه الذي يُعرض، لحقول «محتوى الرئيسية» (فلا تعرض اللوحة أصلاً قديماً، كاسم الرئيس بالشرطة المائلة، فيُخزَّن بالحفظ).
+     */
+    public static function defaultText(string $section, string $key): string
+    {
+        return self::default($section, $key);
+    }
+
+    /**
      * الأصل: ما في home.sections_final (أصول النسخة 63 من التصور، مضافة لا معدِّلة لما قبلها)، وإلا home.sections.
      */
     private static function default(string $section, string $key): string

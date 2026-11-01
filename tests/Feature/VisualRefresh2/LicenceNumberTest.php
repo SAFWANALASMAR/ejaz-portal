@@ -40,3 +40,15 @@ it('shows the number in the panel field and does not store it when saved unchang
 
     expect(Setting::group(HomeContent::KEY)['header']['license_number'] ?? null)->toBeNull();
 });
+
+it('shows the unified president name in the panel field, not the old one with a slash', function () {
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire\Livewire::test(HomeContentPage::class)
+        ->assertFormSet(['chairman.name' => 'الأستاذ الدكتور عبدالله بن عبدالعزيز المصلح'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(Setting::group(HomeContent::KEY)['chairman']['name'] ?? null)->toBeNull()
+        ->and(HomeContent::text('chairman', 'name'))->not->toContain('/');
+});
