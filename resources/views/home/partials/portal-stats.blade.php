@@ -26,15 +26,15 @@
                 <figure class="tone-card flex min-w-0 flex-col gap-2 px-5 pt-5 pb-3.5" data-tone="dark" data-portal-chart data-reveal>
                     <figcaption class="text-lg font-black sm:text-xl">{{ __('home.portal_stats.chart_title') }}</figcaption>
                     <svg viewBox="0 0 1000 220" preserveAspectRatio="none" class="block h-44 w-full sm:h-52" role="img"
-                        aria-label="{{ __('home.portal_stats.chart_label', ['total' => number_format($chart['total']), 'max' => number_format($chart['max'])]) }}">
+                        aria-label="{{ __('home.portal_stats.chart_label', ['days' => \App\Support\HomePortalStats::DAYS, 'total' => number_format($chart['total']), 'max' => number_format($chart['max'])]) }}">
                         <defs>
                             <linearGradient id="portal-stats-area" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0" stop-color="#8EC5F0" stop-opacity=".55" />
-                                <stop offset="1" stop-color="#8EC5F0" stop-opacity="0" />
+                                <stop offset="0" stop-color="var(--color-brand-light)" stop-opacity=".55" />
+                                <stop offset="1" stop-color="var(--color-brand-light)" stop-opacity="0" />
                             </linearGradient>
                         </defs>
                         <polygon points="{{ $chart['area'] }}" fill="url(#portal-stats-area)" />
-                        <polyline class="portal-chart-line" points="{{ $chart['line'] }}" pathLength="100" fill="none" stroke="#fff" stroke-width="3.5"
+                        <polyline class="portal-chart-line" points="{{ $chart['line'] }}" pathLength="100" fill="none" stroke="var(--color-white)" stroke-width="3.5" vector-effect="non-scaling-stroke"
                             stroke-linejoin="round" stroke-linecap="round" />
                     </svg>
                     <span class="tone-card-muted flex justify-between text-xs sm:text-sm" aria-hidden="true">

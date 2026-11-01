@@ -35,6 +35,25 @@ function portalContent(User $actor, array $content): void
     app(UpdateHomeContent::class)->handle($actor, ['values' => ['items' => array_fill(0, HomeContent::VALUES, [])], ...$content]);
 }
 
+// القسم مطفأ افتراضياً (مراجعة المشرف على #115)، فتشغّله الاختبارات إلا اختبار الافتراضي
+beforeEach(function () {
+    Setting::put(HomeContent::KEY, ['portal_stats' => ['enabled' => true]]);
+});
+
+it('is off by default until switched on from «محتوى الرئيسية»', function () {
+    Setting::query()->where('key', HomeContent::KEY)->delete();
+    visitsOn(0, 30);
+    $this->artisan('ejaz:refresh-stats');
+
+    expect(HomeContent::showsPortalStats())->toBeFalse();
+    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
+
+    portalContent(userWithRole(RoleName::ContentEditor), ['portal_stats' => ['enabled' => true]]);
+
+    expect(HomeContent::showsPortalStats())->toBeTrue();
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false);
+});
+
 it('shows the visits, the competition registrants and the 30-day chart from the stored aggregates', function () {
     visitsOn(40, 5000);
     visitsOn(3, 700);
@@ -58,7 +77,7 @@ it('shows the visits, the competition registrants and the 30-day chart from the 
     // الرقم كاملاً بفواصل الآلاف للعدّ التصاعدي وبلا سكربت، والرسم بمجموع آخر 30 يوماً وحده
     expect($html)->toContain('data-count-to="6234"')->toContain('6,234')
         ->and($html)->toContain('data-count-to="2"')
-        ->and($html)->toContain(__('home.portal_stats.chart_label', ['total' => '1,234', 'max' => '700']));
+        ->and($html)->toContain(__('home.portal_stats.chart_label', ['days' => HomePortalStats::DAYS, 'total' => '1,234', 'max' => '700']));
 
     // «البوابة بالأرقام» آخراً قبل «شركاؤنا»
     expect(strpos($html, 'data-portal-stats'))->toBeGreaterThan(strpos($html, 'id="home-identity"'));

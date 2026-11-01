@@ -137,12 +137,12 @@ final class HomeContent
     }
 
     /**
-     * مفتاح «البوابة بالأرقام» الآلية (البند H9): ظاهرة ما لم تُطفأ من «محتوى الرئيسية»، لأن أرقامها مجاميع فعلية من البوابة
-     * لا نص مخترع. والأرقام المعتمدة من «إعدادات الموقع» بمفتاحها هناك (show_stats).
+     * مفتاح «البوابة بالأرقام» الآلية (البند H9): مطفأة حتى تُشغَّل من «محتوى الرئيسية»، كما يطلب ui-reference.md ومفتاح
+     * show_stats القائم (مراجعة المشرف على #115). والأرقام المعتمدة من «إعدادات الموقع» بمفتاحها هناك (show_stats).
      */
     public static function showsPortalStats(): bool
     {
-        return (bool) (Setting::group(self::KEY)['portal_stats']['enabled'] ?? true);
+        return (bool) (Setting::group(self::KEY)['portal_stats']['enabled'] ?? false);
     }
 
     /**
