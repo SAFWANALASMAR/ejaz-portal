@@ -157,6 +157,9 @@ class PrunePublicFiles extends Command
             foreach (HeroImage::WIDTHS as $width) {
                 $paths[] = HeroImage::variantPath($path, $width);
             }
+
+            // وعلامة رفضها، فلا تعود مهمتها بعد مدة الحذف
+            $paths[] = HeroImage::failedPath($path);
         }
 
         return $paths;

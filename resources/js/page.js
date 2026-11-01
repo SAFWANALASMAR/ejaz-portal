@@ -46,6 +46,11 @@ const transition = () => document.querySelector('[data-page-transition]');
 let shownAt = 0;
 let transitionTimer = null;
 
+// والطبقة لا تغطي الشاشة أكثر من نحو أربع ثوانٍ إن تعثّر التنقّل (شريط التقدّم يبقى حتى مهلته)، وتُخفى فوراً عند العودة من ذاكرة
+// الرجوع (bfcache) بنسختها ظاهرةً (مراجعة المشرف على #111، المنخفضة 1)
+const TRANSITION_LIMIT = 4000;
+let transitionLimit = null;
+
 function showTransition() {
     const overlay = transition();
 
@@ -54,10 +59,26 @@ function showTransition() {
     }
 
     clearTimeout(transitionTimer);
+    clearTimeout(transitionLimit);
     overlay.hidden = false;
     overlay.dataset.state = 'loading';
     overlay.setAttribute('aria-busy', 'true');
     shownAt = performance.now();
+    transitionLimit = setTimeout(finishTransition, TRANSITION_LIMIT);
+}
+
+function hideTransition() {
+    const overlay = transition();
+
+    clearTimeout(transitionTimer);
+    clearTimeout(transitionLimit);
+    shownAt = 0;
+
+    if (overlay) {
+        overlay.hidden = true;
+        overlay.setAttribute('aria-busy', 'false');
+        delete overlay.dataset.state;
+    }
 }
 
 function finishTransition() {
@@ -70,6 +91,7 @@ function finishTransition() {
     const wait = Math.max(0, 300 - (performance.now() - shownAt));
     shownAt = 0;
     clearTimeout(transitionTimer);
+    clearTimeout(transitionLimit);
     transitionTimer = setTimeout(() => {
         overlay.dataset.state = 'done';
         overlay.setAttribute('aria-busy', 'false');
@@ -105,7 +127,16 @@ export function start() {
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
     window.addEventListener('pageshow', (event) => {
-        if (event.persisted && hadSession) {
+        if (!event.persisted) {
+            return;
+        }
+
+        clearTimeout(progress);
+        clearTimeout(progressLimit);
+        document.documentElement.removeAttribute('data-navigating');
+        hideTransition();
+
+        if (hadSession) {
             window.location.reload();
         }
     });

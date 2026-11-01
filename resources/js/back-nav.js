@@ -3,12 +3,16 @@
 // Cmd أو Shift يبقى للرابط نفسه كما يريد الزائر. وEnter على الرابط يطلق click كذلك.
 //
 // السابقة في البوابة: جاء الزائر منها بتحميل كامل (document.referrer من الأصل نفسه)، أو بتنقّل سريع إلى الأمام. ويُعدّ
-// التنقّل السريع إلى الأمام وحده: livewire:navigate بلا history (الرجوع والتقدّم بأزرار المتصفح لا يُحسبان).
+// التنقّل السريع إلى الأمام وحده: livewire:navigate بلا history. والرجوع بزر المتصفح (history) يُنقص العدّاد، فلا يبقى بعد
+// العودة إلى أول صفحة ما يوهم بسابقة في البوابة فيخرج history.back من الموقع (مراجعة المشرف على #111، المنخفضة 2). وزر
+// التقدّم لا يُميَّز من الرجوع في حدث Livewire، فيُنقصه أيضاً: الخطأ في جهة الرابط (الرئيسية) لا في جهة الخروج من البوابة.
 
 let forwardVisits = 0;
 
 document.addEventListener('livewire:navigate', (event) => {
-    if (!event.detail?.history) {
+    if (event.detail?.history) {
+        forwardVisits = Math.max(0, forwardVisits - 1);
+    } else {
         forwardVisits++;
     }
 });
