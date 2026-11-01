@@ -46,7 +46,8 @@ class BuildBoardPortal
 
         return [
             'stats' => [
-                'members' => AssemblyMembership::activeUsers()->count(),
+                // عدد الأعضاء الفعّالين لمديري سجل الأعضاء في اللوحة وحدهم (1 نوفمبر 2026)، والعام منه في صفحة الحوكمة
+                'members' => $user->can('assembly_members.update') ? AssemblyMembership::activeUsers()->count() : null,
                 'meetings_this_year' => $this->meetings($user)
                     ->whereBetween('starts_at', [$year->copy()->startOfYear()->utc(), $year->copy()->endOfYear()->utc()])
                     ->where('status', '!=', MeetingStatus::Cancelled->value)->count(),

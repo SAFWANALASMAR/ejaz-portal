@@ -11,7 +11,7 @@
 
 <article class="tone-card group flex h-full flex-col overflow-hidden">
     <div class="tone-card-media h-40">
-        <img src="{{ $program->image ? Storage::disk('public')->url($program->image) : asset('images/placeholders/architecture.svg') }}" alt="" width="640" height="360"
+        <img src="{{ $program->image ? Storage::disk('public')->url($program->image) : \App\Support\NeutralImage::forSeed($program->id) }}" alt="" width="640" height="360"
             class="size-full object-cover transition duration-700 group-hover:scale-105" loading="lazy">
         @include('programs.badge', ['status' => $status, 'class' => 'absolute top-3 start-3'])
     </div>

@@ -41,7 +41,7 @@ it('falls back to the association name, its specialty and the neutral image, wit
     $this->get('/')->assertOk()
         ->assertSeeInOrder(['<h1', __('site.name')], false)
         ->assertSee(__('site.tagline'))
-        ->assertSee('images/placeholders/architecture.svg', false)
+        ->assertSee('images/placeholders/pages/default.svg', false)
         ->assertSee('data-hero-slider', false);
 });
 

@@ -7,6 +7,7 @@ use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Support\AccountSettings;
+use App\Support\AssemblyMembersCount;
 use App\Support\LoginIdentifier;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -253,6 +254,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         });
 
         static::updated(function (User $user): void {
+            // الحساب المعطّل أو المجهَّل يخرج من عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount)
+            if ($user->wasChanged(['is_active', 'anonymized_at'])) {
+                AssemblyMembersCount::forget();
+            }
+
             $changed = array_values(array_intersect(self::PERSONAL_FIELDS, array_keys($user->getChanges())));
 
             if ($changed !== []) {

@@ -11,7 +11,7 @@ it('shows the missing marks outside production', function () {
         ->and(MissingText::shown('نص معتمد'))->toBe('نص معتمد')
         ->and(MissingText::shown('  '))->toBeNull();
 
-    $this->get('/')->assertOk()->assertSee('【ناقص: رقم الترخيص】');
+    $this->get('/')->assertOk()->assertSee('【ناقص: ساعات العمل】');
 });
 
 it('hides the missing marks from production visitors and keeps approved texts', function () {

@@ -35,6 +35,6 @@ it('shows the two licence lines from the panel in the first row, and no supervis
 
     expect($header)->toContain('data-header-licence')
         ->toContain(e(__('home.sections.header.licensed_by')))
-        ->toContain(e(__('home.sections.header.license_number')))
+        ->toContain('برقم 1000723700')
         ->and($html)->not->toContain(e(__('home.sections.footer.supervision')));
 });

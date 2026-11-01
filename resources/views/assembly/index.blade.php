@@ -84,7 +84,8 @@
             {{-- إحصائيات المجلس من البيانات القائمة --}}
             <section aria-labelledby="board-stats">
                 <h2 id="board-stats" class="sr-only">{{ __('assembly.portal.stats') }}</h2>
-                <ul @class(['grid grid-cols-2 gap-3.5', 'lg:grid-cols-4' => $portal['stats']['open_assignments'] !== null, 'lg:grid-cols-3' => $portal['stats']['open_assignments'] === null]) data-board-stats>
+                @php($shown = count(array_filter($portal['stats'], fn (?int $value): bool => $value !== null)))
+                <ul @class(['grid grid-cols-2 gap-3.5', 'lg:grid-cols-4' => $shown === 4, 'lg:grid-cols-3' => $shown === 3]) data-board-stats>
                     @foreach (['members' => 'user-group', 'meetings_this_year' => 'calendar-days', 'approved_minutes' => 'document-check', 'open_assignments' => 'clipboard-document-list'] as $key => $icon)
                         @continue($portal['stats'][$key] === null)
                         <li class="tone-card flex items-center gap-3 p-4">

@@ -78,6 +78,8 @@ class AdminPanelProvider extends PanelProvider
                 // الافتراضي. و«مرفوض» (danger) يبقى أحمر، وهو أحد الاستثناءات الثلاثة
                 'success' => Color::hex('#1F5F8F'),
                 'info' => Color::hex('#3E8ACA'),
+                // وحالات الانتظار والتنبيه (warning) بأزرق سماوي بدل كهرماني Filament (قرار المدير عبر صفوان، 1 نوفمبر 2026)
+                'warning' => Color::hex('#1D8FD1'),
             ])
             // الخط يُخدَم من خادم البوابة نفسه (Vite) لا من مزود خارجي
             ->font('Zain', provider: LocalFontProvider::class)

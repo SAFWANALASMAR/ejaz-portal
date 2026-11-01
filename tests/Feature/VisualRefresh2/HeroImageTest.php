@@ -1,7 +1,10 @@
 <?php
 
 use App\Jobs\GenerateHeroVariants;
+use App\Support\ContentCache;
 use App\Support\HeroImage;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,3 +49,47 @@ it('queues nothing for a vector, an outside or a climbing path', function (strin
     expect(HeroImage::sources($path)['srcset'])->toBeNull();
     Queue::assertNothingPushed();
 })->with(['images/placeholders/architecture.svg', '../secret.jpg', 'albums/../../x.png']);
+
+// مراجعة المشرف على #111 (1 نوفمبر 2026)، المنخفضة 3: توليد النسخ يمسح مفتاح الرئيسية وحده، لا ذاكرة المحتوى كلها
+it('clears only the home page from the content cache after generating the variants', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('albums/event.jpg', imageBytes('jpeg', 1200, 600));
+    ContentCache::remember('governance.index', fn (): string => 'المخزّن');
+    ContentCache::remember('home', fn (): string => 'الرئيسية القديمة');
+
+    (new GenerateHeroVariants('albums/event.jpg'))->handle();
+
+    expect(ContentCache::remember('governance.index', fn (): string => 'جديد'))->toBe('المخزّن')
+        ->and(ContentCache::remember('home', fn (): string => 'الرئيسية الجديدة'))->toBe('الرئيسية الجديدة');
+});
+
+// والمنخفضة 4: الصورة المرفوضة (تالفة أو أكبر من الحد) تُعلَّم فلا تُرسل مهمتها عند كل بناء للرئيسية
+it('marks a rejected image and stops queueing it on every build', function () {
+    Storage::fake('public');
+    Queue::fake();
+    Storage::disk('public')->put('albums/broken.jpg', 'ليست صورة');
+
+    HeroImage::sources('albums/broken.jpg');
+    Queue::assertPushed(GenerateHeroVariants::class, 1);
+
+    (new GenerateHeroVariants('albums/broken.jpg'))->handle();
+    // انتهت المهمة فزال قفل تفرّدها (ShouldBeUnique)، كما في الطابور الحقيقي
+    (new UniqueLock(app(Repository::class)))->release(new GenerateHeroVariants('albums/broken.jpg'));
+
+    expect(HeroImage::sources('albums/broken.jpg'))->toBe(['src' => Storage::disk('public')->url('albums/broken.jpg'), 'srcset' => null]);
+    HeroImage::sources('albums/broken.jpg');
+    Queue::assertPushed(GenerateHeroVariants::class, 1);
+});
+
+it('retries a replaced image under a new path', function () {
+    Storage::fake('public');
+    Queue::fake();
+    Storage::disk('public')->put('albums/broken.jpg', 'ليست صورة');
+    (new GenerateHeroVariants('albums/broken.jpg'))->handle();
+    (new UniqueLock(app(Repository::class)))->release(new GenerateHeroVariants('albums/broken.jpg'));
+
+    Storage::disk('public')->put('albums/fixed.jpg', imageBytes('jpeg', 1200, 600));
+    HeroImage::sources('albums/fixed.jpg');
+
+    Queue::assertPushed(GenerateHeroVariants::class, fn (GenerateHeroVariants $job): bool => $job->path === 'albums/fixed.jpg');
+});
