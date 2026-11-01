@@ -19,6 +19,7 @@ import './back-nav';
 import './search-palette';
 import './pdf-reader';
 import './profile-reveal';
+import './image-fit';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

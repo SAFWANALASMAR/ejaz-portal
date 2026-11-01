@@ -59,6 +59,12 @@ trap 'printf "\n\033[1;31m✗ فشل النشر عند السطر %s. الموق
 say "٦/٩ ترحيل القاعدة والأدوار والصلاحيات بالصورة الجديدة"
 "${DC[@]}" run --rm --no-deps app php artisan migrate --force
 "${DC[@]}" run --rm --no-deps app php artisan db:seed --class=AccessSeeder --force
+# القائمة الرئيسية بسبعة عناصر (MainMenuSevenSeeder، النسخة 0.15): مرة واحدة على الخادم بعلامة في .deploy-state، فلا يعيد كل
+# نشر ترتيب ما رتّبه المحرر في «القائمة» ولا يخفي ما أظهره بعدها (مراجعة المشرف على #111، المنخفضة 5)
+if [ ! -f .deploy-state/main-menu-seven ]; then
+  "${DC[@]}" run --rm --no-deps app php artisan db:seed --class=MainMenuSevenSeeder --force
+  mkdir -p .deploy-state && touch .deploy-state/main-menu-seven
+fi
 
 say "٧/٩ تبديل الحاويات (Horizon ينهي مهامه الجارية أولاً)"
 # الوسم في .env، فتبقى الحاويات على هذا الإصدار بعد إعادة تشغيل الخادم (ejaz-stack.service) لا على latest

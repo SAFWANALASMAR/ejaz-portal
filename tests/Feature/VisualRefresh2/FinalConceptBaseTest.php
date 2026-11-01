@@ -88,8 +88,8 @@ it('builds the footer from three boxes with an icon tile beside each title, and 
         ->and($footer)->toContain('info@ejaz.sa')->toContain('0550556758')->toContain('مكة المكرمة')
         ->and($footer)->toContain('href="https://x.com/ejazsa2025"')->toContain('href="https://wa.me/966550556758"')
         ->and($footer)->not->toContain('شريك الاختبار')->not->toContain(e(__('home.sections.footer.supervision')))
-        // أسماء مختصرة، و«إنجازاتنا» لا تظهر قبل بناء مسارها
-        ->and($labels[1])->toBe(array_values(array_map(fn (string $key): string => __('ui.footer.links.'.$key), ['about', 'programs', 'competitions', 'library', 'media', 'governance', 'initiatives', 'services', 'contact'])));
+        // أسماء مختصرة، ثم رابط المتجر الخارجي (1 نوفمبر 2026)، و«إنجازاتنا» لا تظهر قبل بناء مسارها
+        ->and($labels[1])->toBe(array_values(array_map(fn (string $key): string => __('ui.footer.links.'.$key), ['about', 'programs', 'competitions', 'library', 'media', 'governance', 'initiatives', 'services', 'contact', 'store'])));
 });
 
 it('takes the licence box and the footer hours and accounts title from the home content screen', function () {
@@ -104,7 +104,7 @@ it('takes the licence box and the footer hours and accounts title from the home 
     $html = $this->get('/')->assertOk()->getContent();
 
     expect($html)->toContain('برقم 1234')->toContain('من الأحد إلى الخميس')->toContain('حساباتنا')
-        ->not->toContain(e(__('home.sections.header.license_number')));
+        ->not->toContain('برقم 1000723700');
 });
 
 it('renders one marquee component, horizontal or vertical, with a hidden copy for the loop and a pause button', function () {

@@ -20,11 +20,22 @@
     <div class="concept-hero-media" data-carousel-track aria-live="off" tabindex="-1">
         @foreach ($slides as $index => $slide)
             <figure data-hero-slide="{{ $slide['key'] }}" data-carousel-item @if ($index === 0) data-active @endif class="hero-slide m-0">
-                <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720" @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="100vw" @endif
-                    @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+                @if ($slide['portrait'] ?? false)
+                    {{-- صورة طولية (خادم الحرمين الشريفين، ورئيس الجمعية): في إطار بجانب النص على الحاسوب وفوقه على الجوال، بلا تمديد ولا قص للوجه --}}
+                    <div class="hero-portrait-bg" aria-hidden="true"></div>
+                @else
+                    <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="1280" height="720" data-fit-adaptive @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="100vw" @endif
+                        @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+                @endif
                 <div class="concept-hero-scrim" aria-hidden="true"></div>
 
-                <figcaption class="hero-caption relative mx-auto flex h-full max-w-[82.5rem] flex-col justify-end gap-4 px-6 pb-16 sm:px-12 lg:px-24">
+                <figcaption @class(['hero-caption relative mx-auto flex h-full max-w-[82.5rem] flex-col justify-end gap-4 px-6 pb-16 sm:px-12 lg:px-24', 'lg:pe-[30rem]' => $slide['portrait'] ?? false])>
+                    @if ($slide['portrait'] ?? false)
+                        {{-- الإطار في مجرى النص فوق العنوان على الجوال واللوحي، وفي جهة النهاية بجانبه على الحاسوب (concept.css) --}}
+                        <div class="hero-portrait-frame" data-hero-portrait>
+                            <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="680" height="850" @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+                        </div>
+                    @endif
                     @if ($index === 0)
                         <h1 class="flex flex-col gap-1.5">
                             <span class="rise-1 text-[2.6rem] leading-[1.05] font-black sm:text-[4rem]">{{ $slide['title'] }}</span>
@@ -42,7 +53,7 @@
                     @endif
                     <span class="title-bar" aria-hidden="true"></span>
                     @if (filled($slide['text'] ?? null))
-                        <p @class(['max-w-[32.5rem] text-lg leading-[1.75] text-white/90 sm:text-[1.25rem]', 'rise-3' => $index === 0, 'line-clamp-3' => $index > 0])>{{ $slide['text'] }}</p>
+                        <p @class(['max-w-[32.5rem] text-lg leading-[1.75] text-white/90 sm:text-[1.25rem]', 'rise-3' => $index === 0, 'line-clamp-3' => $index > 0, 'max-sm:line-clamp-2' => $slide['portrait'] ?? false])>{{ $slide['text'] }}</p>
                     @endif
                     @if ($slide['button'] ?? null)
                         <a href="{{ $slide['button']['url'] }}" @navigate($slide['button']['url']) class="login-pill mt-2 self-start">
