@@ -261,8 +261,6 @@ return [
     'dashboard_final' => [
         'library' => 'جديد مكتبة إعجاز وقناتها',
         'library_more' => 'المكتبة',
-        'upcoming' => 'مواعيدي القادمة',
-        'view_all' => 'الكل',
     ],
 
     'profile' => [
