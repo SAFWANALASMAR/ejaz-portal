@@ -14,8 +14,8 @@
     $section = \App\Support\PageSections::for(request()->route());
     $badge = $eyebrow ?? ($section['label'] === $title ? __('site.short_name') : $section['label']);
     $back = \App\Support\BackNavigation::shows(request()->route());
-    // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم ما يمرره القالب، ثم الرسم المؤقت
-    $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? asset('images/placeholders/architecture.svg');
+    // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم ما يمرره القالب، ثم نقش الصفحة المحايد (NeutralImage)
+    $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? \App\Support\NeutralImage::forPage(request()->route()?->getName());
 @endphp
 
 <section data-page-hero class="concept-hero" data-size="page" @if ($compact) data-compact @endif>

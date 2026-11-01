@@ -5,6 +5,7 @@ use App\Enums\RoleName;
 use App\Filament\Pages\HomeContentPage;
 use App\Models\Setting;
 use App\Support\HomeContent;
+use App\Support\NeutralImage;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -28,11 +29,22 @@ it('shows the uploaded image in the hero of its own page only', function () {
     Setting::put(HomeContent::KEY, ['page_heroes' => ['governance' => 'settings/governance-hero.jpg']]);
 
     expect(heroImageOf($this->get('/governance')->assertOk()->getContent()))->toBe(Storage::disk('public')->url('settings/governance-hero.jpg'))
-        ->and(heroImageOf($this->get('/contact')->assertOk()->getContent()))->toBe(asset('images/placeholders/architecture.svg'));
+        ->and(heroImageOf($this->get('/contact')->assertOk()->getContent()))->toBe(asset('images/placeholders/pages/contact.svg'));
+});
+
+it('gives each page without an uploaded image its own neutral image, not one repeated placeholder', function () {
+    $images = collect(['/programs', '/governance', '/contact', '/media', '/services', '/initiatives', '/media/news', '/competitions'])
+        ->map(fn (string $url): string => heroImageOf($this->get($url)->assertOk()->getContent()));
+
+    expect($images->unique())->toHaveCount($images->count())
+        ->and($images->every(fn (string $src): bool => str_contains($src, 'images/placeholders/pages/')))->toBeTrue()
+        ->and(NeutralImage::forPage('media.news.show'))->toBe(asset('images/placeholders/pages/news.svg'))
+        ->and(NeutralImage::forPage('governance.show'))->toBe(asset('images/placeholders/pages/governance.svg'))
+        ->and(NeutralImage::forPage('privacy'))->toBe(asset('images/placeholders/pages/default.svg'));
 });
 
 it('keeps the current image when no page image is uploaded', function () {
-    expect(heroImageOf($this->get('/programs')->assertOk()->getContent()))->toBe(asset('images/placeholders/architecture.svg'))
+    expect(heroImageOf($this->get('/programs')->assertOk()->getContent()))->toBe(asset('images/placeholders/pages/programs.svg'))
         ->and(HomeContent::pageHeroUrl('programs.index'))->toBeNull()
         ->and(HomeContent::pageHeroUrl('programs.show'))->toBeNull();
 });
@@ -61,3 +73,11 @@ it('offers one image slot per inner page in the home content screen and saves it
 it('refuses a page image from a user without the settings permission', function () {
     app(UpdateHomeContent::class)->handle(userWithRole(RoleName::Member), ['page_heroes' => ['contact' => 'settings/x.jpg']]);
 })->throws(AuthorizationException::class);
+
+it('ships neutral images without people for every inner page', function () {
+    foreach ([...array_keys(HomeContent::PAGE_HEROES), 'default'] as $key) {
+        $svg = (string) file_get_contents(public_path('images/placeholders/pages/'.$key.'.svg'));
+
+        expect($svg)->toStartWith('<svg')->not->toContain('<image')->not->toContain('<script')->not->toContain('href=');
+    }
+});
