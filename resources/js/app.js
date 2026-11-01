@@ -20,6 +20,7 @@ import './search-palette';
 import './pdf-reader';
 import './profile-reveal';
 import './image-fit';
+import './contact-form';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));
@@ -128,7 +129,10 @@ document.addEventListener('click', (event) => {
     const toggle = event.target.closest('[data-toggle]');
 
     if (toggle) {
-        const open = toggle.getAttribute('aria-expanded') !== 'true';
+        // فتحها المرور قبل لحظة ثم ضُغط الزر: تبقى مفتوحة ولا يغلقها الضغط نفسه
+        const hoverOpened = toggle.dataset.hoverOpened && Date.now() - Number(toggle.dataset.hoverOpened) < 600;
+        const open = hoverOpened || toggle.getAttribute('aria-expanded') !== 'true';
+        delete toggle.dataset.hoverOpened;
 
         if (toggle.dataset.toggle === 'dropdown') {
             closeAll(toggle);
@@ -136,10 +140,105 @@ document.addEventListener('click', (event) => {
 
         setOpen(toggle, open);
 
+        // فُتحت بلوحة المفاتيح (Enter أو Space — ضغط بلا مؤشر): التركيز إلى أول عناصرها
+        if (open && event.detail === 0 && toggle.dataset.toggle === 'dropdown') {
+            dropdownLinks(toggle)[0]?.focus();
+        }
+
         return;
     }
 
     closeAll();
+});
+
+// روابط القائمة المنسدلة لزرها
+function dropdownLinks(toggle) {
+    return [...(document.getElementById(toggle.getAttribute('aria-controls'))?.querySelectorAll('a[href]') ?? [])];
+}
+
+// قوائم الرأس المنسدلة تفتح بمرور الفأرة (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٣): بمهلة قصيرة للفتح وأطول للإغلاق
+// فلا تومض عند عبور المؤشر فوقها. والفأرة وحدها: اللمس يبقى بالضغط، ولوحة المفاتيح بالأسهم وEnter وSpace وEscape
+const HOVER_OPEN = 120;
+const HOVER_CLOSE = 280;
+
+function hoverItem(event) {
+    if (event.pointerType !== 'mouse') {
+        return null;
+    }
+
+    const item = event.target.closest?.('[data-nav-dropdown]');
+
+    return item && !item.contains(event.relatedTarget) ? item : null;
+}
+
+document.addEventListener('pointerover', (event) => {
+    const item = hoverItem(event);
+
+    if (!item) {
+        return;
+    }
+
+    const toggle = item.querySelector('[data-toggle="dropdown"]');
+    clearTimeout(item.hoverTimer);
+    item.hoverTimer = setTimeout(() => {
+        if (toggle.getAttribute('aria-expanded') !== 'true') {
+            closeAll(toggle);
+            setOpen(toggle, true);
+            toggle.dataset.hoverOpened = String(Date.now());
+        }
+    }, HOVER_OPEN);
+});
+
+document.addEventListener('pointerout', (event) => {
+    const item = hoverItem(event);
+
+    if (!item) {
+        return;
+    }
+
+    const toggle = item.querySelector('[data-toggle="dropdown"]');
+    clearTimeout(item.hoverTimer);
+    item.hoverTimer = setTimeout(() => {
+        // والتركيز داخلها بلوحة المفاتيح (:focus-visible) يبقيها مفتوحة، لا تركيز الضغط بالفأرة
+        if (!item.querySelector(':focus-visible')) {
+            setOpen(toggle, false);
+        }
+    }, HOVER_CLOSE);
+});
+
+// الأسهم في القائمة المنسدلة: السهم السفلي على الزر يفتحها ويركّز أول عنصر، وداخلها السهمان وHome وEnd بين عناصرها
+document.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        return;
+    }
+
+    const toggle = event.target.closest?.('[data-toggle="dropdown"]');
+
+    if (toggle) {
+        if (event.key === 'Home' || event.key === 'End') {
+            return;
+        }
+
+        event.preventDefault();
+        closeAll(toggle);
+        setOpen(toggle, true);
+        const links = dropdownLinks(toggle);
+        (event.key === 'ArrowUp' ? links.at(-1) : links[0])?.focus();
+
+        return;
+    }
+
+    const menu = event.target.closest?.('[data-dropdown-menu]');
+
+    if (!menu) {
+        return;
+    }
+
+    const links = [...menu.querySelectorAll('a[href]')];
+    const index = links.indexOf(event.target);
+    const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: links.length - 1 }[event.key];
+    event.preventDefault();
+    links[(next + links.length) % links.length]?.focus();
 });
 
 document.addEventListener('keydown', (event) => {
@@ -171,7 +270,11 @@ onPage((signal) => {
         return;
     }
 
-    const onScroll = () => header.toggleAttribute('data-scrolled', window.scrollY > 4);
+    // والرأس يصغر كله عند التمرير (concept.css، البند ٢٥)، فبين حدّين لا حدّ واحد: لا يتذبذب حين يغيّر صغره موضع الصفحة
+    const onScroll = () => {
+        const scrolled = header.hasAttribute('data-scrolled');
+        header.toggleAttribute('data-scrolled', scrolled ? window.scrollY > 4 : window.scrollY > 32);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true, signal });
 
@@ -184,13 +287,23 @@ onPage((signal) => {
         return;
     }
 
+    // والقياس بخط الرأس كاملاً: خط القائمة يصغر مع التمرير (--hs)، فيُقسم عرض الاسم عليه
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
+        const hs = Number.parseFloat(getComputedStyle(header).getPropertyValue('--hs')) || 1;
+        const scale = 1 - (1 - hs) * 0.55;
+        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth / scale > label.clientWidth + 1);
         header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && clipped);
     };
 
-    const observer = new ResizeObserver(fit);
+    // تغيّر العرض وحده: الارتفاع يتغير مع كل إطار من صغر الرأس عند التمرير
+    let width = 0;
+    const observer = new ResizeObserver(([entry]) => {
+        if (Math.round(entry.contentRect.width) !== width) {
+            width = Math.round(entry.contentRect.width);
+            fit();
+        }
+    });
     observer.observe(header);
     signal.addEventListener('abort', () => observer.disconnect());
     document.fonts?.ready.then(() => signal.aborted || fit());

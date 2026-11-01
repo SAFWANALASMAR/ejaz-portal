@@ -80,6 +80,11 @@ final readonly class MenuLink
             return request()->is('/');
         }
 
+        // رابط باستعلام (تصنيف في الحوكمة): نشط في صفحته نفسها بقيم استعلامه وحدها
+        if (str_contains($path, '?')) {
+            return $this->isExactlyCurrent();
+        }
+
         $patterns = [$path, $path.'/*'];
 
         foreach (self::CURRENT_IN[$path] ?? [] as $section) {
@@ -87,6 +92,33 @@ final readonly class MenuLink
         }
 
         return request()->is(...$patterns);
+    }
+
+    /**
+     * الصفحة نفسها لا ما تحتها: أول عنصر في القائمة المنسدلة (الصفحة الأم — MenuSections) نشط فيها وحدها، فلا يُعلَّم مع قسمها
+     * النشط. والاستعلام إن كان في الرابط يطابق قيمه في الطلب.
+     */
+    public function isExactlyCurrent(): bool
+    {
+        if (! str_starts_with($this->url, '/')) {
+            return false;
+        }
+
+        $path = trim((string) parse_url($this->url, PHP_URL_PATH), '/');
+        parse_str((string) parse_url($this->url, PHP_URL_QUERY), $query);
+
+        if (! request()->is($path === '' ? '/' : $path)) {
+            return false;
+        }
+
+        foreach ($query as $key => $value) {
+            if (request()->query((string) $key) !== $value) {
+                return false;
+            }
+        }
+
+        // والصفحة الأم بلا استعلام ليست النشطة إن كان التصنيف هو المعروض
+        return $query !== [] || ! request()->has('category');
     }
 
     public function hasCurrentChild(): bool

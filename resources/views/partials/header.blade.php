@@ -68,29 +68,31 @@
 
     {{-- الصف الثاني: القائمة «ج» --}}
     <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
-        <ul class="nav-capsules mx-auto max-w-[82.5rem] px-4 py-2.5 sm:px-7">
+        <ul class="nav-capsules mx-auto max-w-[82.5rem] px-4 sm:px-7">
             @foreach ($menu as $item)
                 @php($current = $item->isCurrent() || $item->hasCurrentChild())
-                <li class="relative min-w-0">
+                <li class="relative min-w-0" @if ($item->children->isNotEmpty()) data-nav-dropdown @endif>
                     @if ($item->children->isNotEmpty())
-                        <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
+                        {{-- تفتح بمرور الفأرة بمهلة قصيرة، وبالضغط واللمس ولوحة المفاتيح (app.js — ملاحظات المدير، 1 نوفمبر، البند ٣).
+                             وأولها الصفحة الأم ثم أقسامها (MenuSections، البند ٤)، والروابط تُجلب مسبقاً عند المرور (.hover) --}}
+                        <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}" aria-haspopup="true"
                             @if ($current) data-current @endif
                             class="nav-capsule">
                             <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
                             <span class="truncate">{{ $item->label }}</span>
                             {{ \App\Support\Icon::svg('chevron-down', 'size-3 shrink-0 opacity-80') }}
                         </button>
-                        <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-2 min-w-56 rounded-2xl border border-line/70 bg-pale p-2 text-ink shadow-xl">
+                        <ul id="menu-{{ $item->id }}" hidden data-dropdown-menu class="nav-dropdown absolute start-0 top-full z-50 min-w-56 rounded-2xl border border-line/70 bg-pale p-2 text-ink shadow-xl">
                             @foreach ($item->children as $child)
                                 <li>
-                                    <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
-                                        @if ($child->isCurrent()) aria-current="page" @endif
-                                        class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sky-light/60 hover:text-primary-dark aria-[current=page]:font-bold aria-[current=page]:text-primary-dark">{{ $child->label }}</a>
+                                    <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate.hover @endif
+                                        @if ($loop->first ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
+                                        @class(['block rounded-xl px-4 py-2.5 text-ink hover:bg-sky-light/60 hover:text-primary-dark focus-visible:bg-sky-light/60 aria-[current=page]:font-bold aria-[current=page]:text-primary-dark', 'mb-1 border-b border-line/60 font-extrabold' => $loop->first])>{{ $child->label }}</a>
                                 </li>
                             @endforeach
                         </ul>
                     @else
-                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
+                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate.hover @endif
                             @if ($current) aria-current="page" @endif
                             class="nav-capsule">
                             <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
@@ -119,7 +121,7 @@
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-brand-light/50 ps-3">
                                 @foreach ($item->children as $child)
                                     <li><a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
-                                        @if ($child->isCurrent()) aria-current="page" @endif
+                                        @if ($loop->first ? $child->isExactlyCurrent() : $child->isCurrent()) aria-current="page" @endif
                                         class="block rounded-xl px-4 py-2.5 text-white/90 hover:bg-white/10 aria-[current=page]:font-bold aria-[current=page]:text-brand-light">{{ $child->label }}</a></li>
                                 @endforeach
                             </ul>
