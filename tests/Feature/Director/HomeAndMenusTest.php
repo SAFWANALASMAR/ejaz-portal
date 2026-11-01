@@ -104,7 +104,7 @@ it('lets the director, the technical admin and the editor manage announcements, 
         ->and($super->can('delete', Announcement::factory()->create()))->toBeFalse();
 });
 
-it('builds the menu with «مكتبة إعجاز» and its four branches, and the media centre with news and announcements only', function () {
+it('builds the menu with «مكتبة إعجاز» and its four branches, and the media centre with all its sections', function () {
     $this->seed(MenuSeeder::class);
 
     $menu = $this->get('/')->getContent();
@@ -114,7 +114,8 @@ it('builds the menu with «مكتبة إعجاز» and its four branches, and th
     foreach (['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب', 'الأبحاث والدراسات', '/media/announcements'] as $item) {
         expect($menu)->toContain($item);
     }
-    expect($menu)->not->toContain('href="'.url('/media/albums').'"');
+    // كل أقسام المركز الإعلامي منذ ملاحظات المدير في 1 نوفمبر 2026 (البند ٤)، ومنها مكتبة الصور
+    expect($menu)->toContain('href="'.url('/media/albums').'"');
 });
 
 it('takes video and audio by YouTube link, keeps an older audio file working, and refuses a new one', function () {

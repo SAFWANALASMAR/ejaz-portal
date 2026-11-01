@@ -50,7 +50,7 @@ it('shows the five home cards in order as alternating tone cards instead of the 
     Initiative::factory()->create(['name' => 'مبادرة قيم', 'is_published' => true]);
 
     $html = (string) str($this->get('/')->assertOk()->getContent())->after('id="home-identity"')->before('data-marquee-copy');
-    preg_match_all('/class="tone-card home-card" data-tone="(\w+)" data-identity-card="(\w+)"/', $html, $cards);
+    preg_match_all('/class="tone-card home-card[^"]*" data-tone="(\w+)" data-identity-card="(\w+)"/', $html, $cards);
 
     expect($cards[2])->toBe(['vision', 'goals', 'values', 'principles', 'initiatives'])
         ->and($cards[1])->toBe(['dark', 'light', 'dark', 'light', 'dark'])

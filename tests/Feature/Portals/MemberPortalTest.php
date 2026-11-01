@@ -17,7 +17,7 @@ beforeEach(function () {
     $this->member->assignRole(RoleName::Member->value);
 });
 
-it('counts the programs registered, the completed ones and the competition entries sent', function () {
+it('counts the programs registered, the completed ones and the competition entries as listed in my entries', function () {
     ProgramRegistration::factory()->for($this->member)->create();
     ProgramRegistration::factory()->for($this->member)->create(['attended_at' => now()]);
     ProgramRegistration::factory()->for($this->member)->waitlisted()->create();
@@ -32,7 +32,8 @@ it('counts the programs registered, the completed ones and the competition entri
     expect(app(BuildParticipationStats::class)->handle($this->member))->toBe([
         'registered' => 2,
         'completed' => 1,
-        'entries' => 1,
+        // المرسلة والمسودة كلتاهما في «مشاركاتي»، فتُعدّان (البند ١٧)
+        'entries' => 2,
     ]);
 });
 
@@ -53,7 +54,7 @@ it('shows the statistics card on the account dashboard', function () {
         ->assertSee(__('portals.member.stats.title'))
         ->assertSee(__('portals.member.stats.registered'))
         ->assertSee(__('portals.member.stats.completed'))
-        ->assertSee(__('portals.member.stats.entries'));
+        ->assertSee(__('portals.member_entries'));
 });
 
 it('shows nobody else\'s numbers', function () {
