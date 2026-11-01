@@ -117,6 +117,7 @@ class CompetitionForm
                 Tab::make(__('competitions.student.admin.page_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
                     TextInput::make('page_content.'.CompetitionPage::PARTNER)->label(__('competitions.student.page.partner'))->maxLength(200)
                         ->helperText(__('competitions.student.admin.page_hint')),
+                    TextInput::make('page_content.'.CompetitionPage::SEASON)->label(__('competitions.student.page.season'))->maxLength(100),
                     ...array_map(fn (string $key): Textarea => Textarea::make('page_content.'.$key)->label(__('competitions.student.page.'.$key))
                         ->rows(3)->maxLength(CompetitionPage::PARAGRAPH_MAX), CompetitionPage::PARAGRAPHS),
                     Textarea::make('page_content.'.CompetitionPage::ROUNDS_INTRO)->label(__('competitions.student.page.rounds_intro'))

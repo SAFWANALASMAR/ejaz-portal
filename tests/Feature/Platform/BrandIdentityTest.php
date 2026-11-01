@@ -7,13 +7,12 @@ use Illuminate\Support\Facades\Vite;
  * الهوية الرسمية من دليل الهوية: الشعار في الرأس والتذييل، وخط Zain بأوزانه كلها.
  * docs/requirements/12-executive-director-2026-10-10.md (القسم 1)
  */
-it('shows the official logo in the header and its white version in the footer', function () {
+it('shows the official white logo in the dark header and footer, and the coloured mark on the login card', function () {
     $html = (string) $this->get('/')->assertOk()->getContent();
 
-    // الشعار الكامل بأعمدته ومخطوطة الاسم (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
+    // الشعار الكامل بأعمدته ومخطوطة الاسم بالأبيض في الرأس الداكن والتذييل (التصور النهائي، وقرار صفوان: الرأس داكن)
+    expect((string) $this->get('/login')->getContent())->toContain('/images/brand/logo-mark.png');
     expect($html)
-        ->toContain('/images/brand/logo-mark.png')
-        ->toContain('/images/brand/logo-calligraphy.png')
         ->toContain('/images/brand/logo-mark-white.png')
         ->toContain('/images/brand/logo-calligraphy-white.png')
         ->toContain('alt="'.e(__('site.name')).'"');

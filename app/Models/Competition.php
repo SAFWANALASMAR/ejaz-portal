@@ -6,6 +6,7 @@ use App\Enums\CompetitionStatus;
 use App\Enums\RankingScope;
 use App\Enums\SubmissionStatus;
 use App\Enums\WorkType;
+use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
 use App\Support\CompetitionPage;
 use Database\Factories\CompetitionFactory;
@@ -41,7 +42,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
-    use HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
+    use FlushesContentCache, HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * @return array<string, string>

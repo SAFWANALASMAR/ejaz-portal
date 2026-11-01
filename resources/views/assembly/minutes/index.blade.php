@@ -6,15 +6,15 @@
 @endphp
 
 <x-layouts.app :title="__('assembly.minutes.title')" noindex>
-    <section class="bg-surface/60 py-12 sm:py-16">
+    <section class="band-sky py-12 sm:py-16">
         <div class="container-page max-w-4xl">
             <span class="block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
             <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.minutes.title') }}</h1>
 
             @if ($meetings->isEmpty())
-                <p class="mt-6 text-muted">{{ __('assembly.minutes.empty') }}</p>
+                <x-empty-state icon="document-text" :message="__('assembly.minutes.empty')" class="mt-6" />
             @else
-                <ul class="mt-6 divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-white shadow-xs">
+                <ul class="mt-6 divide-y divide-line/70 overflow-hidden concept-panel">
                     @foreach ($meetings as $meeting)
                         <li class="flex flex-wrap items-center gap-4 p-4 sm:p-5">
                             <span class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft text-primary" aria-hidden="true">

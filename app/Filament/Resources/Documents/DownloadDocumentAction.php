@@ -20,7 +20,9 @@ final class DownloadDocumentAction
             ->label(__('governance.document.download'))
             ->icon(Heroicon::OutlinedArrowDownTray)
             ->authorize(fn (Document $record): bool => auth()->user()?->can('view', $record) ?? false)
+            // وثيقة الرابط المباشر بلا ملف تنزيله
+            ->visible(fn (Document $record): bool => filled($record->file))
             ->action(fn (Document $record): StreamedResponse => Storage::disk(Document::disk())
-                ->download($record->file, $record->downloadName(), ['Content-Type' => 'application/pdf']));
+                ->download((string) $record->file, $record->downloadName(), ['Content-Type' => 'application/pdf']));
     }
 }

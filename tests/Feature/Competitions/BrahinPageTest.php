@@ -116,7 +116,8 @@ it('renders the entry guide as one slide per step, with the controls hidden unti
 
     expect(substr_count($html, 'data-slide="'))->toBe(count($steps))
         ->and(substr_count($html, 'data-slide-dot="'))->toBe(count($steps))
-        ->and($html)->toContain('aria-roledescription="carousel"')
+        // وصف الدوّار بالعربية كدوّارات البوابة (x-carousel — الدفعة الثانية من التحسين البصري)
+        ->and($html)->toContain('aria-roledescription="'.__('ui.slider.carousel').'"')
         ->toContain('data-slides-controls hidden')
         ->toContain(__('competitions.student.page.slide_step', ['number' => 1, 'total' => count($steps)]))
         ->toContain($steps[0]);

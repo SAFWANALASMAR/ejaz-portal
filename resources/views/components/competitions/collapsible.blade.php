@@ -3,14 +3,13 @@
     يعلن حالتها (مفتوحة أو مطوية) بنفسه فلا aria-expanded يكذب إن تعطّل السكربت. والعنوان نص لا <h2>، لأن summary زر
     يُسقط دلالة العنوان. والانسدال الناعم والسهم الدوّار في competition-page.css بلا حركة لمن يطلب تقليلها.
 --}}
-@props(['title', 'icon'])
+@props(['title', 'icon', 'index' => 0])
 
-<details {{ $attributes->class('collapsible group rounded-2xl border border-line/70 bg-white shadow-xs') }} data-collapsible>
+{{-- بلغة التصور النهائي (Final-Competition): بطاقة بيضاء بحد، ومربع أيقونة متدرج بلونه من موضعه (index) --}}
+<details {{ $attributes->class('collapsible card-lift group') }} data-collapsible>
     <summary class="flex cursor-pointer list-none items-center gap-4 rounded-2xl p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-brand" aria-hidden="true">
-            {{ svg($icon, 'size-6') }}
-        </span>
-        <span class="flex-1 text-lg font-bold text-primary sm:text-xl">{{ $title }}</span>
+        <x-icon-tile :icon="str_replace('heroicon-o-', '', $icon)" :index="$index" size="sm" />
+        <span class="flex-1 text-lg font-black text-primary-dark sm:text-xl">{{ $title }}</span>
         <span class="collapsible-chevron grid size-8 shrink-0 place-items-center rounded-full bg-surface text-primary" aria-hidden="true">
             {{ svg('heroicon-o-chevron-down', 'size-5') }}
         </span>

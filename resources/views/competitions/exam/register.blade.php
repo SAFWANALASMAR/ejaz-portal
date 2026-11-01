@@ -11,9 +11,9 @@
     @include('competitions.exam._steps', ['current' => 'registration'])
 
     <form method="POST" action="{{ route('competitions.exam.register', $competition->slug) }}" data-exam-gate
-        class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        class="space-y-5 concept-panel p-6">
         @csrf
-        <h2 class="text-xl font-bold text-primary">{{ __('competitions.exam.registration_heading') }}</h2>
+        <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('competitions.exam.registration_heading') }}</h2>
 
         <x-field name="full_name" :label="__('competitions.exam.full_name')" required maxlength="150" autocomplete="name" />
 

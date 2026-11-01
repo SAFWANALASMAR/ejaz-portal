@@ -14,6 +14,11 @@ use App\Models\Survey;
 return [
 
     'tiles' => [
+        // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات (البند R4)، ثم الاستفسارات (Final-Services، النسخة 63)
+        ['route' => 'programs.index', 'label' => 'ui.inner.services.programs', 'icon' => 'academic-cap'],
+        ['route' => 'competitions.index', 'label' => 'ui.inner.services.competitions', 'icon' => 'trophy'],
+        ['route' => 'initiatives.index', 'label' => 'ui.inner.services.initiatives', 'icon' => 'flag'],
+        ['route' => 'contact', 'label' => 'ui.inner.services.inquiries', 'icon' => 'chat-bubble-left-right'],
         ['route' => 'services.assembly-membership', 'label' => 'services.tiles.membership', 'icon' => 'user-group'],
         ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase'],
         ['route' => 'services.volunteering', 'label' => 'services.tiles.volunteering', 'icon' => 'hand-raised'],

@@ -253,7 +253,11 @@ it('stores the built-in cards in Arabic whatever the locale at migration time', 
 it('fetches the YouTube thumbnail once on the server and serves it from the site, never from Google in the page', function () {
     config(['security.youtube_thumbnails' => true]);
     Storage::fake('public');
-    Http::fake(['https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg' => Http::response(imageBytes('jpeg', 32, 18), 200, ['Content-Type' => 'image/jpeg'])]);
+    // أعلى دقة أولاً ثم hqdefault (FetchYoutubeThumbnail::SIZES)
+    Http::fake([
+        'https://i.ytimg.com/vi/abcdefghijk/maxresdefault.jpg' => Http::response('', 404),
+        'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg' => Http::response(imageBytes('jpeg', 32, 18), 200, ['Content-Type' => 'image/jpeg']),
+    ]);
     $editor = userWithRole(RoleName::ContentEditor);
 
     $item = app(SaveLibraryItem::class)->handle($editor, new LibraryItem, ['title' => 'مقطع', 'slug' => 'clip', 'section' => LibrarySection::Videos->value,

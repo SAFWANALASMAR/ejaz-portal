@@ -1,6 +1,6 @@
 {{--
-    الحوكمة (الصورة 05): رأس القسم، ثم بلاطات التصنيفات، ثم البحث والتصفية، ثم قائمة الوثائق،
-    لكل وثيقة أيقونة PDF وعنوان وبياناتها. والصفحة الأولى بلا تصفية تُخزَّن (GovernanceController).
+    الحوكمة (Final-Governance، المرحلة ج — البند P7): رأس القسم، ثم التصنيفات مربعات ملونة متجاورة، ثم البحث والتصفية في لوح
+    فاتح، ثم الوثائق مربعات ملونة متجاورة، لكل وثيقة أيقونة PDF وعنوان وبياناتها وزرا العرض والتنزيل. والصفحة الأولى بلا تصفية تُخزَّن (GovernanceController).
 --}}
 @php
     use App\Enums\DocumentCategory;
@@ -19,19 +19,19 @@
         <h2 class="sr-only">{{ __('governance.fields.category') }}</h2>
         <ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>
             @foreach (DocumentCategory::cases() as $category)
-                <li>
+                <li class="tone-card">
                     <a href="{{ route('governance.index', ['category' => $category->value]) }}" wire:navigate
                         @if ($active === $category->value) aria-current="true" @endif
-                        class="card-lift tilt group flex h-full flex-col items-center gap-3 p-5 text-center aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent">
-                        <span class="icon-tile size-14" aria-hidden="true">{{ \App\Support\Icon::svg($category->icon(), 'size-8') }}</span>
-                        <span class="font-semibold text-ink">{{ $category->getLabel() }}</span>
+                        class="group flex h-full flex-col items-center gap-3 rounded-[1.25rem] p-5 text-center aria-[current=true]:ring-3 aria-[current=true]:ring-[var(--blue-300)] aria-[current=true]:ring-inset">
+                        <x-icon-tile :icon="$category->icon()" size="md" />
+                        <span class="font-black">{{ $category->getLabel() }}</span>
                     </a>
                 </li>
             @endforeach
         </ul>
 
         <form method="GET" action="{{ route('governance.index') }}" role="search" aria-label="{{ __('governance.filters.label') }}"
-            class="mt-10 grid gap-3 rounded-2xl border border-line/70 bg-surface p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+            class="form-sky mt-8 grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
             <label class="block">
                 <span class="text-sm font-medium text-ink">{{ __('governance.filters.q') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="{{ __('governance.filters.q_placeholder') }}"
@@ -65,14 +65,14 @@
         <h2 class="sr-only">{{ __('governance.list.title') }}</h2>
 
         @if ($documents->isEmpty())
-            <p class="mt-10 text-muted">{{ $filters === [] ? __('governance.list.empty') : __('governance.list.no_results') }}</p>
+            <x-empty-state icon="shield-check" :message="$filters === [] ? __('governance.list.empty') : __('governance.list.no_results')" class="mt-10" />
         @else
-            <ul class="mt-8 grid gap-4 lg:grid-cols-2" data-reveal-group>
+            <ul class="mt-6 grid gap-3.5 lg:grid-cols-2" data-reveal-group data-documents-grid>
                 @foreach ($documents as $document)
                     <li>
                         <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"
-                            :download="route('governance.download', $document->slug)" :bytes="$document->file_size"
-                            :type="__('governance.list.pdf')" class="h-full"
+                            :download="$document->file === null ? null : route('governance.download', $document->slug)" :bytes="$document->file_size"
+                            :type="$document->file === null ? __('governance.list.link') : __('governance.list.pdf')" :index="$loop->index" tone class="h-full"
                             :meta="[
                                 $document->category->getLabel(),
                                 $document->issued_at ? Dates::display($document->issued_at) : null,

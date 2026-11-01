@@ -16,7 +16,7 @@
         @csrf
         <input type="hidden" name="question" value="{{ $question->id }}">
 
-        <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+        <section class="space-y-5 concept-panel p-6">
             <div class="space-y-2">
                 <p class="text-sm font-semibold text-accent-dark">{{ __('competitions.exam.question_of', ['number' => $number, 'total' => $total]) }}</p>
                 <label class="block text-sm text-muted">
@@ -61,7 +61,7 @@
             </div>
         </section>
 
-        <nav aria-label="{{ __('competitions.exam.questions_list') }}" class="rounded-2xl border border-line/70 bg-white p-5 shadow-xs">
+        <nav aria-label="{{ __('competitions.exam.questions_list') }}" class="concept-panel p-5">
             <p class="mb-3 text-sm font-semibold text-ink">{{ __('competitions.exam.questions_list') }}</p>
             <ul class="flex flex-wrap gap-2">
                 @foreach ($questions as $item)

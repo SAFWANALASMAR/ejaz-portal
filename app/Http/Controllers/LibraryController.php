@@ -41,7 +41,10 @@ class LibraryController extends Controller implements HasMiddleware
      */
     private const READER_PER_MINUTE = 20;
 
-    private const LATEST = 6;
+    /**
+     * عناصر كل قسم في شريطه المتحرك في صفحة المكتبة (التصور النهائي — البندان R9 وR20).
+     */
+    private const STRIP = 8;
 
     private const RELATED = 3;
 
@@ -49,8 +52,11 @@ class LibraryController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        // الأقسام الأربعة بترتيبها، لكل قسم أحدث عناصره المنشورة لشريطه (استعلام لكل قسم داخل الصفحة المخزنة)
         $html = ContentCache::remember('library.index', fn (): string => view('library.index', [
-            'latest' => LibraryItem::query()->published()->newestFirst()->limit(self::LATEST)->get(),
+            'strips' => collect(LibrarySection::cases())->mapWithKeys(fn (LibrarySection $section): array => [
+                $section->value => LibraryItem::query()->published()->where('section', $section)->newestFirst()->limit(self::STRIP)->get(),
+            ]),
         ])->render());
 
         return view('content.page', ['title' => __('library.title'), 'summary' => null, 'html' => new HtmlString($html)]);

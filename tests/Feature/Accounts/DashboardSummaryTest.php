@@ -76,6 +76,8 @@ it('keeps the number of queries constant however many records I have', function 
     ProgramRegistration::factory()->count(5)->for($this->user)->create();
     ServiceRequest::factory()->count(5)->for($this->user)->create();
     ServiceRequest::factory()->count(3)->for($this->user)->status(ServiceRequestStatus::NeedsCompletion)->create();
+    // حفظ السجلات يمسح ذاكرة المحتوى، فيُعاد بناء المخزّن مرة (شعارات الشركاء في التذييل) قبل القياس
+    $count();
 
     expect($count())->toBe($few);
 });

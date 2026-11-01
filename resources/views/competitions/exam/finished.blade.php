@@ -4,7 +4,7 @@
 @endphp
 
 <x-layouts.account :title="__('competitions.exam.title', ['competition' => $competition->title])">
-    <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 text-center shadow-xs">
+    <section class="space-y-5 concept-panel p-6 text-center">
         <span class="mx-auto block w-fit text-primary">{{ \App\Support\Icon::svg('check-circle', 'size-14') }}</span>
         <p role="status" class="text-xl leading-9 font-bold text-primary">{{ __('competitions.exam.finished') }}</p>
         <dl class="grid gap-4 text-start sm:grid-cols-2">

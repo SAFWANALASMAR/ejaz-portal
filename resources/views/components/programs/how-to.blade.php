@@ -32,10 +32,13 @@
     $open = ($status ?? $program?->status()) === ProgramStatus::Open;
 @endphp
 
-<section data-programs-how-to aria-labelledby="programs-how-to-title" {{ $attributes->merge(['class' => 'rounded-2xl border border-line bg-white p-5 shadow-xs sm:p-8']) }}>
-    <span class="block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-    <h2 id="programs-how-to-title" class="mt-3 text-2xl font-bold text-primary sm:text-3xl">{{ __('programs.how_to.title') }}</h2>
-    <p class="mt-2 text-muted">{{ __('programs.how_to.intro') }}</p>
+<section data-programs-how-to aria-labelledby="programs-how-to-title" {{ $attributes->merge(['class' => 'concept-panel p-5 sm:p-8']) }}>
+    {{-- عنوان القسم بالنمط الموحد (x-section-heading)، ومعرّفه على العنوان نفسه لـ aria-labelledby --}}
+    <h2 id="programs-how-to-title" class="section-heading-title flex items-center gap-2.5 font-black leading-tight text-primary-dark">
+        <x-icon-tile icon="clipboard-document-check" shade="medium" size="sm" class="section-heading-icon" data-loop />
+        <span>{{ __('programs.how_to.title') }}</span>
+    </h2>
+    <p class="mt-2 text-[var(--concept-text)]">{{ __('programs.how_to.intro') }}</p>
 
     {{-- role="list": سفاري يُسقط دلالة القائمة عن ما بلا علامات --}}
     <ol role="list" aria-label="{{ __('programs.how_to.steps_label') }}" @class([
@@ -44,19 +47,19 @@
         'sm:grid-cols-2' => $program !== null,
     ])>
         @foreach ($steps as $key => $icon)
-            <li @class(['relative flex gap-3 rounded-xl bg-surface p-4', 'lg:flex-col' => $program === null])>
-                <span class="relative inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-brand" aria-hidden="true">
-                    {{ svg('heroicon-o-'.$icon, 'size-6') }}
-                    <span class="absolute -top-1 -end-1 inline-flex size-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{{ $loop->iteration }}</span>
+            <li @class(['tone-card relative flex gap-3 p-4', 'lg:flex-col' => $program === null])>
+                <span class="relative shrink-0" aria-hidden="true">
+                    <x-icon-tile :icon="$icon" size="sm" />
+                    <span class="tone-chip absolute -top-1.5 -end-1.5 px-1.5! text-xs">{{ $loop->iteration }}</span>
                 </span>
                 <div class="min-w-0">
-                    <h3 class="font-bold text-ink">
+                    <h3 class="font-black">
                         <span class="sr-only">{{ __('programs.how_to.step', ['number' => $loop->iteration]) }}:</span>
                         {{ __('programs.how_to.steps.'.$key.'.title', $replace) }}
                     </h3>
-                    <p class="mt-1 text-sm leading-7 text-muted">{{ __('programs.how_to.steps.'.$key.'.body', $replace) }}</p>
+                    <p class="tone-card-muted mt-1 text-sm leading-7">{{ __('programs.how_to.steps.'.$key.'.body', $replace) }}</p>
                     @if ($key === 'account' && AccountSettings::verificationEnabled())
-                        <p class="mt-1 text-sm leading-7 text-muted">{{ __('programs.how_to.steps.account.verify') }}</p>
+                        <p class="tone-card-muted mt-1 text-sm leading-7">{{ __('programs.how_to.steps.account.verify') }}</p>
                     @endif
                 </div>
             </li>

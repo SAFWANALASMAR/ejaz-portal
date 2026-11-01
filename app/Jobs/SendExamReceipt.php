@@ -14,8 +14,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * إشعار واتساب بعد إرسال الاختبار، إلى الجوال الموثّق في الحساب: تأكيد الاستلام، وتاريخ الإرسال ووقته
- * بتوقيت الرياض، مختوماً باسم الجمعية. ولا إجابات ولا درجة. والمزوّد خلف WhatsAppNotifier: قالب معتمد
+ * إشعار واتساب بعد إرسال الاختبار، رسالة واحدة إلى جوال ولي الأمر في التسجيل إن وُجد، وإلا جوال الحساب (قرار صفوان،
+ * 31 أكتوبر 2026): تأكيد الاستلام، وتاريخ الإرسال ووقته بتوقيت الرياض، مختوماً باسم الجمعية. ولا إجابات ولا درجة. والمزوّد خلف WhatsAppNotifier: قالب معتمد
  * (exam_receipt) متغيراته بالترتيب: المسابقة، والتاريخ، والوقت، واسم الجمعية (docs/guides/messaging.md).
  */
 class SendExamReceipt implements ShouldQueue
@@ -32,7 +32,7 @@ class SendExamReceipt implements ShouldQueue
     public function handle(WhatsAppNotifier $whatsapp, DeliverMessage $deliver): void
     {
         $submission = CompetitionSubmission::query()->with(['user', 'competition'])->find($this->submissionId);
-        $phone = $submission?->user?->phone;
+        $phone = filled($submission?->guardian_phone) ? $submission->guardian_phone : $submission?->user?->phone;
         $submittedAt = $this->attemptId !== null
             ? CompetitionAttempt::query()->where('submission_id', $this->submissionId)->find($this->attemptId)?->submitted_at
             : $submission?->submitted_at;

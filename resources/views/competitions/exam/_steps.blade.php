@@ -4,7 +4,7 @@
     $index = array_search($current, $steps, true);
 @endphp
 
-<nav aria-label="{{ __('competitions.exam.step_of', ['current' => $index + 1, 'total' => count($steps)]) }}" class="rounded-2xl border border-line/70 bg-white p-4 shadow-xs">
+<nav aria-label="{{ __('competitions.exam.step_of', ['current' => $index + 1, 'total' => count($steps)]) }}" class="concept-panel p-4">
     <ol class="flex flex-wrap gap-2 text-sm">
         @foreach ($steps as $position => $step)
             <li @class([

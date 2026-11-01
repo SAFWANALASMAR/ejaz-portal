@@ -1,6 +1,6 @@
-// قائمة الرأس صف واحد مريح (docs/reviews/ready-fix-header-single-row.md): على عروض الحاسب الشائعة كل عنصر
-// بسطر واحد بلا تداخل مع الشعار وزر الدخول، وما دون نقطة الظهور وما لا يتسع يصير زر القائمة.
-// وعلى 1280 بعناصرها التسعة والشعار الكامل منذ #66، بخط وحشو أصغر قليلاً دون 1440 (docs/reviews/2026-10-27-header-fit-1280.md).
+// الرأس صفّان (أمر التصور النهائي، النسخة 63 — البندان R2 وR3، وFinal-Home): الأول الرمز والمخطوطة ومربع الترخيص والدخول والبحث،
+// والثاني القائمة «ج» كبسولات متساوية في صف واحد، وكله ثابت عند التمرير ومنفصل عن البطل بحد #8EC5F0. وعلى عروض الحاسوب الشائعة
+// كل اسم في كبسولته بلا قص، وما دون نقطة الظهور وما لا يتسع يصير زر القائمة.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
@@ -13,33 +13,31 @@ test.beforeEach(async ({}, testInfo) => test.skip(testInfo.project.name !== 'des
 async function headerLayout(page) {
     return page.evaluate(() => {
         const header = document.querySelector('[data-site-header]');
-        const row = header.firstElementChild;
         const nav = header.querySelector('[data-main-nav]');
-        const links = [...nav.querySelectorAll(':scope > ul > li > a, :scope > ul > li > button')];
-        const box = (element) => element.getBoundingClientRect();
-        const brand = box(row.firstElementChild);
-        const actions = box(row.lastElementChild);
-        const list = box(nav.querySelector('ul'));
-        const lineHeight = parseFloat(getComputedStyle(links[0]).lineHeight);
+        const capsules = [...nav.querySelectorAll('.nav-capsule')];
         const hamburger = header.querySelector('[data-toggle="mobile-menu"]');
+        const top = header.querySelector('.header-top').getBoundingClientRect();
+        const row = nav.getBoundingClientRect();
 
         return {
             navShown: getComputedStyle(nav).display !== 'none',
             hamburgerShown: getComputedStyle(hamburger).display !== 'none',
-            // ارتفاع النص في كل رابط سطر واحد: ارتفاع الرابط ناقص حشوه الرأسي
-            lines: links.map((link) => {
-                const style = getComputedStyle(link);
-                return Math.round((box(link).height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / lineHeight);
-            }),
-            clearOfBrand: list.right <= brand.left + 0.5,
-            clearOfActions: list.left >= actions.right - 0.5,
+            licenceShown: getComputedStyle(header.querySelector('[data-header-licence]')).display !== 'none',
+            // لا اسم مقصوص في كبسولته، والكبسولات بعرض واحد، وصف القائمة تحت الصف الأول
+            clipped: capsules.filter((capsule) => {
+                const label = capsule.querySelector('.truncate');
+                return label.scrollWidth > label.clientWidth + 1;
+            }).length,
+            widths: [...new Set(capsules.map((capsule) => Math.round(capsule.getBoundingClientRect().width)))],
+            secondRow: row.top >= top.bottom - 0.5,
+            borderBottom: getComputedStyle(header).borderBottomColor,
             noHorizontalScroll: document.documentElement.scrollWidth <= window.innerWidth + 1,
         };
     });
 }
 
 for (const width of WIDTHS) {
-    test(`keeps every top menu item on one line at ${width}px`, async ({ page }) => {
+    test(`shows the seven capsules on the second row with no clipped name at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
         await page.evaluate(() => document.fonts.ready);
@@ -47,23 +45,23 @@ for (const width of WIDTHS) {
         const layout = await headerLayout(page);
         expect(layout.navShown).toBe(true);
         expect(layout.hamburgerShown).toBe(false);
-        expect(layout.lines.every((lines) => lines === 1)).toBe(true);
-        expect(layout.clearOfBrand).toBe(true);
-        expect(layout.clearOfActions).toBe(true);
+        expect(layout.licenceShown).toBe(true);
+        expect(layout.clipped).toBe(0);
+        expect(layout.widths.length).toBeLessThanOrEqual(1);
+        expect(layout.secondRow).toBe(true);
+        expect(layout.borderBottom).toBe('rgb(142, 197, 240)');
         expect(layout.noHorizontalScroll).toBe(true);
     });
 }
 
-// الخط الأصغر قليلاً دون 1440 وحده، وما فوقه كما كان. و1240 أول ظهور القائمة (--breakpoint-nav) و1439 آخر الخط الأصغر
-for (const [width, size] of [[1240, '13.5px'], [1280, '13.5px'], [1439, '13.5px'], [1440, '14.5px'], [1920, '14.5px']]) {
-    test(`uses ${size} menu text at ${width}px`, async ({ page }) => {
-        await page.setViewportSize({ width, height: 900 });
-        await page.goto('/');
+test('keeps the whole two-row header at the top while scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await page.mouse.wheel(0, 1600);
 
-        const sizes = await page.locator('[data-main-nav] > ul > li > :is(a, button)').evaluateAll((items) => [...new Set(items.map((item) => getComputedStyle(item).fontSize))]);
-        expect(sizes).toEqual([size]);
-    });
-}
+    await expect.poll(() => page.evaluate(() => Math.round(document.querySelector('[data-site-header]').getBoundingClientRect().top))).toBe(0);
+    await expect(page.locator('[data-main-nav]')).toBeInViewport();
+});
 
 for (const width of [820, 390]) {
     test(`keeps the menu button on tablet and phone at ${width}px`, async ({ page }) => {
@@ -75,6 +73,9 @@ for (const width of [820, 390]) {
         expect(layout.navShown).toBe(false);
         expect(layout.hamburgerShown).toBe(true);
         expect(layout.noHorizontalScroll).toBe(true);
+
+        await page.locator('[data-toggle="mobile-menu"]').click();
+        await expect(page.locator('#mobile-menu [data-icon-tile]').first()).toBeVisible();
     });
 }
 
@@ -98,7 +99,7 @@ test('shows the menu button below the measured width', async ({ page }) => {
     expect(layout.hamburgerShown).toBe(true);
 });
 
-test('switches to the menu button when the items do not fit, instead of wrapping or overlapping', async ({ page }) => {
+test('switches to the menu button when the items do not fit, instead of clipping their names', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
@@ -106,9 +107,9 @@ test('switches to the menu button when the items do not fit, instead of wrapping
     await page.evaluate(() => {
         const list = document.querySelector('[data-main-nav] ul');
         const item = [...list.children].find((li) => li.querySelector(':scope > a'));
-        for (const label of ['خدماتنا الإلكترونية', 'الدورات والبرامج', 'المركز الإعلامي']) {
+        for (const label of ['الدورات والبرامج', 'الجمعية العمومية', 'قياس الرضا', 'البث المباشر', 'معرض الشواهد', 'الأسئلة الشائعة']) {
             const copy = item.cloneNode(true);
-            copy.querySelector('a').textContent = label;
+            copy.querySelector('.truncate').textContent = label;
             list.append(copy);
         }
     });

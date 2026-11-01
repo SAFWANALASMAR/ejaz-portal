@@ -11,7 +11,7 @@
 @endphp
 
 <x-layouts.app :title="$meeting->title" noindex>
-    <section class="bg-surface/60 py-12 sm:py-16">
+    <section class="band-sky py-12 sm:py-16">
         <div class="container-page max-w-3xl">
             <a href="{{ route('assembly.meetings.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('assembly.meetings.back') }}</a>
 

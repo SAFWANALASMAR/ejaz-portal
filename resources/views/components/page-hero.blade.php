@@ -1,29 +1,46 @@
 {{--
-    رأس صفحات الأقسام (الصورة 05 — النمط الموحد): صورة بعرض الصفحة، والعنوان ووصفه القصير بالأبيض في جهة البداية، ورمز
-    الشهب من دليل الهوية في جهة النهاية. والصورة المؤقتة المحايدة حتى تصل صور الجمعية.
-    متوازن على كامل العرض (docs/decisions.md — 14 أكتوبر): حافة سفلية مستقيمة، وغطاء موحّد من primary-dark بشفافية 90%
-    لا تدرج أفقي، والعنوان الأبيض بتباين 7:1 فأكثر. ومع التحسين البصري (docs/plans/visual-refresh.md): تكبير بطيء للصورة،
-    وظهور العنوان كلمة كلمة، ودوائر باهتة، وخط زخرفي بلون التمييز.
+    رأس الصفحات الداخلية (التصور النهائي — Final-About وFinal-Page وأخواتهما، ونمط الجوال على كل العروض منذ 31 أكتوبر): بارتفاع
+    320 بكسل، الصورة بعرضه كله تحت الرأس مباشرة بتكبير بطيء، والتدرج يشتد نحو الأزرق الداكن في الأسفل وفي جهة النص. وفي أعلاه شريط العودة كبسولتين، ثم شارة القسم «✦ اسم القسم»، ثم
+    العنوان، ثم شريط أزرق يمتد، ثم الوصف. والظهور من ضباب كلمة بعد كلمة، وكله يتوقف لمن طلب تقليل الحركة.
+
+    الشارة: اسم القسم من اسم المسار (App\Support\PageSections)، وفي صفحة القسم نفسه اسم الجمعية المختصر. ويمرر القالب eyebrow.
+    والصورة المؤقتة المحايدة حتى تصل صور الجمعية. وما بعد الوصف في الـ slot (أزرار أو شارات)، وبطاقة جانبية في
+    جهة النهاية في الـ slot المسمى aside (بطاقة جوائز المسابقة)، تنزل تحت النص على الجوال. وcompact: أقصر بمسافات أقل (صفحة
+    المسابقة، البند P3). والصورة صورة الصفحة متى مررتها (المرحلة ج)، وإلا الرسم المؤقت.
 --}}
-@props(['title', 'summary' => null, 'image' => null])
+@props(['title', 'summary' => null, 'image' => null, 'eyebrow' => null, 'icon' => null, 'compact' => false])
 
-<section data-page-hero class="section-dark">
-    <img src="{{ $image ?? asset('images/placeholders/architecture.svg') }}" alt="" class="ken-burns absolute inset-0 -z-10 size-full object-cover">
-    {{-- غطاء موحّد، وتدرج عمودي خفيف من الأسفل يفصل الشريط عما تحته --}}
-    <div class="absolute inset-0 -z-10 bg-primary-dark/90" aria-hidden="true"></div>
-    <div class="bg-pattern-light absolute inset-0 -z-10" aria-hidden="true"></div>
-    <div class="absolute inset-0 -z-10 bg-linear-to-t from-primary-dark/50 to-transparent to-60%" aria-hidden="true"></div>
+@php
+    $section = \App\Support\PageSections::for(request()->route());
+    $badge = $eyebrow ?? ($section['label'] === $title ? __('site.short_name') : $section['label']);
+    $back = \App\Support\BackNavigation::shows(request()->route());
+@endphp
 
-    {{-- رمز الشهب السبعة من دليل الهوية زخرفةً في جهة النهاية --}}
-    <span class="brand-emblem end-6 top-0 hidden h-full w-28 opacity-70 sm:block lg:end-16 lg:w-36" aria-hidden="true"></span>
+<section data-page-hero class="concept-hero" data-size="page" @if ($compact) data-compact @endif>
+    <div class="concept-hero-media">
+        <img src="{{ $image ?? asset('images/placeholders/architecture.svg') }}" alt="" width="1280" height="640">
+    </div>
+    <div class="concept-hero-scrim" aria-hidden="true"></div>
 
-    <div class="container-page relative py-14 sm:py-20 lg:py-24">
-        <h1 data-words class="max-w-3xl text-3xl leading-tight font-bold text-balance text-white sm:text-4xl lg:text-5xl">{{ $title }}</h1>
-        <svg class="flourish mt-4 w-32 text-highlight-on-dark" viewBox="0 0 120 12" fill="none" aria-hidden="true">
-            <path d="M2 8c18-6 36-6 54 0s38 6 62-2" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-        </svg>
-        @if (filled($summary))
-            <p class="mt-4 max-w-2xl text-lg leading-8 text-white/85">{{ $summary }}</p>
-        @endif
+    <div class="relative mx-auto flex min-h-[20rem] max-w-[82.5rem] flex-col justify-center gap-6 px-4 pt-5.5 pb-11.5 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div class="flex min-w-0 flex-1 flex-col gap-3">
+            @if ($back)
+                <x-back-nav inline class="mb-1" />
+            @endif
+            <p data-hero-badge class="hero-chip rise-1">
+                <span aria-hidden="true">✦</span>
+                {{ $badge }}
+            </p>
+            <h1 class="rise-2 max-w-3xl text-[2.25rem] leading-[1.1] font-black text-balance sm:text-[3.25rem]">{{ $title }}</h1>
+            <span class="title-bar" aria-hidden="true"></span>
+            @if (filled($summary))
+                <p class="rise-3 max-w-[32.5rem] text-lg leading-[1.75] text-white/90 sm:text-[1.1875rem]">{{ $summary }}</p>
+            @endif
+            {{ $slot ?? '' }}
+        </div>
+
+        @isset($aside)
+            {{ $aside }}
+        @endisset
     </div>
 </section>

@@ -2,6 +2,7 @@
 
 use App\Enums\DocumentCategory;
 use App\Models\Document;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -156,7 +157,8 @@ it('shows the file size in kilobytes below a megabyte, and in megabytes above', 
     $this->get('/governance/large')->assertSee(__('site.file.size_mb', ['size' => '3.0']));
 });
 
-// ملاحظات التجربة الشاملة (الخلل 8): الأبيض بشفافية 80% على الأزرق 4.4:1 دون حد WCAG، وبلا شفافية 5.9:1
+// ملاحظات التجربة الشاملة (الخلل 8): الأبيض بشفافية 80% على الأزرق 4.4:1 دون حد WCAG. ومنذ المرحلة ج الزر في بطاقة البيانات
+// الداكنة (tone-pill على data-tone="dark")، والحجم يرث لون نصها الأبيض الكامل بلا شفافية
 it('shows the file size on the download button in full white, for a contrast of at least 4.5:1', function () {
     storedDocument(['slug' => 'bylaws']);
 
@@ -164,6 +166,49 @@ it('shows the file size on the download button in full white, for a contrast of 
     $button = (string) str($html)->after('href="'.route('governance.download', 'bylaws').'"')->before('</a>');
 
     // الحجم يرث الأبيض الكامل من الزر، بلا شفافية ولا لون أخف
-    expect($button)->toContain('bg-primary text-white')
-        ->toContain('<span class="font-normal">('.__('site.file.size_kb', ['size' => 1]).')</span>');
+    $meta = (string) str($html)->after('data-document-meta>')->before('</aside>');
+
+    expect($html)->toContain('data-tone="dark" data-document-meta')
+        ->and($meta)->toContain('href="'.route('governance.download', 'bylaws').'"')
+        ->and($button)->toContain('tone-pill')
+        ->and($button)->toContain('<span class="font-normal">('.__('site.file.size_kb', ['size' => 1]).')</span>');
+});
+
+it('opens a link document in a new tab, with no embedded viewer and no download', function () {
+    Document::factory()->link('https://example.org/annual-report')->create(['slug' => 'annual-report', 'title' => 'التقرير السنوي']);
+
+    $this->get('/governance/annual-report')->assertOk()
+        ->assertSee('href="https://example.org/annual-report"', false)
+        ->assertSee('target="_blank" rel="noopener noreferrer"', false)
+        ->assertSee(__('governance.document.open_link'))
+        ->assertDontSee('<iframe', false)
+        ->assertDontSee(route('governance.download', 'annual-report'), false)
+        ->assertDontSee(__('governance.document.mobile_hint'));
+
+    $this->get('/governance')->assertOk()
+        ->assertSee(route('governance.show', 'annual-report'), false)
+        ->assertDontSee(route('governance.download', 'annual-report'), false);
+
+    // ولا ملف يُقدَّم لوثيقة الرابط
+    $this->get('/governance/annual-report/file')->assertNotFound();
+    $this->get('/governance/annual-report/download')->assertNotFound();
+});
+
+it('keeps an unpublished link document and its link out of the site', function () {
+    Document::factory()->link('https://example.org/draft-report')->unpublished()->create(['slug' => 'draft-report']);
+
+    $this->get('/governance/draft-report')->assertNotFound();
+    $this->get('/governance')->assertOk()->assertDontSee('example.org/draft-report', false)->assertDontSee('/governance/draft-report', false);
+});
+
+it('refuses a document with neither a file nor a link, or with both, in the database too', function () {
+    expect(fn () => Document::factory()->create(['file' => null, 'url' => null]))->toThrow(QueryException::class)
+        ->and(fn () => Document::factory()->create(['url' => 'https://example.org/report']))->toThrow(QueryException::class);
+});
+
+it('shows no link written to the database without its checks', function () {
+    $document = Document::factory()->link()->create(['slug' => 'raw-link']);
+    DB::table('documents')->where('id', $document->id)->update(['url' => 'javascript:alert(1)']);
+
+    $this->get('/governance/raw-link')->assertOk()->assertDontSee('javascript:', false)->assertDontSee('<iframe', false);
 });

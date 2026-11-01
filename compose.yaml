@@ -50,6 +50,8 @@ services:
     volumes:
       - .:/app
       - node_modules:/app/node_modules
+      # سمة لوحة الإدارة تستورد CSS من Filament في vendor (resources/css/filament/admin/theme.css)
+      - vendor:/app/vendor:ro
     environment:
       CHOKIDAR_USEPOLLING: "${VITE_POLLING:-false}"
     command: sh -c "npm install && npm run dev"

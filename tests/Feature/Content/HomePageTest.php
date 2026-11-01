@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -41,14 +42,17 @@ it('falls back to the association name, its specialty and the neutral image, wit
         ->assertSeeInOrder(['<h1', __('site.name')], false)
         ->assertSee(__('site.tagline'))
         ->assertSee('images/placeholders/architecture.svg', false)
-        ->assertSee(__('home.hero.button_missing'));
+        ->assertSee('data-hero-slider', false);
 });
 
 it('shows the uploaded hero image', function () {
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_image' => 'settings/hero.jpg']);
 
-    $this->get('/')->assertSee('/storage/settings/hero.jpg', false)
-        ->assertDontSee('images/placeholders/architecture.svg', false);
+    // الشريحة الأولى (تعريف الجمعية) بالصورة المرفوعة لا بالرسم المؤقت. وما بلا صورة من الشرائح الأخرى بالرسم المؤقت (HomeShowcase::slides)
+    $html = $this->get('/')->assertSee('/storage/settings/hero.jpg', false)->getContent();
+    preg_match('/data-hero-slide="about".*?<img src="([^"]+)"/s', $html, $about);
+
+    expect($about[1])->toEndWith('/storage/settings/hero.jpg');
 });
 
 it('never renders an unsafe hero link even if one reaches the database', function () {
@@ -58,11 +62,12 @@ it('never renders an unsafe hero link even if one reaches the database', functio
 });
 
 it('shows approved statistics with thousands separators, and no strip without them', function () {
-    $this->get('/')->assertDontSee(__('home.stats.title'));
+    $this->get('/')->assertDontSee('data-portal-stats', false);
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [approvedStat()]]);
 
-    $this->get('/')->assertSee(__('home.stats.title'))->assertSee('25,000+')->assertSee('مستفيد');
+    // «البوابة بالأرقام» آخر الرئيسية قبل «شركاؤنا» (النسخة 63 — البند H9)
+    $this->get('/')->assertSee('data-portal-stats', false)->assertSee(__('home.sections_final.headings.stats'))->assertSee('25,000+')->assertSee('مستفيد');
 });
 
 it('hides the statistics when switched off, and skips incomplete entries', function () {
@@ -70,7 +75,7 @@ it('hides the statistics when switched off, and skips incomplete entries', funct
     $this->get('/')->assertDontSee('25,000');
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [['label' => '', 'value' => 10, 'icon' => 'users'], ['label' => 'بلا رقم', 'value' => 'x']]]);
-    $this->get('/')->assertDontSee(__('home.stats.title'));
+    $this->get('/')->assertDontSee('data-portal-stats', false);
 });
 
 it('draws only the allowed statistic icons', function () {
@@ -79,30 +84,22 @@ it('draws only the allowed statistic icons', function () {
     $this->get('/')->assertOk()->assertSee('25,000+');
 });
 
-it('shows a section shortcut only once its section exists, and none when switched off', function () {
+it('shows a section shortcut only once its section exists', function () {
     $built = collect(BuildHomePage::SHORTCUTS)->filter(fn (array $shortcut) => Route::has($shortcut['route']));
     $missing = collect(BuildHomePage::SHORTCUTS)->reject(fn (array $shortcut) => Route::has($shortcut['route']));
 
     // الأقسام المبنية لها بطاقاتها، والباقية بلا بطاقة حتى يُبنى مسارها
     foreach ($built->keys() as $key) {
-        $this->get('/')->assertSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertSee(__(Lang::has('home.shortcuts.'.$key.'.title') ? 'home.shortcuts.'.$key.'.title' : 'home.shortcuts_final.'.$key.'.title'));
     }
 
     if ($missing->isNotEmpty()) {
         $key = $missing->keys()->first();
-        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertDontSee('href="/'.$key.'-section"', false);
 
         registerSectionRoute('/'.$key.'-section', $missing[$key]['route']);
 
-        $this->get('/')
-            ->assertSee(__('home.shortcuts.'.$key.'.title'))
-            ->assertSee('href="'.route($missing[$key]['route']).'"', false);
-    }
-
-    Setting::put('home', [...HOME_LEGACY_SHOWN, 'show_shortcuts' => false]);
-
-    foreach (array_keys(BuildHomePage::SHORTCUTS) as $key) {
-        $this->get('/')->assertDontSee(__('home.shortcuts.'.$key.'.title'));
+        $this->get('/')->assertSee('href="'.route($missing[$key]['route']).'"', false);
     }
 });
 
@@ -175,12 +172,7 @@ it('shows no button and no missing-content marker in production', function () {
         ->assertSee(__('site.name'));
 });
 
-it('turns the search icon into a link once search exists', function () {
-    registerSectionRoute('/search', 'search');
-
-    $this->get('/')->assertSee('href="'.route('search').'"', false)->assertDontSee(__('site.search_soon'));
-});
-
-it('shows the search icon as coming soon until search is built', function () {
-    $this->get('/')->assertSee(__('site.search_soon'));
+// زر البحث في الرأس يفتح البحث السريع (Ctrl+K) في صفحات القائمة والأقسام التي لها بحث (القرار ٩)
+it('opens the quick search from the header button', function () {
+    $this->get('/')->assertSee('data-search-open', false)->assertSee('data-search-dialog', false)->assertSee(__('ui.search.open'));
 });

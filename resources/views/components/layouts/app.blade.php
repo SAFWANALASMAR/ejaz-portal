@@ -37,11 +37,10 @@
     @if ($canonical)
         <meta property="og:url" content="{{ url()->current() }}">
     @endif
-    @if ($image)
-        <meta property="og:image" content="{{ $image }}">
-    @endif
+    <meta property="og:image" content="{{ \App\Support\ShareImage::url($image) }}">
+    <meta name="twitter:image" content="{{ \App\Support\ShareImage::url($image) }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="theme-color" content="#2E6898">
+    <meta name="theme-color" content="#1F4565">
     @include('partials.favicons')
     @fonts
     {{-- Livewire للتنقّل السريع (wire:navigate) وحده، في الرأس فيُحمَّل مرة واحدة لا مع كل صفحة. ونمطه يحمل رمز
@@ -70,6 +69,12 @@
 
     @include('partials.header')
 
+    {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation). وفي صفحة لها رأس (x-page-hero) يرسمه الرأس
+         في أعلاه كما في التصور النهائي، والمحتوى يُرسم قبل التخطيط فيُعرف ذلك هنا --}}
+    @if (\App\Support\BackNavigation::shows(request()->route()) && ! str_contains((string) $slot, 'data-page-hero'))
+        <x-back-nav />
+    @endif
+
     {{-- بعد كل تنقّل سريع يُنقل التركيز إلى عنوانه h1، أو إليه إن لم يكن (resources/js/page.js)، فلا إطار حوله --}}
     <main id="main" class="flex-1 focus:outline-none" tabindex="-1" aria-label="{{ __('site.main_content') }}">
         {{ $slot }}
@@ -77,13 +82,11 @@
 
     @include('partials.footer')
 
-    {{-- شريط تقدّم التمرير وزر العودة للأعلى (resources/js/motion.js). والزر في جهة البداية، والمساعد في جهة النهاية --}}
+    {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
     <span data-scroll-progress aria-hidden="true"></span>
-    <button type="button" data-back-to-top aria-label="{{ __('site.back_to_top') }}"
-        class="btn-shine fixed bottom-4 start-4 z-30 inline-flex size-12 items-center justify-center rounded-full bg-primary-dark text-white shadow-lg ring-1 ring-white/20 hover:bg-primary">
-        {{ \App\Support\Icon::svg('arrow-up', 'size-5') }}
-    </button>
 
+    @include('partials.search-palette')
+    @include('partials.page-transition')
     @include('partials.assistant')
 </body>
 </html>

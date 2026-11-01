@@ -4,7 +4,7 @@
 <section class="py-10 sm:py-14">
     <div class="container-page">
         @if ($partners->isEmpty())
-            <p class="text-muted">{{ __('partners.list.empty') }}</p>
+            <x-empty-state icon="user-group" :message="__('partners.list.empty')" />
         @else
             <ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" data-reveal-group>
                 @foreach ($partners as $partner)
