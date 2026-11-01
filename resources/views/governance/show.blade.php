@@ -1,6 +1,7 @@
 {{--
     صفحة الوثيقة: بياناتها، وزرا الفتح والتنزيل، والعرض المدمج على الحاسوب. ومتصفحات الجوال
-    لا تعرض PDF داخل الصفحة، فعليها الزران وحدهما. (تُخزَّن نصاً — GovernanceController)
+    لا تعرض PDF داخل الصفحة، فعليها الزران وحدهما. ووثيقة الرابط المباشر بزر يفتحه وحده.
+    (تُخزَّن نصاً — GovernanceController)
 --}}
 @php
     use App\Support\Dates;
@@ -34,6 +35,15 @@
             </dl>
 
             <div class="flex flex-wrap gap-3">
+                {{-- وثيقة الرابط المباشر: زر يفتحه في تبويب جديد، بلا تنزيل ولا عرض مدمج --}}
+                @if ($document->file === null)
+                @if ($document->isLink())
+                <x-button :href="$document->url" target="_blank" rel="noopener noreferrer">
+                    {{ __('governance.document.open_link') }}
+                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                </x-button>
+                @endif
+                @else
                 <x-button :href="route('governance.download', $document->slug)">
                     {{ __('governance.document.download') }}
                     {{-- بلا شفافية: الأبيض على الأزرق 5.9:1، وبشفافية 80% كان 4.4:1 دون حد WCAG --}}
@@ -45,6 +55,7 @@
                     {{ __('governance.document.open') }}
                     <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                 </x-button>
+                @endif
             </div>
         </div>
 
@@ -52,8 +63,10 @@
             <p class="mt-6 max-w-4xl text-lg leading-8 text-ink/85">{{ $document->description }}</p>
         @endif
 
+        @unless ($document->file === null)
         <iframe src="{{ route('governance.file', $document->slug) }}" title="{{ __('governance.document.viewer', ['title' => $document->title]) }}"
             loading="lazy" class="mt-8 hidden h-[80vh] w-full rounded-2xl border border-line/70 bg-surface lg:block"></iframe>
         <p class="mt-6 text-sm text-muted lg:hidden">{{ __('governance.document.mobile_hint') }}</p>
+        @endunless
     </div>
 </section>

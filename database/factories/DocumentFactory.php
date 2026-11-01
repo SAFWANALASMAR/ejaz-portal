@@ -33,4 +33,12 @@ class DocumentFactory extends Factory
     {
         return $this->state(['is_published' => false]);
     }
+
+    /**
+     * وثيقة برابط مباشر بدل الملف.
+     */
+    public function link(string $url = 'https://example.org/report'): static
+    {
+        return $this->state(['file' => null, 'file_size' => null, 'url' => $url]);
+    }
 }
