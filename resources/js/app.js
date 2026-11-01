@@ -14,7 +14,11 @@ import './password-rules';
 // قبل home.js: يضع data-reveal على أبناء [data-reveal-group] قبل أن يراقبها
 import './motion';
 import './home';
+import './carousel';
+import './back-nav';
+import './search-palette';
 import './pdf-reader';
+import './profile-reveal';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));
@@ -170,8 +174,8 @@ onPage((signal) => {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true, signal });
 
-    // قائمة الرأس صف واحد أو زر القائمة: إن لم تتسع عناصرها بهامش مريح (قائمة أطول من القياس، أو شارة البث)
-    // ظهر زر القائمة بدلها، فلا تنكسر عبارة ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة.
+    // قائمة الرأس صف ثانٍ من كبسولات متساوية (القائمة «ج» — أمر التصور النهائي، النسخة 63). فإن لم يتسع اسم عنصر في كبسولته
+    // (عناصر أكثر من القياس أو أسماء أطول، والقائمة تُدار من اللوحة) ظهر زر القائمة بدلها، فلا تُقص الأسماء.
     // والرأس عنصر جديد في كل صفحة، والعنصر النشط فيه (aria-current) من الخادم
     const mainNav = header.querySelector('[data-main-nav]');
 
@@ -179,10 +183,10 @@ onPage((signal) => {
         return;
     }
 
-    const list = mainNav.querySelector('ul');
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && list.offsetWidth + 24 > mainNav.clientWidth);
+        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && clipped);
     };
 
     const observer = new ResizeObserver(fit);

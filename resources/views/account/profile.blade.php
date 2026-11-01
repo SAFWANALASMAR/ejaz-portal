@@ -1,6 +1,8 @@
 <x-layouts.account :title="__('account.profile.title')">
     @include('account.partials.profile-tabs')
 
+    @include('account.partials.profile-summary')
+
     {{-- رسالة الحفظ وتغيير كلمة المرور من رسائل الجلسة في القالب (components/flash) --}}
 
     <x-card>

@@ -1,5 +1,5 @@
 @props(['padding' => 'p-6'])
 
-<div {{ $attributes->merge(['class' => 'rounded-2xl border border-line bg-white shadow-xs '.$padding]) }}>
+<div {{ $attributes->merge(['class' => 'concept-panel '.$padding]) }}>
     {{ $slot }}
 </div>

@@ -21,14 +21,14 @@
     <symbol id="palm" viewBox="-130 -270 260 280" overflow="visible">
       <path d="M0 0 C 8 -70, -6 -150, 10 -215" stroke="#8b7656" stroke-width="11" fill="none" stroke-linecap="round"/>
       <g fill="none" stroke-linecap="round">
-        <path d="M10 -215 Q -55 -250 -120 -205" stroke="#2c6248" stroke-width="10"/>
-        <path d="M10 -215 Q -45 -205 -100 -150" stroke="#357455" stroke-width="10"/>
-        <path d="M10 -215 Q 70 -255 125 -210" stroke="#2c6248" stroke-width="10"/>
-        <path d="M10 -215 Q 62 -198 108 -150" stroke="#357455" stroke-width="10"/>
-        <path d="M10 -215 Q -8 -262 -40 -268" stroke="#3f8460" stroke-width="9"/>
-        <path d="M10 -215 Q 34 -262 64 -264" stroke="#3f8460" stroke-width="9"/>
-        <path d="M10 -215 Q -20 -180 -48 -128" stroke="#2c6248" stroke-width="8"/>
-        <path d="M10 -215 Q 40 -180 62 -126" stroke="#2c6248" stroke-width="8"/>
+        <path d="M10 -215 Q -55 -250 -120 -205" stroke="#24527a" stroke-width="10"/>
+        <path d="M10 -215 Q -45 -205 -100 -150" stroke="#2e6898" stroke-width="10"/>
+        <path d="M10 -215 Q 70 -255 125 -210" stroke="#24527a" stroke-width="10"/>
+        <path d="M10 -215 Q 62 -198 108 -150" stroke="#2e6898" stroke-width="10"/>
+        <path d="M10 -215 Q -8 -262 -40 -268" stroke="#3e8aca" stroke-width="9"/>
+        <path d="M10 -215 Q 34 -262 64 -264" stroke="#3e8aca" stroke-width="9"/>
+        <path d="M10 -215 Q -20 -180 -48 -128" stroke="#24527a" stroke-width="8"/>
+        <path d="M10 -215 Q 40 -180 62 -126" stroke="#24527a" stroke-width="8"/>
       </g>
     </symbol>
   </defs>
@@ -76,7 +76,7 @@
   <use href="#palm" x="40" y="250" width="260" height="280"/>
   <use href="#palm" x="1010" y="270" width="230" height="260"/>
   <use href="#palm" x="560" y="330" width="170" height="200" opacity="0.92"/>
-  <g fill="#3a7656" opacity="0.85">
+  <g fill="#2e6898" opacity="0.85">
     <ellipse cx="120" cy="522" rx="90" ry="16"/>
     <ellipse cx="1110" cy="524" rx="80" ry="14"/>
     <ellipse cx="640" cy="524" rx="70" ry="12"/>

@@ -86,15 +86,14 @@ class SiteSettings extends Page
         $this->form->fill([
             'contact' => Setting::group('contact'),
             // افتراض المقاطع كما في BuildHomePage: مقاطع المدير التنفيذي ظاهرة، والسابقة (والإحصائيات) مخفية
+            // والبطل وبطاقات «خدماتنا» ظاهرة دائماً ببنية مرجع المدير، فلا مفتاح لهما (decisions/2026-10-30-visual-refresh-2.md)
             'home' => [
-                'show_hero' => false,
                 'show_video' => false,
-                'show_shortcuts' => false,
                 'show_latest' => true,
                 'show_announcements' => true,
                 'show_initiatives' => false,
                 'show_stats' => false,
-                'show_partners' => false,
+                'show_partners' => true,
                 'show_videos' => false,
                 'show_accounts' => true,
                 ...Setting::group('home'),
@@ -194,9 +193,7 @@ class SiteSettings extends Page
                             Toggle::make('home.show_latest')->label(__('settings.home.show_latest')),
                             Toggle::make('home.show_announcements')->label(__('settings.home.show_announcements')),
                             Toggle::make('home.show_accounts')->label(__('settings.home.show_accounts')),
-                            Toggle::make('home.show_hero')->label(__('settings.home.show_hero')),
                             Toggle::make('home.show_video')->label(__('settings.home.show_video')),
-                            Toggle::make('home.show_shortcuts')->label(__('settings.home.show_shortcuts')),
                             Toggle::make('home.show_initiatives')->label(__('settings.home.show_initiatives')),
                             Toggle::make('home.show_stats')->label(__('settings.home.show_stats')),
                             Toggle::make('home.show_partners')->label(__('settings.home.show_partners')),

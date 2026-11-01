@@ -17,6 +17,7 @@ use App\Models\Page;
 use App\Models\Partner;
 use App\Models\Program;
 use App\Models\Setting;
+use App\Support\HeroImage;
 use App\Support\HomeContent;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
@@ -108,7 +109,7 @@ class PrunePublicFiles extends Command
     {
         $directories = array_map(fn (string $model): string => (new $model)->imageDirectory(), self::MODELS);
 
-        return array_values(array_unique([...$directories, UpdateSiteSettings::IMAGE_DIRECTORY, MediaAsset::WEB_DIRECTORY]));
+        return array_values(array_unique([...$directories, UpdateSiteSettings::IMAGE_DIRECTORY, MediaAsset::WEB_DIRECTORY, HeroImage::DIRECTORY]));
     }
 
     /**
@@ -149,7 +150,16 @@ class PrunePublicFiles extends Command
         $sections = Setting::query()->where('key', HomeContent::KEY)->value('value');
         array_push($paths, ...HomeContent::imagePaths(is_array($sections) ? $sections : []));
 
-        return [...$paths, ...MediaAsset::query()->whereNotNull('web_path')->pluck('web_path')->all()];
+        $paths = [...$paths, ...MediaAsset::query()->whereNotNull('web_path')->pluck('web_path')->all()];
+
+        // ونسخ شرائح البطل المصغّرة لكل صورة ما زال سجلها قائماً (HeroImage)، فنسخ الصورة المحذوفة تُحذف بعد المدة
+        foreach ($paths as $path) {
+            foreach (HeroImage::WIDTHS as $width) {
+                $paths[] = HeroImage::variantPath($path, $width);
+            }
+        }
+
+        return $paths;
     }
 
     /**

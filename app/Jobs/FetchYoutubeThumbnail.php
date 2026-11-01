@@ -28,6 +28,11 @@ class FetchYoutubeThumbnail implements ShouldQueue
     public const MAX_BYTES = 2 * 1024 * 1024;
 
     /**
+     * أحجام صورة المقطع بالترتيب: 1280×720، ثم 480×360.
+     */
+    public const SIZES = ['maxresdefault', 'hqdefault'];
+
+    /**
      * بادئة اسم الصورة المجلوبة قبل معرّف المقطع، فتُعرف من المرفوعة وتُترك إن تغيّر الرابط (SaveLibraryItem).
      */
     public const PREFIX = 'yt-';
@@ -52,12 +57,21 @@ class FetchYoutubeThumbnail implements ShouldQueue
      */
     public static function download(string $youtube): ?string
     {
-        $response = Http::connectTimeout(5)->timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/hqdefault.jpg');
+        $image = false;
 
-        // الحجم المعلن ثم الفعلي قبل فك الصورة (عميل HTTP ينزّل الجسم كاملاً، والمهلة تحده)
-        $declared = (int) $response->header('Content-Length');
-        $bytes = $response->successful() && $declared <= self::MAX_BYTES ? $response->body() : '';
-        $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;
+        // أعلى دقة أولاً (درس الموقع القديم — الدفعة الثانية)، ثم hqdefault لمقطع لا صورة كبيرة له (يرد يوتيوب 404)
+        foreach (self::SIZES as $size) {
+            $response = Http::connectTimeout(5)->timeout(10)->withoutRedirecting()->get('https://i.ytimg.com/vi/'.$youtube.'/'.$size.'.jpg');
+
+            // الحجم المعلن ثم الفعلي قبل فك الصورة (عميل HTTP ينزّل الجسم كاملاً، والمهلة تحده)
+            $declared = (int) $response->header('Content-Length');
+            $bytes = $response->successful() && $declared <= self::MAX_BYTES ? $response->body() : '';
+            $image = $bytes !== '' && strlen($bytes) <= self::MAX_BYTES ? @imagecreatefromstring($bytes) : false;
+
+            if ($image !== false) {
+                break;
+            }
+        }
 
         if ($image === false) {
             return null;

@@ -60,13 +60,16 @@ function expectQueryBudget(Closure $seed, Closure $request, int $max): void
     expect($many)->toBe($few)->toBeLessThanOrEqual($max);
 }
 
+// والرئيسية +5 منذ بنية التصور النهائي:
+// صور العارض، والجوائز، والمستجدات من البرامج والمسابقات والمكتبة والحوكمة (docs/decisions/2026-10-30-visual-refresh-2.md)،
+// والرئيسية +1 بالنسخة 63: الشركاء ظاهرون افتراضياً، وحالة نشر «عن الجمعية» لرابط بطاقة «نحو فهم أعمق»، بلا الحسابات الرسمية
 it('keeps the public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
     'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 3],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
     'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 3],
-    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 5],
+    'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
     'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 3],
 ]);
 
@@ -104,8 +107,8 @@ it('keeps the account pages within a fixed number of queries', function (string 
 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
-    // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)
-    'dashboard' => ['/account', 14],
+    // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+2 منذ شريط المكتبة تحت الترحيب (المقاطع والأغلفة، مخزّن مع المحتوى فيُسأل مرة بعد مسحه)
+    'dashboard' => ['/account', 16],
     'programs' => ['/account/programs', 5],
     'requests' => ['/account/requests', 4],
 ]);

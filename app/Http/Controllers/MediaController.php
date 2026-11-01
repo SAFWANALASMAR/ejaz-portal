@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AnnouncementKind;
+use App\Models\Album;
 use App\Models\Announcement;
 use App\Models\NewsArticle;
 use App\Models\Partner;
@@ -19,7 +20,15 @@ use Illuminate\Support\HtmlString;
  */
 class MediaController extends Controller
 {
-    private const LATEST = 3;
+    /**
+     * الخبر الأحدث بطاقة كبيرة، والبقية في شريطه المتحرك (التصور النهائي — Final-Media).
+     */
+    private const LATEST = 7;
+
+    /**
+     * ألبومات مكتبة الصور في شريطها المتحرك.
+     */
+    private const ALBUMS = 10;
 
     /**
      * مكان بطاقة «قياس الرضا» في الصفحة المخزنة. فتح الاستبيان وإغلاقه بموعدهما لا بحفظ سجله،
@@ -31,6 +40,7 @@ class MediaController extends Controller
     {
         $html = ContentCache::remember('media.index', fn (): string => view('media.index', [
             'latest' => NewsArticle::query()->published()->newestFirst()->limit(self::LATEST)->get(),
+            'albums' => Album::query()->published()->newestFirst()->limit(self::ALBUMS)->get(),
         ])->render());
 
         $tile = Route::has('surveys.index') && Survey::hasOpenGeneral() ? view('media.partials.survey-tile')->render() : '';

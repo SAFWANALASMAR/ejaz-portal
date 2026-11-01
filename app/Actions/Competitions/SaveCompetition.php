@@ -356,8 +356,9 @@ class SaveCompetition
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
             // مسابقة الطلاب: نصوص الصفحة ودليل الدخول، وجدول الجوائز لكل جنس، ونطاق الترتيب
-            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, CompetitionPage::ROUNDS_INTRO, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
+            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, CompetitionPage::SEASON, CompetitionPage::ROUNDS_INTRO, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
             'page_content.'.CompetitionPage::PARTNER => ['nullable', 'string', 'max:200'],
+            'page_content.'.CompetitionPage::SEASON => ['nullable', 'string', 'max:100'],
             'page_content.'.CompetitionPage::ROUNDS_INTRO => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX],
             ...collect(CompetitionPage::PARAGRAPHS)->mapWithKeys(fn (string $key): array => ['page_content.'.$key => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX]])->all(),
             ...collect(CompetitionPage::listKeys())->mapWithKeys(fn (string $key): array => [

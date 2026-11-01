@@ -6,8 +6,8 @@
 <x-layouts.account :title="__('competitions.exam.title', ['competition' => $competition->title])">
     @include('competitions.exam._steps', ['current' => 'review'])
 
-    <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
-        <h2 class="text-xl font-bold text-primary">{{ __('competitions.exam.review_heading') }}</h2>
+    <section class="space-y-5 concept-panel p-6">
+        <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('competitions.exam.review_heading') }}</h2>
         <p class="text-muted">{{ __('competitions.exam.review_text') }}</p>
 
         @error('answers')

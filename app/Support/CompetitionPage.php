@@ -29,6 +29,11 @@ final class CompetitionPage
     public const PARTNER = 'partner';
 
     /**
+     * شارة الموسم في بطل الصفحة («الموسم الأول …»)، وتُخفى فارغة.
+     */
+    public const SEASON = 'season';
+
+    /**
      * مقدمة «مراحل المسابقة» فوق بطاقات المراحل (فقرة).
      */
     public const ROUNDS_INTRO = 'rounds_intro';

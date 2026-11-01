@@ -7,9 +7,9 @@
 @endphp
 
 <x-layouts.account :title="__('competitions.student.status_title', ['round' => $round->name])">
-    <section class="space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs">
+    <section class="space-y-5 concept-panel p-6">
         <div>
-            <h2 class="text-xl font-bold text-primary">{{ $round->name }}</h2>
+            <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ $round->name }}</h2>
             @if ($round->branch)
                 <p class="mt-1 font-semibold text-accent">{{ $round->branch }}</p>
             @endif

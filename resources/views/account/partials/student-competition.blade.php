@@ -6,7 +6,7 @@
     use App\Support\Dates;
 @endphp
 
-<li class="space-y-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs">
+<li class="space-y-4 p-5 concept-panel">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="font-bold text-ink">{{ $submission->competition->title }}</p>

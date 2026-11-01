@@ -6,7 +6,7 @@
     use App\Support\Dates;
 @endphp
 
-<article class="flex h-full flex-col rounded-2xl border border-line/70 bg-white p-5 text-center shadow-xs">
+<article class="flex h-full flex-col p-5 text-center concept-panel">
     <span class="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
         {{ \App\Support\Icon::svg('calendar-days', 'size-6') }}
     </span>

@@ -30,7 +30,7 @@ function footerLink(string $html, string $label): string
     $footer = (string) str($html)->after('<footer');
 
     // وفي الرابط أيقونة قبل نصه (التذييل الجديد — 26 أكتوبر 2026)
-    preg_match('#<a\s[^>]*>(?:(?!</a>).)*?'.preg_quote($label, '#').'\s*</a>#us', $footer, $match);
+    preg_match('#<a\s[^>]*>(?:(?!</a>).)*?'.preg_quote($label, '#').'\s*(?:</span>\s*)?</a>#us', $footer, $match);
 
     return $match[0] ?? '';
 }
@@ -81,9 +81,9 @@ it('shows the link as soon as the page is published, without waiting for the cac
 
     $html = (string) $this->get('/')->assertOk()->getContent();
 
+    // وروابط التذييل السريعة قائمة ثابتة بأسماء مختصرة منذ النسخة 63 من التصور، لا عناصر القائمة
     expect($html)->toContain('صفحة تجريبية')
-        ->and(pageHrefs($html))->toContain(url('/pages/vision'))
-        ->and(footerLink($html, 'صفحة تجريبية'))->not->toBe('');
+        ->and(pageHrefs($html))->toContain(url('/pages/vision'));
 });
 
 it('keeps the links that are not content pages: sections, intro pages and outside links', function () {
@@ -127,12 +127,15 @@ it('shows no link to a 404 page from the seeded menu while the about page is a d
     expect(pageHrefs((string) $this->get('/')->getContent()))->toContain(url('/about'));
 });
 
-it('opens a footer link in a new tab when its menu item says so, and keeps the others in the same tab', function () {
-    MenuItem::factory()->create(['label' => 'المتجر', 'url' => '/store', 'opens_in_new_tab' => true, 'sort' => 1]);
-    MenuItem::factory()->create(['label' => 'الحوكمة', 'url' => '/governance', 'sort' => 2]);
-
+// الروابط السريعة أقسام البوابة بأسمائها المختصرة (أمر التصور النهائي، النسخة 63): في التبويب نفسه بالتنقّل السريع، و«عن الجمعية»
+// متى نُشرت صفحتها وحدها
+it('keeps the footer quick links in the same tab, and links the about page only once it is published', function () {
     $html = (string) $this->get('/')->assertOk()->getContent();
 
-    expect(footerLink($html, 'المتجر'))->toContain('target="_blank"')->toContain('rel="noopener"')->not->toContain('wire:navigate')
-        ->and(footerLink($html, 'الحوكمة'))->not->toContain('target=')->toContain('wire:navigate');
+    expect(footerLink($html, __('ui.footer.links.governance')))->not->toContain('target=')->toContain('wire:navigate')
+        ->and(footerLink($html, __('ui.footer.links.about')))->toBe('');
+
+    Page::factory()->create(['slug' => Page::ABOUT]);
+
+    expect(footerLink((string) $this->get('/')->getContent(), __('ui.footer.links.about')))->toContain('href="'.url('/about').'"');
 });

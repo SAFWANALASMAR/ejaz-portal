@@ -1,39 +1,42 @@
 {{--
-    مقطع بطاقات (المرجع البصري — بطاقة الميزة): أيقونة خطية في دائرة فاتحة، ثم العنوان، ثم وصف
-    قصير، ثم شريط قصير ملون أسفلها. للقيم والأهداف والرسالة والرؤية.
+    مقطع بطاقات (التصور النهائي — Final-About «قيم الجمعية»): على الشريط السماوي، والعنوان في المنتصف بين الخطين، ثم البطاقات
+    شريطاً متحركاً (البند R16: «المتكرر يصير شريطاً متحركاً»، ومنه القيم) ببطاقات ملونة تتعاقب درجتها، في كل بطاقة رقمها باهتاً في
+    الزاوية، ومربع الأيقونة (أو صورة البطاقة في مربع فاتح)، ثم العنوان ثم الوصف. والشريط x-marquee: يتوقف بالمرور والتركيز وزر
+    الإيقاف، ولمن طلب تقليل الحركة صف يُمرَّر باليد.
 --}}
 @php
     $items = array_values(array_filter((array) ($data['items'] ?? []), fn ($item) => is_array($item) && filled($item['title'] ?? null)));
+    $marqueeId = 'cards-'.substr(md5(json_encode($items) ?: ''), 0, 8);
 @endphp
 
 @if ($items !== [])
-    <section class="py-10 sm:py-12">
-        <div class="container-page">
+    <section class="band-sky" data-cards-block>
+        <div class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-10 sm:px-7">
             @if (filled($data['heading'] ?? null))
-                <x-section-heading class="mb-8">{{ $data['heading'] }}</x-section-heading>
+                <x-section-heading class="mb-5" center>{{ $data['heading'] }}</x-section-heading>
             @endif
 
-            <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
-                @foreach ($items as $item)
+            <x-marquee :id="$marqueeId" :label="filled($data['heading'] ?? null) ? $data['heading'] : __('ui.inner.cards')" :duration="max(30, count($items) * 9)">
+                @foreach ($items as $index => $item)
                     @php($icon = is_string($item['icon'] ?? null) ? \App\Enums\SiteIcon::tryFrom($item['icon']) : null)
                     @php($picture = is_string($item['picture'] ?? null) && $item['picture'] !== '' ? $item['picture'] : null)
-                    <li class="flex flex-col card-lift p-6">
-                        @if ($picture)
-                            {{-- صورة البطاقة أيقونة بجوار عنوانها، فهي زخرفية --}}
-                            <img src="{{ Storage::disk('public')->url($picture) }}" alt="" loading="lazy" class="size-14 object-contain">
-                        @elseif ($icon)
-                            <span class="inline-flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden="true">
-                                {{ \App\Support\Icon::svg($icon->value, 'size-6') }}
+                    <article class="tone-card group relative flex w-[17.5rem] flex-none flex-col gap-2.5 px-5.5 py-5.5" data-card-item>
+                        <span class="absolute end-4.5 top-3.5 text-[2.125rem] leading-none font-black opacity-25" aria-hidden="true">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                        @if ($icon)
+                            <x-icon-tile :icon="$icon->value" size="lg" />
+                        @elseif ($picture)
+                            {{-- صورة البطاقة أيقونة فوق عنوانها، فهي زخرفية --}}
+                            <span class="inline-flex size-16 items-center justify-center rounded-[1.25rem] bg-white/85 p-2.5 transition group-hover:-translate-y-1">
+                                <img src="{{ Storage::disk('public')->url($picture) }}" alt="" loading="lazy" width="48" height="48" class="size-12 object-contain">
                             </span>
                         @endif
-                        <h3 @class(['text-lg font-bold text-ink', 'mt-4' => $icon || $picture])>{{ $item['title'] }}</h3>
+                        <h3 class="text-[1.375rem] leading-snug font-black">{{ $item['title'] }}</h3>
                         @if (filled($item['text'] ?? null))
-                            <p class="mt-2 leading-7 text-muted">{{ $item['text'] }}</p>
+                            <p class="tone-card-muted text-[15px] leading-[1.7]">{{ $item['text'] }}</p>
                         @endif
-                        <span class="mt-5 block h-1 w-10 rounded-full bg-accent" aria-hidden="true"></span>
-                    </li>
+                    </article>
                 @endforeach
-            </ul>
+            </x-marquee>
         </div>
     </section>
 @endif

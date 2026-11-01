@@ -24,7 +24,7 @@ onPage((signal) => {
     document.querySelectorAll('[data-reveal-group]').forEach((group) => {
         [...group.children].forEach((child, index) => {
             child.setAttribute('data-reveal', '');
-            child.style.setProperty('--reveal-delay', `${Math.min(index, 8) * 90}ms`);
+            child.style.setProperty('--reveal-delay', `${Math.min(index, 12) * 70}ms`);
         });
     });
 
@@ -45,6 +45,7 @@ onPage((signal) => {
 
     skeletons(signal);
     scrollWatch(signal);
+    loops(signal);
 
     if (off) {
         return;
@@ -249,3 +250,21 @@ document.addEventListener('click', (event) => {
     button.append(ripple);
     ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
 });
+
+// الحلقات المستمرة الخفيفة ([data-loop]: النقش الهندسي البطيء، والتوهج النابض، والبطاقة العائمة) لا تعمل إلا وهي في الشاشة
+// (data-inview)، فلا تستهلك شيئاً خارجها. ولمن طلب تقليل الحركة لا تعمل أصلاً (visual.css).
+function loops(signal) {
+    const items = document.querySelectorAll('[data-loop]');
+
+    if (items.length === 0 || !('IntersectionObserver' in window)) {
+        items.forEach((item) => item.setAttribute('data-inview', ''));
+
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => entry.target.toggleAttribute('data-inview', entry.isIntersecting));
+    });
+    items.forEach((item) => observer.observe(item));
+    signal.addEventListener('abort', () => observer.disconnect());
+}

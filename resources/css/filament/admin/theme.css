@@ -11,30 +11,35 @@
 @source '../../../../resources/views/filament/**/*';
 
 :root {
-    /* ألوان الهوية (docs/design-system.md) */
+    /* الأزرق وحده (أمر التصور النهائي، النسخة 63 — البند G1): لا بنفسجي ولا أخضر في اللوحة أيضاً */
     --ej-brand: #3e8aca;
     --ej-primary: #2e6898;
     --ej-primary-dark: #1f4565;
-    --ej-violet: #5d2a92;
-    --ej-violet-light: #d9ccf0;
-    --ej-green: #287a37;
+    --ej-deep: #142e45;
+    --ej-sky: #bfe0fa;
+    --ej-pale: #e3f1fc;
     --ej-ink: #17202e;
     --ej-muted: #556170;
-    --ej-line: #e3ecf4;
-    --ej-canvas: #f4f7fb;
+    --ej-line: #c9dcee;
+    /* خلفية كل الصفحات #D6E7F6، والحاويات بتدرج أزرق فاتح جداً بدل الأبيض الكبير، والحقول وحدها بيضاء (البند R1) */
+    --ej-canvas: #d6e7f6;
+    --ej-panel: linear-gradient(180deg, #f2f8fd 0%, #e8f2fb 100%);
     --ej-ring: #8ec5f0;
 
     /*
-     * مربعات الأيقونات المتدرجة بالترتيب: أزرق، ثم بنفسجي، ثم أخضر. الطرف الفاتح أغمق من التصور (#7DB8E8
-     * و#9C7ED0 و#5FB36D) لأن الأيقونة البيضاء عليه دون 3:1، وبهذه القيم لا تقل في أفتح نقطة عن 3.5:1
-     * (WCAG 1.4.11). واختبار المتصفح يقيسها (admin-theme.spec.mjs).
+     * مربعات الأيقونات بدرجتين من الأزرق تتعاقبان (القائمة «ج» — Final-Admin-*): الغامقة برسم أبيض، والفاتحة برسم أزرق
+     * داكن، فلا يقل التباين في أي طرف عن 3:1 (WCAG 1.4.11). والثالثة المتوسطة لبطاقات الإحصائيات. واختبار المتصفح يقيسها
+     * (admin-theme.spec.mjs).
      */
-    --ej-tile-1: linear-gradient(145deg, #3e8aca, #24557e);
-    --ej-tile-1-shadow: #24557e;
-    --ej-tile-2: linear-gradient(145deg, #7e4fb8, #5d2a92);
-    --ej-tile-2-shadow: #5d2a92;
-    --ej-tile-3: linear-gradient(145deg, #3d9a4c, #287a37);
-    --ej-tile-3-shadow: #287a37;
+    --ej-tile-1: linear-gradient(145deg, #2e6898, #142e45);
+    --ej-tile-1-shadow: #142e45;
+    --ej-tile-1-glyph: #ffffff;
+    --ej-tile-2: linear-gradient(145deg, #8ec5f0, #3e8aca);
+    --ej-tile-2-shadow: #3e8aca;
+    --ej-tile-2-glyph: #142e45;
+    --ej-tile-3: linear-gradient(145deg, #3e8aca, #24557e);
+    --ej-tile-3-shadow: #24557e;
+    --ej-tile-3-glyph: #ffffff;
 
     /* نقش هندسي باهت (نجمة ثمانية) لرؤوس الصفحات وخلفية الحالة الفارغة */
     --ej-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%232e6898' stroke-opacity='.09' stroke-width='1'%3E%3Cpath d='M28 6l6.4 15.6L50 28l-15.6 6.4L28 50l-6.4-15.6L6 28l15.6-6.4z'/%3E%3Crect x='17' y='17' width='22' height='22' transform='rotate(45 28 28)'/%3E%3C/g%3E%3C/svg%3E");
@@ -113,8 +118,10 @@ html:not(.dark) .fi-body {
     }
 }
 
+/* عناوين المجموعات بمستوى واحد ومقاس واحد (البند A1) */
 .fi-sidebar-group-label {
     color: var(--ej-ring);
+    font-size: 0.875rem;
     font-weight: 800;
     letter-spacing: 0.02em;
 }
@@ -133,10 +140,28 @@ html:not(.dark) .fi-body {
     color: rgb(255 255 255 / 0.85);
 }
 
+/* القائمة الجانبية بالشكل «ج» (البندان N1 وA1 — Final-Admin-*): كل عنصر كبسولة بخلفية بيضاء شفافة وحد رفيع، والأيقونة في
+   مربع متدرج صغير بجانب الكلمة، والدرجتان تتعاقبان بموضع العنصر. وعند المرور تغمق الكبسولة، والنشط بحد #8EC5F0 وخلفية أفتح */
+.fi-sidebar-item > .fi-sidebar-item-btn {
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    background-color: rgb(255 255 255 / 0.07);
+    padding-block: 0.3rem;
+    padding-inline: 0.35rem 0.85rem;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
+}
+
+.fi-sidebar-item + .fi-sidebar-item {
+    margin-top: 0.35rem;
+}
+
 .fi-sidebar-item.fi-sidebar-item-has-url:not(.fi-active) > .fi-sidebar-item-btn:hover,
 .fi-sidebar-item.fi-sidebar-item-has-url:not(.fi-active) > .fi-sidebar-item-btn:focus-visible,
 .fi-sidebar-database-notifications-btn:hover {
-    background-color: rgb(255 255 255 / 0.08);
+    background-color: #0f2536;
+    border-color: rgb(142 197 240 / 0.6);
 }
 
 .fi-sidebar-item-btn:focus-visible {
@@ -154,36 +179,28 @@ html:not(.dark) .fi-body {
     border-color: rgb(255 255 255 / 0.12);
 }
 
-/* كل أيقونة في مربع متدرج، يتنوع لونه بترتيب العنصر في مجموعته وترتيب المجموعة معاً،
-   فلا يتكرر اللون نفسه في أول كل مجموعة */
+/* الأيقونة في مربع متدرج صغير، بدرجتين تتعاقبان بموضع العنصر في مجموعته: الغامقة برسم أبيض، والفاتحة برسم أزرق داكن */
 .fi-sidebar-item-btn > .fi-sidebar-item-icon {
     --ej-tile: var(--ej-tile-1);
     --ej-tile-shadow: var(--ej-tile-1-shadow);
     box-sizing: content-box;
-    width: 1.125rem;
-    height: 1.125rem;
-    padding: 0.5rem;
-    border-radius: 0.7rem;
-    color: #fff;
+    width: 1rem;
+    height: 1rem;
+    padding: 0.4375rem;
+    border-radius: 30%;
+    color: var(--ej-tile-1-glyph);
     background: var(--ej-tile);
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 0.4),
+        inset 0 0 0 1px rgb(142 197 240 / 0.5),
         0 8px 16px -10px var(--ej-tile-shadow);
     transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
 }
 
-.fi-sidebar-group:nth-child(3n + 1) .fi-sidebar-item:nth-child(3n + 2) .fi-sidebar-item-icon,
-.fi-sidebar-group:nth-child(3n + 2) .fi-sidebar-item:nth-child(3n + 1) .fi-sidebar-item-icon,
-.fi-sidebar-group:nth-child(3n + 3) .fi-sidebar-item:nth-child(3n + 3) .fi-sidebar-item-icon {
+.fi-sidebar-item:nth-child(even) > .fi-sidebar-item-btn > .fi-sidebar-item-icon {
     --ej-tile: var(--ej-tile-2);
     --ej-tile-shadow: var(--ej-tile-2-shadow);
-}
-
-.fi-sidebar-group:nth-child(3n + 1) .fi-sidebar-item:nth-child(3n + 3) .fi-sidebar-item-icon,
-.fi-sidebar-group:nth-child(3n + 2) .fi-sidebar-item:nth-child(3n + 2) .fi-sidebar-item-icon,
-.fi-sidebar-group:nth-child(3n + 3) .fi-sidebar-item:nth-child(3n + 1) .fi-sidebar-item-icon {
-    --ej-tile: var(--ej-tile-3);
-    --ej-tile-shadow: var(--ej-tile-3-shadow);
+    color: var(--ej-tile-2-glyph);
+    box-shadow: 0 8px 16px -10px var(--ej-tile-shadow);
 }
 
 /* ميل خفيف عند المرور */
@@ -192,32 +209,15 @@ html:not(.dark) .fi-body {
     transform: translateY(-2px) rotate(-6deg);
 }
 
-/* العنصر النشط: خلفية أفتح وشريط على البداية، وحلقة فاتحة وتوهج حول مربعه */
+/* العنصر النشط: خلفية أفتح وحد #8EC5F0 */
 .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
-    position: relative;
-    background-color: rgb(142 197 240 / 0.16);
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset-block: 0.35rem;
-        inset-inline-start: 0;
-        width: 3px;
-        border-radius: 3px;
-        background: var(--ej-ring);
-    }
-
-    & > .fi-sidebar-item-icon {
-        color: #fff;
-        box-shadow:
-            inset 0 1px 0 rgb(255 255 255 / 0.4),
-            0 0 0 2px rgb(142 197 240 / 0.75),
-            0 0 18px 2px rgb(142 197 240 / 0.45);
-    }
+    background-color: rgb(142 197 240 / 0.24);
+    border-color: var(--ej-ring);
+    box-shadow: 0 0 0 1px var(--ej-ring);
 
     & > .fi-sidebar-item-label {
         color: #fff;
-        font-weight: 800;
+        font-weight: 900;
     }
 
     & > .fi-sidebar-item-grouped-border > .fi-sidebar-item-grouped-border-part {
@@ -233,7 +233,7 @@ html:not(.dark) .fi-body {
     border: 1px solid var(--ej-line);
     background:
         var(--ej-pattern),
-        linear-gradient(120deg, #eaf3fb 0%, #ffffff 55%, #f2edfa 100%);
+        linear-gradient(120deg, #e3f1fc 0%, #f2f8fd 55%, #cfe3f4 100%);
     background-size: 56px 56px, auto;
     box-shadow: 0 14px 30px -24px rgb(31 69 101 / 0.45);
 }
@@ -249,7 +249,7 @@ html:not(.dark) .fi-body {
         height: 3px;
         margin-top: 0.6rem;
         border-radius: 3px;
-        background: linear-gradient(90deg, var(--ej-brand), var(--ej-violet));
+        background: linear-gradient(90deg, var(--ej-sky), var(--ej-brand));
         /* ينمو من بداية السطر في RTL (فيزيائية لا بديل منطقياً لها) */
         transform-origin: right center;
         animation: ej-grow 0.7s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -280,6 +280,7 @@ html:not(.dark) {
     & .fi-empty-state:not(.fi-empty-state-not-contained) {
         border-radius: 1.125rem;
         --tw-ring-color: var(--ej-line);
+        background: var(--ej-panel);
         box-shadow:
             0 0 0 1px var(--ej-line),
             0 14px 30px -26px rgb(31 69 101 / 0.4);
@@ -287,6 +288,7 @@ html:not(.dark) {
 
     & .fi-section-header-heading {
         color: var(--ej-primary-dark);
+        font-size: 1.0625rem;
         font-weight: 800;
     }
 
@@ -309,7 +311,7 @@ html:not(.dark) {
     margin-inline-end: 0.5rem;
     vertical-align: -0.12em;
     border-radius: 0.2rem;
-    background: linear-gradient(180deg, var(--ej-brand), var(--ej-violet));
+    background: linear-gradient(180deg, var(--ej-ring), var(--ej-primary));
 }
 
 /* الزر الرئيسي بالأزرق الرسمي ونص أبيض (التصور 14 و15)، بدل الدرجة الفاتحة التي يختارها Filament
@@ -366,6 +368,7 @@ html:not(.dark) .fi-btn.fi-color-primary:not(.fi-outlined) {
 .fi-wi-stats-overview .fi-grid > :nth-child(3n + 2) .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
     --ej-tile: var(--ej-tile-2);
     --ej-tile-shadow: var(--ej-tile-2-shadow);
+    color: var(--ej-tile-2-glyph);
 }
 
 .fi-wi-stats-overview .fi-grid > :nth-child(3n + 3) .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
@@ -410,7 +413,7 @@ html:not(.dark) .fi-wi-stats-overview-stat-value {
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 0.4),
         0 0 0 10px rgb(234 243 251 / 0.9),
-        0 0 0 22px rgb(242 237 250 / 0.7),
+        0 0 0 22px rgb(191 224 250 / 0.55),
         0 22px 34px -18px var(--ej-tile-1-shadow);
     margin-block: 1.5rem 2rem;
 
@@ -420,7 +423,7 @@ html:not(.dark) .fi-wi-stats-overview-stat-value {
         color: #fff;
     }
 
-    /* دائرتان صغيرتان بنفسجية وخضراء حول المربع */
+    /* دائرتان صغيرتان بدرجتين من الأزرق حول المربع */
     &::before,
     &::after {
         content: '';
@@ -456,13 +459,91 @@ html:not(.dark) .fi-empty-state-heading {
 html:not(.dark) .fi-account-widget > .fi-section {
     background:
         var(--ej-pattern),
-        linear-gradient(120deg, #eaf3fb 0%, #ffffff 60%, #f2edfa 100%);
+        linear-gradient(120deg, #e3f1fc 0%, #f2f8fd 60%, #cfe3f4 100%);
     background-size: 56px 56px, auto;
 }
 
 html:not(.dark) .fi-account-widget-heading {
     color: var(--ej-primary-dark);
     font-weight: 800;
+}
+
+/* ── الشريط العلوي أزرق (Final-Admin-* — «v19 رأس لوحة الإدارة أزرق»): تدرج الهوية بحد سفلي #8EC5F0، والبحث والأزرار زجاجية
+   بنص أبيض، فلا يبقى شريط أبيض فوق الخلفية الزرقاء (المرحلة د من #111) ── */
+
+html:not(.dark) .fi-topbar {
+    background: linear-gradient(90deg, var(--ej-primary-dark), var(--ej-primary));
+    border-bottom: 1px solid var(--ej-ring);
+    box-shadow: 0 10px 24px -16px rgb(15 37 54 / 0.8);
+    --tw-ring-shadow: 0 0 #0000;
+
+    & .fi-icon-btn,
+    & .fi-topbar-open-sidebar-btn,
+    & .fi-topbar-close-sidebar-btn {
+        color: #fff;
+    }
+
+    & .fi-icon-btn:hover {
+        background-color: rgb(255 255 255 / 0.12);
+    }
+
+    & .fi-global-search-field .fi-input-wrp {
+        background-color: rgb(255 255 255 / 0.12);
+        --tw-ring-color: rgb(255 255 255 / 0.3);
+
+        & .fi-input {
+            color: #fff;
+
+            &::placeholder {
+                color: rgb(255 255 255 / 0.75);
+            }
+        }
+
+        & .fi-icon {
+            color: rgb(255 255 255 / 0.8);
+        }
+    }
+
+    & .fi-logo {
+        color: #fff;
+    }
+}
+
+/* ── بطاقات الإحصائيات ملونة (البند A1، Final-Admin-Dashboard ‎.cc): داكنة بنص أبيض ثم فاتحة بنص #142E45 بالتعاقب، بالتدرجين
+   نفسيهما في .tone-card للموقع (التباين مختبر في ToneCardContrastTest)، فلا تبقى اللوحة «عاتمة وفاضية» ── */
+
+html:not(.dark) .fi-wi-stats-overview .fi-grid > * {
+    --ej-card: linear-gradient(135deg, #2e6898, #1f4565 55%, #142e45);
+    --ej-card-text: #fff;
+}
+
+html:not(.dark) .fi-wi-stats-overview .fi-grid > :nth-child(even) {
+    --ej-card: linear-gradient(135deg, #bfe0fa, #8ec5f0 55%, #6aaee6);
+    --ej-card-text: #142e45;
+}
+
+html:not(.dark) .fi-wi-stats-overview .fi-wi-stats-overview-stat {
+    background: var(--ej-card);
+    color: var(--ej-card-text);
+    box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
+
+    & .fi-wi-stats-overview-stat-label,
+    & .fi-wi-stats-overview-stat-value,
+    & .fi-wi-stats-overview-stat-description,
+    & .fi-wi-stats-overview-stat-description .fi-icon {
+        color: var(--ej-card-text);
+    }
+
+    & .fi-wi-stats-overview-stat-label {
+        font-weight: 800;
+    }
+
+    /* مربع الأيقونة على البطاقة الملونة زجاجي بلون نصها، كمربع .tone-card في الموقع */
+    & .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        background: color-mix(in srgb, var(--ej-card-text) 18%, transparent);
+        color: var(--ej-card-text);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ej-card-text) 35%, transparent);
+    }
 }
 
 /* ── الوضع الداكن: حلقتا الحالة الفارغة خافتتان، ورأس الصفحة بدرجة داكنة */
@@ -472,7 +553,7 @@ html.dark .fi-empty-state .fi-empty-state-icon-bg {
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 0.25),
         0 0 0 10px rgb(62 138 202 / 0.15),
-        0 0 0 22px rgb(93 42 146 / 0.12);
+        0 0 0 22px rgb(142 197 240 / 0.12);
 }
 
 html.dark .fi-header-subheading {
@@ -484,7 +565,7 @@ html.dark .fi-header {
     border-color: rgb(255 255 255 / 0.1);
     background:
         var(--ej-pattern),
-        linear-gradient(120deg, #17344f 0%, #111827 60%, #2a1844 100%);
+        linear-gradient(120deg, #17344f 0%, #111827 60%, #142e45 100%);
     background-size: 56px 56px, auto;
 }
 

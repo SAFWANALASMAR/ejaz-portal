@@ -1,0 +1,219 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Final-About.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "02 عن الجمعية",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Final-Admin-Dashboard.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "title": "13 لوحة الإدارة — الإحصائيات",
+      "w": 1440,
+      "x": 0,
+      "y": 7780
+    },
+    "Final-Admin-Form.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "title": "15 لوحة الإدارة — محتوى الرئيسية",
+      "w": 1440,
+      "x": 3040,
+      "y": 7780
+    },
+    "Final-Admin-List.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "title": "14 لوحة الإدارة — قائمة الطلبات",
+      "w": 1440,
+      "x": 1520,
+      "y": 7780
+    },
+    "Final-Board.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "title": "16 لوحة مجلس الإدارة والجمعية العمومية",
+      "w": 1440,
+      "x": 5040,
+      "y": 7780
+    },
+    "Final-Competition.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "04 مسابقة البراهين العلمية",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "Final-Contact.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "title": "09 تواصل معنا",
+      "w": 1440,
+      "x": 0,
+      "y": 5640
+    },
+    "Final-Dashboard.dc.html": {
+      "expand": "fill",
+      "h": 1800,
+      "title": "11 لوحة المستفيد",
+      "w": 1440,
+      "x": 3040,
+      "y": 5640
+    },
+    "Final-Governance.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "07 الحوكمة",
+      "w": 1440,
+      "x": 3040,
+      "y": 3120
+    },
+    "Final-Home-Scroll.dc.html": {
+      "h": 900,
+      "title": "01ب الرئيسية — جرّب التمرير داخل هذه اللوحة: الشريط العلوي ثابت",
+      "w": 1440,
+      "x": 0,
+      "y": -1300
+    },
+    "Final-Home.dc.html": {
+      "expand": "fill",
+      "h": 3000,
+      "title": "01 الرئيسية",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Final-Library.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "05 مكتبة إعجاز",
+      "w": 1440,
+      "x": 0,
+      "y": 3120
+    },
+    "Final-Login.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "10 الدخول",
+      "w": 1440,
+      "x": 1520,
+      "y": 5640
+    },
+    "Final-Media.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "06 المركز الإعلامي",
+      "w": 1440,
+      "x": 1520,
+      "y": 3120
+    },
+    "Final-Mobile.dc.html": {
+      "h": 3700,
+      "title": "12 الرئيسية — جوال",
+      "w": 390,
+      "x": 4560,
+      "y": 5640
+    },
+    "Final-Page.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "03 الدورات والبرامج",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Final-Services.dc.html": {
+      "expand": "fill",
+      "h": 2400,
+      "title": "08 الخدمات الإلكترونية",
+      "w": 1440,
+      "x": 4560,
+      "y": 3120
+    },
+    "Final-Competitions.dc.html": {
+      "expand": "fill",
+      "h": 2030,
+      "title": "04أ المسابقات",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "Final-Transition.dc.html": {
+      "h": 900,
+      "title": "00 انتقال الصفحات",
+      "w": 1440,
+      "x": 0,
+      "y": -2320
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-30T08:50:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "file": "Final-Home.dc.html",
+    "view": "focused"
+  },
+  "noteOrder": [
+    "finalTitle",
+    "adminTitle",
+    "note-b32lss"
+  ],
+  "notes": {
+    "adminTitle": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "لوحة الإدارة",
+      "w": 240,
+      "x": 0,
+      "y": 7500
+    },
+    "finalTitle": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "التصور النهائي لكل الصفحات — بملاحظات المدير التنفيذي كاملة (31 أكتوبر) وبهويتنا",
+      "w": 240,
+      "x": 0,
+      "y": -2600
+    },
+    "note-b32lss": {
+      "bold": false,
+      "kind": "title1",
+      "size": 24,
+      "text": "",
+      "w": 240,
+      "x": -9477,
+      "y": -2360
+    }
+  },
+  "order": [
+    "Final-Transition.dc.html",
+    "Final-Home.dc.html",
+    "Final-Home-Scroll.dc.html",
+    "Final-About.dc.html",
+    "Final-Page.dc.html",
+    "Final-Competitions.dc.html",
+    "Final-Competition.dc.html",
+    "Final-Library.dc.html",
+    "Final-Media.dc.html",
+    "Final-Governance.dc.html",
+    "Final-Services.dc.html",
+    "Final-Contact.dc.html",
+    "Final-Login.dc.html",
+    "Final-Dashboard.dc.html",
+    "Final-Mobile.dc.html",
+    "Final-Admin-Dashboard.dc.html",
+    "Final-Admin-List.dc.html",
+    "Final-Admin-Form.dc.html",
+    "Final-Board.dc.html"
+  ],
+  "pages": [],
+  "title": "تصور بوابة إعجاز بعد التحسين"
+}

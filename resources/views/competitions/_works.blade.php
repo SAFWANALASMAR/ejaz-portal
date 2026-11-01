@@ -9,7 +9,7 @@
 @endphp
 
 @if ($types !== [])
-    <section class="mt-6 space-y-5 rounded-2xl border border-line/70 bg-white p-6 shadow-xs" aria-labelledby="works-heading">
+    <section class="mt-6 space-y-5 p-6 concept-panel" aria-labelledby="works-heading">
         <div>
             <h2 id="works-heading" class="text-lg font-bold text-primary">{{ __('competitions.works.heading') }}</h2>
             @if ($editable)

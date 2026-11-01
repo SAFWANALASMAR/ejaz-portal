@@ -101,9 +101,9 @@ class VisitsChartWidget extends ChartWidget
 
         return [
             'datasets' => [
-                // الأزرق والأخضر من الهوية (design-system.md)، وكلاهما فوق 3:1 على الخلفية الفاتحة والداكنة
+                // درجتان من الأزرق وحده (البند G1)، وكلتاهما فوق 3:1 على الخلفية الفاتحة
                 ['label' => __('surveys.stats.visits_chart.views'), 'data' => $views, 'borderColor' => '#3E8ACA'],
-                ['label' => __('surveys.stats.visits_chart.visitors'), 'data' => $visitors, 'borderColor' => '#287A37'],
+                ['label' => __('surveys.stats.visits_chart.visitors'), 'data' => $visitors, 'borderColor' => '#1F4565'],
             ],
             'labels' => $labels,
         ];

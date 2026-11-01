@@ -55,17 +55,13 @@
     $steps = $competition->pageList('guide_steps');
 @endphp
 
-@if ($partner = $competition->pageText(CompetitionPage::PARTNER))
-    <p class="text-sm text-muted">{{ __('competitions.student.page.partner') }}: <span class="font-semibold text-ink">{{ $partner }}</span></p>
-@endif
-
 @include('competitions.student._domains')
 @include('competitions.student._rounds')
 
 @if ($prizes !== [])
     <div>
         <x-section-heading>{{ __('competitions.student.page.prizes') }}</x-section-heading>
-        <div class="mt-4 overflow-x-auto rounded-2xl border border-line/70 bg-white shadow-xs">
+        <div class="card-lift mt-4 overflow-x-auto">
             <table class="w-full text-start text-sm">
                 <thead class="bg-primary-soft text-primary">
                     <tr>
@@ -108,7 +104,7 @@
         </div>
 
         @foreach ($sections as $key => $section)
-            <x-competitions.collapsible :id="'page-section-'.$key" :title="__('competitions.student.page.'.$key)" :icon="$icons[$key]">
+            <x-competitions.collapsible :index="$loop->index" :id="'page-section-'.$key" :title="__('competitions.student.page.'.$key)" :icon="$icons[$key]">
                 @isset($section['text'])
                     <p class="leading-8 whitespace-pre-line text-ink">{{ $section['text'] }}</p>
                 @endisset

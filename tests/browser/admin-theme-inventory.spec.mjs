@@ -13,7 +13,9 @@ const ADMIN = process.env.ADMIN_THEME_CREDENTIALS ? JSON.parse(process.env.ADMIN
 const ROUTES_FILE = 'storage/playwright/admin-routes.json';
 const STATE_FILE = 'storage/playwright/admin-theme-state.json';
 const WINDOW_FILE = 'storage/playwright/admin-spa-last-totp-window';
-const OUT = 'docs/design/screenshots/admin-theme';
+// والجرد النهائي للنسخة 0.15 (المرحلة د): INVENTORY_DIR=docs/design/screenshots/v0.15 وINVENTORY_FORMAT=png، بأسماء admin-*
+const OUT = process.env.INVENTORY_DIR ?? 'docs/design/screenshots/admin-theme';
+const PNG = process.env.INVENTORY_FORMAT === 'png';
 
 function base32(secret) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -53,8 +55,9 @@ test.describe('admin theme inventory', () => {
             const response = await page.goto(path, { waitUntil: 'networkidle' }).catch(() => null);
             const status = response?.status() ?? 0;
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth).catch(() => null);
-            const file = `${slug(path)}-${viewport.width}.jpg`;
-            await page.screenshot({ path: `${OUT}/${file}`, type: 'jpeg', quality: 60 });
+            const name = PNG && !slug(path).startsWith('admin') ? `admin-${slug(path)}` : slug(path);
+            const file = `${name}-${viewport.width}.${PNG ? 'png' : 'jpg'}`;
+            await page.screenshot(PNG ? { path: `${OUT}/${file}`, type: 'png' } : { path: `${OUT}/${file}`, type: 'jpeg', quality: 60 });
             results.push({ path, kind, status, overflow, themed: await page.locator('.ej-sidebar-brand').count().catch(() => 0) > 0, file });
         };
 

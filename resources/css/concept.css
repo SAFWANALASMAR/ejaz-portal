@@ -1,0 +1,1739 @@
+/*
+| التصور النهائي الملزم (صفوان، 30 أكتوبر 2026، 18:36 — docs/design/final-concept): لغة واحدة لكل الصفحات. القياسات والألوان
+| والحركات منه بدقة، مكوّنات مشتركة لا أنماط مضمّنة. ويُقدَّم على ما قبله في visual.css حيث يختلفان (القرار ١٣ في
+| docs/decisions/2026-10-30-visual-refresh-2.md). والحركة كلها بالمفتاح --motion، ولمن طلب تقليلها لا حلقة مستمرة.
+*/
+
+:root {
+    /* قيم التصور: خلفية الصفحة، وحد البطاقات، والحد عند المرور، والنص الثانوي الداكن */
+    --concept-page: var(--color-page);
+    --concept-border: #c9dcee;
+    --concept-border-hover: #bfe0fa;
+    --concept-text: #3a4756;
+    --concept-sky: var(--blue-100);
+    --concept-pale: var(--blue-200);
+}
+
+body {
+    background-color: var(--concept-page);
+}
+
+@layer components {
+    /* ── البطاقة (.lift في التصور) ── */
+    .card-lift,
+    .card-glow {
+        @apply rounded-[1.25rem];
+        background: var(--concept-surface);
+        border: 1px solid var(--concept-border);
+        box-shadow: none;
+        transform: translateY(var(--lift, 0px));
+        transition:
+            transform calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+            box-shadow calc(350ms * var(--motion)),
+            border-color calc(350ms * var(--motion));
+    }
+
+    .card-lift:hover,
+    .card-lift:focus-within,
+    .card-glow:hover,
+    .card-glow:focus-within {
+        --lift: calc(-5px * var(--motion));
+        border-color: var(--concept-border-hover);
+        box-shadow: 0 22px 44px -18px color-mix(in srgb, var(--color-primary-dark) 28%, transparent);
+    }
+
+    /* بطاقة الخطوة: ظل مزاح بلون السماء */
+    .card-step {
+        box-shadow: 6px 6px 0 -1px var(--concept-sky);
+    }
+
+    /* الأيقونة الخطية (.ico): ترتفع وتدور قليلاً وتصير بالأزرق الرسمي مع بطاقتها */
+    .icon-line {
+        @apply inline-flex shrink-0 items-center justify-center text-primary;
+        transition:
+            transform calc(450ms * var(--motion)) cubic-bezier(0.34, 1.56, 0.64, 1),
+            color 300ms;
+    }
+
+    .group:hover .icon-line,
+    .group:focus-visible .icon-line {
+        color: var(--color-brand);
+        transform: translateY(calc(-3px * var(--motion))) rotate(calc(-6deg * var(--motion)));
+    }
+
+    /* ── عنوان القسم: في المنتصف بين خطين ينتهيان بمعيّن ── */
+    .heading-flank {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .heading-flank::before,
+    .heading-flank::after {
+        content: '';
+        display: block;
+    }
+
+    .heading-flank::before {
+        width: 8px;
+        height: 8px;
+        transform: rotate(45deg);
+        border: 1.5px solid var(--color-brand);
+    }
+
+    .heading-flank::after {
+        width: 3.75rem;
+        height: 1.5px;
+        background: var(--color-brand);
+    }
+
+    .heading-flank-end {
+        flex-direction: row-reverse;
+    }
+
+    /* ── شريط الأقسام الفاتح ── */
+    .band-sky {
+        background: linear-gradient(180deg, var(--color-primary-soft), #f2f8fd);
+    }
+
+    /* ── زر الدخول: كبسولي أزرق بحد أبيض رفيع ── */
+    .login-pill {
+        @apply inline-flex items-center gap-2 rounded-full font-bold whitespace-nowrap text-white;
+        background-color: var(--color-primary);
+        border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
+        padding: 0.6875rem 1.375rem;
+        transition:
+            background-color 200ms,
+            transform calc(200ms * var(--motion));
+    }
+
+    .login-pill:hover {
+        background-color: var(--color-primary-deep);
+        transform: translateY(calc(-1px * var(--motion)));
+    }
+
+    .header-icon-button {
+        @apply inline-flex items-center justify-center rounded-full text-white;
+        width: 2.875rem;
+        height: 2.875rem;
+        background: color-mix(in srgb, var(--color-white) 6%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 22%, transparent);
+    }
+
+    .header-icon-button:hover {
+        background: color-mix(in srgb, var(--color-white) 14%, transparent);
+    }
+
+    /* ── شارة البطل وشريط العنوان ── */
+    .hero-chip {
+        @apply inline-flex items-center gap-1.5 self-start rounded-full text-sm;
+        color: var(--concept-pale);
+        /* خلفية داكنة شفافة بضباب: الصورة صارت ظاهرة في أعلى البطل (31 أكتوبر)، فيبقى النص مقروءاً فوق أي صورة */
+        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        backdrop-filter: blur(6px);
+        border: 1px solid color-mix(in srgb, var(--color-white) 18%, transparent);
+        padding: 0.3125rem 0.875rem;
+    }
+
+    .title-bar {
+        display: block;
+        width: 72px;
+        height: 4px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--color-brand-light), var(--color-brand));
+    }
+
+    .hero-pill {
+        @apply inline-flex items-center gap-1.5 rounded-full text-[15px] text-white;
+        border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        backdrop-filter: blur(6px);
+        padding: 0.375rem 0.875rem;
+        transition: background-color 200ms;
+    }
+
+    .hero-pill:hover {
+        background: color-mix(in srgb, var(--color-white) 12%, transparent);
+    }
+
+    /* شارة الحالة على صورة البطاقة */
+    .status-chip {
+        @apply rounded-full px-3 py-0.5 text-sm font-bold;
+    }
+}
+
+/* ── البطل: الصورة والتدرج في آخر الملف (نمط 31 أكتوبر) ── */
+.concept-hero {
+    position: relative;
+    overflow: hidden;
+    color: var(--color-white);
+    background: var(--color-primary-dark);
+}
+
+.concept-hero-media {
+    position: absolute;
+    inset: 0;
+}
+
+.concept-hero-media img,
+.concept-hero-media .hero-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.concept-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: none;
+    width: 3rem;
+    height: 3rem;
+    margin-top: -1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--color-white) 92%, transparent);
+    color: var(--color-primary-dark);
+    box-shadow: 0 8px 20px -8px rgb(0 0 0 / 50%);
+}
+
+@media (min-width: 64rem) {
+    .concept-arrow {
+        display: inline-flex;
+    }
+}
+
+/* نقاط البطل: النشطة كبسولة بشريط يمتلئ بمدة الشريحة، والبقية دوائر بإطار أبيض */
+.concept-dot {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.concept-dot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    border: 1.5px solid var(--color-white);
+}
+
+.concept-dot[aria-current] {
+    width: 2.5rem;
+}
+
+.concept-dot[aria-current]::before {
+    width: 40px;
+    border: 0;
+    background: color-mix(in srgb, var(--color-white) 30%, transparent);
+}
+
+.concept-dot .hero-progress-bar {
+    inset-inline-start: 0;
+    top: 50%;
+    height: 8px;
+    margin-top: -4px;
+    background: var(--color-white);
+}
+
+/* ── شرائح الرؤية والرسالة والقيم: تبديل بالتلاشي (x-carousel) ── */
+.concept-card {
+    @apply relative overflow-hidden rounded-[1.25rem];
+    background: var(--concept-surface);
+    border: 1px solid var(--concept-border);
+}
+
+/* لمعة تمر على بطاقة الجوائز، في الشاشة وحدها ولمن لم يطلب تقليل الحركة */
+.concept-shine::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 36%;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-light) 35%, transparent), transparent);
+    opacity: 0;
+}
+
+/* ── الحركات الافتتاحية: الكلمة تظهر من ضباب، والشريط يمتد ── */
+@media (prefers-reduced-motion: no-preference) {
+    .concept-hero .concept-hero-media img,
+    .concept-hero .hero-slide[data-active] img {
+        animation: kenburns-concept 20s ease-in-out infinite alternate;
+    }
+
+    .rise-1 {
+        animation: rise-word 0.8s 0.15s both;
+    }
+
+    .rise-2 {
+        animation: rise-word 0.8s 0.35s both;
+    }
+
+    .rise-3 {
+        animation: rise-word 0.8s 0.6s both;
+    }
+
+    .title-bar {
+        animation: grow-bar 1s 0.7s both;
+    }
+
+    [data-inview].concept-shine::before {
+        opacity: 1;
+        animation: shine-pass 5s 1s infinite;
+    }
+
+    [data-inview].float-icon {
+        animation: float-soft 4s ease-in-out infinite;
+    }
+}
+
+html[data-motion-off] .concept-hero img,
+html[data-motion-off] .rise-1,
+html[data-motion-off] .rise-2,
+html[data-motion-off] .rise-3,
+html[data-motion-off] .title-bar,
+html[data-motion-off] .concept-shine::before,
+html[data-motion-off] .float-icon {
+    animation: none;
+}
+
+@keyframes kenburns-concept {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.07);
+    }
+}
+
+@keyframes rise-word {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+        filter: blur(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes grow-bar {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 72px;
+    }
+}
+
+@keyframes shine-pass {
+    from {
+        transform: translateX(-130%) skewX(-20deg);
+    }
+
+    to {
+        transform: translateX(330%) skewX(-20deg);
+    }
+}
+
+/* ── الدوّار الصغير في بطاقات الرؤية والقيم: نقاط كبسولية وزر إيقاف في زاوية النهاية السفلية ── */
+.carousel-controls-compact {
+    position: absolute;
+    bottom: 0.625rem;
+    inset-inline-end: 1rem;
+    margin: 0;
+    gap: 0.25rem;
+}
+
+.carousel-controls-compact .carousel-dot {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.carousel-controls-compact .carousel-dot::before {
+    width: 6px;
+    height: 6px;
+    background: #c9d7e4;
+}
+
+.carousel-controls-compact .carousel-dot[aria-current]::before {
+    width: 18px;
+    background: var(--color-primary);
+}
+
+.carousel-pause {
+    display: inline-flex;
+    width: 1.5rem;
+    height: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: var(--color-primary);
+}
+
+.carousel-pause:hover {
+    background: var(--color-primary-soft);
+}
+
+/* شريحة الإعلان المميزة: تدرج شعاعي من الأزرق الرسمي إلى الداكن */
+.announcement-feature {
+    background: radial-gradient(80% 120% at 85% 20%, var(--color-brand), var(--color-primary-dark) 65%);
+}
+
+/* «المزيد ←» */
+.more-link {
+    @apply inline-flex items-center gap-1 font-extrabold text-primary hover:text-primary-dark;
+}
+
+.more-link::after {
+    content: '←' / '';
+}
+
+/* x-icon-tile بحالة line (التصور النهائي): أيقونة خطية بالأزرق في مربع فاتح جداً بحد رفيع */
+.icon-tile[data-variant='line'] {
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+    box-shadow: inset 0 0 0 1px var(--concept-border);
+}
+
+.group:hover .icon-tile[data-variant='line'],
+.group:focus-visible .icon-tile[data-variant='line'] {
+    color: var(--color-brand);
+    box-shadow: inset 0 0 0 1px var(--concept-border-hover);
+}
+
+/* زر العودة للأعلى في سطر التذييل ظاهر دائماً */
+[data-back-to-top][data-static] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+}
+
+/* أيقونات الشريط الجانبي في حساب المستفيد (ملاحظة المدير التنفيذي، 30 أكتوبر 19:06): مربع متدرج لكل عنصر، والنشط بحلقة
+   فاتحة وتوهج، وميل خفيف عند المرور. والحركة بالمفتاح --motion، فلا ميل لمن طلب تقليلها */
+.nav-tile {
+    transition:
+        transform calc(300ms * var(--motion)) ease,
+        box-shadow 300ms;
+}
+
+.group:hover .nav-tile {
+    transform: rotate(calc(-6deg * var(--motion))) translateY(calc(-1px * var(--motion)));
+}
+
+.nav-tile-active {
+    box-shadow:
+        0 0 0 2px var(--color-white),
+        0 0 0 4px color-mix(in srgb, var(--color-brand-light) 60%, transparent),
+        0 0 18px 2px color-mix(in srgb, var(--color-brand-light) 55%, transparent);
+}
+
+/* ── درجات مربع الأيقونة الأربع (البند R5، النسخة 63): فاتحة جداً ثم فاتحة برسم #1F4565، ومتوسطة ثم غامقة برسم أبيض. وتتعاقب
+   بموضع البطاقة من CSS وحده: أقرب عنصر من عناصر القائمة أو البطاقات (li وarticle و.group و[data-card]) له إخوة يضع درجته في
+   متغيرات موروثة، فيأخذ المربع درجة أقرب بطاقة إليه. والعنصر الوحيد في أبيه لا يُحسب، فرابط البطاقة داخل li يأخذ موضع li.
+   وdata-shade على المربع يثبّت درجة بعينها (AppSupportIconTones). والتباين مختبر في tests/Unit/IconTileContrastTest.php ── */
+.icon-tile {
+    --tile-from: var(--gt-from, #3e8aca);
+    --tile-to: var(--gt-to, #2e6898);
+    --tile-glyph: var(--gt-glyph, #ffffff);
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 1) {
+    --gt-from: #e3f1fc;
+    --gt-to: #bfe0fa;
+    --gt-glyph: #1f4565;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 2) {
+    --gt-from: #bfe0fa;
+    --gt-to: #8ec5f0;
+    --gt-glyph: #1f4565;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 3) {
+    --gt-from: #3e8aca;
+    --gt-to: #2e6898;
+    --gt-glyph: #ffffff;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 4) {
+    --gt-from: #2e6898;
+    --gt-to: #1f4565;
+    --gt-glyph: #ffffff;
+}
+
+.icon-tile[data-shade='pale'] {
+    --tile-from: #e3f1fc;
+    --tile-to: #bfe0fa;
+    --tile-glyph: #1f4565;
+}
+
+.icon-tile[data-shade='light'] {
+    --tile-from: #bfe0fa;
+    --tile-to: #8ec5f0;
+    --tile-glyph: #1f4565;
+}
+
+.icon-tile[data-shade='medium'] {
+    --tile-from: #3e8aca;
+    --tile-to: #2e6898;
+    --tile-glyph: #ffffff;
+}
+
+.icon-tile[data-shade='dark'] {
+    --tile-from: #2e6898;
+    --tile-to: #1f4565;
+    --tile-glyph: #ffffff;
+}
+
+/* ── البطاقة (.lift في التصور): لمعة تمر عند المرور، وظهور متتابع عند التحميل بـ 0.07 ثانية لكل بطاقة، وكله لمن لم يطلب
+   تقليل الحركة وحده (media query بلا سكربت) ── */
+.card-lift,
+.card-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-lift::after,
+.card-glow::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: -60%;
+    width: 40%;
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-white) 55%, transparent), transparent);
+    transform: skewX(-18deg);
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .card-lift:hover::after,
+    .card-glow:hover::after {
+        opacity: 1;
+        animation: card-shine 0.9s ease-out;
+    }
+
+}
+
+html[data-motion-off] .card-lift:hover::after,
+html[data-motion-off] .card-glow:hover::after {
+    animation: none;
+}
+
+@keyframes card-shine {
+    from {
+        inset-inline-start: -60%;
+    }
+
+    to {
+        inset-inline-start: 130%;
+    }
+}
+
+/* الأيقونة العائمة بخفة (الحالة الفارغة وصفحة الخطأ)، في الشاشة وحدها ولمن لم يطلب تقليل الحركة */
+@media (prefers-reduced-motion: no-preference) {
+    [data-inview].float-soft {
+        animation: float-soft 6s ease-in-out infinite;
+    }
+}
+
+html[data-motion-off] .float-soft {
+    animation: none;
+}
+
+/* معيّن صغير قبل عنوان البطاقة (Final-Contact) */
+.heading-flank-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    transform: rotate(45deg);
+    border: 1.5px solid var(--color-brand);
+}
+
+/* بطاقة جوائز المسابقة الزجاجية في بطل صفحتها (Final-Competition): خلفية بيضاء شفافة بضباب، وزر أبيض بنص داكن */
+@layer components {
+    .prize-glass {
+        @apply relative flex w-full flex-col gap-2 overflow-hidden rounded-3xl p-6 text-white lg:w-80 lg:flex-none;
+        background: color-mix(in srgb, var(--color-white) 14%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 35%, transparent);
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-cta {
+        @apply inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-lg font-black text-primary-dark transition;
+    }
+
+    .hero-cta:hover {
+        background: var(--concept-sky);
+    }
+
+    .hero-cta:focus-visible {
+        @apply outline-2 outline-offset-2 outline-white;
+    }
+}
+
+/* اللوحة الثابتة (x-card): سطح التصور النهائي نفسه بلا رفع عند المرور، لمحتوى يُقرأ لا يُنقر */
+@layer components {
+    .concept-panel {
+        @apply rounded-[1.25rem];
+        background: var(--concept-surface);
+        border: 1px solid var(--concept-border);
+    }
+}
+
+/* الشريط الجانبي في حساب المستخدم (Final-Dashboard): أزرق داكن بزوايا 22 بكسل، ونصوصه بيضاء. حُذف خطأً مع تنظيف visual.css */
+.account-nav {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-primary-dark);
+}
+
+/* ── البطل يبدأ تحت الرأس مباشرة بالصورة بعرضه كله، لا بلون صلب يلتصق بلون الرأس (المدير التنفيذي، 31 أكتوبر 00:48):
+   كنمط الجوال، الصورة ظاهرة في أعلاه، والتدرج يشتد نحو الأزرق الداكن في أسفله وفي جهة النص، وخط فاتح رفيع وظل خفيف
+   يفصلانه عن الرأس. يغلب قواعد البطل السابقة لكل العروض ── */
+.concept-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 65%, transparent) 0%, transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 15%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 60%, transparent) 28%, color-mix(in srgb, var(--color-primary-dark) 82%, transparent) 45%, color-mix(in srgb, var(--color-primary-dark) 94%, transparent) 70%, var(--color-primary-dark) 100%);
+}
+
+.concept-hero[data-size='home'] .concept-hero-scrim {
+    background:
+        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 55%, transparent) 0%, transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 50%, transparent) 30%, color-mix(in srgb, var(--color-primary-dark) 88%, transparent) 55%, var(--color-primary-dark) 100%);
+}
+
+.concept-hero::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    z-index: 3;
+    height: 0.75rem;
+    pointer-events: none;
+    border-top: 1px solid color-mix(in srgb, var(--color-white) 28%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-deep, var(--color-primary-dark)) 55%, transparent), transparent);
+}
+
+/* ── الرئيسية بملاحظات المدير التنفيذي (31 أكتوبر 01:28 — docs/design/director-notes-2026-10-31) ── */
+
+/* المقاطع متلاصقة بلا فراغ أبيض، وكل مقطع بدرجة سماوية تخالف ما قبله */
+.home-band {
+    background: var(--band-bg, var(--concept-page));
+}
+
+.home-band[data-band='1'] {
+    --band-bg: #f2f8fd;
+}
+
+.home-band[data-band='2'] {
+    --band-bg: #e6f1fa;
+}
+
+.home-band[data-band='3'] {
+    --band-bg: #dbeaf7;
+}
+
+.home-band[data-band='4'] {
+    --band-bg: #eef5fc;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   الأساس المشترك للنسخة 63 من التصور (أمر التصور النهائي، المرحلة أ — docs/decisions/2026-10-31-visual-refresh-2.md):
+   الأزرق وحده، وخلفية #D6E7F6، وعنوان القسم، والبطاقة الملونة، والرأس صفان، والتذييل ثلاثة مربعات، والشريط المتحرك،
+   وانتقال الصفحات بالشعار. يغلب ما قبله في هذا الملف وفي visual.css حيث يختلفان
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* الأقسام البديلة بتدرج قريب من خلفية الصفحة (البند R1) */
+.section-tint,
+.band-sky {
+    background: linear-gradient(180deg, var(--section-bg), var(--page-bg));
+}
+
+/* ── عنوان القسم: مقاس ومستوى واحد (البندان G4 وR12) ── */
+.section-heading-title {
+    font-size: 1.5rem;
+}
+
+.section-heading-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+@media (min-width: 40rem) {
+    .section-heading-title {
+        font-size: 2rem;
+    }
+}
+
+/* ── البطاقة الملونة (.cc في التصور — البند G2): تدرج يتعاقب بين البطاقات، داكن بنص أبيض ثم فاتح بنص أزرق داكن. والتعاقب بموضع
+   أقرب بطاقة أو عنصر قائمة له إخوة (متغيرات موروثة كمربع الأيقونة)، وdata-tone يثبّت درجة. والتباين على كل طرف من التدرجين
+   مختبر في tests/Unit/ToneCardContrastTest.php ── */
+.tone-card {
+    --tc-from: var(--tcv-from, #2e6898);
+    --tc-via: var(--tcv-via, #1f4565);
+    --tc-to: var(--tcv-to, #142e45);
+    --tc-text: var(--tcv-text, #ffffff);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    color: var(--tc-text);
+    background: linear-gradient(135deg, var(--tc-from), var(--tc-via) 55%, var(--tc-to));
+    box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
+    transition:
+        transform calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow calc(350ms * var(--motion));
+}
+
+:is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(odd) {
+    --tcv-from: #2e6898;
+    --tcv-via: #1f4565;
+    --tcv-to: #142e45;
+    --tcv-text: #ffffff;
+}
+
+:is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(even) {
+    --tcv-from: #bfe0fa;
+    --tcv-via: #8ec5f0;
+    --tcv-to: #6aaee6;
+    --tcv-text: #142e45;
+}
+
+.tone-card[data-tone='dark'] {
+    --tc-from: #2e6898;
+    --tc-via: #1f4565;
+    --tc-to: #142e45;
+    --tc-text: #ffffff;
+}
+
+.tone-card[data-tone='light'] {
+    --tc-from: #bfe0fa;
+    --tc-via: #8ec5f0;
+    --tc-to: #6aaee6;
+    --tc-text: #142e45;
+}
+
+/* كل ما في البطاقة بلونها، والثانوي بشفافية خفيفة منه. ومربع الأيقونة عليها زجاجي بلون نصها */
+.tone-card :is(h2, h3, h4, p, span, a, li, dt, dd) {
+    color: inherit;
+}
+
+.tone-card .tone-card-muted {
+    color: color-mix(in srgb, var(--tc-text) 86%, transparent);
+}
+
+.tone-card .icon-tile {
+    --tile-from: color-mix(in srgb, var(--tc-text) 22%, transparent);
+    --tile-to: color-mix(in srgb, var(--tc-text) 12%, transparent);
+    --tile-glyph: var(--tc-text);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+}
+
+.tone-card:hover,
+.tone-card:focus-within {
+    transform: translateY(calc(-4px * var(--motion)));
+    box-shadow: 0 24px 40px -22px rgb(20 46 69 / 0.85);
+}
+
+/* ── الرأس صفّان ثابتان عند التمرير (البندان R2 وG6): تدرج الهوية الداكن، والصف الثاني أفتح قليلاً بفاصل #8EC5F0، وحد سفلي
+   #8EC5F0 وظل يفصلانه عن البطل ── */
+[data-site-header] {
+    background: var(--chrome-gradient);
+    border-bottom: 1px solid var(--blue-300);
+    box-shadow: 0 12px 28px -14px rgb(15 37 54 / 0.85);
+}
+
+[data-site-header][data-scrolled] {
+    box-shadow: 0 14px 32px -12px rgb(15 37 54 / 0.95);
+}
+
+.header-top [data-brand-mark],
+.header-top [data-logo-calligraphy] {
+    transition: height calc(250ms * var(--motion)) ease;
+}
+
+/* عند التمرير يصغر الصف الأول قليلاً، فيبقى للمحتوى مكانه على الشاشات القصيرة */
+@media (min-width: 64rem) {
+    [data-site-header][data-scrolled] .header-top [data-brand-mark] {
+        height: 3.75rem;
+    }
+
+    [data-site-header][data-scrolled] .header-top [data-logo-calligraphy] {
+        height: 3rem;
+    }
+
+    [data-site-header][data-scrolled] .header-top {
+        padding-block: 0.5rem;
+    }
+}
+
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران */
+.header-licence {
+    flex: none;
+    max-width: 15.625rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid rgb(142 197 240 / 0.55);
+    border-radius: 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-white);
+}
+
+.header-nav {
+    background: linear-gradient(180deg, var(--blue-900), var(--blue-850));
+    border-top: 1px solid var(--blue-300);
+}
+
+/* سبع كبسولات متساوية (أو بقدر العناصر)، صف واحد */
+.nav-capsules {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+}
+
+.nav-capsule {
+    display: flex;
+    width: 100%;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-inline: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    background: rgb(255 255 255 / 0.07);
+    color: var(--color-white);
+    /* سبع كبسولات متساوية في 1264 بكسل: أطول الأسماء («الخدمات الإلكترونية») يتسع بهذا الخط من نحو 1260 بكسل */
+    font-size: 0.84375rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition:
+        background-color 200ms,
+        border-color 200ms;
+}
+
+.nav-capsule:hover,
+.nav-capsule:focus-visible,
+.nav-capsule[aria-expanded='true'] {
+    background: #0f2536;
+    border-color: rgb(142 197 240 / 0.6);
+}
+
+.nav-capsule[aria-current],
+.nav-capsule[data-current] {
+    background: rgb(142 197 240 / 0.24);
+    border-color: var(--blue-300);
+    font-weight: 900;
+}
+
+@media (min-width: 90rem) {
+    .nav-capsule {
+        font-size: 0.875rem;
+    }
+}
+
+.nav-capsule .icon-tile {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+.nav-capsule .icon-tile,
+.mobile-nav-link .icon-tile {
+    box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.5);
+}
+
+.header-mobile-menu {
+    background: var(--blue-900);
+    border-top: 1px solid var(--blue-300);
+}
+
+.mobile-nav-link {
+    border-radius: 0.875rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    color: var(--color-white);
+}
+
+.mobile-nav-link:hover {
+    background: rgb(255 255 255 / 0.1);
+}
+
+.mobile-nav-link[aria-current],
+.mobile-nav-link[data-current] {
+    background: rgb(142 197 240 / 0.2);
+    box-shadow: inset 0 0 0 1px var(--blue-300);
+    font-weight: 800;
+}
+
+/* القائمة لا تتسع (app.js): يُخفى صفها ويظهر زر القائمة */
+[data-site-header][data-nav-overflow] .header-nav {
+    display: none;
+}
+
+/* ── التذييل: ثلاثة مربعات متساوية بحشو 24 بكسل، لكل منها مربع أيقونة كبير بجانب عنوانه (البندان N3 وR17) ── */
+.site-footer {
+    background: var(--blue-900);
+}
+
+.footer-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 1.5rem;
+    border-radius: 1.125rem;
+    border: 1px solid rgb(142 197 240 / 0.3);
+    background: linear-gradient(145deg, #2a5b85, #1a3d5c);
+    box-shadow:
+        0 18px 34px -22px rgb(0 0 0 / 0.65),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.footer-box-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.1875rem;
+    font-weight: 900;
+    color: var(--color-white);
+}
+
+.footer-box-icon {
+    width: 3rem;
+    height: 3rem;
+}
+
+.footer-line-icon {
+    width: 1.875rem;
+    height: 1.875rem;
+}
+
+.footer-link-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5625rem;
+    white-space: nowrap;
+    color: rgb(255 255 255 / 0.85);
+}
+
+.footer-link-row:hover {
+    color: var(--color-white);
+}
+
+/* ── الشريط المتحرك (x-marquee): أفقي أو عمودي، CSS وحده ── */
+.marquee {
+    overflow: hidden;
+}
+
+.marquee[data-direction='horizontal'] {
+    mask-image: linear-gradient(to left, transparent, #000 4%, #000 96%, transparent);
+}
+
+.marquee[data-direction='vertical'] {
+    height: var(--marquee-height, 20rem);
+    mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+}
+
+.marquee-track {
+    display: flex;
+}
+
+.marquee-group {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.875rem;
+}
+
+.marquee[data-direction='horizontal'] .marquee-track {
+    width: max-content;
+}
+
+.marquee[data-direction='horizontal'] .marquee-group {
+    padding-inline-end: 0.875rem;
+}
+
+.marquee[data-direction='vertical'] .marquee-track,
+.marquee[data-direction='vertical'] .marquee-group {
+    flex-direction: column;
+}
+
+.marquee[data-direction='vertical'] .marquee-group {
+    padding-bottom: 0.875rem;
+}
+
+.marquee-toggle {
+    position: absolute;
+    top: 0.5rem;
+    inset-inline-end: 0.5rem;
+    z-index: 1;
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--blue-50);
+    color: var(--blue-900);
+    box-shadow: inset 0 0 0 1px var(--concept-border);
+}
+
+.marquee-toggle:hover {
+    background: var(--blue-200);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .marquee[data-direction='horizontal'][data-inview] .marquee-track {
+        animation: marquee-x var(--marquee-duration, 40s) linear infinite;
+    }
+
+    .marquee[data-direction='vertical'][data-inview] .marquee-track {
+        animation: marquee-y var(--marquee-duration, 40s) linear infinite;
+    }
+
+    .marquee:hover .marquee-track,
+    .marquee:focus-within .marquee-track,
+    .marquee[data-paused] .marquee-track {
+        animation-play-state: paused;
+    }
+}
+
+/* تقليل الحركة: لا حركة، والنسخة الثانية تختفي، والشريط يُمرَّر باليد، ولا زر إيقاف لما لا يتحرك */
+@media (prefers-reduced-motion: reduce) {
+    .marquee {
+        mask-image: none;
+    }
+
+    .marquee[data-direction='horizontal'] {
+        overflow-x: auto;
+    }
+
+    .marquee[data-direction='vertical'] {
+        overflow-y: auto;
+    }
+
+    .marquee [data-marquee-copy],
+    .marquee-toggle {
+        display: none;
+    }
+}
+
+html[data-motion-off] .marquee-track {
+    animation: none;
+}
+
+@keyframes marquee-x {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(50%);
+    }
+}
+
+@keyframes marquee-y {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-50%);
+    }
+}
+
+/* ── انتقال الصفحات بالشعار (البند R25 — Final-Transition): الطبقة بتدرج الهوية الداكن، والرمز الباهت، وفوقه الساطع يمتلئ من
+   الأسفل بقناع يرتفع، ولمعة عند الاكتمال، ثم تلاشٍ. ومع تقليل الحركة الشعار ساطع ثابت بلا لمعة ── */
+.page-transition:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #0f2536, var(--blue-900));
+    animation: transition-in 200ms ease-out both;
+}
+
+.page-transition[data-state='leaving'] {
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.page-transition-logo {
+    position: relative;
+    display: block;
+    width: 7.5rem;
+    height: 9.375rem;
+}
+
+.page-transition-logo img,
+.page-transition-shine {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.page-transition-faint {
+    opacity: 0.25;
+}
+
+.page-transition-fill {
+    clip-path: inset(100% 0 0 0);
+    filter: drop-shadow(0 0 18px rgb(142 197 240 / 0.7));
+}
+
+.page-transition-shine {
+    opacity: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.95) 50%, transparent 65%) 150% 0 / 250% 100% no-repeat;
+    -webkit-mask: var(--transition-mark) center / contain no-repeat;
+    mask: var(--transition-mark) center / contain no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* يرتفع القناع بطيئاً نحو 85% ما دامت الصفحة تُحمَّل، ثم يكتمل سريعاً عند وصولها */
+    .page-transition[data-state='loading'] .page-transition-fill {
+        animation: transition-fill 6s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+    }
+
+    .page-transition:is([data-state='done'], [data-state='leaving']) .page-transition-fill {
+        clip-path: inset(0 0 0 0);
+        transition: clip-path 250ms ease-out;
+    }
+
+    .page-transition[data-state='done'] .page-transition-shine {
+        opacity: 1;
+        animation: transition-shine 450ms ease-in-out both;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-transition:not([hidden]) {
+        animation: none;
+    }
+
+    .page-transition-fill {
+        clip-path: none;
+    }
+
+    .page-transition[data-state='leaving'] {
+        transition: none;
+    }
+}
+
+html[data-motion-off] .page-transition-fill {
+    animation: none;
+    clip-path: none;
+}
+
+@keyframes transition-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes transition-fill {
+    from {
+        clip-path: inset(100% 0 0 0);
+    }
+
+    to {
+        clip-path: inset(15% 0 0 0);
+    }
+}
+
+@keyframes transition-shine {
+    from {
+        background-position: 150% 0;
+    }
+
+    to {
+        background-position: -50% 0;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   الرئيسية بالنسخة 63 (أمر التصور النهائي، المرحلة ب — docs/decisions/2026-10-31-visual-refresh-2.md): خلفيات متعاقبة بدرجتين،
+   والبطاقات الخمس، و«خدماتنا» صفاً متحركاً، والإعلانات والأخبار بارتفاع واحد، وشريطا المقاطع والكتب، وبطاقة X، والشركاء.
+   والجوال بمقاسات البند R12: أيقونة 38، وعنوان بطاقة 19، ونص 14–15 ── يغلب ما قبله في هذا الملف
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* المقاطع بتدرجين متعاقبين من #CFE3F4 و#D6E7F6 (البند H10)، والمسافات بينها مضغوطة (البند G3) */
+.home-band[data-band='1'] {
+    background: linear-gradient(180deg, var(--section-bg), var(--page-bg));
+}
+
+.home-band[data-band='2'] {
+    background: linear-gradient(180deg, var(--page-bg), var(--section-bg));
+}
+
+/* ── البطاقات الخمس: «رؤيتنا ورسالتنا» بعرض كامل على الجوال ثم البقية صف متحرك، وصف واحد ثابت من 1024 بكسل ── */
+.home-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.home-card {
+    flex: none;
+    height: 9.375rem;
+    border-radius: 1.125rem;
+}
+
+.home-cards-static .marquee-group > .home-card {
+    width: 16.25rem;
+}
+
+.home-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.125rem;
+}
+
+.home-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 1.1875rem;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.home-card .home-card-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+}
+
+.home-card-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.home-card-slide {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.375rem 1.125rem 2rem;
+}
+
+.home-card-pick {
+    font-size: 1.0625rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.home-card-more {
+    margin-inline-start: auto;
+    font-size: 0.8125rem;
+}
+
+.tone-card .carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--tc-text) 40%, transparent);
+}
+
+.tone-card .carousel-controls-compact .carousel-dot[aria-current]::before {
+    background: var(--tc-text);
+}
+
+.tone-card .carousel-pause {
+    color: var(--tc-text);
+}
+
+.tone-card .carousel-pause:hover {
+    background: color-mix(in srgb, var(--tc-text) 15%, transparent);
+}
+
+@media (min-width: 64rem) {
+    .home-cards {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, var(--home-cards-fr, 4fr));
+        gap: 0.875rem;
+    }
+
+    .home-cards > * {
+        min-width: 0;
+    }
+
+    /* الشريط صف ثابت على الحاسوب: بلا حركة ولا نسخة ثانية ولا زر إيقاف */
+    .home-cards-static .marquee[data-direction] {
+        overflow: visible;
+        mask-image: none;
+    }
+
+    .home-cards-static .marquee[data-direction] .marquee-track {
+        display: block;
+        width: auto;
+        animation: none !important;
+    }
+
+    .home-cards-static .marquee[data-direction] .marquee-group {
+        display: grid;
+        grid-template-columns: repeat(var(--home-cards-cols, 4), minmax(0, 1fr));
+        gap: 0.875rem;
+        padding: 0;
+    }
+
+    .home-cards-static .marquee-group > .home-card {
+        width: auto;
+    }
+
+    .home-cards-static .marquee[data-direction] [data-marquee-copy],
+    .home-cards-static .marquee-toggle {
+        display: none;
+    }
+
+    .home-card-head {
+        font-size: 1.25rem;
+    }
+
+    .home-card .home-card-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .home-card-text {
+        font-size: 0.90625rem;
+    }
+}
+
+/* ── «خدماتنا»: بطاقات ملونة بعرض 226 بكسل في صف متحرك ── */
+.service-tile {
+    display: flex;
+    width: 13.5rem;
+    flex: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 1.125rem;
+    padding: 1rem 1rem 0.875rem;
+}
+
+.service-tile-title {
+    font-size: 1.1875rem;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.service-tile .service-tile-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+}
+
+.service-tile-text {
+    display: -webkit-box;
+    min-height: 3.4em;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.service-tile-enter {
+    align-self: center;
+    margin-top: auto;
+    border-radius: 999px;
+    padding: 0.3125rem 1.375rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    background: color-mix(in srgb, var(--tc-text) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+}
+
+@media (min-width: 64rem) {
+    .service-tile {
+        width: 14.125rem;
+        padding: 1.375rem 1.375rem 1.125rem;
+    }
+
+    .service-tile-title {
+        font-size: 1.3125rem;
+    }
+
+    .service-tile .service-tile-icon {
+        width: 3.625rem;
+        height: 3.625rem;
+    }
+
+    .service-tile-text {
+        font-size: 1rem;
+    }
+}
+
+/* ── الإعلانات والأخبار بارتفاع واحد: 260 بكسل على الجوال و320 على الحاسوب، والأخبار تمتد لارتفاع العمود المجاور ── */
+.home-feed-box {
+    height: 16.25rem;
+}
+
+.home-news-box {
+    min-height: 16.25rem;
+}
+
+.home-feed-box > .card-lift {
+    background: var(--concept-surface);
+}
+
+.home-feed-box > .card-lift > img {
+    min-height: 0;
+    flex: 1 1 0;
+    aspect-ratio: auto;
+}
+
+.home-announcements .carousel-controls {
+    margin-top: 0.625rem;
+}
+
+@media (min-width: 64rem) {
+    .home-feed-box {
+        height: 20rem;
+    }
+
+    .home-news-box {
+        min-height: 20rem;
+    }
+}
+
+/* ── شريطا المقاطع والكتب: بطاقات ملونة، والكتب بالاتجاه المعاكس ── */
+.media-tile {
+    display: flex;
+    width: 12.5rem;
+    flex: none;
+    flex-direction: column;
+    border-radius: 1rem;
+}
+
+.media-tile-thumb {
+    position: relative;
+    display: block;
+    height: 7.375rem;
+    overflow: hidden;
+    background: var(--blue-200);
+}
+
+.media-tile-book {
+    height: 12rem;
+}
+
+.media-marquee-reverse .marquee-group > .media-tile {
+    width: 9rem;
+}
+
+.media-tile-caption {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.youtube-play {
+    display: inline-flex;
+    width: 2.875rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5625rem;
+    background: var(--youtube-red);
+    color: var(--color-white);
+}
+
+.media-marquee-reverse .marquee-track {
+    animation-direction: reverse;
+}
+
+@media (min-width: 64rem) {
+    .media-tile-caption {
+        font-size: 0.9375rem;
+    }
+}
+
+/* ── «تابعنا على X»: الأسود المستثنى إلى الأزرق الداكن، بنص أبيض ── */
+.x-card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    border-radius: 1.125rem;
+    padding: 1rem 1.25rem;
+    color: var(--color-white);
+    background: linear-gradient(135deg, var(--x-black), var(--blue-900));
+    box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
+}
+
+/* ── «شركاؤنا»: شعارات بعرض ثابت في شريط متحرك ── */
+.partner-logo {
+    width: 10rem;
+    flex: none;
+}
+
+@media (min-width: 64rem) {
+    .partner-logo {
+        width: 12rem;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   المرحلة ج: الصفحات الداخلية (أمر التصور النهائي، النسخة 63 — docs/decisions/2026-10-31-visual-refresh-2.md، القسم ٢٠ فما بعده):
+   كلها بالمكونات المشتركة نفسها (البطاقة الملونة، ومربع الأيقونة، وعنوان القسم، والشريط المتحرك)، وهذه إضافاتها وحدها
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* مكوّنات المرحلة ج في طبقة المكوّنات، فتغلبها أصناف Tailwind عند الحاجة (w-full وmt-auto وp-0!) */
+@layer components {
+    /* زر داخل البطاقة الملونة (.cc .pill في التصور): بأغمق طرفي تدرج البطاقة وحد بلون نصها، فيبقى النص مقروءاً على الدرجتين */
+    .tone-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        border-radius: 999px;
+        padding: 0.5rem 1.125rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        white-space: nowrap;
+        color: var(--tc-text, var(--color-white));
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 60%, transparent);
+        border: 1px solid color-mix(in srgb, var(--tc-text, var(--color-white)) 35%, transparent);
+        transition: background-color 200ms;
+    }
+
+    .tone-card:hover .tone-pill,
+    .tone-pill:hover {
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 85%, transparent);
+    }
+
+    /* شارة صغيرة داخل البطاقة الملونة (تصنيف أو حالة) */
+    .tone-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 0.125rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--tc-text, var(--color-white));
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 55%, transparent);
+    }
+
+    /* صورة في أعلى البطاقة الملونة بلا فاصل أبيض */
+    .tone-card-media {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 40%, transparent);
+    }
+
+    /* شريط التبويبات (Final-Page وFinal-Library): لوح بتدرج فاتح جداً، والكبسولات بيضاء والنشطة داكنة */
+    .tabs-bar {
+        border-radius: 1.375rem;
+        padding: 0.625rem;
+        background: linear-gradient(135deg, var(--blue-50), var(--blue-100));
+        border: 1px solid var(--concept-border);
+        box-shadow: 0 18px 40px -22px rgb(31 69 101 / 0.45);
+    }
+
+    .tab-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9375rem;
+        font-weight: 800;
+        white-space: nowrap;
+        color: var(--blue-900);
+        background: var(--color-white);
+        border: 1px solid var(--concept-border);
+        transition:
+            border-color 200ms,
+            background-color 200ms;
+    }
+
+    .tab-pill:hover {
+        border-color: var(--blue-300);
+    }
+
+    .tab-pill[aria-current] {
+        color: var(--color-white);
+        background: var(--blue-900);
+        border-color: var(--blue-900);
+    }
+
+    /* لوح النموذج بتدرج أزرق فاتح (Final-Contact وFinal-Login): الحقول وحدها بيضاء (البند R1) */
+    .form-sky {
+        border-radius: 1.25rem;
+        background: linear-gradient(135deg, var(--blue-50), var(--blue-200));
+        border: 1px solid var(--concept-border);
+    }
+
+    /* بطاقة في شريط متحرك بعرض ثابت (أعضاء المجلس، والقيم، والأخبار الأفقية) */
+    .strip-card {
+        display: flex;
+        width: 16.25rem;
+        flex: none;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1rem 1.125rem;
+    }
+
+    /* مكتبة الصور شريطاً متحركاً (Final-Media): الصورة تملأ الإطار وتكبر قليلاً عند المرور */
+    .gallery-tile {
+        position: relative;
+        display: block;
+        width: 15rem;
+        height: 10rem;
+        flex: none;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: linear-gradient(150deg, var(--blue-300), var(--blue-900));
+    }
+
+    .gallery-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform calc(600ms * var(--motion));
+    }
+
+    .gallery-tile:hover img,
+    .gallery-tile:focus-visible img {
+        transform: scale(calc(1 + 0.06 * var(--motion)));
+    }
+
+    .gallery-tile-caption {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        padding: 1.5rem 0.75rem 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        color: var(--color-white);
+        background: linear-gradient(180deg, transparent, rgb(20 46 69 / 0.85));
+    }
+}
+
+/* المادة الصوتية في الشريط: صورة القسم بدل الغلاف */
+.media-tile-audio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue-900);
+    background: linear-gradient(150deg, var(--blue-100), var(--blue-300));
+}
+
+/* الحركة في الصفحات الداخلية (البند R16): طفو خفيف لمربع أيقونة عنوان القسم وهو في الشاشة، ولا حركة لمن طلب تقليلها.
+   وتكبير صورة البطل البطيء وظهور البطاقات عند التمرير قائمان (kenburns-concept وdata-reveal-group) */
+@media (prefers-reduced-motion: no-preference) {
+    .section-heading-icon[data-inview] {
+        animation: float-soft 5s ease-in-out infinite;
+    }
+}
+
+html[data-motion-off] .section-heading-icon {
+    animation: none;
+}
+
+@layer components {
+    /* بطل مسابقة البراهين (Final-Competition): «بادر بالتسجيل» مربع أيقونة كبير بجانب كلمته، وعلى الجوال بعرض كامل تحت بطاقة الجوائز */
+    .hero-register {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 0.75rem;
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 0.375rem 1.25rem 0.375rem 0.375rem;
+        font-size: 1.125rem;
+        font-weight: 900;
+        color: var(--color-white);
+        background: color-mix(in srgb, var(--color-white) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 35%, transparent);
+        transition: background-color 200ms;
+    }
+
+    .hero-register:hover {
+        background: color-mix(in srgb, var(--color-white) 20%, transparent);
+    }
+
+    .hero-register:focus-visible {
+        outline: 2px solid var(--color-white);
+        outline-offset: 2px;
+    }
+
+    /* نسخة الحاسوب تحت العنوان، ونسخة الجوال بعرض كامل تحت بطاقة الجوائز */
+    .hero-register[data-at='desktop'] {
+        display: none;
+    }
+
+    @media (max-width: 63.99rem) {
+        .hero-register {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (min-width: 64rem) {
+        .hero-register[data-at='desktop'] {
+            display: inline-flex;
+        }
+
+        .hero-register[data-at='mobile'] {
+            display: none;
+        }
+    }
+}
+
+/* البطل في صفحة المسابقة أقصر ومسافاته أقل (البند P3) */
+.concept-hero[data-compact] > .relative {
+    min-height: 17rem;
+    padding-bottom: 2rem;
+}
+
+/* قارئ الكتاب (البند R14): الصفحة تملأ إطاره بلا حواش، والإطار بطول الصفحة حتى حد، وعرضه ثابت مع شريط التمرير */
+.pdf-stage {
+    max-height: 85vh;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    background: var(--blue-50);
+}
+
+/* ما له لونه الخاص داخل البطاقة الملونة (شارات الحالة، وعلامة 【ناقص】): يعود إلى لون صنفه بدل لون البطاقة */
+.tone-card .keep-color,
+.tone-card .keep-color * {
+    color: revert-layer;
+}
+
+/* غلاف الكتاب والبحث في شريط المكتبة: بطاقة أضيق بارتفاع الغلاف */
+.media-tile.media-tile-narrow {
+    width: 9rem;
+}

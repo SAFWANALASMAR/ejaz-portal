@@ -31,10 +31,18 @@ function contrastRatio(string $a, string $b): float
     return (max($l) + 0.05) / (min($l) + 0.05);
 }
 
-it('uses the official colours of the brand guidelines', function () {
+it('uses the official blue and only shades of blue for the secondary and accent tokens (G1)', function () {
+    // أمر التصور النهائي، النسخة 63: الأزرق وحده، فالثانوي والمميز درجتان منه بدل الأخضر والبنفسجي، وخلفية الصفحة #D6E7F6
     expect(brandToken('brand'))->toBe('#3E8ACA')
-        ->and(brandToken('secondary'))->toBe('#287A37')
-        ->and(brandToken('accent'))->toBe('#5D2A92');
+        ->and(brandToken('secondary'))->toBe('#24527A')
+        ->and(brandToken('accent'))->toBe('#1F5F8F')
+        ->and(brandToken('page'))->toBe('#D6E7F6')
+        ->and(brandToken('section'))->toBe('#CFE3F4');
+
+    foreach (['secondary', 'secondary-soft', 'accent', 'accent-dark', 'accent-light'] as $token) {
+        [$r, $g, $b] = array_map(hexdec(...), str_split(substr(brandToken($token), 1), 2));
+        expect($b)->toBeGreaterThan($r, $token)->and($b)->toBeGreaterThanOrEqual($g, $token);
+    }
 });
 
 it('keeps normal text readable on every background it is used on', function (string $text, string $background) {
@@ -55,6 +63,15 @@ it('keeps normal text readable on every background it is used on', function (str
     ['accent', 'surface'],
     ['secondary', 'white'],
     ['accent-light', 'primary-dark'],
+    // خلفية الصفحة والأقسام الزرقاء الفاتحة (البند R1)
+    ['ink', 'page'],
+    ['muted', 'page'],
+    ['primary', 'page'],
+    ['primary-dark', 'page'],
+    ['ink', 'section'],
+    ['muted', 'section'],
+    ['primary-dark', 'section'],
+    ['primary-dark', 'pale'],
 ]);
 
 it('keeps large text, icons and borders visible where only those are used', function (string $foreground, string $background) {
@@ -84,4 +101,29 @@ it('never puts dark text on the purple accent or the purple accent on the dark b
     }
 
     expect($offenders)->toBe([]);
+});
+
+it('never puts white text on the brand blue, even on hover (3.69:1 is under AA)', function () {
+    $offenders = [];
+    $classes = "[^\"'\n]*";
+
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/resources/views')) as $file) {
+        if (! str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        foreach (file($file->getPathname()) ?: [] as $number => $line) {
+            // في سلسلة الأصناف نفسها: خلفية brand (بحالة أو بلا حالة) ونص أبيض
+            if (preg_match("/[\"']({$classes}\b([a-z-]+:)?bg-brand\b(?![\/-]){$classes}\btext-white\b|{$classes}\btext-white\b{$classes}\b([a-z-]+:)?bg-brand\b(?![\/-]))/", $line)) {
+                $offenders[] = $file->getFilename().':'.($number + 1);
+            }
+        }
+    }
+
+    // وزر الدخول في الرأس: نصه أبيض، فلونه عند المرور ليس brand
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+    preg_match('/\.login-pill:hover \{([^}]*)\}/', $css, $hover);
+
+    expect($offenders)->toBe([])
+        ->and($hover[1] ?? '')->not->toContain('--color-brand)');
 });

@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Enums\SiteIcon;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -36,13 +38,28 @@ final class HomeContent
         'tickers' => ['news', 'announcements'],
         'channels' => ['title', 'intro'],
         'announcements' => ['title', 'intro'],
-        'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights'],
+        // supervision باقٍ مفتاحاً ولا يُعرض في الرأس ولا التذييل منذ النسخة 63 من التصور (البند R2)
+        'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights', 'hours', 'accounts'],
+        // مربع الترخيص في الرأس (البند R2)
+        'header' => ['licensed_by', 'license_number'],
+        // شريحة الهوية تحت البطل وبطاقة «خدماتنا» الجانبية (مرجع المدير، 30 أكتوبر — plans/2026-10-30-director-home-reference.md).
+        // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
+        'identity' => ['vision', 'mission', 'side_title', 'side_text', 'goals', 'principles'],
+        // عناوين أقسام الرئيسية وبطاقاتها الظاهرة للزائر (أمر التصور النهائي، النسخة 63 — المرحلة ب)
+        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats'],
     ];
+
+    /**
+     * أيقونة كل قيمة ما لم تُختر من اللوحة (شرائح الهوية في الرئيسية)، من القائمة المسموحة (SiteIcon).
+     *
+     * @var list<string>
+     */
+    public const VALUE_ICONS = ['check-badge', 'light-bulb', 'hand-raised', 'puzzle-piece'];
 
     /**
      * النصوص الطويلة (حد 6000 حرف، وغيرها 300).
      */
-    public const LONG = ['full', 'text', 'excerpt'];
+    public const LONG = ['full', 'text', 'excerpt', 'vision', 'mission', 'goals', 'principles'];
 
     /**
      * نصوص كتبناها مكان محتوى ناقص من الجمعية، فتُوسم «مثال تجريبي» ما لم تُستبدل من اللوحة (قرار صفوان، 26 أكتوبر 2026).
@@ -71,6 +88,14 @@ final class HomeContent
         'calligraphy' => 'images/brand/logo-calligraphy.png',
         'calligraphy_white' => 'images/brand/logo-calligraphy-white.png',
     ];
+
+    /**
+     * شرائح بطل الرئيسية بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). صورة كل شريحة تُرفع من «محتوى الرئيسية» وتُحفظ في
+     * hero_slides.<الشريحة>، وبلا صورة بديلها في HomeShowcase::slides.
+     *
+     * @var list<string>
+     */
+    public const HERO_SLIDES = ['about', 'king', 'chairman', 'brahin', 'library'];
 
     /**
      * المحتوى للعرض: المحفوظ من اللوحة، وإلا الأصل.
@@ -104,6 +129,7 @@ final class HomeContent
                 'title' => self::clean($item['title'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.title'),
                 'text' => self::clean($item['text'] ?? null) ?? (string) __('home.sections.values.items.'.$index.'.text'),
                 'image' => $path !== null ? Storage::disk('public')->url($path) : asset('images/home/value-'.($index + 1).'.jpg'),
+                'icon' => SiteIcon::tryFrom(is_string($item['icon'] ?? null) ? $item['icon'] : '')->value ?? self::VALUE_ICONS[$index],
             ];
         }
 
@@ -124,6 +150,34 @@ final class HomeContent
     public static function isSample(string $section, string $key): bool
     {
         return in_array($section.'.'.$key, self::SAMPLE, true) && self::clean(Setting::group(self::KEY)[$section][$key] ?? null) === null;
+    }
+
+    /**
+     * مسار صورة شريحة البطل المرفوعة من اللوحة على القرص العام، أو null.
+     */
+    public static function heroSlideImage(string $key): ?string
+    {
+        return self::clean(Setting::group(self::KEY)['hero_slides'][$key] ?? null);
+    }
+
+    /**
+     * صورة المقطع (خادم الحرمين الشريفين، ورئيس المجلس، والمبررات) مرفوعة من اللوحة لا الأصل المؤقت. وبدونها يُوسم إطارها
+     * «صورة معتمدة من الجمعية» في التطوير (x-missing).
+     */
+    public static function hasStoredImage(string $section): bool
+    {
+        return self::clean(Setting::group(self::KEY)[$section]['image'] ?? null) !== null;
+    }
+
+    /**
+     * رابط صورة شريحة البطل المرفوعة من اللوحة، أو null. وتستعملها صفحتها الداخلية صورةً لبطلها (المرحلة ج من التصور النهائي):
+     * مكتبة إعجاز بصورة شريحتها، ومسابقة البراهين بصورة شريحتها، فلا يُضاف موضع صورة جديد.
+     */
+    public static function heroSlideUrl(string $key): ?string
+    {
+        $path = self::heroSlideImage($key);
+
+        return $path !== null ? Storage::disk('public')->url($path) : null;
     }
 
     /**
@@ -158,6 +212,10 @@ final class HomeContent
             $paths[] = $stored['brand'][$key] ?? null;
         }
 
+        foreach (self::HERO_SLIDES as $key) {
+            $paths[] = $stored['hero_slides'][$key] ?? null;
+        }
+
         return array_values(array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''));
     }
 
@@ -181,9 +239,14 @@ final class HomeContent
         return is_string($value) && $normalize($value) === $normalize(self::default($section, $key));
     }
 
+    /**
+     * الأصل: ما في home.sections_final (أصول النسخة 63 من التصور، مضافة لا معدِّلة لما قبلها)، وإلا home.sections.
+     */
     private static function default(string $section, string $key): string
     {
-        return (string) __('home.sections.'.$section.'.'.$key);
+        $final = 'home.sections_final.'.$section.'.'.$key;
+
+        return (string) __(Lang::has($final) ? $final : 'home.sections.'.$section.'.'.$key);
     }
 
     private static function clean(mixed $value): ?string

@@ -21,14 +21,14 @@
     $error = $errors->getBag($bag)->first($errorKey);
     $describedBy = trim(($hint ? $id.'-hint ' : '').($error ? $id.'-error' : ''));
     $isPassword = $type === 'password';
-    $inputClasses = 'block w-full rounded-xl border bg-white py-3 text-ink shadow-xs placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none '
+    $inputClasses = 'block w-full rounded-xl border bg-[var(--concept-page)] py-3 text-ink shadow-xs placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none '
         .($icon ? 'ps-11 ' : 'ps-4 ')
         .($isPassword ? 'pe-11 ' : 'pe-4 ')
         .($error ? 'border-red-600' : 'border-muted/70');
 @endphp
 
 <div {{ $attributes->only('class')->merge(['class' => 'space-y-1.5']) }}>
-    <label for="{{ $id }}" @class(['block text-sm font-semibold text-ink', 'sr-only' => $hideLabel])>
+    <label for="{{ $id }}" @class(['block font-extrabold text-primary-dark', 'sr-only' => $hideLabel])>
         {{ $label }}
         @if ($required)
             <span class="text-red-700" aria-hidden="true">*</span>

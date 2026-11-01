@@ -6,13 +6,13 @@
 <x-layouts.account :title="__('programs.mine.title')">
     @if ($registrations->isEmpty())
         <x-card>
-            <p class="text-muted">{{ __('programs.mine.empty') }}</p>
+            <x-empty-state icon="academic-cap" :message="__('programs.mine.empty')" />
             <x-button class="mt-4" variant="outline" :href="route('programs.index')" arrow>{{ __('programs.mine.browse') }}</x-button>
         </x-card>
     @else
         <ul class="space-y-3">
             @foreach ($registrations as $registration)
-                <li class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white p-5 shadow-xs">
+                <li class="flex flex-wrap items-center justify-between gap-3 p-5 concept-panel">
                     <div class="min-w-0">
                         @if ($registration->program->is_published && ! $registration->program->trashed())
                             <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
