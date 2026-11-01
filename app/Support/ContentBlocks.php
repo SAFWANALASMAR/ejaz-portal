@@ -97,4 +97,30 @@ final class ContentBlocks
 
         return $images;
     }
+
+    /**
+     * مرسى المقطع في «عن الجمعية» الذي تفتحه بطاقته في الرئيسية (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٨): الرؤية والرسالة
+     * والأهداف والمبادئ بعنوان المقطع نفسه، والقيم بعنوان فيه كلمتها («قيم الجمعية»). وما سواها بلا مرسى.
+     */
+    public static function anchor(mixed $heading): ?string
+    {
+        $heading = is_string($heading) ? trim($heading) : '';
+
+        if ($heading === '') {
+            return null;
+        }
+
+        $exact = [
+            (string) __('ui.identity.vision') => 'vision',
+            (string) __('ui.identity.mission') => 'mission',
+            (string) __('ui.about_anchors.goals') => 'goals',
+            (string) __('ui.about_anchors.principles') => 'principles',
+        ];
+
+        if (isset($exact[$heading])) {
+            return 'about-'.$exact[$heading];
+        }
+
+        return str_contains($heading, (string) __('ui.about_anchors.values')) ? 'about-values' : null;
+    }
 }

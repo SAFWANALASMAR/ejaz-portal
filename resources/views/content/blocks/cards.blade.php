@@ -10,7 +10,7 @@
 @endphp
 
 @if ($items !== [])
-    <section class="band-sky" data-cards-block>
+    <section class="band-sky scroll-mt-48" data-cards-block @if ($anchor = \App\Support\ContentBlocks::anchor($data['heading'] ?? null)) id="{{ $anchor }}" @endif>
         <div class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-10 sm:px-7">
             @if (filled($data['heading'] ?? null))
                 <x-section-heading class="mb-5" center>{{ $data['heading'] }}</x-section-heading>

@@ -1,5 +1,5 @@
 {{-- مقطع نص: عنوان اختياري، ونص منسق بعد تنقيته (App\Support\RichText) --}}
-<section class="py-10 sm:py-12">
+<section class="scroll-mt-48 py-10 sm:py-12" @if ($anchor = \App\Support\ContentBlocks::anchor($data['heading'] ?? null)) id="{{ $anchor }}" @endif>
     <div class="container-page">
         <div class="max-w-4xl">
             @if (filled($data['heading'] ?? null))

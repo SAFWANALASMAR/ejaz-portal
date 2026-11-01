@@ -156,11 +156,14 @@ class BuildHomePage
      */
     private static function stripBooks(): Collection
     {
-        return LibraryItem::query()->published()->where('section', LibrarySection::Books)->whereNotNull('thumbnail')->newestFirst()->limit(self::STRIP)->get();
+        // الكتب والأبحاث (عنوان الشريط «الكتب والمؤلفات والأبحاث»)، والغلاف إن رُفع وإلا مربع ملون بأيقونة كما في التصور: كان الشرط
+        // غلافاً مرفوعاً فاختفى الشريط من رابط العرض (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٤)
+        return LibraryItem::query()->published()->whereIn('section', [LibrarySection::Books, LibrarySection::Research])->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**
-     * شريط المرئيات: أحدث مقاطع يوتيوب في المكتبة بصورها التي جلبها الخادم، ولا تشغيل في الرئيسية: الضغط إلى صفحة المقطع.
+     * شريط المرئيات: أحدث مقاطع يوتيوب في المكتبة، بصورها التي جلبها الخادم وإلا مربع ملون بزر التشغيل (البند ٢٤: كانت الصورة
+     * شرطاً، فبلا جلبها — YOUTUBE_THUMBNAILS — اختفى الشريط). ولا تشغيل في الرئيسية: الضغط إلى صفحة المقطع.
      *
      * @return Collection<int, LibraryItem>
      */
@@ -173,7 +176,7 @@ class BuildHomePage
             ->newestFirst()
             ->limit(self::STRIP * 2)
             ->get()
-            ->filter(fn (LibraryItem $item): bool => $item->youtubeId() !== null && $item->thumbnailUrl() !== null)
+            ->filter(fn (LibraryItem $item): bool => $item->youtubeId() !== null)
             ->take(self::STRIP)
             ->values();
     }

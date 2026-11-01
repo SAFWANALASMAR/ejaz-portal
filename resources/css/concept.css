@@ -688,6 +688,17 @@ html[data-motion-off] .float-soft {
     background: var(--color-primary-dark);
 }
 
+/* على الحاسوب ثابت عند التمرير داخل عموده وحده، فيتوقف قبل التذييل (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٦). كانت
+   position: relative أعلاه تغلب lg:sticky، ويبقى معها top: 7rem فيُزاح الشريط 112 بكسل إلى الأسفل فوق التذييل */
+@media (min-width: 64rem) {
+    nav.account-nav {
+        position: sticky;
+        top: 7.5rem;
+        max-height: calc(100vh - 8.5rem);
+        overflow-y: auto;
+    }
+}
+
 /* ── البطل يبدأ تحت الرأس مباشرة بالصورة بعرضه كله، لا بلون صلب يلتصق بلون الرأس (المدير التنفيذي، 31 أكتوبر 00:48):
    كنمط الجوال، الصورة ظاهرة في أعلاه، والتدرج يشتد نحو الأزرق الداكن في أسفله وفي جهة النص، وخط فاتح رفيع وظل خفيف
    يفصلانه عن الرأس. يغلب قواعد البطل السابقة لكل العروض ── */
@@ -849,39 +860,105 @@ html[data-motion-off] .float-soft {
     box-shadow: 0 14px 32px -12px rgb(15 37 54 / 0.95);
 }
 
-.header-top [data-brand-mark],
-.header-top [data-logo-calligraphy] {
-    transition: height calc(250ms * var(--motion)) ease;
+/* عند التمرير يصغر الرأس كله معاً بتناسب (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٥، ويلغي البند ٢): الرمز والمخطوطة
+   ومربع الترخيص وأزرار الصف الأول وصف القائمة، بمعامل واحد --hs يتحرك بنعومة (خاصية مسجلة فتنتقل قيمتها)، ويعود إلى حجمه
+   الكامل عند الرجوع إلى أعلى الصفحة. وصف القائمة يصغر أقل (--hs-nav) فيبقى خطه مقروءاً. ومع تقليل الحركة يتبدل الحجم بلا انتقال */
+@property --hs {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1;
 }
 
-/* عند التمرير يصغر الصف الأول قليلاً، فيبقى للمحتوى مكانه على الشاشات القصيرة */
+[data-site-header] {
+    --hs: 1;
+    --hs-nav: calc(1 - (1 - var(--hs)) * 0.55);
+    transition:
+        --hs calc(320ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 250ms;
+}
+
+[data-site-header][data-scrolled] {
+    --hs: 0.7;
+}
+
+/* مقاسات الرمز والمخطوطة في الرأس على كل عرض (كانت أصناف Tailwind في x-brand)، مضروبة في المعامل */
+.masthead-mark {
+    --mark-h: 3rem;
+    height: calc(var(--mark-h) * var(--hs));
+}
+
+.masthead-calligraphy {
+    --cal-h: 2rem;
+    height: calc(var(--cal-h) * var(--hs));
+    max-width: 40vw;
+}
+
+.header-top {
+    --top-pad: 0.625rem;
+    padding-block: calc(var(--top-pad) * var(--hs));
+}
+
 @media (min-width: 64rem) {
-    [data-site-header][data-scrolled] .header-top [data-brand-mark] {
-        height: 3.75rem;
+    .masthead-mark {
+        --mark-h: 5rem;
     }
 
-    [data-site-header][data-scrolled] .header-top [data-logo-calligraphy] {
-        height: 3rem;
+    .masthead-calligraphy {
+        --cal-h: 3.5rem;
+        max-width: none;
     }
 
-    [data-site-header][data-scrolled] .header-top {
-        padding-block: 0.5rem;
+    .header-top {
+        --top-pad: 0.875rem;
     }
 }
 
-/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران */
+@media (min-width: 77.5rem) {
+    .masthead-mark {
+        --mark-h: 5.5rem;
+    }
+
+    .masthead-calligraphy {
+        --cal-h: 4.5rem;
+    }
+}
+
+@media (min-width: 96rem) {
+    .masthead-mark {
+        --mark-h: 6.125rem;
+    }
+
+    .masthead-calligraphy {
+        --cal-h: 5.625rem;
+    }
+}
+
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران في منتصفه أفقياً وعمودياً، ملاصق للمخطوطة (البند ١)، والرقم كاملاً
+   بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
 .header-licence {
     flex: none;
-    max-width: 15.625rem;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.625rem 1rem;
+    gap: calc(0.25rem * var(--hs));
+    max-width: calc(15.625rem * var(--hs-nav));
+    margin-inline-start: -0.5rem;
+    padding: calc(0.625rem * var(--hs)) calc(1rem * var(--hs));
     border: 1px solid rgb(142 197 240 / 0.55);
-    border-radius: 0.875rem;
-    font-size: 0.875rem;
+    border-radius: calc(0.875rem * var(--hs));
+    font-size: calc(0.875rem * var(--hs-nav));
     line-height: 1.5;
+    text-align: center;
     color: var(--color-white);
+}
+
+.header-licence > span + span {
+    white-space: nowrap;
+}
+
+.header-top .login-pill,
+.header-top .header-icon-button {
+    transform: scale(var(--hs-nav));
 }
 
 .header-nav {
@@ -893,14 +970,17 @@ html[data-motion-off] .float-soft {
 .nav-capsules {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
+    /* بقدر كل اسم ثم الباقي بالتساوي: أطول الأسماء («الخدمات الإلكترونية») يأخذ حاجته فلا يُقص، والقوائم المنسدلة صارت
+       أكثر بسهمها (البند ٤) */
+    grid-auto-columns: auto;
     gap: 0.5rem;
+    padding-block: calc(0.625rem * var(--hs-nav));
 }
 
 .nav-capsule {
     display: flex;
     width: 100%;
-    height: 2.75rem;
+    height: calc(2.75rem * var(--hs-nav));
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
@@ -910,7 +990,7 @@ html[data-motion-off] .float-soft {
     background: rgb(255 255 255 / 0.07);
     color: var(--color-white);
     /* سبع كبسولات متساوية في 1264 بكسل: أطول الأسماء («الخدمات الإلكترونية») يتسع بهذا الخط من نحو 1260 بكسل */
-    font-size: 0.84375rem;
+    font-size: calc(0.84375rem * var(--hs-nav));
     font-weight: 700;
     white-space: nowrap;
     transition:
@@ -934,7 +1014,7 @@ html[data-motion-off] .float-soft {
 
 @media (min-width: 90rem) {
     .nav-capsule {
-        font-size: 0.875rem;
+        font-size: calc(0.875rem * var(--hs-nav));
     }
 }
 
@@ -1103,27 +1183,32 @@ html[data-motion-off] .float-soft {
     }
 }
 
-/* تقليل الحركة: لا حركة، والنسخة الثانية تختفي، والشريط يُمرَّر باليد، ولا زر إيقاف لما لا يتحرك */
+/* تقليل الحركة: الشريط العمودي (الأخبار) لا يتحرك ويُمرَّر باليد بلا نسخة ثانية ولا زر إيقاف. والأفقي (الخدمات والشركاء ويوتيوب
+   والكتب) يبقى متحركاً بأبطأ من سرعته (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١١: «لا يتحرك إلا بالأسهم» وجهاز المدير
+   بتقليل الحركة)، ويتوقف بالمرور والتركيز وبزر الإيقاف الظاهر (WCAG 2.2.2) */
 @media (prefers-reduced-motion: reduce) {
-    .marquee {
-        mask-image: none;
-    }
-
-    .marquee[data-direction='horizontal'] {
-        overflow-x: auto;
-    }
-
     .marquee[data-direction='vertical'] {
+        mask-image: none;
         overflow-y: auto;
     }
 
-    .marquee [data-marquee-copy],
-    .marquee-toggle {
+    .marquee[data-direction='vertical'] [data-marquee-copy],
+    .marquee-wrap:has(> .marquee[data-direction='vertical']) > .marquee-toggle {
         display: none;
+    }
+
+    .marquee[data-direction='horizontal'][data-inview] .marquee-track {
+        animation: marquee-x calc(var(--marquee-duration, 40s) * 1.6) linear infinite;
+    }
+
+    .marquee[data-direction='horizontal']:hover .marquee-track,
+    .marquee[data-direction='horizontal']:focus-within .marquee-track,
+    .marquee[data-direction='horizontal'][data-paused] .marquee-track {
+        animation-play-state: paused;
     }
 }
 
-html[data-motion-off] .marquee-track {
+html[data-motion-off] .marquee[data-direction='vertical'] .marquee-track {
     animation: none;
 }
 
@@ -1154,15 +1239,26 @@ html[data-motion-off] .marquee-track {
     inset: 0;
     z-index: 70;
     display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     align-items: center;
     justify-content: center;
     background: linear-gradient(160deg, #0f2536, var(--blue-900));
-    animation: transition-in 200ms ease-out both;
+    animation: transition-in 160ms ease-out both;
 }
 
+/* تتلاشى فور حلول الصفحة الجديدة، فتظهر الصفحة من تحتها بلا انتظار (البندان ٥ و٢١) */
 .page-transition[data-state='leaving'] {
     opacity: 0;
-    transition: opacity 300ms ease;
+    transition: opacity 180ms ease;
+}
+
+/* مخطوطة اسم الجمعية كبيرة تحت الرمز (البند ١٣) */
+.page-transition-calligraphy {
+    width: min(78vw, 30rem);
+    height: auto;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 14px rgb(142 197 240 / 0.45));
 }
 
 .page-transition-logo {
@@ -1555,7 +1651,8 @@ html[data-motion-off] .page-transition-fill {
     color: var(--color-white);
 }
 
-.media-marquee-reverse .marquee-track {
+/* الاتجاه المعاكس يغلب قاعدة الحركة نفسها (أعلى تحديداً منها)، فيتحرك شريط الكتب يساراً والمقاطع يميناً (البند ٢٤) */
+.media-marquee-reverse .marquee[data-direction='horizontal'][data-inview] .marquee-track {
     animation-direction: reverse;
 }
 
@@ -1822,4 +1919,480 @@ html[data-motion-off] .section-heading-icon {
 /* غلاف الكتاب والبحث في شريط المكتبة: بطاقة أضيق بارتفاع الغلاف */
 .media-tile.media-tile-narrow {
     width: 9rem;
+}
+
+/* القائمة المنسدلة في الرأس تحت كبسولتها بفاصل، وجسر شفاف يملأ الفاصل فلا يخرج المؤشر منها وهو ينزل إليها (البند ٣) */
+.nav-dropdown {
+    margin-top: 0.5rem;
+}
+
+.nav-dropdown::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -0.625rem;
+    height: 0.625rem;
+}
+
+/* ── بطل الرئيسية بإطار دائري (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البنود ٦ و٧ و٢٦ و٢٧ — اللوحة الأولى من ملف التصور):
+   تدرج أزرق من الفاتح في جهة النهاية إلى الداكن في جهة النص، وخطوط مائلة رفيعة فوقه، والصورة في دائرة بحد #8EC5F0 ── */
+.hero-round {
+    background:
+        linear-gradient(100deg, #2e6898 0%, #24527a 42%, #1f4565 68%, #142e45 100%);
+}
+
+.hero-round-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.055) 0 1px, transparent 1px 26px);
+}
+
+.hero-round .hero-slide {
+    display: flex;
+    align-items: center;
+}
+
+.hero-round-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    /* على الجوال الإطار فوق النص كما في لوحة الجوال من التصور */
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1.25rem;
+    padding-block: 2.5rem 3.75rem;
+}
+
+.hero-round-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 40rem;
+}
+
+.concept-hero-media .hero-round-frame {
+    position: relative;
+    flex: none;
+    width: 9.5rem;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 3px solid var(--color-brand-light);
+    background: var(--blue-850, #1f4565);
+    box-shadow:
+        0 0 0 10px rgb(142 197 240 / 0.12),
+        0 22px 44px -18px rgb(0 0 0 / 0.6);
+}
+
+.concept-hero-media .hero-round-frame img {
+    position: static;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: 50% 30%;
+    animation: none !important;
+}
+
+.concept-hero-media .hero-round-frame[data-portrait] img {
+    object-position: 50% 0;
+}
+
+@media (min-width: 64rem) {
+    .hero-round-layout {
+        /* النص في جهة البداية (اليمين) والإطار في جهة النهاية كما في التصور، والإطار أول في الترتيب لأنه فوق النص على الجوال */
+        flex-direction: row-reverse;
+        align-items: center;
+        justify-content: space-between;
+        gap: 3rem;
+        padding-block: 2rem 3.5rem;
+    }
+
+    .concept-hero-media .hero-round-frame {
+        width: min(22rem, 34vw);
+        margin-inline-end: 2rem;
+    }
+}
+
+/* التبديل متتابع (البند ٦): الحالية تختفي في 260 ملّي ثانية، والتالية تظهر بعدها، فلا يجتمع عنوانان في لحظة. ويشمل الدوّارات
+   الأخرى (الرؤية والقيم والمبادرات والإعلانات) لأن تداخلها كان كذلك. ومع تقليل الحركة تبديل فوري (--motion = 0) */
+.hero-round .hero-slide,
+.carousel-track > [data-carousel-item] {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity calc(260ms * var(--motion)) ease,
+        transform calc(260ms * var(--motion)) ease,
+        visibility 0s linear calc(260ms * var(--motion));
+}
+
+.hero-round .hero-slide[data-active],
+.carousel-track > [data-carousel-item][data-active] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition:
+        opacity calc(420ms * var(--motion)) ease calc(280ms * var(--motion)),
+        transform calc(420ms * var(--motion)) ease calc(280ms * var(--motion)),
+        visibility 0s linear 0s;
+}
+
+/* والتالية لا تُرى قبل أن تختفي الحالية: visibility تظهر فوراً لكن الشفافية تبدأ بعد 280 */
+
+/* ── البطاقات الخمس كما في التصور (البنود ٨ و٩ و١٠ و٢٧): ثلاث في صف ثم اثنتان عريضتان على الحاسوب، وكل بطاقة رابط ── */
+.home-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+/* الرابط يغطي البطاقة، وما فيها من عناصر تفاعلية (روابط الشرائح والنقاط وزر الإيقاف و«الكل») فوقه */
+.home-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+}
+
+.home-card-link:focus-visible {
+    outline: 3px solid var(--blue-300);
+    outline-offset: -3px;
+}
+
+.home-card > :not(.home-card-link) {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.home-card a:not(.home-card-link),
+.home-card button {
+    pointer-events: auto;
+}
+
+.home-card:has(.home-card-link) {
+    cursor: pointer;
+}
+
+/* مربعات الأيقونات ملونة بدرجات الأزرق (البند ١٠، والتصور): فاتح على البطاقة الداكنة، وداكن على الفاتحة */
+.home-card[data-tone='dark'] .icon-tile {
+    background: linear-gradient(150deg, #dcebf8, #8ec5f0);
+    color: #1f4565;
+    box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.45);
+}
+
+.home-card[data-tone='light'] .icon-tile {
+    background: linear-gradient(150deg, #2e6898, #1f4565);
+    color: #fff;
+    box-shadow: 0 6px 14px -6px rgb(20 46 69 / 0.55);
+}
+
+.home-card-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.home-card .home-card-pick-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: none;
+}
+
+/* لمعة خفيفة تعبر البطاقة عند تبدل شريحتها (carousel.js يضع data-shine)، لمن لم يطلب تقليل الحركة وحده */
+.home-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.28) 48%, rgb(220 235 248 / 0.4) 50%, transparent 68%) 160% 0 / 250% 100% no-repeat;
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .home-card[data-shine]::after {
+        animation: home-card-shine 750ms ease-out;
+    }
+
+    .home-card[data-shine] [data-active] .home-card-pick-icon {
+        animation: pick-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+}
+
+html[data-motion-off] .home-card::after,
+html[data-motion-off] .home-card-pick-icon {
+    animation: none !important;
+}
+
+@keyframes home-card-shine {
+    0% {
+        opacity: 1;
+        background-position: 160% 0;
+    }
+
+    100% {
+        opacity: 1;
+        background-position: -60% 0;
+    }
+}
+
+@keyframes pick-pop {
+    from {
+        transform: scale(0.6) rotate(-12deg);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+@media (min-width: 64rem) {
+    .home-cards {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.875rem;
+    }
+
+    .home-cards > .home-card {
+        grid-column: span 2;
+    }
+
+    /* الشريط على الحاسوب يذوب في الشبكة نفسها (display: contents)، فتصير بطاقاته الأربع خلايا فيها بعد «رؤيتنا» */
+    .home-cards-static,
+    .home-cards-static .marquee[data-direction],
+    .home-cards-static .marquee[data-direction] .marquee-track,
+    .home-cards-static .marquee[data-direction] .marquee-group:not([data-marquee-copy]) {
+        display: contents;
+    }
+
+    .home-cards-static .marquee-group > .home-card {
+        grid-column: span 2;
+        width: auto;
+        height: 10.5rem;
+    }
+
+    .home-cards-static .marquee-group > .home-card-wide {
+        grid-column: span 3;
+    }
+
+    .home-cards > .home-card {
+        height: 10.5rem;
+    }
+}
+
+/* صورة المقطع أو غلاف الكتاب غير متاحين: مربع بتدرج أزرق وأيقونة القسم بيضاء كما في التصور (البند ٢٤) */
+.media-tile-placeholder {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #6aaee6, #2e6898 60%, #1f4565);
+    color: #fff;
+}
+
+.media-tile:nth-child(even) .media-tile-placeholder {
+    background: linear-gradient(160deg, #8ec5f0, #3f7fb5 60%, #24527a);
+}
+
+/* مخطوطة اسم الجمعية كبيرة تحت عنوان رأس الصفحة الداخلية (البند ١٤) */
+.page-hero-calligraphy {
+    width: min(80vw, 22rem);
+    height: auto;
+    opacity: 0.92;
+    filter: drop-shadow(0 4px 14px rgb(15 37 54 / 0.45));
+}
+
+@media (min-width: 64rem) {
+    .page-hero-calligraphy {
+        width: 30rem;
+    }
+}
+
+.concept-hero[data-compact] .page-hero-calligraphy {
+    width: min(70vw, 20rem);
+}
+
+/* ── التذييل أقصر بنحو الثلث بمسافات أقل (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٥): حشو المربعات والصف والأسطر
+   ومربعات الأيقونات أصغر، والمحتوى نفسه. يغلب أصناف القالب (خارج الطبقات) ── */
+.site-footer > .grid {
+    gap: 0.75rem;
+    padding-top: 1.25rem;
+    padding-bottom: 0.875rem;
+}
+
+.site-footer .footer-box {
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.875rem;
+}
+
+.site-footer .footer-box-title {
+    gap: 0.5rem;
+    font-size: 1.0625rem;
+}
+
+.site-footer .footer-box-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+.site-footer .footer-line-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+
+.site-footer [data-footer-box='contact'] ul > li {
+    margin-block: 0;
+}
+
+.site-footer [data-footer-box='contact'] ul > li + li {
+    margin-top: 0.375rem;
+}
+
+.site-footer [data-footer-box='links'] ul {
+    row-gap: 0.375rem;
+}
+
+.site-footer [data-footer-box='accounts'] [data-brand-mark] {
+    height: 2.5rem;
+}
+
+.site-footer [data-footer-box='accounts'] [data-logo-calligraphy] {
+    height: 1.75rem;
+}
+
+.site-footer [data-footer-rights] {
+    padding-top: 0.625rem;
+}
+
+.site-footer [data-footer-rights]:not(.pb-20) {
+    padding-bottom: 0.75rem;
+}
+
+.site-footer [data-back-to-top] {
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+/* «كيف تسجّل» مضغوطاً في «الدورات والبرامج» (البند ٢٠): صف واحد بارتفاع مربع على الحاسوب، والخطوات بأيقونات صغيرة وعناوينها،
+   وشبكة صغيرة على الجوال. والشرح لقارئ الشاشة وفي التلميح */
+.how-to-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem;
+}
+
+.how-to-compact-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.how-to-compact-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.625rem;
+    border-radius: 0.75rem;
+}
+
+.how-to-compact-step .icon-tile {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.how-to-compact-number {
+    position: absolute;
+    top: -0.375rem;
+    inset-inline-end: -0.375rem;
+    display: inline-flex;
+    min-width: 1rem;
+    height: 1rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--blue-900);
+    font-size: 0.625rem;
+    font-weight: 900;
+}
+
+.how-to-compact-actions {
+    gap: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+    .how-to-compact-steps {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 64rem) {
+    .how-to-compact {
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .how-to-compact-steps {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .how-to-compact-step {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .how-to-compact-actions {
+        flex: none;
+        flex-wrap: nowrap;
+    }
+}
+
+/* لوحة «تم تسجيل طلبك» مكان نموذج التواصل (البند ٢٣): بارزة بتدرج الهوية الداكن ونص أبيض، ورقم الطلب في كبسولة */
+.contact-success:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 1.5rem;
+    border-radius: 1.125rem;
+    background: linear-gradient(150deg, #2e6898, #142e45);
+    color: #fff;
+    box-shadow: 0 22px 40px -24px rgb(20 46 69 / 0.9);
+    outline: none;
+}
+
+.contact-success:focus-visible {
+    box-shadow:
+        0 0 0 4px var(--blue-300),
+        0 22px 40px -24px rgb(20 46 69 / 0.9);
+}
+
+.contact-success-icon {
+    display: inline-flex;
+    width: 3.5rem;
+    height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(150deg, #dcebf8, #8ec5f0);
+    color: #1f4565;
+}
+
+.contact-success-reference {
+    display: inline-block;
+    margin-inline-start: 0.25rem;
+    padding: 0.125rem 0.75rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.16);
+    font-size: 1rem;
+    letter-spacing: 0.04em;
 }
