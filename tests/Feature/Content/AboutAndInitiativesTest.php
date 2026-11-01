@@ -119,7 +119,8 @@ it('shows a change to the content at once', function () {
 });
 
 it('shows the published initiatives on the home page unless the section is switched off', function () {
-    $this->get('/')->assertDontSee(route('initiatives.index'), false);
+    // ورابط «المبادرات» في روابط التذييل السريعة دائماً (أمر التصور النهائي، النسخة 63)، فالفحص على مقطعها وحده
+    $this->get('/')->assertDontSee('aria-labelledby="home-initiatives"', false);
 
     Initiative::factory()->create(['slug' => 'qiyam', 'name' => 'قيم']);
 

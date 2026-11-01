@@ -115,9 +115,10 @@ it('builds the footer and the interface texts from the panel, with the national 
     Setting::put('contact', ['email' => 'info@ejaz.sa', 'short_address' => 'RRRD2929', 'social' => ['x' => 'https://x.com/ejazsa2025']]);
 
     $html = (string) $this->get('/')->getContent();
+    // لا سطر إشراف في الرأس ولا التذييل، والترخيص في مربعه بالرأس (أمر التصور النهائي، النسخة 63 — البند R2)
     expect($html)->toContain('data-site-footer')
-        ->toContain(e(__('home.sections.footer.supervision')))
-        ->toContain(e(__('home.sections.footer.license')))
+        ->not->toContain(e(__('home.sections.footer.supervision')))
+        ->toContain(e(__('home.sections.header.licensed_by')))
         ->toContain('RRRD2929')
         ->toContain('https://www.google.com/maps/search/?api=1&amp;query=RRRD2929')
         ->toContain('https://x.com/ejazsa2025');
@@ -129,8 +130,9 @@ it('builds the footer and the interface texts from the panel, with the national 
         'announcements' => ['title' => 'إعلانات من اللوحة'],
     ]);
 
-    expect((string) $this->get('/')->getContent())->toContain('نبذة من اللوحة')->toContain('حقوق من اللوحة')->toContain('قنواتنا من اللوحة');
-    $this->get('/media/announcements')->assertSee('إعلانات من اللوحة')->assertSee('نبذة من اللوحة');
+    // والنبذة خرجت من التذييل بمربعاته الثلاثة (أمر التصور النهائي، النسخة 63)، ويبقى حقلها في اللوحة
+    expect((string) $this->get('/')->getContent())->toContain('حقوق من اللوحة')->toContain('قنواتنا من اللوحة');
+    $this->get('/media/announcements')->assertSee('إعلانات من اللوحة')->assertDontSee('نبذة من اللوحة');
 
     // والنصوص في صفحة «محتوى الرئيسية»
     $this->actingAs($editor);
@@ -304,10 +306,12 @@ it('shows the WhatsApp button, the license and the national address map in the f
 
         expect($html)->toContain('href="https://wa.me/966550556758"')
             ->toContain(e(__('contact.info.whatsapp')))
-            ->toContain('رقم الترخيص: 1000723700')
             ->toContain('https://www.google.com/maps/search/?api=1&amp;query=MALA4207')
             ->toContain('بجوار مصلى الرجال');
     }
+
+    // والترخيص في صفحة التواصل، وخرج سطره من التذييل إلى مربع الترخيص في الرأس (النسخة 63)
+    $this->get('/contact')->assertSee('رقم الترخيص: 1000723700');
 });
 
 it('saves the WhatsApp number from the settings in the international form, and refuses a number that is not a Saudi mobile', function () {

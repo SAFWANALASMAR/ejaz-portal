@@ -22,7 +22,7 @@
         @endif
 
         @if ($enabled)
-            <p class="mt-4 font-semibold text-emerald-800">{{ __('account.security.enabled') }}</p>
+            <p class="mt-4 font-semibold text-primary-dark">{{ __('account.security.enabled') }}</p>
 
             @if ($showCodes)
                 <div class="mt-5 rounded-xl border border-line bg-surface p-5">

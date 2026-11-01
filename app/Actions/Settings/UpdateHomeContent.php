@@ -45,6 +45,10 @@ class UpdateHomeContent
             $rules['brand.'.$key] = ['nullable', 'string', 'max:255'];
         }
 
+        foreach (HomeContent::HERO_SLIDES as $key) {
+            $rules['hero_slides.'.$key] = ['nullable', 'string', 'max:255'];
+        }
+
         foreach (array_keys(HomeContent::IMAGES) as $section) {
             $rules[$section.'.image'] = ['nullable', 'string', 'max:255'];
             $rules[$section.'.image_alt'] = ['nullable', 'string', 'max:300', new PlainText];

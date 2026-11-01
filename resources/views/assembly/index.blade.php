@@ -26,7 +26,7 @@
                 <h2 class="sr-only">{{ __('assembly.index.tiles') }}</h2>
                 <ul class="grid grid-cols-2 gap-4 {{ count($tiles) === 4 ? 'lg:grid-cols-4' : 'sm:grid-cols-3' }}">
                     @foreach ($tiles as $tile)
-                        <li><x-section-tile :index="$loop->index" :href="route($tile['route'])" :icon="$tile['icon']" :label="__('assembly.index.'.$tile['label'])" tone="primary" /></li>
+                        <li><x-section-tile :index="$loop->index" :href="route($tile['route'])" :icon="$tile['icon']" :label="__('assembly.index.'.$tile['label'])" /></li>
                     @endforeach
                 </ul>
             @else

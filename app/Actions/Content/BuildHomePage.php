@@ -46,7 +46,7 @@ class BuildHomePage
     /**
      * لون مربع الأيقونة لكل بطاقة في «خدماتنا» (x-icon-tile): من ألوان الهوية بالتناوب.
      */
-    public const SHORTCUT_TONES = ['governance' => 'blue', 'membership' => 'violet', 'services' => 'green', 'competitions' => 'navy', 'library' => 'sky', 'media' => 'violet'];
+    public const SHORTCUT_TONES = ['governance' => 'pale', 'membership' => 'light', 'services' => 'medium', 'competitions' => 'dark', 'library' => 'pale', 'media' => 'light'];
 
     /**
      * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.
@@ -77,7 +77,7 @@ class BuildHomePage
      * @return array{
      *     content: array<string, mixed>,
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
-     *     slides: list<array{src: string, alt: string}>,
+     *     slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}}>,
      *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
      *     prize: array{title: string, total: int, url: string}|null,
      *     top_initiatives: Collection<int, Initiative>,
@@ -102,11 +102,13 @@ class BuildHomePage
         $home = Setting::group('home');
         $content = HomeContent::resolved();
 
+        $hero = self::hero($home);
+
         return [
             'content' => $content,
-            'hero' => self::hero($home),
-            // بنية مرجع المدير (30 أكتوبر): العارض، وشرائح الهوية، والجوائز، والمستجدات (HomeShowcase)
-            'slides' => HomeShowcase::slides($home),
+            'hero' => $hero,
+            // شرائح البطل بترتيبها المعتمد (أمر التصور النهائي، النسخة 63)، وشرائح الهوية، والجوائز (HomeShowcase)
+            'slides' => HomeShowcase::slides($home, $content, $hero),
             'identity' => HomeShowcase::identity($content),
             'prize' => HomeShowcase::prize(),
             // ملاحظات المدير (31 أكتوبر 01:28): «مبادراتنا» بطاقة تحت البطل، وشريطا المرئيات وأغلفة الكتب بدل «المستجدات»

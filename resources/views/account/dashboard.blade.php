@@ -35,7 +35,7 @@
             <a href="{{ $card['href'] }}" @if ($card['external']) target="_blank" rel="noopener noreferrer" @else @navigate($card['href']) @endif
                 class="card-lift tilt group flex flex-col gap-2 p-5.5">
                 <span class="flex items-center justify-between gap-3">
-                    <x-icon-tile :icon="$card['icon']" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="md" />
+                    <x-icon-tile :icon="$card['icon']" size="md" />
                     @if (($counts[$card['route']] ?? 0) > 0)
                         <span class="text-[1.625rem] font-black text-primary-dark tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
                     @endif

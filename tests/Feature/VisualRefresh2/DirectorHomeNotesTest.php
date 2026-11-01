@@ -18,23 +18,15 @@ use Database\Seeders\MenuSeeder;
 
 beforeEach(fn () => (new MenuSeeder)->run());
 
-function navTones(string $html): array
-{
-    preg_match('/<nav data-main-nav.*?<\/nav>/s', $html, $nav);
-    preg_match_all('/class="nav-link[^"]*">\s*<span data-icon-tile data-variant="gradient" data-tone="(\w+)"/', $nav[0] ?? '', $tones);
-
-    return $tones[1];
-}
-
-it('gives every desktop menu item a gradient icon tile above the word, in the colour order, and marks the active one', function () {
+it('shows the seven menu items as capsules with an icon tile beside the word, and marks the active one', function () {
     $html = $this->get('/')->assertOk()->getContent();
-    $tones = navTones($html);
-
-    expect($tones)->not->toBeEmpty()
-        ->and($tones)->toBe(array_map(fn (int $index): string => IconTones::at($index), array_keys($tones)));
-
     preg_match('/<nav data-main-nav.*?<\/nav>/s', $html, $nav);
-    expect($nav[0])->toMatch('/aria-current="page"\s+class="nav-link/');
+    preg_match_all('/class="nav-capsule">\s*<span data-icon-tile data-variant="gradient"[^>]*>.*?<span class="truncate">([^<]+)<\/span>/s', $nav[0], $items);
+
+    // أمر التصور النهائي، النسخة 63 (البند R3): سبعة عناصر فقط بهذا الترتيب
+    expect($items[1])->toBe(['الرئيسية', 'عن الجمعية', 'مكتبة إعجاز', 'المركز الإعلامي', 'الحوكمة', 'الخدمات الإلكترونية', 'تواصل معنا'])
+        ->and($nav[0])->toMatch('/aria-current="page"\s+class="nav-capsule"/')
+        ->and($nav[0])->not->toContain('data-shade');
 });
 
 it('keeps the icons beside the words in the mobile menu', function () {
@@ -56,7 +48,7 @@ it('shows vision, values and initiatives as gradient cards instead of the prize 
 
     $this->get('/')->assertOk()
         ->assertSeeInOrder(['data-identity-card="initiatives"', __('ui.identity.our_initiatives'), 'مبادرة قيم', __('ui.identity.all_initiatives')], false)
-        ->assertSee('class="identity-card group" data-tone="green"', false)
+        ->assertSee('class="identity-card group" data-tone="deep"', false)
         ->assertDontSee('data-prize-card', false);
 });
 
@@ -119,5 +111,6 @@ it('gives each footer quick link a coloured icon tile', function () {
     $html = $this->get('/')->getContent();
     preg_match('/aria-labelledby="footer-links".*?<\/nav>/s', $html, $links);
 
-    expect(substr_count($links[0], 'data-icon-tile'))->toBe(substr_count($links[0], '<li>'));
+    // ومربع العنوان الكبير بجانب «روابط سريعة» فوق مربعات الروابط
+    expect(substr_count($links[0], 'data-icon-tile'))->toBe(substr_count($links[0], '<li') + 1);
 });

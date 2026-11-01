@@ -86,6 +86,7 @@
     <span data-scroll-progress aria-hidden="true"></span>
 
     @include('partials.search-palette')
+    @include('partials.page-transition')
     @include('partials.assistant')
 </body>
 </html>

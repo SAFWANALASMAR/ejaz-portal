@@ -14,38 +14,75 @@ use App\Models\Page;
 final class HomeShowcase
 {
     /**
-     * صور العارض في البطل.
+     * شرائح البطل بالترتيب المعتمد (أمر التصور النهائي، النسخة 63 — البند H1): تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس
+     * الجمعية، ثم مسابقة البراهين (متى نُشرت)، ثم مكتبة إعجاز. والنصوص من «إعدادات الموقع» و«محتوى الرئيسية» وبيانات المسابقة،
+     * فلا نص جديد. وصورة كل شريحة من «محتوى الرئيسية» (شرائح البطل)، وإلا: صورة البطل من الإعدادات ثم أحدث ألبوم منشور للأولى،
+     * وصورتا المقطعين للثانية والثالثة، والرسم المؤقت المحايد لما سواها. والأولى بنسختي WebP (HeroImage) لسرعة أول عرض.
+     *
+     * @param  array<string, mixed>  $home  Setting::group('home')
+     * @param  array<string, mixed>  $content  HomeContent::resolved()
+     * @param  array{title: string, text: string, button: array{label: string, url: string}|null}  $hero
+     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}}>
      */
-    public const SLIDES = 5;
+    public static function slides(array $home, array $content, array $hero): array
+    {
+        $placeholder = ['src' => asset('images/placeholders/architecture.svg'), 'srcset' => null];
+        $image = fn (string $key, ?array $fallback, string $alt): array => ($path = HomeContent::heroSlideImage($key)) !== null
+            ? [...HeroImage::sources($path), 'alt' => $alt]
+            : [...($fallback ?? $placeholder), 'alt' => $fallback !== null ? $alt : ''];
+
+        $short = (string) __('site.short_name');
+        $title = $hero['title'];
+        // «جمعية إعجاز» سطراً أول، والبقية («للدراسات والبحوث العلمية») سطراً ثانياً، متى كان العنوان اسم الجمعية
+        $rest = str_starts_with($title, $short) ? trim(mb_substr($title, mb_strlen($short))) : '';
+
+        $heroImage = is_string($home['hero_image'] ?? null) && trim($home['hero_image']) !== '' ? trim($home['hero_image']) : null;
+        $aboutImage = $heroImage !== null ? HeroImage::sources($heroImage) : null;
+        $aboutAlt = $heroImage !== null && is_string($home['hero_image_alt'] ?? null) ? trim($home['hero_image_alt']) : '';
+
+        if ($aboutImage === null && ($photo = Album::query()->published()->newestFirst()->first()?->photoList()[0] ?? null) !== null) {
+            $aboutImage = HeroImage::sources($photo);
+        }
+
+        $slides = [[
+            'key' => 'about', ...$image('about', $aboutImage, $aboutAlt),
+            'title' => $rest !== '' ? $short : $title, 'subtitle' => $rest !== '' ? $rest : null, 'text' => $hero['text'], 'button' => $hero['button'],
+        ], [
+            'key' => 'king', ...$image('king', ['src' => (string) $content['king']['image'], 'srcset' => null], (string) $content['king']['image_alt']),
+            'title' => (string) $content['king']['signature_title'], 'subtitle' => (string) $content['king']['signature_name'],
+            'text' => (string) $content['king']['text'], 'button' => null,
+        ], [
+            'key' => 'chairman', ...$image('chairman', ['src' => (string) $content['chairman']['image'], 'srcset' => null], (string) $content['chairman']['image_alt']),
+            'title' => (string) $content['chairman']['name'], 'subtitle' => (string) $content['chairman']['title'],
+            'text' => HomeContent::paragraphs((string) $content['chairman']['excerpt'])[1] ?? null, 'button' => null,
+        ]];
+
+        $competition = self::studentCompetition();
+
+        if ($competition !== null) {
+            $url = route('competitions.show', $competition->slug);
+            $slides[] = [
+                'key' => 'brahin', ...$image('brahin', null, $competition->title),
+                'title' => $competition->title, 'subtitle' => $competition->pageText('season'), 'text' => null,
+                'button' => ['label' => (string) __('ui.prize.cta'), 'url' => $url],
+            ];
+        }
+
+        $slides[] = [
+            'key' => 'library', ...$image('library', null, (string) __('library.title')),
+            'title' => (string) __('library.title'), 'subtitle' => null, 'text' => null,
+            'button' => ['label' => (string) __('ui.hero.library'), 'url' => route('library.index')],
+        ];
+
+        return $slides;
+    }
 
     /**
-     * صور العارض: صورة البطل من «إعدادات الموقع» إن رُفعت، ثم صور أحدث الألبومات المنشورة (مكتبة صور الجمعية). وإن لم
-     * يوجد شيء فالرسم المؤقت المحايد وحده (التصحيحات ٤ في ui-reference.md)، شريحة واحدة بلا عارض.
-     *
-     * @param  array<string, mixed>  $home
-     * @return list<array{src: string, srcset: ?string, alt: string}>
+     * مسابقة البراهين المنشورة: مسابقة الطلاب الأحدث، أو null.
      */
-    public static function slides(array $home): array
+    private static function studentCompetition(): ?Competition
     {
-        $slides = [];
-        $image = is_string($home['hero_image'] ?? null) && trim($home['hero_image']) !== '' ? trim($home['hero_image']) : null;
-
-        if ($image !== null) {
-            $slides[] = [...HeroImage::sources($image), 'alt' => is_string($home['hero_image_alt'] ?? null) ? trim($home['hero_image_alt']) : ''];
-        }
-
-        foreach (Album::query()->published()->newestFirst()->limit(self::SLIDES)->get() as $album) {
-            // صورتان من كل ألبوم على الأكثر، فتتنوع الفعاليات
-            foreach (array_slice($album->photoList(), 0, 2) as $photo) {
-                if (count($slides) >= self::SLIDES) {
-                    break 2;
-                }
-
-                $slides[] = [...HeroImage::sources($photo), 'alt' => $album->title];
-            }
-        }
-
-        return $slides !== [] ? $slides : [['src' => asset('images/placeholders/architecture.svg'), 'srcset' => null, 'alt' => '']];
+        return Competition::query()->published()->where('student_mode', true)->latest('id')->first();
     }
 
     /**
@@ -114,7 +151,7 @@ final class HomeShowcase
      */
     public static function prize(): ?array
     {
-        $competition = Competition::query()->published()->where('student_mode', true)->latest('id')->first();
+        $competition = self::studentCompetition();
 
         if ($competition === null) {
             return null;

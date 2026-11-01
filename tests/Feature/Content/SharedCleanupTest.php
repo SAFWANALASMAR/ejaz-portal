@@ -29,7 +29,8 @@ it('renders a section header with its view-all link, or the title alone without 
     $html = Blade::render('<x-section-header id="s" title="العنوان" href="/all" />');
 
     // العنوان بمكوّن عنوان القسم المشترك (التصور النهائي — docs/decisions/2026-10-30-visual-refresh-2.md، القرار ١٣)
-    expect($html)->toMatch('/<div[^>]*id="s"[^>]*data-reveal>[\s\S]*<h2[^>]*>\s*العنوان\s*<\/h2>/')
+    // وبمربع أيقونة بجانب العنوان، بمقاس واحد (أمر التصور النهائي، النسخة 63 — البند G4)
+    expect($html)->toMatch('/<div[^>]*id="s"[^>]*data-reveal>[\s\S]*<h2[^>]*>\s*<span data-icon-tile[\s\S]*<span>\s*العنوان\s*<\/span>\s*<\/h2>/')
         ->toContain('العنوان')
         ->toContain('href="/all"')
         ->toContain(__('site.view_all'));

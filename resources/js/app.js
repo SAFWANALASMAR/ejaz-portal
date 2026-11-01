@@ -174,8 +174,8 @@ onPage((signal) => {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true, signal });
 
-    // قائمة الرأس تلتف صفين في المنتصف كما في التصور النهائي. فإن لم تتسع في صفين (قائمة أطول من القياس، أو شارة البث)
-    // ظهر زر القائمة بدلها، فلا تتكدس صفوفاً ولا تتداخل مع الشعار وزر الدخول. والقائمة تُدار من اللوحة.
+    // قائمة الرأس صف ثانٍ من كبسولات متساوية (القائمة «ج» — أمر التصور النهائي، النسخة 63). فإن لم يتسع اسم عنصر في كبسولته
+    // (عناصر أكثر من القياس أو أسماء أطول، والقائمة تُدار من اللوحة) ظهر زر القائمة بدلها، فلا تُقص الأسماء.
     // والرأس عنصر جديد في كل صفحة، والعنصر النشط فيه (aria-current) من الخادم
     const mainNav = header.querySelector('[data-main-nav]');
 
@@ -183,12 +183,10 @@ onPage((signal) => {
         return;
     }
 
-    const list = mainNav.querySelector('ul');
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        const item = list.querySelector('li');
-        const rows = item ? Math.round(list.offsetHeight / (item.offsetHeight + 10)) : 0;
-        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && rows > 2);
+        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && clipped);
     };
 
     const observer = new ResizeObserver(fit);

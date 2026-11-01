@@ -6,6 +6,7 @@ use App\Models\Album;
 use App\Models\Competition;
 use App\Models\NewsArticle;
 use App\Models\Page;
+use App\Models\Setting;
 use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 use Illuminate\Validation\ValidationException;
@@ -98,19 +99,53 @@ it('renders the identity slider as an accessible carousel with one active slide'
         ->and($html)->toContain('نص رؤية الاختبار');
 });
 
-it('builds the hero slides from the published albums, and a single neutral slide without them', function () {
-    expect(HomeShowcase::slides([]))->toHaveCount(1);
+// أمر التصور النهائي، النسخة 63 (البند H1): الترتيب تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس الجمعية، ثم البراهين متى
+// نُشرت، ثم المكتبة. والصور من «محتوى الرئيسية»، وإلا بدائلها
+it('builds the hero slides in the approved order, with the Brahin slide only for a published student competition', function () {
+    $hero = ['title' => __('site.name'), 'text' => 'تعريف الجمعية', 'button' => null];
+    $content = HomeContent::resolved();
 
-    Album::factory()->create(['is_published' => true, 'photos' => ['albums/a.jpg', 'albums/b.jpg', 'albums/c.jpg']]);
-    Album::factory()->create(['is_published' => false, 'photos' => ['albums/draft.jpg']]);
+    $slides = HomeShowcase::slides([], $content, $hero);
+    expect(array_column($slides, 'key'))->toBe(['about', 'king', 'chairman', 'library'])
+        ->and($slides[0]['title'])->toBe(__('site.short_name'))
+        ->and($slides[0]['subtitle'])->not->toBeEmpty()
+        ->and($slides[0]['src'])->toContain('images/placeholders/architecture.svg')
+        ->and($slides[1]['src'])->toBe($content['king']['image'])
+        ->and($slides[1]['title'])->toBe(__('home.sections.king.signature_title'))
+        ->and($slides[2]['title'])->toBe(__('home.sections.chairman.name'))
+        ->and($slides[3]['button']['url'])->toBe(route('library.index'));
 
-    $slides = HomeShowcase::slides(['hero_image' => 'settings/hero.jpg']);
+    Competition::factory()->create(['student_mode' => true, 'is_published' => false, 'title' => 'مسودة']);
+    $competition = Competition::factory()->create(['student_mode' => true, 'is_published' => true, 'title' => 'البراهين العلمية']);
+    Album::factory()->create(['is_published' => true, 'photos' => ['albums/a.jpg']]);
 
-    expect($slides)->toHaveCount(3)
-        ->and($slides[0]['src'])->toEndWith('settings/hero.jpg')
-        ->and(collect($slides)->pluck('src')->implode(' '))->not->toContain('draft');
+    $slides = HomeShowcase::slides([], HomeContent::resolved(), $hero);
+    expect(array_column($slides, 'key'))->toBe(['about', 'king', 'chairman', 'brahin', 'library'])
+        ->and($slides[0]['src'])->toEndWith('albums/a.jpg')
+        ->and($slides[3]['title'])->toBe('البراهين العلمية')
+        ->and($slides[3]['button']['url'])->toBe(route('competitions.show', $competition->slug));
 
-    $this->get('/')->assertOk()->assertSee('data-hero-slider', false)->assertSee('data-hero-progress', false);
+    // صورة البطل من الإعدادات تتقدم على الألبوم، وصورة الشريحة من «محتوى الرئيسية» تتقدم على بديلها
+    Setting::put(HomeContent::KEY, ['hero_slides' => ['king' => 'settings/king-wide.jpg']]);
+    $slides = HomeShowcase::slides(['hero_image' => 'settings/hero.jpg'], HomeContent::resolved(), $hero);
+    expect($slides[0]['src'])->toEndWith('settings/hero.jpg')
+        ->and($slides[1]['src'])->toEndWith('settings/king-wide.jpg');
+});
+
+it('renders the hero slides with the first title as the page heading, the first image eager and the rest lazy', function () {
+    $html = $this->get('/')->assertOk()->assertSee('data-hero-slider', false)->assertSee('data-hero-progress', false)->getContent();
+    preg_match_all('/<figure data-hero-slide="(\w+)"/', $html, $keys);
+    preg_match_all('/<figure data-hero-slide.*?<img[^>]*>/s', $html, $images);
+
+    expect($keys[1])->toBe(['about', 'king', 'chairman', 'library'])
+        ->and($images[0][0])->toContain('fetchpriority="high"')->not->toContain('loading="lazy"')
+        ->and($images[0][1])->toContain('loading="lazy"')
+        ->and(substr_count($html, '<h1'))->toBe(1)
+        ->and($html)->toContain('data-carousel-toggle');
+});
+
+it('saves a hero slide image from the home content screen and cleans it with the other images', function () {
+    expect(HomeContent::imagePaths(['hero_slides' => ['library' => 'settings/library.jpg']]))->toBe(['settings/library.jpg']);
 });
 
 it('refreshes the cached home when the competition is saved or deleted', function () {

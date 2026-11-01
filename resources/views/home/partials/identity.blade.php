@@ -18,7 +18,7 @@
             @if ($statements !== [])
                 <div class="identity-card group" data-tone="blue" data-identity-card="vision">
                     <h2 class="identity-card-title">
-                        <x-icon-tile icon="eye" variant="glass" tone="sky" size="sm" />
+                        <x-icon-tile icon="eye" variant="glass" size="sm" />
                         {{ __('ui.identity.our_vision') }}
                     </h2>
                     <x-carousel :label="__('ui.identity.statements')" :count="count($statements)" autoplay :interval="6000" compact class="static" data-identity-slider>
@@ -33,9 +33,9 @@
             @endif
 
             @if ($values !== [])
-                <div class="identity-card group" data-tone="violet" data-identity-card="values">
+                <div class="identity-card group" data-tone="ocean" data-identity-card="values">
                     <h2 class="identity-card-title">
-                        <x-icon-tile icon="heart" variant="glass" tone="lilac" size="sm" />
+                        <x-icon-tile icon="heart" variant="glass" size="sm" />
                         {{ __('ui.identity.our_values') }}
                     </h2>
                     <x-carousel :label="__('ui.identity.values')" :count="count($values)" autoplay :interval="4000" compact class="static" data-values-slider>
@@ -56,9 +56,9 @@
             @endif
 
             @if ($initiatives->isNotEmpty())
-                <div class="identity-card group" data-tone="green" data-identity-card="initiatives">
+                <div class="identity-card group" data-tone="deep" data-identity-card="initiatives">
                     <h2 class="identity-card-title">
-                        <x-icon-tile icon="sparkles" variant="glass" tone="sky" size="sm" />
+                        <x-icon-tile icon="sparkles" variant="glass" size="sm" />
                         {{ __('ui.identity.our_initiatives') }}
                     </h2>
                     <x-carousel :label="__('ui.identity.our_initiatives')" :count="$initiatives->count()" autoplay :interval="5000" compact class="static" data-initiatives-slider>

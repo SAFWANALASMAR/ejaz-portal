@@ -3,14 +3,19 @@
     الشعار 54 بكسل والمخطوطة 40 في الرأس، و52 و35 في التذييل). من ملفات الهوية المعتمدة بلا تعديل (design-system.md).
     وكل ملف منها يُستبدل من «محتوى الرئيسية» (App\Support\HomeContent::brand)، إلا مع static: الملفات الأصلية بلا قراءة
     الإعدادات، لصفحة أخطاء الخادم التي لا تقرأ القاعدة (errors/5xx).
-    light: النسختان البيضاوان للخلفيات الداكنة. link: رابط إلى الرئيسية (false داخل رابط آخر). size: header أو footer.
+    light: النسختان البيضاوان للخلفيات الداكنة. link: رابط إلى الرئيسية (false داخل رابط آخر). size: header أو footer أو masthead.
 --}}
 @props(['light' => false, 'static' => false, 'link' => true, 'size' => 'header'])
 
 @php
     $file = fn (string $key): string => $static ? asset(\App\Support\HomeContent::BRAND[$key]) : \App\Support\HomeContent::brand($key);
-    $mark = $size === 'footer' ? 'h-[3.25rem]' : 'h-11 sm:h-[3.375rem]';
-    $calligraphy = $size === 'footer' ? 'h-[2.2rem]' : 'h-7 max-w-[44vw] sm:h-10 sm:max-w-none';
+    // masthead: الصف الأول من الرأس (أمر التصور النهائي، النسخة 63 — البند R2): الرمز كبيراً والمخطوطة كبيرة ممتدة (98 و90
+    // بكسل على الحاسوب العريض)، وتصغر قليلاً عند التمرير (concept.css)
+    [$mark, $calligraphy] = match ($size) {
+        'footer' => ['h-[3.25rem]', 'h-[2.2rem]'],
+        'masthead' => ['h-12 lg:h-20 nav:h-[5.5rem] 2xl:h-[6.125rem]', 'h-8 max-w-[40vw] lg:h-14 lg:max-w-none nav:h-[4.5rem] 2xl:h-[5.625rem]'],
+        default => ['h-11 sm:h-[3.375rem]', 'h-7 max-w-[44vw] sm:h-10 sm:max-w-none'],
+    };
 @endphp
 
 @if ($link)
@@ -18,7 +23,7 @@
 @else
     <span {{ $attributes->class(['flex shrink-0 items-center gap-3']) }}>
 @endif
-    <img src="{{ $file($light ? 'mark_white' : 'mark') }}" alt="" width="495" height="505" class="{{ $mark }} w-auto shrink-0">
+    <img src="{{ $file($light ? 'mark_white' : 'mark') }}" alt="" width="495" height="505" data-brand-mark class="{{ $mark }} w-auto shrink-0">
     <img src="{{ $file($light ? 'calligraphy_white' : 'calligraphy') }}" alt="{{ __('site.name') }}" data-logo-calligraphy
         width="1218" height="185" class="{{ $calligraphy }} w-auto object-contain">
 @if ($link)

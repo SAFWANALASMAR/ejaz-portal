@@ -6,12 +6,12 @@
 
 :root {
     /* قيم التصور: خلفية الصفحة، وحد البطاقات، والحد عند المرور، والنص الثانوي الداكن */
-    --concept-page: #f7fafd;
-    --concept-border: #e3ecf4;
+    --concept-page: var(--color-page);
+    --concept-border: #c9dcee;
     --concept-border-hover: #bfe0fa;
     --concept-text: #3a4756;
-    --concept-sky: #dcebf8;
-    --concept-pale: #bfe0fa;
+    --concept-sky: var(--blue-100);
+    --concept-pale: var(--blue-200);
 }
 
 body {
@@ -22,7 +22,8 @@ body {
     /* ── البطاقة (.lift في التصور) ── */
     .card-lift,
     .card-glow {
-        @apply rounded-[1.25rem] bg-white;
+        @apply rounded-[1.25rem];
+        background: var(--concept-surface);
         border: 1px solid var(--concept-border);
         box-shadow: none;
         transform: translateY(var(--lift, 0px));
@@ -243,7 +244,8 @@ body {
 
 /* ── شرائح الرؤية والرسالة والقيم: تبديل بالتلاشي (x-carousel) ── */
 .concept-card {
-    @apply relative overflow-hidden rounded-[1.25rem] bg-white;
+    @apply relative overflow-hidden rounded-[1.25rem];
+    background: var(--concept-surface);
     border: 1px solid var(--concept-border);
 }
 
@@ -439,36 +441,62 @@ html[data-motion-off] .float-icon {
         0 0 18px 2px color-mix(in srgb, var(--color-brand-light) 55%, transparent);
 }
 
-/* ── ألوان مربعات الأيقونات الستة بالترتيب (App\Support\IconTones — صفوان 19:18): طرفا كل تدرج بتباين 3:1 فأكثر مع الأيقونة
-   البيضاء (tests/Unit/IconTileContrastTest.php) ── */
-.icon-tile[data-tone='blue'] {
+/* ── درجات مربع الأيقونة الأربع (البند R5، النسخة 63): فاتحة جداً ثم فاتحة برسم #1F4565، ومتوسطة ثم غامقة برسم أبيض. وتتعاقب
+   بموضع البطاقة من CSS وحده: أقرب عنصر من عناصر القائمة أو البطاقات (li وarticle و.group و[data-card]) له إخوة يضع درجته في
+   متغيرات موروثة، فيأخذ المربع درجة أقرب بطاقة إليه. والعنصر الوحيد في أبيه لا يُحسب، فرابط البطاقة داخل li يأخذ موضع li.
+   وdata-shade على المربع يثبّت درجة بعينها (AppSupportIconTones). والتباين مختبر في tests/Unit/IconTileContrastTest.php ── */
+.icon-tile {
+    --tile-from: var(--gt-from, #3e8aca);
+    --tile-to: var(--gt-to, #2e6898);
+    --tile-glyph: var(--gt-glyph, #ffffff);
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 1) {
+    --gt-from: #e3f1fc;
+    --gt-to: #bfe0fa;
+    --gt-glyph: #1f4565;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 2) {
+    --gt-from: #bfe0fa;
+    --gt-to: #8ec5f0;
+    --gt-glyph: #1f4565;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 3) {
+    --gt-from: #3e8aca;
+    --gt-to: #2e6898;
+    --gt-glyph: #ffffff;
+}
+
+:is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 4) {
+    --gt-from: #2e6898;
+    --gt-to: #1f4565;
+    --gt-glyph: #ffffff;
+}
+
+.icon-tile[data-shade='pale'] {
+    --tile-from: #e3f1fc;
+    --tile-to: #bfe0fa;
+    --tile-glyph: #1f4565;
+}
+
+.icon-tile[data-shade='light'] {
+    --tile-from: #bfe0fa;
+    --tile-to: #8ec5f0;
+    --tile-glyph: #1f4565;
+}
+
+.icon-tile[data-shade='medium'] {
     --tile-from: #3e8aca;
     --tile-to: #2e6898;
+    --tile-glyph: #ffffff;
 }
 
-.icon-tile[data-tone='violet'] {
-    --tile-from: #7a4bb0;
-    --tile-to: #5d2a92;
-}
-
-.icon-tile[data-tone='green'] {
-    --tile-from: #2f8a3f;
-    --tile-to: #287a37;
-}
-
-.icon-tile[data-tone='navy'] {
+.icon-tile[data-shade='dark'] {
     --tile-from: #2e6898;
     --tile-to: #1f4565;
-}
-
-.icon-tile[data-tone='sky'] {
-    --tile-from: #2b8fbf;
-    --tile-to: #1e6f99;
-}
-
-.icon-tile[data-tone='lilac'] {
-    --tile-from: #9068c4;
-    --tile-to: #6e44a8;
+    --tile-glyph: #ffffff;
 }
 
 /* ── البطاقة (.lift في التصور): لمعة تمر عند المرور، وظهور متتابع عند التحميل بـ 0.07 ثانية لكل بطاقة، وكله لمن لم يطلب
@@ -561,7 +589,8 @@ html[data-motion-off] .float-soft {
 /* اللوحة الثابتة (x-card): سطح التصور النهائي نفسه بلا رفع عند المرور، لمحتوى يُقرأ لا يُنقر */
 @layer components {
     .concept-panel {
-        @apply rounded-[1.25rem] bg-white;
+        @apply rounded-[1.25rem];
+        background: var(--concept-surface);
         border: 1px solid var(--concept-border);
     }
 }
@@ -644,14 +673,14 @@ html[data-motion-off] .float-soft {
     --card-to: #1f4565;
 }
 
-.identity-card[data-tone='violet'] {
-    --card-from: #5d2a92;
-    --card-to: #43206b;
+.identity-card[data-tone='ocean'] {
+    --card-from: #1f5f8f;
+    --card-to: #174a70;
 }
 
-.identity-card[data-tone='green'] {
-    --card-from: #287a37;
-    --card-to: #1d5a28;
+.identity-card[data-tone='deep'] {
+    --card-from: #1f4565;
+    --card-to: #142e45;
 }
 
 .identity-card-title {
@@ -684,28 +713,20 @@ html[data-motion-off] .float-soft {
     border-color: color-mix(in srgb, var(--card-tone) 22%, var(--color-white));
 }
 
-.service-card[data-tone='blue'] {
+.service-card[data-tone='pale'] {
+    --card-tone: #8ec5f0;
+}
+
+.service-card[data-tone='light'] {
+    --card-tone: #6aaee6;
+}
+
+.service-card[data-tone='medium'] {
     --card-tone: #3e8aca;
 }
 
-.service-card[data-tone='violet'] {
-    --card-tone: #7a4bb0;
-}
-
-.service-card[data-tone='green'] {
-    --card-tone: #2f8a3f;
-}
-
-.service-card[data-tone='navy'] {
+.service-card[data-tone='dark'] {
     --card-tone: #2e6898;
-}
-
-.service-card[data-tone='sky'] {
-    --card-tone: #2b8fbf;
-}
-
-.service-card[data-tone='lilac'] {
-    --card-tone: #9068c4;
 }
 
 /* «أخبار الجمعية»: بطاقات بتدرج يشتد خبراً بعد خبر، من السماوي الفاتح جداً إلى أعمق قليلاً، والنص داكن */
@@ -772,5 +793,528 @@ html[data-motion-off] .media-strip-track {
 
     to {
         transform: translateX(50%);
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   الأساس المشترك للنسخة 63 من التصور (أمر التصور النهائي، المرحلة أ — docs/decisions/2026-10-31-visual-refresh-2.md):
+   الأزرق وحده، وخلفية #D6E7F6، وعنوان القسم، والبطاقة الملونة، والرأس صفان، والتذييل ثلاثة مربعات، والشريط المتحرك،
+   وانتقال الصفحات بالشعار. يغلب ما قبله في هذا الملف وفي visual.css حيث يختلفان
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* الأقسام البديلة بتدرج قريب من خلفية الصفحة (البند R1) */
+.section-tint,
+.band-sky {
+    background: linear-gradient(180deg, var(--section-bg), var(--page-bg));
+}
+
+/* ── عنوان القسم: مقاس ومستوى واحد (البندان G4 وR12) ── */
+.section-heading-title {
+    font-size: 1.5rem;
+}
+
+.section-heading-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+@media (min-width: 40rem) {
+    .section-heading-title {
+        font-size: 2rem;
+    }
+}
+
+/* ── البطاقة الملونة (.cc في التصور — البند G2): تدرج يتعاقب بين البطاقات، داكن بنص أبيض ثم فاتح بنص أزرق داكن. والتعاقب بموضع
+   أقرب بطاقة أو عنصر قائمة له إخوة (متغيرات موروثة كمربع الأيقونة)، وdata-tone يثبّت درجة. والتباين على كل طرف من التدرجين
+   مختبر في tests/Unit/ToneCardContrastTest.php ── */
+.tone-card {
+    --tc-from: var(--tcv-from, #2e6898);
+    --tc-via: var(--tcv-via, #1f4565);
+    --tc-to: var(--tcv-to, #142e45);
+    --tc-text: var(--tcv-text, #ffffff);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    color: var(--tc-text);
+    background: linear-gradient(135deg, var(--tc-from), var(--tc-via) 55%, var(--tc-to));
+    box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
+    transition:
+        transform calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow calc(350ms * var(--motion));
+}
+
+:is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(odd) {
+    --tcv-from: #2e6898;
+    --tcv-via: #1f4565;
+    --tcv-to: #142e45;
+    --tcv-text: #ffffff;
+}
+
+:is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(even) {
+    --tcv-from: #bfe0fa;
+    --tcv-via: #8ec5f0;
+    --tcv-to: #6aaee6;
+    --tcv-text: #142e45;
+}
+
+.tone-card[data-tone='dark'] {
+    --tc-from: #2e6898;
+    --tc-via: #1f4565;
+    --tc-to: #142e45;
+    --tc-text: #ffffff;
+}
+
+.tone-card[data-tone='light'] {
+    --tc-from: #bfe0fa;
+    --tc-via: #8ec5f0;
+    --tc-to: #6aaee6;
+    --tc-text: #142e45;
+}
+
+/* كل ما في البطاقة بلونها، والثانوي بشفافية خفيفة منه. ومربع الأيقونة عليها زجاجي بلون نصها */
+.tone-card :is(h2, h3, h4, p, span, a, li, dt, dd) {
+    color: inherit;
+}
+
+.tone-card .tone-card-muted {
+    color: color-mix(in srgb, var(--tc-text) 86%, transparent);
+}
+
+.tone-card .icon-tile {
+    --tile-from: color-mix(in srgb, var(--tc-text) 22%, transparent);
+    --tile-to: color-mix(in srgb, var(--tc-text) 12%, transparent);
+    --tile-glyph: var(--tc-text);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+}
+
+.tone-card:hover,
+.tone-card:focus-within {
+    transform: translateY(calc(-4px * var(--motion)));
+    box-shadow: 0 24px 40px -22px rgb(20 46 69 / 0.85);
+}
+
+/* ── الرأس صفّان ثابتان عند التمرير (البندان R2 وG6): تدرج الهوية الداكن، والصف الثاني أفتح قليلاً بفاصل #8EC5F0، وحد سفلي
+   #8EC5F0 وظل يفصلانه عن البطل ── */
+[data-site-header] {
+    background: var(--chrome-gradient);
+    border-bottom: 1px solid var(--blue-300);
+    box-shadow: 0 12px 28px -14px rgb(15 37 54 / 0.85);
+}
+
+[data-site-header][data-scrolled] {
+    box-shadow: 0 14px 32px -12px rgb(15 37 54 / 0.95);
+}
+
+.header-top [data-brand-mark],
+.header-top [data-logo-calligraphy] {
+    transition: height calc(250ms * var(--motion)) ease;
+}
+
+/* عند التمرير يصغر الصف الأول قليلاً، فيبقى للمحتوى مكانه على الشاشات القصيرة */
+@media (min-width: 64rem) {
+    [data-site-header][data-scrolled] .header-top [data-brand-mark] {
+        height: 3.75rem;
+    }
+
+    [data-site-header][data-scrolled] .header-top [data-logo-calligraphy] {
+        height: 3rem;
+    }
+
+    [data-site-header][data-scrolled] .header-top {
+        padding-block: 0.5rem;
+    }
+}
+
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران */
+.header-licence {
+    flex: none;
+    max-width: 15.625rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid rgb(142 197 240 / 0.55);
+    border-radius: 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-white);
+}
+
+.header-nav {
+    background: linear-gradient(180deg, var(--blue-900), var(--blue-850));
+    border-top: 1px solid var(--blue-300);
+}
+
+/* سبع كبسولات متساوية (أو بقدر العناصر)، صف واحد */
+.nav-capsules {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+}
+
+.nav-capsule {
+    display: flex;
+    width: 100%;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-inline: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    background: rgb(255 255 255 / 0.07);
+    color: var(--color-white);
+    /* سبع كبسولات متساوية في 1264 بكسل: أطول الأسماء («الخدمات الإلكترونية») يتسع بهذا الخط من نحو 1260 بكسل */
+    font-size: 0.84375rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition:
+        background-color 200ms,
+        border-color 200ms;
+}
+
+.nav-capsule:hover,
+.nav-capsule:focus-visible,
+.nav-capsule[aria-expanded='true'] {
+    background: #0f2536;
+    border-color: rgb(142 197 240 / 0.6);
+}
+
+.nav-capsule[aria-current],
+.nav-capsule[data-current] {
+    background: rgb(142 197 240 / 0.24);
+    border-color: var(--blue-300);
+    font-weight: 900;
+}
+
+@media (min-width: 90rem) {
+    .nav-capsule {
+        font-size: 0.875rem;
+    }
+}
+
+.nav-capsule .icon-tile {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+.nav-capsule .icon-tile,
+.mobile-nav-link .icon-tile {
+    box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.5);
+}
+
+.header-mobile-menu {
+    background: var(--blue-900);
+    border-top: 1px solid var(--blue-300);
+}
+
+.mobile-nav-link {
+    border-radius: 0.875rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    color: var(--color-white);
+}
+
+.mobile-nav-link:hover {
+    background: rgb(255 255 255 / 0.1);
+}
+
+.mobile-nav-link[aria-current],
+.mobile-nav-link[data-current] {
+    background: rgb(142 197 240 / 0.2);
+    box-shadow: inset 0 0 0 1px var(--blue-300);
+    font-weight: 800;
+}
+
+/* القائمة لا تتسع (app.js): يُخفى صفها ويظهر زر القائمة */
+[data-site-header][data-nav-overflow] .header-nav {
+    display: none;
+}
+
+/* ── التذييل: ثلاثة مربعات متساوية بحشو 24 بكسل، لكل منها مربع أيقونة كبير بجانب عنوانه (البندان N3 وR17) ── */
+.site-footer {
+    background: var(--blue-900);
+}
+
+.footer-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 1.5rem;
+    border-radius: 1.125rem;
+    border: 1px solid rgb(142 197 240 / 0.3);
+    background: linear-gradient(145deg, #2a5b85, #1a3d5c);
+    box-shadow:
+        0 18px 34px -22px rgb(0 0 0 / 0.65),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.footer-box-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.1875rem;
+    font-weight: 900;
+    color: var(--color-white);
+}
+
+.footer-box-icon {
+    width: 3rem;
+    height: 3rem;
+}
+
+.footer-line-icon {
+    width: 1.875rem;
+    height: 1.875rem;
+}
+
+.footer-link-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5625rem;
+    white-space: nowrap;
+    color: rgb(255 255 255 / 0.85);
+}
+
+.footer-link-row:hover {
+    color: var(--color-white);
+}
+
+/* ── الشريط المتحرك (x-marquee): أفقي أو عمودي، CSS وحده ── */
+.marquee {
+    overflow: hidden;
+}
+
+.marquee[data-direction='horizontal'] {
+    mask-image: linear-gradient(to left, transparent, #000 4%, #000 96%, transparent);
+}
+
+.marquee[data-direction='vertical'] {
+    height: var(--marquee-height, 20rem);
+    mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+}
+
+.marquee-track {
+    display: flex;
+}
+
+.marquee-group {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.875rem;
+}
+
+.marquee[data-direction='horizontal'] .marquee-track {
+    width: max-content;
+}
+
+.marquee[data-direction='horizontal'] .marquee-group {
+    padding-inline-end: 0.875rem;
+}
+
+.marquee[data-direction='vertical'] .marquee-track,
+.marquee[data-direction='vertical'] .marquee-group {
+    flex-direction: column;
+}
+
+.marquee[data-direction='vertical'] .marquee-group {
+    padding-bottom: 0.875rem;
+}
+
+.marquee-toggle {
+    position: absolute;
+    top: 0.5rem;
+    inset-inline-end: 0.5rem;
+    z-index: 1;
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--blue-50);
+    color: var(--blue-900);
+    box-shadow: inset 0 0 0 1px var(--concept-border);
+}
+
+.marquee-toggle:hover {
+    background: var(--blue-200);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .marquee[data-direction='horizontal'][data-inview] .marquee-track {
+        animation: marquee-x var(--marquee-duration, 40s) linear infinite;
+    }
+
+    .marquee[data-direction='vertical'][data-inview] .marquee-track {
+        animation: marquee-y var(--marquee-duration, 40s) linear infinite;
+    }
+
+    .marquee:hover .marquee-track,
+    .marquee:focus-within .marquee-track,
+    .marquee[data-paused] .marquee-track {
+        animation-play-state: paused;
+    }
+}
+
+/* تقليل الحركة: لا حركة، والنسخة الثانية تختفي، والشريط يُمرَّر باليد، ولا زر إيقاف لما لا يتحرك */
+@media (prefers-reduced-motion: reduce) {
+    .marquee {
+        mask-image: none;
+    }
+
+    .marquee[data-direction='horizontal'] {
+        overflow-x: auto;
+    }
+
+    .marquee[data-direction='vertical'] {
+        overflow-y: auto;
+    }
+
+    .marquee [data-marquee-copy],
+    .marquee-toggle {
+        display: none;
+    }
+}
+
+html[data-motion-off] .marquee-track {
+    animation: none;
+}
+
+@keyframes marquee-x {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(50%);
+    }
+}
+
+@keyframes marquee-y {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-50%);
+    }
+}
+
+/* ── انتقال الصفحات بالشعار (البند R25 — Final-Transition): الطبقة بتدرج الهوية الداكن، والرمز الباهت، وفوقه الساطع يمتلئ من
+   الأسفل بقناع يرتفع، ولمعة عند الاكتمال، ثم تلاشٍ. ومع تقليل الحركة الشعار ساطع ثابت بلا لمعة ── */
+.page-transition:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #0f2536, var(--blue-900));
+    animation: transition-in 200ms ease-out both;
+}
+
+.page-transition[data-state='leaving'] {
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.page-transition-logo {
+    position: relative;
+    display: block;
+    width: 7.5rem;
+    height: 9.375rem;
+}
+
+.page-transition-logo img,
+.page-transition-shine {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.page-transition-faint {
+    opacity: 0.25;
+}
+
+.page-transition-fill {
+    clip-path: inset(100% 0 0 0);
+    filter: drop-shadow(0 0 18px rgb(142 197 240 / 0.7));
+}
+
+.page-transition-shine {
+    opacity: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.95) 50%, transparent 65%) 150% 0 / 250% 100% no-repeat;
+    -webkit-mask: var(--transition-mark) center / contain no-repeat;
+    mask: var(--transition-mark) center / contain no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* يرتفع القناع بطيئاً نحو 85% ما دامت الصفحة تُحمَّل، ثم يكتمل سريعاً عند وصولها */
+    .page-transition[data-state='loading'] .page-transition-fill {
+        animation: transition-fill 6s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+    }
+
+    .page-transition:is([data-state='done'], [data-state='leaving']) .page-transition-fill {
+        clip-path: inset(0 0 0 0);
+        transition: clip-path 250ms ease-out;
+    }
+
+    .page-transition[data-state='done'] .page-transition-shine {
+        opacity: 1;
+        animation: transition-shine 450ms ease-in-out both;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-transition:not([hidden]) {
+        animation: none;
+    }
+
+    .page-transition-fill {
+        clip-path: none;
+    }
+
+    .page-transition[data-state='leaving'] {
+        transition: none;
+    }
+}
+
+html[data-motion-off] .page-transition-fill {
+    animation: none;
+    clip-path: none;
+}
+
+@keyframes transition-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes transition-fill {
+    from {
+        clip-path: inset(100% 0 0 0);
+    }
+
+    to {
+        clip-path: inset(15% 0 0 0);
+    }
+}
+
+@keyframes transition-shine {
+    from {
+        background-position: 150% 0;
+    }
+
+    to {
+        background-position: -50% 0;
     }
 }

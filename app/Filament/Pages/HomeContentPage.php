@@ -89,6 +89,10 @@ class HomeContentPage extends Page
             $data['brand'][$key] = $stored['brand'][$key] ?? null;
         }
 
+        foreach (HomeContent::HERO_SLIDES as $key) {
+            $data['hero_slides'][$key] = $stored['hero_slides'][$key] ?? null;
+        }
+
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
             $item = (array) ($stored['values']['items'][$index] ?? []);
             $data['values']['items'][] = [
@@ -108,6 +112,10 @@ class HomeContentPage extends Page
             ->statePath('data')
             ->disabled(fn (): bool => ! static::canWrite())
             ->components([
+                // صور شرائح البطل بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). فارغة تعني بديلها: صورة البطل وصورتا المقطعين
+                Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
+                    array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
+                ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('king.signature_title')->label(__('settings.home_content.signature_title'))->maxLength(300),
@@ -175,6 +183,13 @@ class HomeContentPage extends Page
                     TextInput::make('footer.contact')->label(__('settings.home_content.footer_contact'))->maxLength(300),
                     TextInput::make('footer.channels')->label(__('settings.home_content.footer_channels'))->maxLength(300),
                     TextInput::make('footer.rights')->label(__('settings.home_content.footer_rights'))->maxLength(300),
+                    TextInput::make('footer.hours')->label(__('settings.home_content.footer_hours'))->maxLength(300),
+                    TextInput::make('footer.accounts')->label(__('settings.home_content.footer_accounts'))->maxLength(300),
+                ]),
+                // مربع الترخيص في الصف الأول من الرأس (أمر التصور النهائي، النسخة 63 — البند R2)
+                Section::make(__('settings.home_content.header'))->columns(2)->schema([
+                    TextInput::make('header.licensed_by')->label(__('settings.home_content.header_licensed_by'))->maxLength(300),
+                    TextInput::make('header.license_number')->label(__('settings.home_content.header_license_number'))->maxLength(300),
                 ]),
                 // ملفات الشعار والمخطوطة (HomeContent::BRAND): PNG أو WebP بخلفية شفافة، وفارغة تعني الأصل
                 Section::make(__('settings.home_content.brand'))->description(__('settings.home_content.brand_hint'))->columns(2)->schema(

@@ -7,7 +7,7 @@
 
 <div data-stat-badge {{ $attributes->class(['flex flex-col items-center gap-2 text-center']) }}>
     @if ($icon)
-        <x-icon-tile :icon="$icon" variant="glass" tone="sky" />
+        <x-icon-tile :icon="$icon" variant="glass" />
     @endif
     <span class="order-2 text-sm leading-6 text-white/85">{{ $label }}</span>
     <span class="stat-number order-1 text-4xl font-black tabular-nums sm:text-5xl"

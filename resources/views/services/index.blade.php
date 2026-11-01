@@ -15,7 +15,7 @@
                     @if ($tile['wide'] ?? false)
                         <li class="sm:col-span-2 lg:col-span-3">
                             <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="card-lift group flex items-center gap-4 px-6 py-5">
-                                <x-icon-tile :icon="$tile['icon']" tone="lilac" size="lg" />
+                                <x-icon-tile :icon="$tile['icon']" size="lg" />
                                 <span class="flex-1 text-xl font-black text-primary-dark">{{ __($tile['label']) }}</span>
                                 <span class="rounded-full bg-primary-dark px-4.5 py-2 text-sm font-extrabold text-white transition group-hover:bg-primary" aria-hidden="true">{{ __('ui.media.survey_cta') }}</span>
                             </a>

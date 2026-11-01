@@ -1,11 +1,14 @@
 {{--
-    التذييل الداكن (التصور النهائي — docs/design/final-concept): أربعة أعمدة: «شركاؤنا» بشعاراتهم متى نُشروا، و«تواصل معنا»،
-    و«روابط سريعة»، والشعار والمخطوطة بالأبيض وسطر الإشراف والحسابات بأيقونات دائرية. ثم سطر سفلي: سياسة الخصوصية وخريطة
-    الموقع، والحقوق، وزر العودة للأعلى. نصوصه من «محتوى الرئيسية» (HomeContent، القسم footer)، وبيانات التواصل والقنوات من
-    «إعدادات الموقع»، والشركاء من اللوحة (SiteChromeComposer)، وما لم يُدخل لا يظهر. ولا رقم ولا بريد ولا شعار من التصور.
+    التذييل في كل التخطيطات (أمر التصور النهائي، النسخة 63 — البندان N3 وR17، وFinal-Home): ثلاثة مربعات متساوية بحشو 24 بكسل،
+    لكل منها مربع أيقونة كبير بجانب عنوانه:
+    - تواصل معنا: أربعة أسطر: البريد، والجوال، والعنوان (ورابط الخريطة)، وساعات العمل.
+    - روابط سريعة: مربع واحد بعمودين، رابط في كل سطر بلا التفاف، بأسماء مختصرة (lang/ar/ui.php — footer.links).
+    - الحسابات الرسمية: الشعار والمخطوطة في الوسط، وأيقونات الحسابات تحتهما.
+    ثم سطر سفلي: سياسة الخصوصية وخريطة الموقع، والحقوق، وزر العودة للأعلى. و«شركاؤنا» خرجوا من التذييل إلى شريط في الرئيسية.
+    نصوصه من «محتوى الرئيسية» (HomeContent، القسم footer)، وبيانات التواصل والحسابات من «إعدادات الموقع»، وما لم يُدخل لا يظهر.
+    ولا رقم ولا بريد ولا شعار من التصور. ولا سطر إشراف (البند R2).
 --}}
 @php
-    $menu = $siteMenu ?? collect();
     $contact = $siteContact ?? [];
     $text = fn (string $key): string => \App\Support\HomeContent::text('footer', $key);
     // فحص عند العرض أيضاً، فلا يُعرض رابط غير آمن ولو وصل إلى القاعدة دون تحقق
@@ -18,102 +21,87 @@
         ? $contact['map_url']
         : \App\Support\NationalAddress::mapUrl($shortAddress);
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
-    $hasContact = $email !== null || $phone !== null || $address !== null || $shortAddress !== null || $whatsapp !== null;
-    // شعارات الشركاء المنشورة بترتيبها في اللوحة (SiteChromeComposer، مخزّنة)، والبقية في صفحة الشركاء
-    $partners = $footerPartners ?? [];
+    // الروابط السريعة بأسمائها المختصرة وأيقونات أقسامها. و«إنجازاتنا» تُضاف متى بُني مسارها (feature/achievements)
+    $links = collect([
+        'about' => ['about', 'building-library'],
+        'programs' => ['programs.index', 'academic-cap'],
+        'competitions' => ['competitions.index', 'trophy'],
+        'library' => ['library.index', 'book-open'],
+        'media' => ['media.index', 'newspaper'],
+        'governance' => ['governance.index', 'scale'],
+        'initiatives' => ['initiatives.index', 'sparkles'],
+        'services' => ['services.index', 'squares-2x2'],
+        'achievements' => ['achievements.index', 'trophy'],
+        'contact' => ['contact', 'chat-bubble-left-right'],
+    ])->filter(fn (array $link): bool => \Illuminate\Support\Facades\Route::has($link[0]));
 @endphp
 
-<footer class="bg-primary-dark text-white/85" data-site-footer>
-    <div class="mx-auto grid max-w-[82.5rem] gap-8 px-4 pt-11 pb-7 sm:grid-cols-2 sm:px-7 lg:grid-cols-[1.2fr_1fr_1fr_1.3fr]">
-        {{-- شركاؤنا: لا يظهر العمود قبل نشر شريك بشعاره --}}
-        <div data-footer-column class="flex flex-col gap-3">
-            @if ($partners !== [])
-                <h2 class="text-[19px] font-black text-white">{{ __('ui.footer.partners') }}</h2>
-                {{-- مربعات منتظمة بالقدر نفسه (المدير التنفيذي، 31 أكتوبر 01:28) --}}
-                <ul class="grid grid-cols-3 gap-2.5" data-footer-partners>
-                    @foreach ($partners as $partner)
-                        <li class="flex aspect-square items-center justify-center rounded-[0.875rem] bg-white p-2.5" title="{{ $partner['name'] }}">
-                            <img src="{{ Storage::disk('public')->url($partner['logo']) }}" alt="{{ $partner['name'] }}" loading="lazy" width="160" height="80" class="max-h-full w-auto object-contain">
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </div>
-
+<footer class="site-footer text-white/85" data-site-footer>
+    <div class="mx-auto grid max-w-[82.5rem] gap-[1.125rem] px-4 pt-8.5 pb-6 sm:px-7 lg:grid-cols-3">
         {{-- تواصل معنا --}}
-        <div data-footer-column class="flex flex-col gap-3">
-            <h2 class="text-[19px] font-black text-white">{{ $text('contact') }}</h2>
-            @if ($hasContact)
-                <ul class="space-y-2 text-[15px]">
-                    @if ($email !== null)
-                        <li class="flex items-center gap-2">
-                            <x-icon-tile icon="envelope" size="xs" :index="0" />
-                            <a href="mailto:{{ $email }}" class="hover:text-white" dir="ltr">{{ $email }}</a>
-                        </li>
-                    @endif
-                    @if ($phone !== null)
-                        <li class="flex items-center gap-2">
-                            <x-icon-tile icon="phone" size="xs" :index="1" />
-                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="hover:text-white"><bdi dir="ltr">{{ $phone }}</bdi></a>
-                        </li>
-                    @endif
-                    @if ($whatsapp !== null)
-                        <li>
-                            <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" data-whatsapp
-                                class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 font-semibold text-primary-dark transition hover:bg-accent-light">
-                                <x-social-icon network="whatsapp" class="size-4" />
-                                {{ __('contact.info.whatsapp') }}
-                                <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
-                            </a>
-                        </li>
-                    @endif
-                    @if ($address !== null || $shortAddress !== null)
-                        <li class="flex items-start gap-2">
-                            <x-icon-tile icon="map-pin" size="xs" :index="2" class="mt-0.5" />
-                            <span class="space-y-0.5 leading-6">
-                                @if ($address !== null)
-                                    <span class="block">{{ $address }}</span>
-                                @endif
-                                @if ($shortAddress !== null)
-                                    <span class="block text-white/75">{{ __('settings.contact.short_address') }}: <bdi dir="ltr">{{ $shortAddress }}</bdi></span>
-                                @endif
-                                @if ($map !== null)
-                                    <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-brand-light hover:text-white">
-                                        {{ __('contact.info.map') }}
-                                        {{ \App\Support\Icon::svg('arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
-                                        <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
-                                    </a>
-                                @endif
-                            </span>
-                        </li>
-                    @endif
-                </ul>
-            @endif
-        </div>
+        <section data-footer-box="contact" aria-labelledby="footer-contact" class="footer-box">
+            <h2 id="footer-contact" class="footer-box-title"><x-icon-tile icon="envelope" size="md" class="footer-box-icon" />{{ $text('contact') }}</h2>
+            <ul class="space-y-3 text-[15px]">
+                @if ($email !== null)
+                    <li class="flex items-center gap-2.5">
+                        <x-icon-tile icon="envelope" size="xs" class="footer-line-icon" />
+                        <a href="mailto:{{ $email }}" class="hover:text-white" dir="ltr">{{ $email }}</a>
+                    </li>
+                @endif
+                @if ($phone !== null)
+                    <li class="flex items-center gap-2.5">
+                        <x-icon-tile icon="phone" size="xs" class="footer-line-icon" />
+                        <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="hover:text-white"><bdi dir="ltr">{{ $phone }}</bdi></a>
+                    </li>
+                @endif
+                @if ($address !== null || $shortAddress !== null)
+                    <li class="flex items-start gap-2.5">
+                        <x-icon-tile icon="map-pin" size="xs" class="footer-line-icon mt-0.5" />
+                        <span class="space-y-0.5 leading-6">
+                            @if ($address !== null)
+                                <span class="block">{{ $address }}</span>
+                            @endif
+                            @if ($shortAddress !== null)
+                                <span class="block text-white/75">{{ __('settings.contact.short_address') }}: <bdi dir="ltr">{{ $shortAddress }}</bdi></span>
+                            @endif
+                            @if ($map !== null)
+                                <a href="{{ $map }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-brand-light hover:text-white">
+                                    {{ __('contact.info.map') }}
+                                    {{ \App\Support\Icon::svg('arrow-up-left', 'size-3.5', ['aria-hidden' => 'true']) }}
+                                    <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                                </a>
+                            @endif
+                        </span>
+                    </li>
+                @endif
+                <li class="flex items-center gap-2.5" data-footer-hours>
+                    <x-icon-tile icon="clock" size="xs" class="footer-line-icon" />
+                    <span>{{ $text('hours') }}</span>
+                </li>
+            </ul>
+        </section>
 
-        {{-- روابط سريعة --}}
-        <nav data-footer-column aria-labelledby="footer-links" class="flex flex-col gap-2.5">
-            <h2 id="footer-links" class="text-[19px] font-black text-white">{{ $text('quick_links') }}</h2>
-            {{-- كل رابط بمربع أيقونة ملون من قسمه (App\Support\MenuIcon — المدير التنفيذي، 31 أكتوبر 01:28) --}}
-            <ul class="grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] lg:grid-cols-1">
-                {{-- العنصر الذي يشير إلى صفحة غير منشورة يبقى في الرأس لعناصره الفرعية، ولا رابط له هنا (SiteChromeComposer) --}}
-                @foreach ($menu->where('linkable', true) as $item)
-                    <li>
-                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
-                            class="inline-flex items-center gap-2 text-white/85 transition hover:text-white"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</a>
+        {{-- روابط سريعة: مربع واحد بعمودين --}}
+        <nav data-footer-box="links" aria-labelledby="footer-links" class="footer-box">
+            <h2 id="footer-links" class="footer-box-title"><x-icon-tile icon="link" size="md" class="footer-box-icon" />{{ $text('quick_links') }}</h2>
+            <ul class="grid grid-cols-2 gap-3 text-sm">
+                @foreach ($links as $key => [$route, $icon])
+                    <li class="min-w-0">
+                        <a href="{{ route($route) }}" @navigate(route($route)) class="footer-link-row">
+                            <x-icon-tile :icon="$icon" size="xs" class="footer-line-icon" />
+                            <span class="truncate">{{ __('ui.footer.links.'.$key) }}</span>
+                        </a>
                     </li>
                 @endforeach
             </ul>
         </nav>
 
-        {{-- الشعار والإشراف والحسابات --}}
-        <div data-footer-column class="flex flex-col items-start gap-3">
-            <x-brand light size="footer" />
-            <p class="max-w-sm text-sm leading-7 text-white/80">{{ $text('about') }}</p>
-            <p class="text-[13px]">{{ $text('supervision') }}</p>
-            <p class="text-xs text-white/75">{{ $text('license') }}</p>
-            @if ($social !== [])
-                <ul class="flex flex-wrap gap-2" aria-label="{{ $text('channels') }}">
+        {{-- الحسابات الرسمية: الشعار والمخطوطة في الوسط، والحسابات تحتهما --}}
+        <section data-footer-box="accounts" aria-labelledby="footer-accounts" class="footer-box">
+            <h2 id="footer-accounts" class="footer-box-title"><x-icon-tile icon="share-network" size="md" class="footer-box-icon" />{{ $text('accounts') }}</h2>
+            <x-brand light size="footer" class="justify-center self-center" />
+            @if ($social !== [] || $whatsapp !== null)
+                <ul class="flex flex-wrap justify-center gap-2" aria-label="{{ $text('channels') }}">
                     @foreach ($social as $network => $url)
                         <li>
                             <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" title="{{ __('settings.social.'.$network) }}" data-social-link
@@ -123,9 +111,17 @@
                             </a>
                         </li>
                     @endforeach
+                    @if ($whatsapp !== null && ! isset($social['whatsapp']))
+                        <li>
+                            <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" title="{{ __('contact.info.whatsapp') }}" data-whatsapp class="social-circle">
+                                <x-social-icon network="whatsapp" class="size-4" />
+                                <span class="sr-only">{{ __('contact.info.whatsapp') }} ({{ __('site.opens_in_new_tab') }})</span>
+                            </a>
+                        </li>
+                    @endif
                 </ul>
             @endif
-        </div>
+        </section>
     </div>
 
     {{-- زر المساعد العائم في الزاوية السفلية (partials/assistant): هامش سفلي بقدره، فلا يغطي رابط «سياسة الخصوصية» في آخر

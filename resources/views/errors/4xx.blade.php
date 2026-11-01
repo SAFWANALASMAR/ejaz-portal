@@ -16,7 +16,7 @@
         </div>
         <div class="concept-hero-scrim" aria-hidden="true"></div>
         <div class="relative mx-auto flex min-h-[26rem] max-w-[82.5rem] flex-col justify-center gap-3 px-4 py-12 sm:px-7">
-            <x-icon-tile icon="exclamation-triangle" variant="glass" tone="sky" size="lg" class="rise-1" />
+            <x-icon-tile icon="exclamation-triangle" variant="glass" size="lg" class="rise-1" />
             <p class="error-code rise-1 text-7xl font-black sm:text-8xl" dir="ltr">{{ $code }}</p>
             <h1 class="rise-2 text-[2rem] leading-[1.15] font-black text-white sm:text-[2.75rem]">{{ __($key.'.title') }}</h1>
             <span class="title-bar" aria-hidden="true"></span>

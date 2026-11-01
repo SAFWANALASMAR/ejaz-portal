@@ -3,13 +3,19 @@
 namespace App\Support;
 
 /**
- * ألوان مربعات الأيقونات المتدرجة (x-icon-tile — التصور النهائي، صفوان 30 أكتوبر 19:18): ستة بالترتيب، والبطاقة تأخذ لونها من
- * موضعها (index)، فيبقى ثابتاً بين العرض والآخر. وتدرج كل لون في resources/css/concept.css، وتباين الأيقونة البيضاء على طرفيه
+ * درجات مربع الأيقونة الأربع (x-icon-tile — أمر التصور النهائي، النسخة 63، البند R5): فاتحة جداً، ثم فاتحة، ثم متوسطة، ثم
+ * غامقة، من الأزرق وحده. وتتعاقب في الصفحة من CSS بموضع البطاقة (resources/css/concept.css)، فلا يلزم القالب أن يمرر شيئاً.
+ * وهذه القائمة للدرجة الصريحة (shade) ولما يلوَّن ببطاقته خارج المربع (بطاقات «خدماتنا»). وتباين الرسم على طرفي كل درجة
  * مختبر في tests/Unit/IconTileContrastTest.php.
  */
 final class IconTones
 {
-    public const ORDER = ['blue', 'violet', 'green', 'navy', 'sky', 'lilac'];
+    public const ORDER = ['pale', 'light', 'medium', 'dark'];
+
+    /**
+     * الدرجات التي رسمها أبيض، والباقيتان برسم الأزرق الداكن.
+     */
+    public const WHITE_GLYPH = ['medium', 'dark'];
 
     public static function at(int $index): string
     {

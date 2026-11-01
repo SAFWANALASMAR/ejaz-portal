@@ -58,6 +58,16 @@ final readonly class MenuLink
         return ! $this->opensInNewTab && SpaLink::allows($this->href());
     }
 
+    /**
+     * أقسام يُعلَّم فيها عنصر قسم آخر نشطاً: «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات (أمر التصور النهائي،
+     * النسخة 63 — البند R4)، فهي النشطة في صفحاتها.
+     *
+     * @var array<string, list<string>>
+     */
+    public const CURRENT_IN = [
+        'services' => ['programs', 'competitions', 'initiatives'],
+    ];
+
     public function isCurrent(): bool
     {
         if (! str_starts_with($this->url, '/')) {
@@ -66,7 +76,17 @@ final readonly class MenuLink
 
         $path = trim($this->url, '/');
 
-        return $path === '' ? request()->is('/') : request()->is($path, $path.'/*');
+        if ($path === '') {
+            return request()->is('/');
+        }
+
+        $patterns = [$path, $path.'/*'];
+
+        foreach (self::CURRENT_IN[$path] ?? [] as $section) {
+            array_push($patterns, $section, $section.'/*');
+        }
+
+        return request()->is(...$patterns);
     }
 
     public function hasCurrentChild(): bool

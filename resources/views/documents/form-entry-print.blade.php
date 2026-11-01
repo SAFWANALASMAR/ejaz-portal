@@ -35,7 +35,7 @@
         .logo { height: 16mm; width: auto; }
         .org-name { color: #2E6898; font-size: 15pt; font-weight: 700; }
         .org-contact { color: #444; font-size: 9.5pt; }
-        .missing { color: #4A2175; }
+        .missing { color: #1F4565; }
         .sheet-title { text-align: center; font-size: 17pt; font-weight: 700; margin: 4px 0 6px; }
         .sheet-meta { width: 100%; font-size: 9.5pt; color: #444; margin-bottom: 10px; }
         .sheet-heading { font-size: 13pt; font-weight: 700; background: #E9EEF4; border: 1px solid #555; padding: 4px 8px; margin: 12px 0 0; }

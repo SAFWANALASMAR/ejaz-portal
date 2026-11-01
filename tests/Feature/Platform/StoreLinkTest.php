@@ -56,27 +56,30 @@ it('saves a store link on an allowed host, or its subdomain when a wildcard allo
     expect(Setting::group('store')['url'])->toBe('https://shop.ejaz.org.sa');
 });
 
-it('adds the store to the main menu, opening in a new tab', function () {
+// الشريط سبعة عناصر فقط (أمر التصور النهائي، النسخة 63 — البند R3): المتجر عنصر مخفي في «القائمة» بتبويب جديد، يُظهر من اللوحة
+// متى أُريد، و/store يبقى يحوّل إلى سلة
+it('keeps the store as a hidden main menu item opening in a new tab', function () {
     $this->seed(MenuSeeder::class);
     $item = MenuItem::query()->where('url', '/store')->first();
 
     expect($item)->not->toBeNull()
         ->and($item->opens_in_new_tab)->toBeTrue()
-        ->and($item->is_visible)->toBeTrue();
+        ->and($item->is_visible)->toBeFalse();
 
-    $this->get('/')->assertOk()->assertSee(__('home.shortcuts.store.title'));
+    $item->update(['is_visible' => true]);
+    $header = (string) str($this->get('/')->assertOk()->getContent())->after('data-site-header')->before('</header>');
+
+    expect($header)->toMatch('#href="[^"]*/store"\s+target="_blank"#');
 });
 
-// بطاقات «خدماتنا» في الرئيسية صارت ست مرجع المدير بلا المتجر (docs/decisions/2026-10-30-visual-refresh-2.md، القرار ٢)،
-// والمتجر باقٍ في القائمة الرئيسية بتبويب جديد
-it('keeps the store out of the home service cards and in the main menu in a new tab', function () {
+it('keeps the store out of the home service cards and out of the seven header items', function () {
     $this->seed(MenuSeeder::class);
     $html = (string) $this->get('/')->assertOk()->getContent();
     $cards = (string) str($html)->after('aria-labelledby="home-shortcuts"')->before('</section>');
     $header = (string) str($html)->after('data-site-header')->before('</header>');
 
     expect($cards)->not->toContain(route('store.index'))
-        ->and($header)->toMatch('#href="[^"]*/store"\s+target="_blank"#');
+        ->and($header)->not->toContain(route('store.index'));
 });
 
 it('keeps the internal store, donations and payments archived while the switch is off', function () {

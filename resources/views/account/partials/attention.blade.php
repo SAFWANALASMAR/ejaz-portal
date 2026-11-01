@@ -3,7 +3,7 @@
     {{-- بلغة التصور النهائي (11): صندوق سماوي بحد، ومربع أيقونة متدرج (ملاحظة المدير 19:06) --}}
     <section aria-labelledby="attention" class="rounded-[1.125rem] border border-[var(--concept-pale)] bg-primary-soft p-5 text-ink">
         <h2 id="attention" class="flex items-center gap-3 text-[19px] font-black text-primary-dark">
-            <x-icon-tile icon="exclamation-triangle" tone="violet" size="sm" />
+            <x-icon-tile icon="exclamation-triangle" shade="dark" size="sm" />
             {{ __('account.summary.attention') }}
         </h2>
         <ul class="mt-3 space-y-2">

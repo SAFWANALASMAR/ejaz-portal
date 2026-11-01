@@ -74,6 +74,10 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 // الأزرق الرسمي بدرجته المقروءة للنص الأبيض (دليل الهوية — docs/design-system.md)
                 'primary' => Color::hex('#2E6898'),
+                // الأزرق وحده (أمر التصور النهائي، البند G1): حالة «ناجح» والمعلومة بدرجتين من الأزرق بدل أخضر Filament
+                // الافتراضي. و«مرفوض» (danger) يبقى أحمر، وهو أحد الاستثناءات الثلاثة
+                'success' => Color::hex('#1F5F8F'),
+                'info' => Color::hex('#3E8ACA'),
             ])
             // الخط يُخدَم من خادم البوابة نفسه (Vite) لا من مزود خارجي
             ->font('Zain', provider: LocalFontProvider::class)

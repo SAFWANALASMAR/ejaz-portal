@@ -6,22 +6,25 @@ use Illuminate\Support\Facades\Blade;
 | مكونات الدفعة الثانية المشتركة: x-icon-tile بحالتيه، والدوّار، وشارة الرقم، وعنوان القسم بشارته وزخرفته، والفاصل.
 */
 
-// التصور النهائي (صفوان 19:18): المتدرجة افتراضاً بلون من موضع البطاقة، والزجاجية على الداكن، والخطية عند الطلب
-it('renders one icon tile: gradient by position by default, glass on dark and line on request', function () {
+// أمر التصور النهائي، النسخة 63 (البند R5): المتدرجة افتراضاً بدرجتها من موضع البطاقة في CSS (بلا data-shade)، وshade يثبّت
+// درجة من الأربع، والاسم القديم tone مثله، والزجاجية على الداكن، والخطية عند الطلب. ولا لون خارج الأربع
+it('renders one icon tile: gradient shaded by position by default, an explicit shade, glass on dark and line on request', function () {
     $first = Blade::render('<x-icon-tile icon="trophy" size="lg" />');
-    $fourth = Blade::render('<x-icon-tile icon="trophy" :index="3" />');
-    $explicit = Blade::render('<x-icon-tile icon="trophy" tone="lilac" :index="1" />');
+    $indexed = Blade::render('<x-icon-tile icon="trophy" :index="3" />');
+    $explicit = Blade::render('<x-icon-tile icon="trophy" shade="dark" />');
+    $legacy = Blade::render('<x-icon-tile icon="trophy" tone="light" />');
     $glass = Blade::render('<x-icon-tile icon="trophy" variant="glass" />');
     $line = Blade::render('<x-icon-tile icon="trophy" variant="line" />');
-    $unknown = Blade::render('<x-icon-tile icon="trophy" variant="neon" tone="red" />');
+    $unknown = Blade::render('<x-icon-tile icon="trophy" variant="neon" tone="violet" />');
 
-    expect($first)->toContain('data-icon-tile')->toContain('data-variant="gradient"')->toContain('data-tone="blue"')->toContain('icon-tile-lg')
-        ->toContain('viewBox="0 0 256 256"')
-        ->and($fourth)->toContain('data-tone="navy"')
-        ->and($explicit)->toContain('data-tone="lilac"')
+    expect($first)->toContain('data-icon-tile')->toContain('data-variant="gradient"')->toContain('icon-tile gt')->toContain('icon-tile-lg')
+        ->toContain('viewBox="0 0 256 256"')->not->toContain('data-shade')->not->toContain('data-tone')
+        ->and($indexed)->not->toContain('data-shade')->not->toContain('index')
+        ->and($explicit)->toContain('data-shade="dark"')
+        ->and($legacy)->toContain('data-shade="light"')
         ->and($glass)->toContain('data-variant="glass"')
         ->and($line)->toContain('data-variant="line"')
-        ->and($unknown)->toContain('data-variant="gradient"')->toContain('data-tone="blue"');
+        ->and($unknown)->toContain('data-variant="gradient"')->not->toContain('violet')->not->toContain('data-shade');
 });
 
 it('renders a carousel with its arrows, dots, status and pause button only when it has several slides', function () {

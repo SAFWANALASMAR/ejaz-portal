@@ -37,7 +37,10 @@ final class HomeContent
         'tickers' => ['news', 'announcements'],
         'channels' => ['title', 'intro'],
         'announcements' => ['title', 'intro'],
-        'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights'],
+        // supervision باقٍ مفتاحاً ولا يُعرض في الرأس ولا التذييل منذ النسخة 63 من التصور (البند R2)
+        'footer' => ['about', 'supervision', 'license', 'quick_links', 'contact', 'channels', 'rights', 'hours', 'accounts'],
+        // مربع الترخيص في الرأس (البند R2)
+        'header' => ['licensed_by', 'license_number'],
         // شريحة الهوية تحت البطل وبطاقة «خدماتنا» الجانبية (مرجع المدير، 30 أكتوبر — plans/2026-10-30-director-home-reference.md).
         // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
         'identity' => ['vision', 'mission', 'side_title', 'side_text'],
@@ -82,6 +85,14 @@ final class HomeContent
         'calligraphy' => 'images/brand/logo-calligraphy.png',
         'calligraphy_white' => 'images/brand/logo-calligraphy-white.png',
     ];
+
+    /**
+     * شرائح بطل الرئيسية بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). صورة كل شريحة تُرفع من «محتوى الرئيسية» وتُحفظ في
+     * hero_slides.<الشريحة>، وبلا صورة بديلها في HomeShowcase::slides.
+     *
+     * @var list<string>
+     */
+    public const HERO_SLIDES = ['about', 'king', 'chairman', 'brahin', 'library'];
 
     /**
      * المحتوى للعرض: المحفوظ من اللوحة، وإلا الأصل.
@@ -139,6 +150,14 @@ final class HomeContent
     }
 
     /**
+     * مسار صورة شريحة البطل المرفوعة من اللوحة على القرص العام، أو null.
+     */
+    public static function heroSlideImage(string $key): ?string
+    {
+        return self::clean(Setting::group(self::KEY)['hero_slides'][$key] ?? null);
+    }
+
+    /**
      * رابط ملف الشعار أو المخطوطة: المرفوع من اللوحة، وإلا الأصل.
      */
     public static function brand(string $key): string
@@ -168,6 +187,10 @@ final class HomeContent
 
         foreach (array_keys(self::BRAND) as $key) {
             $paths[] = $stored['brand'][$key] ?? null;
+        }
+
+        foreach (self::HERO_SLIDES as $key) {
+            $paths[] = $stored['hero_slides'][$key] ?? null;
         }
 
         return array_values(array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''));

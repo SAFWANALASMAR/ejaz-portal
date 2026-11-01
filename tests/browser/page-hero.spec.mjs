@@ -85,3 +85,36 @@ for (const target of pages) {
         expect(contrast, `title contrast ${contrast.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
     });
 }
+
+// البطاقة الملونة (.tone-card — أمر التصور النهائي، النسخة 63، البند G2): التدرج يتعاقب بين البطاقات داكناً ثم فاتحاً، ونص كل بطاقة
+// بتباين 4.5:1 فأكثر على كل لون في تدرجها، من الأنماط المحسوبة في المتصفح نفسه. والقيم مختبرة أيضاً في tests/Unit/ToneCardContrastTest.php
+test('tone cards alternate dark and light with readable text on every gradient stop', async ({ page }) => {
+    await page.goto('/contact');
+
+    const cards = await page.evaluate(() => {
+        const list = document.createElement('ul');
+        list.innerHTML = '<li class="tone-card"><p>أ</p></li><li class="tone-card"><p>ب</p></li><li class="tone-card"><p>ج</p></li>';
+        document.querySelector('#main').append(list);
+        const rgb = (value) => [...value.matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g)].map((match) => match.slice(1, 4).map(Number));
+
+        return [...list.children].map((card) => ({ text: rgb(getComputedStyle(card.querySelector('p')).color)[0], stops: rgb(getComputedStyle(card).backgroundImage) }));
+    });
+
+    const luminance = ([r, g, b]) => {
+        const channel = (value) => {
+            const c = value / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
+
+    // الأولى والثالثة داكنتان بنص أبيض، والثانية فاتحة بنص داكن
+    expect(cards.map((card) => luminance(card.text) > 0.5)).toEqual([true, false, true]);
+    for (const card of cards) {
+        expect(card.stops.length).toBeGreaterThanOrEqual(3);
+        for (const stop of card.stops) {
+            expect(ratio(card.text, stop), `${card.text} on ${stop}`).toBeGreaterThanOrEqual(4.5);
+        }
+    }
+});

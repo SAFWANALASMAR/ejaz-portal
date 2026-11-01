@@ -27,18 +27,26 @@
        5.4:1 على primary-dark (tests/Unit/BrandContrastTest.php). وأعمق الداكن لقاع التدرج الشعاعي في البطل والتذييل */
     --color-brand-light: #8EC5F0;
     --color-primary-deep: #142E45;
-    /* الثانوي (أخضر) */
-    --color-secondary: #287A37;
-    --color-secondary-soft: #E8F3EA;
+    /* الأزرق وحده (أمر التصور النهائي، النسخة 63 — 31 أكتوبر 2026، البند G1): لا بنفسجي ولا أخضر في أي مكان. فالرمزان
+       الثانوي والمميز باقيان باسميهما لكل قالب يستعملهما، وقيمتهما من درجات الأزرق. والاستثناءات ثلاثة لا غير: أحمر يوتيوب،
+       وحالة «مرفوض»، وأسود بطاقة X (docs/decisions/2026-10-31-visual-refresh-2.md) */
+    --color-secondary: #24527A;
+    --color-secondary-soft: #E3F1FC;
     /* الداعم (أبيض) */
     --color-white: #FFFFFF;
-    /* المميز (بنفسجي): البارز والعبارات المميزة. وعلى الخلفيات الداكنة درجته الفاتحة */
-    --color-accent: #5D2A92;
-    --color-accent-dark: #4A2175;
-    --color-accent-light: #D9CCF0;
+    /* المميز: الأزرق العميق للبارز والعبارات المميزة وإطار التركيز. وعلى الخلفيات الداكنة درجته الفاتحة */
+    --color-accent: #1F5F8F;
+    --color-accent-dark: #174A70;
+    --color-accent-light: #BFE0FA;
 
-    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): «الذهبي» في المرجع
-       الأسلوبي يقابله في الهوية البنفسجي، ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
+    /* خلفية كل الصفحات والأقسام (البند R1): أزرق فاتح لا أبيض، والأقسام بتدرج قريب، والأفتح للحاويات بدل الأبيض الكبير */
+    --color-page: #D6E7F6;
+    --color-section: #CFE3F4;
+    --color-pale: #E3F1FC;
+    --color-sky-light: #BFE0FA;
+
+    /* لون التمييز في الزخرفة والكلمة المميزة والخطوط (التحسين البصري — docs/plans/visual-refresh.md): من درجات الأزرق،
+       ودرجته الفاتحة على الداكن. ولون آخر يُغيَّر هنا وحده */
     --color-highlight: var(--color-accent);
     --color-highlight-on-dark: var(--color-accent-light);
 
@@ -66,7 +74,7 @@
     }
 
     body {
-        @apply bg-white text-ink antialiased;
+        @apply bg-page text-ink antialiased;
         /* Zain أعرض قليلاً من خطوط النظام، فالسطر أريح بهذا الارتفاع */
         line-height: 1.75;
     }
@@ -75,13 +83,12 @@
         @apply outline-2 outline-offset-2 outline-accent;
     }
 
-    /* البنفسجي لا يُرى على الأزرق ولا على خلفية عارض الصور (1.05 على الأزرق الداكن و1.6 على الأساسي)،
-       فإطار التركيز فيها بدرجته الفاتحة */
+    /* المميز الأزرق العميق لا يُرى على الأزرق الداكن ولا على خلفية عارض الصور، فإطار التركيز فيها بدرجته الفاتحة */
     :where(.bg-primary, .bg-primary-dark, .section-band, .section-dark, .concept-hero, footer, [data-gallery-dialog], [data-site-header], [data-back-nav]) :focus-visible {
         @apply outline-accent-light;
     }
 
-    /* والزر البنفسجي (variant="accent") لا يُرى حوله إطار بنفسجي: على الفاتح بالأزرق الداكن، وعلى الداكن بالفاتح */
+    /* والزر المميز (variant="accent") لا يُرى حوله إطار بلونه: على الفاتح بالأزرق الداكن، وعلى الداكن بالفاتح */
     .bg-accent:focus-visible {
         @apply outline-primary-dark;
     }
@@ -137,7 +144,7 @@
 
     /* بطاقة الملف: أيقونة بنوعه، والبيانات، وزرا المعاينة والتنزيل */
     .file-card {
-        @apply flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:border-brand hover:shadow-md;
+        @apply flex items-center gap-4 rounded-2xl border border-line bg-pale p-4 shadow-sm transition hover:border-brand hover:shadow-md;
     }
 
     .prose-ar {
@@ -251,35 +258,5 @@ html[data-reveal-ready] [data-reveal] {
     }
 }
 
-/* شريط التقدّم أثناء التنقّل السريع (resources/js/page.js): زخرفة على html لا عنصر يقرؤه قارئ الشاشة، والصفحة
-   نفسها تُستبدل تحته */
-html[data-navigating]::before {
-    content: '';
-    position: fixed;
-    inset-inline: 0;
-    top: 0;
-    z-index: 60;
-    height: 3px;
-    background: var(--color-primary);
-    /* يبدأ من جهة البداية؛ ولا قيمة منطقية لـ transform-origin، والموقع من اليمين وحده */
-    transform-origin: right;
-    animation: navigating 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
-    pointer-events: none;
-}
-
-@keyframes navigating {
-    from {
-        transform: scaleX(0.1);
-    }
-
-    to {
-        transform: scaleX(0.95);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    html[data-navigating]::before {
-        animation: none;
-        transform: scaleX(0.6);
-    }
-}
+/* أثناء التنقّل السريع (resources/js/page.js) تبقى html[data-navigating] علامةً، والمؤشر هو انتقال الصفحات بالشعار
+   (partials/page-transition وconcept.css — البند R25)، بلا خط تقدم منفصل */

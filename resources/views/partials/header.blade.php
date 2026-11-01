@@ -1,54 +1,30 @@
 {{--
-    رأس الصفحة (التصور النهائي الملزم — docs/design/final-concept، وقرارا صفوان: الرأس داكن والشعار والمخطوطة بالأبيض والمخطوطة
-    أكبر): أزرق داكن صلب بلون التذييل. في جهة البداية الشعار الرسمي والمخطوطة وتحتهما سطر الإشراف، ثم القائمة الرئيسية في
-    المنتصف (تُدار من اللوحة، وتلتف صفين إن لم تتسع)، والنشط بخلفية أفتح وحد بالأزرق الفاتح، ثم زر الدخول الكبسولي الأزرق
-    وزر البحث السريع (Ctrl+K). وتحت عرض nav (app.css) زر القائمة بدل القائمة.
-    $siteMenu يأتي من App\View\Composers\SiteChromeComposer.
-
-    كل عنصر في الحاسوب مربع صغير وأيقونته المتدرجة فوق اسمه (الخيار «ب» — صفوان، 31 أكتوبر 01:38)، وفي قائمة الجوال بجانبه، والأيقونة من مسار رابطه (App\Support\MenuIcon).
+    رأس الموقع صفّان (أمر التصور النهائي، النسخة 63 — البندان R2 وR3، وFinal-Home)، وكله ثابت عند التمرير (sticky top:0)، ومنفصل
+    عن البطل بتدرج أغمق وحد سفلي #8EC5F0 وظل (البند G6):
+    - الصف الأول: رمز الشعار كبيراً في أقصى البداية، ثم المخطوطة كبيرة ممتدة، ثم مربع الترخيص بسطريه (من «محتوى الرئيسية»)، ثم
+      البحث و«تسجيل الدخول» في أقصى النهاية. ولا سطر إشراف.
+    - الصف الثاني: أفتح قليلاً وبينهما فاصل #8EC5F0، فيه عناصر القائمة كبسولات متساوية بأيقونة صغيرة بجانب الكلمة (القائمة «ج»)،
+      والنشط بحد #8EC5F0 وخلفية أفتح. والقائمة تُدار من اللوحة، وعناصرها السبعة من MainMenuSevenSeeder.
+    - الجوال واللوحي: الرمز والمخطوطة وزر ☰ لقائمة منسدلة بالعناصر والأيقونات نفسها.
+    والقائمة لا تتسع (عناصر أكثر أو أسماء أطول): زر القائمة بدلها (app.js). $siteMenu من App\View\Composers\SiteChromeComposer،
+    والأيقونة من مسار الرابط (App\Support\MenuIcon).
 --}}
-@php($menu = $siteMenu ?? collect())
+@php
+    $menu = $siteMenu ?? collect();
+    $header = fn (string $key): string => \App\Support\HomeContent::text('header', $key);
+@endphp
 
 <header data-site-header class="site-header sticky top-0 z-40 text-white">
-    <div class="mx-auto flex max-w-[82.5rem] items-center justify-between gap-4 px-4 py-3 sm:px-7 nav:gap-7">
-        <a href="{{ route('home') }}" wire:navigate class="flex shrink-0 flex-col gap-1">
-            <x-brand light :link="false" />
-            <span class="hidden text-xs text-white/70 sm:block">{{ \App\Support\HomeContent::text('footer', 'supervision') }}</span>
-        </a>
+    <div class="header-top mx-auto flex max-w-[82.5rem] items-center gap-3 px-4 py-2.5 sm:px-7 lg:gap-4 lg:py-3.5">
+        <x-brand light size="masthead" class="min-w-0" />
 
-        <nav data-main-nav class="hidden min-w-0 flex-1 justify-center nav:flex" aria-label="{{ __('site.main_navigation') }}">
-            <ul class="flex flex-wrap items-stretch justify-center gap-1.5">
-                @foreach ($menu as $item)
-                    @php($current = $item->isCurrent() || $item->hasCurrentChild())
-                    <li class="relative shrink-0">
-                        @if ($item->children->isNotEmpty())
-                            <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
-                                @if ($current) data-current @endif
-                                class="nav-link relative flex h-full shrink-0 items-center whitespace-nowrap text-[13px]">
-                                <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />
-                                <span class="flex items-center gap-0.5">{{ $item->label }}{{ \App\Support\Icon::svg('chevron-down', 'size-3') }}</span>
-                            </button>
-                            <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-3 min-w-56 rounded-2xl border border-line/70 bg-white p-2 text-ink shadow-xl">
-                                @foreach ($item->children as $child)
-                                    <li>
-                                        <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
-                                            @if ($child->isCurrent()) aria-current="page" @endif
-                                            class="block rounded-xl px-4 py-2.5 text-ink hover:bg-surface hover:text-primary aria-[current=page]:font-bold aria-[current=page]:text-accent">{{ $child->label }}</a>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
-                                @if ($current) aria-current="page" @endif
-                                class="nav-link relative flex h-full shrink-0 items-center whitespace-nowrap text-[13px]">
-                                <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />
-                                {{ $item->label }}
-                            </a>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </nav>
+        {{-- مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران يُعدَّلان من «محتوى الرئيسية» --}}
+        <p data-header-licence class="header-licence hidden lg:flex">
+            <span class="font-extrabold">{{ $header('licensed_by') }}</span>
+            <span class="text-brand-light">{{ $header('license_number') }}</span>
+        </p>
+
+        <span class="flex-1" aria-hidden="true"></span>
 
         <div class="flex shrink-0 items-center gap-2.5">
             {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
@@ -88,16 +64,54 @@
         </div>
     </div>
 
-    {{-- قائمة الجوال واللوحي --}}
-    <div id="mobile-menu" hidden class="border-t border-white/10 bg-primary-dark nav:hidden">
+    {{-- الصف الثاني: القائمة «ج» --}}
+    <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
+        <ul class="nav-capsules mx-auto max-w-[82.5rem] px-4 py-2.5 sm:px-7">
+            @foreach ($menu as $item)
+                @php($current = $item->isCurrent() || $item->hasCurrentChild())
+                <li class="relative min-w-0">
+                    @if ($item->children->isNotEmpty())
+                        <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="menu-{{ $item->id }}"
+                            @if ($current) data-current @endif
+                            class="nav-capsule">
+                            <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
+                            <span class="truncate">{{ $item->label }}</span>
+                            {{ \App\Support\Icon::svg('chevron-down', 'size-3 shrink-0 opacity-80') }}
+                        </button>
+                        <ul id="menu-{{ $item->id }}" hidden class="absolute start-0 top-full z-50 mt-2 min-w-56 rounded-2xl border border-line/70 bg-pale p-2 text-ink shadow-xl">
+                            @foreach ($item->children as $child)
+                                <li>
+                                    <a href="{{ $child->href() }}" @if ($child->opensInNewTab) target="_blank" rel="noopener" @endif @if ($child->navigates()) wire:navigate @endif
+                                        @if ($child->isCurrent()) aria-current="page" @endif
+                                        class="block rounded-xl px-4 py-2.5 text-ink hover:bg-sky-light/60 hover:text-primary-dark aria-[current=page]:font-bold aria-[current=page]:text-primary-dark">{{ $child->label }}</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif
+                            @if ($current) aria-current="page" @endif
+                            class="nav-capsule">
+                            <x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />
+                            <span class="truncate">{{ $item->label }}</span>
+                        </a>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
+    </nav>
+
+    {{-- قائمة الجوال واللوحي: العناصر نفسها بأيقوناتها --}}
+    <div id="mobile-menu" hidden class="header-mobile-menu nav:hidden">
         <nav class="container-page max-h-[75vh] overflow-y-auto py-3" aria-label="{{ __('site.main_navigation') }}">
             <ul class="space-y-1">
                 @foreach ($menu as $item)
+                    @php($current = $item->isCurrent() || $item->hasCurrentChild())
                     <li>
                         @if ($item->children->isNotEmpty())
                             <button type="button" data-toggle="dropdown" aria-expanded="false" aria-controls="mobile-menu-{{ $item->id }}"
-                                class="flex w-full items-center justify-between rounded-xl px-4 py-3 font-medium text-white hover:bg-white/10">
-                                <span class="flex items-center gap-2.5"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</span>
+                                @if ($current) data-current @endif
+                                class="mobile-nav-link flex w-full items-center justify-between">
+                                <span class="flex items-center gap-2.5"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />{{ $item->label }}</span>
                                 {{ \App\Support\Icon::svg('chevron-down', 'size-4') }}
                             </button>
                             <ul id="mobile-menu-{{ $item->id }}" hidden class="ms-4 space-y-1 border-s-2 border-brand-light/50 ps-3">
@@ -108,8 +122,8 @@
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif @if ($item->isCurrent()) aria-current="page" @endif
-                                class="flex items-center gap-2.5 rounded-xl px-4 py-3 font-medium text-white hover:bg-white/10 aria-[current=page]:font-bold aria-[current=page]:text-brand-light"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" :index="$loop->index" />{{ $item->label }}</a>
+                            <a href="{{ $item->href() }}" @if ($item->opensInNewTab) target="_blank" rel="noopener" @endif @if ($item->navigates()) wire:navigate @endif @if ($current) aria-current="page" @endif
+                                class="mobile-nav-link flex items-center gap-2.5"><x-icon-tile :icon="\App\Support\MenuIcon::for($item)" size="xs" />{{ $item->label }}</a>
                         @endif
                     </li>
                 @endforeach

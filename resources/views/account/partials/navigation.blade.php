@@ -10,7 +10,7 @@
                     'group text-white/90 hover:bg-white/10 hover:text-white' => ! $active,
                 ])>
                 {{-- الأيقونة في مربع مستدير كبطاقات الرئيسية (التجميل — 25 أكتوبر 2026) --}}
-                <x-icon-tile :icon="$link['icon']" variant="gradient" :tone="['blue', 'violet', 'green'][$loop->index % 3]" size="sm" :class="$active ? 'nav-tile nav-tile-active' : 'nav-tile'" />
+                <x-icon-tile :icon="$link['icon']" variant="gradient" size="sm" :class="$active ? 'nav-tile nav-tile-active' : 'nav-tile'" />
                 {{ __($link['label']) }}
             </a>
         </li>

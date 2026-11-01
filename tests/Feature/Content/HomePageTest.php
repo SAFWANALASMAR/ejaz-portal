@@ -47,8 +47,11 @@ it('falls back to the association name, its specialty and the neutral image, wit
 it('shows the uploaded hero image', function () {
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'hero_image' => 'settings/hero.jpg']);
 
-    $this->get('/')->assertSee('/storage/settings/hero.jpg', false)
-        ->assertDontSee('images/placeholders/architecture.svg', false);
+    // الشريحة الأولى (تعريف الجمعية) بالصورة المرفوعة لا بالرسم المؤقت. وما بلا صورة من الشرائح الأخرى بالرسم المؤقت (HomeShowcase::slides)
+    $html = $this->get('/')->assertSee('/storage/settings/hero.jpg', false)->getContent();
+    preg_match('/data-hero-slide="about".*?<img src="([^"]+)"/s', $html, $about);
+
+    expect($about[1])->toEndWith('/storage/settings/hero.jpg');
 });
 
 it('never renders an unsafe hero link even if one reaches the database', function () {
