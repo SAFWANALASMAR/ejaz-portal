@@ -10,10 +10,10 @@
         <ul @class(['gallery-grid', 'gallery-grid-featured' => count($images) >= 5])>
             @foreach ($images as $image)
                 <li>
-                    <button type="button" data-gallery-open="{{ $loop->index }}"
+                    <button type="button" data-gallery-open="{{ $loop->index }}" data-fit-frame
                         class="group block size-full overflow-hidden rounded-2xl bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-label="{{ __('site.gallery.open', ['number' => $loop->iteration]) }}">
-                        <img src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" loading="lazy"
+                        <img src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" loading="lazy" data-fit-adaptive width="600" height="600"
                             class="aspect-square size-full object-cover transition duration-500 group-hover:scale-105">
                     </button>
                 </li>

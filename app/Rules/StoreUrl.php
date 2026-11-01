@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Models\Setting;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -41,6 +42,17 @@ class StoreUrl implements ValidationRule
     public static function current(mixed $configured): string
     {
         return self::isAllowed($configured) ? (string) $configured : (string) config('store.url');
+    }
+
+    /**
+     * رابط المتجر لروابط التذييل وبطاقة «خدماتنا» (1 نوفمبر 2026): المضبوط في إعدادات الموقع، وإلا المعتمد، وكلاهما بالنطاقات
+     * المسموحة. وnull إن لم يصح أي منهما، فلا يظهر الرابط.
+     */
+    public static function link(): ?string
+    {
+        $url = self::current(Setting::group('store')['url'] ?? null);
+
+        return self::isAllowed($url) ? $url : null;
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void

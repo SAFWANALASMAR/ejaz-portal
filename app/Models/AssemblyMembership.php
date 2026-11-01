@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MembershipStatus;
+use App\Support\AssemblyMembersCount;
 use Database\Factories\AssemblyMembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,13 @@ class AssemblyMembership extends Model
 {
     /** @use HasFactory<AssemblyMembershipFactory> */
     use HasFactory, LogsActivity;
+
+    protected static function booted(): void
+    {
+        // العدد العام في صفحة الحوكمة (AssemblyMembersCount)
+        static::saved(fn () => AssemblyMembersCount::forget());
+        static::deleted(fn () => AssemblyMembersCount::forget());
+    }
 
     /**
      * @return array<string, string>

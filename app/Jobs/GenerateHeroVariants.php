@@ -43,12 +43,16 @@ class GenerateHeroVariants implements ShouldBeUnique, ShouldQueue
         $size = @getimagesizefromstring($contents);
 
         if ($size === false || $size[0] < 1 || $size[0] * $size[1] > ImageSanitizer::MAX_PIXELS) {
+            HeroImage::markFailed($this->path);
+
             return;
         }
 
         $image = @imagecreatefromstring($contents);
 
         if ($image === false) {
+            HeroImage::markFailed($this->path);
+
             return;
         }
 
@@ -72,6 +76,7 @@ class GenerateHeroVariants implements ShouldBeUnique, ShouldQueue
 
         unset($image);
 
-        ContentCache::flush();
+        // الرئيسية وحدها تعرض الشرائح، فلا تفقد بقية الصفحات تخزينها (مراجعة المشرف على #111، المنخفضة 3)
+        ContentCache::forget('home');
     }
 }

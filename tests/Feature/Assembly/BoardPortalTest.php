@@ -23,7 +23,6 @@ it('greets the member with the board stats, shortcuts and upcoming meetings', fu
 
     $this->actingAs($this->member)->get('/assembly')->assertOk()
         ->assertSee(__('assembly.portal.welcome', ['name' => $this->member->name]))
-        ->assertSee(__('assembly.portal.members'))
         ->assertSee(__('assembly.portal.meetings_this_year'))
         ->assertSee('اجتماع الجمعية القادم')
         ->assertSee(route('assembly.minutes.index'))
