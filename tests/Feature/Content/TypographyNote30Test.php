@@ -29,7 +29,10 @@ it('limits the line length of long text on content pages, the chairman word and 
     Page::factory()->create(['slug' => Page::ABOUT, 'is_published' => true, 'blocks' => []]);
     $program = Program::factory()->create(['description' => 'وصف البرنامج']);
 
-    expect($this->get('/pages/note-30-page')->assertOk()->getContent())->toMatch('/class="[^"]*\bprose-ar\b[^"]*\bmeasure\b/u')
+    // الحد على أبناء النص لا على حاويته (measure-flow)، فلا يضيق جدول أو صورة فيه
+    $page = (string) $this->get('/pages/note-30-page')->assertOk()->getContent();
+    expect($page)->toMatch('/class="[^"]*\bprose-ar\b[^"]*\bmeasure-flow\b/u')
+        ->and($page)->not->toMatch('/class="[^"]*\bprose-ar\b[^"]*\bmeasure\b(?!-)/u')
         ->and($this->get('/about')->assertOk()->getContent())->toMatch('/data-chairman-card.*class="[^"]*\bmeasure\b/su')
         ->and($this->get(route('programs.show', $program->slug))->assertOk()->getContent())->toMatch(elementWithClass('measure', 'وصف البرنامج'));
 });
@@ -46,9 +49,15 @@ it('clamps card titles at two lines so cards in a row keep one height', function
         ->and($this->get(route('library.section', $book->section->value))->assertOk()->getContent())->toMatch(elementWithClass('line-clamp-2', 'كتاب الاختبار'));
 });
 
-it('lays the service tiles and the beneficiary cards out with no empty slot at the end of the last row', function () {
+it('centres the incomplete last row of the service tiles', function () {
     expect($this->get('/services')->assertOk()->getContent())->toMatch('/<ul class="[^"]*\btile-grid\b/u');
+});
 
-    expect($this->actingAs(User::factory()->create())->get('/account')->assertOk()->getContent())
-        ->toMatch('/<ul class="[^"]*\btile-grid\b[^"]*\btile-grid-xl\b[^"]*"[^>]*data-account-cards/u');
+it('lays the beneficiary cards in one column on mobile and two fixed columns from the tablet up (Safwan, #142)', function () {
+    $list = (string) str($this->actingAs(User::factory()->create())->get('/account')->assertOk()->getContent())
+        ->match('/<ul class="([^"]*)"[^>]*data-account-cards/u');
+
+    expect($list)->toMatch('/(^|\s)grid(\s|$)/')
+        ->and($list)->toMatch('/\bsm:grid-cols-2\b/')
+        ->and($list)->not->toMatch('/grid-cols-3|tile-grid/');
 });

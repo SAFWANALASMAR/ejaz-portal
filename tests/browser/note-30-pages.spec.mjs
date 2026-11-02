@@ -1,8 +1,8 @@
 // ملاحظة صفوان ٣٠ — طباعة النصوص في كل الصفحات (docs/decisions/2026-11-03-note-30-typography.md): لقطة كاملة لكل صفحة على
-// 1440 و390 في docs/design/screenshots/note-30/<SHOT_PREFIX>-<الصفحة>-<العرض>.png، وفحص الاتجاه وعدم التمرير الأفقي وطول سطر
+// 1440 و820 و390 في docs/design/screenshots/note-30/<SHOT_PREFIX>-<الصفحة>-<العرض>.png، وفحص الاتجاه وعدم التمرير الأفقي وطول سطر
 // الفقرات (نحو 75 حرفاً على الأكثر). والمعرّفات (qa-news-1 وdemo-book…) من بيانات التطوير المحلية، وما لم يوجد يُتخطى.
 // docker compose run --rm --no-deps -e VITE_HOST=none -e SHOT_PREFIX=after browser npx playwright test \
-//   --config=tests/browser/playwright.config.mjs note-30-pages.spec.mjs --project=desktop --project=mobile
+//   --config=tests/browser/playwright.config.mjs note-30-pages.spec.mjs
 import fs from 'node:fs';
 import { createHmac } from 'node:crypto';
 import { expect, test } from '@playwright/test';
@@ -70,7 +70,6 @@ async function check(page, name, info) {
 
 for (const [name, path] of guestPages) {
     test(`note 30 pages: ${name}`, async ({ page }, info) => {
-        test.skip(info.project.name === 'tablet', 'الحاسوب والجوال وحدهما');
         await page.emulateMedia({ reducedMotion: 'reduce' });
         const response = await page.goto(path);
         test.skip(name !== 'error-404' && response.status() === 404, `${path} غير موجود في البيانات المحلية`);
@@ -84,9 +83,14 @@ test.describe('account', () => {
     test.use({ storageState: fs.existsSync(AUTH_STATE) ? AUTH_STATE : undefined });
 
     test('note 30 pages: account dashboard', async ({ page }, info) => {
-        test.skip(info.project.name === 'tablet', 'الحاسوب والجوال وحدهما');
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto('/account');
+
+        // بطاقات لوحة المستفيد: عمود واحد على الجوال، وعمودان ثابتان على اللوحي والحاسوب (قرار صفوان على #142)
+        const columns = await page.locator('[data-account-cards]').evaluate((list) => new Set([...list.children]
+            .map((item) => Math.round(item.getBoundingClientRect().left))).size);
+        expect(columns, 'أعمدة بطاقات المستفيد').toBe(info.project.name === 'mobile' ? 1 : 2);
+
         await check(page, 'account', info);
     });
 });
@@ -129,4 +133,31 @@ test('note 30 pages: board portal', async ({ page }, info) => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'لا تمرير أفقي').toBeLessThanOrEqual(0);
     await page.screenshot({ path: `${dir}/${prefix}-board-portal-${info.project.name}.png`, fullPage: true });
+});
+
+// الحد 68ch على أبناء النص المنسق لا على حاويته (مراجعة المشرف على #142): جدول عريض في المقطع يبقى بعرض الحاوية، والفقرة بجانبه
+// مقيدة. والجدول يُضاف في الصفحة نفسها، لأن تنقية النص (RichText) لا تحفظ الجداول اليوم، والقاعدة تحمي ما يأتي بعدها.
+test('note 30 pages: a wide table in a text section is not capped at 68ch', async ({ page }) => {
+    const response = await page.goto('/media/news/qa-news-1');
+    test.skip(response.status() === 404, 'لا خبر محلي');
+    const flow = page.locator('.measure-flow').first();
+    await expect(flow).toBeAttached();
+
+    const widths = await flow.evaluate((element) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = 'نص '.repeat(200);
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.innerHTML = '<tr><td>خانة</td><td>خانة</td></tr>';
+        element.append(paragraph, table);
+        const zero = document.createElement('span');
+        zero.textContent = '0';
+        paragraph.append(zero);
+        const ch = zero.getBoundingClientRect().width;
+
+        return { container: element.getBoundingClientRect().width, table: table.getBoundingClientRect().width, paragraph: paragraph.getBoundingClientRect().width, ch };
+    });
+
+    expect(Math.round(widths.table), 'الجدول بعرض الحاوية').toBe(Math.round(widths.container));
+    expect(widths.paragraph, 'الفقرة لا تتجاوز 68ch').toBeLessThanOrEqual(widths.ch * 68 + 1);
 });
