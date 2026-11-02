@@ -224,7 +224,7 @@ final class AssistantIndex
     {
         $parts = [];
 
-        foreach (ContentBlocks::normalize($blocks) as $block) {
+        foreach (ContentBlocks::visible($blocks) as $block) {
             $parts[] = $block['data']['heading'] ?? null;
             $parts[] = $block['type'] === 'text' ? ($block['data']['body'] ?? null) : null;
 

@@ -18,6 +18,7 @@ use App\Models\Contracts\HasPublicImages;
 use App\Models\Document;
 use App\Models\Initiative;
 use App\Models\Page;
+use App\Models\PageRevision;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -165,9 +166,15 @@ it('never deletes the about or privacy page nor changes its link, even for the s
         ->and(fn () => app(SaveContent::class)->handle($admin, $about, ['slug' => $slug.'-us']))->toThrow(ValidationException::class);
 
     $this->actingAs($this->editor);
-    Livewire::test(EditContentPage::class, ['record' => $about->getRouteKey()])
-        ->assertFormFieldIsDisabled('slug')
-        ->assertActionHidden('delete');
+
+    // و«عن الجمعية» خرجت من «الصفحات» إلى «محرر الصفحات» (docs/decisions/2026-11-02-page-editor.md)
+    if ($slug === Page::ABOUT) {
+        $this->get(ContentPageResource::getUrl('edit', ['record' => $about]))->assertNotFound();
+    } else {
+        Livewire::test(EditContentPage::class, ['record' => $about->getRouteKey()])
+            ->assertFormFieldIsDisabled('slug')
+            ->assertActionHidden('delete');
+    }
 
     expect($about->fresh()->slug)->toBe($slug);
 })->with([Page::ABOUT, Page::PRIVACY]);
@@ -210,6 +217,8 @@ it('flushes the public content cache from every model shown in the cached pages'
     $models = collect(File::files(app_path('Models')))
         ->map(fn ($file) => 'App\\Models\\'.$file->getFilenameWithoutExtension())
         ->filter(fn (string $class) => is_subclass_of($class, HasPublicImages::class))
+        // نسخ «محرر الصفحات» لا تُعرض: المعروض سجل الصفحة الذي يكتبه النشر، وهو يمسح الذاكرة
+        ->reject(fn (string $class) => $class === PageRevision::class)
         ->merge([Page::class, Initiative::class, BoardMember::class, Document::class])
         ->unique();
 
@@ -221,7 +230,8 @@ it('flushes the public content cache from every model shown in the cached pages'
 });
 
 it('stores the rich text written in the editor and shows it on the site', function () {
-    $page = Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية']);
+    // صفحة من «الصفحات» (و«عن الجمعية» في «محرر الصفحات» — PageEditorTest)
+    $page = Page::factory()->create(['slug' => Page::PRIVACY, 'title' => 'سياسة الخصوصية', 'is_published' => true]);
     $this->actingAs($this->editor);
 
     Livewire::test(EditContentPage::class, ['record' => $page->getRouteKey()])
@@ -229,7 +239,7 @@ it('stores the rich text written in the editor and shows it on the site', functi
         ->call('save')
         ->assertHasNoFormErrors();
 
-    $this->get('/about')->assertSee('<strong>من المحرر</strong>', false);
+    $this->get('/privacy')->assertSee('<strong>من المحرر</strong>', false);
 });
 
 it('creates a page and a board member from the panel', function () {
