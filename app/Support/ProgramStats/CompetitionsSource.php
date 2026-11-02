@@ -17,12 +17,17 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class CompetitionsSource implements ProgramStatsSource
 {
+    /**
+     * مفتاح محجوز: معرّف نوع البرنامج من اللوحة لا يبدأ بشرطة سفلية (ContentFields::slug)، فلا يحل نوع محل صف المسابقات.
+     */
+    public const KEY = '_competitions';
+
     public function rows(): array
     {
         $submissions = fn (): Builder => CompetitionSubmission::query()->whereHas('competition', fn (Builder $competition) => $competition->published());
 
         return [[
-            'key' => 'competitions',
+            'key' => self::KEY,
             'label' => __('program_stats.types.competitions'),
             'registered' => $submissions()
                 ->where(fn (Builder $submission) => $submission->whereNotNull('registered_at')->orWhere('status', SubmissionStatus::Submitted->value))

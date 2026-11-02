@@ -66,7 +66,7 @@ test.describe('program stats by type', () => {
 
         const chart = page.locator('.fi-wi-chart', { has: page.getByRole('heading', { name: HEADING }) });
         await expect(chart).toBeVisible();
-        await expect(chart.locator('[data-program-stats-row="competitions"]')).toContainText('نسبة الإكمال');
+        await expect(chart.locator('[data-program-stats-row="_competitions"]')).toContainText('نسبة الإكمال');
         const canvas = chart.locator('canvas');
         await expect(canvas).toBeVisible();
         await expect.poll(() => canvas.evaluate((element) => {
@@ -89,7 +89,7 @@ test.describe('program stats by type', () => {
         const section = page.locator('[data-board-program-stats]');
         await expect(section.getByRole('heading', { name: HEADING })).toBeVisible();
         await expect(section.locator('[data-program-stats-row]')).not.toHaveCount(0);
-        await expect(section.locator('[data-program-stats-row="competitions"]')).toBeVisible();
+        await expect(section.locator('[data-program-stats-row="_competitions"]')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
         const board = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).include('[data-board-program-stats]').analyze();
@@ -97,7 +97,7 @@ test.describe('program stats by type', () => {
 
         await section.scrollIntoViewIfNeeded();
         await page.evaluate(() => document.fonts.ready);
-        await section.screenshot({ path: `docs/design/screenshots/program-stats-board-${width}.png` });
+        await section.screenshot({ path: `docs/design/screenshots/program-stats-board-${width}.png`, style: "[data-page-edit-button] { visibility: hidden !important; }" });
 
         expect(errors).toEqual([]);
     });

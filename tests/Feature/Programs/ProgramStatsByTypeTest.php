@@ -13,9 +13,13 @@ use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
 use App\Models\User;
 use App\Support\HomePortalStats;
+use App\Support\ProgramStats\CompetitionsSource;
+use App\Support\ProgramStats\ProgramTypesSource;
 use App\Support\ProgramStatsByType;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 
 /*
@@ -54,7 +58,7 @@ it('counts confirmed registrations and attendance per program type, without canc
     expect($rows['training-courses'])->toMatchArray(['label' => 'الدورات التدريبية', 'registered' => 3, 'completed' => 2, 'rate' => 67, 'pages' => null, 'minutes' => null])
         // نوع بلا برنامج له صفه بأصفار، ونسبته صفر بلا قسمة على صفر
         ->and($rows['scientific-councils'])->toMatchArray(['registered' => 0, 'completed' => 0, 'rate' => 0])
-        ->and(array_keys($rows))->toBe(['training-courses', 'scientific-councils', 'competitions']);
+        ->and(array_keys($rows))->toBe(['training-courses', 'scientific-councils', CompetitionsSource::KEY]);
 });
 
 it('counts competition registrants once per person in published competitions, and submitters as completed', function () {
@@ -74,7 +78,7 @@ it('counts competition registrants once per person in published competitions, an
 
     $this->artisan('ejaz:refresh-stats')->assertSuccessful();
 
-    expect(programStatsRows()['competitions'])->toMatchArray([
+    expect(programStatsRows()['_competitions'])->toMatchArray([
         'label' => __('program_stats.types.competitions'), 'registered' => 2, 'completed' => 1, 'rate' => 50, 'pages' => null, 'minutes' => null,
     ]);
 });
@@ -100,7 +104,7 @@ it('accepts a new source with one registration line, and lets it replace a row b
 
     $rows = collect(ProgramStatsByType::compute())->keyBy('key');
 
-    expect($rows->keys()->all())->toBe(['training-courses', 'scientific-councils', 'competitions', 'reading'])
+    expect($rows->keys()->all())->toBe(['training-courses', 'scientific-councils', '_competitions', 'reading'])
         ->and($rows['reading'])->toMatchArray(['registered' => 4, 'completed' => 1, 'rate' => 25, 'pages' => 120, 'minutes' => null])
         ->and($rows['scientific-councils'])->toMatchArray(['registered' => 5, 'rate' => 100, 'minutes' => 30]);
 });
@@ -136,7 +140,7 @@ it('shows the comparison widget to stats.view holders from the cache alone', fun
         ->assertSee(__('program_stats.types.competitions'))
         ->assertSee(__('program_stats.rate_value', ['rate' => 100]))
         // الوصف بعناصره لا نصاً مهرَّباً
-        ->assertSeeHtml('data-program-stats-row="competitions"')
+        ->assertSeeHtml('data-program-stats-row="_competitions"')
         ->assertDontSeeHtml('&lt;span');
 
     $aggregates = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'program_registrations') || str_contains($sql, 'competition_submissions'));
@@ -174,7 +178,7 @@ it('shows the program stats in the board portal to board members from the cache 
         ->assertSee('data-board-program-stats', false)
         ->assertSee(__('program_stats.heading'))
         ->assertSee('data-program-stats-row="training-courses"', false)
-        ->assertSee('data-program-stats-row="competitions"', false);
+        ->assertSee('data-program-stats-row="_competitions"', false);
 
     $aggregates = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'program_registrations') || str_contains($sql, 'competition_submissions'));
     expect($aggregates)->toBeEmpty();
@@ -212,7 +216,7 @@ it('counts a student who submitted an exam attempt as completed, though the regi
 
     $this->artisan('ejaz:refresh-stats')->assertSuccessful();
 
-    expect(programStatsRows()['competitions'])->toMatchArray(['registered' => 3, 'completed' => 1, 'rate' => 33]);
+    expect(programStatsRows()['_competitions'])->toMatchArray(['registered' => 3, 'completed' => 1, 'rate' => 33]);
 });
 
 it('keeps refreshing the other portal numbers when a program stats source fails', function () {
@@ -235,4 +239,18 @@ it('leaves the chart out of the admin dashboard for staff without stats.view', f
 
     $this->actingAs(userWithRole(RoleName::BoardMember))->get('/admin')->assertOk()
         ->assertSee(__('program_stats.heading'));
+});
+
+it('counts a registration completed by its holder (completed_at, library programs from #126) as completed', function () {
+    // العمود يأتي مع #126، فيُضاف هنا داخل معاملة الاختبار إن لم يوجد بعد
+    if (! Schema::hasColumn('program_registrations', 'completed_at')) {
+        Schema::table('program_registrations', fn (Blueprint $table) => $table->timestamp('completed_at')->nullable());
+    }
+
+    $program = Program::factory()->for($this->courses, 'type')->create();
+    ProgramRegistration::factory()->for($program)->create();
+    $done = ProgramRegistration::factory()->for($program)->create();
+    DB::table('program_registrations')->where('id', $done->id)->update(['completed_at' => now()]);
+
+    expect(collect((new ProgramTypesSource)->rows())->keyBy('key')['training-courses'])->toMatchArray(['registered' => 2, 'completed' => 1]);
 });
