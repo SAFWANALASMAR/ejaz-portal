@@ -38,6 +38,7 @@ it('lists the public pages and every published item with its last change', funct
         url('/media/albums'),
         url('/media/partners'),
         url('/contact'),
+        url('/achievements'),
         url('/pages/vision'),
         url('/initiatives/qiyam'),
         url('/governance/bylaws'),
