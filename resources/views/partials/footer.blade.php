@@ -21,7 +21,7 @@
         ? $contact['map_url']
         : \App\Support\NationalAddress::mapUrl($shortAddress);
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
-    // الروابط السريعة بأسمائها المختصرة وأيقونات أقسامها. و«إنجازاتنا» تُضاف متى بُني مسارها (feature/achievements). ولا رابط
+    // الروابط السريعة بأسمائها المختصرة وأيقونات أقسامها. و«إنجازاتنا» بمسارها (feature/achievements). ولا رابط
     // إلى «عن الجمعية» وصفحتها غير منشورة، فلا يفتح الزائر صفحة 404 (التجربة الشاملة، 18 أكتوبر — الخلل 2)
     $links = collect([
         'about' => ['about', 'building-library'],
@@ -32,7 +32,7 @@
         'governance' => ['governance.index', 'scale'],
         'initiatives' => ['initiatives.index', 'sparkles'],
         'services' => ['services.index', 'squares-2x2'],
-        'achievements' => ['achievements.index', 'trophy'],
+        'achievements' => ['achievements.index', 'star'],
         'contact' => ['contact', 'chat-bubble-left-right'],
     ])->filter(fn (array $link, string $key): bool => \Illuminate\Support\Facades\Route::has($link[0])
         && ($key !== 'about' || \App\Models\Page::isPublishedSlug(\App\Models\Page::ABOUT)));
