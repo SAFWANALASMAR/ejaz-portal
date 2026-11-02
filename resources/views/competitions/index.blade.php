@@ -3,7 +3,8 @@
     - «المسابقة الحالية»: المفتوحة، والأولى منها بطاقة بارزة بتدرج داكن، وجوائز مسابقة الطلاب تعدّ تصاعدياً (prize_table).
     - «مسابقات قادمة»: بطاقات ملونة بشارة «قريباً» وموعد الفتح، بلا زر تسجيل.
     - «مسابقات سابقة»: أرشيف ببطاقات ملونة، وشارة «النتائج معتمدة» متى اعتُمدت نتائجها، والتفاصيل في صفحتها.
-    والصفحات بترتيب موعد الفتح كما كانت، والتصنيف داخل الصفحة المعروضة.
+    والتصنيف في المتحكم باستعلامات مستقلة قبل الترقيم (البند R15 من تدقيق القبول): الحالية والقادمة في الصفحة الأولى بلا ترقيم،
+    والسابقة وحدها مرقّمة بأحدثها انتهاءً.
 --}}
 @php
     use App\Enums\CompetitionStatus;
@@ -11,10 +12,6 @@
     use App\Support\Dates;
     use App\Support\HomeShowcase;
 
-    $items = collect($competitions->items());
-    $open = $items->filter(fn ($competition) => $competition->status() === CompetitionStatus::Open)->values();
-    $upcoming = $items->filter(fn ($competition) => $competition->status() === CompetitionStatus::Upcoming)->values();
-    $past = $items->filter(fn ($competition) => $competition->status() === CompetitionStatus::Closed)->values();
     $current = $open->first();
     $prizeTotal = $current?->student_mode ? HomeShowcase::prizeTotal($current) : 0;
     $season = $current?->student_mode ? $current->pageText(CompetitionPage::SEASON) : null;
@@ -23,7 +20,7 @@
 <x-layouts.app :title="__('competitions.title')">
     <x-page-hero :title="__('competitions.list.heading')" />
 
-    @if ($items->isEmpty())
+    @if ($open->isEmpty() && $upcoming->isEmpty() && $past->isEmpty())
         <section class="container-page py-10">
             <x-empty-state icon="trophy" :message="__('competitions.list.empty')" />
         </section>
@@ -99,7 +96,7 @@
         @endif
 
         <div class="container-page pb-10">
-            {{ $competitions->links('partials.pagination') }}
+            {{ $past->links('partials.pagination') }}
         </div>
     @endif
 </x-layouts.app>

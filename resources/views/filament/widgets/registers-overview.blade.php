@@ -1,6 +1,7 @@
-{{-- المستندات ذات الصلاحية: لكل نوع عدد المنتهي والقريب من الانتهاء، وأقربها انتهاءً (RegistersOverviewWidget) --}}
+{{-- المستندات ذات الصلاحية: لكل نوع عدد المنتهي والقريب من الانتهاء، وأقربها انتهاءً (RegistersOverviewWidget).
+     والعنوان بمربع أيقونة، والصندوق بتدرج أزرق فاتح (ej-registers-box — البندان N2 وG2 من تدقيق القبول) --}}
 <x-filament-widgets::widget>
-    <x-filament::section :heading="__('registers.widget.heading')">
+    <x-filament::section :heading="__('registers.widget.heading')" icon="heroicon-o-document-check" class="ej-registers-box">
         @if ($data['counts'] === [])
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('registers.widget.none') }}</p>
         @else
