@@ -47,7 +47,8 @@ for (const width of WIDTHS) {
         expect(layout.hamburgerShown).toBe(false);
         expect(layout.licenceShown).toBe(true);
         expect(layout.clipped).toBe(0);
-        expect(layout.widths.length).toBeLessThanOrEqual(1);
+        // الكبسولات بقدر أسمائها ثم الباقي بالتساوي منذ ملاحظات 1 نوفمبر 2026 (سبع قوائم منسدلة بسهمها)، فلا عرض واحد لها
+        expect(layout.widths.length).toBeGreaterThanOrEqual(1);
         expect(layout.secondRow).toBe(true);
         expect(layout.borderBottom).toBe('rgb(142, 197, 240)');
         expect(layout.noHorizontalScroll).toBe(true);

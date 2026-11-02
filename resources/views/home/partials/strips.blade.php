@@ -14,7 +14,7 @@
                 <div class="flex flex-col gap-3">
                     <div class="flex items-center justify-between gap-4">
                         <x-section-heading id="home-strip-{{ $kind }}" :icon="$kind === 'videos' ? 'play-circle' : 'book-open'">{{ $headings[$kind] }}</x-section-heading>
-                        <a href="{{ route('library.section', $kind === 'videos' ? \App\Enums\LibrarySection::Videos->value : \App\Enums\LibrarySection::Books->value) }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}</a>
+                        <a href="{{ $kind === 'videos' ? route('library.section', \App\Enums\LibrarySection::Videos->value) : route('library.index') }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}</a>
                     </div>
 
                     <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7)" data-media-strip="{{ $kind }}"
@@ -22,8 +22,17 @@
                         @foreach ($items as $item)
                             <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate data-card class="tone-card media-tile group">
                                 <span @class(['media-tile-thumb', 'media-tile-book' => $kind === 'books'])>
-                                    <img src="{{ $item->thumbnailUrl() }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
-                                        class="size-full object-cover transition duration-500 group-hover:scale-105">
+                                    @if ($thumbnail = $item->thumbnailUrl())
+                                        <img src="{{ $thumbnail }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
+                                            class="size-full object-cover transition duration-500 group-hover:scale-105">
+                                    @else
+                                        {{-- بلا صورة: مربع بتدرج أزرق وأيقونة القسم، كما في التصور (البند ٢٤) --}}
+                                        <span class="media-tile-placeholder" data-thumb-placeholder aria-hidden="true">
+                                            @if ($kind === 'books')
+                                                {{ \App\Support\Icon::svg($item->section->icon(), 'size-10') }}
+                                            @endif
+                                        </span>
+                                    @endif
                                     @if ($kind === 'videos')
                                         <x-video-number :number="$loop->iteration" />
                                         <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">

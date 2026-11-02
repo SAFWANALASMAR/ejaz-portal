@@ -86,7 +86,7 @@
                 @foreach ($documents as $document)
                     <li>
                         <x-file-card :title="$document->title" :href="route('governance.show', $document->slug)"
-                            :download="$document->file === null ? null : route('governance.download', $document->slug)" :bytes="$document->file_size"
+                            :download="$document->file === null || $document->isViewOnly() ? null : route('governance.download', $document->slug)" :bytes="$document->file_size"
                             :type="$document->file === null ? __('governance.list.link') : __('governance.list.pdf')" :index="$loop->index" tone class="h-full"
                             :meta="[
                                 $document->category->getLabel(),

@@ -17,6 +17,9 @@
         }
     }
 
+    // أول عنصر في القائمة المنسدلة الصفحة الأم نفسها (MenuSections)، فلا تتكرر في النتائج
+    $pages = array_values(collect($pages)->unique('url')->all());
+
     $sections = [];
 
     if (Route::has('governance.index')) {

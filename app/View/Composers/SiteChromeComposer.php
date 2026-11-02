@@ -7,6 +7,7 @@ use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Support\MenuLink;
+use App\Support\MenuSections;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
@@ -66,6 +67,8 @@ class SiteChromeComposer
             ])
             // ويبقى العنصر الرئيسي إن بقيت له عناصر فرعية، زراً لقائمتها بلا رابط (MenuLink::$linkable)
             ->filter(fn (array $row): bool => $row['linkable'] || $row['children'] !== [])
+            // القائمة المنسدلة أولها الصفحة الأم ثم أقسامها الفعلية (ملاحظات المدير، 1 نوفمبر 2026، البند ٤ — MenuSections)
+            ->map(fn (array $row): array => $row['linkable'] ? [...$row, 'children' => MenuSections::children($row)] : $row)
             ->values()
             ->map(fn (array $row): MenuLink => MenuLink::fromArray($row));
     }

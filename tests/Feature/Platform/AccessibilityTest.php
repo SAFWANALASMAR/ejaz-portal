@@ -202,9 +202,10 @@ it('marks the active main-menu item as the current page on desktop and mobile, c
     $label = __('site.main_navigation');
 
     // الرابط الفرعي الحالي في القائمتين، وزر القائمة الأم يفتح عنصراً موجوداً ويعلن حالته
+    // والمكتبة قائمة منسدلة أيضاً بأقسامها منذ ملاحظات المدير في 1 نوفمبر 2026 (البند ٤)، فالأزرار أربعة في القائمتين
     expect($x->query("//nav[@aria-label='{$label}']//a[@aria-current='page'][normalize-space()='الأخبار']")->length)->toBe(2)
         ->and($x->query("//nav[@aria-label='{$label}']//a[@aria-current='page'][normalize-space()='المكتبة']")->length)->toBe(0)
-        ->and($x->query("//nav[@aria-label='{$label}']//button[@aria-expanded='false'][@aria-controls]")->length)->toBe(2);
+        ->and($x->query("//nav[@aria-label='{$label}']//button[@aria-expanded='false'][@aria-controls]")->length)->toBe(4);
 
     $x = a11yDom($this->get('/library')->assertOk());
 

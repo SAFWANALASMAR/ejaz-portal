@@ -6,8 +6,10 @@ use App\Http\Requests\GovernanceIndexRequest;
 use App\Models\Document;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
+use App\Support\ReaderFileResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
@@ -80,14 +82,28 @@ class GovernanceController extends Controller implements HasMiddleware
      * الملف للعرض المدمج في صفحة الوثيقة. وهذا المسار وحده يقبل التضمين من الموقع نفسه
      * (SecurityHeaders).
      */
-    public function file(string $slug): Response
+    public function file(Request $request, string $slug): Response
     {
-        return self::serve(self::publishedDocument($slug), download: false);
+        $document = self::publishedDocument($slug);
+
+        // «للاطلاع فقط» (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٢): لقارئ الصفحة وحده بحماية كتب المكتبة نفسها
+        if ($document->isViewOnly()) {
+            return ReaderFileResponse::make($request, Document::disk(), (string) $document->file, $document->downloadName(), 'governance', route('governance.show', $document->slug));
+        }
+
+        return self::serve($document, download: false);
     }
 
+    /**
+     * والوثيقة «للاطلاع فقط» لا تنزيل لها: لا زر في صفحتها ولا بطاقتها، والمسار 404 كأنه غير موجود.
+     */
     public function download(string $slug): Response
     {
-        return self::serve(self::publishedDocument($slug), download: true);
+        $document = self::publishedDocument($slug);
+
+        abort_if($document->isViewOnly(), 404);
+
+        return self::serve($document, download: true);
     }
 
     /**

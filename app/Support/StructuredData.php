@@ -158,7 +158,7 @@ class StructuredData
     }
 
     /**
-     * عنصر المكتبة: الكتاب Book، والمرئية VideoObject بصورتها المخزّنة ورابط تضمينها. وما سواهما لا شيء، ولا المرئية
+     * عنصر المكتبة: الكتاب Book، والبحث ScholarlyArticle، والمرئية VideoObject بصورتها المخزّنة ورابط تضمينها. والصوتية لا شيء، ولا المرئية
      * بلا صورة أو تاريخ نشر (يشترطهما Google، ولا يُخترع لهما بديل).
      *
      * @return array<string, mixed>|null
@@ -168,9 +168,11 @@ class StructuredData
         $url = route('library.show', [$item->section->value, $item->slug]);
         $thumbnail = $item->thumbnailUrl();
 
-        if ($item->section === LibrarySection::Books) {
+        // والبحث ScholarlyArticle بعنوانه headline كما يطلبه Google للمقالات (البند R9: «الأبحاث والدراسات» قسم مستقل)
+        if ($item->section->takesPdf()) {
             return self::filled([
-                '@type' => 'Book',
+                '@type' => $item->section === LibrarySection::Books ? 'Book' : 'ScholarlyArticle',
+                'headline' => $item->section === LibrarySection::Research ? $item->title : null,
                 'name' => $item->title,
                 'description' => self::text($item->description),
                 'url' => $url,

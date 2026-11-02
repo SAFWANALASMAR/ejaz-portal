@@ -84,15 +84,32 @@
             </aside>
             @endif
 
-            <div class="form-sky p-6 sm:p-8" data-contact-form>
+            <div id="contact-form" class="form-sky scroll-mt-48 p-6 sm:p-8" data-contact-form>
                 <h2 class="section-heading-title flex items-center gap-2.5 font-black leading-tight text-primary-dark"><x-icon-tile icon="chat-bubble-left-right" shade="medium" size="sm" class="section-heading-icon" data-loop />{{ __('contact.form.title') }}</h2>
                 <p class="mt-2 text-muted">{{ __('contact.form.intro') }}</p>
 
                 <x-flash class="mt-6" />
 
-                <form method="POST" action="{{ route('contact.store') }}" class="mt-6 space-y-5" novalidate>
+                {{-- لوحة النجاح مكان النموذج (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٣): بارزة، فيها «تم تسجيل طلبك» ورقم الطلب،
+                     ويُنقل إليها التركيز وتُعلَن (role="status"). يملؤها contact-form.js بعد الإرسال بلا إعادة تحميل، وبلا سكربت تأتي
+                     بعد التحويل برقم الطلب من الجلسة --}}
+                @php($sentReference = session('inquiry_reference'))
+                <div data-contact-success role="status" aria-live="polite" tabindex="-1" @unless ($sentReference) hidden @endunless
+                    class="contact-success mt-6">
+                    <span class="contact-success-icon" aria-hidden="true">{{ \App\Support\Icon::svg('check-circle', 'size-9') }}</span>
+                    <h3 class="text-2xl font-black">{{ __('contact.success.title') }}</h3>
+                    <p data-contact-success-text class="text-lg leading-8">{{ $sentReference ? __('contact.success.registered', ['reference' => $sentReference]) : '' }}</p>
+                    <p class="text-sm font-bold">{{ __('contact.success.reference') }}: <bdi dir="ltr" data-contact-reference class="contact-success-reference">{{ $sentReference }}</bdi></p>
+                    <a href="{{ route('contact') }}" class="tone-pill mt-1 self-start" data-contact-another>{{ __('contact.success.another') }}</a>
+                </div>
+
+                <form method="POST" action="{{ route('contact.store') }}" class="mt-6 space-y-5" novalidate data-async-form
+                    data-sending="{{ __('contact.success.sending') }}" data-failed="{{ __('contact.success.failed') }}" data-expired="{{ __('contact.success.expired') }}" data-too-many="{{ __('contact.success.too_many') }}" @if ($sentReference) hidden @endif>
                     @csrf
                     <input type="hidden" name="form_token" value="{{ $token }}">
+
+                    {{-- أخطاء الإرسال بلا إعادة تحميل (contact-form.js)، وبجانبها خطأ كل حقل تحته --}}
+                    <div data-form-errors role="alert" tabindex="-1" hidden class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"></div>
 
                     {{-- فخ للروبوتات: مخفي عن العين (sr-only)، وعن القارئات الصوتية (aria-hidden) ولوحة المفاتيح --}}
                     <div class="sr-only" aria-hidden="true">

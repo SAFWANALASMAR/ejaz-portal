@@ -46,9 +46,12 @@ class ContactRequest extends FormRequest
         $this->elapsed = FormTimer::secondsSince($this->input('form_token'), $this->session()->getId());
 
         if (filled($this->input(self::TRAP)) || ($this->elapsed !== null && $this->elapsed < self::MIN_SECONDS)) {
-            throw new HttpResponseException(
-                redirect()->route('contact')->with('status', __('contact.form.sent', ['reference' => Inquiry::randomReference()])),
-            );
+            $reference = Inquiry::randomReference();
+
+            // والإرسال بلا إعادة تحميل (البند ٢٣ من ملاحظات 1 نوفمبر) يأخذ النجاح نفسه بصيغة JSON، فلا يميّز الروبوت شيئاً
+            throw new HttpResponseException($this->wantsJson()
+                ? response()->json(['message' => __('contact.success.registered', ['reference' => $reference]), 'reference' => $reference], 201)
+                : redirect()->to(route('contact').'#contact-form')->with('inquiry_reference', $reference));
         }
     }
 

@@ -40,9 +40,10 @@ let progress = null;
 let progressLimit = null;
 
 // انتقال الصفحات بالشعار (أمر التصور النهائي، البند R25 — Final-Transition): طبقة بتدرج الهوية الداكن ورمز الشعار مؤشراً للتحميل
-// (partials/page-transition، @persist فتبقى هي نفسها عبر التنقّل). تظهر مع شريط التقدّم بعد 150 ملّي ثانية وحدها فلا تومض،
-// وتبقى 300 على الأقل متى ظهرت، ثم يكتمل الشعار ويلمع (done) وتتلاشى (leaving). والحركة كلها في CSS، وتقليلها يتركه ثابتاً
+// (partials/page-transition، @persist فتبقى هي نفسها عبر التنقّل). تظهر بعد 400 ملّي ثانية من التنقّل وحدها فلا تومض، وتتلاشى
+// فور حلول الصفحة (leaving). والحركة كلها في CSS، وتقليلها يتركه ثابتاً
 const transition = () => document.querySelector('[data-page-transition]');
+const TRANSITION_DELAY = 400;
 let shownAt = 0;
 let transitionTimer = null;
 
@@ -88,20 +89,20 @@ function finishTransition() {
         return;
     }
 
-    const wait = Math.max(0, 300 - (performance.now() - shownAt));
+    // لا انتظار بعد حلول الصفحة الجديدة (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البندان ٥ و٢١): كانت الطبقة تبقى نحو 770 ملّي
+    // ثانية فوق الصفحة الجاهزة (300 حد أدنى ثم 450 لمعة ثم 300 تلاشٍ). الآن يكتمل الشعار ويتلاشى معاً في 180، وحد أدنى قصير
+    // (200 من ظهورها) فلا تومض طبقة ظهرت للتو
+    const wait = Math.max(0, 200 - (performance.now() - shownAt));
     shownAt = 0;
     clearTimeout(transitionTimer);
     clearTimeout(transitionLimit);
     transitionTimer = setTimeout(() => {
-        overlay.dataset.state = 'done';
+        overlay.dataset.state = 'leaving';
         overlay.setAttribute('aria-busy', 'false');
         transitionTimer = setTimeout(() => {
-            overlay.dataset.state = 'leaving';
-            transitionTimer = setTimeout(() => {
-                overlay.hidden = true;
-                delete overlay.dataset.state;
-            }, 300);
-        }, 450);
+            overlay.hidden = true;
+            delete overlay.dataset.state;
+        }, 180);
     }, wait);
 }
 
@@ -160,9 +161,10 @@ export function start() {
         }
 
         stopProgress();
+        // والطبقة بعد 400 لا 150: التنقّل العادي (الرابط مجلوب مسبقاً عند المرور، أو خادم سريع) يحل بلا طبقة أصلاً (البند ٥)
         progress = setTimeout(() => {
             document.documentElement.setAttribute('data-navigating', '');
-            showTransition();
+            progress = setTimeout(showTransition, TRANSITION_DELAY - 150);
         }, 150);
         progressLimit = setTimeout(stopProgress, 15000);
     });

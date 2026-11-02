@@ -20,7 +20,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * الخاص، ولا يُقدَّم إلا منشوراً (GovernanceController). أو رابط مباشر https بدل الملف،
  * أحدهما وحده (SaveDocument وقيد القاعدة).
  */
-#[Fillable(['slug', 'title', 'category', 'issued_at', 'version', 'file', 'url', 'file_size', 'description', 'is_published'])]
+#[Fillable(['slug', 'title', 'category', 'issued_at', 'version', 'file', 'url', 'file_size', 'is_view_only', 'description', 'is_published'])]
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
@@ -38,7 +38,18 @@ class Document extends Model
             'issued_at' => 'date',
             'file_size' => 'integer',
             'is_published' => 'boolean',
+            'is_view_only' => 'boolean',
         ];
+    }
+
+    /**
+     * وثيقة «للاطلاع فقط» (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٢): ملفها يُعرض في قارئ الصفحة وحده، بلا تنزيل ولا فتح
+     * للملف نفسه في عارض المتصفح (GovernanceController)، كقارئ كتب المكتبة. والخيار لوثيقة بملف وحدها، فوثيقة الرابط المباشر
+     * تبقى برابطها. وغير المحدد (سجل قبل الترحيل لم يُقرأ بعد) للاطلاع فقط.
+     */
+    public function isViewOnly(): bool
+    {
+        return filled($this->file) && $this->is_view_only !== false;
     }
 
     /**

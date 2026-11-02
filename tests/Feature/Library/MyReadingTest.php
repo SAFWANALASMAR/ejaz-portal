@@ -343,7 +343,11 @@ it('shows my reading on the dashboard and its page, to the owner only, with cont
     // غيره لا يرى شيئاً من قراءاته، ولو كان مديراً، ولا معرّف في الرابط يُغيَّر
     $other = userWithRole(RoleName::TechnicalAdmin);
     $this->actingAs($other)->get('/account/my-reading')->assertOk()->assertDontSee('كتاب القراءة')->assertSee(__('reading.empty'));
-    $this->actingAs($other)->get('/account')->assertOk()->assertDontSee('كتاب القراءة');
+    // والكتاب نفسه منشور فقد يظهر في شريط «جديد مكتبة إعجاز» العام (بغلاف أو بلا غلاف منذ ملاحظات المدير في 1 نوفمبر)، فالفحص
+    // لقراءاته هو: لا تقدّم ولا رابط استئناف في لوحة غيره
+    $this->actingAs($other)->get('/account')->assertOk()
+        ->assertDontSee(__('reading.status.pages', ['page' => 2, 'total' => 5, 'read' => 2]))
+        ->assertDontSee(e(route('library.show', ['books', 'reading-book', 'resume' => 2])), false);
     expect($other->can('view', progressOf($this->reader, $book)))->toBeFalse()
         ->and($this->reader->can('view', progressOf($this->reader, $book)))->toBeTrue()
         ->and($other->can('viewAny', LibraryProgress::class))->toBeFalse();
