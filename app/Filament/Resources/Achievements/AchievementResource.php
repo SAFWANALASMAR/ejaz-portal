@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Achievements;
 
+use App\Actions\Achievements\DeleteAchievement;
+use App\Actions\Achievements\RestoreAchievement;
 use App\Actions\Achievements\SaveAchievement;
 use App\Enums\AchievementStatus;
 use App\Filament\Concerns\HasTranslatedLabels;
@@ -9,6 +11,7 @@ use App\Filament\Resources\Achievements\Pages\CreateAchievement;
 use App\Filament\Resources\Achievements\Pages\EditAchievement;
 use App\Filament\Resources\Achievements\Pages\ListAchievements;
 use App\Models\Achievement;
+use App\Models\User;
 use App\Rules\PlainText;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -95,14 +98,42 @@ class AchievementResource extends Resource
             ->recordActions([
                 self::attachmentAction(),
                 EditAction::make(),
-                DeleteAction::make(),
-                RestoreAction::make(),
+                self::deleteAction(),
+                self::restoreAction(),
             ]);
     }
 
     /**
      * فتح المرفق برابطه المؤقت الموقّع لمن يطّلع على الإنجاز، والرابط يُفحص عند الطلب ويُسجَّل اطلاع المسودة.
      */
+    /**
+     * الحذف الناعم عبر DeleteAchievement، فالإجراء يفحص الصلاحية بنفسه (مراجعة المشرف المنخفضة 1 على #122).
+     */
+    public static function deleteAction(): DeleteAction
+    {
+        return DeleteAction::make()->using(function (Achievement $record): bool {
+            /** @var User $actor */
+            $actor = auth()->user();
+            app(DeleteAchievement::class)->handle($actor, $record);
+
+            return true;
+        });
+    }
+
+    /**
+     * الاستعادة عبر RestoreAchievement.
+     */
+    public static function restoreAction(): RestoreAction
+    {
+        return RestoreAction::make()->using(function (Achievement $record): bool {
+            /** @var User $actor */
+            $actor = auth()->user();
+            app(RestoreAchievement::class)->handle($actor, $record);
+
+            return true;
+        });
+    }
+
     public static function attachmentAction(): Action
     {
         return Action::make('attachment')
