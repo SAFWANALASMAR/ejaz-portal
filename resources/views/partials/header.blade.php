@@ -18,7 +18,7 @@
     {{-- الصف الأول بعرض الشاشة كله بهامش صغير متساوٍ: الأوسط المخطوطة، والطرفان بعرض واحد فتبقى في منتصف الشاشة (concept.css — .header-top) --}}
     <div class="header-top">
         {{-- الاسم المقروء في المخطوطة، فرابط الرمز خارج ترتيب لوحة المفاتيح وقارئ الشاشة: رابطان إلى الرئيسية لا يتكرران --}}
-        <a href="{{ route('home') }}" wire:navigate class="header-mark" tabindex="-1" aria-hidden="true">
+        <a href="{{ route('home') }}" wire:navigate class="header-mark" tabindex="-1" aria-hidden="true" aria-label="{{ __('site.name') }}">
             <img src="{{ \App\Support\HomeContent::brand('mark_white') }}" alt="" width="495" height="505" data-brand-mark class="masthead-mark w-auto">
         </a>
 
@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    {{-- الصف الثاني: القائمة «ج»، وشارة البث في آخره (مراجعة المشرف على #130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
+    {{-- الصف الثاني: القائمة «ج»، وشارة البث في آخره (مراجعة المشرف على طلب الدمج 130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
     <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
         <div class="header-nav-row mx-auto max-w-[82.5rem] px-4 sm:px-7">
         <ul class="nav-capsules">
