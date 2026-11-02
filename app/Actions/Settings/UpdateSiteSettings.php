@@ -90,6 +90,16 @@ class UpdateSiteSettings
     }
 
     /**
+     * صور «إعدادات الموقع» المحفوظة في مجلدها (صورة الرئيسية)، فلا يربطها محرر الصفحات بصفحة فيعيد ترميزها أو يحذفها (EditablePages).
+     *
+     * @return list<string>
+     */
+    public static function storedImages(): array
+    {
+        return self::imagePaths(Setting::group('home')['hero_image'] ?? null);
+    }
+
+    /**
      * @return list<string>
      */
     private static function imagePaths(mixed $image): array
