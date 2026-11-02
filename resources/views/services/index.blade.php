@@ -6,6 +6,7 @@
 --}}
 <x-layouts.app :title="__('services.title')" :description="__('services.intro')">
     <x-page-hero :title="__('services.title')" :summary="__('services.intro')" />
+    <x-page-sections />
 
     <section class="band-sky">
         <div class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7">

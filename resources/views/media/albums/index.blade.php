@@ -1,5 +1,6 @@
 {{-- مكتبة الصور: بطاقات الألبومات المنشورة، الأحدث أولاً، بترقيم (تُخزَّن الصفحة الأولى — AlbumController) --}}
 <x-page-hero :title="__('albums.title')" />
+<x-page-sections />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">

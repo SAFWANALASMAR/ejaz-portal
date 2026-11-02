@@ -22,6 +22,7 @@ use App\Rules\PlainText;
 use App\Rules\SafeUrl;
 use App\Rules\SaudiMobile;
 use App\Rules\VideoUrl;
+use App\Support\EditablePages;
 use App\Support\NationalAddress;
 use App\Support\RedirectMap;
 use App\Support\RichText;
@@ -616,6 +617,14 @@ class ImportLegacyContent
             if (($data[$section] ?? []) !== [] && (! $actor->can('create', $class) || ! $actor->can('update', new $class))) {
                 $missing[] = __('import.sections.'.$section);
             }
+        }
+
+        // وصفحات الموقع الثابتة («عن الجمعية») لا يعدّلها إلا من له pages.edit_all (PagePolicy — docs/decisions/2026-11-02-page-editor.md)،
+        // فيُعرف ذلك قبل أي حفظ لا عند الوصول إليها
+        $fixed = collect($data['pages'] ?? [])->contains(fn (mixed $record): bool => is_array($record) && in_array($record['slug'] ?? null, EditablePages::slugs(), true));
+
+        if ($fixed && ! $actor->can('pages.edit_all') && ! in_array(__('import.sections.pages'), $missing, true)) {
+            $missing[] = __('import.sections.pages');
         }
 
         $hasRedirects = ($data['redirects'] ?? []) !== [] || collect(array_keys(self::MODELS))

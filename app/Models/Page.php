@@ -6,10 +6,12 @@ use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasPublicImages;
 use App\Support\ContentBlocks;
+use App\Support\EditablePages;
 use Database\Factories\PageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -72,8 +74,9 @@ class Page extends Model implements HasPublicImages
      */
     public static function introUrl(string $slug, bool $absolute = true): ?string
     {
+        // وسجل صفحة ثابتة من «محرر الصفحات» يُعرض في قالبه كذلك (EditablePages)
         if (! isset(self::INTROS[$slug])) {
-            return null;
+            return EditablePages::templateUrl($slug, $absolute);
         }
 
         [$route, $parameters] = self::INTROS[$slug];
@@ -143,7 +146,27 @@ class Page extends Model implements HasPublicImages
             default => null,
         };
 
-        return $slug !== null && ! isset(self::INTROS[$slug]) ? $slug : null;
+        return $slug !== null && ! isset(self::INTROS[$slug]) && EditablePages::templateUrl($slug) === null ? $slug : null;
+    }
+
+    /**
+     * معرّفات الصفحات التي تُعرض في قوالبها لا بروابطها (المقدمات وصفحات الموقع الثابتة)، فلا تُذكر في خريطة الموقع.
+     *
+     * @return list<string>
+     */
+    public static function templateSlugs(): array
+    {
+        return [...array_keys(self::INTROS), ...array_values(array_diff(EditablePages::slugs(), [self::ABOUT]))];
+    }
+
+    /**
+     * نسخ الصفحة الثابتة في «محرر الصفحات».
+     *
+     * @return HasMany<PageRevision, $this>
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(PageRevision::class);
     }
 
     public function imageDirectory(): string

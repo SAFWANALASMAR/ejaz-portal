@@ -8,6 +8,7 @@
 @endphp
 
 <x-page-hero :title="__('news.title')" />
+<x-page-sections />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
