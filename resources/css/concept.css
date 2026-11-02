@@ -1227,6 +1227,25 @@ html {
     padding-bottom: 0.875rem;
 }
 
+/* الصف الثابت (static): عناصر قليلة لا تملأ العرض، فتبقى في الوسط بلا حركة ولا قناع ولا نسخة */
+.marquee[data-direction][data-marquee-static] {
+    overflow: visible;
+    mask-image: none;
+}
+
+.marquee[data-direction][data-marquee-static] .marquee-track {
+    width: auto;
+    justify-content: center;
+}
+
+.marquee[data-direction][data-marquee-static] .marquee-group {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline-end: 0;
+}
+
 .marquee-toggle {
     position: absolute;
     top: 0.5rem;
@@ -1255,12 +1274,6 @@ html {
     .marquee[data-direction='vertical'][data-inview] .marquee-track {
         animation: marquee-y var(--marquee-duration, 40s) linear infinite;
     }
-
-    .marquee:hover .marquee-track,
-    .marquee:focus-within .marquee-track,
-    .marquee[data-paused] .marquee-track {
-        animation-play-state: paused;
-    }
 }
 
 /* تقليل الحركة: الشريط العمودي (الأخبار) لا يتحرك ويُمرَّر باليد بلا نسخة ثانية ولا زر إيقاف. والأفقي (الخدمات والشركاء ويوتيوب
@@ -1280,12 +1293,14 @@ html {
     .marquee[data-direction='horizontal'][data-inview] .marquee-track {
         animation: marquee-x calc(var(--marquee-duration, 40s) * 1.6) linear infinite;
     }
+}
 
-    .marquee[data-direction='horizontal']:hover .marquee-track,
-    .marquee[data-direction='horizontal']:focus-within .marquee-track,
-    .marquee[data-direction='horizontal'][data-paused] .marquee-track {
-        animation-play-state: paused;
-    }
+/* الإيقاف بالمرور والتركيز وبزر الإيقاف، للاتجاهين ولتفضيلي الحركة. تحديده (0,5,0) فوق قاعدة الحركة (0,4,0)، لأن خاصية
+   animation المختصرة فيها تعيد حالة التشغيل إلى running، فكان الإيقاف لا يعمل */
+.marquee[data-direction][data-inview]:hover .marquee-track,
+.marquee[data-direction][data-inview]:focus-within .marquee-track,
+.marquee[data-direction][data-inview][data-paused] .marquee-track {
+    animation-play-state: paused;
 }
 
 html[data-motion-off] .marquee[data-direction='vertical'] .marquee-track {
@@ -2387,7 +2402,9 @@ html[data-motion-off] .home-card-pick-icon {
     height: 1.75rem;
 }
 
-.how-to-compact-number {
+/* .tone-card قبله يورّث الأبيض لكل span (تحديده 0,1,1)، فكان الرقم أبيض على الدائرة البيضاء في البطاقات الداكنة (1 و3 و5) */
+.how-to-compact-number,
+.tone-card .how-to-compact-number {
     position: absolute;
     top: -0.375rem;
     inset-inline-end: -0.375rem;

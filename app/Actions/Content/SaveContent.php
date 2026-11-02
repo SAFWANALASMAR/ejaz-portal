@@ -6,6 +6,7 @@ use App\Models\Album;
 use App\Models\Contracts\HasPublicImages;
 use App\Models\Page;
 use App\Models\User;
+use App\Support\EditablePages;
 use App\Support\PublicImages;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -40,6 +41,14 @@ class SaveContent
         // معرّفا «عن الجمعية» و«سياسة الخصوصية» ثابتان، لأن رابطيهما مبنيان عليهما
         if ($record instanceof Page && $record->exists && in_array($record->slug, Page::LOCKED_SLUGS, true) && ($data['slug'] ?? $record->slug) !== $record->slug) {
             throw ValidationException::withMessages(['slug' => __('content.page_slug_locked')]);
+        }
+
+        // ومعرّفات صفحات الموقع الثابتة محجوزة لـ«محرر الصفحات» (EditablePages): لا ينشئ صفحة بها ولا ينقل إليها صفحة أخرى إلا
+        // من له pages.edit_all. وتعديل الصفحة الثابتة نفسها بها وحدها (PagePolicy)، كأمر استيراد الموقع السابق لمسودة «عن الجمعية»
+        $slug = $record instanceof Page ? ($data['slug'] ?? $record->slug) : null;
+
+        if ($record instanceof Page && in_array($slug, EditablePages::slugs(), true) && (! $record->exists || $record->getOriginal('slug') !== $slug) && ! $actor->can('pages.edit_all')) {
+            throw ValidationException::withMessages(['slug' => __('page_editor.slug_reserved')]);
         }
 
         $before = $record->publicImages();
