@@ -18,13 +18,36 @@ class CompetitionController extends Controller
 {
     private const PER_PAGE = 12;
 
+    /**
+     * سقف الحالية والقادمة: بلا ترقيم، والعدد في الواقع مسابقة أو اثنتان، فالسقف حماية لا أكثر.
+     */
+    private const ACTIVE_LIMIT = 24;
+
+    /**
+     * التصنيف باستعلامات مستقلة قبل الترقيم (البند R15 من تدقيق القبول): الحالية والقادمة في الصفحة الأولى
+     * بلا ترقيم، والسابقة وحدها مرقّمة، فلا تختفي الحالية لكثرة السابقات. والحد بين الحالات لحظة واحدة،
+     * فلا تقع مسابقة في قسمين ولا تسقط بينهما (كـ Competition::status).
+     */
     public function index(Request $request): View
     {
-        $competitions = Competition::query()->published()->orderByDesc('opens_at')->orderBy('id')->paginate(self::PER_PAGE);
+        $now = now();
+        $published = fn () => Competition::query()->published();
 
-        abort_if($competitions->currentPage() > max(1, $competitions->lastPage()), 404);
+        $past = $published()->where('opens_at', '<=', $now)->where('closes_at', '<=', $now)->orderByDesc('closes_at')->orderByDesc('id')->paginate(self::PER_PAGE);
 
-        return view('competitions.index', ['competitions' => $competitions]);
+        abort_if($past->currentPage() > max(1, $past->lastPage()), 404);
+
+        $firstPage = $past->currentPage() === 1;
+
+        return view('competitions.index', [
+            'past' => $past,
+            'open' => $firstPage
+                ? $published()->where('opens_at', '<=', $now)->where('closes_at', '>', $now)->orderByDesc('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
+                : collect(),
+            'upcoming' => $firstPage
+                ? $published()->where('opens_at', '>', $now)->orderBy('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
+                : collect(),
+        ]);
     }
 
     public function show(Request $request, string $slug): Response

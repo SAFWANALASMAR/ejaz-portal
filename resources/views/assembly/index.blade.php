@@ -1,8 +1,8 @@
 {{--
     قسم الجمعية العمومية (الصورة 05 — النمط الموحد): للزائر رأس القسم ثم البلاطات الأربع، ولصاحب حساب غير عضو تنبيه ورابط
     طلب الانضمام. ولمن يصل إلى منطقة الأعضاء بوابة مجلس الإدارة والجمعية العمومية (Final-Board — البند B1): ترحيب بزر «انضم
-    للاجتماع القادم عبر تيمز» متى وُجد رابطه، ثم إحصائيات المجلس، ثم الاختصارات، ثم الاجتماعات القادمة، ثم المحاضر والقرارات.
-    والبيانات كلها قائمة (App\Actions\Assembly\BuildBoardPortal)، ولا تُعرض «إنجازاتنا» حتى يُبنى فرعها (feature/achievements).
+    للاجتماع القادم عبر تيمز» متى وُجد رابطه، ثم إحصائيات المجلس، ثم الاختصارات، ثم الاجتماعات القادمة، ثم المحاضر والقرارات،
+    ثم «إنجازاتنا» بعدد المنشور هذا العام وخطه الزمني (App\Actions\Assembly\BuildBoardPortal).
 --}}
 @php
     use App\Enums\MeetingBody;
@@ -201,6 +201,35 @@
                             </li>
                         @endforeach
                     </ul>
+                @endif
+            </section>
+
+            {{-- «إنجازاتنا»: عدد المنشور هذا العام، ثم الخط الزمني لآخر المنشور. والإضافة للإدارة التنفيذية وحدها في اللوحة --}}
+            <section class="concept-panel rounded-[1.25rem] p-5 sm:p-6" aria-labelledby="board-achievements" data-board-achievements>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="board-achievements" class="flex items-center gap-2.5 text-[1.375rem] font-black text-primary-dark sm:text-2xl">
+                        <x-icon-tile icon="star" size="sm" shade="dark" />
+                        {{ __('achievements.title') }}
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <p class="flex items-center gap-2 rounded-2xl border border-[var(--concept-border)] bg-white px-4 py-2" data-achievements-this-year>
+                            <span class="text-sm font-bold text-muted">{{ __('achievements.this_year') }}</span>
+                            <span class="text-xl font-black text-primary-dark tabular-nums" data-achievements-count>{{ number_format($portal['achievements_this_year']) }}</span>
+                        </p>
+                        @can('create', \App\Models\Achievement::class)
+                            <x-button size="sm" :href="\App\Filament\Resources\Achievements\AchievementResource::getUrl('create')" data-achievement-add>
+                                {{ \App\Support\Icon::svg('plus', 'size-4', ['aria-hidden' => 'true']) }}
+                                {{ __('achievements.actions.add') }}
+                            </x-button>
+                        @endcan
+                        <a href="{{ route('achievements.index') }}" wire:navigate class="more-link shrink-0">{{ __('achievements.actions.all') }}</a>
+                    </div>
+                </div>
+
+                @if ($portal['achievements']->isEmpty())
+                    <p class="mt-4 text-muted" data-achievements-empty>{{ __('achievements.portal_empty') }}</p>
+                @else
+                    <x-achievement-timeline :achievements="$portal['achievements']" excerpt class="mt-4" />
                 @endif
             </section>
         </div>
