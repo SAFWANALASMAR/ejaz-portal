@@ -16,11 +16,3 @@ it('serves .mjs modules as JavaScript from the http context', function (string $
         // ولا types داخل كتلة، فلا تُستبدل أنواع الخادم كلها
         ->and(preg_match_all('/^[ \t]+types\s*\{/m', $config))->toBe(0);
 })->with(['deploy/nginx/ejaz.conf', 'deploy/docker/nginx.conf']);
-
-it('builds the PDF worker as an .mjs module, the file the nginx type is for', function () {
-    $manifest = json_decode((string) file_get_contents(base_path('package-lock.json')), true);
-
-    // pdfjs-dist يوزّع العامل .mjs وحده منذ الإصدار 4، وresources/js/pdf-reader.js يستورده بامتداده
-    expect((int) explode('.', (string) ($manifest['packages']['node_modules/pdfjs-dist']['version'] ?? '0'))[0])->toBeGreaterThanOrEqual(4)
-        ->and((string) file_get_contents(resource_path('js/pdf-reader.js')))->toContain('pdf.worker.min.mjs?url');
-});

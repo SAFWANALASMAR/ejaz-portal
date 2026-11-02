@@ -4,6 +4,7 @@ use App\Enums\RoleName;
 use App\Filament\Resources\ArchiveCategories\ArchiveCategoryResource;
 use App\Filament\Resources\ArchiveCategories\Pages\ManageArchiveCategories;
 use App\Filament\Resources\Competitions\CompetitionResource;
+use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\ProgramTypes\Pages\ManageProgramTypes;
 use App\Filament\Resources\ProgramTypes\ProgramTypeResource;
 use App\Models\ArchiveCategory;
@@ -262,4 +263,25 @@ it('keeps the competition form in the panel to a fixed number of queries whateve
         fn () => $this->actingAs($admin)->get(CompetitionResource::getUrl('edit', ['record' => $competition])),
         19,
     );
+});
+
+it('still disables the locked fields of the competition form, each lock on its own', function () {
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
+    $open = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $schedule = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $schedule->forceFill(['results_approved_at' => now()])->save();
+    $ranking = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $ranking->forceFill(['ranking_locked_at' => now()])->save();
+
+    Livewire::test(EditCompetition::class, ['record' => $open->getRouteKey()])
+        ->assertFormFieldEnabled('opens_at')->assertFormFieldEnabled('is_published')
+        ->assertFormFieldEnabled('ranking_scope')->assertFormFieldEnabled('prize_table');
+
+    Livewire::test(EditCompetition::class, ['record' => $schedule->getRouteKey()])
+        ->assertFormFieldDisabled('opens_at')->assertFormFieldDisabled('closes_at')->assertFormFieldDisabled('is_published')
+        ->assertFormFieldEnabled('ranking_scope');
+
+    Livewire::test(EditCompetition::class, ['record' => $ranking->getRouteKey()])
+        ->assertFormFieldEnabled('opens_at')
+        ->assertFormFieldDisabled('ranking_scope')->assertFormFieldDisabled('prize_table');
 });
