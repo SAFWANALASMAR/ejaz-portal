@@ -26,17 +26,18 @@
                     </div>
 
                     <dl class="grid gap-2 text-sm">
-                        @foreach (['registered' => 'fill-primary-dark', 'completed' => 'fill-brand'] as $field => $fill)
+                        @foreach (['registered' => 'fill-current', 'completed' => 'fill-brand'] as $field => $fill)
                             @php($width = round($row[$field] / $programStatsMax * 100, 1))
-                            <div class="flex flex-col gap-1">
-                                <div class="flex justify-between gap-2">
-                                    <dt class="tone-card-muted font-bold">{{ __('program_stats.'.$field) }}</dt>
-                                    <dd class="font-black tabular-nums">{{ number_format($row[$field]) }}</dd>
-                                </div>
+                            {{-- مجموعة dl صحيحة: dt ثم dd للرقم ثم dd للشريط بعرض السطر --}}
+                            <div class="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1">
+                                <dt class="tone-card-muted font-bold">{{ __('program_stats.'.$field) }}</dt>
+                                <dd class="font-black tabular-nums">{{ number_format($row[$field]) }}</dd>
                                 {{-- الشريط من اليمين كاتجاه القراءة، وزخرفة فالرقم قبله يكفي --}}
-                                <svg class="h-2 w-full overflow-hidden rounded-full bg-white/40" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                    <rect x="{{ 100 - $width }}" y="0" width="{{ $width }}" height="8" class="{{ $fill }}" />
-                                </svg>
+                                <dd class="col-span-2" aria-hidden="true">
+                                    <svg class="block h-2 w-full overflow-hidden rounded-full bg-current/15" viewBox="0 0 100 8" preserveAspectRatio="none" focusable="false">
+                                        <rect x="{{ 100 - $width }}" y="0" width="{{ $width }}" height="8" class="{{ $fill }}" />
+                                    </svg>
+                                </dd>
                             </div>
                         @endforeach
 

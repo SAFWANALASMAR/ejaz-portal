@@ -134,7 +134,10 @@ it('shows the comparison widget to stats.view holders from the cache alone', fun
         ->assertSee('الدورات التدريبية')
         ->assertSee('المجالس العلمية')
         ->assertSee(__('program_stats.types.competitions'))
-        ->assertSee(__('program_stats.rate_value', ['rate' => 100]));
+        ->assertSee(__('program_stats.rate_value', ['rate' => 100]))
+        // الوصف بعناصره لا نصاً مهرَّباً
+        ->assertSeeHtml('data-program-stats-row="competitions"')
+        ->assertDontSeeHtml('&lt;span');
 
     $aggregates = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'program_registrations') || str_contains($sql, 'competition_submissions'));
     expect($aggregates)->toBeEmpty();

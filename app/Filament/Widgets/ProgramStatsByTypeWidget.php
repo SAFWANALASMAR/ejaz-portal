@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Support\ProgramStatsByType;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 /**
  * رسم مقارنة بين أنواع البرامج (البند R23 — docs/decisions/2026-11-02-program-stats-by-type.md): المسجلون والمكملون لكل نوع،
@@ -59,7 +60,8 @@ class ProgramStatsByTypeWidget extends ChartWidget
 
         return $rows === null || $rows === []
             ? __('program_stats.description')
-            : view('filament.widgets.program-stats-by-type-summary', ['rows' => $rows]);
+            // HtmlString لا View: الوصف يُطبع بـ {{ }} في القسم فيُهرَّب ما ليس Htmlable صراحةً (اختبار المتصفح)
+            : new HtmlString(view('filament.widgets.program-stats-by-type-summary', ['rows' => $rows])->render());
     }
 
     public function getEmptyStateHeading(): string
