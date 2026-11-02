@@ -1,8 +1,12 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
+use App\Actions\Library\ClearMyReading;
+use App\Actions\Programs\CancelProgramRegistration;
 use App\Actions\Programs\CompleteLibraryProgram;
 use App\Actions\Programs\RegisterForProgram;
 use App\Actions\Programs\SaveProgram;
+use App\Actions\Users\AnonymizeUser;
 use App\Enums\LibraryProgramKind;
 use App\Enums\LibrarySection;
 use App\Enums\ProgramStatus;
@@ -397,4 +401,60 @@ it('refuses completion while reading tracking is off, with the message to turn i
     $this->actingAs($this->member)->get(route('programs.show', $registration->program->slug))
         ->assertSee(__('programs.library.tracking_off'))
         ->assertSee(route('account.profile').'#reading-tracking', false);
+});
+
+// حقوق صاحب البيانات في تقدّم برامج المكتبة (مراجعة المشرف على #126)
+
+it('exports the library program progress with the user data', function () {
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 3])), $this->member);
+    readInProgram($registration, '1-2', 2);
+
+    $exported = collect(app(ExportUserData::class)->handle($this->member)['program_registrations'])->sole();
+
+    expect($exported)->toMatchArray(['pages_seen' => '1-2', 'pages_count' => 2, 'seconds_baseline' => 0])
+        ->and($exported['started_at'])->not->toBeNull()
+        ->and($exported['opened_at'])->not->toBeNull();
+});
+
+it('resets the unfinished program progress when the user clears their reading, and warns them first', function () {
+    $ongoing = confirmedIn(libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 3])), $this->member);
+    readInProgram($ongoing, '1-2', 2);
+    $done = confirmedIn(libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 1])), $this->member);
+    readInProgram($done, '1', 1);
+    $done->forceFill(['completed_at' => now()])->save();
+
+    progressFor($this->member, LibraryItem::factory()->create(), ['pages_seen' => '1', 'pages_count' => 1]);
+    $this->actingAs($this->member)->get(route('account.my-reading'))->assertSee(__('reading.clear_programs_warning'));
+
+    app(ClearMyReading::class)->handle($this->member);
+
+    expect($ongoing->fresh())->pages_seen->toBeNull()->pages_count->toBe(0)->opened_at->toBeNull()
+        ->and($done->fresh())->pages_seen->toBe('1')->completed_at->not->toBeNull();
+});
+
+it('clears the program pages when the account is anonymized', function () {
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 3])), $this->member);
+    readInProgram($registration, '1-2', 2);
+    $this->member->forceFill(['deletion_requested_at' => now()])->save();
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $this->member);
+
+    expect($registration->fresh())->pages_seen->toBeNull()->pages_count->toBe(0);
+});
+
+it('starts a library program for a waitlisted participant at the promotion', function () {
+    $audio = LibraryItem::factory()->audio()->create(['duration_seconds' => 600]);
+    $program = libraryProgram(LibraryProgramKind::Listening, $audio, ['seats' => 1, 'has_waitlist' => true]);
+    $first = confirmedIn($program, User::factory()->create());
+
+    $waiting = User::factory()->create();
+    progressFor($waiting, $audio, ['seconds_consumed' => 400]);
+    $waitlisted = ProgramRegistration::factory()->create(['program_id' => $program->id, 'user_id' => $waiting->id, 'status' => RegistrationStatus::Waitlisted, 'waitlisted_at' => now()]);
+
+    $this->travel(1)->hours();
+    app(CancelProgramRegistration::class)->handle($first->user, $first);
+
+    expect($waitlisted->fresh())->status->toBe(RegistrationStatus::Confirmed)
+        ->seconds_baseline->toBe(400)
+        ->and($waitlisted->fresh()->started_at->isSameMinute(now()))->toBeTrue();
 });
