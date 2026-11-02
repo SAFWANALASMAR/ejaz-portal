@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Filament\Resources\SitePages\SitePageResource;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
@@ -237,9 +238,9 @@ it('refuses or allows each panel create and edit screen to each role exactly as 
         $record = $records[$model] ?? null;
         $policy = $saved[class_basename($model)] ?? null;
 
-        // ومورد يحصر سجلاته في مجموعة خاصة لا يدخلها سجل المصنع («محرر الصفحات» لصفحات الموقع الثابتة وحدها، بصلاحية
-        // pages.edit_all — PageEditorTest)، فلا تُقاس شاشته بخانات النموذج العامة
-        if ($record === null || $policy === null || ! $resource::getEloquentQuery()->whereKey($record->getKey())->exists()) {
+        // و«محرر الصفحات» وحده يحصر سجلاته في صفحات الموقع الثابتة، فلا يدخلها سجل المصنع ولا تُقاس شاشته بخانات النموذج العامة
+        // (صلاحيته pages.edit_all — PageEditorTest). والتخطي باسم المورد لا باستعلامه، لأن الاستعلام يُقرأ بدور المختبَر فيتخطى غيره
+        if ($record === null || $policy === null || $resource === SitePageResource::class) {
             continue;
         }
 
