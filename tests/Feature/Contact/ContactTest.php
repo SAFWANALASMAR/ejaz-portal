@@ -229,9 +229,14 @@ it('limits one mailbox to five messages a day, whatever way its address is writt
         sendContactForm(['email' => $email])->assertSessionHasNoErrors();
     }
 
-    sendContactForm(['email' => 'visitor@gmail.com'])->assertSessionHasErrors(['email' => __('contact.form.daily_limit')]);
+    // السادسة نجاح وهمي كالفخ لا خطأ يكشف أن البريد بلغ حده (قرار صفوان، 2 نوفمبر 2026): التحويل نفسه ورقم بالصيغة نفسها، ولا حفظ
+    // ولا بريد
+    Notification::fake();
+    sendContactForm(['email' => 'visitor@gmail.com'])->assertRedirect(route('contact').'#contact-form')->assertSessionHasNoErrors()
+        ->assertSessionHas('inquiry_reference', fn (string $reference): bool => preg_match('/^INQ-[A-HJ-NP-Z2-9]{8}$/', $reference) === 1);
 
     expect(Inquiry::count())->toBe(5);
+    Notification::assertNothingSent();
 });
 
 it('limits the messages of each subscriber, each IPv6 site and the whole portal', function () {

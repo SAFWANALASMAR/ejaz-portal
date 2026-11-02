@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Contact\SubmitInquiry;
 use App\Http\Requests\ContactRequest;
+use App\Models\Inquiry;
 use App\Models\Setting;
 use App\Support\FormTimer;
 use Illuminate\Contracts\View\View;
@@ -50,25 +51,35 @@ class ContactController extends Controller
         // الحد اليومي لكل صندوق بريد، فلا يُغرق بريد أحد برسائل التأكيد
         $key = self::mailboxKey((string) $request->validated('email'));
 
-        if (RateLimiter::tooManyAttempts($key, self::DAILY_PER_EMAIL)) {
-            return self::failed($request, ['email' => __('contact.form.daily_limit')], $request->all());
-        }
-
         // والختم لمرة واحدة: ضغطتان على الزر أو إعادة الإرسال لا تنشئان رسالتين. والختم المستهلك لا
         // يعود إلى الصفحة
         if (! FormTimer::consume((string) $request->input('form_token'), ContactRequest::MAX_SECONDS)) {
             return self::failed($request, ['form_token' => __('contact.form.already_sent')], $request->except('form_token'));
         }
 
+        // وبلوغ الحد يُرد نجاحاً وهمياً كالفخ (قرار صفوان عبر المشرف، 2 نوفمبر 2026): الحالة واللوحة نفسها ورقم بالصيغة نفسها، ولا
+        // يُحفظ شيء ولا يُرسل بريد، فلا يعرف المرسل أن هذا البريد بلغ حده اليوم (المراجعة الأمنية لـ #118، منخفضة ٣)
+        if (RateLimiter::tooManyAttempts($key, self::DAILY_PER_EMAIL)) {
+            return self::sent($request, Inquiry::randomReference());
+        }
+
         RateLimiter::hit($key, 86400);
 
         $inquiry = $submit->handle($request->safe()->only(['name', 'email', 'phone', 'type', 'subject', 'message']), $request->user());
 
+        return self::sent($request, $inquiry->reference);
+    }
+
+    /**
+     * رد النجاح بالرقم، حقيقياً أو وهمياً، بصيغة واحدة: JSON للإرسال بلا إعادة تحميل، وإلا التحويل ولوحة النجاح.
+     */
+    private static function sent(ContactRequest $request, string $reference): RedirectResponse|JsonResponse
+    {
         if ($request->wantsJson()) {
-            return response()->json(['message' => __('contact.success.registered', ['reference' => $inquiry->reference]), 'reference' => $inquiry->reference], 201);
+            return response()->json(['message' => __('contact.success.registered', ['reference' => $reference]), 'reference' => $reference], 201);
         }
 
-        return redirect()->to(route('contact').'#contact-form')->with('inquiry_reference', $inquiry->reference);
+        return redirect()->to(route('contact').'#contact-form')->with('inquiry_reference', $reference);
     }
 
     /**

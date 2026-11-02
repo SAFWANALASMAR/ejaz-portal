@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Accounts\BuildParticipationStats;
 use App\Actions\Competitions\StartAttempt;
 use App\Enums\DocumentCategory;
 use App\Enums\InquiryType;
@@ -16,13 +17,16 @@ use App\Models\Page;
 use App\Models\Partner;
 use App\Models\Program;
 use App\Models\Setting;
+use App\Models\User;
 use App\Support\ContentBlocks;
 use App\Support\FormTimer;
 use App\Support\MenuSections;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /*
@@ -285,7 +289,7 @@ it('marks a single top-level item current when a generated section repeats anoth
     }
 });
 
-it('answers the daily mailbox limit as a JSON error in Arabic (item 23)', function () {
+it('answers the daily mailbox limit with a fake success indistinguishable from a real one, storing and sending nothing (item 23)', function () {
     Notification::fake();
     $session = Str::random(40);
     $token = FormTimer::token($session);
@@ -297,6 +301,58 @@ it('answers the daily mailbox limit as a JSON error in Arabic (item 23)', functi
         RateLimiter::hit($key, 86400);
     }
 
-    $this->withCookie(config('session.cookie'), $session)->withCredentials()->postJson('/contact', $form)
-        ->assertStatus(422)->assertJsonPath('errors.email.0', __('contact.form.daily_limit'));
+    $response = $this->withCookie(config('session.cookie'), $session)->withCredentials()->postJson('/contact', $form)->assertCreated();
+
+    // الشكل نفسه للنجاح الحقيقي: الحالة والمفتاحان والرسالة ورقم بالصيغة نفسها، بلا كلمة عن الحد
+    expect(array_keys($response->json()))->toBe(['message', 'reference'])
+        ->and($response->json('reference'))->toMatch('/^INQ-[A-HJ-NP-Z2-9]{8}$/')
+        ->and($response->json('message'))->toBe(__('contact.success.registered', ['reference' => $response->json('reference')]))
+        ->and($response->getContent())->not->toContain(__('contact.form.daily_limit'))
+        ->and(Inquiry::count())->toBe(0);
+    Notification::assertNothingSent();
+
+    // والختم استُهلك كالنجاح الحقيقي: إعادة الإرسال نفسه «أُرسلت من قبل»
+    $this->withCookie(config('session.cookie'), $session)->withCredentials()->postJson('/contact', $form)->assertStatus(422)->assertJsonValidationErrors('form_token');
+});
+
+it('refuses a JSON inquiry without the CSRF token (security review, low 2)', function () {
+    $session = Str::random(40);
+    $token = FormTimer::token($session);
+    $this->travel(5)->seconds();
+
+    // لارافيل يتخطى فحص الرمز في الاختبارات، فيُستبدل بنسخة تفحص كما في الإنتاج (كما في CsrfCorsTest)
+    $this->app->singleton(PreventRequestForgery::class, fn ($app) => new class($app, $app['encrypter']) extends PreventRequestForgery
+    {
+        protected function runningUnitTests()
+        {
+            return false;
+        }
+    });
+
+    $this->withCookie(config('session.cookie'), $session)->withCredentials()
+        ->postJson('/contact', ['name' => 'زائر', 'email' => 'v@example.com', 'type' => InquiryType::Inquiry->value, 'subject' => 'س', 'message' => 'ن', 'form_token' => $token])
+        ->assertStatus(419);
+
+    expect(Inquiry::count())->toBe(0);
+});
+
+it('does not count another user\'s competition entries on the dashboard (security review, low 1)', function () {
+    $mine = User::factory()->create();
+    $other = User::factory()->create();
+    CompetitionSubmission::factory()->for($other)->submitted()->create();
+    CompetitionSubmission::factory()->for($other)->create();
+
+    expect(CompetitionSubmission::query()->ownedBy($mine)->count())->toBe(0)
+        ->and(app(BuildParticipationStats::class)->handle($mine)['entries'])->toBe(0)
+        ->and(app(BuildParticipationStats::class)->handle($other)['entries'])->toBe(2);
+});
+
+it('never sends reading progress from the governance view-only reader', function () {
+    Storage::fake(Document::disk());
+    $document = Document::factory()->viewOnly()->create(['slug' => 'no-progress']);
+    Storage::disk(Document::disk())->put((string) $document->file, pdfContents());
+
+    $html = $this->get('/governance/no-progress')->assertOk()->getContent();
+
+    expect($html)->toContain('data-pdf-reader')->not->toContain('data-progress');
 });
