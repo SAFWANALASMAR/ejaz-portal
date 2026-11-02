@@ -14,6 +14,7 @@ use App\Models\LibraryItem;
 use App\Models\MediaAsset;
 use App\Models\NewsArticle;
 use App\Models\Page;
+use App\Models\PageRevision;
 use App\Models\Partner;
 use App\Models\Program;
 use App\Models\Setting;
@@ -39,7 +40,7 @@ class PrunePublicFiles extends Command
      *
      * @var list<class-string<Model&HasPublicImages>>
      */
-    public const MODELS = [Album::class, Announcement::class, BoardMember::class, CompetitionRound::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, Partner::class, Program::class];
+    public const MODELS = [Album::class, Announcement::class, BoardMember::class, CompetitionRound::class, Initiative::class, LibraryItem::class, NewsArticle::class, Page::class, PageRevision::class, Partner::class, Program::class];
 
     /**
      * فوق هذا العدد، وفوق نصف ملفات المجلدات، يُعد الحذف جماعياً فلا يتم إلا بـ --force.

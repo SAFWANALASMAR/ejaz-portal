@@ -1,5 +1,6 @@
 {{-- الشركاء: شعاراتهم بترتيبهم في اللوحة، ولكل شريك رابط موقعه (تُخزَّن نصاً — MediaController) --}}
 <x-page-hero :title="__('partners.title')" />
+<x-page-sections />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
