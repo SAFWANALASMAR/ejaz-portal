@@ -51,8 +51,8 @@ class ProgramForm
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
             Section::make(__('programs.admin.sections.schedule'))->columns(2)->columnSpanFull()->schema([
-                // وبرنامج المكتبة يبدأ من إنشائه ويبقى مفتوحاً حتى نهايته الاختيارية
-                DateTimePicker::make('starts_at')->label(__('programs.admin.fields.starts_at'))->seconds(false)->required()->default(fn (): string => now()->format('Y-m-d H:i')),
+                // وبرنامج المكتبة يبقى مفتوحاً بعد بدئه حتى نهايته الاختيارية
+                DateTimePicker::make('starts_at')->label(__('programs.admin.fields.starts_at'))->seconds(false)->required(),
                 DateTimePicker::make('ends_at')->label(__('programs.admin.fields.ends_at'))->seconds(false)->afterOrEqual('starts_at'),
                 Select::make('delivery')->label(__('programs.admin.fields.delivery'))->options(ProgramDelivery::class)->required(),
                 TextInput::make('location')->label(__('programs.admin.fields.location'))->maxLength(255),

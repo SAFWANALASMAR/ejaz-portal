@@ -37,6 +37,9 @@ class ProgramRegistrationPolicy
     {
         return $registration->user_id === $user->id
             && $registration->status !== RegistrationStatus::Cancelled
-            && $registration->program->starts_at->isFuture();
+            && ($registration->program->isLibraryProgram()
+                // وبرنامج المكتبة يُلغى ما دام مفتوحاً ولم يُتمّه صاحبه (docs/decisions/2026-11-02-reading-program.md)
+                ? $registration->completed_at === null && ($registration->program->ends_at === null || $registration->program->ends_at->isFuture())
+                : $registration->program->starts_at->isFuture());
     }
 }

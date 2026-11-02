@@ -28,7 +28,8 @@ class CompleteLibraryProgram
         $program = $registration->program;
 
         if ($registration->user_id !== $user->id || $registration->status !== RegistrationStatus::Confirmed
-            || $program->libraryKind() === null || ! $program->is_published || $program->trashed()) {
+            || $program->libraryKind() === null || ! $program->is_published || $program->trashed()
+            || $program->libraryItem === null || ! $program->libraryItem->is_published || $program->libraryItem->trashed()) {
             throw new AuthorizationException;
         }
 
@@ -40,14 +41,15 @@ class CompleteLibraryProgram
             throw ValidationException::withMessages(['complete' => __('programs.library.ended')]);
         }
 
-        if (! LibraryProgramProgress::for($program, $user)->complete()) {
+        if (! LibraryProgramProgress::for($program, $user, $registration)->complete()) {
             throw ValidationException::withMessages(['complete' => __('programs.library.not_yet')]);
         }
 
         DB::transaction(function () use ($user, $registration): void {
             $locked = ProgramRegistration::query()->whereKey($registration->id)->lockForUpdate()->firstOrFail();
 
-            if ($locked->completed_at !== null) {
+            // وإلغاء متزامن قبل القفل
+            if ($locked->completed_at !== null || $locked->status !== RegistrationStatus::Confirmed) {
                 return;
             }
 

@@ -80,7 +80,10 @@ class ProgramController extends Controller
         $item = $program->libraryItem;
 
         abort_unless($program->libraryKind() === LibraryProgramKind::Reading && $item !== null && $item->is_published && ! $item->trashed(), 404);
-        abort_unless(LibraryProgramProgress::readsInProgram($request->user(), $item), 403);
+        // مسجل مؤكد في هذا البرنامج نفسه، لا في برنامج آخر بالكتاب نفسه
+        $registered = ProgramRegistration::query()->where('program_id', $program->id)->where('user_id', $request->user()?->id)
+            ->where('status', RegistrationStatus::Confirmed->value)->exists();
+        abort_unless($registered && LibraryProgramProgress::readsInProgram($request->user(), $item), 403);
 
         return response()->view('programs.read', ['program' => $program, 'item' => $item])->header('Cache-Control', 'private, no-store');
     }

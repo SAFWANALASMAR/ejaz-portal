@@ -10,6 +10,7 @@ use App\Enums\RegistrationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Programs\RegisterForProgramRequest;
 use App\Jobs\SyncAttendanceCertificate;
+use App\Models\LibraryProgress;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -46,7 +47,7 @@ class ProgramRegistrationController extends Controller
             ->limit(50)
             ->get();
 
-        return view('account.programs.index', ['registrations' => $registrations, 'completed' => $completed]);
+        return view('account.programs.index', ['registrations' => $registrations, 'completed' => $completed, 'progress' => LibraryProgress::forRegistrations($user, $registrations->getCollection())]);
     }
 
     public function create(Request $request, string $slug): View|RedirectResponse

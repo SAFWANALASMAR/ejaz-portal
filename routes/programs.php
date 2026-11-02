@@ -19,7 +19,7 @@ Route::where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
         Route::get('/programs/{slug}/register', [ProgramRegistrationController::class, 'create'])->name('programs.register');
         Route::post('/programs/{slug}/register', [ProgramRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('programs.register.store');
         // قارئ كتاب برنامج «قراءة كتاب» للمسجل فيه (docs/decisions/2026-11-02-reading-program.md)
-        Route::get('/programs/{slug}/read', [ProgramController::class, 'read'])->name('programs.read');
+        Route::get('/programs/{slug}/read', [ProgramController::class, 'read'])->middleware('throttle:60,1')->name('programs.read');
     });
 });
 

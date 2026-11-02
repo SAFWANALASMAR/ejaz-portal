@@ -36,7 +36,10 @@ class CancelProgramRegistration
         ProgramRegistration::query()
             ->whereBelongsTo($user)
             ->where('status', '!=', RegistrationStatus::Cancelled->value)
-            ->whereHas('program', fn ($program) => $program->where('starts_at', '>', now()))
+            // وبرامج المكتبة المفتوحة التي لم يُتمّها، فتتحرر مقاعدها كذلك
+            ->whereHas('program', fn ($program) => $program->where(fn ($open) => $open->where('starts_at', '>', now())
+                ->orWhere(fn ($library) => $library->whereNotNull('library_item_id')->where(fn ($end) => $end->whereNull('ends_at')->orWhere('ends_at', '>', now())))))
+            ->whereNull('completed_at')
             ->get()
             ->each(fn (ProgramRegistration $registration) => $this->release($registration));
     }

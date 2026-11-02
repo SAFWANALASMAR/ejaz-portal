@@ -11,7 +11,7 @@
     $kind = $program->libraryKind();
     $item = $program->libraryItem;
     $confirmed = $registration?->status === RegistrationStatus::Confirmed;
-    $state = $confirmed ? \App\Support\LibraryProgramProgress::for($program, auth()->user()) : null;
+    $state = $confirmed ? \App\Support\LibraryProgramProgress::for($program, auth()->user(), $registration) : null;
     $trackingOff = auth()->user()?->reading_tracking_disabled_at !== null;
     $start = $kind === \App\Enums\LibraryProgramKind::Reading
         ? route('programs.read', $program->slug)
@@ -27,7 +27,8 @@
         <p class="mt-1 text-sm text-muted">{{ __('programs.library.pages', ['count' => number_format($item->page_count)]) }}</p>
     @endif
 
-    @if ($confirmed)
+    {{-- عنصر أُلغي نشره أو حُذف: لا بدء ولا إتمام --}}
+    @if ($confirmed && $item->is_published && ! $item->trashed())
         @if ($registration->completed_at)
             <p class="mt-4 font-semibold text-primary" data-library-program-done>{{ __('programs.library.done') }}</p>
             @if ($registration->certificate_path)

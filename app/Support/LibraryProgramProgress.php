@@ -7,6 +7,7 @@ use App\Enums\RegistrationStatus;
 use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
 use App\Models\Program;
+use App\Models\ProgramRegistration;
 use App\Models\User;
 
 /**
@@ -30,19 +31,24 @@ final class LibraryProgramProgress
      */
     private function __construct(public readonly array $state) {}
 
-    public static function for(Program $program, User $user): self
+    /**
+     * $registration: تسجيل المستخدم، فيُحسب وقت يوتيوب من الأحدث بين أول فتح والتسجيل، لا من فتح قبل التسجيل. و$progress المحمّل
+     * مسبقاً لقائمة (false: لا تقدّم)، فلا يُسأل لكل صف.
+     */
+    public static function for(Program $program, User $user, ?ProgramRegistration $registration = null, LibraryProgress|false|null $progress = null): self
     {
         $kind = $program->libraryKind();
         $item = $program->libraryItem;
-        $progress = $item === null ? null : LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $item->id)->first();
+        $progress = $progress === false ? null : ($progress ?? ($item === null ? null : LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $item->id)->first()));
 
         if ($kind === null || $item === null || $progress === null) {
             return new self(['percent' => 0, 'complete' => false, 'started' => false, 'pages' => 0, 'seconds' => 0]);
         }
 
-        [$done, $total] = self::measure($kind, $item, $progress);
+        [$done, $total] = self::measure($kind, $item, $progress, $registration);
+        // والكتاب بعدد صفحاته الحالي، فملف استُبدل بأطول لا يبقى إتمامه القديم (المراجعة الأمنية، ن٢)
         $complete = $kind === LibraryProgramKind::Reading
-            ? $progress->completed_at !== null
+            ? $progress->completed_at !== null && $total > 0 && $done >= $total
             : $total > 0 && $done >= (int) floor($total * self::MEDIA_THRESHOLD);
 
         return new self([
@@ -91,7 +97,7 @@ final class LibraryProgramProgress
      *
      * @return array{0: int, 1: int}
      */
-    private static function measure(LibraryProgramKind $kind, LibraryItem $item, LibraryProgress $progress): array
+    private static function measure(LibraryProgramKind $kind, LibraryItem $item, LibraryProgress $progress, ?ProgramRegistration $registration): array
     {
         if ($kind === LibraryProgramKind::Reading) {
             return [$progress->pages_count, (int) ($item->page_count ?? 0)];
@@ -99,9 +105,15 @@ final class LibraryProgramProgress
 
         $duration = (int) ($item->duration_seconds ?? 0);
 
-        // يوتيوب: الوقت منذ أول فتح، لا يتجاوز المدة
+        // يوتيوب: الوقت منذ أول فتح بعد التسجيل، لا يتجاوز المدة (المراجعتان: فتح قديم قبل التسجيل لا يُتمّ فوراً)
         if ($item->youtubeId() !== null) {
-            return [min($duration, (int) max(0, $progress->created_at?->diffInSeconds(now()) ?? 0)), $duration];
+            $since = $progress->created_at;
+
+            if ($registration?->created_at !== null && ($since === null || $registration->created_at->gt($since))) {
+                $since = $registration->created_at;
+            }
+
+            return [min($duration, (int) max(0, $since?->diffInSeconds(now()) ?? 0)), $duration];
         }
 
         return [$progress->seconds_consumed, $duration];

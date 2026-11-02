@@ -72,7 +72,8 @@ class SaveProgram
         $problem = match (true) {
             $item === null => 'programs.library.errors.item',
             ! in_array($item->section, $kind->sections(), true) => 'programs.library.errors.section',
-            $kind === LibraryProgramKind::Reading && blank($item->file) => 'programs.library.errors.file',
+            // وعدد صفحات الكتاب معروف من ملفه، وإلا لا يتم أحد البرنامج
+            $kind === LibraryProgramKind::Reading && (blank($item->file) || ! $item->page_count) => 'programs.library.errors.file',
             $kind !== LibraryProgramKind::Reading && (! $item->hasSource() || ! $item->duration_seconds) => 'programs.library.errors.duration',
             default => null,
         };

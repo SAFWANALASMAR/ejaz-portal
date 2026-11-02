@@ -80,7 +80,7 @@ class LibraryItemForm
                 // مدة الصوت والمرئي بالثواني لبرامج الاستماع والمشاهدة (docs/decisions/2026-11-02-reading-program.md): يُدخلها المسؤول
                 // للرابط، وتُقاس من ملف الصوت في الخادم فتحل محل المدخلة (MeasureLibraryDuration)
                 TextInput::make('duration_seconds')->label(__('library.fields.duration_seconds'))->helperText(__('library.fields.duration_seconds_hint'))
-                    ->integer()->minValue(1)->maxValue(86400)
+                    ->integer()->minValue(30)->maxValue(86400)
                     ->visible(fn (Get $get): bool => self::section($get)?->takesVideoUrl() ?? false),
                 // «للقراءة فقط — بلا تحميل» (طلب المدير التنفيذي، 30 أكتوبر 2026): للكتب والأبحاث وحدها، ويُعاد ضبطه في SaveLibraryItem
                 Toggle::make('is_downloadable')->label(__('library.fields.is_downloadable'))->helperText(__('library.fields.is_downloadable_hint'))

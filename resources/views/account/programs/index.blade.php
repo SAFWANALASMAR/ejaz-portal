@@ -36,7 +36,7 @@
                         </p>
                         {{-- تقدّم برنامج المكتبة من سجل «قراءاتي» (LibraryProgramProgress) --}}
                         @if ($registration->program->libraryKind() !== null && $registration->program->libraryItem !== null && $registration->status === \App\Enums\RegistrationStatus::Confirmed)
-                            @php($percent = \App\Support\LibraryProgramProgress::for($registration->program, auth()->user())->percent())
+                            @php($percent = \App\Support\LibraryProgramProgress::for($registration->program, auth()->user(), $registration, $progress[$registration->program->library_item_id] ?? false)->percent())
                             <progress max="100" value="{{ $percent }}" data-my-program-progress aria-label="{{ __('programs.library.progress', ['title' => $registration->program->libraryItem->title]) }}"
                                 class="mt-3 block h-2 w-full appearance-none overflow-hidden rounded-full bg-primary-soft text-primary forced-colors:appearance-auto [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-current [&::-webkit-progress-bar]:bg-primary-soft [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-current">{{ $percent }}%</progress>
                             <p class="mt-1 text-xs text-muted">{{ __('programs.library.percent', ['percent' => $percent]) }}</p>

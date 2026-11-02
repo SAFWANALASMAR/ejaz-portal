@@ -255,3 +255,57 @@ it('keeps the library section consistent for each kind', function () {
     expect(LibraryProgramKind::Reading->sections())->toBe([LibrarySection::Books, LibrarySection::Research])
         ->and(LibraryProgramKind::Listening->sections())->toBe([LibrarySection::Audio]);
 });
+
+it('counts YouTube watching time from the registration, not from an older first opening', function () {
+    $video = LibraryItem::factory()->video()->create(['duration_seconds' => 300]);
+    progressFor($this->member, $video, []);
+
+    $this->travel(2)->days();
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Watching, $video), $this->member);
+
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+
+    $this->travel(301)->seconds();
+    expect(app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh())->completed_at)->not->toBeNull();
+});
+
+it('lets a participant cancel an open library program before completing it, and frees the seat', function () {
+    $program = libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 2]));
+    $registration = confirmedIn($program, $this->member);
+
+    expect($this->member->can('cancel', $registration))->toBeTrue();
+
+    $registration->forceFill(['completed_at' => now()])->save();
+    expect($this->member->can('cancel', $registration->fresh()))->toBeFalse();
+});
+
+it('refuses completion when the library item is unpublished', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 1]);
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, $book), $this->member);
+    progressFor($this->member, $book, ['pages_seen' => '1', 'pages_count' => 1, 'total_pages' => 1, 'completed_at' => now()]);
+
+    $book->update(['is_published' => false]);
+
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))->toThrow(AuthorizationException::class);
+});
+
+it('does not keep an old book completion after the book got more pages', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 2]);
+    $program = libraryProgram(LibraryProgramKind::Reading, $book);
+    confirmedIn($program, $this->member);
+    progressFor($this->member, $book, ['pages_seen' => '1-2', 'pages_count' => 2, 'total_pages' => 2, 'completed_at' => now()]);
+
+    $book->forceFill(['page_count' => 5])->save();
+
+    expect(LibraryProgramProgress::for($program->fresh(), $this->member)->complete())->toBeFalse();
+});
+
+it('issues pending completion certificates once the template is ready', function () {
+    Queue::fake();
+    $program = libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 1]));
+    confirmedIn($program, $this->member)->forceFill(['completed_at' => now()])->save();
+
+    $this->artisan('programs:issue-pending-certificates')->assertSuccessful();
+
+    Queue::assertPushed(SyncAttendanceCertificate::class);
+});

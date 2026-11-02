@@ -28,7 +28,9 @@ class SendProgramReminders extends Command
             ->whereHas('program', fn (Builder $program) => $program
                 ->withoutTrashed()
                 ->where('is_published', true)
-                ->whereBetween('starts_at', [now(), now()->addDay()]))
+                ->whereBetween('starts_at', [now(), now()->addDay()])
+                // تذكير الموعد للبرامج ذات الموعد، لا لبرامج المكتبة المفتوحة
+                ->whereNull('library_item_id'))
             ->whereHas('user', fn (Builder $user) => $user->where('is_active', true)->whereNull('anonymized_at'))
             ->with(['program', 'user'])
             ->chunkById(500, function ($registrations) use (&$sent): void {

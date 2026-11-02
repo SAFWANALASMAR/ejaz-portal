@@ -13,7 +13,7 @@
 
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($registrations as $registration)
-                @php($percent = \App\Support\LibraryProgramProgress::for($registration->program, auth()->user())->percent())
+                @php($percent = \App\Support\LibraryProgramProgress::for($registration->program, auth()->user(), $registration, $progress[$registration->program->library_item_id] ?? false)->percent())
                 <li class="concept-panel flex flex-col gap-2 p-4">
                     <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
                     <span class="text-sm text-muted">{{ $registration->program->type->name }}</span>

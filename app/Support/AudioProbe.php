@@ -23,7 +23,9 @@ final class AudioProbe
         }
 
         $path = 'file:'.(stream_get_meta_data($stream)['uri'] ?? '');
-        $result = Process::timeout(120)->run([$binary, '-v', 'error', '-protocol_whitelist', 'file', '-select_streams', 'a:0',
+        // وصيغ الصوت وحدها، فلا يفتح ملفٌ قائمةَ تشغيل أو ربطاً بملفات أخرى (المراجعة الأمنية، ن٤)
+        $result = Process::timeout(120)->run([$binary, '-v', 'error', '-protocol_whitelist', 'file', '-format_whitelist', 'mp3,mov,mp4,m4a,3gp,3g2,mj2',
+            '-select_streams', 'a:0',
             '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', $path]);
 
         // 126 و127: الأداة غير موجودة أو لا تُشغَّل، وهذا خلل في البيئة لا في الملف

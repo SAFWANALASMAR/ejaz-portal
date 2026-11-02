@@ -65,7 +65,7 @@
     @include('account.partials.my-reading', ['reading' => $reading, 'trackingDisabled' => $user->reading_tracking_disabled_at !== null])
 
     {{-- «برامجي» من برامج المكتبة بتقدّمها، و«برامج أتممتها» (docs/decisions/2026-11-02-reading-program.md) --}}
-    @include('account.partials.library-programs', ['registrations' => $libraryPrograms, 'completed' => $completedPrograms])
+    @include('account.partials.library-programs', ['registrations' => $libraryPrograms, 'completed' => $completedPrograms, 'progress' => $programProgress])
 
     @include('account.partials.summary', ['summary' => $summary])
 </x-layouts.account>

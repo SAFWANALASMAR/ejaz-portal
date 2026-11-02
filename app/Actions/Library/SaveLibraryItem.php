@@ -55,12 +55,17 @@ class SaveLibraryItem
         // ومدة الصوت والمرئي عدد ثوانٍ صحيح لكل مستدعٍ، وللكتب لا مدة (برامج المكتبة)
         $duration = $data['duration_seconds'] ?? null;
 
-        if ($duration !== null && (filter_var($duration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 86400]]) === false)) {
+        if ($duration !== null && (filter_var($duration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 30, 'max_range' => 86400]]) === false)) {
             throw ValidationException::withMessages(['duration_seconds' => __('validation.integer', ['attribute' => __('library.fields.duration_seconds')])]);
         }
 
         if (array_key_exists('duration_seconds', $data)) {
             $data['duration_seconds'] = $duration === null || ! $section->takesVideoUrl() ? null : (int) $duration;
+
+            // ومدة ملف الصوت المقاسة في الخادم لا تُستبدل من النموذج (MeasureLibraryDuration يعيدها عند تغيّر الملف)
+            if ($section === LibrarySection::Audio && filled($data['file'] ?? $item->getAttribute('file')) && blank($data['video_url'] ?? $item->getAttribute('video_url'))) {
+                unset($data['duration_seconds']);
+            }
         }
 
         // وحجم الملف يُحسب من الملف نفسه، لا مما يُمرَّر
