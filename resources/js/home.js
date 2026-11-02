@@ -88,3 +88,75 @@ document.addEventListener('click', (event) => {
         event.target.close();
     }
 });
+
+// الشريط المتحرك متصل بلا فراغ (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١١): النسختان تتحركان بمقدار نسخة، فإن كانت النسخة
+// أضيق من الشريط ظهر فراغ قبل أن تدور. فتُكرَّر عناصر كل نسخة حتى تملأ عرض الشريط، والمكرر مخفي عن قارئ الشاشة ولوحة المفاتيح
+// (aria-hidden وtabindex=-1، ويبقى يُضغط)، وتطول مدة الدورة بقدره فتبقى السرعة واحدة. ويُعاد عند تغيّر عرض الشريط
+function fillMarquee(marquee) {
+    const groups = [...marquee.querySelectorAll(':scope > .marquee-track > .marquee-group')];
+
+    // المكرر السابق يُحذف أولاً، ولو صار الشريط شبكة ثابتة (display: contents على الحاسوب) أو اختفى، فلا تبقى بطاقات مكررة فيها
+    groups.forEach((group) => group.querySelectorAll('[data-marquee-fill]').forEach((clone) => clone.remove()));
+    const base = Number(marquee.dataset.baseDuration || Number.parseFloat(marquee.style.getPropertyValue('--marquee-duration')) || 40);
+    marquee.dataset.baseDuration = String(base);
+    marquee.style.setProperty('--marquee-duration', `${base}s`);
+
+    if (groups.length === 0 || getComputedStyle(marquee).display === 'contents' || marquee.clientWidth === 0) {
+        return;
+    }
+
+    const originals = [...groups[0].children];
+    const single = groups[0].scrollWidth;
+    let copies = 1;
+
+    while (single > 0 && groups[0].scrollWidth < marquee.clientWidth && copies < 8) {
+        groups.forEach((group) => {
+            originals.forEach((item) => {
+                const clone = item.cloneNode(true);
+                clone.setAttribute('data-marquee-fill', '');
+                // مخفي عن قارئ الشاشة ولوحة المفاتيح، ويبقى يُضغط بالفأرة واللمس (inert كان يجعل أغلب البلاطات الظاهرة لا تفتح شيئاً)
+                clone.setAttribute('aria-hidden', 'true');
+                [clone, ...clone.querySelectorAll('a, button, [tabindex]')].forEach((element) => element.matches('a, button, [tabindex]') && element.setAttribute('tabindex', '-1'));
+                clone.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
+                group.append(clone);
+            });
+        });
+        copies++;
+    }
+
+    marquee.style.setProperty('--marquee-duration', `${base * copies}s`);
+}
+
+onPage((signal) => {
+    const marquees = document.querySelectorAll('[data-marquee][data-direction="horizontal"]');
+
+    if (marquees.length === 0) {
+        return;
+    }
+
+    const widths = new WeakMap();
+    const observer = new ResizeObserver((entries) => {
+        entries.forEach(({ target, contentRect }) => {
+            const width = Math.round(contentRect.width);
+
+            if (widths.get(target) !== width) {
+                widths.set(target, width);
+                fillMarquee(target);
+            }
+        });
+    });
+
+    marquees.forEach((marquee) => observer.observe(marquee));
+    signal.addEventListener('abort', () => observer.disconnect());
+
+    // والشريط الذي يصير شبكة (display: contents) لا صندوق له يراقَب: تغيّر عرض النافذة يعيد فحصه
+    let timer = null;
+    window.addEventListener(
+        'resize',
+        () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => marquees.forEach(fillMarquee), 200);
+        },
+        { signal, passive: true },
+    );
+});

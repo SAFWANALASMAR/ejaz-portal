@@ -45,7 +45,7 @@
                 </ul>
             </nav>
 
-            <x-programs.how-to class="mt-10" />
+            <x-programs.how-to class="mt-6" />
 
             {{-- وجهة «اختر برنامجاً» في الدليل: أول القائمة، والتبويبات بالأنواع في الشريط العائم أعلى الصفحة --}}
             <div id="programs-list" class="scroll-mt-28"></div>

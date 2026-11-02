@@ -22,8 +22,17 @@
                         @foreach ($items as $item)
                             <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate data-card class="tone-card media-tile group">
                                 <span @class(['media-tile-thumb', 'media-tile-book' => $kind === 'books'])>
-                                    <img src="{{ $item->thumbnailUrl() }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
-                                        class="size-full object-cover transition duration-500 group-hover:scale-105">
+                                    @if ($thumbnail = $item->thumbnailUrl())
+                                        <img src="{{ $thumbnail }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
+                                            class="size-full object-cover transition duration-500 group-hover:scale-105">
+                                    @else
+                                        {{-- بلا صورة: مربع بتدرج أزرق وأيقونة القسم، كما في التصور (البند ٢٤) --}}
+                                        <span class="media-tile-placeholder" data-thumb-placeholder aria-hidden="true">
+                                            @if ($kind === 'books')
+                                                {{ \App\Support\Icon::svg($item->section->icon(), 'size-10') }}
+                                            @endif
+                                        </span>
+                                    @endif
                                     @if ($kind === 'videos')
                                         <x-video-number :number="$loop->iteration" />
                                         <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">

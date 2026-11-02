@@ -3,7 +3,6 @@
 namespace App\Actions\Accounts;
 
 use App\Enums\RegistrationStatus;
-use App\Enums\SubmissionStatus;
 use App\Models\CompetitionSubmission;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -14,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
  * من البيانات القائمة، لصاحب الحساب وحده، وبثلاثة استعلامات مهما كثرت سجلاته:
  * - المسجل فيها: تسجيلاته المؤكدة (لا قائمة الانتظار ولا الملغاة) في برامج غير محذوفة.
  * - المنجزة: ما سُجّل حضوره منها.
- * - مشاركات المسابقات المرسلة.
+ * - مشاركاته في المسابقات كما تظهر في «مشاركاتي».
  */
 class BuildParticipationStats
 {
@@ -31,7 +30,8 @@ class BuildParticipationStats
         return [
             'registered' => $registrations()->count(),
             'completed' => $registrations()->whereNotNull('attended_at')->count(),
-            'entries' => CompetitionSubmission::query()->whereBelongsTo($user)->where('status', SubmissionStatus::Submitted->value)->count(),
+            // من مصدر «مشاركاتي» نفسه (CompetitionSubmission::ownedBy — ملاحظات المدير، 1 نوفمبر 2026، البند ١٧)
+            'entries' => CompetitionSubmission::query()->ownedBy($user)->count(),
         ];
     }
 }

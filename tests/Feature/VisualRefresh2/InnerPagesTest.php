@@ -54,9 +54,9 @@ it('draws the programs tabs as white capsules with a dark active one on a pale b
 
     expect($html)->toContain('tabs-bar')
         ->toMatch('/<a href="'.preg_quote(route('programs.index'), '/').'"[^>]*aria-current="page"[^>]*class="tab-pill"/')
-        // «كيف تسجّل» بعنوان القسم الموحد وخطوات ملونة
-        ->toContain('id="programs-how-to-title" class="section-heading-title')
-        ->toContain('tone-card relative flex gap-3 p-4');
+        // «كيف تسجّل» صف مضغوط بخطوات ملونة (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٠)
+        ->toContain('id="programs-how-to-title"')
+        ->toContain('tone-card how-to-compact-step');
 });
 
 it('shows the Brahin hero with its image, the register button twice for desktop and mobile, and less spacing', function () {
@@ -174,7 +174,7 @@ it('puts the contact form on a light blue gradient panel with colored contact ca
     Setting::put('contact', ['email' => 'info@ejaz.sa']);
 
     $this->get('/contact')->assertOk()
-        ->assertSee('class="form-sky p-6 sm:p-8" data-contact-form', false)
+        ->assertSee('class="form-sky scroll-mt-48 p-6 sm:p-8" data-contact-form', false)
         ->assertSee('tone-card group grid', false);
 });
 

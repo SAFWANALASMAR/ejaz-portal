@@ -88,7 +88,7 @@ it('never shows an unsafe map link, even if one reaches the database', function 
 });
 
 it('saves a message as a received request with a public reference, and notifies the association and the sender', function () {
-    sendContactForm()->assertRedirect(route('contact'))->assertSessionHas('status');
+    sendContactForm()->assertRedirect(route('contact').'#contact-form')->assertSessionHas('inquiry_reference');
 
     $inquiry = Inquiry::sole();
 
@@ -96,7 +96,7 @@ it('saves a message as a received request with a public reference, and notifies 
         ->and($inquiry->status)->toBe(InquiryStatus::Received)
         ->and($inquiry->message)->toBe("السطر الأول\nالسطر الثاني")
         ->and($inquiry->user_id)->toBeNull()
-        ->and(session('status'))->toContain($inquiry->reference);
+        ->and(session('inquiry_reference'))->toBe($inquiry->reference);
 
     Notification::assertSentOnDemand(InquiryReceived::class, fn ($notification, array $channels, AnonymousNotifiable $notifiable) => $notifiable->routes['mail'] === 'contact@example.test');
     Notification::assertSentOnDemand(InquiryConfirmation::class, fn ($notification, array $channels, AnonymousNotifiable $notifiable) => $notifiable->routes['mail'] === 'visitor@example.com');
@@ -140,8 +140,8 @@ it('tells the association the reference and type only, keeping everything the se
 it('answers a filled trap like a success and keeps nothing, before checking anything else', function (array $form) {
     DB::enableQueryLog();
 
-    sendContactForm($form)->assertRedirect(route('contact'))->assertSessionHasNoErrors()
-        ->assertSessionHas('status', fn (string $status) => preg_match('/INQ-[A-Z2-9]{8}/', $status) === 1);
+    sendContactForm($form)->assertRedirect(route('contact').'#contact-form')->assertSessionHasNoErrors()
+        ->assertSessionHas('inquiry_reference', fn (string $reference) => preg_match('/^INQ-[A-Z2-9]{8}$/', $reference) === 1);
 
     // الرقم الوهمي بلا استعلام، فلا يكلّف الروبوت القاعدة شيئاً
     expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql) => str_contains($sql, 'inquiries')))->toBeEmpty()
@@ -154,7 +154,7 @@ it('answers a filled trap like a success and keeps nothing, before checking anyt
 ]);
 
 it('answers a message sent within seconds like a success and keeps nothing', function () {
-    sendContactForm(seconds: 1)->assertRedirect(route('contact'))->assertSessionHas('status');
+    sendContactForm(seconds: 1)->assertRedirect(route('contact').'#contact-form')->assertSessionHas('inquiry_reference');
 
     expect(Inquiry::count())->toBe(0);
     Notification::assertNothingSent();
@@ -229,9 +229,14 @@ it('limits one mailbox to five messages a day, whatever way its address is writt
         sendContactForm(['email' => $email])->assertSessionHasNoErrors();
     }
 
-    sendContactForm(['email' => 'visitor@gmail.com'])->assertSessionHasErrors(['email' => __('contact.form.daily_limit')]);
+    // السادسة نجاح وهمي كالفخ لا خطأ يكشف أن البريد بلغ حده (قرار صفوان، 2 نوفمبر 2026): التحويل نفسه ورقم بالصيغة نفسها، ولا حفظ
+    // ولا بريد
+    Notification::fake();
+    sendContactForm(['email' => 'visitor@gmail.com'])->assertRedirect(route('contact').'#contact-form')->assertSessionHasNoErrors()
+        ->assertSessionHas('inquiry_reference', fn (string $reference): bool => preg_match('/^INQ-[A-HJ-NP-Z2-9]{8}$/', $reference) === 1);
 
     expect(Inquiry::count())->toBe(5);
+    Notification::assertNothingSent();
 });
 
 it('limits the messages of each subscriber, each IPv6 site and the whole portal', function () {
