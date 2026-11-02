@@ -29,7 +29,7 @@ class AlbumForm
             ]),
             Section::make(__('albums.fields.photos'))->columnSpanFull()->schema([
                 ContentFields::image('photos', Album::IMAGE_DIRECTORY)
-                    ->hiddenLabel()
+                    ->label(__('albums.fields.photos'))->hiddenLabel()
                     ->helperText(__('albums.fields.photos_hint'))
                     ->multiple()
                     ->reorderable()

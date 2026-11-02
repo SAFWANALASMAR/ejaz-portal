@@ -109,7 +109,7 @@ class AssistantSettingsPage extends Page
                             ->description(__('assistant.admin.settings.suggested_questions_hint'))
                             ->schema([
                                 Repeater::make('suggested_questions')
-                                    ->hiddenLabel()
+                                    ->label(__('assistant.admin.settings.suggested_questions'))->hiddenLabel()
                                     ->simple(TextInput::make('question')->label(__('assistant.admin.settings.suggested_question'))->required()->maxLength(150))
                                     ->defaultItems(0)
                                     ->maxItems(6),

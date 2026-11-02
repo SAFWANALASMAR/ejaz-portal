@@ -200,7 +200,7 @@ class SiteSettings extends Page
                             Toggle::make('home.show_videos')->label(__('settings.home.show_videos')),
                         ]),
                         Section::make(__('settings.home.stats'))->description(__('settings.home.stats_hint'))->schema([
-                            Repeater::make('home.stats')->hiddenLabel()->maxItems(4)->columns(5)->defaultItems(0)->schema([
+                            Repeater::make('home.stats')->label(__('settings.home.stats'))->hiddenLabel()->maxItems(4)->columns(5)->defaultItems(0)->schema([
                                 TextInput::make('label')->label(__('settings.home.stat_label'))->required()->maxLength(60),
                                 // رقم معتمد يُدخل يدوياً، أو رقم من بيانات البوابة الفعلية (PortalStats)
                                 Select::make('source')->label(__('settings.home.stat_source'))
@@ -230,7 +230,7 @@ class SiteSettings extends Page
                         Toggle::make('store.enabled')->label(__('settings.store.enabled'))->visible(fn (): bool => (bool) config('payments.enabled')),
                         Textarea::make('store.intro')->label(__('settings.store.intro'))->rows(3)->maxLength(400)->visible(fn (): bool => (bool) config('payments.enabled')),
                         Section::make(__('settings.store.products'))->description(__('settings.store.products_hint'))->visible(fn (): bool => (bool) config('payments.enabled'))->schema([
-                            Repeater::make('store.products')->hiddenLabel()->maxItems(24)->columns(2)->defaultItems(0)->schema([
+                            Repeater::make('store.products')->label(__('settings.store.products'))->hiddenLabel()->maxItems(24)->columns(2)->defaultItems(0)->schema([
                                 TextInput::make('name')->label(__('settings.store.product_name'))->required()->maxLength(100),
                                 TextInput::make('url')->label(__('settings.store.product_url'))->required()->maxLength(500)
                                     ->extraInputAttributes(['dir' => 'ltr'])
@@ -243,7 +243,7 @@ class SiteSettings extends Page
                         Toggle::make('donations.enabled')->label(__('settings.donations.enabled')),
                         Textarea::make('donations.intro')->label(__('settings.donations.intro'))->rows(3)->maxLength(400),
                         Section::make(__('settings.donations.amounts'))->description(__('settings.donations.amounts_hint'))->schema([
-                            Repeater::make('donations.amounts')->hiddenLabel()->maxItems(6)->defaultItems(0)->schema([
+                            Repeater::make('donations.amounts')->label(__('settings.donations.amounts'))->hiddenLabel()->maxItems(6)->defaultItems(0)->schema([
                                 TextInput::make('amount')->label(__('settings.donations.amount'))->integer()->required()
                                     ->minValue((int) (config('payments.donation.min_halalas') / 100))
                                     ->maxValue((int) (config('payments.donation.max_halalas') / 100)),

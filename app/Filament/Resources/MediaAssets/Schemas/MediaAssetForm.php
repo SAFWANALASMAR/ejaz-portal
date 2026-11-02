@@ -42,7 +42,7 @@ class MediaAssetForm
                     ->columns(2)
                     ->schema([
                         ImageEntry::make('web_path')
-                            ->hiddenLabel()
+                            ->label(__('media_assets.file'))->hiddenLabel()
                             ->disk('public')
                             ->imageHeight(200)
                             ->visible(fn (?MediaAsset $record): bool => $record?->web_path !== null)

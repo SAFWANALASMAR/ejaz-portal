@@ -23,7 +23,7 @@ final class FormFieldsRepeater
             ->mapWithKeys(fn (FormFieldType $type): array => [$type->value => $type->getLabel()]);
 
         return Repeater::make('form_fields')
-            ->hiddenLabel()
+            ->label(__('services.openings.fields.form_fields'))->hiddenLabel()
             // وإلا أخذ الزر اسم الحقل الإنجليزي («إضافة إلى form fields»)
             ->addActionLabel(__('services.openings.fields.add_field'))
             ->schema([

@@ -83,7 +83,7 @@ class ServiceRequestResource extends Resource
             Section::make(__('services.admin.fields.answers'))->columnSpanFull()->schema(fn (?ServiceRequest $record): array => self::answerEntries($record)),
             Section::make(__('services.admin.fields.history'))->columnSpanFull()->schema([
                 RepeatableEntry::make('events')
-                    ->hiddenLabel()
+                    ->label(__('services.admin.fields.history'))->hiddenLabel()
                     ->columns(4)
                     ->schema([
                         TextEntry::make('created_at')->label(__('activity.fields.created_at'))->dateTime('Y-m-d H:i'),

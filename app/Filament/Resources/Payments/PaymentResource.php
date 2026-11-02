@@ -90,7 +90,7 @@ class PaymentResource extends Resource
                 TextEntry::make('refund_reason')->label(__('payments.fields.refund_reason'))->placeholder('—')->columnSpanFull()->visible(self::canViewDonor()),
             ]),
             Section::make(__('payments.fields.events'))->schema([
-                RepeatableEntry::make('events')->hiddenLabel()->columns(4)->schema([
+                RepeatableEntry::make('events')->label(__('payments.fields.events'))->hiddenLabel()->columns(4)->schema([
                     TextEntry::make('type')->label(__('payments.fields.event_type'))->badge(),
                     TextEntry::make('created_at')->label(__('payments.fields.event_time'))->dateTime('Y-m-d H:i:s'),
                     TextEntry::make('gateway_event_id')->label(__('payments.fields.event_id'))->placeholder('—'),

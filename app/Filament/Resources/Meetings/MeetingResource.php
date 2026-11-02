@@ -96,7 +96,7 @@ class MeetingResource extends Resource
                     ->badge(),
             ]),
             Section::make(__('assembly.fields.agenda'))->columnSpanFull()->schema([
-                TextEntry::make('agenda')->hiddenLabel()->placeholder('—')->extraAttributes(['class' => 'whitespace-pre-line']),
+                TextEntry::make('agenda')->label(__('assembly.fields.agenda'))->hiddenLabel()->placeholder('—')->extraAttributes(['class' => 'whitespace-pre-line']),
             ]),
         ]);
     }

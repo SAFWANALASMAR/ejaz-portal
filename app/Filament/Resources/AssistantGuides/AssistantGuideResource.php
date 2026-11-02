@@ -63,7 +63,7 @@ class AssistantGuideResource extends Resource
             ]),
             Section::make(__('assistant.admin.guides.steps'))->columnSpanFull()->schema([
                 Repeater::make('steps')
-                    ->hiddenLabel()
+                    ->label(__('assistant.admin.guides.steps'))->hiddenLabel()
                     ->simple(Textarea::make('step')->label(__('assistant.admin.guides.step'))->required()->rows(2)->maxLength(500))
                     ->reorderable()
                     ->minItems(1)

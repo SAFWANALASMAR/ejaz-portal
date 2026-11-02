@@ -28,7 +28,7 @@ class InitiativeForm
             ]),
             Section::make(__('initiatives.fields.goals'))->columnSpanFull()->schema([
                 Repeater::make('goals')
-                    ->hiddenLabel()
+                    ->label(__('initiatives.fields.goals'))->hiddenLabel()
                     ->simple(TextInput::make('goal')->label(__('initiatives.fields.goal'))->required()->maxLength(300))
                     ->defaultItems(0)
                     ->maxItems(12),
@@ -36,7 +36,7 @@ class InitiativeForm
             ContentFields::blocks(Initiative::IMAGE_DIRECTORY),
             Section::make(__('initiatives.fields.gallery'))->columnSpanFull()->schema([
                 ContentFields::image('gallery', Initiative::IMAGE_DIRECTORY)
-                    ->hiddenLabel()
+                    ->label(__('initiatives.fields.gallery'))->hiddenLabel()
                     ->helperText(__('content.image_hint'))
                     ->multiple()
                     ->reorderable()

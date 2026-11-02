@@ -40,7 +40,7 @@ class NewsArticleForm
             ContentFields::blocks(NewsArticle::IMAGE_DIRECTORY),
             Section::make(__('news.fields.gallery'))->columnSpanFull()->schema([
                 ContentFields::image('gallery', NewsArticle::IMAGE_DIRECTORY)
-                    ->hiddenLabel()
+                    ->label(__('news.fields.gallery'))->hiddenLabel()
                     ->helperText(__('content.image_hint'))
                     ->multiple()
                     ->reorderable()

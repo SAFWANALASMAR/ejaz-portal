@@ -72,7 +72,7 @@ class EvidenceGalleryResource extends Resource
             ]),
             Section::make(__('evidence.fields.items'))->description(__('evidence.fields.items_hint'))->columnSpanFull()->schema([
                 Repeater::make('items')
-                    ->hiddenLabel()
+                    ->label(__('evidence.fields.items'))->hiddenLabel()
                     ->addActionLabel(__('evidence.actions.add_item'))
                     ->defaultItems(0)
                     ->maxItems(EvidenceGallery::MAX_ITEMS)
