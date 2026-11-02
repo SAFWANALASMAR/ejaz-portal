@@ -35,7 +35,7 @@
             </button>
             <div class="flex min-w-0 flex-1 flex-wrap justify-center gap-0.5">
                 @foreach ($steps as $index => $step)
-                    <button type="button" data-slide-dot="{{ $index + 1 }}" aria-label="{{ __('competitions.student.page.slide_go', ['number' => $index + 1]) }}" class="group grid size-6 place-items-center">
+                    <button type="button" data-slide-dot="{{ $index + 1 }}" aria-label="{{ __('competitions.student.page.slide_go', ['number' => $index + 1]) }}" class="group -my-2.5 grid size-11 place-items-center">
                         <span class="block h-2 w-2 rounded-full bg-line transition-all group-aria-[current=step]:w-5 group-aria-[current=step]:bg-primary"></span>
                     </button>
                 @endforeach
