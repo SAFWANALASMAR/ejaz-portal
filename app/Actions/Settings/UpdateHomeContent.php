@@ -49,6 +49,10 @@ class UpdateHomeContent
             $rules['hero_slides.'.$key] = ['nullable', 'string', 'max:255'];
         }
 
+        foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
+            $rules['page_heroes.'.$key] = ['nullable', 'string', 'max:255'];
+        }
+
         foreach (array_keys(HomeContent::IMAGES) as $section) {
             $rules[$section.'.image'] = ['nullable', 'string', 'max:255'];
             $rules[$section.'.image_alt'] = ['nullable', 'string', 'max:300', new PlainText];
@@ -60,8 +64,13 @@ class UpdateHomeContent
         $rules['values.items.*.image'] = ['nullable', 'string', 'max:255'];
         // أيقونة القيمة في شرائح الهوية: من القائمة المسموحة وحدها، فاسمها يبني مسار ملف
         $rules['values.items.*.icon'] = ['nullable', Rule::enum(SiteIcon::class)];
+        // مفتاح «البوابة بالأرقام» (HomeContent::showsPortalStats)
+        $rules['portal_stats.enabled'] = ['sometimes', 'boolean'];
 
         $validated = Validator::make($content, $rules)->validate();
+
+        // الحفظ يستبدل المجموعة كلها، فحفظ بلا المفتاح يُبقي حالته لا يعيد قسماً أطفأه المحرر ظاهراً
+        $validated['portal_stats']['enabled'] = (bool) ($validated['portal_stats']['enabled'] ?? HomeContent::showsPortalStats());
 
         // النص المطابق لأصله لا يُخزَّن: الصفحة تعرض الأصل في حقوله، فحفظها لسبب آخر لا يجعله نصاً معتمداً، فيبقى وسم
         // «مثال تجريبي» على ما كتبه فريق البوابة، ويتبع العرض أي تحديث لأصله (مراجعة المشرف الأخيرة على #66)

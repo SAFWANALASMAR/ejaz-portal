@@ -25,6 +25,20 @@ final class HeroImage
     }
 
     /**
+     * علامة الصورة التي رفضها التوليد (تالفة أو أكبر من الحد)، ملف فارغ بجانب النسخ، فلا تُرسل مهمتها عند كل بناء للرئيسية
+     * (مراجعة المشرف على #111، المنخفضة 4). واسمها من بصمة المسار، فالصورة المستبدلة بمسار جديد تُجرَّب من جديد.
+     */
+    public static function failedPath(string $path): string
+    {
+        return self::DIRECTORY.'/'.sha1($path).'.failed';
+    }
+
+    public static function markFailed(string $path): void
+    {
+        Storage::disk('public')->put(self::failedPath($path), '');
+    }
+
+    /**
      * صورة نقطية مرفوعة في القرص العام (لا رابط خارجي ولا SVG ولا مسار بنقاط صاعدة).
      */
     public static function accepts(string $path): bool
@@ -40,6 +54,10 @@ final class HeroImage
         $disk = Storage::disk('public');
 
         if (! self::accepts($path)) {
+            return ['src' => $disk->url($path), 'srcset' => null];
+        }
+
+        if ($disk->exists(self::failedPath($path))) {
             return ['src' => $disk->url($path), 'srcset' => null];
         }
 

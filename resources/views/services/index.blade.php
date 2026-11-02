@@ -31,6 +31,17 @@
                         </li>
                     @endif
                 @endforeach
+                {{-- متجر الجمعية على سلة بتبويب جديد، ولا يظهر بلا رابط صالح (1 نوفمبر 2026) --}}
+                @if ($storeLink = \App\Rules\StoreUrl::link())
+                    <li class="tone-card" data-store-card>
+                        <a href="{{ $storeLink }}" target="_blank" rel="noopener noreferrer" class="group flex h-full flex-col gap-3 px-6 py-6">
+                            <x-icon-tile icon="shopping-bag" size="lg" />
+                            <span class="text-xl font-black">{{ __('ui.services.store') }}</span>
+                            <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                            <span class="tone-pill mt-auto self-start" aria-hidden="true">{{ __('ui.services.store_open') }}</span>
+                        </a>
+                    </li>
+                @endif
             </ul>
         </div>
     </section>

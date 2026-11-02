@@ -27,6 +27,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $published_on
  * @property array<mixed>|null $tags
  * @property bool $is_downloadable
+ * @property int|null $page_count عدد صفحات الكتاب من ملفه (CountLibraryPages)، وفارغ حتى يُحسب أو إن تعذّر
+ * @property Carbon|null $page_count_checked_at وقت محاولة عدّ الملف الحالي، فلا تُعاد مع كل بلاغ
  */
 #[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home', 'is_downloadable'])]
 class LibraryItem extends Model implements HasPublicImages
@@ -61,6 +63,8 @@ class LibraryItem extends Model implements HasPublicImages
             'is_published' => 'boolean',
             'on_home' => 'boolean',
             'is_downloadable' => 'boolean',
+            'page_count' => 'integer',
+            'page_count_checked_at' => 'datetime',
         ];
     }
 
@@ -71,6 +75,28 @@ class LibraryItem extends Model implements HasPublicImages
     public function isReadOnly(): bool
     {
         return $this->section->takesPdf() && $this->is_downloadable === false;
+    }
+
+    /**
+     * «قراءاتي» (docs/decisions/2026-11-01-my-reading.md): الصفحات تُحصى في قارئ الصفحة وحده (كتاب «للقراءة فقط»)، أما
+     * الكتاب القابل للتنزيل فيُعرض في عارض المتصفح ولا يُعرف ما قُرئ منه، فعلامة «فتحته» وحدها.
+     */
+    public function tracksPages(): bool
+    {
+        return $this->isReadOnly() && filled($this->file);
+    }
+
+    /**
+     * والاستماع والمشاهدة بالثواني في مشغّل الصفحة: المقطع من ملف بنطاق معتمد، والصوت القديم بملفه. ومقطع يوتيوب لا تُقرأ
+     * مدته بلا سكربت يوتيوب، وسياسة المحتوى لا تسمح به، فعلامة «فتحته» وحدها.
+     */
+    public function tracksPlayback(): bool
+    {
+        return match ($this->section) {
+            LibrarySection::Videos => filled($this->video_url) && $this->youtubeId() === null,
+            LibrarySection::Audio => filled($this->file),
+            default => false,
+        };
     }
 
     /**

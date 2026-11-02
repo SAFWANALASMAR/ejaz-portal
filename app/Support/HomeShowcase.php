@@ -22,14 +22,15 @@ final class HomeShowcase
      * @param  array<string, mixed>  $home  Setting::group('home')
      * @param  array<string, mixed>  $content  HomeContent::resolved()
      * @param  array{title: string, text: string, button: array{label: string, url: string}|null}  $hero
-     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}}>
+     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, portrait?: bool}>
      */
     public static function slides(array $home, array $content, array $hero): array
     {
-        $placeholder = ['src' => asset('images/placeholders/architecture.svg'), 'srcset' => null];
+        // بلا صورة: نقش محايد لكل شريحة (صفحتها)، فلا تتكرر صورة واحدة (NeutralImage)
+        $placeholder = fn (string $key): array => ['src' => asset(NeutralImage::DIRECTORY.'/'.(['brahin' => 'competitions', 'library' => 'library'][$key] ?? 'default').'.svg'), 'srcset' => null];
         $image = fn (string $key, ?array $fallback, string $alt): array => ($path = HomeContent::heroSlideImage($key)) !== null
             ? [...HeroImage::sources($path), 'alt' => $alt]
-            : [...($fallback ?? $placeholder), 'alt' => $fallback !== null ? $alt : ''];
+            : [...($fallback ?? $placeholder($key)), 'alt' => $fallback !== null ? $alt : ''];
 
         $short = (string) __('site.short_name');
         $title = $hero['title'];
@@ -51,10 +52,13 @@ final class HomeShowcase
             'key' => 'king', ...$image('king', ['src' => (string) $content['king']['image'], 'srcset' => null], (string) $content['king']['image_alt']),
             'title' => (string) $content['king']['signature_title'], 'subtitle' => (string) $content['king']['signature_name'],
             'text' => (string) $content['king']['text'], 'button' => null,
+            // صورة المقطع الطولية في إطار بجانب النص، لا ممدودة بعرض البطل (ملاحظة صفوان، 1 نوفمبر 2026)، ما لم تُرفع صورة عريضة للشريحة
+            'portrait' => HomeContent::heroSlideImage('king') === null,
         ], [
             'key' => 'chairman', ...$image('chairman', ['src' => (string) $content['chairman']['image'], 'srcset' => null], (string) $content['chairman']['image_alt']),
             'title' => (string) $content['chairman']['name'], 'subtitle' => (string) $content['chairman']['title'],
             'text' => HomeContent::paragraphs((string) $content['chairman']['excerpt'])[1] ?? null, 'button' => null,
+            'portrait' => HomeContent::heroSlideImage('chairman') === null,
         ]];
 
         $competition = self::studentCompetition();

@@ -16,6 +16,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -76,9 +77,11 @@ class HomeContentPage extends Page
         // النص المحفوظ، وإلا الأصل، فيرى المحرر ما يُعرض ويعدّله
         foreach (HomeContent::TEXTS as $section => $keys) {
             foreach ($keys as $key) {
-                $data[$section][$key] = $stored[$section][$key] ?? __('home.sections.'.$section.'.'.$key);
+                $data[$section][$key] = $stored[$section][$key] ?? HomeContent::defaultText($section, $key);
             }
         }
+
+        $data['portal_stats']['enabled'] = HomeContent::showsPortalStats();
 
         foreach (array_keys(HomeContent::IMAGES) as $section) {
             $data[$section]['image'] = $stored[$section]['image'] ?? null;
@@ -91,6 +94,10 @@ class HomeContentPage extends Page
 
         foreach (HomeContent::HERO_SLIDES as $key) {
             $data['hero_slides'][$key] = $stored['hero_slides'][$key] ?? null;
+        }
+
+        foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
+            $data['page_heroes'][$key] = $stored['page_heroes'][$key] ?? null;
         }
 
         foreach (range(0, HomeContent::VALUES - 1) as $index) {
@@ -115,6 +122,10 @@ class HomeContentPage extends Page
                 // صور شرائح البطل بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). فارغة تعني بديلها: صورة البطل وصورتا المقطعين
                 Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
                     array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
+                ),
+                // صورة رأس كل صفحة داخلية (1 نوفمبر 2026). فارغة تعني البديل الحالي
+                Section::make(__('settings.home_content.page_heroes'))->description(__('settings.home_content.page_heroes_hint'))->columns(2)->collapsed()->schema(
+                    array_map(fn (string $key): FileUpload => self::image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(HomeContent::PAGE_HEROES)),
                 ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
@@ -169,6 +180,10 @@ class HomeContentPage extends Page
                 Section::make(__('settings.home_content.headings'))->description(__('settings.home_content.headings_hint'))->columns(3)->schema(
                     array_map(fn (string $key): TextInput => TextInput::make('headings.'.$key)->label(__('settings.home_content.headings_fields.'.$key))->maxLength(300), HomeContent::TEXTS['headings']),
                 ),
+                // «البوابة بالأرقام» الآلية (البند H9): مفتاح إظهارها، وعنوانها ووصفها في «عناوين أقسام الرئيسية» أعلاه
+                Section::make(__('settings.home_content_portal_stats.section'))->description(__('settings.home_content_portal_stats.hint'))->schema([
+                    Toggle::make('portal_stats.enabled')->label(__('settings.home_content_portal_stats.enabled')),
+                ]),
                 // النصوص الثابتة في الواجهة (مراجعة المشرف، 26 أكتوبر 2026)
                 Section::make(__('settings.home_content.interface'))->columns(2)->schema([
                     TextInput::make('tickers.news')->label(__('settings.home_content.tickers_news'))->maxLength(300),

@@ -10,7 +10,7 @@
         PaymentStatus::Paid => ['check-circle', 'text-primary-dark bg-primary-soft'],
         PaymentStatus::Failed => ['x-circle', 'text-red-700 bg-red-50'],
         PaymentStatus::Refunded => ['arrow-uturn-left', 'text-muted bg-surface'],
-        PaymentStatus::Pending => ['clock', 'text-amber-700 bg-amber-50'],
+        PaymentStatus::Pending => ['clock', 'text-primary bg-primary-soft'],
     };
 @endphp
 

@@ -7,6 +7,7 @@ use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Support\AccountSettings;
+use App\Support\AssemblyMembersCount;
 use App\Support\LoginIdentifier;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -46,6 +47,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'is_active' => true,
         'password_upgrade_required_at' => null,
         'password_set_by_admin_at' => null,
+        'reading_tracking_disabled_at' => null,
     ];
 
     /**
@@ -62,6 +64,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'first_verified_at' => 'datetime',
             'deletion_requested_at' => 'datetime',
             'anonymized_at' => 'datetime',
+            // «لا تحفظ قراءاتي» (docs/decisions/2026-11-01-my-reading.md)
+            'reading_tracking_disabled_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'password_upgrade_required_at' => 'datetime',
             'password_set_by_admin_at' => 'datetime',
@@ -250,6 +254,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         });
 
         static::updated(function (User $user): void {
+            // الحساب المعطّل أو المجهَّل يخرج من عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount)
+            if ($user->wasChanged(['is_active', 'anonymized_at'])) {
+                AssemblyMembersCount::forget();
+            }
+
             $changed = array_values(array_intersect(self::PERSONAL_FIELDS, array_keys($user->getChanges())));
 
             if ($changed !== []) {

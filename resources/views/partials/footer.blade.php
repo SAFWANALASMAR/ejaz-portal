@@ -98,6 +98,16 @@
                         </a>
                     </li>
                 @endforeach
+                {{-- متجر الجمعية على سلة بتبويب جديد، ولا يظهر بلا رابط صالح (1 نوفمبر 2026) --}}
+                @if ($storeLink = \App\Rules\StoreUrl::link())
+                    <li class="min-w-0">
+                        <a href="{{ $storeLink }}" target="_blank" rel="noopener noreferrer" class="footer-link-row" data-store-link>
+                            <x-icon-tile icon="shopping-bag" size="xs" class="footer-line-icon" />
+                            <span class="truncate">{{ __('ui.footer.links.store') }}</span>
+                            <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                        </a>
+                    </li>
+                @endif
             </ul>
         </nav>
 

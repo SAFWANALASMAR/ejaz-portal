@@ -48,7 +48,9 @@ it('keeps every existing and new item downloadable by default, with its buttons,
 it('shows a read-only book in the canvas reader, with no download or open button and no browser viewer', function () {
     readOnlyBook();
 
-    $this->get('/library/books/book')->assertOk()
+    $response = $this->get('/library/books/book');
+
+    $response->assertOk()
         ->assertSee('data-pdf-reader="'.route('library.file', ['books', 'book']).'"', false)
         ->assertSee('<canvas data-pdf-canvas', false)
         ->assertSee('data-pdf-next', false)
@@ -56,10 +58,12 @@ it('shows a read-only book in the canvas reader, with no download or open button
         ->assertSee('data-pdf-zoom-in', false)
         ->assertSee(__('library.item.read_only'))
         ->assertDontSee(route('library.download', ['books', 'book']))
-        ->assertDontSee('target="_blank"', false)
         ->assertDontSee('<iframe', false)
         ->assertDontSee(__('library.item.download'))
         ->assertDontSee(__('library.item.open'));
+
+    // لا رابط بتبويب جديد في المحتوى (والتذييل فيه رابط المتجر الخارجي بتبويب جديد منذ 1 نوفمبر 2026)
+    expect((string) str($response->getContent())->after('<main')->before('</main>'))->not->toContain('target="_blank"');
 
     // والبطاقة في القسم بعلامتها، بلا زر تنزيل
     $this->get('/library/books')->assertOk()

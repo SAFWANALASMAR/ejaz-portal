@@ -46,7 +46,7 @@ final class HomeContent
         // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
         'identity' => ['vision', 'mission', 'side_title', 'side_text', 'goals', 'principles'],
         // عناوين أقسام الرئيسية وبطاقاتها الظاهرة للزائر (أمر التصور النهائي، النسخة 63 — المرحلة ب)
-        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats'],
+        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats', 'stats_intro'],
     ];
 
     /**
@@ -98,6 +98,30 @@ final class HomeContent
     public const HERO_SLIDES = ['about', 'king', 'chairman', 'brahin', 'library'];
 
     /**
+     * صورة رأس كل صفحة داخلية ثابتة (صفوان عبر المشرف، 1 نوفمبر 2026): خانة لكل صفحة تُرفع من «محتوى الرئيسية» وتُحفظ في
+     * page_heroes.<الصفحة>، فتغلب على بديل رأسها. وبلا صورة يبقى البديل الحالي (x-page-hero). المفتاح ← اسم المسار. وصفحات
+     * السجلات (برنامج، خبر، مبادرة...) بصورة سجلها خارجها.
+     *
+     * @var array<string, string>
+     */
+    public const PAGE_HEROES = [
+        'about' => 'about',
+        'initiatives' => 'initiatives.index',
+        'programs' => 'programs.index',
+        'competitions' => 'competitions.index',
+        'library' => 'library.index',
+        'media' => 'media.index',
+        'news' => 'media.news.index',
+        'albums' => 'media.albums.index',
+        'announcements' => 'media.announcements',
+        'partners' => 'media.partners',
+        'governance' => 'governance.index',
+        'services' => 'services.index',
+        'contact' => 'contact',
+        'assembly' => 'assembly.index',
+    ];
+
+    /**
      * المحتوى للعرض: المحفوظ من اللوحة، وإلا الأصل.
      *
      * @return array<string, array<string, mixed>>
@@ -134,6 +158,15 @@ final class HomeContent
         }
 
         return $content;
+    }
+
+    /**
+     * مفتاح «البوابة بالأرقام» الآلية (البند H9): مطفأة حتى تُشغَّل من «محتوى الرئيسية»، كما يطلب ui-reference.md ومفتاح
+     * show_stats القائم (مراجعة المشرف على #115). والأرقام المعتمدة من «إعدادات الموقع» بمفتاحها هناك (show_stats).
+     */
+    public static function showsPortalStats(): bool
+    {
+        return (bool) (Setting::group(self::KEY)['portal_stats']['enabled'] ?? false);
     }
 
     /**
@@ -181,6 +214,17 @@ final class HomeContent
     }
 
     /**
+     * رابط صورة رأس الصفحة الداخلية المرفوعة من اللوحة لاسم مسارها، أو null (صفحة بلا خانة، أو خانة فارغة).
+     */
+    public static function pageHeroUrl(?string $routeName): ?string
+    {
+        $key = array_search($routeName, self::PAGE_HEROES, true);
+        $path = $key === false ? null : self::clean(Setting::group(self::KEY)['page_heroes'][$key] ?? null);
+
+        return $path !== null ? Storage::disk('public')->url($path) : null;
+    }
+
+    /**
      * رابط ملف الشعار أو المخطوطة: المرفوع من اللوحة، وإلا الأصل.
      */
     public static function brand(string $key): string
@@ -216,6 +260,10 @@ final class HomeContent
             $paths[] = $stored['hero_slides'][$key] ?? null;
         }
 
+        foreach (array_keys(self::PAGE_HEROES) as $key) {
+            $paths[] = $stored['page_heroes'][$key] ?? null;
+        }
+
         return array_values(array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''));
     }
 
@@ -240,13 +288,29 @@ final class HomeContent
     }
 
     /**
+     * الأصل نفسه الذي يُعرض، لحقول «محتوى الرئيسية» (فلا تعرض اللوحة أصلاً قديماً، كاسم الرئيس بالشرطة المائلة، فيُخزَّن بالحفظ).
+     */
+    public static function defaultText(string $section, string $key): string
+    {
+        return self::default($section, $key);
+    }
+
+    /**
      * الأصل: ما في home.sections_final (أصول النسخة 63 من التصور، مضافة لا معدِّلة لما قبلها)، وإلا home.sections.
      */
     private static function default(string $section, string $key): string
     {
         $final = 'home.sections_final.'.$section.'.'.$key;
+        $line = Lang::has($final) ? $final : 'home.sections.'.$section.'.'.$key;
 
-        return (string) __(Lang::has($final) ? $final : 'home.sections.'.$section.'.'.$key);
+        // رقم الترخيص في مربع الرأس من نص الترخيص في التذييل (المحفوظ أو أصله)، فلا يُكتب الرقم في موضعين (صفوان، 1 نوفمبر 2026)
+        if ($section === 'header' && $key === 'license_number') {
+            return preg_match('/\p{Nd}+/u', self::text('footer', 'license'), $number) === 1
+                ? (string) __($line, ['number' => $number[0]])
+                : '';
+        }
+
+        return (string) __($line);
     }
 
     private static function clean(mixed $value): ?string

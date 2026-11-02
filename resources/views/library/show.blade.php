@@ -7,6 +7,8 @@
     use App\Support\Dates;
 
     $route = [$item->section->value, $item->slug];
+    // «قراءاتي»: بلاغات التقدّم لمسجّل الدخول (resources/js/library-progress.js). والرابط واحد للجميع، فتُخزَّن الصفحة نصاً كما كانت
+    $progress = route('library.progress', $route);
     $youtube = $item->section->takesVideoUrl() ? $item->youtubeId() : null;
 
     $size = \App\Support\FileSize::display($item->file_size);
@@ -22,7 +24,7 @@
                 @if ($youtube)
                     {{-- لا يُحمَّل مشغّل يوتيوب حتى يضغط الزائر (نظام حماية البيانات الشخصية)، وصورته المصغرة من القرص العام
                          (FetchYoutubeThumbnail). يبنيه resources/js/app.js، وبلا JavaScript يفتح الرابط المقطع في يوتيوب --}}
-                    <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
+                    <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-progress="{{ $progress }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                         data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
                         class="group relative flex aspect-video w-full flex-col items-center justify-center gap-3 overflow-hidden bg-primary-dark p-6 text-center text-white">
                         @if ($thumbnail = $item->thumbnailUrl())
@@ -36,7 +38,7 @@
                         <span class="relative text-sm text-white/85">{{ __('library.item.youtube_notice') }}</span>
                     </a>
                 @else
-                    <video src="{{ $item->video_url }}" controls preload="metadata" class="block aspect-video w-full">{{ __('library.item.no_video') }}</video>
+                    <video src="{{ $item->video_url }}" data-library-media data-progress="{{ $progress }}" controls preload="metadata" class="block aspect-video w-full">{{ __('library.item.no_video') }}</video>
                 @endif
             </div>
         @endif
@@ -86,7 +88,7 @@
         </div>
 
         @if (filled($item->file) && ! $item->section->takesPdf())
-            <audio src="{{ route('library.file', $route) }}" controls preload="none" class="mt-6 w-full"
+            <audio src="{{ route('library.file', $route) }}" data-library-media data-progress="{{ $progress }}" controls preload="none" class="mt-6 w-full"
                 aria-label="{{ __('library.item.player', ['title' => $item->title]) }}">{{ __('library.item.no_audio') }}</audio>
         @endif
 
@@ -107,10 +109,10 @@
 
         {{-- كتاب «للقراءة فقط»: قارئ يرسم الصفحات في <canvas> على كل العروض، بلا شريط عارض المتصفح (resources/js/pdf-reader.js) --}}
         @if (filled($item->file) && $item->isReadOnly())
-            @include('library.reader', ['url' => route('library.file', $route), 'title' => $item->title])
+            @include('library.reader', ['url' => route('library.file', $route), 'title' => $item->title, 'progress' => $progress])
         {{-- متصفحات الجوال لا تعرض PDF داخل الصفحة، فعليها زرا الفتح والتنزيل وحدهما --}}
         @elseif (filled($item->file) && $item->section->takesPdf())
-            <iframe src="{{ route('library.file', $route) }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"
+            <iframe src="{{ route('library.file', $route) }}" data-progress-open="{{ $progress }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"
                 loading="lazy" class="mt-8 hidden h-[80vh] w-full lg:block concept-panel"></iframe>
             <p class="mt-6 text-sm text-muted lg:hidden">{{ __('library.item.mobile_hint') }}</p>
         @endif

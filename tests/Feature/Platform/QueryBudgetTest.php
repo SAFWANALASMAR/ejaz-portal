@@ -68,7 +68,8 @@ it('keeps the public lists within a fixed number of queries', function (string $
 })->with([
     'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 3],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
-    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 3],
+    // والحوكمة +1 منذ عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount، مخزّن مع المحتوى — 1 نوفمبر 2026)
+    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 4],
     'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
     'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 3],
 ]);
@@ -108,7 +109,8 @@ it('keeps the account pages within a fixed number of queries', function (string 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
     // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+2 منذ شريط المكتبة تحت الترحيب (المقاطع والأغلفة، مخزّن مع المحتوى فيُسأل مرة بعد مسحه)
-    'dashboard' => ['/account', 16],
+    // و+2 منذ «قراءاتي»: أحدث التقدّم ومجاميع صاحب الحساب (docs/decisions/2026-11-01-my-reading.md)
+    'dashboard' => ['/account', 18],
     'programs' => ['/account/programs', 5],
     'requests' => ['/account/requests', 4],
 ]);

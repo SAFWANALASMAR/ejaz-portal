@@ -184,6 +184,88 @@ body {
     object-fit: cover;
 }
 
+/* صورة الشريحة العريضة: الثلث الأعلى في الوسط، فلا يُقص رأس من في الصورة */
+.concept-hero-media .hero-slide > img {
+    object-position: 50% 30%;
+}
+
+/* صورة البطل الأصغر من مساحتها (image-fit.js): كاملة بمقاسها في جهة النهاية (اليسار في الاتجاه من اليمين)، فوق نسخة مموّهة تملأ
+   الخلفية، فلا تُمدّ فتضبب */
+img[data-fit-small] {
+    object-fit: scale-down !important;
+    animation: none !important;
+}
+
+.concept-hero-media img[data-fit-small] {
+    z-index: 0;
+    object-position: 0% 50%;
+}
+
+/* مصغّرات المعرض: الصورة الصغيرة في وسط مربعها فوق نسختها المموّهة */
+[data-fit-frame] {
+    position: relative;
+}
+
+[data-fit-frame] > img[data-fit-small] {
+    position: relative;
+    z-index: 1;
+}
+
+.concept-hero-media:has(> img[data-fit-small])::before,
+.concept-hero-media .hero-slide:has(> img[data-fit-small])::before,
+[data-fit-frame]:has(> img[data-fit-small])::before {
+    content: '';
+    position: absolute;
+    inset: -2rem;
+    background: var(--fit-backdrop) center / cover no-repeat;
+    filter: blur(24px) brightness(0.6);
+}
+
+/* الصورة الطولية في إطار (HomeShowcase: portrait): فوق التدرج بخلفية الهوية، أعلاها ظاهر دائماً، ولا تُكبَّر فوق مقاسها */
+.hero-portrait-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-deep) 75%);
+}
+
+.concept-hero-media .hero-portrait-frame {
+    position: relative;
+    flex-shrink: 0;
+    width: 6.5rem;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border: 3px solid var(--color-brand-light);
+    border-radius: 1.25rem;
+    background: var(--color-primary-deep);
+    box-shadow: 0 18px 40px -16px rgb(0 0 0 / 60%);
+}
+
+.concept-hero-media .hero-portrait-frame img {
+    position: static;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: 50% 0;
+}
+
+@media (min-width: 40rem) {
+    .concept-hero-media .hero-portrait-frame {
+        width: 8rem;
+    }
+}
+
+@media (min-width: 64rem) {
+    .concept-hero-media .hero-portrait-frame {
+        position: absolute;
+        top: 50%;
+        inset-inline-end: 6%;
+        width: auto;
+        height: min(82%, 26rem);
+        transform: translateY(-50%);
+    }
+}
+
 .concept-arrow {
     position: absolute;
     top: 50%;
@@ -266,6 +348,10 @@ body {
     .concept-hero .concept-hero-media img,
     .concept-hero .hero-slide[data-active] img {
         animation: kenburns-concept 20s ease-in-out infinite alternate;
+    }
+
+    .concept-hero .hero-slide[data-active] .hero-portrait-frame img {
+        animation: none;
     }
 
     .rise-1 {
@@ -1736,4 +1822,19 @@ html[data-motion-off] .section-heading-icon {
 /* غلاف الكتاب والبحث في شريط المكتبة: بطاقة أضيق بارتفاع الغلاف */
 .media-tile.media-tile-narrow {
     width: 9rem;
+}
+
+/* رسم «البوابة بالأرقام» (البند H9): الخط يُرسم حين تظهر بطاقته (data-revealed — home.js)، والمدة بالمفتاح --motion، فلمن طلب
+   تقليل الحركة يظهر كاملاً بلا رسم، وبلا سكربت يظهر كاملاً كذلك */
+.portal-chart-line {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+}
+
+html[data-reveal-ready] [data-reveal]:not([data-revealed]) .portal-chart-line {
+    stroke-dashoffset: 100;
+}
+
+html[data-reveal-ready] .portal-chart-line {
+    transition: stroke-dashoffset calc(2200ms * var(--motion)) ease-out calc(250ms * var(--motion));
 }
