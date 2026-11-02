@@ -7,7 +7,9 @@ use App\Filament\Resources\LibraryItems\LibraryItemResource;
 use App\Filament\Resources\LibraryItems\Pages\CreateLibraryItem;
 use App\Filament\Resources\LibraryItems\Pages\EditLibraryItem;
 use App\Filament\Resources\LibraryItems\Pages\ListLibraryItems;
+use App\Jobs\CountLibraryPages;
 use App\Models\LibraryItem;
+use App\Models\LibraryProgress;
 use App\Models\User;
 use App\Support\StructuredData;
 use Database\Seeders\LegacyRedirectsSeeder;
@@ -178,6 +180,20 @@ it('treats a read-only study like a read-only book: the page reader and no downl
     $this->get('/library/research/study/download')->assertNotFound();
     $this->get('/library/research/study/file')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
     $this->get('/library/research/study/file', ['Sec-Fetch-Dest' => 'document'])->assertRedirect(route('library.show', ['research', 'study']));
+});
+
+it('counts the pages of a read-only study and records the pages its reader sees, like a book', function () {
+    $study = fourSectionsItem(['slug' => 'study', 'section' => LibrarySection::Research, 'is_downloadable' => false]);
+    app()->call([new CountLibraryPages($study->id), 'handle']);
+    $reader = User::factory()->create();
+
+    expect($study->refresh()->page_count)->toBe(1);
+
+    $this->actingAs($reader)->get('/library/research/study')->assertOk()->assertSee('data-progress="'.route('library.progress', ['research', 'study']).'"', false);
+    $this->postJson(route('library.progress', ['research', 'study']), ['pages' => [1], 'page' => 1])->assertOk()->assertExactJson(['pages' => [1]]);
+
+    $progress = LibraryProgress::query()->whereBelongsTo($reader)->where('library_item_id', $study->id)->sole();
+    expect($progress->pages_count)->toBe(1)->and($progress->completed_at)->not->toBeNull();
 });
 
 it('lets a downloadable study open in the viewer and download as an attachment', function () {
