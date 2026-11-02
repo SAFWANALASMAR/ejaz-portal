@@ -67,7 +67,8 @@ class BuildOversight
             ->orderBy('starts_at');
 
         $assembly = $upcoming()->generalAssembly()->first();
-        $council = $upcoming()->where('body', '!=', MeetingBody::GeneralAssembly->value)->visibleTo($user)->first();
+        // ومن لا يرى الاجتماعات لا يُسأل له (visibleTo تجعل الاستعلام «1 = 0»)
+        $council = $user->can('meetings.view') ? $upcoming()->where('body', '!=', MeetingBody::GeneralAssembly->value)->visibleTo($user)->first() : null;
 
         return collect([$assembly !== null && $user->can('attend', $assembly) ? $assembly : null, $council])
             ->filter()
