@@ -6,6 +6,7 @@ use App\Actions\Accounts\BuildOversight;
 use App\Enums\AgendaItemStatus;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
+use App\Models\Achievement;
 use App\Models\AssemblyMembership;
 use App\Models\Meeting;
 use App\Models\MeetingAgendaItem;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
  *   (Meeting::visibleTo) كما في BuildOversight.
  * - المحاضر المعتمدة للجمعية العمومية (MeetingPolicy::readMinutes)، والقرارات والتكليفات من بنود الاجتماعات التي يراها
  *   في اللوحة وحدها.
+ * - «إنجازاتنا»: آخر المنشور منها وعدد المنشور هذا العام بتوقيت الرياض، لكل من يصل إلى البوابة (اطلاع بلا صلاحية).
  */
 class BuildBoardPortal
 {
@@ -33,6 +35,8 @@ class BuildBoardPortal
      *     upcoming: Collection<int, Meeting>,
      *     minutes: Collection<int, Meeting>,
      *     decisions: Collection<int, MeetingAgendaItem>|null,
+     *     achievements: Collection<int, Achievement>,
+     *     achievements_this_year: int,
      * }
      */
     public function handle(User $user): array
@@ -65,6 +69,8 @@ class BuildBoardPortal
             'minutes' => Meeting::query()->generalAssembly()->whereNotNull('minutes_file')->whereNotNull('minutes_approved_at')
                 ->orderByDesc('minutes_approved_at')->limit(self::LATEST)->get(),
             'decisions' => $decisions !== null ? $decisions()->with('meeting')->latest('id')->limit(self::LATEST)->get() : null,
+            'achievements' => Achievement::query()->timeline()->limit(self::LATEST)->get(),
+            'achievements_this_year' => Achievement::publishedThisYear(),
         ];
     }
 
