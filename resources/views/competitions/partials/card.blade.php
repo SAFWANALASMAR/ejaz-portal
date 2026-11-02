@@ -16,7 +16,7 @@
             <span class="tone-chip" data-results-approved>{{ __('ui.inner.competitions.results') }}</span>
         @endif
     </div>
-    <h3 class="text-xl leading-snug font-black">{{ $competition->title }}</h3>
+    <h3 class="line-clamp-2 text-xl leading-snug font-black">{{ $competition->title }}</h3>
     @if (filled($competition->description))
         <p class="tone-card-muted line-clamp-3 text-sm leading-6">{{ $competition->description }}</p>
     @endif

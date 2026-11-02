@@ -32,7 +32,7 @@
 
     {{-- البطاقات ملونة (Final-Dashboard ‎.cc — البند D1): داكنة ثم فاتحة بالتعاقب (.tone-card)، بأيقونتها وعددها وسهمها --}}
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>
-    <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-reveal-group data-account-cards>
+    <ul class="tile-grid tile-grid-xl" data-reveal-group data-account-cards>
         {{-- البطاقات من اللوحة (AccountCard): ومنها لوحة الإدارة لمن يدخلها، تحميلاً كاملاً (SpaLink) --}}
         @foreach (\App\Support\AccountNavigation::cards($user) as $card)
             <li class="flex">

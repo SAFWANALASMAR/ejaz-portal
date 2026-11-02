@@ -1,0 +1,68 @@
+/*
+| طباعة النصوص في الصفحات العامة ولوحة المستفيد (ملاحظة صفوان ٣٠، الجزء الثاني — docs/decisions/2026-11-03-note-30-typography.md):
+| طول السطر، والتفاف العناوين والفقرات، وشبكة البطاقات. تخطيط وطباعة وحدهما، فلا لون هنا (الألوان للملاحظة ٢٩). وكلها في طبقاتها
+| كـ visual.css وconcept.css، فتغلبها أصناف Tailwind حيث تُكتب صراحة (max-w-none، whitespace-nowrap…).
+*/
+
+@layer base {
+    /* العناوين متوازنة الأسطر، والفقرات بلا كلمة يتيمة في آخرها، في المحتوى وحده. text-wrap-style لا text-wrap: فلا يمس
+       text-wrap-mode (truncate وwhitespace-nowrap) */
+    main :is(h1, h2, h3) {
+        text-wrap-style: balance;
+    }
+
+    main :is(p, li, dd) {
+        text-wrap-style: pretty;
+    }
+}
+
+@layer components {
+    /* سطر مريح للقراءة: نحو 68 حرفاً على الأكثر، والفقرة تبقى في بداية سطرها (يميناً) */
+    .measure {
+        max-width: 68ch;
+    }
+
+    /* شبكة بطاقات بلا خانة فارغة في طرف صفها الأخير: ثلاثة أعمدة على الحاسوب واثنان على اللوحي، والصف الأخير الناقص في الوسط
+       بعرض البطاقة نفسه (لا ممدوداً)، كخدماتنا الإلكترونية وبطاقات لوحة المستفيد بعددها المتغير. والبطاقات بارتفاع صفها.
+       وطرح جزء من البكسل يمنع تقريب الكسور من دفع البطاقة الثالثة إلى صف جديد */
+    .tile-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .tile-grid > li {
+        flex: 0 0 100%;
+        min-width: 0;
+    }
+
+    @media (min-width: 40rem) {
+        .tile-grid > li {
+            flex-basis: calc((100% - 1rem) / 2 - 0.1px);
+        }
+    }
+
+    @media (min-width: 64rem) {
+        .tile-grid > li {
+            flex-basis: calc((100% - 2rem) / 3 - 0.1px);
+        }
+    }
+
+    /* بجانب شريط جانبي (لوحة المستفيد): عمودان حتى الشاشة الواسعة، ثم ثلاثة */
+    @media (min-width: 64rem) {
+        .tile-grid-xl > li {
+            flex-basis: calc((100% - 1rem) / 2 - 0.1px);
+        }
+    }
+
+    @media (min-width: 80rem) {
+        .tile-grid-xl > li {
+            flex-basis: calc((100% - 2rem) / 3 - 0.1px);
+        }
+    }
+
+    .tile-grid > li.tile-wide {
+        flex-basis: 100%;
+    }
+}

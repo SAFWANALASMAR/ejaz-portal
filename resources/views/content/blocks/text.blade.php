@@ -6,7 +6,8 @@
                 <x-section-heading class="mb-5">{{ $data['heading'] }}</x-section-heading>
             @endif
 
-            <div class="prose-ar text-lg">{{ \App\Support\RichText::toHtml(is_string($data['body'] ?? null) ? $data['body'] : null) }}</div>
+            {{-- سطر مريح للقراءة: نحو 68 حرفاً على الأكثر (ملاحظة صفوان ٣٠) --}}
+            <div class="prose-ar measure text-lg">{{ \App\Support\RichText::toHtml(is_string($data['body'] ?? null) ? $data['body'] : null) }}</div>
         </div>
     </div>
 </section>

@@ -12,10 +12,10 @@
         <div class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7">
             <x-section-heading center :description="__('ui.services.choose_hint')" class="mb-6.5">{{ __('ui.services.choose') }}</x-section-heading>
 
-            <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+            <ul class="tile-grid" data-reveal-group>
                 @foreach ($tiles as $tile)
                     @if ($tile['wide'] ?? false)
-                        <li class="sm:col-span-2 lg:col-span-3">
+                        <li class="tile-wide">
                             <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="tone-card group flex items-center gap-4 px-6 py-5" data-tone="dark">
                                 <x-icon-tile :icon="$tile['icon']" size="lg" />
                                 <span class="flex-1 text-xl font-black">{{ __($tile['label']) }}</span>

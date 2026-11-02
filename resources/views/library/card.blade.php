@@ -30,7 +30,7 @@
     @endif
     <span class="flex flex-1 flex-col p-5">
         <span class="tone-chip">{{ $item->section->getLabel() }}</span>
-        <span class="mt-1.5 text-lg leading-snug font-black">{{ $item->title }}</span>
+        <span class="mt-1.5 line-clamp-2 text-lg leading-snug font-black">{{ $item->title }}</span>
         @if ($item->isReadOnly())
             <span class="tone-chip mt-2">
                 {{ svg('heroicon-o-book-open', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}{{ __('library.item.read_only_short') }}

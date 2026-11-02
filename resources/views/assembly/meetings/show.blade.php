@@ -57,7 +57,7 @@
             @if (filled($meeting->agenda))
                 <x-card class="mt-6">
                     <h2 class="text-lg font-bold text-primary">{{ __('assembly.meetings.agenda') }}</h2>
-                    <p class="mt-3 leading-8 whitespace-pre-line text-ink">{{ $meeting->agenda }}</p>
+                    <p class="measure mt-3 leading-8 whitespace-pre-line text-ink">{{ $meeting->agenda }}</p>
                 </x-card>
             @endif
 
