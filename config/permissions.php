@@ -16,7 +16,9 @@ $modules = [
     // المحتوى العام
     'menu' => $crud,
     'settings' => ['update'],
-    'pages' => $crud,
+    // edit_all: تعديل صفحات الموقع الثابتة من «محرر الصفحات» (EditablePages) بمسودة ومعاينة ونشر ورجوع، للمسؤول التقني
+    // والمدير التنفيذي وحدهما ('*' في دوريهما — قرار صفوان، 31 أكتوبر 2026، docs/decisions/2026-11-02-page-editor.md)
+    'pages' => [...$crud, 'edit_all'],
     'initiatives' => $crud,
     'board' => $crud,
     'governance' => $crud,
@@ -146,7 +148,8 @@ return [
             'programs.view', 'programs.attend',
         ],
         'content_editor' => [
-            'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
+            // الصفحات بلا edit_all: محرر الصفحات لمديري النظام وحدهما
+            'menu.*', 'settings.*', 'pages.view', 'pages.create', 'pages.update', 'pages.delete', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*', 'media_assets.*',
             'livestreams.*', 'announcements.*',
         ],

@@ -26,6 +26,7 @@
 <x-layouts.app :title="__('assembly.title')">
     @if ($portal === null)
         <x-page-hero :title="__('assembly.title')" />
+        <x-page-sections />
 
         <section class="py-10 sm:py-14">
             <div class="container-page">

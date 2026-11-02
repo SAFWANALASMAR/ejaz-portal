@@ -10,6 +10,8 @@
 
 @php
     $siteName = __('site.name');
+    // عنوان الصفحة الثابتة المنشور من «محرر الصفحات» يغلب على عنوان قالبها (EditablePages)
+    $title = \App\Support\EditablePages::live(request()->route()?->getName())['title'] ?? $title;
     $pageTitle = $title ? $title.' | '.__('site.short_name') : $siteName;
     $pageDescription = $description ?: __('site.description');
 @endphp
@@ -85,6 +87,8 @@
     </main>
 
     @include('partials.footer')
+
+    @include('partials.page-edit-button')
 
     {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
     <span data-scroll-progress aria-hidden="true"></span>

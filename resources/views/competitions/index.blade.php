@@ -22,6 +22,7 @@
 
 <x-layouts.app :title="__('competitions.title')">
     <x-page-hero :title="__('competitions.list.heading')" />
+    <x-page-sections />
 
     @if ($items->isEmpty())
         <section class="container-page py-10">

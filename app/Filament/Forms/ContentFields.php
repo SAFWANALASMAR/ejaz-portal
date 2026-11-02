@@ -4,6 +4,7 @@ namespace App\Filament\Forms;
 
 use App\Enums\SiteIcon;
 use App\Support\RichText;
+use Closure;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
@@ -12,6 +13,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Support\Icons\Heroicon;
 
 /**
@@ -22,9 +24,23 @@ final class ContentFields
     /**
      * محرر المقاطع (requirements: «محرر محتوى مرن»): نص منسق، وبطاقات، وصورة. يُعرض في
      * الموقع بـ x-content-blocks، والنص المنسق بعد تنقيته (App\Support\RichText).
+     *
+     * و$editorImages لـ«محرر الصفحات» (SitePageResource): مفتاح إظهار لكل مقطع، وصور المقاطع المقبولة بلا رفع هي صور الصفحة
+     * ونسخها (EditablePages::knownImages)، لأن المسودة تحمل صوراً ليست في سجل الصفحة.
+     *
+     * @param  Closure|null  $editorImages  يقبل المسار ($file) ويُحقن معه السجل ($record)
      */
-    public static function blocks(string $directory): Builder
+    public static function blocks(string $directory, ?Closure $editorImages = null): Builder
     {
+        $picture = function (string $name) use ($directory, $editorImages): FileUpload {
+            $upload = self::image($name, $directory, BlockPictureUpload::class);
+
+            return $editorImages === null ? $upload : $upload->preventFilePathTampering(allowFilePathUsing: $editorImages);
+        };
+        $visible = fn (): array => $editorImages === null ? [] : [
+            Toggle::make('visible')->label(__('page_editor.fields.visible'))->default(true)->inline(false),
+        ];
+
         return Builder::make('blocks')
             ->label(__('content.blocks.label'))
             ->blocks([
@@ -32,6 +48,7 @@ final class ContentFields
                     ->label(__('content.blocks.text'))
                     ->icon(Heroicon::OutlinedBars3BottomRight)
                     ->schema([
+                        ...$visible(),
                         TextInput::make('heading')->label(__('content.blocks.heading'))->maxLength(160),
                         // أدوات النص الأساسية وحدها، وهي ما يبقى بعد التنقية في الموقع
                         RichEditor::make('body')
@@ -50,6 +67,7 @@ final class ContentFields
                     ->label(__('content.blocks.cards'))
                     ->icon(Heroicon::OutlinedSquares2x2)
                     ->schema([
+                        ...$visible(),
                         TextInput::make('heading')->label(__('content.blocks.heading'))->maxLength(160),
                         Repeater::make('items')
                             ->label(__('content.blocks.items'))
@@ -58,7 +76,7 @@ final class ContentFields
                                 TextInput::make('title')->label(__('content.blocks.card_title'))->required()->maxLength(120),
                                 Textarea::make('text')->label(__('content.blocks.card_text'))->rows(3)->maxLength(600),
                                 // صورة بدل الأيقونة، من صور مقاطع السجل نفسه (BlockPictureUpload)
-                                self::image('picture', $directory, BlockPictureUpload::class)
+                                $picture('picture')
                                     ->label(__('content.blocks.card_picture'))
                                     ->helperText(__('content.blocks.card_picture_hint'))
                                     ->columnSpanFull(),
@@ -71,8 +89,9 @@ final class ContentFields
                     ->label(__('content.blocks.image'))
                     ->icon(Heroicon::OutlinedPhoto)
                     ->schema([
+                        ...$visible(),
                         // المحفوظ صور مقاطع السجل نفسه، لا غلاف المبادرة (BlockPictureUpload)
-                        self::image('picture', $directory, BlockPictureUpload::class)
+                        $picture('picture')
                             ->label(__('content.blocks.image'))
                             ->helperText(__('content.image_hint'))
                             ->required(),

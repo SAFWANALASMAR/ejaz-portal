@@ -6,6 +6,7 @@ use App\Enums\SiteIcon;
 use App\Models\Setting;
 use App\Models\User;
 use App\Rules\PlainText;
+use App\Support\EditablePages;
 use App\Support\HomeContent;
 use App\Support\PublicImages;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -49,7 +50,8 @@ class UpdateHomeContent
             $rules['hero_slides.'.$key] = ['nullable', 'string', 'max:255'];
         }
 
-        foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
+        // صور رؤوس صفحات «محرر الصفحات» تُنشر منه وحده (PublishPageDraft)، فتبقى هنا كما هي في المحفوظ
+        foreach (array_keys(array_diff_key(HomeContent::PAGE_HEROES, EditablePages::PAGES)) as $key) {
             $rules['page_heroes.'.$key] = ['nullable', 'string', 'max:255'];
         }
 
@@ -82,13 +84,41 @@ class UpdateHomeContent
             }
         }
 
-        $before = HomeContent::imagePaths(Setting::group(HomeContent::KEY));
-        $after = HomeContent::imagePaths($validated);
+        // صور رؤوس صفحات «محرر الصفحات» خارج التنظيف والحذف هنا: يملكها المحرر ونسخه (ejaz:prune-public-files)
+        $before = HomeContent::imagePaths(self::withEditorHeroes(Setting::group(HomeContent::KEY), []));
+        $after = HomeContent::imagePaths(self::withEditorHeroes($validated, []));
 
         PublicImages::prepare($before, $after, UpdateSiteSettings::IMAGE_DIRECTORY, 'images');
 
-        DB::transaction(fn () => Setting::put(HomeContent::KEY, $validated));
+        // بقفل صف الإعداد، وصور «محرر الصفحات» من المحفوظ تحت القفل، فلا يمحو الحفظ نشراً متزامناً
+        DB::transaction(function () use (&$validated): void {
+            $stored = Setting::query()->where('key', HomeContent::KEY)->lockForUpdate()->value('value');
+            $validated = self::withEditorHeroes($validated, is_array($stored) ? $stored : []);
+
+            Setting::put(HomeContent::KEY, $validated);
+        });
 
         PublicImages::discard($before, $after, UpdateSiteSettings::IMAGE_DIRECTORY);
+    }
+
+    /**
+     * صور رؤوس صفحات «محرر الصفحات» من المحفوظ، لا من النموذج (وبمحفوظ فارغ: بلاها).
+     *
+     * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>  $stored
+     * @return array<string, mixed>
+     */
+    private static function withEditorHeroes(array $validated, array $stored): array
+    {
+        foreach (array_keys(EditablePages::PAGES) as $key) {
+            $path = $stored['page_heroes'][$key] ?? null;
+            unset($validated['page_heroes'][$key]);
+
+            if (is_string($path) && $path !== '') {
+                $validated['page_heroes'][$key] = $path;
+            }
+        }
+
+        return $validated;
     }
 }
