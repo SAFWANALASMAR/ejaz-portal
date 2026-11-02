@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Competition;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 // صفحة المسابقات (البند R15 من تدقيق القبول، 2 نوفمبر): التصنيف باستعلامات مستقلة قبل الترقيم، فالحالية
 // والقادمة في الصفحة الأولى بلا ترقيم، والسابقة وحدها مرقّمة
@@ -84,5 +86,15 @@ it('puts each competition in exactly one section at the exact boundaries of its 
 
     foreach (Competition::all() as $competition) {
         expect(substr_count($html, 'href="'.route('competitions.show', $competition->slug).'"'))->toBe(1);
+    }
+});
+
+it('relies on opens_at and closes_at being required, so no competition can fall outside every section', function () {
+    // ملاحظة المشرف المنخفضة على #123: مسابقة بموعد فارغ لا تقع في أي قسم. والعمودان NOT NULL في القاعدة، فهذا حارس للقيد
+    $competition = Competition::factory()->create();
+
+    foreach (['opens_at', 'closes_at'] as $column) {
+        expect(fn () => DB::transaction(fn () => DB::table('competitions')->whereKey($competition->id)->update([$column => null])))
+            ->toThrow(QueryException::class);
     }
 });

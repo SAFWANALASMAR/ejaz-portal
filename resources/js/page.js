@@ -161,7 +161,7 @@ export function start() {
         }
 
         stopProgress();
-        // والطبقة بعد 400 لا 150: التنقّل العادي (الرابط مجلوب مسبقاً عند المرور، أو خادم سريع) يحل بلا طبقة أصلاً (البند ٥)
+        // والطبقة بعد 400 لا 150: التنقّل العادي (خادم سريع) يحل بلا طبقة أصلاً (البند ٥). ولا جلب مسبق عند المرور: أُسقط لأنه يُعدّ زيارة ويضاعف الطلبات في الذروة
         progress = setTimeout(() => {
             document.documentElement.setAttribute('data-navigating', '');
             progress = setTimeout(showTransition, TRANSITION_DELAY - 150);
