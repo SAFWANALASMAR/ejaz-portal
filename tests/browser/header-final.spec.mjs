@@ -140,3 +140,84 @@ test('header: search comes before the login button, so login sits at the far lef
     });
     expect(order).toBeTruthy();
 });
+
+// مراجعة المشرف على #130: التركيز بلوحة المفاتيح لا يختفي تحت الرأس الثابت (scroll-padding-top على html)
+test('header: keyboard focus moving backwards is never hidden under the pinned header at 1440px', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await page.evaluate(() => document.fonts.ready);
+
+    // زرّان في وسط المحتوى بينهما 100 بكسل، والثاني ملاصق لأسفل الرأس: فالأول داخل الشاشة لكن تحت الرأس، ولا يمرّر المتصفح إليه
+    // عند Shift+Tab إلا بـ scroll-padding-top (WCAG 2.4.11). ثم يُكمل الرجوع في عناصر الصفحة الحقيقية
+    const started = await page.evaluate(() => {
+        const box = document.createElement('div');
+        box.innerHTML = '<button type="button" data-probe="a">a</button><div style="height: 100px"></div><button type="button" data-probe="b">b</button>';
+        const main = document.querySelector('main');
+        main.insertBefore(box, main.children[Math.floor(main.children.length / 2)]);
+        const second = box.querySelector('[data-probe="b"]');
+        const headerBottom = document.querySelector('[data-site-header]').getBoundingClientRect().bottom;
+        window.scrollTo({ top: second.getBoundingClientRect().top + window.scrollY - headerBottom - 4, behavior: 'instant' });
+        second.focus({ preventScroll: true });
+        const first = box.querySelector('[data-probe="a"]').getBoundingClientRect();
+
+        return { focused: document.activeElement === second, underHeader: first.top > 0 && first.bottom < headerBottom };
+    });
+    expect(started).toEqual({ focused: true, underHeader: true });
+
+    for (let step = 0; step < 6; step++) {
+        await page.keyboard.press('Shift+Tab');
+        await page.waitForTimeout(400);
+        const state = await page.evaluate(() => {
+            const focused = document.activeElement;
+            const header = document.querySelector('[data-site-header]');
+
+            return {
+                inHeader: header.contains(focused),
+                top: focused.getBoundingClientRect().top,
+                headerBottom: header.getBoundingClientRect().bottom,
+            };
+        });
+        if (state.inHeader) {
+            break;
+        }
+        expect(state.top, `الخطوة ${step + 1}: العنصر المركّز تحت الرأس`).toBeGreaterThanOrEqual(state.headerBottom - 1);
+    }
+});
+
+// قرار المشرف على #130: شارة البث مع صف القائمة (معلّقة تحته في طرفه، فلا تأخذ من عرض الكبسولات)، والمخطوطة في منتصف الشاشة أثناء
+// البث. يلزمه بث جارٍ أو قادم منشور في البيئة (اختبار القالب نفسه في tests/Feature/Platform/HeaderRowTest.php بلا شرط)
+for (const width of [1920, 1440, 1280, 1263]) {
+    test(`header at ${width}px with a live stream: the badge sits with the menu row and the calligraphy stays centred`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        await page.evaluate(() => document.fonts.ready);
+        test.skip((await page.locator('[data-live-badge]').count()) === 0, 'لا بث جارٍ أو قادم في هذه البيئة');
+
+        const state = await page.evaluate(() => {
+            const header = document.querySelector('[data-site-header]');
+            const badge = header.querySelector('[data-main-nav] [data-live-badge]');
+            const calligraphy = header.querySelector('[data-logo-calligraphy]').getBoundingClientRect();
+            const nav = header.querySelector('[data-main-nav]');
+
+            const capsules = nav.querySelector('.nav-capsules').getBoundingClientRect();
+            const box = badge?.getBoundingClientRect();
+
+            return {
+                // في الصف نفسه في الشيفرة، وظاهرة تحت الكبسولات في طرف الصف الأيسر بلا تراكب معها
+                inMenuRow: Boolean(box) && box.height > 0 && box.top >= capsules.bottom - 0.5 && box.left < capsules.left + capsules.width / 4,
+                inFirstRow: Boolean(header.querySelector('.header-top [data-live-badge]')),
+                centreOffset: Math.abs((calligraphy.left + calligraphy.right) / 2 - document.documentElement.clientWidth / 2),
+                navShown: getComputedStyle(nav).display !== 'none',
+                clipped: [...nav.querySelectorAll('.nav-capsule > .truncate')].filter((label) => label.scrollWidth > label.clientWidth + 1).length,
+                noHorizontalScroll: document.documentElement.scrollWidth <= window.innerWidth + 1,
+            };
+        });
+        expect(state.inMenuRow).toBe(true);
+        expect(state.inFirstRow).toBe(false);
+        expect(state.centreOffset).toBeLessThanOrEqual(3);
+        expect(state.navShown).toBe(true);
+        expect(state.clipped).toBe(0);
+        expect(state.noHorizontalScroll).toBe(true);
+        await page.screenshot({ path: `${SHOTS}/${width}-live.png`, clip: { x: 0, y: 0, width, height: 320 } });
+    });
+}

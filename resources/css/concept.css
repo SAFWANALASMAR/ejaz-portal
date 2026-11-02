@@ -856,6 +856,24 @@ html[data-motion-off] .float-soft {
     box-shadow: 0 12px 28px -14px rgb(15 37 54 / 0.85);
 }
 
+/* الرأس الثابت يغطي أعلى الشاشة بارتفاعه كاملاً، فالتركيز بلوحة المفاتيح والروابط الداخلية (#) تُمرَّر إلى ما تحته (WCAG 2.4.11 —
+   مراجعة المشرف على #130): نحو 68 بكسل على الجوال، و100 حتى 1240، ونحو 193 بالصفّين من 1240 */
+html {
+    scroll-padding-top: 5rem;
+}
+
+@media (min-width: 64rem) {
+    html {
+        scroll-padding-top: 7rem;
+    }
+}
+
+@media (min-width: 77.5rem) {
+    html {
+        scroll-padding-top: 12.5rem;
+    }
+}
+
 /* الصف الأول (ترتيب صفوان، 2 نوفمبر 2026، ويلغي البند ٢٥ من ملاحظات 1 نوفمبر: docs/decisions/2026-11-02-header-final.md):
    لا يصغر شيء عند التمرير، فالمقاسات هنا ثابتة لكل عرض. والجوال: الرمز والمخطوطة متجاوران في البداية وأزرار النهاية بعدهما */
 .header-top {
@@ -987,6 +1005,19 @@ html[data-motion-off] .float-soft {
 .header-nav {
     background: linear-gradient(180deg, var(--blue-900), var(--blue-850));
     border-top: 1px solid var(--blue-300);
+}
+
+/* شارة البث (partials/live-badge) معلّقة تحت صف القائمة في طرفه الأيسر، ثابتة معه عند التمرير: لا تأخذ من عرض الكبسولات (لا
+   يتسع الصف لها مع الكبسولات السبع تحت نحو 1400 بكسل، فكان يظهر زر ☰ بدل القائمة)، ولا تزيح المخطوطة عن منتصف الصف الأول */
+.header-nav-row {
+    position: relative;
+}
+
+.header-nav-row > [data-live-badge] {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    inset-inline-end: 1.75rem;
+    box-shadow: 0 8px 20px -10px rgb(15 37 54 / 0.8);
 }
 
 /* سبع كبسولات متساوية (أو بقدر العناصر)، صف واحد */

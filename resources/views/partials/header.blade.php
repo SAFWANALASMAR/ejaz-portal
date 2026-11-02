@@ -37,14 +37,6 @@
             </p>
 
             <div class="header-actions">
-                {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
-                @if ($liveStream ?? null)
-                    <a href="{{ route('live') }}" wire:navigate class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 sm:inline-flex">
-                        <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
-                        {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
-                    </a>
-                @endif
-
                 {{-- البحث السريع (partials/search-palette): نافذة بـ Ctrl+K أو بالضغط، وبجانبه الدخول --}}
                 <button type="button" data-search-open
                     class="header-icon-button" aria-label="{{ __('ui.search.open') }}" aria-keyshortcuts="Control+K Meta+K" title="{{ __('ui.search.open') }} ({{ __('ui.search.shortcut') }})">
@@ -75,9 +67,10 @@
         </div>
     </div>
 
-    {{-- الصف الثاني: القائمة «ج» --}}
+    {{-- الصف الثاني: القائمة «ج»، وشارة البث معلّقة تحته في طرفه (قرار المشرف على #130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
     <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
-        <ul class="nav-capsules mx-auto max-w-[82.5rem] px-4 sm:px-7">
+        <div class="header-nav-row mx-auto max-w-[82.5rem] px-4 sm:px-7">
+        <ul class="nav-capsules">
             @foreach ($menu as $item)
                 @php($current = $item->isCurrent() || $item->hasCurrentChild())
                 <li class="relative min-w-0" @if ($item->children->isNotEmpty()) data-nav-dropdown @endif>
@@ -111,11 +104,14 @@
                 </li>
             @endforeach
         </ul>
+        @include('partials.live-badge')
+        </div>
     </nav>
 
-    {{-- قائمة الجوال واللوحي: العناصر نفسها بأيقوناتها --}}
+    {{-- قائمة الجوال واللوحي: العناصر نفسها بأيقوناتها، وشارة البث أولها --}}
     <div id="mobile-menu" hidden class="header-mobile-menu nav:hidden">
         <nav class="container-page max-h-[75vh] overflow-y-auto py-3" aria-label="{{ __('site.main_navigation') }}">
+            @include('partials.live-badge', ['class' => 'mb-3'])
             <ul class="space-y-1">
                 @foreach ($menu as $item)
                     @php($current = $item->isCurrent() || $item->hasCurrentChild())

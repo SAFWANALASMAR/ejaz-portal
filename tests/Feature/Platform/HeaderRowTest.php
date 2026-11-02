@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LiveStream;
 use App\Models\MenuItem;
 
 // الرأس صفّان (أمر التصور النهائي، النسخة 63 — البندان R2 وR3): الأول الشعار والمخطوطة ومربع الترخيص والدخول والبحث، والثاني
@@ -13,7 +14,7 @@ it('puts the menu on its own second row of equal capsules and shows the bar from
     @$dom->loadHTML($this->get('/')->assertOk()->getContent());
     $x = new DOMXPath($dom);
 
-    $items = $x->query("//nav[@data-main-nav]/ul[contains(@class, 'nav-capsules')]/li/*[self::a or self::button]");
+    $items = $x->query("//nav[@data-main-nav]//ul[contains(@class, 'nav-capsules')]/li/*[self::a or self::button]");
     expect($items->length)->toBe(2);
 
     foreach ($items as $item) {
@@ -71,4 +72,18 @@ it('keeps the header the same size on scroll: no shrink factor or scroll attribu
     foreach (['resources/css/concept.css', 'resources/css/visual.css', 'resources/css/app.css', 'resources/js/app.js'] as $file) {
         expect(file_get_contents(base_path($file)))->not->toContain('var(--hs')->not->toContain('data-scrolled');
     }
+});
+
+// قرار المشرف على #130: شارة البث في نهاية صف القائمة وأول قائمة الجوال، لا في الصف الأول، فلا تزيح المخطوطة عن المنتصف
+it('puts the live stream badge in the menu row and the mobile menu, never in the first row', function () {
+    LiveStream::factory()->create();
+
+    $dom = new DOMDocument;
+    @$dom->loadHTML($this->get('/')->assertOk()->getContent());
+    $x = new DOMXPath($dom);
+
+    expect($x->query("//nav[@data-main-nav]/div[contains(@class, 'header-nav-row')]/a[@data-live-badge]")->length)->toBe(1)
+        ->and($x->query("//div[@id='mobile-menu']//a[@data-live-badge]")->length)->toBe(1)
+        ->and($x->query("//div[contains(concat(' ', @class, ' '), ' header-top ')]//a[@data-live-badge]")->length)->toBe(0)
+        ->and($x->query('//a[@data-live-badge]')->item(0)->textContent)->toContain(__('livestream.header.live'));
 });
