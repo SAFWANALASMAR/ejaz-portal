@@ -115,7 +115,7 @@ class AnonymizeUser
             // (docs/decisions/2026-11-01-my-reading.md)
             LibraryProgress::query()->whereBelongsTo($user)->delete();
             // ومعه صفحات برامج المكتبة في تسجيلاته (docs/decisions/2026-11-02-reading-program.md)
-            ProgramRegistration::query()->whereBelongsTo($user)->update(['pages_seen' => null, 'pages_count' => 0, 'opened_at' => null]);
+            ProgramRegistration::query()->whereBelongsTo($user)->update(['pages_seen' => null, 'pages_count' => 0, 'opened_at' => null, 'seconds_baseline' => 0]);
 
             // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data: إجابات
             // الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل في البرامج، ونصوص الاستبيانات (وتبقى أرقامها

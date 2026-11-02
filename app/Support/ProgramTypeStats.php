@@ -29,15 +29,18 @@ final class ProgramTypeStats
             ->selectRaw('count(*) filter (where program_registrations.attended_at is not null or program_registrations.completed_at is not null) as completed')
             ->get()->keyBy('type_id');
 
-        // تقدّم المسجلين المؤكدين في عنصر برنامجهم وحده
+        // تقدّم المسجلين المؤكدين في عنصر برنامجهم بعد التسجيل وحده (مراجعة المشرف على #126): صفحات البرنامج في التسجيل نفسه،
+        // وثواني الاستماع والمشاهدة مطروحاً منها ما كان عند التسجيل
         $progress = DB::table('program_registrations')
             ->join('programs', 'programs.id', '=', 'program_registrations.program_id')
-            ->join('library_progress', fn ($join) => $join->on('library_progress.user_id', '=', 'program_registrations.user_id')
+            ->leftJoin('library_progress', fn ($join) => $join->on('library_progress.user_id', '=', 'program_registrations.user_id')
                 ->on('library_progress.library_item_id', '=', 'programs.library_item_id'))
             ->whereNull('programs.deleted_at')
+            ->whereNotNull('programs.library_item_id')
             ->where('program_registrations.status', RegistrationStatus::Confirmed->value)
             ->groupBy('programs.program_type_id')
-            ->selectRaw('programs.program_type_id as type_id, coalesce(sum(library_progress.pages_count), 0) as pages, coalesce(sum(library_progress.seconds_consumed), 0) as seconds')
+            ->selectRaw('programs.program_type_id as type_id, coalesce(sum(program_registrations.pages_count), 0) as pages')
+            ->selectRaw('coalesce(sum(greatest(coalesce(library_progress.seconds_consumed, 0) - program_registrations.seconds_baseline, 0)), 0) as seconds')
             ->get()->keyBy('type_id');
 
         $rows = [];

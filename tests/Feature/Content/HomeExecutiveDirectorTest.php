@@ -124,12 +124,13 @@ it('opens the courses and programs hub with training courses, scientific council
     $this->get('/programs')->assertOk()->assertDontSee(route('programs.index', ['type' => 'scientific-councils']), false);
 });
 
-it('seeds the two programme types once, keeping later edits', function () {
+it('seeds every programme type once, keeping later edits', function () {
     $this->seed(ProgramTypesSeeder::class);
     ProgramType::query()->where('slug', 'training-courses')->update(['name' => 'اسم معدّل']);
     $this->seed(ProgramTypesSeeder::class);
 
-    expect(ProgramType::query()->count())->toBe(2)
+    // نوعا المحور وأنواع برامج المكتبة الثلاثة (docs/decisions/2026-11-02-reading-program.md)
+    expect(ProgramType::query()->count())->toBe(count(ProgramTypesSeeder::TYPES))
         ->and(ProgramType::query()->where('slug', 'training-courses')->value('name'))->toBe('اسم معدّل');
 });
 

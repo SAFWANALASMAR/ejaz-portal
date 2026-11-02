@@ -255,9 +255,10 @@ it('lists my programs with a progress bar and the completed ones apart', functio
 it('aggregates registrations, completions, pages and minutes per program type, without competitions (counted in #127)', function () {
     $book = LibraryItem::factory()->create(['page_count' => 4]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
-    confirmedIn($program, $this->member)->forceFill(['completed_at' => now()])->save();
+    $member = confirmedIn($program, $this->member);
+    readInProgram($member, '1-4', 4);
+    $member->forceFill(['completed_at' => now()])->save();
     confirmedIn($program, User::factory()->create());
-    progressFor($this->member, $book, ['pages_seen' => '1-4', 'pages_count' => 4, 'total_pages' => 4]);
 
     $audio = LibraryItem::factory()->audio()->create(['duration_seconds' => 600]);
     $listening = libraryProgram(LibraryProgramKind::Listening, $audio);
@@ -269,6 +270,24 @@ it('aggregates registrations, completions, pages and minutes per program type, w
     expect($rows['book-reading'])->toMatchArray(['registered' => 2, 'completed' => 1, 'rate' => 50.0, 'pages' => 4])
         ->and($rows['audio-listening'])->toMatchArray(['registered' => 1, 'minutes' => 5])
         ->and($rows)->not->toHaveKey('competitions');
+});
+
+it('leaves progress from before the registration out of the program type stats', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 10]);
+    progressFor($this->member, $book, ['pages_seen' => '1-10', 'pages_count' => 10, 'total_pages' => 10]);
+    $reading = confirmedIn(libraryProgram(LibraryProgramKind::Reading, $book), $this->member);
+    readInProgram($reading, '1-2', 2);
+
+    $audio = LibraryItem::factory()->audio()->create(['duration_seconds' => 1200]);
+    progressFor($this->member, $audio, ['seconds_consumed' => 600]);
+    confirmedIn(libraryProgram(LibraryProgramKind::Listening, $audio), $this->member);
+    LibraryProgress::query()->where('library_item_id', $audio->id)->update(['seconds_consumed' => 720]);
+
+    $rows = collect(ProgramTypeStats::compute())->keyBy('key');
+
+    // صفحتان بعد التسجيل لا عشر، ودقيقتان بعده لا اثنتا عشرة
+    expect($rows['book-reading']['pages'])->toBe(2)
+        ->and($rows['audio-listening']['minutes'])->toBe(2);
 });
 
 it('keeps the library section consistent for each kind', function () {

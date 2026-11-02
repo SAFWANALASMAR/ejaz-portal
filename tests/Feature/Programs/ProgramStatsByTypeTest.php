@@ -59,7 +59,7 @@ it('counts confirmed registrations and attendance per program type, without canc
     expect($rows['training-courses'])->toMatchArray(['label' => 'الدورات التدريبية', 'registered' => 3, 'completed' => 2, 'rate' => 67, 'pages' => null, 'minutes' => null])
         // نوع بلا برنامج له صفه بأصفار، ونسبته صفر بلا قسمة على صفر
         ->and($rows['scientific-councils'])->toMatchArray(['registered' => 0, 'completed' => 0, 'rate' => 0])
-        ->and(array_keys($rows))->toBe(['training-courses', 'scientific-councils', '_competitions']);
+        ->and(array_keys($rows))->toBe(['training-courses', 'scientific-councils', CompetitionsSource::KEY]);
 });
 
 it('counts competition registrants once per person in published competitions, and submitters as completed', function () {
@@ -250,7 +250,8 @@ it('takes the library programs from their own source: completions, pages for rea
 
     $book = LibraryItem::factory()->create(['page_count' => 4]);
     $readingProgram = Program::factory()->for($reading, 'type')->create(['library_item_id' => $book->id]);
-    ProgramRegistration::factory()->for($readingProgram)->for($reader)->create()->forceFill(['completed_at' => now()])->save();
+    // صفحات البرنامج في التسجيل نفسه، بعد التسجيل وحده (مراجعة المشرف على #126)
+    ProgramRegistration::factory()->for($readingProgram)->for($reader)->create()->forceFill(['completed_at' => now(), 'started_at' => now(), 'pages_seen' => '1-4', 'pages_count' => 4])->save();
     ProgramRegistration::factory()->for($readingProgram)->create();
     LibraryProgress::query()->forceCreate(['user_id' => $reader->id, 'library_item_id' => $book->id, 'pages_seen' => '1-4', 'pages_count' => 4, 'total_pages' => 4, 'last_reported_at' => now()]);
 
