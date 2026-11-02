@@ -255,8 +255,14 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// القائمة المنسدلة تُغلق متى خرج منها التركيز بلوحة المفاتيح، فلا تبقى مفتوحة تغطي ما بعدها
-document.addEventListener('focusin', (event) => closeAll(event.target));
+// القائمة المنسدلة تُغلق متى خرج منها التركيز بلوحة المفاتيح، فلا تبقى مفتوحة تغطي ما بعدها. وتركيز الضغط بالمؤشر (لا
+// :focus-visible) يُترك للضغط نفسه (مستمع click أعلاه): إغلاقها عند التركيز يزيح أزرار قائمة الجوال قبل أن يصل الضغط إلى
+// الزر التالي، فتُطوى الاثنتان ولا تُفتح التي ضُغطت (docs/decisions/2026-11-03-mobile-menu.md)
+document.addEventListener('focusin', (event) => {
+    if (event.target.matches?.(':focus-visible')) {
+        closeAll(event.target);
+    }
+});
 
 // القائمة المفتوحة تُغلق قبل مغادرة الصفحة، فلا تعود مفتوحة بزر الرجوع
 onLeave(() => {
