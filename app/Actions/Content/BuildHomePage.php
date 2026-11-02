@@ -2,6 +2,7 @@
 
 namespace App\Actions\Content;
 
+use App\Enums\CompetitionStatus;
 use App\Enums\LibrarySection;
 use App\Enums\PartnerKind;
 use App\Enums\SiteIcon;
@@ -20,6 +21,7 @@ use App\Support\HomePortalStats;
 use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -85,7 +87,7 @@ class BuildHomePage
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
      *     slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}}>,
      *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
-     *     prize: array{title: string, total: int, url: string}|null,
+     *     prize: array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null,
      *     top_initiatives: Collection<int, Initiative>,
      *     strip_videos: Collection<int, LibraryItem>,
      *     strip_books: Collection<int, LibraryItem>,
