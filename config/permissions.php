@@ -109,6 +109,9 @@ $modules = [
     'accounts' => ['update'],
     // بطاقات لوحة المستفيد: إضافة وتعديل وإخفاء وترتيب (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
     'account_cards' => $crud,
+    // «إنجازاتنا»: تضيفها الإدارة التنفيذية وحدها (السكرتير، ومديرا النظام بـ '*' — قرار صفوان 31 أكتوبر 16:28)، والمجلس
+    // والجمعية العمومية يطّلعون على المنشور في بوابتهم بلا صلاحية
+    'achievements' => $crud,
 ];
 
 return [
@@ -144,6 +147,7 @@ return [
             'registers.*', 'committees.*', 'platform_accounts.*',
             // من فئة الموظفين: «متابعة البرامج» و«تسجيل الحضور»
             'programs.view', 'programs.attend',
+            'achievements.*',
         ],
         'content_editor' => [
             'menu.*', 'settings.*', 'pages.*', 'initiatives.*', 'board.*', 'governance.*',
