@@ -142,10 +142,11 @@ $DC ps                                         # كل الخدمات healthy
 
 ما عُلّم «غير مدموج» لم يدخل `main` بعد، فإن وُسم v0.15.0 قبل دمجه سقطت خطوته من هذا الإصدار:
 
-- **#124 محرر الصفحات (غير مدموج):** `migrate` (جدول `page_revisions`)، و`PermissionsSeeder` (صلاحية `pages.edit_all` وتضييق صلاحيات الصفحات لمحرر المحتوى). وكلاهما في سكربت النشر (`AccessSeeder` يشغّل `PermissionsSeeder`). واستيراد الموقع السابق (`import:legacy-site`) يلزمه منفّذ مسؤول تقني.
+- **#124 محرر الصفحات (مدموج):** `migrate` (جدول `page_revisions`)، و`PermissionsSeeder` (صلاحية `pages.edit_all` وتضييق صلاحيات الصفحات لمحرر المحتوى). وكلاهما في سكربت النشر (`AccessSeeder` يشغّل `PermissionsSeeder`). واستيراد الموقع السابق (`import:legacy-site`) يلزمه منفّذ مسؤول تقني.
 - **#126 برامج المكتبة (غير مدموج، مكدّس على #124):** `migrate` (`programs.library_item_id` و`library_items.duration_seconds` و`program_registrations.completed_at`)، ثم **يدوياً مرة**: `$DC exec -T app php artisan db:seed --class=ProgramTypesSeeder --force` (الأنواع الثلاثة، ولا يمس الموجود). وffprobe في صورة العامل (يأتي مع `ffmpeg` في `deploy/docker/Dockerfile`)، وعامل طابور `library` (`supervisor-library` في `config/horizon.php`، مدموج).
 - **#127 إحصائيات البرامج لكل نوع (مدموج):** لا ترحيل ولا بذرة. `$DC exec -T app php artisan ejaz:refresh-stats` بعد النشر، فيظهر الرسم والقسم دون انتظار المجدول.
 - **#132 مراجعة الأداء (غير مدموج):** `types { application/javascript mjs; }` في nginx. بحزمة الحاويات يكفي بناء صورة الويب (`ejaz-web`) في سكربت النشر. وللخادم بلا حاويات: نسخ `deploy/nginx/ejaz.conf`، ثم `nginx -t` و`nginx -s reload`.
+- **#137 المنخفضات الأمنية (`fix/v0.15-security-lows`، غير مدموج):** فيه تأخير إعادة `SendExamReceipt` (`$backoff = [30, 120]`)، لا في هذا الطلب. ولا خطوة نشر له.
 
 ### قائمة النشر وما بعده (عشرة بنود: ١ و٢ قبله، و٣ هو، والباقي بعده)
 
