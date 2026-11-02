@@ -89,26 +89,70 @@ test('the «شارك واربح» button fills the mobile width under the prize 
     await expectRtlNoScroll(page, `/competitions/${SLUG}`);
 });
 
-test('carousel dots are 44px touch targets on mobile, with a small drawn dot', async ({ page }, testInfo) => {
+// كل زر نقطة ظاهر: ارتفاعه 44 على الأقل، وعرضه 44 (أو 24 في الدوّار الصغير داخل بطاقات الهوية، بفاصل بينها — المعيار 2.5.8)،
+// ونقطته المرسومة صغيرة داخل بطاقته، ونقاط مركزه وأطرافه له وحده لا لجاره (document.elementFromPoint — مراجعة المشرف على #131)
+async function touchTargets(page, selector) {
+    // الحركة موقوفة، فلا يتحرك الصف بين القياس والفحص
+    await page.addStyleTag({ content: '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }' });
+    return page.locator(selector).evaluateAll((elements) => elements
+        // نسخة الشريط المتحرك الثانية inert، لا تُلمس ولا تُفحص
+        .filter((element) => element.offsetParent !== null && !element.closest('[inert]'))
+        .map((element) => {
+            element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+            const box = element.getBoundingClientRect();
+            const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+            const frame = (element.closest('.home-card') ?? element.closest('[data-carousel]') ?? element.closest('[data-slides]')).getBoundingClientRect();
+            const visible = x > 0 && x < window.innerWidth && x > frame.left && x < frame.right;
+            const points = [[x, y], [box.left + 2, y], [box.right - 2, y], [x, box.top + 2], [x, box.bottom - 2]];
+            const misses = points.filter(([px, py]) => {
+                const hit = document.elementFromPoint(px, py);
+                return !(hit === element || element.contains(hit));
+            }).map(([px, py]) => { const hit = document.elementFromPoint(px, py); return `${Math.round(px)},${Math.round(py)}→${hit?.tagName}.${hit?.className}`; });
+            const own = visible && points.every(([px, py]) => {
+                const hit = document.elementFromPoint(px, py);
+                return hit === element || element.contains(hit);
+            });
+            return {
+                label: `${element.getAttribute('aria-label')} ${misses.join(' ')}`,
+                width: box.width,
+                height: box.height,
+                minWidth: element.closest('.carousel-controls-compact') || element.matches('[data-slide-dot]') ? 24 : 44,
+                dot: parseFloat(getComputedStyle(element, '::before').height) || element.firstElementChild?.getBoundingClientRect().height || 0,
+                top: Math.round(box.top + window.scrollY),
+                visible,
+                own,
+            };
+        }));
+}
+
+function expectTargets(targets, what) {
+    expect(targets.length, `${what}: نقاط ظاهرة`).toBeGreaterThan(0);
+    for (const target of targets) {
+        expect(target.height, `${target.label}: الارتفاع`).toBeGreaterThanOrEqual(44);
+        expect(target.width, `${target.label}: العرض`).toBeGreaterThanOrEqual(target.minWidth);
+        expect(target.dot, `${target.label}: النقطة المرسومة صغيرة`).toBeLessThanOrEqual(10);
+        if (target.visible) {
+            expect(target.own, `${target.label}: المركز والأطراف للزر نفسه`).toBe(true);
+        }
+    }
+    expect(targets.filter((target) => target.visible).length, `${what}: نقاط فُحصت بـ elementFromPoint`).toBeGreaterThan(0);
+}
+
+test('carousel dots are touch targets of their own on mobile, with a small drawn dot', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'أهداف اللمس على الجوال');
     await visit(page, '/');
-    const dots = await page.locator('[data-carousel-dot]').evaluateAll((elements) => elements
-        .filter((element) => element.offsetParent !== null)
-        .map((element) => {
-            const box = element.getBoundingClientRect();
-            const dot = getComputedStyle(element, '::before');
-            // النقطة المرسومة (مركز الزر) داخل بطاقتها أو دوّارها، فلا تُقص النقاط حين تكثر
-            const frame = (element.closest('.home-card') ?? element.closest('[data-carousel]')).getBoundingClientRect();
-            const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
-            const inside = x > frame.left && x < frame.right && y > frame.top && y < frame.bottom;
-            return { width: box.width, height: box.height, dot: parseFloat(dot.height), inside };
-        }));
-    expect(dots.length, 'نقاط ظاهرة في الرئيسية').toBeGreaterThan(0);
-    for (const dot of dots) {
-        expect(dot.width).toBeGreaterThanOrEqual(44);
-        expect(dot.height).toBeGreaterThanOrEqual(44);
-        expect(dot.dot, 'النقطة المرسومة صغيرة').toBeLessThanOrEqual(10);
-        expect(dot.inside, 'النقطة داخل بطاقتها').toBe(true);
-    }
+    const targets = await touchTargets(page, '[data-carousel-dot]');
+    expectTargets(targets, 'الرئيسية');
     await expectRtlNoScroll(page, '/');
+});
+
+test('the Brahin guide dots stay in one row of own touch targets at 390', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'أهداف اللمس على الجوال');
+    await visit(page, `/competitions/${SLUG}`);
+    test.skip((await page.locator('[data-slide-dot]').count()) < 2, 'لا دليل دخول في هذه المسابقة');
+
+    const targets = await touchTargets(page, '[data-slide-dot]');
+    expectTargets(targets, 'دليل الدخول');
+    expect(new Set(targets.map((target) => target.top)).size, 'النقاط صف واحد').toBe(1);
+    await expectRtlNoScroll(page, `/competitions/${SLUG}`);
 });
