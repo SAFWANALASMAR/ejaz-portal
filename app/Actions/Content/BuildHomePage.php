@@ -323,9 +323,10 @@ class BuildHomePage
     }
 
     /**
-     * بطاقتا الأرقام الآلية: الزيارات، والمسجلون في المسابقات. والصفر لا يظهر، فلا تُعرض بطاقة فارغة قبل أول زيارة أو تسجيل.
+     * بطاقات الأرقام الآلية: الزيارات، والمسجلون في المسابقات، ثم صفحات المكتبة المقروءة ودقائق مشاهدتها والاستماع إليها. والصفر
+     * لا يظهر، فلا تُعرض بطاقة فارغة قبل أول زيارة أو تسجيل أو قراءة.
      *
-     * @param  array{visits: int, registrants: int, days: list<int|null>}|null  $portal
+     * @param  array{visits: int, registrants: int, pages_read: int, media_minutes: int, days: list<int|null>}|null  $portal
      * @return list<array{label: string, value: int, suffix: string, icon: string|null}>
      */
     private static function portalCards(?array $portal): array
@@ -337,6 +338,8 @@ class BuildHomePage
         $cards = [
             ['label' => __('home.portal_stats.visits'), 'value' => $portal['visits'], 'suffix' => '', 'icon' => SiteIcon::Eye->value],
             ['label' => __('home.portal_stats.registrants'), 'value' => $portal['registrants'], 'suffix' => '', 'icon' => SiteIcon::Trophy->value],
+            ['label' => __('home.portal_stats.pages_read'), 'value' => $portal['pages_read'], 'suffix' => '', 'icon' => SiteIcon::BookOpen->value],
+            ['label' => __('home.portal_stats.media_minutes'), 'value' => $portal['media_minutes'], 'suffix' => '', 'icon' => SiteIcon::VideoCamera->value],
         ];
 
         return array_values(array_filter($cards, fn (array $card): bool => $card['value'] > 0));

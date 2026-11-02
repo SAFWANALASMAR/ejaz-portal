@@ -6,12 +6,14 @@ use App\Filament\Pages\HomeContentPage;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\DailyVisit;
+use App\Models\LibraryItem;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\HomePortalStats;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -27,6 +29,17 @@ function visitsOn(int $daysAgo, int $visitors, int $views = 0): void
         'date' => now(config('app.display_timezone'))->subDays($daysAgo)->toDateString(),
         'visitors' => $visitors,
         'views' => max($views, $visitors),
+    ]);
+}
+
+/**
+ * صف تقدّم في المكتبة كما يحفظه «قراءاتي»: صفحات مقروءة، أو ثوانٍ مستهلكة لمقطع.
+ */
+function libraryProgressOf(User $user, LibraryItem $item, int $pages = 0, int $seconds = 0): void
+{
+    DB::table('library_progress')->insert([
+        'user_id' => $user->id, 'library_item_id' => $item->id, 'pages_count' => $pages, 'seconds_consumed' => $seconds,
+        'last_reported_at' => now(), 'created_at' => now(), 'updated_at' => now(),
     ]);
 }
 
@@ -111,6 +124,50 @@ it('counts registrants in published competitions only, once each, without cancel
     expect(HomePortalStats::compute()['registrants'])->toBe(1);
 });
 
+it('shows the library cards after the visits and registrants, from the reading progress', function () {
+    visitsOn(0, 50);
+    CompetitionSubmission::factory()->create(['competition_id' => Competition::factory()->create()->id, 'registered_at' => now()]);
+    [$first, $second] = User::factory()->count(2)->create();
+    $book = LibraryItem::factory()->create();
+    libraryProgressOf($first, $book, pages: 1200);
+    libraryProgressOf($second, $book, pages: 34);
+    // المرئي والصوتي معاً بالدقائق: عشر دقائق ونصف مشاهدة، وثلاث دقائق استماع
+    libraryProgressOf($first, LibraryItem::factory()->video()->create(), seconds: 630);
+    libraryProgressOf($second, LibraryItem::factory()->audio()->create(), seconds: 180);
+
+    $this->artisan('ejaz:refresh-stats')->assertSuccessful();
+
+    expect(HomePortalStats::cached())->toMatchArray(['pages_read' => 1234, 'media_minutes' => 13]);
+
+    $html = $this->get('/')->assertOk()
+        ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.pages_read'), __('home.portal_stats.media_minutes')])
+        ->getContent();
+
+    expect($html)->toContain('data-count-to="1234"')->toContain('1,234')->toContain('data-count-to="13"');
+});
+
+it('hides each library card at zero, and keeps a store from before the library cards', function () {
+    visitsOn(0, 9);
+    // تقدّم بلا صفحة ولا ثانية: لا بطاقة
+    libraryProgressOf(User::factory()->create(), LibraryItem::factory()->create());
+    $this->artisan('ejaz:refresh-stats');
+
+    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.visits'))
+        ->assertDontSee(__('home.portal_stats.pages_read'))->assertDontSee(__('home.portal_stats.media_minutes'));
+
+    // دقائق بلا صفحات: بطاقة الدقائق وحدها
+    libraryProgressOf(User::factory()->create(), LibraryItem::factory()->audio()->create(), seconds: 120);
+    $this->artisan('ejaz:refresh-stats');
+    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.media_minutes'))->assertDontSee(__('home.portal_stats.pages_read'));
+
+    // المخزّن بشكله السابق (بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي
+    Cache::forever(HomePortalStats::KEY, ['visits' => 9, 'registrants' => 0, 'days' => [9]]);
+    ContentCache::flush();
+    expect(HomePortalStats::cached())->toMatchArray(['visits' => 9, 'pages_read' => 0, 'media_minutes' => 0]);
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.visits'))
+        ->assertDontSee(__('home.portal_stats.media_minutes'));
+});
+
 it('keeps aggregates alone, with no personal data in the store or the page', function () {
     visitsOn(0, 12);
     $user = User::factory()->create(['name' => 'اسم شخصي للاختبار', 'email' => 'private-person@example.test']);
@@ -120,27 +177,29 @@ it('keeps aggregates alone, with no personal data in the store or the page', fun
         'registered_at' => now(),
         'full_name' => 'طالب سري للاختبار',
     ]);
+    libraryProgressOf($user, LibraryItem::factory()->create(), pages: 7);
 
     $this->artisan('ejaz:refresh-stats');
 
-    expect(array_keys((array) HomePortalStats::cached()))->toBe(['visits', 'registrants', 'days'])
+    expect(array_keys((array) HomePortalStats::cached()))->toBe(['visits', 'registrants', 'pages_read', 'media_minutes', 'days'])
         ->and(HomePortalStats::cached()['days'])->each->toBeIn([null, 0, 12]);
 
-    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.pages_read'))
         ->assertDontSee('اسم شخصي للاختبار')->assertDontSee('private-person@example.test')->assertDontSee('طالب سري للاختبار');
 });
 
 it('reads the stored numbers alone on a request, with no aggregate queries', function () {
     visitsOn(0, 20);
     CompetitionSubmission::factory()->create(['competition_id' => Competition::factory()->create()->id, 'registered_at' => now()]);
+    libraryProgressOf(User::factory()->create(), LibraryItem::factory()->video()->create(), seconds: 600);
     $this->artisan('ejaz:refresh-stats');
     ContentCache::flush();
 
     DB::enableQueryLog();
-    $this->get('/')->assertOk()->assertSee('data-portal-stats', false);
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.media_minutes'));
     $queries = collect(DB::getQueryLog())->pluck('query');
 
-    expect($queries->filter(fn (string $sql): bool => str_contains($sql, 'daily_visits') || str_contains($sql, 'competition_submissions')))->toBeEmpty();
+    expect($queries->filter(fn (string $sql): bool => str_contains($sql, 'daily_visits') || str_contains($sql, 'competition_submissions') || str_contains($sql, 'library_progress')))->toBeEmpty();
 });
 
 it('refreshes the home cache when the numbers change while the section shows, and not when switched off', function () {
