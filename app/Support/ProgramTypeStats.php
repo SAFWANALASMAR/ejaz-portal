@@ -4,15 +4,13 @@ namespace App\Support;
 
 use App\Enums\LibraryProgramKind;
 use App\Enums\RegistrationStatus;
-use App\Enums\SubmissionStatus;
-use App\Models\CompetitionSubmission;
 use App\Models\ProgramType;
 use Illuminate\Support\Facades\DB;
 
 /**
  * مجاميع البرامج لكل نوع، للوحة الإحصائيات وبوابة المجلس (البند ٤ من مهام التحقق، 2 نوفمبر — يُبنى عرضها عليها): المسجلون
  * المؤكدون، والمتمّون (الحضور للبرامج الحضورية، والإتمام لبرامج المكتبة)، ونسبة الإتمام، والصفحات المقروءة ودقائق الاستماع
- * والمشاهدة في عناصر برامج المكتبة من سجل تقدّم المسجلين فيها، والمسابقات نوعاً أخيراً (المسجلون والمرسَلون).
+ * والمشاهدة في عناصر برامج المكتبة من سجل تقدّم المسجلين فيها. والمسابقات تُعدّ في سجل الإحصائيات بأنواعه (#127)، لا هنا.
  * أرقام مجمّعة بلا بيانات شخصية، باستعلام لكل مجموعة لا لكل برنامج.
  */
 final class ProgramTypeStats
@@ -54,11 +52,6 @@ final class ProgramTypeStats
                 $kind !== null && $kind !== LibraryProgramKind::Reading ? intdiv((int) ($progress[$type->id]->seconds ?? 0), 60) : 0,
             );
         }
-
-        $submissions = CompetitionSubmission::query()->toBase()->selectRaw('count(*) as registered')
-            ->selectRaw('count(*) filter (where status = ?) as completed', [SubmissionStatus::Submitted->value])->first();
-
-        $rows[] = self::row('competitions', (string) __('competitions.list.heading'), (int) ($submissions->registered ?? 0), (int) ($submissions->completed ?? 0), 0, 0);
 
         return $rows;
     }

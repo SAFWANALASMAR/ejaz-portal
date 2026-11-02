@@ -248,7 +248,7 @@ it('lists my programs with a progress bar and the completed ones apart', functio
         ->assertSeeInOrder(['برنامج القراءة الجاري', __('programs.mine.completed_title'), 'برنامج أتممته']);
 });
 
-it('aggregates registrations, completions, pages and minutes per program type, with competitions as a type', function () {
+it('aggregates registrations, completions, pages and minutes per program type, without competitions (counted in #127)', function () {
     $book = LibraryItem::factory()->create(['page_count' => 4]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
     confirmedIn($program, $this->member)->forceFill(['completed_at' => now()])->save();
@@ -264,7 +264,7 @@ it('aggregates registrations, completions, pages and minutes per program type, w
 
     expect($rows['book-reading'])->toMatchArray(['registered' => 2, 'completed' => 1, 'rate' => 50.0, 'pages' => 4])
         ->and($rows['audio-listening'])->toMatchArray(['registered' => 1, 'minutes' => 5])
-        ->and($rows)->toHaveKey('competitions');
+        ->and($rows)->not->toHaveKey('competitions');
 });
 
 it('keeps the library section consistent for each kind', function () {
