@@ -156,7 +156,11 @@ it('lists the published programmes, competitions with their guide, and openings 
         ->and($entries[url('/competitions/open-competition')])->toBe($competition->updated_at->toAtomString())
         ->and($entries[url('/competitions/student-competition/guide')])->toBe($student->updated_at->toAtomString())
         ->and($entries[url('/services/openings/open-job')])->toBe($opening->updated_at->toAtomString())
-        ->and(array_keys($entries))->not->toContain(url('/programs/draft-program'), url('/competitions/draft-competition'), url('/competitions/no-guide/guide'), url('/services/openings/draft-job'));
+        ->and($entries)->toHaveKey(url('/competitions/no-guide'));
+
+    foreach (['/programs/draft-program', '/competitions/draft-competition', '/competitions/no-guide/guide', '/services/openings/draft-job'] as $hidden) {
+        expect($entries)->not->toHaveKey(url($hidden));
+    }
 });
 
 it('shows a newly published opening in the sitemap at once', function () {

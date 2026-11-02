@@ -41,9 +41,15 @@ it('gives a later page of a list its own canonical link and its number in the ti
         ->and($second)->toContain('<title>'.e(__('news.title').' - '.__('site.page_number', ['number' => 2]).' | '.__('site.short_name')).'</title>')
         ->and($first)->not->toContain(__('site.page_number', ['number' => 1]));
 
-    // ورقم غير صحيح لا يدخل الرابط
-    $odd = (string) $this->get('/?page=2abc')->assertOk()->getContent();
-    expect(canonicalOf($odd))->toBe(url('/'));
+    // وصفحة بلا ترقيم لا يغيّرها ?page، ولا رقم غير صحيح، والقائمة المصفّاة تشير إلى الأصل كما كانت
+    $plain = (string) $this->get('/contact?page=3')->assertOk()->getContent();
+    $odd = (string) $this->get('/contact?page=2abc')->assertOk()->getContent();
+    $filtered = (string) $this->get('/media/news?q=&page=2')->assertOk()->getContent();
+    expect(canonicalOf($plain))->toBe(url('/contact'))
+        ->and($plain)->not->toContain(__('site.page_number', ['number' => 3]))
+        ->and(canonicalOf($odd))->toBe(url('/contact'))
+        ->and(canonicalOf($filtered))->toBe(url('/media/news'))
+        ->and($filtered)->toContain(__('site.page_number', ['number' => 2]));
 });
 
 it('marks a news page as an article with its publication date and NewsArticle structured data', function () {
@@ -133,15 +139,10 @@ it('keeps TrustHosts in the global middleware, so a production request for anoth
     $host = (string) parse_url((string) config('app.url'), PHP_URL_HOST);
 
     try {
-        expect($production->hosts())->toBe(['^(.+\.)?'.preg_quote($host).'$']);
-
-        $ok = $production->handle(Request::create('http://'.$host.'/'), fn (Request $request) => $request->getHost());
-        expect($ok)->toBe($host);
-
-        $production->handle(Request::create('http://evil.test/'), fn (Request $request) => $request->getHost());
-        $this->fail('a foreign host was accepted');
-    } catch (SuspiciousOperationException) {
-        expect(true)->toBeTrue();
+        expect($production->hosts())->toBe(['^(.+\.)?'.preg_quote($host).'$'])
+            ->and($production->handle(Request::create('http://'.$host.'/'), fn (Request $request) => $request->getHost()))->toBe($host)
+            ->and(fn () => $production->handle(Request::create('http://evil.test/'), fn (Request $request) => $request->getHost()))
+            ->toThrow(SuspiciousOperationException::class);
     } finally {
         Request::setTrustedHosts([]);
     }

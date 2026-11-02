@@ -509,6 +509,12 @@ it('shows the link status the link really has, a disabled issuer included, with 
         ->and(EvidenceLinkStatus::IssuerDisabled->getColor())->toBe('warning')
         ->and(EvidenceLinkStatus::Active->getColor())->toBe('success');
 
+    // والرابط بلا انتهاء لا يُعرض سارياً أبداً (روابط قديمة قبل أن يصير الانتهاء إلزامياً)
+    $forever = evidenceGalleryWith($this, []);
+    $issue($forever, $this->secretary);
+    $forever->forceFill(['expires_at' => null])->save();
+    expect(EvidenceLinkStatus::of($forever->fresh()))->toBe(EvidenceLinkStatus::Expired);
+
     // والجدول: الحالة من الرابط نفسه، والمُصدر محمَّل مع الصفوف فلا استعلام لكل صف
     DB::enableQueryLog();
     $list = Livewire::test(ListEvidenceGalleries::class);

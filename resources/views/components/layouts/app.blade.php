@@ -13,13 +13,14 @@
 
 @php
     $siteName = __('site.name');
-    // الصفحة التالية من قائمة مرقّمة (?page=N وN أكبر من 1): رقمها في العنوان وفي canonical، فلا تُعدّ نسخة من الأولى
-    $pageQuery = request()->query('page');
-    $pageNumber = is_string($pageQuery) && ctype_digit($pageQuery) && (int) $pageQuery > 1 ? (int) $pageQuery : null;
+    // الصفحة التالية من قائمة مرقّمة رُسمت في الطلب (AppServiceProvider::PAGINATED_PAGE): رقمها في العنوان، وفي canonical
+    // ما لم تكن في الطلب تصفية (فالمصفّاة تشير إلى الأصل كما كانت). وصفحة بلا ترقيم لا يغيّرها ?page
+    $paginated = request()->attributes->get(\App\Providers\AppServiceProvider::PAGINATED_PAGE);
+    $pageNumber = is_int($paginated) && $paginated > 1 ? $paginated : null;
     $titleText = $title && $pageNumber ? $title.' - '.__('site.page_number', ['number' => $pageNumber]) : $title;
     $pageTitle = $titleText ? $titleText.' | '.__('site.short_name') : $siteName;
     $pageDescription = $description ?: __('site.description');
-    $canonicalUrl = url()->current().($pageNumber ? '?page='.$pageNumber : '');
+    $canonicalUrl = url()->current().($pageNumber && array_keys(request()->query()) === ['page'] ? '?page='.$pageNumber : '');
     $shareImage = \App\Support\ShareImage::url($image);
     $defaultShareImage = \App\Support\ShareImage::isDefault($shareImage);
 @endphp
