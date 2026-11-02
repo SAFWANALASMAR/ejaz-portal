@@ -30,6 +30,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use WeakMap;
 
 /**
  * نموذج المسابقة بتبويبات: البيانات، ومعايير التقييم، وبنك الأسئلة. والمعايير والأسئلة تُحفظ مع
@@ -37,6 +38,15 @@ use Filament\Schemas\Schema;
  */
 class CompetitionForm
 {
+    /**
+     * قفل المواعيد وقفل الترتيب لكل سجل في الطلب: Filament يقيّم «معطّل» لكل حقل في المستودع ولكل صف فيه، فكان قفل جدول
+     * الجوائز يسأل القاعدة ثلاث مرات لكل حقل (357 استعلاماً لصفحة مسابقة البراهين — docs/reviews/2026-11-02-v0.15-perf.md).
+     * والسجل يُحمَّل من جديد في كل طلب Livewire، وما يغيّر القفل (السحب ونشر النتائج) في مكوّنات العلاقات لا في هذا النموذج.
+     *
+     * @var WeakMap<Competition, array<string, bool>>|null
+     */
+    private static ?WeakMap $locks = null;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -53,16 +63,16 @@ class CompetitionForm
                         ->hidden(fn (Get $get): bool => (bool) $get('student_mode')),
                     DateTimePicker::make('opens_at')->label(__('competitions.fields.opens_at'))->helperText(__('competitions.fields.dates_hint'))->seconds(false)->required()
                         // معطّل ويُرسل كما هو، فيُحفظ غيره، والإجراء يرفض تغييره (SaveCompetition)
-                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false)->dehydrated(),
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
                     DateTimePicker::make('closes_at')->label(__('competitions.fields.closes_at'))->seconds(false)->required()->after('opens_at')
-                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false)->dehydrated(),
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
                     Textarea::make('description')->label(__('competitions.fields.description'))->rows(4)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('terms')->label(__('competitions.fields.terms'))->rows(5)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('prizes')->label(__('competitions.fields.prizes'))->rows(3)->maxLength(2000)->columnSpanFull(),
                     Toggle::make('shuffle_questions')->label(__('competitions.fields.shuffle_questions')),
                     Toggle::make('shuffle_options')->label(__('competitions.fields.shuffle_options')),
                     Toggle::make('is_published')->label(__('content.is_published'))->helperText(__('competitions.fields.publish_hint'))
-                        ->disabled(fn (?Competition $record): bool => $record?->scheduleLocked() ?? false)->dehydrated(),
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
                 ]),
 
                 // الاختبار الإلكتروني ورفع الأعمال (docs/plans/competition-exam.md). والفحص كله في SaveCompetition
@@ -131,7 +141,7 @@ class CompetitionForm
                 Tab::make(__('competitions.student.admin.prizes_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([
                     Select::make('ranking_scope')->label(__('competitions.student.admin.ranking_scope'))->helperText(__('competitions.student.admin.ranking_scope_hint'))
                         ->options(RankingScope::class)->default(RankingScope::All->value)->selectablePlaceholder(false)
-                        ->disabled(fn (?Competition $record): bool => $record?->cumulativeLocked() ?? false)->dehydrated(),
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'cumulativeLocked'))->dehydrated(),
                     Repeater::make('prize_table')
                         ->label(__('competitions.student.admin.prize_table'))
                         ->helperText(__('competitions.student.admin.prize_table_hint'))
@@ -140,7 +150,7 @@ class CompetitionForm
                         ->defaultItems(0)
                         ->reorderable()
                         ->itemNumbers()
-                        ->disabled(fn (?Competition $record): bool => $record?->cumulativeLocked() ?? false)->dehydrated()
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'cumulativeLocked'))->dehydrated()
                         ->schema([
                             TextInput::make('male')->label(__('competitions.student.admin.prize_male'))->integer()->minValue(0)->maxValue(10000000)->required(),
                             TextInput::make('female')->label(__('competitions.student.admin.prize_female'))->integer()->minValue(0)->maxValue(10000000)->required(),
@@ -280,6 +290,26 @@ class CompetitionForm
                 'media_path' => $question->media_path,
             ])->values()->all(),
         ];
+    }
+
+    /**
+     * @param  'scheduleLocked'|'cumulativeLocked'  $lock
+     */
+    private static function locked(?Competition $record, string $lock): bool
+    {
+        if ($record === null) {
+            return false;
+        }
+
+        self::$locks ??= new WeakMap;
+        $locks = self::$locks[$record] ?? [];
+
+        if (! array_key_exists($lock, $locks)) {
+            $locks[$lock] = $record->{$lock}();
+            self::$locks[$record] = $locks;
+        }
+
+        return $locks[$lock];
     }
 
     /**
