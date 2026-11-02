@@ -178,6 +178,9 @@ require __DIR__.'/documents.php';
 // ملفات الوظائف: تنزيل مستنداتها، والشاشات في لوحة الإدارة
 require __DIR__.'/job-files.php';
 
+// «إنجازاتنا»: الصفحة العامة للمنشور ومرفقه برابط موقّع، والإدارة في اللوحة
+require __DIR__.'/achievements.php';
+
 // قنوات التواصل: إشعارات حالة تسليم واتساب (docs/guides/messaging.md)
 require __DIR__.'/messaging.php';
 

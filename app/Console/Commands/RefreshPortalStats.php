@@ -7,6 +7,7 @@ use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\HomePortalStats;
 use App\Support\PortalStats;
+use App\Support\ProgramStatsByType;
 use App\Support\Visits;
 use Illuminate\Console\Command;
 use Throwable;
@@ -32,6 +33,13 @@ class RefreshPortalStats extends Command
         }
 
         ['previous' => $previous, 'current' => $current] = PortalStats::refresh();
+
+        // إحصائيات البرامج لكل نوع من مصادرها المسجلة، وتعذّر مصدر لا يوقف أرقام الرئيسية بعده
+        try {
+            ProgramStatsByType::refresh();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         // المسح لما تستعمله الرئيسية فعلاً وحده، فلا تفقد الصفحات العامة تخزينها دورياً وقت الذروة
         $used = array_flip(array_intersect(PortalStats::PUBLIC, collect((array) (Setting::group('home')['stats'] ?? []))
