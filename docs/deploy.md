@@ -146,7 +146,7 @@ $DC ps                                         # كل الخدمات healthy
 - **#126 برامج المكتبة (غير مدموج، مكدّس على #124):** `migrate` (`programs.library_item_id` و`library_items.duration_seconds` و`program_registrations.completed_at`)، ثم **يدوياً مرة**: `$DC exec -T app php artisan db:seed --class=ProgramTypesSeeder --force` (الأنواع الثلاثة، ولا يمس الموجود). وffprobe في صورة العامل (يأتي مع `ffmpeg` في `deploy/docker/Dockerfile`)، وعامل طابور `library` (`supervisor-library` في `config/horizon.php`، مدموج).
 - **#127 إحصائيات البرامج لكل نوع (مدموج):** لا ترحيل ولا بذرة. `$DC exec -T app php artisan ejaz:refresh-stats` بعد النشر، فيظهر الرسم والقسم دون انتظار المجدول.
 - **#132 مراجعة الأداء (غير مدموج):** `types { application/javascript mjs; }` في nginx. بحزمة الحاويات يكفي بناء صورة الويب (`ejaz-web`) في سكربت النشر. وللخادم بلا حاويات: نسخ `deploy/nginx/ejaz.conf`، ثم `nginx -t` و`nginx -s reload`.
-- **#137 المنخفضات الأمنية (`fix/v0.15-security-lows`، غير مدموج):** فيه تأخير إعادة `SendExamReceipt` (`$backoff = [30, 120]`)، لا في هذا الطلب. ولا خطوة نشر له.
+- **#137 المنخفضات الأمنية (`fix/v0.15-security-lows`، غير مدموج):** تأخير إعادة `SendExamReceipt` (`$backoff = [30, 120]`) في #137 وحده، لا في هذا الطلب. ولا خطوة نشر له.
 
 ### قائمة النشر وما بعده (عشرة بنود: ١ و٢ قبله، و٣ هو، والباقي بعده)
 
