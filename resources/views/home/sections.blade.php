@@ -1,7 +1,7 @@
 {{--
     مقاطع الرئيسية بترتيب التصور النهائي، النسخة 63 (أمر التصور النهائي §٢ب والمرحلة ب — docs/design/final-concept/Final-Home.dc.html،
-    والقرارات في docs/decisions/2026-10-31-visual-refresh-2.md): البطل، ثم البطاقات الخمس، ثم «خدماتنا»، ثم الإعلانات والأخبار
-    متجاورتين، ثم شريط يوتيوب وشريط الكتب وبطاقة X، ثم المقاطع الاختيارية السابقة متى أُظهرت من الإعدادات، ثم «البوابة بالأرقام»،
+    والقرارات في docs/decisions/2026-10-31-visual-refresh-2.md): البطل، ثم البطاقات الخمس، ثم «خدماتنا»، ثم شريط يوتيوب وشريط الكتب
+    وبطاقة X (ملاحظة المدير ٢٤: «تحت خدماتنا»)، ثم الإعلانات والأخبار متجاورتين، ثم المقاطع الاختيارية السابقة متى أُظهرت من الإعدادات، ثم «البوابة بالأرقام»،
     ثم «شركاؤنا» قبل التذييل. وكلمتا خادم الحرمين الشريفين ورئيس الجمعية صارتا شريحتين في البطل.
     والخلفيات تتعاقب بين درجتين (data-band 1 و2) بعدّ المقاطع الظاهرة وحدها، فلا تتجاور درجة مع نفسها.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
@@ -22,12 +22,13 @@
     @include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content, 'band' => $next()])
 @endif
 
-@if ($announcements->isNotEmpty() || $prize !== null || $news->isNotEmpty())
-    @include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize, 'tickers' => $content['tickers'], 'band' => $next()])
-@endif
-
+{{-- شريطا يوتيوب والكتب تحت «خدماتنا» مباشرة (ملاحظة المدير ٢٤: «تحت خدماتنا»)، ثم الإعلانات والأخبار --}}
 @if ($strip_videos->isNotEmpty() || $strip_books->isNotEmpty() || $x_account !== null)
     @include('home.partials.strips', ['videos' => $strip_videos, 'books' => $strip_books, 'x' => $x_account, 'headings' => $headings, 'band' => $next()])
+@endif
+
+@if ($announcements->isNotEmpty() || $prize !== null || $news->isNotEmpty())
+    @include('home.partials.announcements-news', ['announcements' => $announcements, 'news' => $news, 'prize' => $prize, 'tickers' => $content['tickers'], 'band' => $next()])
 @endif
 
 {{-- المقاطع السابقة الاختيارية: مخفية ما لم تُظهر من «إعدادات الموقع» --}}
