@@ -4605,7 +4605,7 @@
             "media/news": "200",
             "media/news/{slug}": "404",
             "media/partners": "200",
-            "page-preview/{revision}": "403",
+            "page-preview/{revision}": "404",
             "pages/{slug}": "404",
             "payments/{payment}/fake-checkout": "404",
             "payments/{payment}/return": "404",

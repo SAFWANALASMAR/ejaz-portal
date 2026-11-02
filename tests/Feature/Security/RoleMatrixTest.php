@@ -91,6 +91,12 @@ function roleMatrixUri(Route $route, array $records): string
             return (string) $record->getRouteKey();
         }
 
+        // نسخة صفحة لا وجود لها بأي حال: فتح «محرر الصفحات» لمديري النظام في الاختبار نفسه ينشئ نسخاً، وتسلسل المعرّفات لا يعود
+        // مع المعاملة، فرقم 1 موجود أحياناً وغائب أحياناً (المعاينة نفسها في PageEditorTest)
+        if ($m[1] === 'revision') {
+            return '0';
+        }
+
         return str_contains($m[1].($m[2] ?? ''), 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment', 'round', 'submission'], true) ? (string) Str::uuid() : '1';
     }, $route->uri()), '/');
 }
