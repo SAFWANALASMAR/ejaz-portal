@@ -15,19 +15,21 @@
 @endphp
 
 <div {{ $attributes->class(['marquee-wrap relative']) }}>
+    {{-- زر الإيقاف قبل الشريط في ترتيب التركيز، كما يظهر في زاويته العليا: يصل إليه مستخدم لوحة المفاتيح قبل أن يمر على كل
+         البطاقات (فحص الوصول 0.15). وموضعه مطلق، فلا يتغير شكل الشريط --}}
+    @if ($controls)
+        <button type="button" data-ticker-toggle="{{ $id }}" aria-pressed="false" aria-controls="{{ $id }}"
+            data-label-pause="{{ __('ui.marquee.pause_named', ['name' => $label]) }}" data-label-play="{{ __('ui.marquee.play_named', ['name' => $label]) }}" aria-label="{{ __('ui.marquee.pause_named', ['name' => $label]) }}"
+            class="marquee-toggle">
+            {{ \App\Support\Icon::svg('pause', 'size-4', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
+            {{ \App\Support\Icon::svg('play', 'size-4', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
+        </button>
+    @endif
+
     <div id="{{ $id }}" data-marquee data-direction="{{ $direction }}" data-loop role="region" aria-label="{{ $label }}" class="marquee" style="{{ $style }}">
         <div class="marquee-track">
             <div class="marquee-group">{{ $slot }}</div>
             <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
         </div>
     </div>
-
-    @if ($controls)
-        <button type="button" data-ticker-toggle="{{ $id }}" aria-pressed="false" aria-controls="{{ $id }}"
-            data-label-pause="{{ __('ui.marquee.pause') }}" data-label-play="{{ __('ui.marquee.play') }}" aria-label="{{ __('ui.marquee.pause') }}"
-            class="marquee-toggle">
-            {{ \App\Support\Icon::svg('pause', 'size-4', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
-            {{ \App\Support\Icon::svg('play', 'size-4', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
-        </button>
-    @endif
 </div>

@@ -61,6 +61,20 @@ docker run --rm --ipc=host -v "$PWD:/work" -w /work \
   npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
 ```
 
+`v015-a11y.spec.mjs` (فحص الإصدار 0.15، `docs/reviews/2026-11-02-v0.15-a11y.md`): axe على صفحات 0.15، ثم ما لا يراه axe:
+
+- **إطار التركيز بتباين 3:1:** لكل محطة Tab لقطتان، بمؤشر التركيز وبلا إطاره وظله، والحركة مجمّدة، ويُقاس ما تغيّر حول العنصر. فيكشف الإطار المقصوص والذائب في خلفيته. و`A11Y_SHOTS=storage/playwright/shots` يحفظ لقطتي كل إطار ضعيف للمراجعة بالعين، و`A11Y_ONLY=/library` يقصره على صفحة.
+- **تباين حالة المرور، والعناوين، والنص البديل، والعدّاد خارج المناطق الحية.**
+- **الأشرطة المتحركة والدوّارات:** النسخة الثانية مخفية، وزر الإيقاف، والأسهم، وتقليل الحركة.
+- **لوحة المفاتيح:** القائمة المنسدلة بالأسهم وEsc، والقسم الحالي، وطبقة الانتقال، والقارئ.
+
+الصفحات التي تحتاج محتوى تُعطى معرّفاتها من بيانات المعاينة المحلية: `A11Y_BOOK` (كتاب «للقراءة فقط») و`A11Y_VIDEO` و`A11Y_AUDIO` و`A11Y_DOCUMENT` (وثيقة «للاطلاع فقط») و`A11Y_COMPETITION`، وبدونها تُتخطى. والأصول مبنية (`VITE_HOST=none`):
+
+```bash
+docker compose run --rm --no-deps -e VITE_HOST=none -e DEMO_CREDENTIALS="$creds" -e A11Y_BOOK=<slug> -e A11Y_DOCUMENT=<slug> browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs v015-a11y.spec.mjs --project=desktop --project=mobile
+```
+
 لوحة الإدارة تشترط التحقق الثنائي، فتُفحص بجلسة محفوظة لحساب إداري: ملف `storageState` من Playwright في `storage/playwright/` يُمرَّر بـ `-e ADMIN_STATE=storage/playwright/<الملف>.json`. وبدونه تُتخطى شاشاتها. والملف جلسة دخول حقيقية: في البيئة المحلية وحدها، ويُحذف بعد الفحص.
 
 ## التجربة الشاملة كمستخدم حقيقي
