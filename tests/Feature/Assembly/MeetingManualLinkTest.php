@@ -13,6 +13,7 @@ use App\Models\Meeting;
 use App\Notifications\MeetingNotice;
 use App\Rules\MeetingJoinUrl;
 use App\Services\OnlineMeetings\FakeOnlineMeetings;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -94,6 +95,44 @@ it('refuses other domains, look-alikes, userinfo, http and links without a host'
     'encoded newline' => 'https://zoom.us/j/1%0aX',
     'nested zoom subdomain' => 'https://a.b.zoom.us/j/1',
     'meet redirect' => 'https://meet.google.com/linkredirect?dest=https://phish.example',
+    'teams launcher' => 'https://teams.microsoft.com/l/launcher/?url=https://phish.example',
+    'teams other path' => 'https://teams.microsoft.com/dl/launcher/launcher.html?url=https://phish.example',
+    'teams root' => 'https://teams.microsoft.com/',
+    'teams live other path' => 'https://teams.live.com/l/meetup-join/1',
+    'zoom launch' => 'https://zoom.us/launch?url=https://phish.example',
+    'zoom subdomain other path' => 'https://us02web.zoom.us/s/1',
+    'zoom empty join path' => 'https://zoom.us/j/',
+    'dot segment' => 'https://zoom.us/j/../launch',
+    'encoded dot segment' => 'https://teams.microsoft.com/meet/%2e%2e/l/launcher',
+]);
+
+it('accepts the other approved join paths', function (string $url) {
+    expect(MeetingJoinUrl::isValid($url))->toBeTrue();
+})->with([
+    'teams meet' => 'https://teams.microsoft.com/meet/123456789?p=abc',
+    'zoom webinar' => 'https://zoom.us/w/1234567890',
+    'zoom personal room' => 'https://zoom.us/my/ejaz.room',
+]);
+
+it('refuses a link from an account that may not schedule or edit meetings, and saves nothing', function (RoleName $role) {
+    $actor = userWithRole($role);
+
+    expect(fn () => app(SaveMeeting::class)->handle($actor, new Meeting, [...$this->data, 'manual_join_url' => 'https://zoom.us/j/1']))
+        ->toThrow(AuthorizationException::class);
+
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'manual_join_url' => 'https://zoom.us/j/1']);
+
+    expect(fn () => app(SaveMeeting::class)->handle($actor, $meeting->fresh(), [...$this->data, 'manual_join_url' => 'https://meet.google.com/abc-defg-hij']))
+        ->toThrow(AuthorizationException::class);
+
+    expect(Meeting::count())->toBe(1)
+        ->and($meeting->fresh()->online_join_url)->toBe('https://zoom.us/j/1')
+        ->and(Activity::where('event', ActivityEvent::MeetingJoinLinkChanged->value)->where('causer_id', $actor->id)->exists())->toBeFalse();
+})->with([
+    'board member' => [RoleName::BoardMember],
+    'content editor' => [RoleName::ContentEditor],
+    'assembly member' => [RoleName::AssemblyMember],
+    'member' => [RoleName::Member],
 ]);
 
 it('requires the link while Teams is switched off, and leaves it optional while it is on', function () {

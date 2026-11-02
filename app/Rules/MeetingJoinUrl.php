@@ -6,21 +6,26 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * رابط اجتماع يلصقه السكرتير يدوياً: https بلا اسم مستخدم ولا منفذ (SafeUrl)، ومن نطاق معتمد وحده:
- * تيمز وزووم (ونطاقاته الفرعية مثل us02web.zoom.us) وجوجل ميت. والمطابقة للنطاق كاملاً أو لنهايته بعد نقطة،
- * فلا يمر zoom.us.evil.com ولا evilzoom.us.
+ * رابط اجتماع يلصقه السكرتير يدوياً: https بلا اسم مستخدم ولا منفذ (SafeUrl)، ومن نطاق معتمد وحده، وبمسار
+ * انضمام إلى اجتماع وحده، فلا يمر رابط تحويل أو تشغيل (/l/launcher، /launch، /linkredirect):
+ * - teams.microsoft.com تحت /l/meetup-join/ أو /meet/، وteams.live.com تحت /meet/.
+ * - zoom.us ونطاق فرعي له بمستوى واحد (us02web.zoom.us) تحت /j/ أو /w/ أو /my/.
+ * - meet.google.com برمز الاجتماع وحده (/abc-defg-hij).
+ * والنطاق مطابق كاملاً، فلا يمر zoom.us.evil.com ولا evilzoom.us. ولا مقطع «.» أو «..» في المسار، صريحاً
+ * أو مرمّزاً، فلا يخرج المتصفح من مسار الانضمام بتطبيعه.
  */
 class MeetingJoinUrl implements ValidationRule
 {
     /** طول معقول لرابط اجتماع، والعمود نص مشفّر */
     public const MAX_LENGTH = 2048;
 
-    private const HOSTS = ['teams.microsoft.com', 'teams.live.com', 'zoom.us'];
-
-    private const MEET_HOST = 'meet.google.com';
-
-    /** نطاقات تُقبل نطاقاتها الفرعية */
-    private const SUBDOMAIN_HOSTS = ['zoom.us'];
+    /** مسار الانضمام المسموح لكل نطاق */
+    private const PATHS = [
+        'teams.microsoft.com' => '#^/(l/meetup-join|meet)/[^/]#',
+        'teams.live.com' => '#^/meet/[^/]#',
+        'zoom.us' => '#^/(j|w|my)/[^/]#',
+        'meet.google.com' => '#^/[a-z]{3}-[a-z]{4}-[a-z]{3}$#',
+    ];
 
     public static function isValid(?string $url): bool
     {
@@ -35,24 +40,18 @@ class MeetingJoinUrl implements ValidationRule
         }
 
         $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
 
-        // جوجل ميت برمز الاجتماع وحده، فلا يمر مسار تحويل مثل /linkredirect?dest=
-        if ($host === self::MEET_HOST) {
-            return preg_match('#^/[a-z]{3}-[a-z]{4}-[a-z]{3}$#', (string) ($parts['path'] ?? '')) === 1;
+        // نطاق زووم الفرعي بمستوى واحد يأخذ مسارات zoom.us
+        if (preg_match('/^[a-z0-9-]+\.zoom\.us$/', $host) === 1) {
+            $host = 'zoom.us';
         }
 
-        if (in_array($host, self::HOSTS, true)) {
-            return true;
+        if (! isset(self::PATHS[$host]) || preg_match('#(^|/)\.{1,2}(/|$)#', rawurldecode($path)) === 1) {
+            return false;
         }
 
-        // نطاق فرعي بمستوى واحد (us02web.zoom.us)
-        foreach (self::SUBDOMAIN_HOSTS as $domain) {
-            if (preg_match('/^[a-z0-9-]+\.'.preg_quote($domain, '/').'$/', $host) === 1) {
-                return true;
-            }
-        }
-
-        return false;
+        return preg_match(self::PATHS[$host], $path) === 1;
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
