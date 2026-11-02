@@ -1598,7 +1598,9 @@ test.describe('acceptance v0.15.0: screenshots', () => {
 
     test('public pages', async ({ page }) => {
         test.setTimeout(900_000);
-        for (const { name, path } of publicShots) {
+        // SHOTS_ONLY=home-full,competitions يقصر اللقطات على شاشات بعينها عند إعادة الفحص بعد دمج فرع
+        const only = process.env.SHOTS_ONLY?.split(',');
+        for (const { name, path } of publicShots.filter(({ name }) => !only || only.includes(name))) {
             await visit(page, path);
             await shoot(page, name);
         }
