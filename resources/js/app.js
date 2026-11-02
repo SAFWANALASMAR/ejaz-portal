@@ -280,10 +280,18 @@ onPage((signal) => {
         return;
     }
 
+    // وشارة البث في آخر الصف بنصها متى اتسع، وإلا فنقطة نابضة (data-compact)، ثم زر القائمة إن لم يتسع حتى بها
+    const liveBadge = mainNav.querySelector('[data-live-badge]');
+    const clipped = () => [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
-        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && clipped);
+        liveBadge?.removeAttribute('data-compact');
+        let overflow = clipped();
+        if (overflow && liveBadge) {
+            liveBadge.setAttribute('data-compact', '');
+            overflow = clipped();
+        }
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && overflow);
     };
 
     // تغيّر العرض وحده يغيّر الاتساع، فلا قياس مع غيره (إزاحة التخطيط — #116)

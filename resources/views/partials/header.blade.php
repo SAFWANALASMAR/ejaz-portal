@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    {{-- الصف الثاني: القائمة «ج»، وشارة البث معلّقة تحته في طرفه (قرار المشرف على #130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
+    {{-- الصف الثاني: القائمة «ج»، وشارة البث في آخره (مراجعة المشرف على #130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
     <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
         <div class="header-nav-row mx-auto max-w-[82.5rem] px-4 sm:px-7">
         <ul class="nav-capsules">

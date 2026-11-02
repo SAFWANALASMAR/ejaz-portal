@@ -1007,17 +1007,43 @@ html {
     border-top: 1px solid var(--blue-300);
 }
 
-/* شارة البث (partials/live-badge) معلّقة تحت صف القائمة في طرفه الأيسر، ثابتة معه عند التمرير: لا تأخذ من عرض الكبسولات (لا
-   يتسع الصف لها مع الكبسولات السبع تحت نحو 1400 بكسل، فكان يظهر زر ☰ بدل القائمة)، ولا تزيح المخطوطة عن منتصف الصف الأول */
+/* شارة البث (partials/live-badge) عنصر في آخر صف القائمة، في مجراه لا فوق المحتوى (مراجعة المشرف على #130، 23:00). والصف لا يتسع
+   للشارة بنصها مع الكبسولات السبع إلا على العريض، فإن لم يتسع صارت نقطة نابضة في دائرة واسمها لقارئ الشاشة وحده (data-compact،
+   يضعه app.js بالقياس)، والكبسولات أقرب قليلاً، فلا يظهر زر ☰ بدل القائمة أثناء البث على 1280 */
 .header-nav-row {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
 }
 
-.header-nav-row > [data-live-badge] {
+.header-nav-row > .nav-capsules {
+    flex: 1;
+    min-width: 0;
+}
+
+.header-nav-row:has(> [data-live-badge]) > .nav-capsules {
+    gap: 0.375rem;
+}
+
+[data-live-badge][data-compact] {
+    width: 2.5rem;
+    height: 2.5rem;
+    justify-content: center;
+    padding: 0;
+}
+
+[data-live-badge][data-compact] [data-live-dot] {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+[data-live-badge][data-compact] [data-live-label] {
     position: absolute;
-    top: calc(100% + 0.5rem);
-    inset-inline-end: 1.75rem;
-    box-shadow: 0 8px 20px -10px rgb(15 37 54 / 0.8);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 /* سبع كبسولات متساوية (أو بقدر العناصر)، صف واحد */
