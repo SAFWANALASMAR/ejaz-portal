@@ -7,6 +7,7 @@ use App\Filament\Resources\Competitions\CompetitionResource;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\ProgramTypes\Pages\ManageProgramTypes;
 use App\Filament\Resources\ProgramTypes\ProgramTypeResource;
+use App\Models\Achievement;
 use App\Models\ArchiveCategory;
 use App\Models\ArchiveItem;
 use App\Models\Competition;
@@ -221,6 +222,7 @@ it('keeps the v0.15 public lists within a fixed number of queries', function (st
         Competition::factory()->count($n)->upcoming()->create(),
         Competition::factory()->count($n)->closed()->create(),
     ], 4],
+    'achievements' => ['/achievements', fn (int $n) => Achievement::factory()->count($n)->published()->create(), 2],
 ]);
 
 it('keeps the public detail pages within a fixed number of queries', function (string $model, string $prefix, int $max) {
