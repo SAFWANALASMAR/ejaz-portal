@@ -160,3 +160,24 @@ it('puts the assembly in the account menu and cards only for those who reach it,
         ->and(AccountNavigation::cards($this->member)->pluck('route')->all())
         ->toBe(['account.programs.index', 'account.profile', 'assembly.index', 'account.requests.index', 'account.competitions']);
 });
+
+it('opens every members page with the shared page hero and the big calligraphy under one title (director note 14)', function () {
+    $pages = [
+        route('assembly.meetings.index') => __('assembly.meetings.title'),
+        route('assembly.meetings.show', $this->meeting) => $this->meeting->title,
+        route('assembly.minutes.index') => __('assembly.minutes.title'),
+        route('assembly.files.index') => __('assembly.files.title'),
+    ];
+
+    foreach ($pages as $url => $title) {
+        $html = $this->actingAs($this->member)->get($url)->assertOk()->getContent();
+
+        expect($html)->toContain('data-page-hero')->toContain('data-page-calligraphy')
+            ->and(preg_match_all('/<h1[\s>]/', $html))->toBe(1)
+            ->and($html)->toMatch('/<h1[^>]*>'.preg_quote(e($title), '/').'<\/h1>/');
+    }
+
+    // والعودة من الاجتماع شريط الرأس وحده إلى «الاجتماعات»، لا رابطان متتاليان إلى الوجهة نفسها
+    $show = $this->actingAs($this->member)->get(route('assembly.meetings.show', $this->meeting))->getContent();
+    expect(substr_count($show, 'href="'.route('assembly.meetings.index').'"'))->toBe(1);
+});
