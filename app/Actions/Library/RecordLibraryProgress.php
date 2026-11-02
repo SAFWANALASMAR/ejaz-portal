@@ -6,6 +6,7 @@ use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
 use App\Models\User;
 use App\Support\LibraryPageCount;
+use App\Support\LibraryProgramProgress;
 use App\Support\PageSet;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -63,9 +64,11 @@ class RecordLibraryProgress
             return ['progress' => null, 'pages' => array_values(array_unique($data['pages'] ?? []))];
         }
 
-        $total = $item->tracksPages() ? LibraryPageCount::for($item) : null;
+        // وكتاب برنامج «قراءة كتاب» تُحصى صفحاته لمسجّله ولو كان قابلاً للتنزيل (docs/decisions/2026-11-02-reading-program.md)
+        $tracksPages = $item->tracksPages() || LibraryProgramProgress::readsInProgram($user, $item);
+        $total = $tracksPages ? LibraryPageCount::for($item) : null;
 
-        return Cache::lock('library-progress:'.$user->id, 10)->block(5, fn (): array => DB::transaction(function () use ($user, $item, $data, $total): array {
+        return Cache::lock('library-progress:'.$user->id, 10)->block(5, fn (): array => DB::transaction(function () use ($user, $item, $data, $total, $tracksPages): array {
             // الحساب ما زال نشطاً غير مخفى، بقفل مشترك: لا يُكتب صف بعد حذف الحساب (AnonymizeUser يحدّث الصف نفسه)
             if (! User::query()->whereKey($user->id)->where('is_active', true)->whereNull('anonymized_at')->sharedLock()->exists()) {
                 throw new AuthorizationException;
@@ -84,7 +87,7 @@ class RecordLibraryProgress
             $progress = LibraryProgress::query()->whereBelongsTo($user)->where('library_item_id', $item->id)->lockForUpdate()->firstOrFail();
             $accepted = [];
 
-            if ($item->tracksPages()) {
+            if ($tracksPages) {
                 $accepted = $this->recordPages($user, $progress, $data, $total);
             }
 

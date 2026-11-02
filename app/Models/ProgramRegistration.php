@@ -20,6 +20,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property RegistrationStatus $status
  * @property array<string, mixed>|null $answers
  * @property Carbon|null $attended_at
+ * @property Carbon|null $completed_at
  * @property Carbon|null $reminded_at
  * @property Carbon|null $cancelled_at
  * @property string|null $certificate_path شهادة الحضور في القرص الخاص (SyncAttendanceCertificate)
@@ -41,6 +42,7 @@ class ProgramRegistration extends Model
             'status' => RegistrationStatus::class,
             'answers' => 'array',
             'attended_at' => 'datetime',
+            'completed_at' => 'datetime',
             'reminded_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'waitlisted_at' => 'datetime',
@@ -82,6 +84,6 @@ class ProgramRegistration extends Model
      */
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['status', 'attended_at'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->logOnly(['status', 'attended_at', 'completed_at'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

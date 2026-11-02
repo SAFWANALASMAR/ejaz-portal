@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Account;
 
 use App\Actions\Programs\CancelProgramRegistration;
+use App\Actions\Programs\CompleteLibraryProgram;
 use App\Actions\Programs\RegisterForProgram;
 use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
@@ -29,13 +30,23 @@ class ProgramRegistrationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        // الجارية بتقدّمها، و«برامج أتممتها» وحدها تحتها (برامج المكتبة — docs/decisions/2026-11-02-reading-program.md)
         $registrations = ProgramRegistration::query()
             ->whereBelongsTo($user)
-            ->with('program.type')
+            ->whereNull('completed_at')
+            ->with(['program.type', 'program.libraryItem'])
             ->latest('id')
             ->paginate(15);
 
-        return view('account.programs.index', ['registrations' => $registrations]);
+        $completed = ProgramRegistration::query()
+            ->whereBelongsTo($user)
+            ->whereNotNull('completed_at')
+            ->with('program.type')
+            ->latest('completed_at')
+            ->limit(50)
+            ->get();
+
+        return view('account.programs.index', ['registrations' => $registrations, 'completed' => $completed]);
     }
 
     public function create(Request $request, string $slug): View|RedirectResponse
@@ -87,6 +98,24 @@ class ProgramRegistrationController extends Controller
 
         return Storage::disk(SyncAttendanceCertificate::disk())
             ->download((string) $registration->certificate_path, 'certificate-'.$registration->program->slug.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * «أتممت» في برنامج مكتبة (CompleteLibraryProgram): لصاحب التسجيل وحده، وبعد بلوغ النهاية بقواعد الخادم.
+     */
+    public function complete(Request $request, ProgramRegistration $registration, CompleteLibraryProgram $complete): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless($registration->user_id === $user->id, 404);
+
+        try {
+            $complete->handle($user, $registration);
+        } catch (ValidationException $exception) {
+            return redirect()->route('programs.show', $registration->program->slug)->with('error', $exception->errors()['complete'][0] ?? __('programs.library.not_yet'));
+        }
+
+        return redirect()->route('programs.show', $registration->program->slug)->with('status', __('programs.library.completed'));
     }
 
     public function cancel(Request $request, ProgramRegistration $registration, CancelProgramRegistration $cancel): RedirectResponse

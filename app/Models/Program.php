@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LibraryProgramKind;
 use App\Enums\ProgramDelivery;
 use App\Enums\ProgramStatus;
 use App\Enums\RegistrationStatus;
@@ -33,11 +34,12 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $registration_closes_at
  * @property array<mixed>|null $form_fields
  * @property int|null $confirmed_count
+ * @property int|null $library_item_id
  */
 #[Fillable([
     'program_type_id', 'initiative_id', 'slug', 'title', 'summary', 'description', 'image', 'starts_at', 'ends_at',
     'delivery', 'location', 'meeting_url', 'seats', 'audience', 'conditions', 'registration_opens_at',
-    'registration_closes_at', 'has_waitlist', 'form_fields', 'is_published',
+    'registration_closes_at', 'has_waitlist', 'form_fields', 'is_published', 'library_item_id',
 ])]
 class Program extends Model implements HasFormFields, HasPublicImages
 {
@@ -81,6 +83,32 @@ class Program extends Model implements HasFormFields, HasPublicImages
     }
 
     /**
+     * عنصر المكتبة لبرامج المكتبة (قراءة كتاب، واستماع، ومشاهدة — docs/decisions/2026-11-02-reading-program.md)، فلا يُرفع مرتين.
+     *
+     * @return BelongsTo<LibraryItem, $this>
+     */
+    public function libraryItem(): BelongsTo
+    {
+        return $this->belongsTo(LibraryItem::class)->withTrashed();
+    }
+
+    /**
+     * نوع برنامج المكتبة من معرّف نوعه، أو null لغيره (LibraryProgramKind).
+     */
+    public function libraryKind(): ?LibraryProgramKind
+    {
+        return $this->library_item_id === null ? null : LibraryProgramKind::tryFrom((string) $this->type?->slug);
+    }
+
+    /**
+     * برنامج مكتبة: مفتوح افتراضياً بعد بدئه حتى تاريخ نهايته الاختياري، فلا يُغلق تسجيله ببدئه كالبرامج الحضورية.
+     */
+    public function isLibraryProgram(): bool
+    {
+        return $this->library_item_id !== null;
+    }
+
+    /**
      * @return HasMany<ProgramRegistration, $this>
      */
     public function registrations(): HasMany
@@ -119,7 +147,7 @@ class Program extends Model implements HasFormFields, HasPublicImages
             && ! $this->trashed()
             && ($this->registration_opens_at === null || $this->registration_opens_at->lte($now))
             && ($this->registration_closes_at === null || $this->registration_closes_at->gt($now))
-            && $this->starts_at->gt($now);
+            && ($this->isLibraryProgram() ? ($this->ends_at === null || $this->ends_at->gt($now)) : $this->starts_at->gt($now));
     }
 
     /**
@@ -130,7 +158,8 @@ class Program extends Model implements HasFormFields, HasPublicImages
     {
         $now = now();
 
-        if (($this->ends_at ?? $this->starts_at)->lte($now)) {
+        // وبرنامج المكتبة لا ينتهي إلا بتاريخ نهايته إن وُجد
+        if ($this->isLibraryProgram() ? $this->ends_at?->lte($now) === true : ($this->ends_at ?? $this->starts_at)->lte($now)) {
             return ProgramStatus::Ended;
         }
 

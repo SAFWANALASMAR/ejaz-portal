@@ -3,7 +3,10 @@
 namespace App\Actions\Programs;
 
 use App\Actions\Content\SaveContent;
+use App\Enums\LibraryProgramKind;
+use App\Models\LibraryItem;
 use App\Models\Program;
+use App\Models\ProgramType;
 use App\Models\User;
 use App\Rules\SafeUrl;
 use App\Support\FormFieldRules;
@@ -42,6 +45,42 @@ class SaveProgram
             throw ValidationException::withMessages(['registration_closes_at' => __('programs.errors.closes_before_opens')]);
         }
 
+        $data = self::withLibraryItem($check, $data);
+
         return app(SaveContent::class)->handle($actor, $program, $data);
+    }
+
+    /**
+     * برنامج المكتبة يختار عنصراً منشوراً من قسم نوعه (LibraryProgramKind)، فلا يُرفع مرتين: الكتاب بملف PDF، والصوت والمرئي
+     * بمصدر ومدة معروفة في الخادم. وغير برامج المكتبة لا تحمل عنصراً.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    private static function withLibraryItem(Program $check, array $data): array
+    {
+        $type = blank($check->getAttribute('program_type_id')) ? null : ProgramType::query()->find($check->program_type_id, ['id', 'slug']);
+        $kind = LibraryProgramKind::tryFrom((string) $type?->slug);
+
+        if ($kind === null) {
+            return [...$data, 'library_item_id' => null];
+        }
+
+        $item = $check->library_item_id === null ? null : LibraryItem::query()->published()->find($check->library_item_id);
+        $problem = match (true) {
+            $item === null => 'programs.library.errors.item',
+            ! in_array($item->section, $kind->sections(), true) => 'programs.library.errors.section',
+            $kind === LibraryProgramKind::Reading && blank($item->file) => 'programs.library.errors.file',
+            $kind !== LibraryProgramKind::Reading && (! $item->hasSource() || ! $item->duration_seconds) => 'programs.library.errors.duration',
+            default => null,
+        };
+
+        if ($problem !== null) {
+            throw ValidationException::withMessages(['library_item_id' => __($problem)]);
+        }
+
+        return $data;
     }
 }

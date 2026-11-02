@@ -48,8 +48,9 @@ class SyncAttendanceCertificate implements ShouldQueue
             return;
         }
 
+        // والإتمام في برامج المكتبة كالحضور: شهادة إتمام بالقالب نفسه (docs/decisions/2026-11-02-reading-program.md)
         $eligible = $registration->status === RegistrationStatus::Confirmed
-            && $registration->attended_at !== null
+            && ($registration->attended_at !== null || $registration->completed_at !== null)
             && $registration->user->anonymized_at === null;
 
         if (! $eligible) {
@@ -119,7 +120,7 @@ class SyncAttendanceCertificate implements ShouldQueue
             'whitelistStreamWrappers' => [],
             'exposeVersion' => false,
         ]);
-        $pdf->SetTitle(__('programs.certificate.title'));
+        $pdf->SetTitle($registration->completed_at !== null ? __('programs.certificate.completion_title') : __('programs.certificate.title'));
         $pdf->WriteHTML(view('certificates.attendance-style')->render(), HTMLParserMode::HEADER_CSS);
         // mPDF يستبدل نصوصاً مثل {PAGENO} و{DATE} في المحتوى عند الإخراج، ومنه اسم المسجل وعنوان
         // البرنامج، فتُفصل الأقواس بمسافة صفرية العرض لا تُرى

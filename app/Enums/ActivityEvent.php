@@ -100,6 +100,8 @@ enum ActivityEvent: string implements HasLabel
     case InquiryNoteUpdated = 'inquiry_note_updated';
     // البث المباشر
     case LiveStreamArchived = 'live_stream_archived';
+    // برامج المكتبة: إتمام المشارك (docs/decisions/2026-11-02-reading-program.md)
+    case ProgramCompleted = 'program_completed';
     // المساعد الذكي: المفتاح بلا قيمته
     case AssistantKeyChanged = 'assistant_key_changed';
     case AssistantAnswerFlagged = 'assistant_answer_flagged';

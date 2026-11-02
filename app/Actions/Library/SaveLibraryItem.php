@@ -5,6 +5,7 @@ namespace App\Actions\Library;
 use App\Enums\LibrarySection;
 use App\Jobs\CountLibraryPages;
 use App\Jobs\FetchYoutubeThumbnail;
+use App\Jobs\MeasureLibraryDuration;
 use App\Models\LibraryItem;
 use App\Models\User;
 use App\Rules\RealPdf;
@@ -49,6 +50,17 @@ class SaveLibraryItem
 
         if ($section === null) {
             throw ValidationException::withMessages(['section' => __('validation.enum', ['attribute' => __('library.fields.section')])]);
+        }
+
+        // ومدة الصوت والمرئي عدد ثوانٍ صحيح لكل مستدعٍ، وللكتب لا مدة (برامج المكتبة)
+        $duration = $data['duration_seconds'] ?? null;
+
+        if ($duration !== null && (filter_var($duration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 86400]]) === false)) {
+            throw ValidationException::withMessages(['duration_seconds' => __('validation.integer', ['attribute' => __('library.fields.duration_seconds')])]);
+        }
+
+        if (array_key_exists('duration_seconds', $data)) {
+            $data['duration_seconds'] = $duration === null || ! $section->takesVideoUrl() ? null : (int) $duration;
         }
 
         // وحجم الملف يُحسب من الملف نفسه، لا مما يُمرَّر
@@ -137,6 +149,11 @@ class SaveLibraryItem
 
         if ($countPages && $item->section->takesPdf() && filled($item->file)) {
             CountLibraryPages::dispatch($item->getKey(), (string) $item->file);
+        }
+
+        // ومدة ملف الصوت من الخادم لبرامج الاستماع (docs/decisions/2026-11-02-reading-program.md)
+        if ($countPages && $item->section === LibrarySection::Audio && filled($item->file)) {
+            MeasureLibraryDuration::dispatch($item, (string) $item->file);
         }
 
         return $item;

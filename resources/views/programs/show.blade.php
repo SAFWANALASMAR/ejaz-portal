@@ -106,7 +106,12 @@
                     </div>
                 </x-card>
 
-                @if ($registration?->status === RegistrationStatus::Confirmed && $program->delivery->isOnline())
+                {{-- برنامج المكتبة: عنصره، وللمسجل البدء والتقدّم و«أتممت» (docs/decisions/2026-11-02-reading-program.md) --}}
+                @if ($program->libraryKind() !== null && $program->libraryItem !== null)
+                    <x-programs.library-panel :program="$program" :registration="$registration" />
+                @endif
+
+                @if ($registration?->status === RegistrationStatus::Confirmed && $program->delivery->isOnline() && ! $program->isLibraryProgram())
                     <x-card>
                         <h2 class="flex items-center gap-2 text-lg font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('programs.show.meeting') }}</h2>
                         @if (filled($program->meeting_url))

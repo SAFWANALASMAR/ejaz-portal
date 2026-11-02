@@ -112,8 +112,10 @@ it('keeps the account pages within a fixed number of queries', function (string 
 })->with([
     // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+2 منذ شريط المكتبة تحت الترحيب (المقاطع والأغلفة، مخزّن مع المحتوى فيُسأل مرة بعد مسحه)
     // و+2 منذ «قراءاتي»: أحدث التقدّم ومجاميع صاحب الحساب (docs/decisions/2026-11-01-my-reading.md)
-    'dashboard' => ['/account', 18],
-    'programs' => ['/account/programs', 5],
+    // و+2 منذ برامج المكتبة: الجارية منها بتقدّمها وعدد ما أتممه (docs/decisions/2026-11-02-reading-program.md)
+    'dashboard' => ['/account', 20],
+    // و+1 منذ «برامج أتممتها» تحت الجارية (docs/decisions/2026-11-02-reading-program.md)
+    'programs' => ['/account/programs', 6],
     'requests' => ['/account/requests', 4],
 ]);
 
