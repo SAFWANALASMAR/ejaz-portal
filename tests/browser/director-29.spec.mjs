@@ -97,3 +97,17 @@ for (const { name, path } of pages) {
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     });
 }
+
+// أيقونات الرأس والتذييل بألوانها قبل الملاحظة: الدرجة الرابعة (أيقونة «المركز الإعلامي» وكل رابع سطر في التذييل) إلى #1F4565،
+// ولا أيقونة فيهما بالدرجة الجديدة للمحتوى #24527A (مراجعة المشرف على #136)
+test('أيقونات الرأس والتذييل بلونها', async ({ page }) => {
+    await page.goto('/');
+    const tiles = await page.evaluate(() => ['[data-site-header]', 'footer'].map((scope) => [...document.querySelectorAll(`${scope} .icon-tile`)]
+        .map((tile) => getComputedStyle(tile).backgroundImage)));
+
+    for (const [index, scope] of ['header', 'footer'].entries()) {
+        expect(tiles[index].length, scope).toBeGreaterThan(0);
+        expect(tiles[index].filter((bg) => bg.includes('36, 82, 122')), scope).toEqual([]);
+        expect(tiles[index].some((bg) => bg.includes('rgb(46, 104, 152)') && bg.includes('rgb(31, 69, 101)')), scope).toBe(true);
+    }
+});

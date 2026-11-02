@@ -201,3 +201,29 @@ it('keeps the tinted labels on the lighter middle readable', function () {
         // الأبيض على الأزرق الرسمي #3E8ACA يفشل للنص الصغير، فلا يُكتب عليه نص في الوسط (طرف البطل عند الإطار الدائري وحده)
         ->and(contrastRatio($white, cssColour('var(--blue-600)')))->toBeLessThan(4.5);
 });
+
+it('writes full white, not translucent or pale, on the lighter heroes and dark sections (review of #136)', function () {
+    $white = '#ffffff';
+    $views = dirname(__DIR__, 2).'/resources/views/';
+
+    // الأبيض 90% فوق أفتح طرفي البطل 4.3:1، والأبيض الكامل 4.85:1
+    expect(contrastRatio(mixColour($white, cssColour('var(--mid-to)'), 0.9), cssColour('var(--mid-to)')))->toBeLessThan(4.5)
+        ->and(contrastRatio($white, cssColour('var(--mid-to)')))->toBeGreaterThanOrEqual(4.5)
+        // .section-dark: المتوسط بدائرتين باهتتين، الرسمي 35% والمميز 35%، والأبيض على أفتحهما
+        ->and(contrastRatio($white, mixColour(brandToken('brand'), cssColour('var(--mid-from)'), 0.35)))->toBeGreaterThanOrEqual(4.5)
+        ->and(contrastRatio($white, mixColour(brandToken('accent'), cssColour('var(--mid-from)'), 0.35)))->toBeGreaterThanOrEqual(4.5)
+        // #BFE0FA على المتوسط 4.3:1 لا يكفي للنص الصغير
+        ->and(contrastRatio(cssColour('var(--blue-200)'), cssColour('var(--mid-from)')))->toBeLessThan(4.5);
+
+    expect((string) file_get_contents($views.'components/hero-slider.blade.php'))->not->toContain('text-white/90')
+        ->and((string) file_get_contents($views.'components/page-hero.blade.php'))->not->toContain('text-white/90')
+        ->and((string) file_get_contents($views.'components/section-heading.blade.php'))->toContain('[.section-dark_&]:text-white"')
+        ->and((string) file_get_contents($views.'home/partials/shortcuts.blade.php'))->not->toContain('concept-pale');
+});
+
+it('keeps the dark icon shade of the header and footer at #1F4565 while the content one is lighter (review of #136)', function () {
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+
+    expect($css)->toMatch('/:is\(\[data-site-header\], \.site-footer\) :is\(li, article, \.group, \[data-card\]\):not\(:only-child\):nth-child\(4n \+ 4\) \{\s*--gt-to: #1f4565;/')
+        ->and($css)->toMatch("/:is\(\[data-site-header\], \.site-footer\) \.icon-tile\[data-shade='dark'\] \{\s*--tile-to: #1f4565;/");
+});

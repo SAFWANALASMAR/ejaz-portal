@@ -586,6 +586,15 @@ html[data-motion-off] .float-icon {
     --tile-glyph: #ffffff;
 }
 
+/* الرأس والتذييل بأيقوناتهما كما كانت: الدرجة الغامقة فيهما إلى #1F4565، والمحتوى إلى #24527A (ملاحظة المدير التنفيذي ٢٩ لا تمس الإطار) */
+:is([data-site-header], .site-footer) :is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 4) {
+    --gt-to: #1f4565;
+}
+
+:is([data-site-header], .site-footer) .icon-tile[data-shade='dark'] {
+    --tile-to: #1f4565;
+}
+
 /* ── البطاقة (.lift في التصور): لمعة تمر عند المرور، وظهور متتابع عند التحميل بـ 0.07 ثانية لكل بطاقة، وكله لمن لم يطلب
    تقليل الحركة وحده (media query بلا سكربت) ── */
 .card-lift,

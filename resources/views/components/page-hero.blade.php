@@ -39,7 +39,7 @@
             <img src="{{ \App\Support\HomeContent::brand('calligraphy_white') }}" alt="" aria-hidden="true" width="1218" height="185" data-page-calligraphy class="page-hero-calligraphy rise-3">
 
             @if (filled($summary))
-                <p class="rise-3 max-w-[32.5rem] text-lg leading-[1.75] text-white/90 sm:text-[1.1875rem]">{{ $summary }}</p>
+                <p class="rise-3 max-w-[32.5rem] text-lg leading-[1.75] text-white sm:text-[1.1875rem]">{{ $summary }}</p>
             @endif
             {{ $slot ?? '' }}
         </div>

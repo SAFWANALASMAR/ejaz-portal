@@ -39,7 +39,7 @@
                     <span class="absolute inset-0 bg-linear-to-b from-primary/15 from-20% to-primary/90 to-80%" aria-hidden="true"></span>
                     <span class="relative text-2xl leading-[1.3] font-black lg:text-[1.75rem]">{{ $sideTitle }}</span>
                     @if ($sideText !== '')
-                        <span class="relative text-sm text-[var(--concept-pale)] lg:text-base">{{ $sideText }}</span>
+                        <span class="relative text-sm text-white lg:text-base">{{ $sideText }}</span>
                     @endif
                 </{{ $sideTag }}>
             @endif
