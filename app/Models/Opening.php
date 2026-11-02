@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OpeningKind;
 use App\Models\Concerns\DefinesFormFields;
+use App\Models\Concerns\FlushesContentCache;
 use App\Models\Concerns\Publishable;
 use App\Models\Contracts\HasFormFields;
 use Database\Factories\OpeningFactory;
@@ -28,7 +29,8 @@ use Spatie\Activitylog\Support\LogOptions;
 class Opening extends Model implements HasFormFields
 {
     /** @use HasFactory<OpeningFactory> */
-    use DefinesFormFields, HasFactory, LogsActivity, Publishable, SoftDeletes;
+    // خريطة الموقع في ذاكرة المحتوى تذكر الفرص المنشورة، فيمسحها حفظ الفرصة وحذفها كبقية المحتوى
+    use DefinesFormFields, FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     /**
      * @return array<string, string>

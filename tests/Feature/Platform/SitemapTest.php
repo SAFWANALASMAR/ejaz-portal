@@ -2,11 +2,14 @@
 
 use App\Enums\LibrarySection;
 use App\Models\Album;
+use App\Models\Competition;
 use App\Models\Document;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
+use App\Models\Opening;
 use App\Models\Page;
+use App\Models\Program;
 
 it('lists the public pages and every published item with its last change', function () {
     Page::factory()->create(['slug' => 'vision']);
@@ -114,4 +117,53 @@ it('builds its links from the configured address, not from the request host', fu
     $this->withHeader('Host', 'evil.test')->get('/sitemap.xml')->assertOk()
         ->assertSee(url('/pages/vision'), false)
         ->assertDontSee('evil.test');
+});
+
+/**
+ * @return array<string, string> الرابط وآخر تعديل له
+ */
+function sitemapEntries(object $test): array
+{
+    $xml = simplexml_load_string((string) $test->get('/sitemap.xml')->assertOk()->getContent());
+
+    return collect(iterator_to_array($xml->url, false))->mapWithKeys(fn (SimpleXMLElement $url): array => [(string) $url->loc => (string) $url->lastmod])->all();
+}
+
+it('lists the published programmes, competitions with their guide, and openings with their last change, and the services and announcements pages', function () {
+    $program = Program::factory()->create(['slug' => 'open-program']);
+    Program::factory()->unpublished()->create(['slug' => 'draft-program']);
+    $competition = Competition::factory()->create(['slug' => 'open-competition']);
+    $student = Competition::factory()->student()->create(['slug' => 'student-competition', 'page_content' => ['guide_steps' => ['خطوة']]]);
+    Competition::factory()->student()->create(['slug' => 'no-guide', 'page_content' => ['vision' => 'رؤية']]);
+    Competition::factory()->unpublished()->create(['slug' => 'draft-competition']);
+    $opening = Opening::factory()->create(['slug' => 'open-job']);
+    Opening::factory()->unpublished()->create(['slug' => 'draft-job']);
+
+    $entries = sitemapEntries($this);
+
+    expect($entries)->toHaveKeys([
+        url('/services/jobs'),
+        url('/services/volunteering'),
+        url('/services/assembly-membership'),
+        url('/media/announcements'),
+        url('/programs/open-program'),
+        url('/competitions/open-competition'),
+        url('/competitions/student-competition'),
+        url('/competitions/student-competition/guide'),
+        url('/services/openings/open-job'),
+    ])
+        ->and($entries[url('/programs/open-program')])->toBe($program->updated_at->toAtomString())
+        ->and($entries[url('/competitions/open-competition')])->toBe($competition->updated_at->toAtomString())
+        ->and($entries[url('/competitions/student-competition/guide')])->toBe($student->updated_at->toAtomString())
+        ->and($entries[url('/services/openings/open-job')])->toBe($opening->updated_at->toAtomString())
+        ->and(array_keys($entries))->not->toContain(url('/programs/draft-program'), url('/competitions/draft-competition'), url('/competitions/no-guide/guide'), url('/services/openings/draft-job'));
+});
+
+it('shows a newly published opening in the sitemap at once', function () {
+    $opening = Opening::factory()->unpublished()->create(['slug' => 'late-job']);
+    $this->get('/sitemap.xml')->assertOk()->assertDontSee('/services/openings/late-job', false);
+
+    $opening->update(['is_published' => true]);
+
+    $this->get('/sitemap.xml')->assertOk()->assertSee(url('/services/openings/late-job'), false);
 });

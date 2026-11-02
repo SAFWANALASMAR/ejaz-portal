@@ -13,7 +13,7 @@
     $image = $program->image ? Storage::disk('public')->url($program->image) : null;
 @endphp
 
-<x-layouts.app :title="$program->title" :description="$program->summary" :image="$image">
+<x-layouts.app :title="$program->title" :description="StructuredData::text($program->summary ?: $program->description, 160)" :image="$image">
     {{-- البرنامج فعاليةً ومسار التنقل إليه (StructuredData) --}}
     @push('head')
         {{ StructuredData::script(array_values(array_filter([

@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Support\LibraryPageCount;
 use App\Support\PageSet;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -528,4 +530,46 @@ it('lets the owner turn off saving: reports are accepted silently and nothing is
     $this->post(route('account.my-reading.tracking'), ['disabled' => 'maybe'])->assertSessionHasErrors('disabled');
     $this->post('/logout');
     $this->post(route('account.my-reading.tracking'), ['disabled' => '1'])->assertRedirect('/login');
+});
+
+it('leaves unpublished and deleted items out of the portal totals', function () {
+    $book = readingBook(5);
+    $audio = legacyAudio();
+    $this->actingAs($this->reader);
+    reportProgress($book, ['pages' => [1, 2, 3]]);
+    reportProgress($audio);
+    $this->travel(100)->seconds();
+    reportProgress($audio, ['seconds' => 100]);
+
+    expect(LibraryProgress::totals())->toBe(['pages_read' => 3, 'listened_minutes' => 1, 'watched_minutes' => 0, 'readers' => 1]);
+
+    $book->update(['is_published' => false]);
+    $audio->delete();
+
+    expect(LibraryProgress::totals())->toBe(['pages_read' => 0, 'listened_minutes' => 0, 'watched_minutes' => 0, 'readers' => 0])
+        ->and(LibraryProgress::totals($this->reader)['pages_read'])->toBe(0);
+});
+
+it('moves the account clocks only once the progress is committed, so a rolled-back report spends no budget', function () {
+    $book = readingBook(5);
+    $audio = legacyAudio();
+    $pages = 'library-progress:'.$this->reader->id.':pages';
+    $seconds = 'library-progress:'.$this->reader->id.':seconds';
+    $record = app(RecordLibraryProgress::class);
+
+    DB::beginTransaction();
+    $record->handle($this->reader, $book, ['pages' => [1, 2, 3]]);
+    $record->handle($this->reader, $audio, ['seconds' => 10]);
+    DB::rollBack();
+
+    expect(Cache::has($pages))->toBeFalse()
+        ->and(Cache::has($seconds))->toBeFalse()
+        ->and(progressOf($this->reader, $book))->toBeNull();
+
+    $record->handle($this->reader, $book, ['pages' => [1, 2, 3]]);
+    $record->handle($this->reader, $audio, ['seconds' => 10]);
+
+    expect(Cache::has($pages))->toBeTrue()
+        ->and(Cache::has($seconds))->toBeTrue()
+        ->and(progressOf($this->reader, $book)->pages_count)->toBe(3);
 });

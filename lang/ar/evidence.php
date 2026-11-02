@@ -40,6 +40,7 @@ return [
         'active' => 'ساري',
         'expired' => 'منتهٍ',
         'revoked' => 'ملغى',
+        'issuer_disabled' => 'مُصدره معطّل',
     ],
 
     'actions' => [

@@ -61,8 +61,11 @@
 @if ($prizes !== [])
     <div>
         <x-section-heading>{{ __('competitions.student.page.prizes') }}</x-section-heading>
-        <div class="card-lift mt-4 overflow-x-auto">
-            <table class="w-full text-start text-sm">
+        {{-- التمرير الأفقي في غلاف داخلي: overflow: hidden في .card-lift خارج الطبقات يغلب overflow-x-auto عليها، فكان الجدول
+             يُقص على الجوال (مراجعة الجودة، 3 نوفمبر 2026). والغلاف منطقة مسماة تُبلغ بلوحة المفاتيح فتُمرَّر بالأسهم --}}
+        <div class="card-lift mt-4">
+            <div class="overflow-x-auto" role="region" tabindex="0" aria-label="{{ __('competitions.student.page.prizes') }}" data-prize-table>
+            <table class="w-full whitespace-nowrap text-start text-sm">
                 <thead class="bg-primary-soft text-primary">
                     <tr>
                         <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.page.place') }}</th>
@@ -87,6 +90,7 @@
                     </tr>
                 </tfoot>
             </table>
+            </div>
         </div>
         <p class="mt-3 font-bold text-primary">{{ __('competitions.student.page.prizes_grand_total', ['amount' => Number::format(array_sum(array_column($prizes, 'male')) + array_sum(array_column($prizes, 'female')))]) }}</p>
     </div>
