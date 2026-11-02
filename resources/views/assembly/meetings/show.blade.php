@@ -11,16 +11,15 @@
 @endphp
 
 <x-layouts.app :title="$meeting->title" noindex>
+    <x-page-hero :title="$meeting->title" />
+
     <section class="band-sky py-12 sm:py-16">
         <div class="container-page max-w-3xl">
-            <a href="{{ route('assembly.meetings.index') }}" wire:navigate class="text-sm text-primary underline decoration-accent underline-offset-4">{{ __('assembly.meetings.back') }}</a>
-
-            <x-card class="mt-6">
+            <x-card>
                 <p class="flex flex-wrap items-center gap-2 text-xs">
                     <span class="rounded-full bg-surface px-3 py-1 font-semibold text-muted">{{ __('assembly.meeting.model') }} {{ $meeting->type->getLabel() }}</span>
                     <span class="rounded-full px-3 py-1 font-semibold {{ match ($meeting->status) { MeetingStatus::Held => 'bg-primary text-white', MeetingStatus::Cancelled => 'bg-gray-500/90 text-white', default => 'bg-primary-soft text-primary' } }}">{{ $meeting->status->getLabel() }}</span>
                 </p>
-                <h1 class="mt-3 text-2xl font-bold text-primary sm:text-3xl">{{ $meeting->title }}</h1>
 
                 @if ($cancelled)
                     <x-alert type="warning" class="mt-4">{{ __('assembly.meetings.cancelled_notice') }}</x-alert>

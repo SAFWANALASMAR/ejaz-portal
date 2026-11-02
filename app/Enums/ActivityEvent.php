@@ -42,6 +42,10 @@ enum ActivityEvent: string implements HasLabel
     // المحتوى
     case MenuReordered = 'menu_reordered';
     case ContentReordered = 'content_reordered';
+    // محرر الصفحات (docs/decisions/2026-11-02-page-editor.md)
+    case PageDraftSaved = 'page_draft_saved';
+    case PagePublished = 'page_published';
+    case PageReverted = 'page_reverted';
 
     // المسابقات
     case ResultsApproved = 'results_approved';

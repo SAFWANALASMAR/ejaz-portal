@@ -24,7 +24,9 @@ beforeEach(function () {
     File::put($this->dir.'/export/files/fake.pdf', 'not a pdf');
     File::put($this->dir.'/outside.pdf', pdfContents());
 
-    $this->editor = userWithRole(RoleName::ContentEditor);
+    // ملف الاستيراد فيه «عن الجمعية»، وهي في «محرر الصفحات» لمن له pages.edit_all وحده، فالمنفّذ مسؤول تقني كما في الإطلاق
+    // (docs/decisions/2026-11-02-page-editor.md)
+    $this->editor = userWithRole(RoleName::TechnicalAdmin);
 });
 
 afterEach(fn () => File::deleteDirectory($this->dir));
@@ -238,6 +240,8 @@ it('runs only for an active account allowed to create what the file holds', func
     'an inactive editor' => ['inactive', 'import.errors.actor'],
     'a secretary' => [RoleName::Secretary->value, 'import.sections.pages'],
     'a board member' => [RoleName::BoardMember->value, 'import.sections.documents'],
+    // محرر المحتوى يستورد كل شيء إلا «عن الجمعية»، فيتوقف قبل أي حفظ لا في منتصفه
+    'a content editor' => [RoleName::ContentEditor->value, 'import.sections.pages'],
 ]);
 
 it('refuses a file that is not JSON or not in the expected shape', function (string $contents, string $error) {

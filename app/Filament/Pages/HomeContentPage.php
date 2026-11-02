@@ -8,6 +8,7 @@ use App\Enums\SiteIcon;
 use App\Filament\Concerns\ReadableByOverseers;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\EditablePages;
 use App\Support\HomeContent;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -96,7 +97,7 @@ class HomeContentPage extends Page
             $data['hero_slides'][$key] = $stored['hero_slides'][$key] ?? null;
         }
 
-        foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
+        foreach (array_keys(self::pageHeroes()) as $key) {
             $data['page_heroes'][$key] = $stored['page_heroes'][$key] ?? null;
         }
 
@@ -123,9 +124,10 @@ class HomeContentPage extends Page
                 Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
                     array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
                 ),
-                // صورة رأس كل صفحة داخلية (1 نوفمبر 2026). فارغة تعني البديل الحالي
+                // صورة رأس كل صفحة داخلية (1 نوفمبر 2026). فارغة تعني البديل الحالي. وصور صفحات الموقع الثابتة في «محرر الصفحات»
+                // بمسودتها ونسخها (EditablePages)، فيبقى هنا ما ليس منها (الإعلانات)
                 Section::make(__('settings.home_content.page_heroes'))->description(__('settings.home_content.page_heroes_hint'))->columns(2)->collapsed()->schema(
-                    array_map(fn (string $key): FileUpload => self::image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(HomeContent::PAGE_HEROES)),
+                    array_map(fn (string $key): FileUpload => self::image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(self::pageHeroes())),
                 ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
@@ -264,6 +266,16 @@ class HomeContentPage extends Page
     }
 
     /**
+     * خانات صور الرؤوس التي تبقى هنا: ما ليس من صفحات «محرر الصفحات».
+     *
+     * @return array<string, string>
+     */
+    private static function pageHeroes(): array
+    {
+        return array_diff_key(HomeContent::PAGE_HEROES, EditablePages::PAGES);
+    }
+
+    /**
      * صورة المقطع على القرص العام، لا SVG (docs/security.md). وفارغة تعني الأصل من الخطة الاستراتيجية.
      */
     private static function image(string $section, string $field = ''): FileUpload
@@ -277,8 +289,13 @@ class HomeContentPage extends Page
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->maxSize(6144)
             ->rules(['dimensions:max_width=5000,max_height=5000'])
-            // الصفحة بلا سجل: يُسمح صراحة بالصور المحفوظة حالياً وحدها
-            ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => in_array($file, HomeContent::imagePaths(Setting::group(HomeContent::KEY)), true))
+            // الصفحة بلا سجل: يُسمح صراحة بالصور المحفوظة حالياً وحدها، بلا صور «محرر الصفحات» (رؤوس صفحاته ونسخها)، فلا تُنقل
+            // صورة منها إلى خانة هنا ثم تُحذف بتفريغها (المراجعة الأمنية، م١)
+            ->preventFilePathTampering(allowFilePathUsing: function (string $file): bool {
+                $stored = Setting::group(HomeContent::KEY);
+
+                return in_array($file, HomeContent::imagePaths($stored), true) && ! in_array($file, EditablePages::ownedImages($stored), true);
+            })
             ->disk('public')
             ->directory(UpdateSiteSettings::IMAGE_DIRECTORY)
             ->visibility('public');
