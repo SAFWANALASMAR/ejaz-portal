@@ -49,12 +49,12 @@
             @php($featured = $latest->first())
             <div class="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
                 <a href="{{ route('media.news.show', $featured->slug) }}" wire:navigate data-reveal
-                    class="group relative flex min-h-[19rem] flex-col justify-end overflow-hidden rounded-[1.25rem] bg-primary-dark p-6 text-white">
+                    class="group relative flex min-h-[19rem] flex-col justify-end overflow-hidden rounded-[1.25rem] bg-primary p-6 text-white">
                     @if ($featured->image)
                         <img src="{{ Storage::disk('public')->url($featured->image) }}" alt="" loading="lazy" width="760" height="460"
                             class="absolute inset-0 size-full object-cover transition duration-700 group-hover:scale-105">
                     @endif
-                    <span class="absolute inset-0 bg-linear-to-b from-primary-dark/10 from-30% to-primary-deep/90" aria-hidden="true"></span>
+                    <span class="absolute inset-0 bg-linear-to-b from-primary/10 from-30% to-primary/90" aria-hidden="true"></span>
                     @if (filled($featured->category))
                         <span class="relative self-start rounded-full bg-white px-3 py-0.5 text-xs font-extrabold text-primary-dark">{{ $featured->category }}</span>
                     @endif

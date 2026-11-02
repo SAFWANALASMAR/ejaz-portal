@@ -68,6 +68,8 @@
     --blue-900: #1f4565;
     --blue-850: #24527a;
     --blue-700: #2e6898;
+    --blue-650: #3171a5;
+    --blue-620: #3476ac;
     --blue-600: #3e8aca;
     --blue-400: #6aaee6;
     --blue-300: #8ec5f0;
@@ -80,6 +82,13 @@
     --concept-surface: linear-gradient(160deg, var(--blue-50) 0%, #e8f2fb 100%);
     /* الرأس والتذييل: تدرج الهوية الداكن */
     --chrome-gradient: linear-gradient(180deg, #17344f 0%, var(--blue-900) 100%);
+    /* ما بين الرأس والتذييل أخف منهما (ملاحظة المدير التنفيذي ٢٩، 2 نوفمبر 2026 — docs/decisions/2026-11-02-director-29-lighter-mid.md):
+       لا #1F4565 ولا #142E45 خلفيةً في المحتوى. والداكن فيه من الأزرق المتوسط إلى أخف منه (الأبيض عليه 5.9:1 ثم 5.2:1 ثم
+       4.9:1)، والفاتح بعده «أخف منه» بنص كحلي. والتباين مختبر في tests/Unit/BrandContrastTest.php وToneCardContrastTest.php */
+    --mid-from: var(--blue-700);
+    --mid-via: var(--blue-650);
+    --mid-to: var(--blue-620);
+    --mid-gradient: linear-gradient(150deg, var(--mid-from), var(--mid-to));
     /* استثناءان من الأزرق (البند G1): زر تشغيل يوتيوب في شريط المقاطع، وأسود بطاقة «تابعنا على X» */
     --youtube-red: #e5322d;
     --x-black: #0b1622;
@@ -154,7 +163,7 @@
     }
 
     .section-band {
-        @apply relative overflow-hidden bg-primary-dark text-white;
+        @apply relative overflow-hidden bg-primary text-white;
     }
 
     /* شبكة المعرض: مربعات متناسقة، والأولى أكبر على الحاسوب متى كانت الصور خمساً فأكثر (فلا تبقى خانات فارغة) */

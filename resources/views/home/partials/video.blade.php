@@ -8,7 +8,7 @@
         <div class="card-lift mx-auto aspect-video max-w-4xl overflow-hidden">
             <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                 data-video-title="{{ __('home.video.label') }}"
-                class="group relative flex size-full items-center justify-center bg-primary-dark text-white"
+                class="group relative flex size-full items-center justify-center bg-primary text-white"
                 aria-label="{{ __('home.video.play') }}">
                 @if ($thumbnail)
                     <span class="skeleton absolute inset-0 block">
@@ -16,7 +16,7 @@
                             class="size-full object-cover transition duration-700 group-hover:scale-105">
                     </span>
                 @endif
-                <span class="absolute inset-0 bg-linear-to-t from-primary-dark/85 via-primary-dark/25 to-transparent" aria-hidden="true"></span>
+                <span class="absolute inset-0 bg-linear-to-t from-primary/85 via-primary/25 to-transparent" aria-hidden="true"></span>
                 <span class="relative inline-flex size-20 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-sm transition group-hover:scale-110 group-hover:bg-accent" aria-hidden="true">
                     {{ \App\Support\Icon::solid('play', 'size-9') }}
                 </span>

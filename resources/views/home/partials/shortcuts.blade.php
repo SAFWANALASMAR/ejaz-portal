@@ -36,7 +36,7 @@
                 <{{ $sideTag }} @if ($sideLink) href="{{ route('about') }}" wire:navigate @endif data-side-card class="group relative flex min-h-[15rem] flex-col justify-end overflow-hidden rounded-[1.25rem] p-5 text-white lg:min-h-[15.625rem] lg:p-6">
                     <img src="{{ $content['rationale']['image'] }}" alt="" loading="lazy" width="768" height="512"
                         class="absolute inset-0 size-full object-cover transition duration-700 group-hover:scale-105">
-                    <span class="absolute inset-0 bg-linear-to-b from-primary-dark/15 from-20% to-primary-deep/90 to-80%" aria-hidden="true"></span>
+                    <span class="absolute inset-0 bg-linear-to-b from-primary/15 from-20% to-primary/90 to-80%" aria-hidden="true"></span>
                     <span class="relative text-2xl leading-[1.3] font-black lg:text-[1.75rem]">{{ $sideTitle }}</span>
                     @if ($sideText !== '')
                         <span class="relative text-sm text-[var(--concept-pale)] lg:text-base">{{ $sideText }}</span>

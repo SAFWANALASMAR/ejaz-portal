@@ -69,7 +69,7 @@
                     @if ($whatsapp !== null)
                         <p class="mt-4">
                             <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" data-whatsapp
-                                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-semibold text-white transition hover:bg-primary-dark">
+                                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-semibold text-white transition hover:bg-secondary">
                                 <x-social-icon network="whatsapp" class="size-5" />
                                 {{ __('contact.info.whatsapp') }}
                                 <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>

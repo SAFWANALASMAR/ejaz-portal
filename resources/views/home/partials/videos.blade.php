@@ -17,7 +17,7 @@
                 <li class="card-lift relative overflow-hidden [&:has(iframe)_[data-video-caption]]:hidden">
                     <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                         data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
-                        class="group relative block aspect-video overflow-hidden bg-primary-dark text-white"
+                        class="group relative block aspect-video overflow-hidden bg-primary text-white"
                         aria-label="{{ __('home.videos.play', ['title' => $item->title]) }}">
                         @if ($thumbnail)
                             <span class="skeleton absolute inset-0 block">
@@ -25,7 +25,7 @@
                                     class="size-full object-cover transition duration-700 group-hover:scale-105">
                             </span>
                         @endif
-                        <span class="absolute inset-0 bg-linear-to-t from-primary-dark/90 via-primary-dark/30 to-transparent" aria-hidden="true"></span>
+                        <span class="absolute inset-0 bg-linear-to-t from-primary/90 via-primary/30 to-transparent" aria-hidden="true"></span>
                         <x-video-number :number="$loop->iteration" />
                         <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
                             <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-sm transition group-hover:scale-110 group-hover:bg-accent">

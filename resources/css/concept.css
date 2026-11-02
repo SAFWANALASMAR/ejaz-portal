@@ -127,9 +127,10 @@ body {
     /* ── شارة البطل وشريط العنوان ── */
     .hero-chip {
         @apply inline-flex items-center gap-1.5 self-start rounded-full text-sm;
-        color: var(--concept-pale);
-        /* خلفية داكنة شفافة بضباب: الصورة صارت ظاهرة في أعلى البطل (31 أكتوبر)، فيبقى النص مقروءاً فوق أي صورة */
-        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        /* خلفية شفافة بضباب: الصورة صارت ظاهرة في أعلى البطل (31 أكتوبر)، فيبقى النص مقروءاً فوق أي صورة. ومنذ الملاحظة ٢٩
+           بالأزرق المتوسط أكثف، والنص أبيض (الفاتح #BFE0FA عليه 4.3:1 لا يكفي للنص الصغير) */
+        color: var(--color-white);
+        background: color-mix(in srgb, var(--mid-from) 92%, transparent);
         backdrop-filter: blur(6px);
         border: 1px solid color-mix(in srgb, var(--color-white) 18%, transparent);
         padding: 0.3125rem 0.875rem;
@@ -146,7 +147,7 @@ body {
     .hero-pill {
         @apply inline-flex items-center gap-1.5 rounded-full text-[15px] text-white;
         border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
-        background: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+        background: color-mix(in srgb, var(--mid-from) 92%, transparent);
         backdrop-filter: blur(6px);
         padding: 0.375rem 0.875rem;
         transition: background-color 200ms;
@@ -167,7 +168,7 @@ body {
     position: relative;
     overflow: hidden;
     color: var(--color-white);
-    background: var(--color-primary-dark);
+    background: var(--mid-from);
 }
 
 .concept-hero-media {
@@ -225,7 +226,7 @@ img[data-fit-small] {
 .hero-portrait-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-deep) 75%);
+    background: linear-gradient(160deg, var(--mid-to) 0%, var(--mid-from) 75%);
 }
 
 .concept-hero-media .hero-portrait-frame {
@@ -236,7 +237,7 @@ img[data-fit-small] {
     overflow: hidden;
     border: 3px solid var(--color-brand-light);
     border-radius: 1.25rem;
-    background: var(--color-primary-deep);
+    background: var(--mid-from);
     box-shadow: 0 18px 40px -16px rgb(0 0 0 / 60%);
 }
 
@@ -473,9 +474,9 @@ html[data-motion-off] .float-icon {
     background: var(--color-primary-soft);
 }
 
-/* شريحة الإعلان المميزة: تدرج شعاعي من الأزرق الرسمي إلى الداكن */
+/* شريحة الإعلان المميزة: تدرج شعاعي من الأخف إلى الأزرق المتوسط (الملاحظة ٢٩)، والنص الأبيض على طرفيه 4.9:1 فأكثر */
 .announcement-feature {
-    background: radial-gradient(80% 120% at 85% 20%, var(--color-brand), var(--color-primary-dark) 65%);
+    background: radial-gradient(80% 120% at 85% 20%, var(--mid-to), var(--mid-from) 65%);
 }
 
 /* «المزيد ←» */
@@ -557,7 +558,7 @@ html[data-motion-off] .float-icon {
 
 :is(li, article, .group, [data-card]):not(:only-child):nth-child(4n + 4) {
     --gt-from: #2e6898;
-    --gt-to: #1f4565;
+    --gt-to: #24527a;
     --gt-glyph: #ffffff;
 }
 
@@ -581,7 +582,7 @@ html[data-motion-off] .float-icon {
 
 .icon-tile[data-shade='dark'] {
     --tile-from: #2e6898;
-    --tile-to: #1f4565;
+    --tile-to: #24527a;
     --tile-glyph: #ffffff;
 }
 
@@ -681,11 +682,12 @@ html[data-motion-off] .float-soft {
     }
 }
 
-/* الشريط الجانبي في حساب المستخدم (Final-Dashboard): أزرق داكن بزوايا 22 بكسل، ونصوصه بيضاء. حُذف خطأً مع تنظيف visual.css */
+/* الشريط الجانبي في حساب المستخدم (Final-Dashboard): أزرق داكن بزوايا 22 بكسل، ونصوصه بيضاء. حُذف خطأً مع تنظيف visual.css. ومنذ الملاحظة ٢٩
+   أخف من الرأس (#24527A): العنصر النشط عليه بأبيض 15% يبقى نصه الأبيض 5.5:1، وعلى المتوسط #2E6898 كان 4.3:1 */
 .account-nav {
     position: relative;
     overflow: hidden;
-    background: var(--color-primary-dark);
+    background: var(--blue-850);
 }
 
 /* على الحاسوب ثابت عند التمرير داخل عموده وحده، فيتوقف قبل التذييل (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٦). كانت
@@ -705,15 +707,16 @@ html[data-motion-off] .float-soft {
 .concept-hero-scrim {
     position: absolute;
     inset: 0;
+    /* منذ الملاحظة ٢٩: بالأزرق المتوسط لا بلون الرأس، وأكثف قليلاً لأنه أفتح، فيبقى النص الأبيض مقروءاً فوق الصورة */
     background:
-        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 65%, transparent) 0%, transparent 60%),
-        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 15%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 60%, transparent) 28%, color-mix(in srgb, var(--color-primary-dark) 82%, transparent) 45%, color-mix(in srgb, var(--color-primary-dark) 94%, transparent) 70%, var(--color-primary-dark) 100%);
+        linear-gradient(270deg, color-mix(in srgb, var(--mid-from) 75%, transparent) 0%, transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--mid-to) 25%, transparent) 0%, color-mix(in srgb, var(--mid-via) 70%, transparent) 28%, color-mix(in srgb, var(--mid-from) 88%, transparent) 45%, color-mix(in srgb, var(--mid-from) 96%, transparent) 70%, var(--mid-from) 100%);
 }
 
 .concept-hero[data-size='home'] .concept-hero-scrim {
     background:
-        linear-gradient(270deg, color-mix(in srgb, var(--color-primary-dark) 55%, transparent) 0%, transparent 55%),
-        linear-gradient(180deg, color-mix(in srgb, var(--color-primary-dark) 10%, transparent) 0%, color-mix(in srgb, var(--color-primary-dark) 50%, transparent) 30%, color-mix(in srgb, var(--color-primary-dark) 88%, transparent) 55%, var(--color-primary-dark) 100%);
+        linear-gradient(270deg, color-mix(in srgb, var(--mid-from) 65%, transparent) 0%, transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--mid-to) 20%, transparent) 0%, color-mix(in srgb, var(--mid-via) 60%, transparent) 30%, color-mix(in srgb, var(--mid-from) 92%, transparent) 55%, var(--mid-from) 100%);
 }
 
 .concept-hero::before {
@@ -725,7 +728,8 @@ html[data-motion-off] .float-soft {
     height: 0.75rem;
     pointer-events: none;
     border-top: 1px solid color-mix(in srgb, var(--color-white) 28%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-deep, var(--color-primary-dark)) 55%, transparent), transparent);
+    /* ظل رمادي خفيف تحت الرأس لا بلونه (الملاحظة ٢٩): يبقى الفصل بين الرأس الداكن والبطل الأخف واضحاً */
+    background: linear-gradient(180deg, rgb(0 0 0 / 0.18), transparent);
 }
 
 /* ── الرئيسية بملاحظات المدير التنفيذي (31 أكتوبر 01:28 — docs/design/director-notes-2026-10-31) ── */
@@ -782,11 +786,16 @@ html[data-motion-off] .float-soft {
 /* ── البطاقة الملونة (.cc في التصور — البند G2): تدرج يتعاقب بين البطاقات، داكن بنص أبيض ثم فاتح بنص أزرق داكن. والتعاقب بموضع
    أقرب بطاقة أو عنصر قائمة له إخوة (متغيرات موروثة كمربع الأيقونة)، وdata-tone يثبّت درجة. والتباين على كل طرف من التدرجين
    مختبر في tests/Unit/ToneCardContrastTest.php ── */
+/* ومنذ ملاحظة المدير التنفيذي ٢٩ (2 نوفمبر 2026): الداكنة من الأزرق المتوسط إلى أخف منه بلا #1F4565 ولا #142E45، والفاتحة
+   «أخف منها». و--tc-deep لأعمق طرف (أرضية الزر والشارة)، و--tc-tint لزجاج مربع الأيقونة (أبيض على الداكنة، ومتوسط على الفاتحة) */
 .tone-card {
-    --tc-from: var(--tcv-from, #2e6898);
-    --tc-via: var(--tcv-via, #1f4565);
-    --tc-to: var(--tcv-to, #142e45);
-    --tc-text: var(--tcv-text, #ffffff);
+    --tc-from: var(--tcv-from, var(--mid-from));
+    --tc-via: var(--tcv-via, var(--mid-via));
+    --tc-to: var(--tcv-to, var(--mid-to));
+    --tc-text: var(--tcv-text, var(--color-white));
+    --tc-deep: var(--tcv-deep, var(--mid-from));
+    --tc-tint: var(--tcv-tint, var(--color-white));
+    --tc-muted: var(--tcv-muted, var(--color-white));
     position: relative;
     overflow: hidden;
     border-radius: 1.25rem;
@@ -799,31 +808,43 @@ html[data-motion-off] .float-soft {
 }
 
 :is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(odd) {
-    --tcv-from: #2e6898;
-    --tcv-via: #1f4565;
-    --tcv-to: #142e45;
-    --tcv-text: #ffffff;
+    --tcv-from: var(--mid-from);
+    --tcv-via: var(--mid-via);
+    --tcv-to: var(--mid-to);
+    --tcv-text: var(--color-white);
+    --tcv-deep: var(--mid-from);
+    --tcv-tint: var(--color-white);
+    --tcv-muted: var(--color-white);
 }
 
 :is(li, article, .tone-card, [data-card]):not(:only-child):nth-child(even) {
-    --tcv-from: #bfe0fa;
-    --tcv-via: #8ec5f0;
-    --tcv-to: #6aaee6;
-    --tcv-text: #142e45;
+    --tcv-from: var(--blue-200);
+    --tcv-via: var(--blue-300);
+    --tcv-to: var(--blue-400);
+    --tcv-text: var(--blue-950);
+    --tcv-deep: var(--blue-400);
+    --tcv-tint: var(--mid-from);
+    --tcv-muted: color-mix(in srgb, var(--blue-950) 86%, transparent);
 }
 
 .tone-card[data-tone='dark'] {
-    --tc-from: #2e6898;
-    --tc-via: #1f4565;
-    --tc-to: #142e45;
-    --tc-text: #ffffff;
+    --tc-from: var(--mid-from);
+    --tc-via: var(--mid-via);
+    --tc-to: var(--mid-to);
+    --tc-text: var(--color-white);
+    --tc-deep: var(--mid-from);
+    --tc-tint: var(--color-white);
+    --tc-muted: var(--color-white);
 }
 
 .tone-card[data-tone='light'] {
-    --tc-from: #bfe0fa;
-    --tc-via: #8ec5f0;
-    --tc-to: #6aaee6;
-    --tc-text: #142e45;
+    --tc-from: var(--blue-200);
+    --tc-via: var(--blue-300);
+    --tc-to: var(--blue-400);
+    --tc-text: var(--blue-950);
+    --tc-deep: var(--blue-400);
+    --tc-tint: var(--mid-from);
+    --tc-muted: color-mix(in srgb, var(--blue-950) 86%, transparent);
 }
 
 /* كل ما في البطاقة بلونها، والثانوي بشفافية خفيفة منه. ومربع الأيقونة عليها زجاجي بلون نصها */
@@ -832,14 +853,15 @@ html[data-motion-off] .float-soft {
 }
 
 .tone-card .tone-card-muted {
-    color: color-mix(in srgb, var(--tc-text) 86%, transparent);
+    /* الثانوي: كحلي 86% على الفاتحة، وأبيض كامل على الداكنة الأخف (الأبيض 86% عليها 4.05:1 — الملاحظة ٢٩) */
+    color: var(--tc-muted);
 }
 
 .tone-card .icon-tile {
-    --tile-from: color-mix(in srgb, var(--tc-text) 22%, transparent);
-    --tile-to: color-mix(in srgb, var(--tc-text) 12%, transparent);
+    --tile-from: color-mix(in srgb, var(--tc-tint) 22%, transparent);
+    --tile-to: color-mix(in srgb, var(--tc-tint) 12%, transparent);
     --tile-glyph: var(--tc-text);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-tint) 35%, transparent);
 }
 
 .tone-card:hover,
@@ -1562,8 +1584,9 @@ html[data-motion-off] .page-transition-fill {
     padding: 0.3125rem 1.375rem;
     font-size: 0.875rem;
     font-weight: 800;
-    background: color-mix(in srgb, var(--tc-text) 18%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-text) 35%, transparent);
+    /* أرضية «ادخل» بأعمق طرف البطاقة (الملاحظة ٢٩): الأبيض 18% فوق الداكنة الأخف صار 4.0:1، وبهذه 4.9:1 فأكثر */
+    background: color-mix(in srgb, var(--tc-deep) 70%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-tint) 35%, transparent);
 }
 
 @media (min-width: 64rem) {
@@ -1685,7 +1708,7 @@ html[data-motion-off] .page-transition-fill {
     border-radius: 1.125rem;
     padding: 1rem 1.25rem;
     color: var(--color-white);
-    background: linear-gradient(135deg, var(--x-black), var(--blue-900));
+    background: linear-gradient(135deg, var(--x-black), var(--mid-from));
     box-shadow: 0 18px 34px -22px rgb(20 46 69 / 0.75);
 }
 
@@ -1720,14 +1743,14 @@ html[data-motion-off] .page-transition-fill {
         font-weight: 800;
         white-space: nowrap;
         color: var(--tc-text, var(--color-white));
-        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 60%, transparent);
+        background: color-mix(in srgb, var(--tc-deep, var(--mid-from)) 60%, transparent);
         border: 1px solid color-mix(in srgb, var(--tc-text, var(--color-white)) 35%, transparent);
         transition: background-color 200ms;
     }
 
     .tone-card:hover .tone-pill,
     .tone-pill:hover {
-        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 85%, transparent);
+        background: color-mix(in srgb, var(--tc-deep, var(--mid-from)) 85%, transparent);
     }
 
     /* شارة صغيرة داخل البطاقة الملونة (تصنيف أو حالة) */
@@ -1741,7 +1764,7 @@ html[data-motion-off] .page-transition-fill {
         font-size: 0.75rem;
         font-weight: 800;
         color: var(--tc-text, var(--color-white));
-        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 55%, transparent);
+        background: color-mix(in srgb, var(--tc-deep, var(--mid-from)) 55%, transparent);
     }
 
     /* صورة في أعلى البطاقة الملونة بلا فاصل أبيض */
@@ -1749,7 +1772,7 @@ html[data-motion-off] .page-transition-fill {
         position: relative;
         display: block;
         overflow: hidden;
-        background: color-mix(in srgb, var(--tc-to, var(--blue-950)) 40%, transparent);
+        background: color-mix(in srgb, var(--tc-deep, var(--mid-from)) 40%, transparent);
     }
 
     /* شريط التبويبات (Final-Page وFinal-Library): لوح بتدرج فاتح جداً، والكبسولات بيضاء والنشطة داكنة */
@@ -1783,8 +1806,8 @@ html[data-motion-off] .page-transition-fill {
 
     .tab-pill[aria-current] {
         color: var(--color-white);
-        background: var(--blue-900);
-        border-color: var(--blue-900);
+        background: var(--mid-from);
+        border-color: var(--mid-from);
     }
 
     /* لوح النموذج بتدرج أزرق فاتح (Final-Contact وFinal-Login): الحقول وحدها بيضاء (البند R1) */
@@ -1813,7 +1836,7 @@ html[data-motion-off] .page-transition-fill {
         flex: none;
         overflow: hidden;
         border-radius: 1rem;
-        background: linear-gradient(150deg, var(--blue-300), var(--blue-900));
+        background: linear-gradient(150deg, var(--blue-300), var(--mid-from));
     }
 
     .gallery-tile img {
@@ -1836,7 +1859,7 @@ html[data-motion-off] .page-transition-fill {
         font-size: 0.875rem;
         font-weight: 800;
         color: var(--color-white);
-        background: linear-gradient(180deg, transparent, rgb(20 46 69 / 0.85));
+        background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--mid-from) 92%, transparent));
     }
 }
 
@@ -1951,9 +1974,17 @@ html[data-motion-off] .section-heading-icon {
 
 /* ── بطل الرئيسية بإطار دائري (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البنود ٦ و٧ و٢٦ و٢٧ — اللوحة الأولى من ملف التصور):
    تدرج أزرق من الفاتح في جهة النهاية إلى الداكن في جهة النص، وخطوط مائلة رفيعة فوقه، والصورة في دائرة بحد #8EC5F0 ── */
+/* ومنذ الملاحظة ٢٩: من الأزرق المتوسط تحت الرأس إلى أخف منه، بلا #1F4565 ولا #142E45. على الجوال واللوحي يمتد النص بعرض
+   البطل، فالتدرج كله بين طرفي --mid (الأبيض عليه 4.9:1 فأكثر). وعلى الحاسوب الواسع النص في جهة البداية (اليمين) من نحو 42% فما
+   بعدها، فيفتح ما قبلها حول الإطار الدائري إلى #3E8ACA ثم #6AAEE6: «أخف، وهذا أخف منه» */
 .hero-round {
-    background:
-        linear-gradient(100deg, #2e6898 0%, #24527a 42%, #1f4565 68%, #142e45 100%);
+    background: linear-gradient(180deg, var(--mid-from) 0%, var(--mid-via) 55%, var(--mid-to) 100%);
+}
+
+@media (min-width: 80rem) {
+    .hero-round {
+        background: linear-gradient(100deg, var(--blue-400) 0%, var(--blue-600) 18%, var(--mid-to) 32%, var(--mid-via) 66%, var(--mid-from) 100%);
+    }
 }
 
 .hero-round-lines {
@@ -1995,7 +2026,7 @@ html[data-motion-off] .section-heading-icon {
     overflow: hidden;
     border-radius: 9999px;
     border: 3px solid var(--color-brand-light);
-    background: var(--blue-850, #1f4565);
+    background: var(--mid-from);
     box-shadow:
         0 0 0 10px rgb(142 197 240 / 0.12),
         0 22px 44px -18px rgb(0 0 0 / 0.6);
@@ -2099,7 +2130,7 @@ html[data-motion-off] .section-heading-icon {
 }
 
 .home-card[data-tone='light'] .icon-tile {
-    background: linear-gradient(150deg, #2e6898, #1f4565);
+    background: linear-gradient(150deg, var(--mid-from), var(--blue-850));
     color: #fff;
     box-shadow: 0 6px 14px -6px rgb(20 46 69 / 0.55);
 }
@@ -2205,12 +2236,12 @@ html[data-motion-off] .home-card-pick-icon {
     height: 100%;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, #6aaee6, #2e6898 60%, #1f4565);
+    background: linear-gradient(160deg, var(--blue-400), var(--mid-to) 60%, var(--mid-from));
     color: #fff;
 }
 
 .media-tile:nth-child(even) .media-tile-placeholder {
-    background: linear-gradient(160deg, #8ec5f0, #3f7fb5 60%, #24527a);
+    background: linear-gradient(160deg, var(--blue-300), var(--blue-600) 60%, var(--mid-to));
 }
 
 /* مخطوطة اسم الجمعية كبيرة تحت عنوان رأس الصفحة الداخلية (البند ١٤) */
@@ -2381,7 +2412,7 @@ html[data-motion-off] .home-card-pick-icon {
     gap: 0.625rem;
     padding: 1.5rem;
     border-radius: 1.125rem;
-    background: linear-gradient(150deg, #2e6898, #142e45);
+    background: var(--mid-gradient);
     color: #fff;
     box-shadow: 0 22px 40px -24px rgb(20 46 69 / 0.9);
     outline: none;
@@ -2416,7 +2447,7 @@ html[data-motion-off] .home-card-pick-icon {
 
 /* شارة «جديد» على بطاقة الخبر الملونة بلونها هي لا بلون نص البطاقة الخافت (فحص الوصول، 1 نوفمبر 2026) */
 .tone-card .badge-new {
-    background: var(--blue-900, #1f4565);
+    background: var(--blue-850);
     color: #fff;
 }
 
@@ -2433,4 +2464,9 @@ html[data-reveal-ready] [data-reveal]:not([data-revealed]) .portal-chart-line {
 
 html[data-reveal-ready] .portal-chart-line {
     transition: stroke-dashoffset calc(2200ms * var(--motion)) ease-out calc(250ms * var(--motion));
+}
+
+/* زر البطل عند المرور بالثانوي #24527A لا بلون الرأس (ملاحظة المدير التنفيذي ٢٩). وزر الرأس كما هو */
+.hero-round .login-pill:hover {
+    background-color: var(--color-secondary);
 }
