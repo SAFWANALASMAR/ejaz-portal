@@ -7,8 +7,6 @@ use App\Filament\Concerns\SavesThroughAction;
 use App\Filament\Resources\Achievements\AchievementResource;
 use App\Models\Achievement;
 use App\Models\User;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,8 +20,8 @@ class EditAchievement extends EditRecord
     {
         return [
             AchievementResource::attachmentAction(),
-            DeleteAction::make(),
-            RestoreAction::make(),
+            AchievementResource::deleteAction(),
+            AchievementResource::restoreAction(),
         ];
     }
 
