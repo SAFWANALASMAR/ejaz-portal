@@ -40,11 +40,11 @@ function writeRoutes(): array
         ->all();
 }
 
-// كل معامل بأول قيمة تطابق قيده (رقم، أو uuid، أو رمز استبيان من 32 حرفاً)، فيبلغ الطلب مساره لا 405
+// كل معامل بأول قيمة تطابق قيده (رقم، أو uuid، أو رمز استبيان من 32 حرفاً، أو قسم المكتبة)، فيبلغ الطلب مساره لا 405
 function writeRouteUri(string $uri, array $wheres = []): string
 {
     return '/'.ltrim((string) preg_replace_callback('/\{([^}?]+)\??\}/', function (array $m) use ($wheres): string {
-        foreach (['1', (string) Str::uuid(), str_repeat('a', 32)] as $value) {
+        foreach (['1', (string) Str::uuid(), str_repeat('a', 32), 'books'] as $value) {
             if (! isset($wheres[$m[1]]) || preg_match('#^'.$wheres[$m[1]].'$#', $value)) {
                 return $value;
             }

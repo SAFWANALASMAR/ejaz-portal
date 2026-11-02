@@ -121,5 +121,5 @@ it('orders the cards as in the reference (programs, my info, requests, then my c
         ->assertSeeInOrder([__('programs.nav.programs_description'), __('account.nav.profile_description'), __('services.nav.requests_description'), __('competitions.account.nav_description')]);
 
     expect(AccountNavigation::for($this->user)->pluck('route')->all())
-        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index', 'account.competitions', 'account.payments']);
+        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index', 'account.my-reading', 'account.competitions', 'account.payments']);
 });

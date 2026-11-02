@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Setting;
 use App\Support\ContentCache;
+use App\Support\HomeContent;
+use App\Support\HomePortalStats;
 use App\Support\PortalStats;
 use App\Support\Visits;
 use Illuminate\Console\Command;
@@ -37,7 +39,10 @@ class RefreshPortalStats extends Command
             ->filter(fn ($source): bool => is_string($source))
             ->all()));
 
-        if ($used !== [] && ($previous === null || array_intersect_key($previous, $used) !== array_intersect_key($current, $used))) {
+        // و«البوابة بالأرقام» (HomePortalStats) متى ظهرت وتغيّر رقمها أو رسمها: تُعاد الرئيسية وحدها مرة في التشغيل على الأكثر
+        $portal = HomePortalStats::refresh() && HomeContent::showsPortalStats();
+
+        if ($portal || ($used !== [] && ($previous === null || array_intersect_key($previous, $used) !== array_intersect_key($current, $used)))) {
             // مقطع الإحصائيات جزء من ذاكرة الرئيسية (HomeController)
             ContentCache::forget('home');
         }

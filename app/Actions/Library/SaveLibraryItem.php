@@ -3,6 +3,7 @@
 namespace App\Actions\Library;
 
 use App\Enums\LibrarySection;
+use App\Jobs\CountLibraryPages;
 use App\Jobs\FetchYoutubeThumbnail;
 use App\Models\LibraryItem;
 use App\Models\User;
@@ -109,6 +110,13 @@ class SaveLibraryItem
             $item->file_size = Storage::disk(LibraryItem::disk())->size((string) $item->file);
         }
 
+        // عدد صفحات الملف السابق لا يبقى للجديد، ويُحسب للجديد في الطابور بعد الحفظ («قراءاتي»)
+        $countPages = $item->file !== $previousFile || $item->section !== $previousSection;
+
+        if ($countPages) {
+            $item->forceFill(['page_count' => null, 'page_count_checked_at' => null]);
+        }
+
         // صورة يوتيوب التي جلبها الخادم لمقطع آخر لا تبقى بعد تغيّر الرابط (FetchYoutubeThumbnail::isFetchedFor)
         if (filled($item->thumbnail) && FetchYoutubeThumbnail::isFetched((string) $item->thumbnail)
             && ! FetchYoutubeThumbnail::isFetchedFor((string) $item->thumbnail, $item->youtubeId())) {
@@ -125,6 +133,10 @@ class SaveLibraryItem
 
         if (blank($item->thumbnail) && $item->youtubeId() !== null && config('security.youtube_thumbnails')) {
             FetchYoutubeThumbnail::dispatch($item->getKey());
+        }
+
+        if ($countPages && $item->section->takesPdf() && filled($item->file)) {
+            CountLibraryPages::dispatch($item->getKey(), (string) $item->file);
         }
 
         return $item;

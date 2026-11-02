@@ -46,7 +46,7 @@ final class HomeContent
         // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
         'identity' => ['vision', 'mission', 'side_title', 'side_text', 'goals', 'principles'],
         // عناوين أقسام الرئيسية وبطاقاتها الظاهرة للزائر (أمر التصور النهائي، النسخة 63 — المرحلة ب)
-        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats'],
+        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats', 'stats_intro'],
     ];
 
     /**
@@ -158,6 +158,15 @@ final class HomeContent
         }
 
         return $content;
+    }
+
+    /**
+     * مفتاح «البوابة بالأرقام» الآلية (البند H9): مطفأة حتى تُشغَّل من «محتوى الرئيسية»، كما يطلب ui-reference.md ومفتاح
+     * show_stats القائم (مراجعة المشرف على #115). والأرقام المعتمدة من «إعدادات الموقع» بمفتاحها هناك (show_stats).
+     */
+    public static function showsPortalStats(): bool
+    {
+        return (bool) (Setting::group(self::KEY)['portal_stats']['enabled'] ?? false);
     }
 
     /**
