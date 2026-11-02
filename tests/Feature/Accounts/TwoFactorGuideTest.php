@@ -28,7 +28,11 @@ function assertTwoFactorGuide(TestResponse $response): void
             'use_recovery' => __('account.two_factor_challenge.use_recovery'),
             'regenerate' => __('account.security.regenerate'),
         ]))
-        ->assertSee(__('account.two_factor_guide.lost.items.no_reset'))
+        // فقد الجوال والرموز معاً: «تواصل معنا» برابط صفحتها، ولا ذكر لغياب أداة في اللوحة (قرار المشرف على #141)
+        ->assertSeeText('إن فقدت الجوال ورموز الاسترداد معاً، فتواصل مع الجمعية من صفحة «'.__('contact.title').'»، ويعيد مدير النظام ضبط التحقق بعد التحقق من هويتك')
+        ->assertSee('<a href="'.route('contact').'"', false)
+        ->assertSee('data-two-factor-contact>'.__('contact.title').'</a>', false)
+        ->assertDontSee('لا توجد')
         ->assertSee(__('account.two_factor_guide.lost.items.sync'));
 }
 

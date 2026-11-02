@@ -505,10 +505,10 @@ return [
             'إن ضاع الجوال أو تعطّل التطبيق، ففي شاشة رمز التحقق عند الدخول اضغط «استخدم رمز استرداد بدلاً من ذلك»، واكتب أحد رموز الاسترداد التي حفظتها. وكل رمز يُستخدم مرة واحدة.',
             'بعد الدخول افتح «بياناتي» ثم تبويب «الأمان»، واضغط «توليد رموز جديدة» واحفظها في مكان غير الجوال.',
             'ولتنقل التحقق إلى جوال جديد اضغط «إيقاف التحقق الثنائي» ثم «تفعيل التحقق الثنائي» وامسح الرمز الجديد. وإن كان إلزامياً لصلاحياتك الإدارية فلا يُوقف من الصفحة، فالنسخ في التطبيق هو ما ينقل رمزك.',
-            'لا توجد في لوحة الإدارة أداة لإيقاف التحقق الثنائي عن حسابك، فاحفظ رموز الاسترداد قبل أن تحتاجها.',
+            'إن فقدت الجوال ورموز الاسترداد معاً، فتواصل مع الجمعية من صفحة «تواصل معنا»، ويعيد مدير النظام ضبط التحقق بعد التحقق من هويتك.',
             'ولتنتقل الرموز مع جوالك الجديد، فعّل النسخ في التطبيق: في Google Authenticator بالدخول بحساب Google، وفي Microsoft Authenticator بتشغيل النسخ الاحتياطي من إعداداته.',
         ],
-        'labels' => ['account.two_factor_challenge.use_recovery', 'account.nav.profile', 'account.security.title', 'account.security.regenerate', 'account.security.disable', 'account.security.enable'],
+        'labels' => ['account.two_factor_challenge.use_recovery', 'account.nav.profile', 'account.security.title', 'account.security.regenerate', 'account.security.disable', 'account.security.enable', 'contact.title'],
     ],
 
 ];
