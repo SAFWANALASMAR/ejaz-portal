@@ -1,11 +1,11 @@
 {{--
-    رأس الموقع صفّان (أمر التصور النهائي، النسخة 63 — البندان R2 وR3، وFinal-Home)، وكله ثابت عند التمرير (sticky top:0)، ومنفصل
-    عن البطل بتدرج أغمق وحد سفلي #8EC5F0 وظل (البند G6):
-    - الصف الأول: رمز الشعار كبيراً في أقصى البداية، ثم المخطوطة كبيرة ممتدة، ثم مربع الترخيص بسطريه (من «محتوى الرئيسية»)، ثم
-      البحث و«تسجيل الدخول» في أقصى النهاية. ولا سطر إشراف.
-    - الصف الثاني: أفتح قليلاً وبينهما فاصل #8EC5F0، فيه عناصر القائمة كبسولات متساوية بأيقونة صغيرة بجانب الكلمة (القائمة «ج»)،
+    رأس الموقع صفّان، وكله ثابت عند التمرير (sticky top:0) بالارتفاع والمقاسات نفسها، ومنفصل عن البطل بتدرج أغمق وحد سفلي #8EC5F0
+    وظل (أمر التصور النهائي، النسخة 63 — R2 وR3 وG6، وترتيب صفوان في 2 نوفمبر 2026: docs/decisions/2026-11-02-header-final.md):
+    - الصف الأول ثلاثة أعمدة: رمز الشعار في أقصى البداية، والمخطوطة في منتصف الشريط تماماً، ثم بجانبها مربع الترخيص بسطريه (من
+      «محتوى الرئيسية») بفاصل صغير، ثم البحث و«تسجيل الدخول» (أو «حسابي») في أقصى النهاية. ولا سطر إشراف.
+    - الصف الثاني: أفتح قليلاً وبينهما فاصل #8EC5F0، فيه عناصر القائمة كبسولات بأيقونة صغيرة بجانب الكلمة (القائمة «ج»)،
       والنشط بحد #8EC5F0 وخلفية أفتح. والقائمة تُدار من اللوحة، وعناصرها السبعة من MainMenuSevenSeeder.
-    - الجوال واللوحي: الرمز والمخطوطة وزر ☰ لقائمة منسدلة بالعناصر والأيقونات نفسها.
+    - اللوحي: الترتيب نفسه بلا مربع الترخيص وبزر ☰ في أقصى النهاية. والجوال: الرمز والمخطوطة متجاوران في البداية وزر ☰ في النهاية.
     والقائمة لا تتسع (عناصر أكثر أو أسماء أطول): زر القائمة بدلها (app.js). $siteMenu من App\View\Composers\SiteChromeComposer،
     والأيقونة من مسار الرابط (App\Support\MenuIcon).
 --}}
@@ -15,54 +15,63 @@
 @endphp
 
 <header data-site-header class="site-header sticky top-0 z-40 text-white">
-    <div class="header-top mx-auto flex max-w-[82.5rem] items-center gap-3 px-4 py-2.5 sm:px-7 lg:gap-4 lg:py-3.5">
-        <x-brand light size="masthead" class="min-w-0" />
+    {{-- الصف الأول بعرض الشاشة كله بهامش صغير متساوٍ: الأوسط المخطوطة، والطرفان بعرض واحد فتبقى في منتصف الشاشة (concept.css — .header-top) --}}
+    <div class="header-top">
+        {{-- الاسم المقروء في المخطوطة، فرابط الرمز خارج ترتيب لوحة المفاتيح وقارئ الشاشة: رابطان إلى الرئيسية لا يتكرران --}}
+        <a href="{{ route('home') }}" wire:navigate class="header-mark" tabindex="-1" aria-hidden="true">
+            <img src="{{ \App\Support\HomeContent::brand('mark_white') }}" alt="" width="495" height="505" data-brand-mark class="masthead-mark w-auto">
+        </a>
 
-        {{-- مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران يُعدَّلان من «محتوى الرئيسية» --}}
-        <p data-header-licence class="header-licence hidden lg:flex">
-            <span class="font-extrabold">{{ $header('licensed_by') }}</span>
-            @if (filled($licenseNumber = \App\Support\MissingText::shown($header('license_number'))))
-                <span class="text-brand-light">{{ $licenseNumber }}</span>
-            @endif
-        </p>
+        <a href="{{ route('home') }}" wire:navigate class="header-calligraphy">
+            <img src="{{ \App\Support\HomeContent::brand('calligraphy_white') }}" alt="{{ __('site.name') }}" data-logo-calligraphy
+                width="1218" height="185" class="masthead-calligraphy w-auto object-contain">
+        </a>
 
-        <span class="flex-1" aria-hidden="true"></span>
+        <div class="header-end">
+            {{-- مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران يُعدَّلان من «محتوى الرئيسية» --}}
+            <p data-header-licence class="header-licence hidden nav:flex">
+                <span class="font-extrabold">{{ $header('licensed_by') }}</span>
+                @if (filled($licenseNumber = \App\Support\MissingText::shown($header('license_number'))))
+                    <span class="text-brand-light">{{ $licenseNumber }}</span>
+                @endif
+            </p>
 
-        <div class="flex shrink-0 items-center gap-2.5">
-            {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
-            @if ($liveStream ?? null)
-                <a href="{{ route('live') }}" wire:navigate class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 sm:inline-flex">
-                    <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
-                    {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
-                </a>
-            @endif
-
-            {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
-            <div class="hidden sm:block">
-                @auth
-                    <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
-                        <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
-                        {{ __('site.my_account') }}
+            <div class="header-actions">
+                {{-- شارة البث: تظهر آلياً لبث جارٍ أو قادم وتختفي بعده (App\View\Composers\SiteChromeComposer) --}}
+                @if ($liveStream ?? null)
+                    <a href="{{ route('live') }}" wire:navigate class="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 sm:inline-flex">
+                        <span @class(['size-2 rounded-full bg-red-600', 'animate-pulse' => $liveStream['live']]) aria-hidden="true"></span>
+                        {{ __($liveStream['live'] ? 'livestream.header.live' : 'livestream.header.upcoming') }}
                     </a>
-                @else
-                    <a href="{{ route('login') }}" class="login-pill">
-                        <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
-                        {{ __('site.login') }}
-                    </a>
-                @endauth
+                @endif
+
+                {{-- البحث السريع (partials/search-palette): نافذة بـ Ctrl+K أو بالضغط، وبجانبه الدخول --}}
+                <button type="button" data-search-open
+                    class="header-icon-button" aria-label="{{ __('ui.search.open') }}" aria-keyshortcuts="Control+K Meta+K" title="{{ __('ui.search.open') }} ({{ __('ui.search.shortcut') }})">
+                    {{ \App\Support\Icon::svg('magnifying-glass', 'size-[19px]', ['aria-hidden' => 'true']) }}
+                </button>
+
+                {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
+                <div class="hidden sm:block">
+                    @auth
+                        <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
+                            <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
+                            {{ __('site.my_account') }}
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="login-pill">
+                            <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
+                            {{ __('site.login') }}
+                        </a>
+                    @endauth
+                </div>
+
+                <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
+                    class="header-icon-button nav:hidden">
+                    <span class="sr-only">{{ __('site.open_menu') }}</span>
+                    {{ \App\Support\Icon::svg('bars-3', 'size-6', ['aria-hidden' => 'true']) }}
+                </button>
             </div>
-
-            {{-- البحث السريع (partials/search-palette): نافذة بـ Ctrl+K أو بالضغط --}}
-            <button type="button" data-search-open
-                class="header-icon-button" aria-label="{{ __('ui.search.open') }}" aria-keyshortcuts="Control+K Meta+K" title="{{ __('ui.search.open') }} ({{ __('ui.search.shortcut') }})">
-                {{ \App\Support\Icon::svg('magnifying-glass', 'size-[19px]', ['aria-hidden' => 'true']) }}
-            </button>
-
-            <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
-                class="header-icon-button nav:hidden">
-                <span class="sr-only">{{ __('site.open_menu') }}</span>
-                {{ \App\Support\Icon::svg('bars-3', 'size-6', ['aria-hidden' => 'true']) }}
-            </button>
         </div>
     </div>
 

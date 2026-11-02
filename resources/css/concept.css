@@ -856,109 +856,132 @@ html[data-motion-off] .float-soft {
     box-shadow: 0 12px 28px -14px rgb(15 37 54 / 0.85);
 }
 
-[data-site-header][data-scrolled] {
-    box-shadow: 0 14px 32px -12px rgb(15 37 54 / 0.95);
+/* الصف الأول (ترتيب صفوان، 2 نوفمبر 2026، ويلغي البند ٢٥ من ملاحظات 1 نوفمبر: docs/decisions/2026-11-02-header-final.md):
+   لا يصغر شيء عند التمرير، فالمقاسات هنا ثابتة لكل عرض. والجوال: الرمز والمخطوطة متجاوران في البداية وأزرار النهاية بعدهما */
+.header-top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.625rem 1rem;
 }
 
-/* عند التمرير يصغر الرأس كله معاً بتناسب (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٥، ويلغي البند ٢): الرمز والمخطوطة
-   ومربع الترخيص وأزرار الصف الأول وصف القائمة، بمعامل واحد --hs يتحرك بنعومة (خاصية مسجلة فتنتقل قيمتها)، ويعود إلى حجمه
-   الكامل عند الرجوع إلى أعلى الصفحة. وصف القائمة يصغر أقل (--hs-nav) فيبقى خطه مقروءاً. ومع تقليل الحركة يتبدل الحجم بلا انتقال */
-@property --hs {
-    syntax: '<number>';
-    inherits: true;
-    initial-value: 1;
+.header-mark,
+.header-calligraphy {
+    display: flex;
+    /* هدف لمس 44 بكسل على الأقل، والمخطوطة وحدها 32 على الجوال */
+    min-height: 2.75rem;
+    align-items: center;
+    min-width: 0;
 }
 
-[data-site-header] {
-    --hs: 1;
-    --hs-nav: calc(1 - (1 - var(--hs)) * 0.55);
-    transition:
-        --hs calc(320ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
-        box-shadow 250ms;
+.header-calligraphy {
+    justify-self: start;
 }
 
-[data-site-header][data-scrolled] {
-    --hs: 0.7;
+.header-end,
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* مقاسات الرمز والمخطوطة في الرأس على كل عرض (كانت أصناف Tailwind في x-brand)، مضروبة في المعامل */
+.header-actions {
+    flex: none;
+    margin-inline-start: auto;
+}
+
 .masthead-mark {
-    --mark-h: 3rem;
-    height: calc(var(--mark-h) * var(--hs));
+    height: 3rem;
 }
 
 .masthead-calligraphy {
-    --cal-h: 2rem;
-    height: calc(var(--cal-h) * var(--hs));
+    height: 2rem;
     max-width: 40vw;
 }
 
-.header-top {
-    --top-pad: 0.625rem;
-    padding-block: calc(var(--top-pad) * var(--hs));
-}
+/* من 800 بكسل: ثلاثة أعمدة، الطرفان بعرض واحد (1fr) فالمخطوطة في منتصف الشريط تماماً. ولا يضيق طرف عن محتواه (max-content):
+   إن زاد ما فيه (شارة البث مثلاً) انزاحت المخطوطة قليلاً بدل أن يتراكب شيء */
+@media (min-width: 50rem) {
+    .header-top {
+        grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+    }
 
-@media (min-width: 64rem) {
-    .masthead-mark {
-        --mark-h: 5rem;
+    .header-calligraphy {
+        justify-self: center;
     }
 
     .masthead-calligraphy {
-        --cal-h: 3.5rem;
         max-width: none;
     }
 
-    .header-top {
-        --top-pad: 0.875rem;
+    .header-top .login-pill {
+        padding: 0.5625rem 1rem;
+        font-size: 0.9375rem;
     }
 }
 
-@media (min-width: 77.5rem) {
+@media (min-width: 64rem) {
+    .header-top {
+        padding: 0.875rem 1.25rem;
+    }
+
     .masthead-mark {
-        --mark-h: 5.5rem;
+        height: 4.5rem;
     }
 
     .masthead-calligraphy {
-        --cal-h: 4.5rem;
+        height: 3.25rem;
+    }
+}
+
+/* الحاسوب: الرمز كبيراً، والمخطوطة بأكبر ما يتسع في منتصف الشريط ومربع الترخيص والبحث والدخول في طرفها: عرض الطرف نحو
+   390 بكسل، والمخطوطة بنسبة 6.58 من ارتفاعها، فارتفاعها من عرض الصف نفسه (cqi) بحد أدنى 56 بكسل وأعلى 80 (84 على العريض).
+   مقيس في tests/browser/header-final.spec.mjs على 1263 و1280 و1440 و1920 */
+@media (min-width: 77.5rem) {
+    .header-top {
+        container-type: inline-size;
+    }
+
+    .masthead-mark {
+        height: 5.5rem;
+    }
+
+    .masthead-calligraphy {
+        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5rem);
     }
 }
 
 @media (min-width: 96rem) {
     .masthead-mark {
-        --mark-h: 6.125rem;
+        height: 6.125rem;
     }
 
     .masthead-calligraphy {
-        --cal-h: 5.625rem;
+        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5.25rem);
     }
 }
 
-/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران في منتصفه أفقياً وعمودياً، ملاصق للمخطوطة (البند ١)، والرقم كاملاً
-   بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطوره في منتصفه أفقياً وعمودياً، بجانب المخطوطة بفاصل صغير (عمود الشبكة)،
+   والرقم كاملاً بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
 .header-licence {
     flex: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: calc(0.25rem * var(--hs));
-    max-width: calc(15.625rem * var(--hs-nav));
-    margin-inline-start: -0.5rem;
-    padding: calc(0.625rem * var(--hs)) calc(1rem * var(--hs));
+    gap: 0;
+    max-width: 10rem;
+    padding: 0.375rem 0.75rem;
     border: 1px solid rgb(142 197 240 / 0.55);
-    border-radius: calc(0.875rem * var(--hs));
-    font-size: calc(0.875rem * var(--hs-nav));
-    line-height: 1.5;
+    border-radius: 0.875rem;
+    font-size: 0.78125rem;
+    line-height: 1.4;
     text-align: center;
     color: var(--color-white);
 }
 
 .header-licence > span + span {
     white-space: nowrap;
-}
-
-.header-top .login-pill,
-.header-top .header-icon-button {
-    transform: scale(var(--hs-nav));
 }
 
 .header-nav {
@@ -974,13 +997,13 @@ html[data-motion-off] .float-soft {
        أكثر بسهمها (البند ٤) */
     grid-auto-columns: auto;
     gap: 0.5rem;
-    padding-block: calc(0.625rem * var(--hs-nav));
+    padding-block: 0.625rem;
 }
 
 .nav-capsule {
     display: flex;
     width: 100%;
-    height: calc(2.75rem * var(--hs-nav));
+    height: 2.75rem;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
@@ -990,7 +1013,7 @@ html[data-motion-off] .float-soft {
     background: rgb(255 255 255 / 0.07);
     color: var(--color-white);
     /* سبع كبسولات متساوية في 1264 بكسل: أطول الأسماء («الخدمات الإلكترونية») يتسع بهذا الخط من نحو 1260 بكسل */
-    font-size: calc(0.84375rem * var(--hs-nav));
+    font-size: 0.84375rem;
     font-weight: 700;
     white-space: nowrap;
     transition:
@@ -1014,7 +1037,7 @@ html[data-motion-off] .float-soft {
 
 @media (min-width: 90rem) {
     .nav-capsule {
-        font-size: calc(0.875rem * var(--hs-nav));
+        font-size: 0.875rem;
     }
 }
 

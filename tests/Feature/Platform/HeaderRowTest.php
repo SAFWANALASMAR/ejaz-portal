@@ -38,3 +38,37 @@ it('shows the two licence lines from the panel in the first row, and no supervis
         ->toContain('برقم 1000723700')
         ->and($html)->not->toContain(e(__('home.sections.footer.supervision')));
 });
+
+// ترتيب صفوان (2 نوفمبر 2026 — docs/decisions/2026-11-02-header-final.md، ويلغي البند ٢٥): الصف الأول ثلاثة أعمدة بعرض الشاشة،
+// الرمز ثم المخطوطة في الوسط ثم طرف فيه مربع الترخيص بجانبها ثم البحث ثم الدخول. والمواضع نفسها مقيسة في
+// tests/browser/header-final.spec.mjs
+it('orders the first row as mark, centred calligraphy, licence, search then login, across the full width', function () {
+    $dom = new DOMDocument;
+    @$dom->loadHTML($this->get('/')->assertOk()->getContent());
+    $x = new DOMXPath($dom);
+
+    $row = $x->query("//header[@data-site-header]/div[contains(concat(' ', @class, ' '), ' header-top ')]")->item(0);
+    expect($row)->not->toBeNull()
+        ->and($row->getAttribute('class'))->not->toContain('max-w-');
+
+    $columns = $x->query('./*', $row);
+    expect($columns->length)->toBe(3)
+        ->and($x->query('.//img[@data-brand-mark]', $columns->item(0))->length)->toBe(1)
+        ->and($x->query('.//img[@data-logo-calligraphy]', $columns->item(1))->length)->toBe(1)
+        ->and($columns->item(2)->getAttribute('class'))->toContain('header-end');
+
+    $end = $x->query('./*', $columns->item(2));
+    expect($end->item(0)->hasAttribute('data-header-licence'))->toBeTrue()
+        ->and($end->item(1)->getAttribute('class'))->toContain('header-actions');
+
+    // البحث قبل الدخول في الشيفرة، فالدخول في أقصى اليسار
+    $actions = $x->query(".//*[@data-search-open or contains(@class, 'login-pill')]", $end->item(1));
+    expect($actions->item(0)->hasAttribute('data-search-open'))->toBeTrue()
+        ->and($actions->item(1)->getAttribute('class'))->toContain('login-pill');
+});
+
+it('keeps the header the same size on scroll: no shrink factor or scroll attribute left in the styles and scripts', function () {
+    foreach (['resources/css/concept.css', 'resources/css/visual.css', 'resources/css/app.css', 'resources/js/app.js'] as $file) {
+        expect(file_get_contents(base_path($file)))->not->toContain('var(--hs')->not->toContain('data-scrolled');
+    }
+});
