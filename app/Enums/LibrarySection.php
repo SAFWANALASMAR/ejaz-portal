@@ -7,6 +7,8 @@ use Filament\Support\Contracts\HasLabel;
 /**
  * أقسام المكتبة (requirements/01 — قسم 5). القيمة جزء من الرابط، وتقابل روابط الموقع الحالي
  * (content-inventory.md). ولكل قسم مصدره: رابط مقطع، أو ملف صوتي، أو ملف PDF.
+ * والترتيب ترتيب الواجهة (البند R9)، والقيم الأربع محصورة بقيد في القاعدة، فقسم جديد يلزمه ترحيل
+ * (docs/decisions/2026-11-02-library-four-sections.md).
  */
 enum LibrarySection: string implements HasLabel
 {

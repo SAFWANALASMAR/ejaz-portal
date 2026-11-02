@@ -38,7 +38,7 @@ class MenuSeeder extends Seeder
             ['label' => 'مكتبة إعجاز', 'url' => '/library', 'children' => [
                 ['label' => 'المكتبة المرئية', 'url' => '/library/videos'],
                 ['label' => 'المكتبة الصوتية', 'url' => '/library/audio'],
-                ['label' => 'الكتب', 'url' => '/library/books'],
+                ['label' => 'الكتب والمؤلفات', 'url' => '/library/books'],
                 ['label' => 'الأبحاث والدراسات', 'url' => '/library/research'],
             ]],
             // المركز الإعلامي: الأخبار والإعلانات وحدهما (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). ومكتبة الصور والشركاء باقيتان
