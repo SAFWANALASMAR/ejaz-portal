@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\LibrarySection;
 use App\Models\Announcement;
 use App\Models\Competition;
+use App\Models\LibraryItem;
 use App\Models\NewsArticle;
+use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Support\Facades\Blade;
 
@@ -32,17 +35,27 @@ it('keeps the Brahin prize count-up out of the announcements live region', funct
         ->toContain('<span class="sr-only">4,000</span>');
 });
 
-it('names the section of the announcements and news «more» links on the home page', function () {
+it('names the section of every «more» and «view all» link on the home page', function () {
     NewsArticle::factory()->create(['is_published' => true]);
     Announcement::factory()->create(['is_published' => true]);
+    Partner::factory()->create(['is_published' => true]);
+    LibraryItem::factory()->video()->create(['thumbnail' => 'library/thumbs/a.jpg']);
+    LibraryItem::factory()->create(['section' => LibrarySection::Books, 'thumbnail' => 'library/thumbs/b.jpg']);
 
     $html = $this->get('/')->assertOk()->getContent();
+    preg_match_all('/<a [^>]*class="more-link[^"]*"[^>]*>(.*?)<\/a>/su', $html, $links);
 
-    // «المزيد» مرتان بالنص نفسه، فلكل منهما اسم قسمه مخفياً بصرياً (روابط الشرطين والشركاء في fix/marquee-pause)
-    expect($html)
-        ->toContain(__('ui.announcements.more').'<span class="sr-only">: ')
-        ->toContain(__('ui.news.more').'<span class="sr-only">: ')
-        ->and(substr_count($html, 'class="more-link">'.__('ui.news.more').'<span class="sr-only">: '))->toBe(2);
+    // الروابط بنص عام وحدها («المزيد» و«عرض الكل»)، لا ما نصه يصف وجهته («كل المبادرات»): الإعلانات والأخبار والمقاطع والكتب والشركاء
+    $generic = array_values(array_filter($links[1], fn (string $text): bool => str_starts_with($text, __('ui.news.more')) || str_starts_with($text, __('site.view_all'))));
+
+    expect($generic)->toHaveCount(5);
+
+    foreach ($generic as $text) {
+        expect($text)->toMatch('/<span class="sr-only">: [^<]+<\/span>/');
+    }
+
+    // ولا يتكرر اسم رابطين
+    expect(array_unique($generic))->toHaveCount(5);
 });
 
 it('names the section of the «view all» links on the account home', function () {
@@ -77,4 +90,13 @@ it('gives the reader zoom reset button a name that contains its visible percenta
 
     expect($button)->not->toContain('aria-label')
         ->toContain('<span class="sr-only">'.__('library.reader.zoom_reset').': </span><span data-pdf-zoom dir="ltr">100%</span>');
+});
+
+it('names the admin sidebar brand link even when the sidebar shows the mark alone', function () {
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
+
+    $html = view('filament.admin.sidebar-brand')->render();
+
+    // الشريط المطوي والجوال يخفيان المخطوطة، والرمز بلا نص بديل، فالاسم على الرابط نفسه
+    expect($html)->toContain('class="ej-sidebar-brand" aria-label="'.__('admin.theme.logo_alt').'"');
 });

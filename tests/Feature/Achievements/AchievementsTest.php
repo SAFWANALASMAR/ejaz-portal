@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Achievements\DeleteAchievement;
+use App\Actions\Achievements\RestoreAchievement;
 use App\Actions\Achievements\SaveAchievement;
 use App\Enums\AchievementStatus;
 use App\Enums\RoleName;
@@ -366,4 +368,32 @@ it('grants achievements permissions to the executive administration only', funct
         $user = userWithRole($role);
         expect($user->can('create', Achievement::class))->toBeFalse("{$role->value} can create");
     }
+});
+
+it('deletes and restores through actions that check the policy themselves, from the edit page and the table', function () {
+    // مراجعة المشرف المنخفضة 1 على #122: الحذف والاستعادة بإجراء لا بالحذف المباشر في الشاشة
+    $achievement = storedAchievement();
+
+    foreach ([RoleName::BoardMember, RoleName::ContentEditor, RoleName::SuperAdmin] as $role) {
+        $user = userWithRole($role);
+        expect(fn () => app(DeleteAchievement::class)->handle($user, $achievement))->toThrow(AuthorizationException::class);
+    }
+    expect($achievement->fresh()->trashed())->toBeFalse();
+
+    $actor = userWithRole(RoleName::Secretary);
+    $this->actingAs($actor);
+
+    Livewire::test(EditAchievement::class, ['record' => $achievement->uuid])->callAction(DeleteAction::class);
+    expect($achievement->fresh()->trashed())->toBeTrue()
+        // المرفق يبقى ليُستعاد مع الإنجاز
+        ->and(Storage::disk('local')->exists((string) $achievement->attachment))->toBeTrue()
+        ->and(fn () => app(RestoreAchievement::class)->handle(userWithRole(RoleName::BoardMember), $achievement->fresh()))
+        ->toThrow(AuthorizationException::class);
+
+    // والمحذوف لا تُفتح صفحة تعديله (AchievementPolicy::update)، فيُستعاد من الجدول
+    Livewire::test(ListAchievements::class)->filterTable('trashed', true)->callAction(TestAction::make(RestoreAction::class)->table($achievement));
+    expect($achievement->fresh()->trashed())->toBeFalse();
+
+    $events = Activity::query()->where('log_name', 'content')->whereMorphedTo('subject', $achievement)->where('causer_id', $actor->id)->orderBy('id')->pluck('event')->all();
+    expect($events)->toBe(['deleted', 'restored']);
 });

@@ -1,7 +1,7 @@
 // مكتبة إعجاز بأقسامها الأربعة (docs/decisions/2026-11-02-library-four-sections.md — البنود R9 وR20 وR24): البلاطات بالترتيب
 // المرئية، الصوتية، الكتب والمؤلفات، الأبحاث والدراسات، والأشرطة بالترتيب نفسه لما فيه عناصر، وصفحة «الأبحاث والدراسات» تعمل،
-// ولا تمرير أفقي. يعمل على عرضي 1440 و390 (المشروعان desktop وmobile):
-//   docker compose run --rm browser npx playwright test --config=tests/browser/playwright.config.mjs library-four-sections.spec.mjs --project=desktop --project=mobile
+// ولا تمرير أفقي. يعمل على العروض الثلاثة 1440 و820 و390 (ولقطة 820 من ملاحظة #119 المنخفضة):
+//   docker compose run --rm browser npx playwright test --config=tests/browser/playwright.config.mjs library-four-sections.spec.mjs
 // واللقطات في docs/design/screenshots/library-four-sections/<الشاشة>-<العرض>.png.
 import { expect, test } from '@playwright/test';
 
@@ -16,8 +16,6 @@ async function expectNoHorizontalScroll(page) {
 
 test.describe('library four sections', () => {
     test('shows the four tiles in order, the strips in the same order, and no horizontal scroll', async ({ page }, testInfo) => {
-        test.skip(!['desktop', 'mobile'].includes(testInfo.project.name), '1440 و390 وحدهما');
-
         await page.goto('/library');
         await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 

@@ -113,8 +113,9 @@ test('home: the services strip still moves for reduced motion, slower, with its 
 test('home: partners under the stats, YouTube right and books left (items 12, 24)', async ({ page }, testInfo) => {
     await page.goto('/');
     await revealAll(page);
-    const videos = page.locator('[data-media-strip="videos"] .marquee-track');
-    const books = page.locator('[data-media-strip="books"] .marquee-track');
+    // المتحرك وحده (data-marquee): الشريط القليل صف ثابت بلا حركة (marquee-pause.spec.mjs)
+    const videos = page.locator('[data-media-strip="videos"] [data-marquee] .marquee-track');
+    const books = page.locator('[data-media-strip="books"] [data-marquee] .marquee-track');
 
     if ((await videos.count()) && (await books.count())) {
         await videos.scrollIntoViewIfNeeded();

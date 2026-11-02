@@ -357,10 +357,17 @@ test.describe('marquees and carousels', () => {
             expect(await toggle.getAttribute('aria-label')).not.toBe(label);
             await page.mouse.move(0, 0);
             await toggle.blur();
-            // يفشل على main: قاعدة الحركة [data-direction][data-inview] أعلى تحديداً من [data-paused] و:hover و:focus-within، فزر الإيقاف
-            // لا يوقف الشريط لمن لم يطلب تقليل الحركة (WCAG 2.2.2). إصلاحه في fix/marquee-pause
-            const state = await page.locator(`#${id} .marquee-track`).evaluate((track) => getComputedStyle(track).animationPlayState);
-            expect(state, `#${id} paused`).toBe('paused');
+            // متوقف فعلاً: موضع المسار لا يتغير في نصف ثانية (وحالته للتشخيص إن تحرك)
+            const sample = () => page.locator(`#${id} .marquee-track`).evaluate((track) => {
+                const style = getComputedStyle(track);
+                return { transform: style.transform, state: `${style.animationName} ${style.animationPlayState} inview=${track.parentElement.hasAttribute('data-inview')} paused=${track.parentElement.hasAttribute('data-paused')}` };
+            });
+            // بعد خروج التركيز يعود الشريط من أوله (data-focus-reveal — home.js)، فيُنتظر استقراره قبل القياس
+            await page.waitForTimeout(300);
+            const before = await sample();
+            await page.waitForTimeout(500);
+            const after = await sample();
+            expect(after.transform, `#${id} paused (${after.state})`).toBe(before.transform);
             await toggle.focus();
             await page.keyboard.press('Enter');
             await expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -491,14 +498,14 @@ test.describe('keyboard operability and names', () => {
         await expect(input).toHaveValue('1');
     });
 
-    test('the announcements and news «more» links carry the name of their section', async ({ page }) => {
+    test('every «more» and «view all» link carries the name of its section', async ({ page }) => {
         await open(page, '/');
-        const names = await page.locator('main a.more-link[href$="/media/announcements"], main a.more-link[href$="/media/news"]').evaluateAll((links) => links.map((link) => {
+        const names = await page.locator('main a.more-link').evaluateAll((links) => links.map((link) => {
             // الاسم المحسوب تقريباً: النص كاملاً بما فيه المخفي بصرياً
             return link.getAttribute('aria-label') ?? link.textContent.replace(/\s+/g, ' ').trim();
         }));
-        // وروابط الشريطين والشركاء في fix/marquee-pause
-        expect(names.length).toBe(2);
+        // الإعلانات والأخبار والمقاطع والكتب والشركاء، وما نصه يصف وجهته («كل المبادرات») باسمه
+        expect(names.length).toBeGreaterThan(2);
         expect(new Set(names).size, `duplicate names: ${names.join(' | ')}`).toBe(names.length);
     });
 });
