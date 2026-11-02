@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Filament\Resources\SitePages\SitePageResource;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
@@ -89,6 +90,12 @@ function roleMatrixUri(Route $route, array $records): string
     return '/'.ltrim((string) preg_replace_callback('/\{([^}?:]+)(:[^}?]+)?\??\}/', function (array $m) use ($record): string {
         if ($m[1] === 'record' && $record !== null) {
             return (string) $record->getRouteKey();
+        }
+
+        // نسخة صفحة لا وجود لها بأي حال: فتح «محرر الصفحات» لمديري النظام في الاختبار نفسه ينشئ نسخاً، وتسلسل المعرّفات لا يعود
+        // مع المعاملة، فرقم 1 موجود أحياناً وغائب أحياناً (المعاينة نفسها في PageEditorTest)
+        if ($m[1] === 'revision') {
+            return '0';
         }
 
         return str_contains($m[1].($m[2] ?? ''), 'uuid') || in_array($m[1], ['serviceRequest', 'registration', 'entry', 'payment', 'round', 'submission'], true) ? (string) Str::uuid() : '1';
@@ -180,7 +187,8 @@ it('keeps the two ends of the matrix: a member opens no panel screen, the super 
     }
 
     // والمستثنى بمفتاحه: المدفوعات المؤرشفة (PAYMENTS_ENABLED=false)، وتحليل الإحصائيات حتى يُضبط مزوده
-    $switchedOff = ['admin/payments', 'admin/stats-analysis'];
+    // و«محرر الصفحات» لمديري النظام وحدهما لا للمشرف العام (قرار صفوان، 31 أكتوبر 2026 — docs/decisions/2026-11-02-page-editor.md)
+    $switchedOff = ['admin/payments', 'admin/stats-analysis', 'admin/site-pages'];
 
     foreach ($saved['super_admin']['routes'] as $uri => $outcome) {
         if (str_starts_with($uri, 'admin/') && ! str_contains($uri, '{') && ! str_ends_with($uri, '/create') && ! in_array($uri, $switchedOff, true)) {
@@ -230,7 +238,9 @@ it('refuses or allows each panel create and edit screen to each role exactly as 
         $record = $records[$model] ?? null;
         $policy = $saved[class_basename($model)] ?? null;
 
-        if ($record === null || $policy === null) {
+        // و«محرر الصفحات» وحده يحصر سجلاته في صفحات الموقع الثابتة، فلا يدخلها سجل المصنع ولا تُقاس شاشته بخانات النموذج العامة
+        // (صلاحيته pages.edit_all — PageEditorTest). والتخطي باسم المورد لا باستعلامه، لأن الاستعلام يُقرأ بدور المختبَر فيتخطى غيره
+        if ($record === null || $policy === null || $resource === SitePageResource::class) {
             continue;
         }
 

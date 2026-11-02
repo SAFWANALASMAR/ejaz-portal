@@ -1,5 +1,6 @@
 {{-- قائمة المبادرات المنشورة بترتيبها في اللوحة (تُخزَّن نصاً — InitiativeController) --}}
 <x-page-hero :title="__('content.initiatives.title')" />
+<x-page-sections />
 
 <section class="py-12 sm:py-16">
     <div class="container-page">

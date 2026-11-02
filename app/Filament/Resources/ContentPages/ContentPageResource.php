@@ -9,11 +9,13 @@ use App\Filament\Resources\ContentPages\Pages\ListContentPages;
 use App\Filament\Resources\ContentPages\Schemas\ContentPageForm;
 use App\Filament\Resources\ContentPages\Tables\ContentPagesTable;
 use App\Models\Page;
+use App\Support\EditablePages;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * صفحات المحتوى (النموذج Page). الاسم ContentPages لا Pages، حتى لا يلتبس بمجلد Pages الذي
@@ -32,6 +34,15 @@ class ContentPageResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * صفحات الموقع الثابتة (ومنها «عن الجمعية») في «محرر الصفحات» وحده بمسودتها ونسخها (SitePageResource)، فلا تُعدَّل من هنا
+     * بلا نسخة.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->whereNotIn('slug', EditablePages::slugs());
+    }
 
     public static function form(Schema $schema): Schema
     {
