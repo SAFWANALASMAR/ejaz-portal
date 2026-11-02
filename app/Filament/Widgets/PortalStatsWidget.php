@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Support\PortalStats;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -38,6 +40,16 @@ abstract class PortalStatsWidget extends StatsOverviewWidget
     protected function getHeading(): string
     {
         return __('surveys.stats.groups.'.$this->group());
+    }
+
+    /**
+     * عنوان المجموعة بمربع أيقونتها بدل الشريط (البند N2 من تدقيق القبول، سمة اللوحة).
+     */
+    public function getSectionContentComponent(): Component
+    {
+        $section = parent::getSectionContentComponent();
+
+        return $section instanceof Section ? $section->icon($this->icon()) : $section;
     }
 
     /**
