@@ -105,7 +105,7 @@ test('x-back-nav: a governance document and a program go back to their lists', a
         await page.goto(await link.getAttribute('href'));
         const back = page.getByRole('link', { name: 'العودة للقائمة السابقة' });
         await expect(back).toBeVisible();
-        await expect(page.getByRole('link', { name: 'العودة للرئيسية' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'العودة إلى الرئيسية' })).toBeVisible();
         await expectRtlNoScroll(page);
 
         await back.focus();

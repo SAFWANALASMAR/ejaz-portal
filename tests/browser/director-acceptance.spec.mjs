@@ -484,7 +484,7 @@ test.describe('acceptance: visual refresh 2', () => {
             }
             await visit(page, await target.getAttribute('href'));
             const back = page.getByRole('link', { name: 'العودة للقائمة السابقة' });
-            const home = page.getByRole('link', { name: 'العودة للرئيسية' });
+            const home = page.getByRole('link', { name: 'العودة إلى الرئيسية' });
             await expect(back).toBeVisible();
             await expect(home).toBeVisible();
             expect(new URL(await back.getAttribute('href'), page.url()).pathname).toMatch(parent);
