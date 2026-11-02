@@ -4,6 +4,8 @@ namespace App\Filament\Widgets;
 
 use App\Models\AnnualPlanItem;
 use App\Support\AnnualPlanProgress;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -23,6 +25,16 @@ class AnnualPlanWidget extends StatsOverviewWidget
     protected function getHeading(): string
     {
         return __('registers.plan.widget_heading', ['year' => (int) now(config('app.display_timezone'))->year]);
+    }
+
+    /**
+     * العنوان بمربع أيقونة بدل الشريط (البند N2 من تدقيق القبول، سمة اللوحة).
+     */
+    public function getSectionContentComponent(): Component
+    {
+        $section = parent::getSectionContentComponent();
+
+        return $section instanceof Section ? $section->icon('heroicon-o-chart-pie') : $section;
     }
 
     /**
