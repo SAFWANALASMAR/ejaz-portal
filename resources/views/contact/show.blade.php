@@ -22,6 +22,7 @@
 
 <x-layouts.app :title="__('contact.title')">
     <x-page-hero :title="__('contact.title')" />
+    <x-page-sections />
     <x-page-intro slug="contact" />
     <x-page-intro slug="inquiries" />
 
