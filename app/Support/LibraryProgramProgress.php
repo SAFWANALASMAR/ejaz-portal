@@ -145,6 +145,6 @@ final class LibraryProgramProgress
             return [$registration->opened_at === null ? 0 : min($duration, (int) $registration->opened_at->diffInSeconds(now())), $duration];
         }
 
-        return [max(0, (int) ($progress?->seconds_consumed ?? 0) - $registration->seconds_baseline), $duration];
+        return [max(0, (int) ($progress->seconds_consumed ?? 0) - $registration->seconds_baseline), $duration];
     }
 }
