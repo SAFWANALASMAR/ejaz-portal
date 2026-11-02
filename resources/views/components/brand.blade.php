@@ -13,7 +13,8 @@
     // بكسل على الحاسوب العريض)، وتصغر قليلاً عند التمرير (concept.css)
     [$mark, $calligraphy] = match ($size) {
         'footer' => ['h-[3.25rem]', 'h-[2.2rem]'],
-        'masthead' => ['h-12 lg:h-20 nav:h-[5.5rem] 2xl:h-[6.125rem]', 'h-8 max-w-[40vw] lg:h-14 lg:max-w-none nav:h-[4.5rem] 2xl:h-[5.625rem]'],
+        // ومقاساتهما في concept.css (.masthead-mark و.masthead-calligraphy) لأن الرأس كله يصغر بتناسب عند التمرير (البند ٢٥)
+        'masthead' => ['masthead-mark', 'masthead-calligraphy'],
         default => ['h-11 sm:h-[3.375rem]', 'h-7 max-w-[44vw] sm:h-10 sm:max-w-none'],
     };
 @endphp

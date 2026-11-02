@@ -19,7 +19,7 @@ class CompetitionsController extends Controller
         $user = $request->user();
 
         $submissions = CompetitionSubmission::query()
-            ->where('user_id', $user->id)
+            ->ownedBy($user)
             ->with(['competition', 'attempts.round'])
             ->latest()
             ->paginate(20);

@@ -25,7 +25,10 @@ function setup(root, signal) {
 
     let index = Math.max(0, items.findIndex((item) => item.hasAttribute('data-active')));
     let timer = null;
-    let paused = motionOff() || !('autoplay' in root.dataset); // زر الإيقاف أو تقليل الحركة
+    // زر الإيقاف أو تقليل الحركة. وبطاقات الهوية تحت البطل تتبدل حتى مع تقليل الحركة (data-autoplay-always — ملاحظات المدير
+    // التنفيذي، 1 نوفمبر 2026، البندان ٩ و١٠): تبديل فوري بلا انتقال ولا لمعة، ويوقفه زر الإيقاف والمرور والتركيز (WCAG 2.2.2)
+    let paused = (motionOff() && !('autoplayAlways' in root.dataset)) || !('autoplay' in root.dataset);
+    const card = root.closest('.home-card');
     let hovering = false;
     let visible = true;
 
@@ -70,6 +73,13 @@ function setup(root, signal) {
         index = (next + total) % total;
         render();
         schedule();
+
+        // لمعة البطاقة عند التبدل (concept.css، وتقليل الحركة يطفئها): تُعاد من أولها مع كل شريحة
+        if (card && !motionOff()) {
+            card.removeAttribute('data-shine');
+            void card.offsetWidth;
+            card.setAttribute('data-shine', '');
+        }
     };
 
     const setPaused = (value) => {
@@ -113,13 +123,15 @@ function setup(root, signal) {
         schedule();
     };
     const holds = { pointer: false, focus: false };
-    root.addEventListener('pointerenter', hold('pointer', true), { signal });
-    root.addEventListener('pointerleave', hold('pointer', false), { signal });
-    root.addEventListener('focusin', hold('focus', true), { signal });
-    root.addEventListener(
+    // وفي بطاقات الهوية البطاقة كلها (رابطها يغطيها وهو أخ للدوّار): المرور عليها وتركيز رابطها يوقفانه أيضاً
+    const area = card ?? root;
+    area.addEventListener('pointerenter', hold('pointer', true), { signal });
+    area.addEventListener('pointerleave', hold('pointer', false), { signal });
+    area.addEventListener('focusin', hold('focus', true), { signal });
+    area.addEventListener(
         'focusout',
         (event) => {
-            if (!root.contains(event.relatedTarget)) {
+            if (!area.contains(event.relatedTarget)) {
                 hold('focus', false)();
             }
         },

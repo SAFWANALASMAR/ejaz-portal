@@ -66,8 +66,10 @@ it('marks e-services as the active item on the programs and competitions pages',
 
     preg_match('/<nav data-main-nav.*?<\/nav>/s', $this->get($path)->assertOk()->getContent(), $nav);
 
-    expect($nav[0])->toMatch('/aria-current="page"\s+class="nav-capsule">\s*<span data-icon-tile[^>]*>.*?<\/span>\s*<span class="truncate">الخدمات الإلكترونية<\/span>/s')
-        ->and(substr_count($nav[0], 'aria-current="page"'))->toBe(1);
+    // «الخدمات الإلكترونية» قائمة منسدلة منذ ملاحظات 1 نوفمبر (البند ٤)، فزرها النشط بـ data-current، والنشط في قائمتها عنصر واحد
+    expect($nav[0])->toMatch('/data-current\s+class="nav-capsule">\s*<span data-icon-tile[^>]*>.*?<\/span>\s*<span class="truncate">الخدمات الإلكترونية<\/span>/s')
+        ->and(substr_count($nav[0], 'data-current'))->toBe(1)
+        ->and(substr_count($nav[0], 'aria-current="page"'))->toBeLessThanOrEqual(1);
 })->with(['/programs', '/competitions', '/services']);
 
 it('builds the footer from three boxes with an icon tile beside each title, and no partners in it', function () {

@@ -10,9 +10,11 @@ use App\Filament\Resources\LibraryItems\Pages\ListLibraryItems;
 use App\Jobs\CountLibraryPages;
 use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
+use App\Models\MenuItem;
 use App\Models\User;
 use App\Support\StructuredData;
 use Database\Seeders\LegacyRedirectsSeeder;
+use Database\Seeders\MenuSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
@@ -263,4 +265,29 @@ it('keeps the panel permissions as they were for research', function () {
     expect(fn () => app(SaveLibraryItem::class)->handle(userWithRole(RoleName::BoardMember), $study, ['section' => LibrarySection::Books->value]))
         ->toThrow(AuthorizationException::class)
         ->and($study->fresh()->section)->toBe(LibrarySection::Research);
+});
+
+it('renames the default books menu item to the section name, lists the four sections in the dropdown, and leaves an edited one alone', function () {
+    $this->seed(MenuSeeder::class);
+    $migration = require database_path('migrations/2026_11_02_140600_rename_books_menu_item.php');
+    $books = fn () => MenuItem::query()->where('url', '/library/books')->sole();
+    $books()->update(['label' => 'الكتب']);
+
+    $migration->up();
+    expect($books()->label)->toBe('الكتب والمؤلفات');
+
+    preg_match('/<nav data-main-nav.*?<\/nav>/s', (string) $this->get('/')->assertOk()->getContent(), $nav);
+    $library = (string) str($nav[0])->after('مكتبة إعجاز');
+    $positions = array_map(fn (LibrarySection $section): int|false => strpos($library, 'href="'.url('/library/'.$section->value).'"'), LibrarySection::cases());
+    expect($library)->toContain('الكتب والمؤلفات', 'الأبحاث والدراسات')
+        ->and($positions)->not->toContain(false)
+        ->and($positions)->toBe(collect($positions)->sort()->values()->all());
+
+    $migration->down();
+    expect($books()->label)->toBe('الكتب');
+
+    // وما عدّله المحرر لا يُمس
+    $books()->update(['label' => 'مؤلفات الجمعية']);
+    $migration->up();
+    expect($books()->label)->toBe('مؤلفات الجمعية');
 });

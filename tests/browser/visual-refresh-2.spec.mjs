@@ -72,14 +72,17 @@ test('reduced motion: no autoplay and no endless animation running', async ({ pa
     await page.goto('/');
 
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--motion').trim())).toBe('0');
-    await expect(page.locator('[data-carousel][data-running]')).toHaveCount(0);
+    // إلا بطاقات الهوية (تبديل فوري بلا انتقال) والأشرطة الأفقية (أبطأ بزر إيقاف): ملاحظات المدير التنفيذي، 1 نوفمبر 2026،
+    // البندان ١٠ و١١ (docs/decisions/2026-11-01-director-notes.md)
+    await expect(page.locator('[data-carousel][data-running]:not([data-autoplay-always])')).toHaveCount(0);
     const toggle = page.locator('[data-hero-slider] [data-carousel-toggle]');
     if ((await toggle.count()) > 0) {
         await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     }
 
     const endless = await page.evaluate(() =>
-        document.getAnimations().filter((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations === Infinity).length,
+        document.getAnimations().filter((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations === Infinity
+            && !animation.effect?.target?.closest?.('.marquee[data-direction="horizontal"]')).length,
     );
     expect(endless, 'لا حركة لا تنتهي').toBe(0);
     await expectRtlNoScroll(page);
@@ -107,7 +110,8 @@ test('x-back-nav: a governance document and a program go back to their lists', a
 
         await back.focus();
         await page.keyboard.press('Enter');
-        await expect(page).toHaveURL(parent);
+        // الرجوع بتاريخ المتصفح أو بديله تحميلٌ كامل، وخادم التطوير بطيء
+        await expect(page).toHaveURL(parent, { timeout: 20_000 });
         checked++;
     }
     test.skip(checked === 0, 'لا وثيقة ولا برنامج منشور');

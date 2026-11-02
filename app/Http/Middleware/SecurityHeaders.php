@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SecurityHeaders
 {
     /**
-     * علامة في الطلب يضعها LibraryController لملف كتاب «للقراءة فقط».
+     * علامة في الطلب يضعها App\Support\ReaderFileResponse لملف «للقراءة فقط»: كتب المكتبة ووثائق الحوكمة «للاطلاع فقط».
      */
     public const READER_ONLY = 'security.reader_only';
 

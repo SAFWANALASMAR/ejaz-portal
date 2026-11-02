@@ -11,6 +11,7 @@ use App\Enums\SubmissionStatus;
 use Database\Factories\CompetitionSubmissionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -168,6 +169,17 @@ class CompetitionSubmission extends Model
     public function works(): HasMany
     {
         return $this->hasMany(SubmissionWork::class, 'submission_id')->orderBy('id');
+    }
+
+    /**
+     * مشاركات صاحب الحساب كما تُعرض في «مشاركاتي»، ومنها يُعدّ رقمها في لوحته (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٧:
+     * كانت اللوحة تعدّ المرسلة وحدها، فيظهر صفر لطالب مسجل في البراهين بمحاولة مسلَّمة لأن تسجيل الطالب نفسه يبقى بلا «إرسال»).
+     *
+     * @param  Builder<CompetitionSubmission>  $query
+     */
+    public function scopeOwnedBy(Builder $query, User $user): void
+    {
+        $query->where('user_id', $user->id);
     }
 
     public function isDraft(): bool

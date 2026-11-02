@@ -55,6 +55,10 @@ class DocumentForm
                     ->rules([new SafeUrl(allowInternal: false)])
                     ->extraInputAttributes(['dir' => 'ltr'])
                     ->columnSpanFull(),
+                // «للاطلاع فقط» افتراضاً (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٢): قارئ الصفحة وحده بلا تنزيل، ويُطفأ لوثيقة
+                // بعينها متى قررت الجمعية فتح تنزيلها. ولا أثر له في وثيقة الرابط المباشر
+                Toggle::make('is_view_only')->label(__('governance.view_only.field'))->helperText(__('governance.view_only.field_hint'))
+                    ->default(true)->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
         ]);

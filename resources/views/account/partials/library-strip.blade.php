@@ -29,7 +29,16 @@
                 @php($isVideo = $item->section === \App\Enums\LibrarySection::Videos)
                 <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate data-card class="tone-card media-tile group">
                     <span class="media-tile-thumb">
-                        <img src="{{ $item->thumbnailUrl() }}" alt="" loading="lazy" width="200" height="118" @class(['size-full transition duration-500 group-hover:scale-105', 'object-cover' => $isVideo, 'object-contain' => ! $isVideo])>
+                        @if ($thumbnail = $item->thumbnailUrl())
+                            <img src="{{ $thumbnail }}" alt="" loading="lazy" width="200" height="118" @class(['size-full transition duration-500 group-hover:scale-105', 'object-cover' => $isVideo, 'object-contain' => ! $isVideo])>
+                        @else
+                            {{-- بلا صورة أو غلاف: مربع بتدرج أزرق وأيقونة القسم (كشريطي الرئيسية) --}}
+                            <span class="media-tile-placeholder" data-thumb-placeholder aria-hidden="true">
+                                @unless ($isVideo)
+                                    {{ \App\Support\Icon::svg($item->section->icon(), 'size-10') }}
+                                @endunless
+                            </span>
+                        @endif
                         @if ($isVideo)
                             <x-video-number :number="++$video" />
                             <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
