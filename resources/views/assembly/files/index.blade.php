@@ -9,12 +9,11 @@
 @endphp
 
 <x-layouts.app :title="__('assembly.files.title')" noindex>
+    <x-page-hero :title="__('assembly.files.title')" />
+
     <section class="band-sky py-12 sm:py-16">
         <div class="container-page max-w-5xl">
-            <span class="block h-1 w-12 rounded-full bg-accent" aria-hidden="true"></span>
-            <h1 class="mt-3 text-3xl font-bold text-primary sm:text-4xl">{{ __('assembly.files.title') }}</h1>
-
-            <ul class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <li>
                     <a href="{{ route('assembly.files.index') }}" wire:navigate @if ($active === null) aria-current="true" @endif
                         class="flex h-full flex-col items-center gap-3 p-5 text-center aria-[current=true]:border-accent aria-[current=true]:ring-1 aria-[current=true]:ring-accent card-lift">

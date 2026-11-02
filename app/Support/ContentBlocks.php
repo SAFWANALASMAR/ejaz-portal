@@ -29,6 +29,17 @@ final class ContentBlocks
     }
 
     /**
+     * المقاطع الظاهرة للعرض: بلا ما أُطفئ مفتاح إظهاره في «محرر الصفحات» (data.visible). وما بلا المفتاح ظاهر. وصور المخفي
+     * تبقى في images()، فلا يحذفها حفظ ولا أمر تنظيف.
+     *
+     * @return list<array{type: string, data: array<string, mixed>}>
+     */
+    public static function visible(mixed $blocks): array
+    {
+        return array_values(array_filter(self::normalize($blocks), fn (array $block): bool => ($block['data']['visible'] ?? true) !== false));
+    }
+
+    /**
      * أقصى طول لنص المقطع (بلا وسوم) ليدخل البطاقات المرقمة المتراكمة. الأطول (سياسة أو لائحة) يبقى مقطعاً عادياً.
      */
     public const STACK_TEXT = 700;

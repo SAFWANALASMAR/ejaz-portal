@@ -4,6 +4,7 @@ use App\Actions\Settings\UpdateHomeContent;
 use App\Enums\RoleName;
 use App\Filament\Pages\HomeContentPage;
 use App\Models\Setting;
+use App\Support\EditablePages;
 use App\Support\HomeContent;
 use App\Support\NeutralImage;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -49,25 +50,26 @@ it('keeps the current image when no page image is uploaded', function () {
         ->and(HomeContent::pageHeroUrl('programs.show'))->toBeNull();
 });
 
-it('offers one image slot per inner page in the home content screen and saves it', function () {
+it('keeps in the home content screen only the image slots that are not in the page editor, and saves them', function () {
     Storage::fake('public');
     $this->actingAs(userWithRole(RoleName::ContentEditor));
 
     $page = Livewire::test(HomeContentPage::class);
 
+    // صور رؤوس صفحات «محرر الصفحات» فيه وحده بنسخها (docs/decisions/2026-11-02-page-editor.md)، والإعلانات هنا
     foreach (array_keys(HomeContent::PAGE_HEROES) as $key) {
-        $page->assertFormFieldExists('page_heroes.'.$key);
+        isset(EditablePages::PAGES[$key]) ? $page->assertFormFieldDoesNotExist('page_heroes.'.$key) : $page->assertFormFieldExists('page_heroes.'.$key);
     }
 
-    $page->fillForm(['page_heroes.contact' => UploadedFile::fake()->image('contact.jpg', 1600, 600)])
+    $page->fillForm(['page_heroes.announcements' => UploadedFile::fake()->image('announcements.jpg', 1600, 600)])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    $path = Setting::group(HomeContent::KEY)['page_heroes']['contact'] ?? null;
+    $path = Setting::group(HomeContent::KEY)['page_heroes']['announcements'] ?? null;
 
     expect($path)->toBeString()
         ->and(HomeContent::imagePaths(Setting::group(HomeContent::KEY)))->toContain($path)
-        ->and(heroImageOf($this->get('/contact')->assertOk()->getContent()))->toBe(Storage::disk('public')->url($path));
+        ->and(heroImageOf($this->get('/media/announcements')->assertOk()->getContent()))->toBe(Storage::disk('public')->url($path));
 });
 
 it('refuses a page image from a user without the settings permission', function () {
