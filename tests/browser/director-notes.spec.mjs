@@ -65,7 +65,7 @@ test.describe('director notes: guest screens', () => {
         const library = page.locator('[data-main-nav] button', { hasText: 'مكتبة إعجاز' });
         await library.click();
         const branches = page.locator(`#${await library.getAttribute('aria-controls')} a`);
-        await expect(branches).toHaveText(['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب', 'الأبحاث والدراسات']);
+        await expect(branches).toHaveText(['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب والمؤلفات', 'الأبحاث والدراسات']);
         await page.screenshot({ path: `${DIR}/menu-library-${testInfo.project.use.viewport.width}.png` });
 
         const media = page.locator('[data-main-nav] button', { hasText: 'المركز الإعلامي' });

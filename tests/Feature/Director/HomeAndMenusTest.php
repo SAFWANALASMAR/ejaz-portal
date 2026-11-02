@@ -111,7 +111,7 @@ it('builds the menu with «مكتبة إعجاز» and its four branches, and th
     $library = strpos($menu, 'مكتبة إعجاز');
 
     expect($library)->not->toBeFalse();
-    foreach (['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب', 'الأبحاث والدراسات', '/media/announcements'] as $item) {
+    foreach (['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب والمؤلفات', 'الأبحاث والدراسات', '/media/announcements'] as $item) {
         expect($menu)->toContain($item);
     }
     // كل أقسام المركز الإعلامي منذ ملاحظات المدير في 1 نوفمبر 2026 (البند ٤)، ومنها مكتبة الصور

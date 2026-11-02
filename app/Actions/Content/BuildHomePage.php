@@ -158,6 +158,8 @@ class BuildHomePage
     }
 
     /**
+     * شريط الكتب والأبحاث: القسمان معاً، «الكتب والمؤلفات» و«الأبحاث والدراسات» (البند R9).
+     *
      * @return Collection<int, LibraryItem>
      */
     private static function stripBooks(): Collection
