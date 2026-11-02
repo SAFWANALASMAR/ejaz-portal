@@ -7,10 +7,12 @@ use App\Enums\ActivityEvent;
 use App\Enums\OnlineMeetingFailure;
 use App\Exceptions\OnlineMeetingFailed;
 use App\Models\Meeting;
+use Closure;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -145,12 +147,28 @@ class SyncOnlineMeeting implements ShouldQueue
             throw $failed;
         }
 
-        $meeting->forceFill([
+        // لُصق رابط يدوي أثناء الطلب: يبقى هو، والمهمة التي أطلقها حفظه تلغي هذا الاجتماع
+        self::saveLocked($meeting, fn (bool $manual): array => [
             'online_meeting_id' => $created['id'],
-            'online_join_url' => $created['join_url'],
+            ...($manual ? [] : ['online_join_url' => $created['join_url']]),
             'online_organizer' => $created['organizer'],
             'online_create_pending' => false,
-        ])->saveQuietly();
+        ]);
+    }
+
+    /**
+     * يحفظ بعد قراءة علم الرابط اليدوي من القاعدة بقفل الصف: النموذج حُمّل عند بدء المهمة، وقد يلصق السكرتير
+     * رابطاً أثناء طلبها إلى Microsoft، فلا يُكتب فوقه رابط تيمز ولا يُمسح (SaveMeeting ينتظر القفل).
+     *
+     * @param  Closure(bool): array<string, mixed>  $attributes
+     */
+    private static function saveLocked(Meeting $meeting, Closure $attributes): void
+    {
+        DB::transaction(function () use ($meeting, $attributes): void {
+            $manual = (bool) Meeting::withTrashed()->whereKey($meeting->id)->lockForUpdate()->value('online_join_manual');
+
+            $meeting->forceFill($attributes($manual))->saveQuietly();
+        });
     }
 
     /**
@@ -158,13 +176,14 @@ class SyncOnlineMeeting implements ShouldQueue
      */
     private static function forget(Meeting $meeting): void
     {
-        $meeting->forceFill([
+        // الرابط اليدوي ليس من تيمز، فيبقى بعد إلغاء اجتماع تيمز الذي حل محله
+        self::saveLocked($meeting, fn (bool $manual): array => [
             'online_meeting_id' => null,
-            'online_join_url' => null,
+            ...($manual ? [] : ['online_join_url' => null]),
             'online_organizer' => null,
             'online_create_pending' => false,
             'online_generation' => $meeting->online_generation + 1,
-        ])->saveQuietly();
+        ]);
     }
 
     /**

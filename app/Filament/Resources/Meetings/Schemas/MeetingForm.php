@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\Meetings\Schemas;
 
+use App\Actions\Assembly\SaveMeeting;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingType;
 use App\Models\Committee;
 use App\Models\Meeting;
+use App\Rules\MeetingJoinUrl;
+use App\Support\TeamsConnection;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -50,6 +53,15 @@ class MeetingForm
                 DateTimePicker::make('starts_at')->label(__('assembly.fields.starts_at'))->seconds(false)->required(),
                 DateTimePicker::make('ends_at')->label(__('assembly.fields.ends_at'))->helperText(__('assembly.fields.ends_at_hint'))->seconds(false)->after('starts_at'),
                 Toggle::make('is_online')->label(__('assembly.fields.is_online'))->live()->columnSpanFull(),
+                // يلزم إن كان ربط تيمز مطفأً، ومتى لُصق غلب الربط. والتحقق نفسه في SaveMeeting
+                TextInput::make('manual_join_url')
+                    ->label(__('assembly.fields.manual_join_url'))
+                    ->helperText(fn (): string => __(TeamsConnection::isOn() ? 'assembly.fields.manual_join_url_hint_on' : 'assembly.fields.manual_join_url_hint_off'))
+                    // النطاق يفحصه SaveMeeting بعد تقليم المسافات (Livewire لا يقلّمها)، وخطؤه على الحقل
+                    ->maxLength(MeetingJoinUrl::MAX_LENGTH + 100)
+                    ->required(fn (Get $get, ?Meeting $record): bool => SaveMeeting::manualLinkRequired($record, (bool) $get('is_online')))
+                    ->visible(fn (Get $get): bool => (bool) $get('is_online'))
+                    ->columnSpanFull(),
                 TextInput::make('location')
                     ->label(__('assembly.fields.location'))
                     ->maxLength(300)
@@ -119,6 +131,8 @@ class MeetingForm
 
         $data['attachments'] = array_column($attachments, 'path');
         $data['attachment_names'] = array_column($attachments, 'name', 'path');
+        // رابط تيمز الآلي لا يُعرض في الحقل، فلا يُحفظ يدوياً بحفظ النموذج
+        $data['manual_join_url'] = $meeting->online_join_manual ? $meeting->online_join_url : null;
 
         return $data;
     }

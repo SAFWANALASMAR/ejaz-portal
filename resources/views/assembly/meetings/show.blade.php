@@ -47,7 +47,7 @@
                 @if ($meeting->is_online && ! $cancelled)
                     <div class="mt-6">
                         @if (filled($meeting->online_join_url))
-                            <x-button :href="$meeting->online_join_url" target="_blank" rel="noopener noreferrer" arrow>{{ __('assembly.meetings.join') }}</x-button>
+                            <x-button :href="$meeting->online_join_url" target="_blank" rel="noopener noreferrer" arrow>{{ __($meeting->online_join_manual ? 'assembly.meetings.join_manual' : 'assembly.meetings.join') }}</x-button>
                         @else
                             <p class="text-sm text-muted">{{ __('assembly.meetings.link_pending') }}</p>
                         @endif
