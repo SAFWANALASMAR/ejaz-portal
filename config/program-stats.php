@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\ProgramStats\CompetitionsSource;
+use App\Support\ProgramStats\LibraryProgramsSource;
 use App\Support\ProgramStats\ProgramTypesSource;
 
 /*
@@ -12,6 +13,7 @@ return [
     'sources' => [
         ProgramTypesSource::class,
         CompetitionsSource::class,
+        LibraryProgramsSource::class,
     ],
 
 ];
