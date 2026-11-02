@@ -47,6 +47,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'is_active' => true,
         'password_upgrade_required_at' => null,
         'password_set_by_admin_at' => null,
+        'reading_tracking_disabled_at' => null,
     ];
 
     /**
@@ -63,6 +64,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'first_verified_at' => 'datetime',
             'deletion_requested_at' => 'datetime',
             'anonymized_at' => 'datetime',
+            // «لا تحفظ قراءاتي» (docs/decisions/2026-11-01-my-reading.md)
+            'reading_tracking_disabled_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'password_upgrade_required_at' => 'datetime',
             'password_set_by_admin_at' => 'datetime',

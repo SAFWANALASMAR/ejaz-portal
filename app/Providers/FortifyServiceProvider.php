@@ -235,5 +235,10 @@ class FortifyServiceProvider extends ServiceProvider
             ->by('evidence:'.NetworkPrefix::subscriber($request->ip())));
         RateLimiter::for('evidence-files', fn (Request $request): Limit => Limit::perMinute((int) config('security.evidence_files_per_minute'))
             ->by('evidence-files:'.NetworkPrefix::subscriber($request->ip())));
+
+        // بلاغات «قراءاتي» لكل حساب: القارئ والمشغّل يبلّغان كل عشرين ثانية على الأكثر ومع مغادرة الصفحة، فاثنا عشر في الدقيقة
+        // تتسع لصفحتين مفتوحتين معاً (docs/decisions/2026-11-01-my-reading.md)
+        RateLimiter::for('library-progress', fn (Request $request): Limit => Limit::perMinute(12)
+            ->by('library-progress:'.($request->user()?->getAuthIdentifier() ?? NetworkPrefix::subscriber($request->ip()))));
     }
 }

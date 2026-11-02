@@ -290,6 +290,7 @@
 | قياس الرضا | `survey_responses` (`2026_10_08_200000_*`)، وملف `survey_{uuid}` سنة (`SurveyController.php:111-113`) | النصية تُحذف ويُفك الربط بعد الإخفاء (`PurgeSurveyResponsePersonalData.php`)؛ الرقمية تبقى | Contabo، Hetzner؛ Cloudflare Turnstile للضيوف |
 | التحدي ضد الآليات | `TurnstileChallenge.php:34-37` (الرمز والسر، بلا IP) | لا يُحفظ | Cloudflare، متى `BOT_CHALLENGE_DRIVER=turnstile` |
 | رسائل التواصل | `inquiries` (`2026_10_07_180000_create_inquiries_table.php`) | 【ناقص】 لا حذف آلي؛ الهوية والنص فور الإخفاء (`AnonymizeUser.php:68-76`) | Contabo، Hetzner، مزود البريد |
+| «قراءاتي»: الصفحات المقروءة وثواني الاستماع والمشاهدة وآخر موضع لكل عنصر في المكتبة | `library_progress` (`2026_11_01_120000_*`)، `app/Actions/Library/RecordLibraryProgress.php` | ما دام الحساب؛ تُحذف فور الإخفاء (`AnonymizeUser`)، وما عاد منها باستعادة يحذفه `ejaz:purge-anonymized-data`؛ المجاميع العامة بلا هوية | Contabo، Hetzner |
 | عدّاد الزيارات | `app/Support/Visits.php:42` (HMAC من IP والمتصفح والتاريخ)، و`daily_visits` (مجاميع) | البصمة حتى بعد نهاية اليوم بتوقيت الرياض بخمس دقائق (`Visits.php:45`)؛ المجاميع تبقى | — |
 | رموز التحقق بالجوال | `SendPhoneVerificationCode.php` (مجزأة في الذاكرة المؤقتة) | 10 دقائق | مزود الرسائل النصية (`config/services.php:40-41`) |
 | سجل حالة الرسائل | `message_logs` (`MessageLog.php`، آخر 4 أرقام، بلا نص) | 90 يوماً (`MESSAGING_LOG_DAYS`، `model:prune`) | — |

@@ -45,6 +45,26 @@
         @endif
     </x-card>
 
+    {{-- «لا تحفظ قراءاتي» (قرار صفوان، 2 نوفمبر 2026 — docs/decisions/2026-11-01-my-reading.md) --}}
+    <x-card>
+        <h2 id="reading-tracking" class="mb-3 scroll-mt-24 text-lg font-semibold text-ink">{{ __('reading.tracking.title') }}</h2>
+        <form method="POST" action="{{ route('account.my-reading.tracking') }}" class="grid gap-4" data-reading-tracking-form>
+            @csrf
+            <input type="hidden" name="disabled" value="0">
+            <label class="flex items-start gap-3">
+                <input type="checkbox" name="disabled" value="1" @checked($user->reading_tracking_disabled_at !== null)
+                    class="mt-1 size-5 shrink-0 rounded border-line text-primary focus:ring-primary">
+                <span>
+                    <span class="block font-semibold text-ink">{{ __('reading.tracking.label') }}</span>
+                    <span class="mt-1 block text-sm text-muted">{{ __('reading.tracking.hint') }}</span>
+                </span>
+            </label>
+            <div>
+                <x-button>{{ __('site.save') }}</x-button>
+            </div>
+        </form>
+    </x-card>
+
     <x-card>
         <h2 id="password" class="mb-5 scroll-mt-24 text-lg font-semibold text-ink">{{ __('account.profile.password') }}</h2>
 

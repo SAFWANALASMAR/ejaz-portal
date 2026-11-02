@@ -109,7 +109,8 @@ it('keeps the account pages within a fixed number of queries', function (string 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
     // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+2 منذ شريط المكتبة تحت الترحيب (المقاطع والأغلفة، مخزّن مع المحتوى فيُسأل مرة بعد مسحه)
-    'dashboard' => ['/account', 16],
+    // و+2 منذ «قراءاتي»: أحدث التقدّم ومجاميع صاحب الحساب (docs/decisions/2026-11-01-my-reading.md)
+    'dashboard' => ['/account', 18],
     'programs' => ['/account/programs', 5],
     'requests' => ['/account/requests', 4],
 ]);

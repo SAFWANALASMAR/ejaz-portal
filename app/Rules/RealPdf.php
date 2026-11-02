@@ -65,9 +65,10 @@ class RealPdf implements ValidationRule
     }
 
     /**
-     * محتوى التدفقات بعد فكّها، تدفقاً تدفقاً، حتى السقف. وما لا يُفك (صور مثلاً) يُتجاوز.
+     * محتوى التدفقات بعد فكّها، تدفقاً تدفقاً، حتى السقف. وما لا يُفك (صور مثلاً) يُتجاوز. وعدّ صفحات الكتاب يقرأ
+     * منه كائنات تدفقات الكائنات (App\Support\LibraryPageCount).
      */
-    private static function inflatedStreams(string $contents): string
+    public static function inflatedStreams(string $contents): string
     {
         $inflated = '';
         $offset = 0;

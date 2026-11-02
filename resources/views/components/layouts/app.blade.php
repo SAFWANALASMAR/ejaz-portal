@@ -54,6 +54,10 @@
     {{-- صفحة لمسجّل دخول: لا تُعرض من ذاكرة الرجوع في المتصفح بعد الخروج، بل تُطلب من الخادم (page.js) --}}
     @auth
         <meta name="signed-in" content="1">
+        {{-- «لا تحفظ قراءاتي»: في الرأس غير المخزن لكل طلب، لا في صفحة المكتبة المخزنة للجميع، فلا يرسل المتصفح بلاغاً (library-progress.js) --}}
+        @if (auth()->user()?->reading_tracking_disabled_at !== null)
+            <meta name="reading-tracking" content="off">
+        @endif
     @endauth
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{ $head ?? '' }}

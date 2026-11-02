@@ -156,7 +156,7 @@ it('puts the assembly in the account menu and cards only for those who reach it,
     expect(AccountNavigation::for(User::factory()->create())->pluck('route')->all())->not->toContain('assembly.index');
 
     expect(AccountNavigation::for($this->member)->pluck('route')->all())
-        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index', 'assembly.index', 'account.competitions'])
+        ->toBe(['account.dashboard', 'account.profile', 'account.programs.index', 'account.requests.index', 'assembly.index', 'account.my-reading', 'account.competitions'])
         ->and(AccountNavigation::cards($this->member)->pluck('route')->all())
         ->toBe(['account.programs.index', 'account.profile', 'assembly.index', 'account.requests.index', 'account.competitions']);
 });

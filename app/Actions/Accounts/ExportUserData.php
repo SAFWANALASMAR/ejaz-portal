@@ -11,6 +11,8 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
+use App\Models\LibraryItem;
+use App\Models\LibraryProgress;
 use App\Models\Meeting;
 use App\Models\MeetingAgendaItem;
 use App\Models\Payment;
@@ -35,6 +37,8 @@ class ExportUserData
     public function handle(User $user): array
     {
         $date = fn ($value): ?string => $value?->toIso8601String();
+        // عناصر «قراءاتي» ومنها المحذوف من اللوحة، باستعلام واحد
+        $libraryItems = LibraryItem::withTrashed()->whereIn('id', LibraryProgress::query()->whereBelongsTo($user)->select('library_item_id'))->get()->keyBy('id');
 
         return [
             'exported_at' => now()->toIso8601String(),
@@ -50,6 +54,7 @@ class ExportUserData
                 'created_at' => $date($user->created_at),
                 'last_login_at' => $date($user->last_login_at),
                 'deletion_requested_at' => $date($user->deletion_requested_at),
+                'reading_tracking_disabled_at' => $date($user->reading_tracking_disabled_at),
             ],
             // والمحذوف من اللوحة داخل: بياناته باقية حتى مدة الاحتفاظ، فيشملها حق الاطلاع
             'service_requests' => ServiceRequest::query()->withTrashed()->whereBelongsTo($user)->with('opening')->orderBy('id')->get()
@@ -60,6 +65,22 @@ class ExportUserData
                     'answers' => $request->answers ?? [],
                     'files' => array_map(fn (array $file): string => $file['name'], $request->files ?? []),
                     'submitted_at' => $date($request->submitted_at),
+                ])->all(),
+            // «قراءاتي»: تقدّمه في المكتبة، ومنه ما أُلغي نشره (docs/decisions/2026-11-01-my-reading.md)
+            'library_progress' => LibraryProgress::query()->whereBelongsTo($user)->orderBy('id')->get()
+                ->map(fn (LibraryProgress $progress): array => [
+                    'item' => $libraryItems->get($progress->library_item_id)?->title,
+                    'section' => $libraryItems->get($progress->library_item_id)?->section->value,
+                    'pages_seen' => $progress->pages_seen,
+                    'pages_count' => $progress->pages_count,
+                    'last_page' => $progress->last_page,
+                    'total_pages' => $progress->total_pages,
+                    'seconds_consumed' => $progress->seconds_consumed,
+                    'last_position' => $progress->last_position,
+                    'duration_seconds' => $progress->duration_seconds,
+                    'completed_at' => $date($progress->completed_at),
+                    'started_at' => $date($progress->created_at),
+                    'last_reported_at' => $date($progress->last_reported_at),
                 ])->all(),
             'program_registrations' => ProgramRegistration::query()->whereBelongsTo($user)->with('program')->orderBy('id')->get()
                 ->map(fn (ProgramRegistration $registration): array => [
