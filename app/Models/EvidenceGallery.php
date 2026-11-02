@@ -40,6 +40,14 @@ class EvidenceGallery extends Model
      */
     public const TOKEN_LENGTH = 48;
 
+    /**
+     * مدة الرابط بالأيام: الافتراضية في نموذج الإصدار، والقصوى من وقت الإصدار. ولا رابط بلا انتهاء
+     * (المراجعة الأمنية بعد v0.14.2، docs/decisions/2026-11-03-security-lows.md).
+     */
+    public const DEFAULT_LINK_DAYS = 90;
+
+    public const MAX_LINK_DAYS = 365;
+
     protected $hidden = ['token_hash'];
 
     /**
@@ -78,7 +86,7 @@ class EvidenceGallery extends Model
     }
 
     /**
-     * المعرض الذي رمزه هذا ورابطه ساري: صادر، وغير ملغى، ولم تنتهِ مدته، وغير محذوف، ومُصدره حساب فعّال. والبحث ببصمة
+     * المعرض الذي رمزه هذا ورابطه ساري: صادر، وغير ملغى، وله انتهاء لم يحل (فما بقي بلا انتهاء غير ساري)، وغير محذوف، ومُصدره حساب فعّال. والبحث ببصمة
      * الرمز لا بالرمز نفسه، فما يُقارن في القاعدة بصمة لا تكشف شيئاً عن رمز صحيح.
      */
     public static function findActiveByToken(string $token): ?self
@@ -108,13 +116,13 @@ class EvidenceGallery extends Model
     {
         $query->whereNotNull('token_hash')
             ->whereNull('revoked_at')
-            ->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->where('expires_at', '>', now())
             ->whereHas('issuer', fn (Builder $query) => $query->where('is_active', true));
     }
 
     public function linkIsActive(): bool
     {
-        return $this->token_hash !== null && $this->revoked_at === null && ($this->expires_at === null || $this->expires_at->isFuture()) && ! $this->trashed()
+        return $this->token_hash !== null && $this->revoked_at === null && $this->expires_at?->isFuture() === true && ! $this->trashed()
             && $this->issuer?->is_active === true;
     }
 
