@@ -1823,3 +1823,18 @@ html[data-motion-off] .section-heading-icon {
 .media-tile.media-tile-narrow {
     width: 9rem;
 }
+
+/* رسم «البوابة بالأرقام» (البند H9): الخط يُرسم حين تظهر بطاقته (data-revealed — home.js)، والمدة بالمفتاح --motion، فلمن طلب
+   تقليل الحركة يظهر كاملاً بلا رسم، وبلا سكربت يظهر كاملاً كذلك */
+.portal-chart-line {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+}
+
+html[data-reveal-ready] [data-reveal]:not([data-revealed]) .portal-chart-line {
+    stroke-dashoffset: 100;
+}
+
+html[data-reveal-ready] .portal-chart-line {
+    transition: stroke-dashoffset calc(2200ms * var(--motion)) ease-out calc(250ms * var(--motion));
+}

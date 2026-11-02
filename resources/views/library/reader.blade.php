@@ -2,14 +2,14 @@
     قارئ كتاب «للقراءة فقط — بلا تحميل» (resources/js/pdf-reader.js): يرسم الصفحة في <canvas> بـ pdf.js، بلا شريط
     عارض المتصفح ولا زري التنزيل والطباعة. التقليب بالزرين وبالسحب على الجوال وبالأسهم، ورقم الصفحة والانتقال إليها،
     والتكبير والتصغير. والقائمة السياقية ممنوعة عليه، ولا يُطبع. يصعّب الحفظ ولا يمنعه منعاً تاماً (docs/decisions.md).
-    $url مسار الملف بعد فحص النشر، و$title عنوان الكتاب.
+    $url مسار الملف بعد فحص النشر، و$title عنوان الكتاب، و$progress (اختياري) مسار بلاغات «قراءاتي» (library-progress.js).
 --}}
 @php
     // بلغة التصور النهائي (Final-Library): شريط أزرق داكن بأزرار دائرية بإطار أبيض
     $control = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40';
 @endphp
 
-<div data-pdf-reader="{{ $url }}" data-state="loading" data-error="{{ __('library.reader.error') }}" data-loading="{{ __('library.reader.loading') }}"
+<div data-pdf-reader="{{ $url }}" @isset($progress) data-progress="{{ $progress }}" @endisset data-state="loading" data-error="{{ __('library.reader.error') }}" data-loading="{{ __('library.reader.loading') }}"
     data-page-label="{{ __('library.reader.canvas') }}" data-title="{{ $title }}"
     role="region" aria-label="{{ __('library.reader.label', ['title' => $title]) }}"
     class="concept-panel mt-8 overflow-hidden select-none print:hidden">

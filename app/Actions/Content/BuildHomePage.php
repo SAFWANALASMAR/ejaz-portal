@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Rules\SafeUrl;
 use App\Rules\VideoUrl;
 use App\Support\HomeContent;
+use App\Support\HomePortalStats;
 use App\Support\HomeShowcase;
 use App\Support\PortalStats;
 use Illuminate\Database\Eloquent\Collection;
@@ -92,6 +93,7 @@ class BuildHomePage
      *     video: string|null,
      *     video_thumbnail: string|null,
      *     stats: list<array{label: string, value: int, suffix: string, icon: string|null}>,
+     *     portal_chart: array{line: string, area: string, total: int, max: int}|null,
      *     shortcuts: list<array{key: string, icon: string, url: string, external: bool, tone: string, title: string, text: string}>,
      *     initiatives: Collection<int, Initiative>,
      *     news: Collection<int, NewsArticle>,
@@ -108,6 +110,8 @@ class BuildHomePage
         $content = HomeContent::resolved();
 
         $hero = self::hero($home);
+        // المخزّن وحده (ejaz:refresh-stats)، فلا استعلام للأرقام عند بناء الرئيسية
+        $portal = HomeContent::showsPortalStats() ? HomePortalStats::cached() : null;
 
         return [
             'content' => $content,
@@ -126,7 +130,9 @@ class BuildHomePage
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
             'video_thumbnail' => $video !== null ? FetchHomeVideoThumbnail::url($video) : null,
-            'stats' => self::shows($home, 'stats', false) ? self::stats($home) : [],
+            // «البوابة بالأرقام» (البند H9): الأرقام الآلية من المخزّن (HomePortalStats) ثم المعتمدة من «إعدادات الموقع»، ورسم آخر 30 يوماً
+            'stats' => [...self::portalCards($portal), ...(self::shows($home, 'stats', false) ? self::stats($home) : [])],
+            'portal_chart' => $portal !== null ? HomePortalStats::chart($portal['days']) : null,
             'shortcuts' => self::shortcuts(),
             // ثلاث بطاقات كما في الصورة 07، والبقية في صفحة المبادرات
             'initiatives' => self::shows($home, 'initiatives', false) ? Initiative::query()->published()->limit(3)->get() : new Collection,
@@ -311,6 +317,26 @@ class BuildHomePage
         }
 
         return $stats;
+    }
+
+    /**
+     * بطاقتا الأرقام الآلية: الزيارات، والمسجلون في المسابقات. والصفر لا يظهر، فلا تُعرض بطاقة فارغة قبل أول زيارة أو تسجيل.
+     *
+     * @param  array{visits: int, registrants: int, days: list<int|null>}|null  $portal
+     * @return list<array{label: string, value: int, suffix: string, icon: string|null}>
+     */
+    private static function portalCards(?array $portal): array
+    {
+        if ($portal === null) {
+            return [];
+        }
+
+        $cards = [
+            ['label' => __('home.portal_stats.visits'), 'value' => $portal['visits'], 'suffix' => '', 'icon' => SiteIcon::Eye->value],
+            ['label' => __('home.portal_stats.registrants'), 'value' => $portal['registrants'], 'suffix' => '', 'icon' => SiteIcon::Trophy->value],
+        ];
+
+        return array_values(array_filter($cards, fn (array $card): bool => $card['value'] > 0));
     }
 
     /**

@@ -3,6 +3,7 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\MyReadingController;
 use App\Http\Controllers\Account\NewPasswordController;
 use App\Http\Controllers\Account\PasswordResetByPhoneController;
 use App\Http\Controllers\Account\PhoneVerificationController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\GovernanceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InitiativeController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\LibraryProgressController;
 use App\Http\Controllers\LiveStreamController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewsController;
@@ -84,6 +86,10 @@ Route::where(['section' => implode('|', LibrarySection::values()), 'slug' => '[a
         Route::get('/library/{section}/{slug}/file', [LibraryController::class, 'file'])->name('library.file');
         Route::get('/library/{section}/{slug}/download', [LibraryController::class, 'download'])->name('library.download');
     });
+    // «قراءاتي»: بلاغ تقدّم القارئ والمشغّل لمسجّل الدخول، بحد لكل حساب (docs/decisions/2026-11-01-my-reading.md)
+    Route::post('/library/{section}/{slug}/progress', LibraryProgressController::class)
+        ->middleware(['auth', 'throttle:library-progress'])
+        ->name('library.progress');
 });
 // المركز الإعلامي: الأخبار، ومكتبة الصور، والشركاء. ومكتبة الفيديو هي المكتبة المرئية
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
@@ -126,6 +132,10 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/verify-phone', [PhoneVerificationController::class, 'show'])->name('phone.verify');
     Route::post('/verify-phone', [PhoneVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('phone.verify.store');
     Route::post('/verify-phone/send', [PhoneVerificationController::class, 'send'])->middleware('throttle:6,1')->name('phone.send');
+
+    Route::get('/my-reading', [MyReadingController::class, 'show'])->name('my-reading');
+    Route::post('/my-reading/clear', [MyReadingController::class, 'clear'])->middleware('throttle:10,1')->name('my-reading.clear');
+    Route::post('/my-reading/tracking', [MyReadingController::class, 'tracking'])->middleware('throttle:10,1')->name('my-reading.tracking');
 
     Route::get('/data', [DataRightsController::class, 'show'])->name('data');
     Route::get('/data/export', [DataRightsController::class, 'export'])->middleware(['password.confirm', 'throttle:5,60'])->name('data.export');

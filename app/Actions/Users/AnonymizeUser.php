@@ -10,6 +10,7 @@ use App\Jobs\SyncAttendanceCertificate;
 use App\Models\AssemblyMembership;
 use App\Models\CompetitionSubmission;
 use App\Models\Inquiry;
+use App\Models\LibraryProgress;
 use App\Models\ProgramRegistration;
 use App\Models\User;
 use App\Support\LoginIdentifier;
@@ -109,6 +110,10 @@ class AnonymizeUser
 
             // عضويته في الجمعية العمومية تنتهي (والدور سُحب أعلاه)، ويبقى تاريخها وحضوره
             AssemblyMembership::query()->whereBelongsTo($user)->update(['status' => MembershipStatus::Ended->value]);
+
+            // «قراءاتي» سجل اطلاعه الشخصي ولا يلزم حفظه نظاماً: يُحذف الآن لا بعد مدة الاحتفاظ. والمجاميع العامة تنقص به
+            // (docs/decisions/2026-11-01-my-reading.md)
+            LibraryProgress::query()->whereBelongsTo($user)->delete();
 
             // ما أرسله يبقى مربوطاً بالحساب المخفى حتى مدة الاحتفاظ، ثم يحذفه ejaz:purge-anonymized-data: إجابات
             // الطلبات ومرفقاتها وردود الموظفين عليها، وإجابات التسجيل في البرامج، ونصوص الاستبيانات (وتبقى أرقامها

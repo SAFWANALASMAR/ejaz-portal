@@ -244,6 +244,20 @@ return [
             'timeout' => 60,
             'nice' => 10,
         ],
+        // عدّ صفحات كتب المكتبة (CountLibraryPages — «قراءاتي»): يقرأ ملف PDF حتى 25 ميجابايت ويفك تدفقاته، فطابوره مستقل بعامل
+        // واحد ومهلة المهمة نفسها، فلا يحجب البريد والإشعارات في default (مراجعة المشرف الأمنية على #117، م١)
+        'supervisor-library' => [
+            'connection' => 'redis',
+            'queue' => ['library'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 120,
+            'nice' => 10,
+        ],
     ],
 
     'environments' => [
@@ -255,6 +269,7 @@ return [
             ],
             'supervisor-videos' => [],
             'supervisor-receipts' => [],
+            'supervisor-library' => [],
         ],
 
         // التجريبية مطابقة للإنتاج، وإلا لم يُشغّل Horizon فيها عاملاً واحداً
@@ -266,6 +281,7 @@ return [
             ],
             'supervisor-videos' => [],
             'supervisor-receipts' => [],
+            'supervisor-library' => [],
         ],
 
         'local' => [
@@ -276,6 +292,7 @@ return [
                 'maxProcesses' => 1,
             ],
             'supervisor-receipts' => [],
+            'supervisor-library' => [],
         ],
     ],
 

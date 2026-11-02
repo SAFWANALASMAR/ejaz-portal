@@ -54,6 +54,13 @@ return [
             'deferred' => true,
         ],
         [
+            // «قراءاتي»: تقدّمه في الكتب والصوتيات والمرئيات (docs/decisions/2026-11-01-my-reading.md). بلا بطاقة: قسمها في الرئيسية
+            'route' => 'account.my-reading',
+            'label' => 'reading.nav',
+            'icon' => 'book-open',
+            'active' => ['account.my-reading'],
+        ],
+        [
             'route' => 'account.competitions',
             'label' => 'competitions.account.nav',
             'description' => 'competitions.account.nav_description',

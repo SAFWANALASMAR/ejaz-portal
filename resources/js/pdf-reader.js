@@ -5,6 +5,7 @@
 
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { onPage } from './page';
+import { progressReporter, resumePoint } from './library-progress';
 
 // نسب التكبير من ملاءمة العرض (1)
 const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
@@ -48,6 +49,9 @@ function setupReader(root, signal) {
     let zoom = ZOOMS.indexOf(1);
     let renderTask = null;
     let generation = 0;
+    // «قراءاتي»: كل صفحة رُسمت لمسجّل الدخول (library-progress.js)، والأولى تُبلَّغ فوراً
+    const progress = progressReporter(root.dataset.progress, signal);
+    let opened = false;
 
     // نسخة الصفحة المحفوظة لزر الرجوع (التنقّل السريع) تحمل حالة القارئ السابق: تُعاد إلى التحميل قبل أي تفاعل
     root.dataset.state = 'loading';
@@ -130,6 +134,15 @@ function setupReader(root, signal) {
         canvas.setAttribute('aria-label', label(current));
         status.textContent = label(current);
         root.dataset.state = 'ready';
+
+        if (progress) {
+            progress.page(current);
+
+            if (!opened) {
+                opened = true;
+                progress.open();
+            }
+        }
     }
 
     const update = () => {
@@ -256,6 +269,8 @@ function setupReader(root, signal) {
             total.textContent = String(doc.numPages);
             root.dataset.pages = String(doc.numPages);
             pageInput.max = String(doc.numPages);
+            // رابط «أكمل» من «قراءاتي» يبدأ من الصفحة المحفوظة
+            current = Math.min(resumePoint() ?? 1, doc.numPages);
             Object.values(buttons).forEach((button) => {
                 button.disabled = false;
             });
