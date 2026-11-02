@@ -13,6 +13,7 @@ use App\Models\MessageLog;
 use App\Models\MessagingChannel;
 use App\Models\User;
 use App\Notifications\AttemptReceived;
+use App\Support\LoginIdentifier;
 use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Http\Client\Request;
@@ -465,4 +466,37 @@ it('counts a WhatsApp receipt once across queue retries, and counts nothing whil
 
     Http::assertSentCount(2);
     expect(MessageLog::query()->where('status', MessageStatus::Skipped)->pluck('error')->all())->toBe(['number_limit']);
+});
+
+it('marks a WhatsApp receipt as counted only after counting it, so a crash in between counts it again rather than not at all', function () {
+    enableExamWhatsApp();
+    config(['messaging.exam_receipt_per_number_per_day' => 10, 'messaging.exam_receipt_per_day' => 100]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.C']]])]);
+
+    // عدّ البوابة يسقط مرة بعد عدّ الرقم (انقطاع Redis مثلاً)
+    RateLimiter::swap(new class(app('cache')->store()) extends Illuminate\Cache\RateLimiter
+    {
+        public bool $fail = true;
+
+        public function hit($key, $decaySeconds = 60)
+        {
+            if ($this->fail && $key === 'exam-receipt:global') {
+                $this->fail = false;
+
+                throw new RuntimeException('limiter down');
+            }
+
+            return parent::hit($key, $decaySeconds);
+        }
+    });
+
+    $job = receiptJobFor('+966511111111');
+    expect(fn () => $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class)))->toThrow(RuntimeException::class);
+    Http::assertNothingSent();
+
+    $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+
+    Http::assertSentCount(1);
+    expect(RateLimiter::attempts('exam-receipt:number:'.LoginIdentifier::hash('+966511111111')))->toBe(2)
+        ->and(RateLimiter::attempts('exam-receipt:global'))->toBe(1);
 });

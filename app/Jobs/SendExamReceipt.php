@@ -90,15 +90,32 @@ class SendExamReceipt implements ShouldQueue
      * أُدخل في تسجيلات كثيرة)، وللبوابة كلها في اليوم حارساً للتكلفة. ويعيد اسم الحد المتجاوز، أو null.
      *
      * - لا يُعدّ إلا ما يمكن إرساله: مزود واتساب حقيقي بقالب الإيصال. وما عداه يتخطاه DeliverMessage بسببه ولا يستهلك الحد.
-     * - ويُعدّ الإيصال مرة واحدة ولو أُعيدت المهمة أو سقطت قبل العدّ (علامة لكل محاولة في الذاكرة المؤقتة).
+     * - وعلامة «عُدّ» لكل محاولة في الذاكرة المؤقتة تُوضع بعد العدّ لا قبله: فإعادة المهمة بعد العدّ لا تعدّه ثانية، والسقوط
+     *   بين العدّ والعلامة يعدّه مرة زائدة في الإعادة لا ناقصة، فالخطأ في جهة التكلفة الأحوط (مراجعة المشرف على #137).
      * - والعدّ قبل المقارنة (hit ثم الموازنة)، فلا يتجاوز الحدَّ عاملان متزامنان. والرقم أولاً، فما رُدّ بحده لا يستهلك حد البوابة.
      */
     private function overLimit(string $phone): ?string
     {
+        $mark = 'exam-receipt:counted:'.$this->submissionId.':'.($this->attemptId ?? 0);
+
         if (! MessagingSettings::ready(MessagingChannel::WHATSAPP) || ! isset(MessagingSettings::whatsapp()['templates']['exam_receipt'])
-            || ! Cache::add('exam-receipt:counted:'.$this->submissionId.':'.($this->attemptId ?? 0), true, 86400)) {
+            || Cache::has($mark)) {
             return null;
         }
+
+        $limit = $this->hitLimits($phone);
+
+        // بعد العدّ كاملاً وحده: ما سقط قبل هذا السطر (ولو بعد عدّ الرقم) يُعدّ ثانية في إعادته
+        Cache::put($mark, true, 86400);
+
+        return $limit;
+    }
+
+    /**
+     * يعدّ الإيصال في الحدين، ويعيد اسم أول حد تجاوزه أو null.
+     */
+    private function hitLimits(string $phone): ?string
+    {
 
         // والصفر بلا حد، كحد الرقم في DeliverMessage
         $limits = [

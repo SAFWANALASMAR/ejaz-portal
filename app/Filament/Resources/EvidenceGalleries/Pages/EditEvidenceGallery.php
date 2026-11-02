@@ -43,7 +43,7 @@ class EditEvidenceGallery extends EditRecord
                         ->required()
                         ->default(fn () => now()->addDays(EvidenceGallery::DEFAULT_LINK_DAYS))
                         ->minDate(now())
-                        ->maxDate(fn () => now()->addDays(EvidenceGallery::MAX_LINK_DAYS)),
+                        ->maxDate(fn () => EvidenceGallery::latestExpiry()),
                 ])
                 ->authorize(fn (EvidenceGallery $record): bool => self::actor()->can('update', $record))
                 ->visible(fn (EvidenceGallery $record): bool => ! $record->trashed())
