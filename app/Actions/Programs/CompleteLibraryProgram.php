@@ -41,6 +41,11 @@ class CompleteLibraryProgram
             throw ValidationException::withMessages(['complete' => __('programs.library.ended')]);
         }
 
+        // ومن أوقف «لا تحفظ قراءاتي» لا يُحصى تقدّمه فلا يُتمّ، ويُطلب منه تفعيله (مراجعة المشرف على #126، م٢-ج)
+        if ($user->reading_tracking_disabled_at !== null) {
+            throw ValidationException::withMessages(['complete' => __('programs.library.tracking_off')]);
+        }
+
         if (! LibraryProgramProgress::for($program, $user, $registration)->complete()) {
             throw ValidationException::withMessages(['complete' => __('programs.library.not_yet')]);
         }

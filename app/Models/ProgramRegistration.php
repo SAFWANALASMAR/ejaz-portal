@@ -21,6 +21,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<string, mixed>|null $answers
  * @property Carbon|null $attended_at
  * @property Carbon|null $completed_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $opened_at
+ * @property string|null $pages_seen
+ * @property int $pages_count
+ * @property int $seconds_baseline
  * @property Carbon|null $reminded_at
  * @property Carbon|null $cancelled_at
  * @property string|null $certificate_path شهادة الحضور في القرص الخاص (SyncAttendanceCertificate)
@@ -43,6 +48,10 @@ class ProgramRegistration extends Model
             'answers' => 'array',
             'attended_at' => 'datetime',
             'completed_at' => 'datetime',
+            'started_at' => 'datetime',
+            'opened_at' => 'datetime',
+            'pages_count' => 'integer',
+            'seconds_baseline' => 'integer',
             'reminded_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'waitlisted_at' => 'datetime',

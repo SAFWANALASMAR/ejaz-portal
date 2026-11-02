@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Programs\CompleteLibraryProgram;
+use App\Actions\Programs\RegisterForProgram;
 use App\Actions\Programs\SaveProgram;
 use App\Enums\LibraryProgramKind;
 use App\Enums\LibrarySection;
@@ -50,7 +51,19 @@ function libraryProgram(LibraryProgramKind $kind, LibraryItem $item, array $attr
 
 function confirmedIn(Program $program, User $user): ProgramRegistration
 {
-    return ProgramRegistration::factory()->create(['program_id' => $program->id, 'user_id' => $user->id, 'status' => RegistrationStatus::Confirmed]);
+    $registration = ProgramRegistration::factory()->create(['program_id' => $program->id, 'user_id' => $user->id, 'status' => RegistrationStatus::Confirmed]);
+    // كما يبدأه RegisterForProgram: البداية، وثواني الاستماع قبلها
+    $registration->forceFill(['started_at' => now(), 'seconds_baseline' => (int) LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $program->library_item_id)->value('seconds_consumed')])->save();
+
+    return $registration;
+}
+
+/**
+ * صفحات الكتاب المقروءة بعد التسجيل في البرنامج.
+ */
+function readInProgram(ProgramRegistration $registration, string $pages, int $count): void
+{
+    $registration->forceFill(['pages_seen' => $pages, 'pages_count' => $count, 'opened_at' => now()])->save();
 }
 
 /**
@@ -83,11 +96,11 @@ it('completes a reading program after every page is read, then issues the certif
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
     $registration = confirmedIn($program, $this->member);
 
-    progressFor($this->member, $book, ['pages_seen' => '1-2', 'pages_count' => 2, 'total_pages' => 3]);
+    readInProgram($registration, '1-2', 2);
     expect(LibraryProgramProgress::for($program, $this->member)->percent())->toBe(66);
-    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))->toThrow(ValidationException::class);
 
-    LibraryProgress::query()->update(['pages_seen' => '1-3', 'pages_count' => 3, 'completed_at' => now()]);
+    readInProgram($registration->fresh(), '1-3', 3);
     app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh());
 
     expect($registration->fresh()->completed_at)->not->toBeNull()
@@ -113,8 +126,9 @@ it('completes a YouTube watching program only after its duration has passed sinc
     $program = libraryProgram(LibraryProgramKind::Watching, $video);
     $registration = confirmedIn($program, $this->member);
 
-    progressFor($this->member, $video, []);
-    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+    // أول فتح بعد التسجيل
+    $registration->forceFill(['opened_at' => now()])->save();
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))->toThrow(ValidationException::class);
 
     $this->travel(301)->seconds();
     expect(app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh())->completed_at)->not->toBeNull();
@@ -124,7 +138,7 @@ it('refuses completion to someone not registered, another user, an ended or unpu
     $book = LibraryItem::factory()->create(['page_count' => 1]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
     $registration = confirmedIn($program, $this->member);
-    progressFor($this->member, $book, ['pages_seen' => '1', 'pages_count' => 1, 'total_pages' => 1, 'completed_at' => now()]);
+    readInProgram($registration, '1', 1);
 
     $other = User::factory()->create();
     expect(fn () => app(CompleteLibraryProgram::class)->handle($other, $registration))->toThrow(AuthorizationException::class);
@@ -146,14 +160,14 @@ it('completes from the program page and shows the progress, the start button and
     $book = LibraryItem::factory()->create(['page_count' => 2, 'is_downloadable' => true]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
     $registration = confirmedIn($program, $this->member);
-    progressFor($this->member, $book, ['pages_seen' => '1', 'pages_count' => 1, 'total_pages' => 2]);
+    readInProgram($registration, '1', 1);
 
     $this->actingAs($this->member)->get(route('programs.show', $program->slug))->assertOk()
         ->assertSee('data-library-program-progress', false)
         ->assertSee(route('programs.read', $program->slug), false)
         ->assertSee(__('programs.library.start.book-reading'));
 
-    LibraryProgress::query()->update(['pages_seen' => '1-2', 'pages_count' => 2, 'completed_at' => now()]);
+    readInProgram($registration->fresh(), '1-2', 2);
     $this->post(route('account.programs.complete', $registration))->assertRedirect();
 
     $this->get(route('programs.show', $program->slug))->assertSee('data-library-program-done', false);
@@ -162,12 +176,15 @@ it('completes from the program page and shows the progress, the start button and
 it('opens a reading program book in the page reader and counts its pages even when the book is downloadable', function () {
     $book = LibraryItem::factory()->create(['page_count' => 3, 'is_downloadable' => true]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
-    confirmedIn($program, $this->member);
+    $registration = confirmedIn($program, $this->member);
 
     $this->actingAs($this->member)->get(route('programs.read', $program->slug))->assertOk()->assertSee('data-pdf-reader', false);
     $this->postJson(route('library.progress', [$book->section->value, $book->slug]), ['pages' => [1], 'page' => 1])->assertOk();
 
+    // والصفحة في «قراءاتي» وفي البرنامج معاً
     expect(LibraryProgress::query()->where('user_id', $this->member->id)->value('pages_count'))->toBe(1)
+        ->and($registration->fresh()->pages_count)->toBe(1)
+        ->and($registration->fresh()->opened_at)->not->toBeNull()
         ->and($book->fresh()->is_downloadable)->toBeTrue();
 
     // وغير المسجل لا يفتح القارئ، ولا تُحصى صفحات الكتاب القابل للتنزيل له
@@ -221,8 +238,7 @@ it('measures the duration of an audio file on the server', function () {
 it('lists my programs with a progress bar and the completed ones apart', function () {
     $book = LibraryItem::factory()->create(['page_count' => 4, 'title' => 'كتاب البرنامج']);
     $reading = libraryProgram(LibraryProgramKind::Reading, $book, ['title' => 'برنامج القراءة الجاري']);
-    confirmedIn($reading, $this->member);
-    progressFor($this->member, $book, ['pages_seen' => '1-2', 'pages_count' => 2, 'total_pages' => 4]);
+    readInProgram(confirmedIn($reading, $this->member), '1-2', 2);
 
     $done = libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 1]), ['title' => 'برنامج أتممته']);
     confirmedIn($done, $this->member)->forceFill(['completed_at' => now()])->save();
@@ -263,7 +279,12 @@ it('counts YouTube watching time from the registration, not from an older first 
     $this->travel(2)->days();
     $registration = confirmedIn(libraryProgram(LibraryProgramKind::Watching, $video), $this->member);
 
-    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+    // فتح قبل التسجيل لا يُحسب، ولا إتمام بلا فتح بعده ولو مرت المدة
+    $this->travel(301)->seconds();
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))->toThrow(ValidationException::class);
+
+    $this->actingAs($this->member)->postJson(route('library.progress', [$video->section->value, $video->slug]))->assertOk();
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))->toThrow(ValidationException::class);
 
     $this->travel(301)->seconds();
     expect(app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh())->completed_at)->not->toBeNull();
@@ -282,7 +303,7 @@ it('lets a participant cancel an open library program before completing it, and 
 it('refuses completion when the library item is unpublished', function () {
     $book = LibraryItem::factory()->create(['page_count' => 1]);
     $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, $book), $this->member);
-    progressFor($this->member, $book, ['pages_seen' => '1', 'pages_count' => 1, 'total_pages' => 1, 'completed_at' => now()]);
+    readInProgram($registration, '1', 1);
 
     $book->update(['is_published' => false]);
 
@@ -292,8 +313,7 @@ it('refuses completion when the library item is unpublished', function () {
 it('does not keep an old book completion after the book got more pages', function () {
     $book = LibraryItem::factory()->create(['page_count' => 2]);
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
-    confirmedIn($program, $this->member);
-    progressFor($this->member, $book, ['pages_seen' => '1-2', 'pages_count' => 2, 'total_pages' => 2, 'completed_at' => now()]);
+    readInProgram(confirmedIn($program, $this->member), '1-2', 2);
 
     $book->forceFill(['page_count' => 5])->save();
 
@@ -308,4 +328,73 @@ it('issues pending completion certificates once the template is ready', function
     $this->artisan('programs:issue-pending-certificates')->assertSuccessful();
 
     Queue::assertPushed(SyncAttendanceCertificate::class);
+});
+
+// مراجعة المشرف على #126 (م٢): التقدّم بعد التسجيل وحده لكل نوع، وإعادة التسجيل، و«لا تحفظ قراءاتي»
+
+it('does not let a book read before the registration complete the program', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 3]);
+    progressFor($this->member, $book, ['pages_seen' => '1-3', 'pages_count' => 3, 'total_pages' => 3, 'completed_at' => now()]);
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, $book), $this->member);
+
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+});
+
+it('counts book pages after the registration at a human pace, not in one scripted report', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 40]);
+    $program = libraryProgram(LibraryProgramKind::Reading, $book);
+    $registration = confirmedIn($program, $this->member);
+
+    LibraryProgramProgress::record($this->member, $book, range(1, 40), 40);
+    expect($registration->fresh()->pages_count)->toBe(3);
+
+    $this->travel(80)->seconds();
+    LibraryProgramProgress::record($this->member, $book, range(1, 40), 40);
+
+    expect($registration->fresh()->pages_count)->toBe(40)
+        ->and(LibraryProgramProgress::for($program, $this->member)->complete())->toBeTrue();
+});
+
+it('does not let listening before the registration complete the program', function () {
+    $audio = LibraryItem::factory()->audio()->create(['duration_seconds' => 600]);
+    progressFor($this->member, $audio, ['seconds_consumed' => 600]);
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Listening, $audio), $this->member);
+
+    expect($registration->seconds_baseline)->toBe(600);
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration))->toThrow(ValidationException::class);
+
+    LibraryProgress::query()->update(['seconds_consumed' => 1171]);
+    expect(app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh())->completed_at)->not->toBeNull();
+});
+
+it('resets the completion and its certificate when a participant registers again', function () {
+    Queue::fake();
+    $member = User::factory()->create();
+    $audio = LibraryItem::factory()->audio()->create(['duration_seconds' => 600]);
+    $program = libraryProgram(LibraryProgramKind::Listening, $audio);
+    $registration = confirmedIn($program, $member);
+    $registration->forceFill(['status' => RegistrationStatus::Cancelled, 'completed_at' => now(), 'certificate_path' => 'certificates/old.pdf'])->save();
+    progressFor($member, $audio, ['seconds_consumed' => 900]);
+
+    $again = app(RegisterForProgram::class)->handle($member, $program->fresh(), []);
+
+    expect($again->id)->toBe($registration->id)
+        ->and($again->completed_at)->toBeNull()
+        ->and($again->started_at)->not->toBeNull()
+        ->and($again->seconds_baseline)->toBe(900);
+    Queue::assertPushed(SyncAttendanceCertificate::class);
+});
+
+it('refuses completion while reading tracking is off, with the message to turn it on', function () {
+    $book = LibraryItem::factory()->create(['page_count' => 1]);
+    $registration = confirmedIn(libraryProgram(LibraryProgramKind::Reading, $book), $this->member);
+    readInProgram($registration, '1', 1);
+    $this->member->forceFill(['reading_tracking_disabled_at' => now()])->save();
+
+    expect(fn () => app(CompleteLibraryProgram::class)->handle($this->member, $registration->fresh()))
+        ->toThrow(ValidationException::class, __('programs.library.tracking_off'));
+
+    $this->actingAs($this->member)->get(route('programs.show', $registration->program->slug))
+        ->assertSee(__('programs.library.tracking_off'))
+        ->assertSee(route('account.profile').'#reading-tracking', false);
 });

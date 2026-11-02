@@ -11,13 +11,14 @@ use App\Models\ProgramRegistration;
 use App\Models\User;
 
 /**
- * تقدّم المشارك في برنامج مكتبة من سجل «قراءاتي» (library_progress)، والإتمام بقواعد الخادم وحده
- * (docs/decisions/2026-11-02-reading-program.md):
+ * تقدّم المشارك في برنامج مكتبة بعد تسجيله فيه وحده (docs/decisions/2026-11-02-reading-program.md، ومراجعة المشرف على #126 م٢)،
+ * والإتمام بقواعد الخادم:
  *
- * - **قراءة كتاب:** المرور على كل صفحاته بعددها من ملفه في الخادم (completed_at في سجل التقدّم).
- * - **استماع أو مشاهدة من ملف أو رابط مباشر:** ثواني التشغيل الفعلي بساعة الحساب (seconds_consumed) تبلغ مدة العنصر من الخادم،
- *   بهامش 5% لما يفوت عند بدء التشغيل وإيقافه.
- * - **مقطع يوتيوب:** لا يُعرف ما شوهد منه (سياسة المحتوى تمنع واجهة يوتيوب)، فالإتمام بعد مرور مدته من أول فتح له.
+ * - **قراءة كتاب:** صفحات الكتاب التي مر عليها بعد التسجيل (program_registrations.pages_seen، يكتبها record من بلاغات القارئ
+ *   بحد صفحة لكل ثانيتين منذ بدايته)، تبلغ عددها من ملفه في الخادم. فقراءة سابقة للتسجيل لا تُتمّ البرنامج.
+ * - **استماع أو مشاهدة من ملف أو رابط مباشر:** ثواني التشغيل الفعلي بساعة الحساب (seconds_consumed) بعد التسجيل (بطرح ما كان عند
+ *   التسجيل) تبلغ 95% من مدة العنصر من الخادم.
+ * - **مقطع يوتيوب:** لا يُعرف ما شوهد منه (سياسة المحتوى تمنع واجهة يوتيوب)، فالإتمام بعد مرور مدته من أول فتح بعد التسجيل.
  */
 final class LibraryProgramProgress
 {
@@ -27,37 +28,71 @@ final class LibraryProgramProgress
     public const MEDIA_THRESHOLD = 0.95;
 
     /**
-     * @param  array{percent: int, complete: bool, started: bool, pages: int, seconds: int}  $state
+     * @param  array{percent: int, complete: bool, started: bool}  $state
      */
     private function __construct(public readonly array $state) {}
 
     /**
-     * $registration: تسجيل المستخدم، فيُحسب وقت يوتيوب من الأحدث بين أول فتح والتسجيل، لا من فتح قبل التسجيل. و$progress المحمّل
-     * مسبقاً لقائمة (false: لا تقدّم)، فلا يُسأل لكل صف.
+     * $registration تسجيل المستخدم في البرنامج (وإلا يُقرأ). و$progress المحمّل مسبقاً لقائمة (false: لا تقدّم)، فلا يُسأل لكل صف.
      */
     public static function for(Program $program, User $user, ?ProgramRegistration $registration = null, LibraryProgress|false|null $progress = null): self
     {
         $kind = $program->libraryKind();
         $item = $program->libraryItem;
-        $progress = $progress === false ? null : ($progress ?? ($item === null ? null : LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $item->id)->first()));
+        $registration ??= ProgramRegistration::query()->where('program_id', $program->id)->where('user_id', $user->id)->first();
 
-        if ($kind === null || $item === null || $progress === null) {
-            return new self(['percent' => 0, 'complete' => false, 'started' => false, 'pages' => 0, 'seconds' => 0]);
+        if ($kind === null || $item === null || $registration === null || $registration->started_at === null) {
+            return new self(['percent' => 0, 'complete' => false, 'started' => false]);
         }
 
-        [$done, $total] = self::measure($kind, $item, $progress, $registration);
-        // والكتاب بعدد صفحاته الحالي، فملف استُبدل بأطول لا يبقى إتمامه القديم (المراجعة الأمنية، ن٢)
-        $complete = $kind === LibraryProgramKind::Reading
-            ? $progress->completed_at !== null && $total > 0 && $done >= $total
-            : $total > 0 && $done >= (int) floor($total * self::MEDIA_THRESHOLD);
+        if ($kind !== LibraryProgramKind::Reading && $item->youtubeId() === null) {
+            $progress = $progress === false ? null : ($progress ?? LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $item->id)->first());
+        }
+
+        [$done, $total] = self::measure($kind, $item, $registration, $progress instanceof LibraryProgress ? $progress : null);
+        $complete = $total > 0 && $done >= ($kind === LibraryProgramKind::Reading ? $total : (int) floor($total * self::MEDIA_THRESHOLD));
 
         return new self([
             'percent' => $complete ? 100 : ($total > 0 ? min(99, (int) floor($done * 100 / $total)) : 0),
             'complete' => $complete,
-            'started' => true,
-            'pages' => $progress->pages_count,
-            'seconds' => $progress->seconds_consumed,
+            'started' => $registration->opened_at !== null,
         ]);
+    }
+
+    /**
+     * بلاغ من القارئ أو المشغّل لعنصر: يسجّل أول فتح بعد التسجيل، ويضيف صفحات الكتاب المقبولة لتسجيلات المستخدم الجارية في برامج
+     * المكتبة على هذا العنصر. بحد صفحة لكل ثانيتين منذ بداية التسجيل وثلاث صفحات للبداية، فلا يُتمّ بلاغ مكتوب البرنامج دفعة.
+     * يُستدعى داخل معاملة البلاغ (RecordLibraryProgress)، وبعد فحص «لا تحفظ قراءاتي».
+     *
+     * @param  list<int>  $pages
+     */
+    public static function record(User $user, LibraryItem $item, array $pages, ?int $total): void
+    {
+        $registrations = ProgramRegistration::query()
+            ->where('user_id', $user->id)
+            ->where('status', RegistrationStatus::Confirmed->value)
+            ->whereNull('completed_at')
+            ->whereNotNull('started_at')
+            ->whereHas('program', fn ($program) => $program->where('library_item_id', $item->id))
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($registrations as $registration) {
+            $registration->opened_at ??= now();
+
+            if ($pages !== [] && $item->section->takesPdf()) {
+                $seen = PageSet::decode($registration->pages_seen);
+                $budget = max(0, intdiv((int) $registration->started_at?->diffInSeconds(now()), 2) + 3 - count($seen));
+                $new = array_slice(array_values(array_diff($pages, $seen)), 0, $budget);
+                $merged = PageSet::decode(PageSet::encode([...$seen, ...$new]));
+                $merged = $total !== null ? PageSet::clip($merged, $total) : $merged;
+
+                $registration->pages_seen = PageSet::encode($merged);
+                $registration->pages_count = count($merged);
+            }
+
+            $registration->saveQuietly();
+        }
     }
 
     /**
@@ -93,29 +128,23 @@ final class LibraryProgramProgress
     }
 
     /**
-     * ما أُنجز وما يلزم: الصفحات للكتاب، والثواني للصوت والمرئي.
+     * ما أُنجز بعد التسجيل وما يلزم: الصفحات للكتاب، والثواني للصوت والمرئي.
      *
      * @return array{0: int, 1: int}
      */
-    private static function measure(LibraryProgramKind $kind, LibraryItem $item, LibraryProgress $progress, ?ProgramRegistration $registration): array
+    private static function measure(LibraryProgramKind $kind, LibraryItem $item, ProgramRegistration $registration, ?LibraryProgress $progress): array
     {
         if ($kind === LibraryProgramKind::Reading) {
-            return [$progress->pages_count, (int) ($item->page_count ?? 0)];
+            return [$registration->pages_count, (int) ($item->page_count ?? 0)];
         }
 
         $duration = (int) ($item->duration_seconds ?? 0);
 
-        // يوتيوب: الوقت منذ أول فتح بعد التسجيل، لا يتجاوز المدة (المراجعتان: فتح قديم قبل التسجيل لا يُتمّ فوراً)
+        // يوتيوب: الوقت منذ أول فتح بعد التسجيل، لا يتجاوز المدة
         if ($item->youtubeId() !== null) {
-            $since = $progress->created_at;
-
-            if ($registration?->created_at !== null && ($since === null || $registration->created_at->gt($since))) {
-                $since = $registration->created_at;
-            }
-
-            return [min($duration, (int) max(0, $since?->diffInSeconds(now()) ?? 0)), $duration];
+            return [$registration->opened_at === null ? 0 : min($duration, (int) $registration->opened_at->diffInSeconds(now())), $duration];
         }
 
-        return [$progress->seconds_consumed, $duration];
+        return [max(0, (int) ($progress?->seconds_consumed ?? 0) - $registration->seconds_baseline), $duration];
     }
 }

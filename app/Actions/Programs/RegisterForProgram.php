@@ -3,6 +3,8 @@
 namespace App\Actions\Programs;
 
 use App\Enums\RegistrationStatus;
+use App\Jobs\SyncAttendanceCertificate;
+use App\Models\LibraryProgress;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -67,6 +69,22 @@ class RegisterForProgram
                 'attended_at' => null,
                 'waitlisted_at' => $status === RegistrationStatus::Waitlisted ? now() : null,
             ])->save();
+
+            // برنامج المكتبة يبدأ من التسجيل: لا إتمام سابق ولا تقدّم قبله (مراجعة المشرف على #126، م٢-أ وب)، وتُحذف شهادة
+            // إتمام سابقة بإعادة التسجيل
+            $hadCertificate = $registration->certificate_path !== null;
+            $registration->forceFill($locked->isLibraryProgram() ? [
+                'completed_at' => null,
+                'started_at' => now(),
+                'opened_at' => null,
+                'pages_seen' => null,
+                'pages_count' => 0,
+                'seconds_baseline' => (int) LibraryProgress::query()->where('user_id', $user->id)->where('library_item_id', $locked->library_item_id)->value('seconds_consumed'),
+            ] : ['completed_at' => null])->save();
+
+            if ($hadCertificate) {
+                DB::afterCommit(fn () => SyncAttendanceCertificate::dispatch($registration));
+            }
             $registration->setRelation('program', $locked);
 
             $user->notify(new ProgramRegistrationChanged($registration, $status === RegistrationStatus::Confirmed

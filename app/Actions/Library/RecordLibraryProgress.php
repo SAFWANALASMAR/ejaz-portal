@@ -97,6 +97,9 @@ class RecordLibraryProgress
 
             $progress->forceFill(['last_reported_at' => $now])->save();
 
+            // وتقدّم برامج المكتبة المسجل فيها بعد التسجيل وحده: أول فتح، وصفحات الكتاب المقبولة (مراجعة المشرف على #126، م٢-أ)
+            LibraryProgramProgress::record($user, $item, $accepted, $total);
+
             return ['progress' => $progress, 'pages' => $accepted];
         }));
     }
