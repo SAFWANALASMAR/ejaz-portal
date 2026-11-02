@@ -66,12 +66,14 @@ function expectQueryBudget(Closure $seed, Closure $request, int $max): void
 it('keeps the public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
-    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 3],
+    // والصفحات الثابتة +1 منذ «محرر الصفحات»: عنوانها ووصفها وأقسامها المنشورة، مخزّنة مع المحتوى فتُسأل مرة بعد مسحه
+    // (docs/decisions/2026-11-02-page-editor.md)
+    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 4],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
     // والحوكمة +1 منذ عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount، مخزّن مع المحتوى — 1 نوفمبر 2026)
-    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 4],
+    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 5],
     'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
-    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 3],
+    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 4],
 ]);
 
 it('serves the cached public pages without queries', function () {
