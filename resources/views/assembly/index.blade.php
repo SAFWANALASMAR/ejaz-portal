@@ -98,6 +98,7 @@
                     @endforeach
                 </ul>
             </section>
+            @include('assembly.partials.program-stats')
 
             {{-- الاختصارات --}}
             <nav aria-label="{{ __('assembly.portal.shortcuts') }}">
