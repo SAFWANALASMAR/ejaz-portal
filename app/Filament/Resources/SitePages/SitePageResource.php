@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SitePages;
 
+use App\Enums\PageRevisionStatus;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Forms\ContentFields;
 use App\Filament\Forms\PageHeroUpload;
@@ -75,8 +76,17 @@ class SitePageResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        // الصور المقبولة بلا رفع: صور هذه الصفحة ونسخها وحدها (EditablePages::knownImages)
-        $known = fn (string $file, ?Page $record): bool => $record !== null && in_array($file, EditablePages::knownImages($record), true);
+        // الصور المقبولة بلا رفع: صور هذه الصفحة ونسخها وحدها (EditablePages::knownImages)، تُقرأ مرة لكل نموذج لا لكل صورة
+        $images = null;
+        $known = function (string $file, ?Page $record) use (&$images): bool {
+            if ($record === null) {
+                return false;
+            }
+
+            $images ??= EditablePages::knownImages($record);
+
+            return in_array($file, $images, true);
+        };
 
         return $schema->components([
             Section::make(__('page_editor.sections.header'))->columns(2)->columnSpanFull()->schema([
@@ -104,7 +114,7 @@ class SitePageResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->withExists(['revisions as has_draft' => fn (Builder $revisions) => $revisions->where('status', 'draft')]))
+            ->modifyQueryUsing(fn (Builder $query) => $query->withExists(['revisions as has_draft' => fn (Builder $revisions) => $revisions->where('status', PageRevisionStatus::Draft->value)]))
             ->defaultSort('id')
             ->paginated(false)
             ->columns([

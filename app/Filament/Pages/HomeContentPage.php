@@ -266,9 +266,6 @@ class HomeContentPage extends Page
     }
 
     /**
-     * صورة المقطع على القرص العام، لا SVG (docs/security.md). وفارغة تعني الأصل من الخطة الاستراتيجية.
-     */
-    /**
      * خانات صور الرؤوس التي تبقى هنا: ما ليس من صفحات «محرر الصفحات».
      *
      * @return array<string, string>
@@ -278,6 +275,9 @@ class HomeContentPage extends Page
         return array_diff_key(HomeContent::PAGE_HEROES, EditablePages::PAGES);
     }
 
+    /**
+     * صورة المقطع على القرص العام، لا SVG (docs/security.md). وفارغة تعني الأصل من الخطة الاستراتيجية.
+     */
     private static function image(string $section, string $field = ''): FileUpload
     {
         $name = $field === '' ? $section.'.image' : $section;
@@ -289,8 +289,13 @@ class HomeContentPage extends Page
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->maxSize(6144)
             ->rules(['dimensions:max_width=5000,max_height=5000'])
-            // الصفحة بلا سجل: يُسمح صراحة بالصور المحفوظة حالياً وحدها
-            ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => in_array($file, HomeContent::imagePaths(Setting::group(HomeContent::KEY)), true))
+            // الصفحة بلا سجل: يُسمح صراحة بالصور المحفوظة حالياً وحدها، بلا صور «محرر الصفحات» (رؤوس صفحاته ونسخها)، فلا تُنقل
+            // صورة منها إلى خانة هنا ثم تُحذف بتفريغها (المراجعة الأمنية، م١)
+            ->preventFilePathTampering(allowFilePathUsing: function (string $file): bool {
+                $stored = Setting::group(HomeContent::KEY);
+
+                return in_array($file, HomeContent::imagePaths($stored), true) && ! in_array($file, EditablePages::ownedImages($stored), true);
+            })
             ->disk('public')
             ->directory(UpdateSiteSettings::IMAGE_DIRECTORY)
             ->visibility('public');

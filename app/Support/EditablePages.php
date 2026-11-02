@@ -150,7 +150,8 @@ final class EditablePages
         $text = fn (mixed $value): ?string => is_string($value) && trim($value) !== '' ? trim($value) : null;
 
         $blocks = array_map(function (array $block): array {
-            $block['data']['visible'] = ($block['data']['visible'] ?? true) !== false;
+            // قاعدة boolean تقبل 0 و"0" و"false" أيضاً، فتُحوَّل كلها إلى منطقي قبل الحفظ (المراجعة الأمنية، ن٢)
+            $block['data']['visible'] = filter_var($block['data']['visible'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
 
             return $block;
         }, ContentBlocks::normalize($content['blocks'] ?? []));
@@ -175,6 +176,52 @@ final class EditablePages
         $paths = [...ContentBlocks::images($page->blocks), ...array_filter([$key === null ? null : self::heroImage($key)])];
 
         foreach (PageRevision::query()->where('page_id', $page->id)->get(['id', 'page_id', 'content']) as $revision) {
+            array_push($paths, ...array_merge(...array_values($revision->publicImages())));
+        }
+
+        return array_values(array_unique($paths));
+    }
+
+    /**
+     * صور يملكها غير هذه الصفحة في مجلدي المحرر: مقاطع الصفحات الأخرى ونسخها، وصور «محتوى الرئيسية» وخانات الصفحات الأخرى. فلا
+     * تُربط بالصفحة صورة سجل آخر فيحذفها حفظه لاحقاً أو يعيد ترميزها، ولو من غير الشاشة (المراجعة الأمنية، ن٣).
+     *
+     * @return list<string>
+     */
+    public static function foreignImages(Page $page): array
+    {
+        $paths = HomeContent::imagePaths(Setting::group(HomeContent::KEY));
+
+        foreach (Page::query()->whereKeyNot($page->id)->get(['id', 'blocks']) as $other) {
+            array_push($paths, ...ContentBlocks::images($other->blocks));
+        }
+
+        foreach (PageRevision::query()->where('page_id', '!=', $page->id)->get(['id', 'page_id', 'content']) as $revision) {
+            array_push($paths, ...array_merge(...array_values($revision->publicImages())));
+        }
+
+        return array_values(array_diff(array_unique($paths), self::knownImages($page)));
+    }
+
+    /**
+     * صور رؤوس صفحات المحرر المحفوظة وصور كل نسخها: لا يحذفها حفظ «محتوى الرئيسية» ولا يقبلها في خاناته (المراجعة الأمنية، م١).
+     *
+     * @param  array<string, mixed>  $stored  مجموعة home_sections
+     * @return list<string>
+     */
+    public static function ownedImages(array $stored): array
+    {
+        $paths = [];
+
+        foreach (array_keys(self::PAGES) as $key) {
+            $path = $stored['page_heroes'][$key] ?? null;
+
+            if (is_string($path) && $path !== '') {
+                $paths[] = $path;
+            }
+        }
+
+        foreach (PageRevision::query()->get(['id', 'page_id', 'content']) as $revision) {
             array_push($paths, ...array_merge(...array_values($revision->publicImages())));
         }
 

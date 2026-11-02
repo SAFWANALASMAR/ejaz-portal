@@ -25,6 +25,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PagePreviewController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAssistantEnabled;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Illuminate\Support\Facades\Route;
@@ -69,7 +70,7 @@ Route::get('/pages/{slug}', [PageController::class, 'show'])
 // معاينة نسخة من صفحة ثابتة قبل نشرها («محرر الصفحات»): رابط موقّع قصير المدة، بعد الدخول والتحقق الثنائي، ولمن له
 // pages.edit_all وحده (PagePreviewController)، بلا تخزين ولا فهرسة
 Route::get('/page-preview/{revision}', PagePreviewController::class)
-    ->middleware(['auth', EnsureTwoFactorIsEnabled::class, 'signed', 'cache.headers:private;no_store'])
+    ->middleware(['auth', 'auth.session', EnsureTwoFactorIsEnabled::class, AdminIdleTimeout::class, 'signed', 'throttle:60,1', 'cache.headers:private;no_store'])
     ->whereNumber('revision')
     ->name('pages.preview');
 Route::get('/governance', [GovernanceController::class, 'index'])->name('governance.index');

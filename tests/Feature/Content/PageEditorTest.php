@@ -454,3 +454,59 @@ it('lists the revisions with their authors on the edit screen and refuses editin
         ->assertTableActionHidden('revert', $draft)
         ->assertTableActionVisible('revert', $page->revisions()->oldest('id')->first());
 });
+
+it('does not let the content editor move a page editor image into a home content slot and delete it', function () {
+    $page = editablePage($this->admin);
+    $hero = uploadedPublicImage('settings');
+    app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['image' => $hero]));
+    app(PublishPageDraft::class)->handle($this->admin, $page);
+
+    $editor = userWithRole(RoleName::ContentEditor);
+
+    expect(fn () => app(UpdateHomeContent::class)->handle($editor, ['hero_slides' => ['about' => $hero]]))->toThrow(ValidationException::class);
+    app(UpdateHomeContent::class)->handle($editor, ['hero_slides' => ['about' => null]]);
+
+    Storage::disk('public')->assertExists($hero);
+    expect(Setting::group(HomeContent::KEY)['page_heroes']['programs'])->toBe($hero);
+});
+
+it('refuses to attach an image that belongs to another page', function () {
+    $other = editablePage($this->admin, 'contact');
+    $picture = uploadedPublicImage('pages');
+    app(SavePageDraft::class)->handle($this->admin, $other, pageDraft(['blocks' => [['type' => 'image', 'data' => ['picture' => $picture]]]]));
+
+    $page = editablePage($this->admin);
+
+    expect(fn () => app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['blocks' => [['type' => 'image', 'data' => ['picture' => $picture]]]])))
+        ->toThrow(ValidationException::class);
+    Storage::disk('public')->assertExists($picture);
+});
+
+it('treats a falsy visibility value as hidden', function (mixed $value) {
+    $page = editablePage($this->admin);
+    $draft = app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['blocks' => [['type' => 'text', 'data' => ['body' => '<p>مخفي</p>', 'visible' => $value]]]]));
+
+    expect($draft->content['blocks'][0]['data']['visible'])->toBeFalse();
+})->with([0, '0', false]);
+
+it('creates the first revision when the edit screen is opened directly', function () {
+    $about = Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية', 'is_published' => true]);
+    $this->actingAs($this->admin);
+
+    Livewire::test(EditSitePage::class, ['record' => $about->getRouteKey()])->assertOk();
+
+    expect($about->revisions()->count())->toBe(1)
+        ->and(Activity::query()->where('description', 'page_revision_initial')->where('subject_id', $about->id)->exists())->toBeTrue();
+});
+
+it('publishes about with its visible sections only', function () {
+    Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية', 'is_published' => false]);
+    $page = editablePage($this->admin, 'about');
+    $blocks = pageDraft()['blocks'];
+    $blocks[1]['data']['visible'] = false;
+
+    app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['title' => 'عن جمعية إعجاز', 'blocks' => $blocks]));
+    app(PublishPageDraft::class)->handle($this->admin, $page);
+
+    $this->get('/about')->assertOk()->assertSee('عن جمعية إعجاز')->assertSee('نص القسم الأول')->assertDontSee('نص القسم الثاني');
+});

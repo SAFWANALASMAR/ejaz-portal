@@ -33,6 +33,9 @@ class PublishPageDraft
 
         $key = (string) EditablePages::keyForSlug($page->slug);
 
+        // صف الإعداد موجود قبل قفله، فلا يتسابق نشران أولان على إنشائه
+        Setting::query()->createOrFirst(['key' => HomeContent::KEY], ['value' => []]);
+
         return DB::transaction(function () use ($actor, $page, $key): PageRevision {
             /** @var Page $locked */
             $locked = Page::query()->whereKey($page->id)->lockForUpdate()->firstOrFail();

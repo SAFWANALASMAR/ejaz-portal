@@ -2,6 +2,7 @@
 
 namespace App\Actions\Content\PageEditor;
 
+use App\Enums\ActivityEvent;
 use App\Enums\PageRevisionStatus;
 use App\Models\Page;
 use App\Models\PageRevision;
@@ -39,7 +40,7 @@ class EnsureEditablePage
             ['title' => $defaults['title'], 'summary' => $defaults['summary'], 'blocks' => [], 'is_published' => false],
         );
 
-        DB::transaction(function () use ($page): void {
+        DB::transaction(function () use ($actor, $key, $page): void {
             /** @var Page $locked */
             $locked = Page::query()->whereKey($page->id)->lockForUpdate()->firstOrFail();
 
@@ -47,12 +48,18 @@ class EnsureEditablePage
                 return;
             }
 
-            PageRevision::query()->create([
+            $first = PageRevision::query()->create([
                 'page_id' => $locked->id,
                 'status' => $locked->is_published ? PageRevisionStatus::Published : PageRevisionStatus::Archived,
                 'content' => EditablePages::liveContent($locked),
                 'published_at' => $locked->is_published ? $locked->updated_at : null,
             ]);
+
+            // والنسخة الأولى في سجل العمليات بمحتواها ومن فتح الصفحة (المراجعة الأمنية، ن٤)
+            activity('content')->causedBy($actor)->performedOn($locked)
+                ->event(ActivityEvent::Created->value)
+                ->withProperties(['page' => $key, 'revision' => $first->id, 'attributes' => $first->content])
+                ->log('page_revision_initial');
         });
 
         return $page;

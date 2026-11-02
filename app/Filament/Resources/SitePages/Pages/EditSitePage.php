@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SitePages\Pages;
 
+use App\Actions\Content\PageEditor\EnsureEditablePage;
 use App\Actions\Content\PageEditor\PublishPageDraft;
 use App\Actions\Content\PageEditor\SavePageDraft;
 use App\Enums\PageRevisionStatus;
@@ -17,6 +18,7 @@ use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -38,13 +40,34 @@ class EditSitePage extends EditRecord
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    /**
+     * النسخة الأولى (الأصل الذي يُرجع إليه) قبل أي حفظ، ولو فُتحت الشاشة برابطها مباشرة.
+     */
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        /** @var Page $page */
+        $page = $this->getRecord();
+        /** @var User $actor */
+        $actor = auth()->user();
+
+        app(EnsureEditablePage::class)->handle($actor, (string) EditablePages::keyForSlug($page->slug));
+    }
+
+    /**
+     * المسودة إن وُجدت، وإلا ما يُعرض فعلاً (سجل الصفحة وخانة صورتها)، لا آخر نسخة منشورة، فلا يمحو النشر تعديلاً جرى خارج المحرر.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
     protected function mutateFormDataBeforeFill(array $data): array
     {
         /** @var Page $page */
         $page = $this->getRecord();
-        $revision = $this->draft() ?? PageRevision::query()->where('page_id', $page->id)->status(PageRevisionStatus::Published)->first();
+        $draft = $this->draft();
 
-        return $revision !== null && is_array($revision->content) ? EditablePages::normalize($revision->content) : EditablePages::liveContent($page);
+        return $draft !== null && is_array($draft->content) ? EditablePages::normalize($draft->content) : EditablePages::liveContent($page);
     }
 
     /**
@@ -55,12 +78,22 @@ class EditSitePage extends EditRecord
         /** @var Page $record */
         /** @var User $actor */
         $actor = auth()->user();
+        // صورة الرأس قبل الحفظ: يعود إليها حقلها إن رُفضت الجديدة، لا إلى عمود غير موجود في سجل الصفحة
+        $previous = $this->mutateFormDataBeforeFill([])['image'];
 
-        return $this->saveThroughAction($record, ['image'], function () use ($actor, $record, $data): Page {
-            app(SavePageDraft::class)->handle($actor, $record, $data);
+        try {
+            return $this->saveThroughAction($record, [], function () use ($actor, $record, $data): Page {
+                app(SavePageDraft::class)->handle($actor, $record, $data);
 
-            return $record;
-        });
+                return $record;
+            });
+        } catch (ValidationException $exception) {
+            if (array_key_exists('data.image', $exception->errors())) {
+                $this->data['image'] = $previous === null ? [] : [(string) Str::uuid() => $previous];
+            }
+
+            throw $exception;
+        }
     }
 
     protected function getSavedNotificationTitle(): ?string

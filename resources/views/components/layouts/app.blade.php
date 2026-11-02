@@ -10,8 +10,11 @@
 
 @php
     $siteName = __('site.name');
-    // عنوان الصفحة الثابتة المنشور من «محرر الصفحات» يغلب على عنوان قالبها (EditablePages)
-    $title = \App\Support\EditablePages::live(request()->route()?->getName())['title'] ?? $title;
+    // عنوان الصفحة الثابتة ووصفها المنشوران من «محرر الصفحات» يغلبان على عنوان قالبها ووصفه (EditablePages)، فيتفق عنوان
+    // المتصفح ووصف المشاركة مع رأس الصفحة
+    $editablePage = \App\Support\EditablePages::live(request()->route()?->getName());
+    $title = $editablePage['title'] ?? $title;
+    $description = ($editablePage['summary'] ?? null) ?: $description;
     $pageTitle = $title ? $title.' | '.__('site.short_name') : $siteName;
     $pageDescription = $description ?: __('site.description');
 @endphp

@@ -46,22 +46,33 @@ class SavePageDraft
 
         $known = EditablePages::knownImages($page);
         $images = (new PageRevision(['content' => $content]))->publicImages();
+
+        // صورة سجل آخر لا تُربط بالصفحة (ولا يعيد الحفظ ترميزها)، ولو من غير الشاشة
+        $foreign = EditablePages::foreignImages($page);
+
+        foreach ($images as $field => $paths) {
+            if (array_intersect(array_diff($paths, $known), $foreign) !== []) {
+                throw ValidationException::withMessages([$field => __('validation.image_in_use')]);
+            }
+        }
+
         PublicImages::prepare($known, $images['blocks'], Page::IMAGE_DIRECTORY, 'blocks');
         PublicImages::prepare($known, $images['image'], PageRevision::heroImageDirectory(), 'image');
 
         return DB::transaction(function () use ($actor, $page, $content): PageRevision {
             Page::query()->whereKey($page->id)->lockForUpdate()->firstOrFail();
 
+            // المقارنة بالمسودة إن وُجدت، وإلا بما يُعرض فعلاً (كما يملأ النموذج)
             $draft = PageRevision::query()->where('page_id', $page->id)->status(PageRevisionStatus::Draft)->first();
-            $previous = $draft !== null ? $draft->content : PageRevision::query()->where('page_id', $page->id)->latest('id')->first()?->content;
-            $previous = is_array($previous) ? EditablePages::normalize($previous) : EditablePages::liveContent($page);
+            $previous = $draft !== null && is_array($draft->content) ? EditablePages::normalize($draft->content) : EditablePages::liveContent($page);
 
             $draft ??= new PageRevision(['page_id' => $page->id, 'status' => PageRevisionStatus::Draft]);
             $draft->fill(['content' => $content, 'author_id' => $actor->id])->save();
 
+            // القيم قبل الحفظ وبعده (docs/security.md)، فلا يضيع ما بين حفظين للمسودة نفسها
             activity('content')->causedBy($actor)->performedOn($page)
                 ->event(ActivityEvent::PageDraftSaved->value)
-                ->withProperties(['page' => EditablePages::keyForSlug($page->slug), 'revision' => $draft->id, ...self::changes($previous, $content)])
+                ->withProperties(['page' => EditablePages::keyForSlug($page->slug), 'revision' => $draft->id, ...self::changes($previous, $content), 'old' => $previous, 'attributes' => $content])
                 ->log(ActivityEvent::PageDraftSaved->value);
 
             return $draft;

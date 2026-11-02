@@ -88,17 +88,26 @@ class UpdateHomeContent
         $before = HomeContent::imagePaths(self::withEditorHeroes(Setting::group(HomeContent::KEY), []));
         $after = HomeContent::imagePaths(self::withEditorHeroes($validated, []));
 
+        // ولا تُنقل إلى خانة هنا صورة يملكها المحرر، فيحذفها تفريغ الخانة بعدها (المراجعة الأمنية، م١)
+        if (array_intersect(array_diff($after, $before), EditablePages::ownedImages(Setting::group(HomeContent::KEY))) !== []) {
+            throw ValidationException::withMessages(['images' => __('validation.image_in_use')]);
+        }
+
         PublicImages::prepare($before, $after, UpdateSiteSettings::IMAGE_DIRECTORY, 'images');
 
         // بقفل صف الإعداد، وصور «محرر الصفحات» من المحفوظ تحت القفل، فلا يمحو الحفظ نشراً متزامناً
-        DB::transaction(function () use (&$validated): void {
+        $owned = [];
+
+        DB::transaction(function () use (&$validated, &$owned): void {
             $stored = Setting::query()->where('key', HomeContent::KEY)->lockForUpdate()->value('value');
-            $validated = self::withEditorHeroes($validated, is_array($stored) ? $stored : []);
+            $stored = is_array($stored) ? $stored : [];
+            $validated = self::withEditorHeroes($validated, $stored);
+            $owned = EditablePages::ownedImages($stored);
 
             Setting::put(HomeContent::KEY, $validated);
         });
 
-        PublicImages::discard($before, $after, UpdateSiteSettings::IMAGE_DIRECTORY);
+        PublicImages::discard(array_values(array_diff($before, $owned)), $after, UpdateSiteSettings::IMAGE_DIRECTORY);
     }
 
     /**
