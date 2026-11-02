@@ -45,7 +45,7 @@ class SaveContent
 
         // ومعرّفات صفحات الموقع الثابتة محجوزة لـ«محرر الصفحات» (EditablePages): لا ينشئ صفحة بها ولا ينقل إليها صفحة أخرى إلا
         // من له pages.edit_all. وتعديل الصفحة الثابتة نفسها بها وحدها (PagePolicy)، كأمر استيراد الموقع السابق لمسودة «عن الجمعية»
-        $slug = $data['slug'] ?? $record->getAttribute('slug');
+        $slug = $record instanceof Page ? ($data['slug'] ?? $record->slug) : null;
 
         if ($record instanceof Page && in_array($slug, EditablePages::slugs(), true) && (! $record->exists || $record->getOriginal('slug') !== $slug) && ! $actor->can('pages.edit_all')) {
             throw ValidationException::withMessages(['slug' => __('page_editor.slug_reserved')]);

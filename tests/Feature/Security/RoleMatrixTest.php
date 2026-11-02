@@ -180,7 +180,8 @@ it('keeps the two ends of the matrix: a member opens no panel screen, the super 
     }
 
     // والمستثنى بمفتاحه: المدفوعات المؤرشفة (PAYMENTS_ENABLED=false)، وتحليل الإحصائيات حتى يُضبط مزوده
-    $switchedOff = ['admin/payments', 'admin/stats-analysis'];
+    // و«محرر الصفحات» لمديري النظام وحدهما لا للمشرف العام (قرار صفوان، 31 أكتوبر 2026 — docs/decisions/2026-11-02-page-editor.md)
+    $switchedOff = ['admin/payments', 'admin/stats-analysis', 'admin/site-pages'];
 
     foreach ($saved['super_admin']['routes'] as $uri => $outcome) {
         if (str_starts_with($uri, 'admin/') && ! str_contains($uri, '{') && ! str_ends_with($uri, '/create') && ! in_array($uri, $switchedOff, true)) {
@@ -230,7 +231,9 @@ it('refuses or allows each panel create and edit screen to each role exactly as 
         $record = $records[$model] ?? null;
         $policy = $saved[class_basename($model)] ?? null;
 
-        if ($record === null || $policy === null) {
+        // ومورد يحصر سجلاته في مجموعة خاصة لا يدخلها سجل المصنع («محرر الصفحات» لصفحات الموقع الثابتة وحدها، بصلاحية
+        // pages.edit_all — PageEditorTest)، فلا تُقاس شاشته بخانات النموذج العامة
+        if ($record === null || $policy === null || ! $resource::getEloquentQuery()->whereKey($record->getKey())->exists()) {
             continue;
         }
 
