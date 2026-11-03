@@ -220,12 +220,14 @@ function readingProgressFor(User $user, LibraryItem $item): void
 it('keeps the v0.15 public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
-    'library' => ['/library', fn (int $n) => [LibraryItem::factory()->count($n)->create(), LibraryItem::factory()->count($n)->video()->create(), LibraryItem::factory()->count($n)->audio()->create()], 4],
+    // والمكتبة والمسابقات +1 منذ «محرر الصفحات» (#124، دُمج بعد كتابة هذين السقفين في #132): سجل الصفحة الثابتة المنشور
+    // (EditablePages::live)، مخزّن في ذاكرة المحتوى فيُسأل مرة بعد مسحها وصفراً بعدها، كالأخبار والبرامج أعلاه
+    'library' => ['/library', fn (int $n) => [LibraryItem::factory()->count($n)->create(), LibraryItem::factory()->count($n)->video()->create(), LibraryItem::factory()->count($n)->audio()->create()], 5],
     'competitions' => ['/competitions', fn (int $n) => [
         Competition::factory()->count($n)->create(),
         Competition::factory()->count($n)->upcoming()->create(),
         Competition::factory()->count($n)->closed()->create(),
-    ], 4],
+    ], 5],
     'achievements' => ['/achievements', fn (int $n) => Achievement::factory()->count($n)->published()->create(), 2],
 ]);
 
