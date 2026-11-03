@@ -14,6 +14,7 @@
 @endphp
 
 <x-page-hero :title="__('media.title')" />
+<x-page-sections />
 
 <section class="pt-8 pb-6">
     <div class="mx-auto max-w-[82.5rem] px-4 sm:px-7">

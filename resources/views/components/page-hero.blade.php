@@ -14,6 +14,12 @@
     $section = \App\Support\PageSections::for(request()->route());
     $badge = $eyebrow ?? ($section['label'] === $title ? __('site.short_name') : $section['label']);
     $back = \App\Support\BackNavigation::shows(request()->route());
+    // عنوان الصفحة الثابتة ووصفها المنشوران من «محرر الصفحات» يغلبان على نصوص القالب (EditablePages)، والشارة من عنوان القالب
+    $editable = \App\Support\EditablePages::live(request()->route()?->getName());
+    if ($editable !== []) {
+        $title = $editable['title'];
+        $summary = $editable['summary'];
+    }
     // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم ما يمرره القالب، ثم نقش الصفحة المحايد (NeutralImage)
     $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? \App\Support\NeutralImage::forPage(request()->route()?->getName());
 @endphp

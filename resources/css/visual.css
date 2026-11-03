@@ -334,16 +334,11 @@ html[data-reveal-ready] .flourish path {
     animation-delay: calc(var(--i) * 70ms);
 }
 
-/* الرأس الداكن الصلب (التصور المعتمد 11:58، ومرجع المدير 17:42): بلون التذييل نفسه في كل حال، وعند التمرير ظل وخط فاصل
-   خفيف فقط. والقائمة بيضاء، والنشط بخط تحته بالأزرق الفاتح (5.4:1)، وغير النشط يظهر خطه عند المرور */
+/* الرأس الداكن الصلب (التصور المعتمد 11:58، ومرجع المدير 17:42): بلون التذييل نفسه في كل حال، وظله ثابت (concept.css)، وخط فاصل
+   خفيف. والقائمة بيضاء، والنشط بخط تحته بالأزرق الفاتح (5.4:1)، وغير النشط يظهر خطه عند المرور */
 [data-site-header] {
     background-color: var(--color-primary-dark);
     border-bottom: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
-    transition: box-shadow 300ms;
-}
-
-[data-site-header][data-scrolled] {
-    box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-primary-deep) 80%, transparent);
 }
 
 /* عنصر القائمة في الحاسوب: مربع صغير بخلفية بيضاء شفافة 8% وحد 18%، والأيقونة المتدرجة (30 بكسل) فوق الكلمة، والنشط بخلفية

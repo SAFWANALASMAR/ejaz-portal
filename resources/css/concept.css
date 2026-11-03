@@ -887,98 +887,144 @@ html[data-motion-off] .float-soft {
     box-shadow: 0 12px 28px -14px rgb(15 37 54 / 0.85);
 }
 
-[data-site-header][data-scrolled] {
-    box-shadow: 0 14px 32px -12px rgb(15 37 54 / 0.95);
-}
-
-/* عند التمرير يصغر الرأس كله معاً بتناسب (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٥، ويلغي البند ٢): الرمز والمخطوطة
-   ومربع الترخيص وأزرار الصف الأول وصف القائمة، بمعامل واحد --hs يتحرك بنعومة (خاصية مسجلة فتنتقل قيمتها)، ويعود إلى حجمه
-   الكامل عند الرجوع إلى أعلى الصفحة. وصف القائمة يصغر أقل (--hs-nav) فيبقى خطه مقروءاً. ومع تقليل الحركة يتبدل الحجم بلا انتقال */
-@property --hs {
-    syntax: '<number>';
-    inherits: true;
-    initial-value: 1;
-}
-
-[data-site-header] {
-    --hs: 1;
-    --hs-nav: calc(1 - (1 - var(--hs)) * 0.55);
-    transition:
-        --hs calc(320ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
-        box-shadow 250ms;
-}
-
-[data-site-header][data-scrolled] {
-    --hs: 0.7;
-}
-
-/* مقاسات الرمز والمخطوطة في الرأس على كل عرض (كانت أصناف Tailwind في x-brand)، مضروبة في المعامل */
-.masthead-mark {
-    --mark-h: 3rem;
-    height: calc(var(--mark-h) * var(--hs));
-}
-
-.masthead-calligraphy {
-    --cal-h: 2rem;
-    height: calc(var(--cal-h) * var(--hs));
-    max-width: 40vw;
-}
-
-.header-top {
-    --top-pad: 0.625rem;
-    padding-block: calc(var(--top-pad) * var(--hs));
+/* الرأس الثابت يغطي أعلى الشاشة بارتفاعه كاملاً، فالتركيز بلوحة المفاتيح والروابط الداخلية (#) تُمرَّر إلى ما تحته (WCAG 2.4.11 —
+   مراجعة المشرف على طلب الدمج 130): نحو 68 بكسل على الجوال، و100 حتى 1240، ونحو 193 بالصفّين من 1240 */
+html {
+    scroll-padding-top: 5rem;
 }
 
 @media (min-width: 64rem) {
-    .masthead-mark {
-        --mark-h: 5rem;
-    }
-
-    .masthead-calligraphy {
-        --cal-h: 3.5rem;
-        max-width: none;
-    }
-
-    .header-top {
-        --top-pad: 0.875rem;
+    html {
+        scroll-padding-top: 7rem;
     }
 }
 
 @media (min-width: 77.5rem) {
-    .masthead-mark {
-        --mark-h: 5.5rem;
+    html {
+        scroll-padding-top: 12.5rem;
+    }
+}
+
+/* الصف الأول (ترتيب صفوان، 2 نوفمبر 2026، ويلغي البند ٢٥ من ملاحظات 1 نوفمبر: docs/decisions/2026-11-02-header-final.md):
+   لا يصغر شيء عند التمرير، فالمقاسات هنا ثابتة لكل عرض. والجوال: الرمز والمخطوطة متجاوران في البداية وأزرار النهاية بعدهما */
+.header-top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.625rem 1rem;
+}
+
+.header-mark,
+.header-calligraphy {
+    display: flex;
+    /* هدف لمس 44 بكسل على الأقل، والمخطوطة وحدها 32 على الجوال */
+    min-height: 2.75rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.header-calligraphy {
+    justify-self: start;
+}
+
+.header-end,
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-actions {
+    flex: none;
+    margin-inline-start: auto;
+}
+
+.masthead-mark {
+    height: 3rem;
+}
+
+.masthead-calligraphy {
+    height: 2rem;
+    max-width: 40vw;
+}
+
+/* من 800 بكسل: ثلاثة أعمدة، الطرفان بعرض واحد (1fr) فالمخطوطة في منتصف الشريط تماماً. ولا يضيق طرف عن محتواه (max-content):
+   إن زاد ما فيه (شارة البث مثلاً) انزاحت المخطوطة قليلاً بدل أن يتراكب شيء */
+@media (min-width: 50rem) {
+    .header-top {
+        grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+    }
+
+    .header-calligraphy {
+        justify-self: center;
     }
 
     .masthead-calligraphy {
-        --cal-h: 4.5rem;
+        max-width: none;
+    }
+
+    .header-top .login-pill {
+        padding: 0.5625rem 1rem;
+        font-size: 0.9375rem;
+    }
+}
+
+@media (min-width: 64rem) {
+    .header-top {
+        padding: 0.875rem 1.25rem;
+    }
+
+    .masthead-mark {
+        height: 4.5rem;
+    }
+
+    .masthead-calligraphy {
+        height: 3.25rem;
+    }
+}
+
+/* الحاسوب: الرمز كبيراً، والمخطوطة بأكبر ما يتسع في منتصف الشريط ومربع الترخيص والبحث والدخول في طرفها: عرض الطرف نحو
+   390 بكسل، والمخطوطة بنسبة 6.58 من ارتفاعها، فارتفاعها من عرض الصف نفسه (cqi) بحد أدنى 56 بكسل وأعلى 80 (84 على العريض).
+   مقيس في tests/browser/header-final.spec.mjs على 1263 و1280 و1440 و1920 */
+@media (min-width: 77.5rem) {
+    .header-top {
+        container-type: inline-size;
+    }
+
+    .masthead-mark {
+        height: 5.5rem;
+    }
+
+    .masthead-calligraphy {
+        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5rem);
     }
 }
 
 @media (min-width: 96rem) {
     .masthead-mark {
-        --mark-h: 6.125rem;
+        height: 6.125rem;
     }
 
     .masthead-calligraphy {
-        --cal-h: 5.625rem;
+        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5.25rem);
     }
 }
 
-/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران في منتصفه أفقياً وعمودياً، ملاصق للمخطوطة (البند ١)، والرقم كاملاً
-   بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطوره في منتصفه أفقياً وعمودياً، بجانب المخطوطة بفاصل صغير (عمود الشبكة)،
+   والرقم كاملاً بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
 .header-licence {
     flex: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: calc(0.25rem * var(--hs));
-    max-width: calc(15.625rem * var(--hs-nav));
-    margin-inline-start: -0.5rem;
-    padding: calc(0.625rem * var(--hs)) calc(1rem * var(--hs));
+    gap: 0;
+    max-width: 10rem;
+    padding: 0.375rem 0.75rem;
     border: 1px solid rgb(142 197 240 / 0.55);
-    border-radius: calc(0.875rem * var(--hs));
-    font-size: calc(0.875rem * var(--hs-nav));
-    line-height: 1.5;
+    border-radius: 0.875rem;
+    font-size: 0.78125rem;
+    line-height: 1.4;
     text-align: center;
     color: var(--color-white);
 }
@@ -987,14 +1033,48 @@ html[data-motion-off] .float-soft {
     white-space: nowrap;
 }
 
-.header-top .login-pill,
-.header-top .header-icon-button {
-    transform: scale(var(--hs-nav));
-}
-
 .header-nav {
     background: linear-gradient(180deg, var(--blue-900), var(--blue-850));
     border-top: 1px solid var(--blue-300);
+}
+
+/* شارة البث (partials/live-badge) عنصر في آخر صف القائمة، في مجراه لا فوق المحتوى (مراجعة المشرف على طلب الدمج 130، 23:00). والصف لا يتسع
+   للشارة بنصها مع الكبسولات السبع إلا على العريض، فإن لم يتسع صارت نقطة نابضة في دائرة واسمها لقارئ الشاشة وحده (data-compact،
+   يضعه app.js بالقياس)، والكبسولات أقرب قليلاً، فلا يظهر زر ☰ بدل القائمة أثناء البث على 1280 */
+.header-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.header-nav-row > .nav-capsules {
+    flex: 1;
+    min-width: 0;
+}
+
+.header-nav-row:has(> [data-live-badge]) > .nav-capsules {
+    gap: 0.375rem;
+}
+
+[data-live-badge][data-compact] {
+    width: 2.5rem;
+    height: 2.5rem;
+    justify-content: center;
+    padding: 0;
+}
+
+[data-live-badge][data-compact] [data-live-dot] {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+[data-live-badge][data-compact] [data-live-label] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 /* سبع كبسولات متساوية (أو بقدر العناصر)، صف واحد */
@@ -1005,13 +1085,13 @@ html[data-motion-off] .float-soft {
        أكثر بسهمها (البند ٤) */
     grid-auto-columns: auto;
     gap: 0.5rem;
-    padding-block: calc(0.625rem * var(--hs-nav));
+    padding-block: 0.625rem;
 }
 
 .nav-capsule {
     display: flex;
     width: 100%;
-    height: calc(2.75rem * var(--hs-nav));
+    height: 2.75rem;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
@@ -1021,7 +1101,7 @@ html[data-motion-off] .float-soft {
     background: rgb(255 255 255 / 0.07);
     color: var(--color-white);
     /* سبع كبسولات متساوية في 1264 بكسل: أطول الأسماء («الخدمات الإلكترونية») يتسع بهذا الخط من نحو 1260 بكسل */
-    font-size: calc(0.84375rem * var(--hs-nav));
+    font-size: 0.84375rem;
     font-weight: 700;
     white-space: nowrap;
     transition:
@@ -1045,7 +1125,7 @@ html[data-motion-off] .float-soft {
 
 @media (min-width: 90rem) {
     .nav-capsule {
-        font-size: calc(0.875rem * var(--hs-nav));
+        font-size: 0.875rem;
     }
 }
 
@@ -2478,4 +2558,86 @@ html[data-reveal-ready] .portal-chart-line {
 /* زر البطل عند المرور بالثانوي #24527A لا بلون الرأس (ملاحظة المدير التنفيذي ٢٩). وزر الرأس كما هو */
 .hero-round .login-pill:hover {
     background-color: var(--color-secondary);
+}
+
+/* ── فحص الوصول 0.15 (docs/reviews/2026-11-02-v0.15-a11y.md) ──
+   ١. إطار التركيز داخل البطاقة الملونة بلون نصها: إطار accent الافتراضي (#1F5F8F) يذوب في التدرج الداكن (نحو 1.3:1)، فيُرسم بلون
+      نص البطاقة (أبيض على الداكنة، وأزرق داكن على الفاتحة)، وتباينه على طرفي التدرج مختبر في ToneCardContrastTest.
+   ٢. الشريط المتحرك كان يقص إطار تركيز بطاقاته (overflow) ويخفيه في طرفيه (mask)، والبطاقة المركّزة ترتفع 4 بكسل: حيّز داخلي
+      يتسع للإطار والارتفاع بلا تغيير في التخطيط (هامش سالب بقدره)، ولا قناع ما دام التركيز فيه.
+   ٣. نقاط الدوّار غير النشطة بتباين 3:1 على خلفيتها (1.4.11): كانت بين 1.4:1 و2:1.
+   ٤. الرابط الذي يملأ بطاقته (بلاطات أقسام المكتبة وأمثالها: li.tone-card > a): إطاره خارجها فتقصه البطاقة، فيُرسم داخل حافتها.
+   ٥. حقول الإدخال بـ focus:outline-none (وحدها، لا حقل البحث السريع بلا حد): كان يترك الإطار حداً بعرض بكسل يتبدل لونه وحده (ومعه هالة بشفافية 15%)، فيعود إطار التركيز
+      العام (2 بكسل بلون التمييز، وبالفاتح على الخلفيات الداكنة — app.css). والمربعات والدوائر لها إطارها */
+.tone-card :focus-visible {
+    outline-color: var(--tc-text);
+}
+
+.tone-card > a:only-child:focus-visible {
+    outline-offset: -4px;
+}
+
+.focus\:outline-none:is(input:not([type='checkbox'], [type='radio']), select, textarea):focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 2px;
+}
+
+.marquee {
+    padding: 0.75rem 0.5rem;
+    margin: -0.75rem -0.5rem;
+}
+
+/* والعمودي (الأخبار) بارتفاع صريح: يطول بقدر الحيّز فلا ترتفع حافته السفلى عن العمود المجاور */
+.marquee[data-direction='vertical'] {
+    height: calc(var(--marquee-height, 20rem) + 1.5rem);
+}
+
+.marquee:has(:focus-visible) {
+    mask-image: none;
+}
+
+.carousel-dot::before {
+    background: color-mix(in srgb, var(--color-primary) 85%, transparent);
+}
+
+.carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--color-primary) 85%, transparent);
+}
+
+[data-tone="dark"] .carousel-dot::before,
+.tone-card .carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--tc-text, var(--color-white)) 70%, transparent);
+}
+
+/* ٦. التركيز بلوحة المفاتيح في شريط متحرك يعيده إلى أوله، فتُمرَّر البطاقة المركّزة إلى داخل صندوقه ولا تقف خارجه (home.js) */
+.marquee[data-inview][data-focus-reveal] .marquee-track {
+    animation: none;
+}
+
+/* ٧. زر إيقاف الشريط فوق بطاقاته: إطاره الخارجي يقع على البطاقة تحته فيذوب في الداكنة منها. فالإطار ملاصق للزر على خلفيته الفاتحة
+   (6:1 فأكثر)، وحوله هالة بيضاء تفصله عما تحته */
+.marquee-toggle:focus-visible {
+    outline-offset: 0;
+    box-shadow:
+        inset 0 0 0 1px var(--concept-border),
+        0 0 0 4px var(--color-white);
+}
+
+/* ٨. الشريط الجانبي في لوحة المستخدم أزرق داكن: إطار التركيز بالفاتح كما في بقية الخلفيات الداكنة (app.css)، لا بلون التمييز الذي
+   يذوب فيه */
+.account-nav :focus-visible {
+    outline-color: var(--color-accent-light);
+}
+
+/* وزر القائمة المنسدلة على الجوال يملأ الشريط الذي يقص ما خارجه: إطاره داخل حافته */
+.account-nav > summary:focus-visible {
+    outline-offset: -3px;
+}
+
+/* ٩. ما يملأ صندوقاً يقص ما خارجه: عنوان البطاقة المطوية (details/summary في صفحة المسابقة) وصفحة القارئ (.pdf-stage)، فالإطار
+   داخل حافتهما */
+.collapsible > summary:focus-visible,
+.pdf-stage:focus-visible {
+    outline-offset: -3px;
 }
