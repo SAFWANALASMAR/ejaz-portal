@@ -4,20 +4,24 @@ use App\Actions\Evidence\IssueEvidenceLink;
 use App\Actions\Evidence\RevokeEvidenceLink;
 use App\Actions\Evidence\SaveEvidenceGallery;
 use App\Enums\ArchiveItemType;
+use App\Enums\EvidenceLinkStatus;
 use App\Enums\RoleName;
 use App\Filament\Resources\EvidenceGalleries\EvidenceGalleryResource;
 use App\Filament\Resources\EvidenceGalleries\Pages\CreateEvidenceGallery;
 use App\Filament\Resources\EvidenceGalleries\Pages\EditEvidenceGallery;
+use App\Filament\Resources\EvidenceGalleries\Pages\ListEvidenceGalleries;
 use App\Models\Album;
 use App\Models\ArchiveCategory;
 use App\Models\ArchiveItem;
 use App\Models\EvidenceGallery;
 use App\Models\EvidenceGalleryItem;
 use App\Models\EvidenceGalleryVisit;
+use App\Models\User;
 use App\Support\NetworkPrefix;
 use App\Support\SpaLink;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -396,7 +400,7 @@ it('does not bring the old link back when a deleted gallery is restored', functi
     $gallery->restore();
 
     $this->get($url)->assertNotFound();
-    expect(EvidenceGalleryResource::status($gallery->fresh()))->toBe('revoked')
+    expect(EvidenceGalleryResource::status($gallery->fresh()))->toBe(EvidenceLinkStatus::Revoked)
         ->and(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, tap($gallery->fresh())->delete(), evidenceExpiry()))->toThrow(AuthorizationException::class);
 });
 
@@ -484,6 +488,67 @@ it('records one visit per network a minute', function () {
     $this->get($url)->assertOk();
 
     expect(EvidenceGalleryVisit::count())->toBe(2);
+});
+
+it('shows the link status the link really has, a disabled issuer included, with the issuers loaded along the rows', function () {
+    $this->actingAs($this->secretary);
+    $issue = fn (EvidenceGallery $gallery, User $actor) => app(IssueEvidenceLink::class)->handle($actor, $gallery, now()->addDays(10)->toDateTimeString());
+
+    $none = evidenceGalleryWith($this, []);
+    $active = evidenceGalleryWith($this, []);
+    $issue($active, $this->secretary);
+    $expired = evidenceGalleryWith($this, []);
+    $issue($expired, $this->secretary);
+    $expired->forceFill(['expires_at' => now()->subMinute()])->save();
+    $revoked = evidenceGalleryWith($this, []);
+    $issue($revoked, $this->secretary);
+    app(RevokeEvidenceLink::class)->handle($this->secretary, $revoked);
+
+    $other = userWithRole(RoleName::Secretary);
+    $disabled = evidenceGalleryWith($this, []);
+    $issue($disabled, $other);
+    $other->forceFill(['is_active' => false])->save();
+
+    expect(EvidenceLinkStatus::of($none->fresh()))->toBe(EvidenceLinkStatus::None)
+        ->and(EvidenceLinkStatus::of($active->fresh()))->toBe(EvidenceLinkStatus::Active)
+        ->and(EvidenceLinkStatus::of($expired->fresh()))->toBe(EvidenceLinkStatus::Expired)
+        ->and(EvidenceLinkStatus::of($revoked->fresh()))->toBe(EvidenceLinkStatus::Revoked)
+        ->and(EvidenceLinkStatus::of($disabled->fresh()))->toBe(EvidenceLinkStatus::IssuerDisabled)
+        ->and(EvidenceLinkStatus::IssuerDisabled->getLabel())->toBe('مُصدره معطّل')
+        ->and(EvidenceLinkStatus::IssuerDisabled->getColor())->toBe('warning')
+        ->and(EvidenceLinkStatus::Active->getColor())->toBe('success');
+
+    // والجدول: الحالة من الرابط نفسه، والمُصدر محمَّل مع الصفوف فلا استعلام لكل صف
+    DB::enableQueryLog();
+    $list = Livewire::test(ListEvidenceGalleries::class);
+    $issuerQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], 'from "users" where "users"."id" in'));
+    DB::disableQueryLog();
+    expect($issuerQueries)->toHaveCount(1);
+
+    $list->assertTableColumnStateSet('status', EvidenceLinkStatus::IssuerDisabled, $disabled)
+        ->assertTableColumnStateSet('status', EvidenceLinkStatus::Active, $active)
+        ->assertTableColumnStateSet('status', EvidenceLinkStatus::None, $none)
+        ->assertSee('مُصدره معطّل');
+});
+
+it('shows a link with no expiry as expired, as linkIsActive() and the link itself refuse it, a disabled issuer included', function () {
+    $forever = evidenceGalleryWith($this, []);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $forever, evidenceExpiry());
+    // رابط قديم من قبل أن يصير الانتهاء إلزامياً
+    $forever->forceFill(['expires_at' => null])->save();
+
+    $this->get($url)->assertNotFound();
+    expect($forever->fresh()->linkIsActive())->toBeFalse()
+        ->and(EvidenceLinkStatus::of($forever->fresh()))->toBe(EvidenceLinkStatus::Expired);
+
+    // والحالة لا تُعرض ساريةً إلا بما تقوله linkIsActive(): مُصدر معطّل بلا انتهاء يبقى منتهياً لا «مُصدره معطّل»
+    $other = userWithRole(RoleName::Secretary);
+    $old = evidenceGalleryWith($this, []);
+    app(IssueEvidenceLink::class)->handle($other, $old, evidenceExpiry());
+    $old->forceFill(['expires_at' => null])->save();
+    $other->forceFill(['is_active' => false])->save();
+
+    expect(EvidenceLinkStatus::of($old->fresh()))->toBe(EvidenceLinkStatus::Expired);
 });
 
 /*
