@@ -22,6 +22,14 @@ enum CompetitionStatus: string implements HasColor, HasLabel
         return __('competitions.statuses.'.$this->value);
     }
 
+    /**
+     * الحالة بصياغة التسجيل للزائر في شريحة الرئيسية («التسجيل مفتوح» لا «مفتوحة» — ملاحظة صفوان ٣٠).
+     */
+    public function registrationLabel(): string
+    {
+        return __('ui.feed.status.'.$this->value);
+    }
+
     public function getColor(): string
     {
         return match ($this) {

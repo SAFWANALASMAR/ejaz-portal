@@ -6,6 +6,7 @@ use App\Actions\Library\RecordLibraryProgress;
 use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
 use App\Support\LibraryPageCount;
+use App\Support\LibraryProgramProgress;
 use App\Support\PageSet;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -42,7 +43,8 @@ class RecordLibraryProgressRequest extends FormRequest
     {
         $item = $this->item();
 
-        if ($item->tracksPages()) {
+        // وكتاب برنامج «قراءة كتاب» تُحصى صفحاته لمسجّله ولو كان قابلاً للتنزيل (LibraryProgramProgress::readsInProgram)
+        if ($item->tracksPages() || LibraryProgramProgress::readsInProgram($this->user(), $item)) {
             $max = LibraryPageCount::for($item) ?? PageSet::MAX_PAGE;
 
             return [

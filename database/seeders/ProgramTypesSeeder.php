@@ -13,11 +13,18 @@ use Illuminate\Database\Seeder;
  */
 class ProgramTypesSeeder extends Seeder
 {
-    public const TYPES = ['training-courses' => 'الدورات التدريبية', 'scientific-councils' => 'المجالس العلمية'];
+    // وأنواع برامج المكتبة الثلاثة (قرار صفوان، 31 أكتوبر 19:33 — LibraryProgramKind)، فتصير تبويبات «الدورات والبرامج» ستة من البيانات
+    public const TYPES = [
+        'training-courses' => 'الدورات التدريبية',
+        'scientific-councils' => 'المجالس العلمية',
+        'book-reading' => 'قراءة الكتب',
+        'audio-listening' => 'الاستماع',
+        'video-watching' => 'المشاهدة',
+    ];
 
     public function run(): void
     {
-        foreach (array_keys(ProgramType::HUB) as $sort => $slug) {
+        foreach (array_keys(self::TYPES) as $sort => $slug) {
             ProgramType::query()->firstOrCreate(['slug' => $slug], ['name' => self::TYPES[$slug], 'sort' => $sort + 1]);
         }
     }

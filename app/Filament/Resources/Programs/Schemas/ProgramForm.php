@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\Programs\Schemas;
 
+use App\Enums\LibraryProgramKind;
+use App\Enums\LibrarySection;
 use App\Enums\ProgramDelivery;
 use App\Filament\Forms\ContentFields;
 use App\Filament\Forms\FormFieldsRepeater;
+use App\Models\LibraryItem;
 use App\Models\Program;
 use App\Models\ProgramType;
 use App\Rules\SafeUrl;
@@ -14,6 +17,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class ProgramForm
@@ -26,7 +30,17 @@ class ProgramForm
                 ContentFields::slug(),
                 Select::make('program_type_id')->label(__('programs.admin.fields.type'))
                     ->options(fn (): array => ProgramType::query()->ordered()->pluck('name', 'id')->all())
-                    ->required(),
+                    ->required()
+                    ->live(),
+                // عنصر المكتبة لبرامج المكتبة وحدها، من قسم نوعها (SaveProgram يفحصه لكل مستدعٍ — docs/decisions/2026-11-02-reading-program.md)
+                Select::make('library_item_id')->label(__('programs.library.item'))->helperText(__('programs.library.item_hint'))
+                    ->visible(fn (Get $get): bool => self::kind($get('program_type_id')) !== null)
+                    ->required(fn (Get $get): bool => self::kind($get('program_type_id')) !== null)
+                    ->searchable()
+                    ->options(fn (Get $get): array => ($kind = self::kind($get('program_type_id'))) === null ? [] : LibraryItem::query()->published()
+                        ->whereIn('section', array_map(fn (LibrarySection $section): string => $section->value, $kind->sections()))
+                        ->orderBy('title')->limit(500)->pluck('title', 'id')->all())
+                    ->columnSpanFull(),
                 Select::make('initiative_id')->label(__('programs.admin.fields.initiative'))->relationship('initiative', 'name'),
                 Textarea::make('summary')->label(__('programs.admin.fields.summary'))->rows(2)->maxLength(500)->columnSpanFull(),
                 Textarea::make('description')->label(__('programs.admin.fields.description'))->rows(8)->maxLength(10000)->columnSpanFull(),
@@ -37,6 +51,7 @@ class ProgramForm
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
             Section::make(__('programs.admin.sections.schedule'))->columns(2)->columnSpanFull()->schema([
+                // وبرنامج المكتبة يبقى مفتوحاً بعد بدئه حتى نهايته الاختيارية
                 DateTimePicker::make('starts_at')->label(__('programs.admin.fields.starts_at'))->seconds(false)->required(),
                 DateTimePicker::make('ends_at')->label(__('programs.admin.fields.ends_at'))->seconds(false)->afterOrEqual('starts_at'),
                 Select::make('delivery')->label(__('programs.admin.fields.delivery'))->options(ProgramDelivery::class)->required(),
@@ -57,5 +72,10 @@ class ProgramForm
                 ->columnSpanFull()
                 ->schema([FormFieldsRepeater::make(allowFiles: false)]),
         ]);
+    }
+
+    private static function kind(mixed $typeId): ?LibraryProgramKind
+    {
+        return blank($typeId) ? null : LibraryProgramKind::tryFrom((string) ProgramType::query()->whereKey($typeId)->value('slug'));
     }
 }

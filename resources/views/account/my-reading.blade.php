@@ -44,10 +44,11 @@
         @endforeach
 
         {{-- صاحب الحساب يمسح سجله متى شاء (docs/decisions/2026-11-01-my-reading.md — الخصوصية) --}}
-        <form method="POST" action="{{ route('account.my-reading.clear') }}" data-confirm="{{ __('reading.clear_confirm') }}"
+        {{-- وتقدّم برامج المكتبة غير المُتمّة يعود إلى الصفر معه، فيُنبَّه قبل المسح (docs/decisions/2026-11-02-reading-program.md) --}}
+        <form method="POST" action="{{ route('account.my-reading.clear') }}" data-confirm="{{ __('reading.clear_confirm') }} {{ __('reading.clear_programs_warning') }}"
             class="flex flex-wrap items-center justify-between gap-3 concept-panel rounded-[1.25rem] p-5 sm:p-6" data-reading-clear>
             @csrf
-            <p class="text-sm text-muted">{{ __('reading.clear_hint') }}</p>
+            <p class="text-sm text-muted">{{ __('reading.clear_hint') }} <span data-reading-clear-programs>{{ __('reading.clear_programs_warning') }}</span></p>
             <x-button variant="outline">{{ __('reading.clear') }}</x-button>
         </form>
     @endif

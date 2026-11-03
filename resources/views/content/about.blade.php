@@ -39,7 +39,7 @@
             @endforeach
         </x-marquee>
     </section>
-@elseif (! app()->isProduction())
+@elseif (\App\Support\MissingText::visible())
     {{-- مجلس الإدارة لا يظهر في الموقع حتى تُدخل أسماؤه بموافقة أصحابها --}}
     <div class="container-page py-8">
         <x-missing :what="__('content.about.board_missing')" />

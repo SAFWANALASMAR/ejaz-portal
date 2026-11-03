@@ -9,6 +9,7 @@ use App\Rules\PlainText;
 use App\Rules\SafeUrl;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -25,6 +26,9 @@ class AnnouncementForm
         return $schema->components([
             Section::make()->columns(2)->columnSpanFull()->schema([
                 TextInput::make('title')->label(__('announcements.fields.title'))->required()->maxLength(150)->rule(new PlainText)->columnSpanFull(),
+                // وصف قصير بسطرين في شريحة الرئيسية (ملاحظة صفوان ٣٠)
+                Textarea::make('summary')->label(__('announcements.fields.summary'))->helperText(__('announcements.fields.summary_hint'))
+                    ->rows(2)->maxLength(300)->rule(new PlainText)->columnSpanFull(),
                 ContentFields::image('image', Announcement::IMAGE_DIRECTORY)
                     ->label(__('announcements.fields.image'))
                     ->helperText(__('announcements.fields.image_hint'))

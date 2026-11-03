@@ -34,7 +34,7 @@ it('keeps the plain heading markup unchanged', function () {
 
 it('prints raw output only in the templates documented as exceptions', function () {
     $raw = collect(Finder::create()->files()->in(resource_path('views'))->name('*.blade.php'))
-        ->filter(fn (SplFileInfo $file): bool => str_contains((string) preg_replace('/\{\{--.*?--\}\}/s', '', $file->getContents()), '{!!'))
+        ->filter(fn (SplFileInfo $file): bool => rawOutputIn($file->getContents()))
         ->map(fn (SplFileInfo $file): string => $file->getRelativePathname())
         ->sort()->values()->all();
 
@@ -45,3 +45,36 @@ it('prints raw output only in the templates documented as exceptions', function 
         expect($policy)->toContain($file);
     }
 });
+
+/**
+ * في القالب طباعة خام بعد حذف تعليقات Blade: {!! !!}، أو echo أو print في @php، أو وسم PHP مباشر (<?php و<?=).
+ * وما لا يلتقطه مكتوب حدّه في docs/security.md.
+ */
+function rawOutputIn(string $template): bool
+{
+    $code = (string) preg_replace('/\{\{--.*?--\}\}/s', '', $template);
+
+    return str_contains($code, '{!!')
+        // echo وprint عبارتين، لا جزءاً من اسم (heroicon-o-finger-print) ولا متغيراً ولا خاصية
+        || preg_match('/@php\b(?:(?!@endphp).)*(?<![\w$>-])(?:echo|print)(?=[\s(])/s', $code) === 1
+        || preg_match('/<\?(?:php\b|=)/', $code) === 1;
+}
+
+it('catches raw output written as echo in a php block or as a php tag, not only as {!! !!}', function (string $template) {
+    expect(rawOutputIn($template))->toBeTrue();
+})->with([
+    'braces' => ['<p>{!! $html !!}</p>'],
+    'echo in @php' => ["@php\n    echo \$html;\n@endphp"],
+    'print in inline @php' => ['@php(print $html)'],
+    'php tag' => ['<?php echo $html; ?>'],
+    'short echo tag' => ['<?= $html ?>'],
+]);
+
+it('does not flag escaped output, comments, or a php block without echo', function (string $template) {
+    expect(rawOutputIn($template))->toBeFalse();
+})->with([
+    'escaped' => ['<p>{{ $title }}</p>'],
+    'blade comment' => ['{{-- لا {!! !!} هنا --}}'],
+    'php block' => ["@php\n    \$echoed = e(\$title);\n@endphp"],
+    'icon name with print' => ["@php\n    \$icons = ['heroicon-o-finger-print', \$this->print];\n@endphp"],
+]);

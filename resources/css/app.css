@@ -8,6 +8,8 @@
 @import './visual.css';
 /* التصور النهائي الملزم (docs/design/final-concept) فوق ما قبله */
 @import './concept.css';
+/* الإعلانات والأخبار في الرئيسية (ملاحظة صفوان ٣٠): أصناف مستقلة عن ألوان الملاحظة ٢٩ */
+@import './feed.css';
 
 @source '../views';
 @source '../js';

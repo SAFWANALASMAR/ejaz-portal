@@ -89,6 +89,7 @@ return [
         'payment_webhook_rejected' => 'رفض إشعار دفع بتوقيع غير صحيح',
         'payment_mismatch' => 'نتيجة دفع لا تطابق سجلها (مبلغ أو عملة أو استرداد جزئي)',
         'live_stream_archived' => 'نقل تسجيل بث إلى المكتبة المرئية',
+        'program_completed' => 'إتمام برنامج مكتبة',
         'assistant_key_changed' => 'تغيير مفتاح مزود المساعد',
         'assistant_answer_flagged' => 'تعليم إجابة المساعد',
         'stats_analysis_requested' => 'طلب تحليل الإحصائيات بالذكاء الاصطناعي',

@@ -1,10 +1,10 @@
-{{-- «البرامج المسجل بها»: تسجيلات المستخدم بحالاتها، وإلغاء التسجيل قبل بدء البرنامج --}}
+{{-- «البرامج المسجل بها»: تسجيلات المستخدم بحالاتها، وإلغاء التسجيل قبل بدء البرنامج. وبرامج المكتبة بتقدّمها بشريط، ثم «برامج أتممتها» --}}
 @php
     use App\Support\Dates;
 @endphp
 
 <x-layouts.account :title="__('programs.mine.title')">
-    @if ($registrations->isEmpty())
+    @if ($registrations->isEmpty() && $completed->isEmpty())
         <x-card>
             <x-empty-state icon="academic-cap" :message="__('programs.mine.empty')" />
             <x-button class="mt-4" variant="outline" :href="route('programs.index')" arrow>{{ __('programs.mine.browse') }}</x-button>
@@ -13,7 +13,7 @@
         <ul class="space-y-3">
             @foreach ($registrations as $registration)
                 <li class="flex flex-wrap items-center justify-between gap-3 p-5 concept-panel">
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1 basis-60">
                         @if ($registration->program->is_published && ! $registration->program->trashed())
                             <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
                         @else
@@ -21,7 +21,9 @@
                         @endif
                         <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
                             <span>{{ $registration->program->type->name }}</span>
-                            <span>{{ Dates::display($registration->program->starts_at, withTime: true) }}</span>
+                            @unless ($registration->program->isLibraryProgram())
+                                <span>{{ Dates::display($registration->program->starts_at, withTime: true) }}</span>
+                            @endunless
                             @if ($registration->attended_at)
                                 <span class="text-primary">{{ __('programs.mine.attended') }}</span>
                             @endif
@@ -32,6 +34,13 @@
                                 </a>
                             @endif
                         </p>
+                        {{-- تقدّم برنامج المكتبة من سجل «قراءاتي» (LibraryProgramProgress) --}}
+                        @if ($registration->program->libraryKind() !== null && $registration->program->libraryItem !== null && $registration->status === \App\Enums\RegistrationStatus::Confirmed)
+                            @php($percent = \App\Support\LibraryProgramProgress::for($registration->program, auth()->user(), $registration, $progress[$registration->program->library_item_id] ?? false)->percent())
+                            <progress max="100" value="{{ $percent }}" data-my-program-progress aria-label="{{ __('programs.library.progress', ['title' => $registration->program->libraryItem->title]) }}"
+                                class="mt-3 block h-2 w-full appearance-none overflow-hidden rounded-full bg-primary-soft text-primary forced-colors:appearance-auto [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-current [&::-webkit-progress-bar]:bg-primary-soft [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-current">{{ $percent }}%</progress>
+                            <p class="mt-1 text-xs text-muted">{{ __('programs.library.percent', ['percent' => $percent]) }}</p>
+                        @endif
                     </div>
                     <div class="flex items-center gap-3">
                         @include('account.requests.status', ['status' => $registration->status])
@@ -47,5 +56,28 @@
         </ul>
 
         {{ $registrations->links('partials.pagination') }}
+
+        @if ($completed->isNotEmpty())
+            <h2 class="mt-8 mb-3 text-lg font-black text-primary-dark" data-my-programs-completed>{{ __('programs.mine.completed_title') }}</h2>
+            <ul class="space-y-3">
+                @foreach ($completed as $registration)
+                    <li class="flex flex-wrap items-center justify-between gap-3 p-5 concept-panel">
+                        <div class="min-w-0">
+                            <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
+                            <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+                                <span>{{ $registration->program->type->name }}</span>
+                                <span>{{ __('programs.mine.completed_on', ['date' => Dates::display($registration->completed_at)]) }}</span>
+                            </p>
+                        </div>
+                        @if ($registration->certificate_path)
+                            <a href="{{ route('account.programs.certificate', $registration) }}" class="inline-flex items-center gap-1 text-sm text-primary underline decoration-accent underline-offset-4">
+                                {{ \App\Support\Icon::svg('arrow-down-tray', 'size-4') }}
+                                {{ __('programs.library.certificate') }}
+                            </a>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
     @endif
 </x-layouts.account>

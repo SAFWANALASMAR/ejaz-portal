@@ -33,7 +33,7 @@ class IssueEvidenceLink
 
         // انتهاء إلزامي لا يتجاوز سنة من الإصدار، فلا يبقى رابط سري صالحاً بلا حد إن تسرّب (المراجعة الأمنية بعد v0.14.2)
         $validated = Validator::make(['expires_at' => $expiresAt], [
-            'expires_at' => ['required', 'date', 'after:now', 'before_or_equal:'.now()->addDays(EvidenceGallery::MAX_LINK_DAYS)->toDateTimeString()],
+            'expires_at' => ['required', 'date', 'after:now', 'before_or_equal:'.EvidenceGallery::latestExpiry()->utc()->toDateTimeString()],
         ], attributes: ['expires_at' => __('evidence.fields.expires_at')])->validate();
 
         $token = Str::random(EvidenceGallery::TOKEN_LENGTH);

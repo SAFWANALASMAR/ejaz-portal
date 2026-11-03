@@ -3,11 +3,14 @@
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Contracts\ProgramStatsSource;
+use App\Enums\LibraryProgramKind;
 use App\Enums\RoleName;
 use App\Filament\Widgets\ProgramStatsByTypeWidget;
 use App\Models\AssemblyMembership;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
+use App\Models\LibraryItem;
+use App\Models\LibraryProgress;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
@@ -16,10 +19,8 @@ use App\Support\HomePortalStats;
 use App\Support\ProgramStats\CompetitionsSource;
 use App\Support\ProgramStats\ProgramTypesSource;
 use App\Support\ProgramStatsByType;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
-use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 
 /*
@@ -241,16 +242,45 @@ it('leaves the chart out of the admin dashboard for staff without stats.view', f
         ->assertSee(__('program_stats.heading'));
 });
 
-it('counts a registration completed by its holder (completed_at, library programs from #126) as completed', function () {
-    // العمود يأتي مع #126، فيُضاف هنا داخل معاملة الاختبار إن لم يوجد بعد
-    if (! Schema::hasColumn('program_registrations', 'completed_at')) {
-        Schema::table('program_registrations', fn (Blueprint $table) => $table->timestamp('completed_at')->nullable());
-    }
+it('takes the library programs from their own source: completions, pages for reading and minutes for listening', function () {
+    $reading = ProgramType::factory()->create(['slug' => LibraryProgramKind::Reading->value, 'name' => 'قراءة كتاب', 'sort' => 3]);
+    $listening = ProgramType::factory()->create(['slug' => LibraryProgramKind::Listening->value, 'name' => 'الاستماع إلى مادة', 'sort' => 4]);
+    $reader = User::factory()->create();
+    $listener = User::factory()->create();
 
+    $book = LibraryItem::factory()->create(['page_count' => 4]);
+    $readingProgram = Program::factory()->for($reading, 'type')->create(['library_item_id' => $book->id]);
+    // صفحات البرنامج في التسجيل نفسه، بعد التسجيل وحده (مراجعة المشرف على #126)
+    ProgramRegistration::factory()->for($readingProgram)->for($reader)->create()->forceFill(['completed_at' => now(), 'started_at' => now(), 'pages_seen' => '1-4', 'pages_count' => 4])->save();
+    ProgramRegistration::factory()->for($readingProgram)->create();
+    LibraryProgress::query()->forceCreate(['user_id' => $reader->id, 'library_item_id' => $book->id, 'pages_seen' => '1-4', 'pages_count' => 4, 'total_pages' => 4, 'last_reported_at' => now()]);
+
+    $audio = LibraryItem::factory()->audio()->create();
+    $listeningProgram = Program::factory()->for($listening, 'type')->create(['library_item_id' => $audio->id]);
+    ProgramRegistration::factory()->for($listeningProgram)->for($listener)->create();
+    LibraryProgress::query()->forceCreate(['user_id' => $listener->id, 'library_item_id' => $audio->id, 'seconds_consumed' => 300, 'last_reported_at' => now()]);
+
+    $this->artisan('ejaz:refresh-stats')->assertSuccessful();
+    $rows = programStatsRows();
+
+    expect($rows[LibraryProgramKind::Reading->value])->toMatchArray(['label' => 'قراءة كتاب', 'registered' => 2, 'completed' => 1, 'rate' => 50, 'pages' => 4, 'minutes' => null])
+        ->and($rows[LibraryProgramKind::Listening->value])->toMatchArray(['registered' => 1, 'completed' => 0, 'pages' => null, 'minutes' => 5])
+        // صف المسابقات من مصدره وحده، وأنواع البرامج الأخرى بلا صفحات ولا دقائق
+        ->and(array_keys($rows))->toBe(['training-courses', 'scientific-councils', LibraryProgramKind::Reading->value, LibraryProgramKind::Listening->value, CompetitionsSource::KEY])
+        ->and($rows['training-courses']['pages'])->toBeNull();
+
+    $board = userWithRole(RoleName::BoardMember);
+    AssemblyMembership::factory()->for($board)->create();
+    $this->actingAs($board)->get('/assembly')->assertOk()
+        ->assertSee(__('program_stats.pages'))
+        ->assertSee(__('program_stats.minutes'));
+});
+
+it('counts a completed library registration as completed even from the generic program types source', function () {
     $program = Program::factory()->for($this->courses, 'type')->create();
-    ProgramRegistration::factory()->for($program)->create();
-    $done = ProgramRegistration::factory()->for($program)->create();
-    DB::table('program_registrations')->where('id', $done->id)->update(['completed_at' => now()]);
+    ProgramRegistration::factory()->for($program)->create()->forceFill(['completed_at' => now()])->save();
 
-    expect(collect((new ProgramTypesSource)->rows())->keyBy('key')['training-courses'])->toMatchArray(['registered' => 2, 'completed' => 1]);
+    $row = collect((new ProgramTypesSource)->rows())->keyBy('key')['training-courses'];
+
+    expect($row)->toMatchArray(['registered' => 1, 'completed' => 1]);
 });

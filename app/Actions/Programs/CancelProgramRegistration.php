@@ -3,6 +3,7 @@
 namespace App\Actions\Programs;
 
 use App\Enums\RegistrationStatus;
+use App\Models\LibraryProgress;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\User;
@@ -36,7 +37,10 @@ class CancelProgramRegistration
         ProgramRegistration::query()
             ->whereBelongsTo($user)
             ->where('status', '!=', RegistrationStatus::Cancelled->value)
-            ->whereHas('program', fn ($program) => $program->where('starts_at', '>', now()))
+            // وبرامج المكتبة المفتوحة التي لم يُتمّها، فتتحرر مقاعدها كذلك
+            ->whereHas('program', fn ($program) => $program->where(fn ($open) => $open->where('starts_at', '>', now())
+                ->orWhere(fn ($library) => $library->whereNotNull('library_item_id')->where(fn ($end) => $end->whereNull('ends_at')->orWhere('ends_at', '>', now())))))
+            ->whereNull('completed_at')
             ->get()
             ->each(fn (ProgramRegistration $registration) => $this->release($registration));
     }
@@ -72,6 +76,17 @@ class CancelProgramRegistration
 
             if ($next !== null) {
                 $next->update(['status' => RegistrationStatus::Confirmed, 'waitlisted_at' => null]);
+
+                // وبرنامج المكتبة يبدأ للمنتظر من ترقيته: لا يُحسب تقدّمه قبلها (مراجعة المشرف على #126)
+                if ($program->isLibraryProgram()) {
+                    $next->forceFill([
+                        'started_at' => now(),
+                        'opened_at' => null,
+                        'pages_seen' => null,
+                        'pages_count' => 0,
+                        'seconds_baseline' => (int) LibraryProgress::query()->where('user_id', $next->user_id)->where('library_item_id', $program->library_item_id)->value('seconds_consumed'),
+                    ])->save();
+                }
                 $next->user->notify(new ProgramRegistrationChanged($next, ProgramRegistrationChanged::PROMOTED));
             }
         });
