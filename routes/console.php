@@ -32,7 +32,10 @@ Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping()->onOneServer();
 
 // شريحة البراهين في الرئيسية بحالتها: تُمسح الرئيسية المخزّنة حين يعبر الوقت موعد الفتح أو الإغلاق (ملاحظة صفوان ٣٠)
-Schedule::call(fn () => HomeShowcase::forgetHomeAtCompetitionBoundary(now()->subMinutes(2)))
+// والدالة ترد false حين لا موعد عابر، وLaravel يعدّ الرد false فشلاً فيسجل خطأ كل دقيقة، فالإغلاق لا يرد شيئاً
+Schedule::call(function (): void {
+    HomeShowcase::forgetHomeAtCompetitionBoundary(now()->subMinutes(2));
+})
     ->everyMinute()
     ->name('home-competition-boundary')
     ->onOneServer();
