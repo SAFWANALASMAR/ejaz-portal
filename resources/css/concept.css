@@ -902,7 +902,7 @@ html {
 
 @media (min-width: 77.5rem) {
     html {
-        scroll-padding-top: 12.5rem;
+        scroll-padding-top: 13.75rem;
     }
 }
 
@@ -1024,6 +1024,12 @@ html {
     .header-top .header-actions {
         margin-inline-start: 0;
     }
+
+    /* المخطوطة أكبر من 1280 (طلب صفوان، 3 نوفمبر 2026 بعد اعتماد التوازن: «كبّر المخطوطة»): حتى 100 بكسل ارتفاعاً
+       (نحو 658 عرضاً بنسبة 6.58)، من عرض الصف نفسه، والفراغات الثلاثة تبقى متساوية بتوزيع space-between */
+    .masthead-calligraphy {
+        height: clamp(5rem, 7.8cqi, 6.25rem);
+    }
 }
 
 @media (min-width: 96rem) {
@@ -1032,7 +1038,7 @@ html {
     }
 
     .masthead-calligraphy {
-        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5.25rem);
+        height: clamp(5rem, 7.8cqi, 6.75rem);
     }
 }
 
