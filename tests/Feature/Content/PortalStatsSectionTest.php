@@ -156,26 +156,36 @@ it('shows the library cards after the visits and registrants, by the number of r
     expect($html)->toContain('data-count-to="3"')->toContain('data-count-to="2"')->not->toContain('data-count-to="1234"');
 });
 
-it('hides each library card at zero, and keeps a store from before the library cards', function () {
+// توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): البطاقات الأربع معاً 2×2 كما كانت، والصفر
+// رقمها الحقيقي. كانت كل بطاقة صفرية تُخفى، فبقيت بطاقتان في العرض الذي لا قراءة فيه في «قراءاتي» بعد
+it('shows the four cards together, a library card at its real zero, and keeps a store from before the library cards', function () {
     visitsOn(0, 9);
-    // تقدّم بلا صفحة ولا ثانية: لا بطاقة
+    // تقدّم بلا صفحة ولا ثانية: قراءة ومشاهدة بصفر، والبطاقتان ظاهرتان برقمهما
     libraryProgressOf(User::factory()->create(), LibraryItem::factory()->create());
     $this->artisan('ejaz:refresh-stats');
 
-    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.visits'))
-        ->assertDontSee(__('home.portal_stats.book_reads'))->assertDontSee(__('home.portal_stats.media_views'));
+    $html = $this->get('/')->assertOk()
+        ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.book_reads'), __('home.portal_stats.media_views')])
+        ->getContent();
+    $section = (string) str($html)->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(3)
+        ->and($section)->toContain('data-count-to="9"');
 
-    // مشاهدة بلا قراءة: بطاقة المشاهدات وحدها
+    // مشاهدة بلا قراءة: المشاهدات برقمها، والقراءات بصفر
     libraryProgressOf(User::factory()->create(), LibraryItem::factory()->audio()->create(), seconds: 120);
     $this->artisan('ejaz:refresh-stats');
-    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.media_views'))->assertDontSee(__('home.portal_stats.book_reads'));
+    $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(2)
+        ->and(substr_count($section, 'data-count-to="1"'))->toBe(1);
 
-    // المخزّن بشكله السابق (بالصفحات والدقائق، أو بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي
+    // المخزّن بشكله السابق (بالصفحات والدقائق، أو بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي، لا برقم الصفحات القديم
     Cache::forever(HomePortalStats::KEY, ['visits' => 9, 'registrants' => 0, 'pages_read' => 1234, 'media_minutes' => 13, 'days' => [9]]);
     ContentCache::flush();
     expect(HomePortalStats::cached())->toBe(['visits' => 9, 'registrants' => 0, 'book_reads' => 0, 'media_views' => 0, 'days' => [9]]);
     $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.visits'))
-        ->assertDontSee(__('home.portal_stats.media_views'))->assertDontSee('data-count-to="1234"', false);
+        ->assertSee(__('home.portal_stats.media_views'))->assertDontSee('data-count-to="1234"', false)->assertDontSee('data-count-to="13"', false);
 });
 
 it('keeps aggregates alone, with no personal data in the store or the page', function () {

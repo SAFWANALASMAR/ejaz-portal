@@ -1,6 +1,8 @@
 // الرأس النهائي (ترتيب صفوان، 2 نوفمبر 2026 — docs/decisions/2026-11-02-header-final.md، ويلغي البند ٢٥ من ملاحظات 1 نوفمبر):
 // صفّان ثابتان معاً عند التمرير بلا أي صغر. الصف الأول بعرض الشاشة بهامش صغير: الرمز في أقصى اليمين، والمخطوطة في منتصف الشاشة،
 // ومربع الترخيص بجانبها من اليسار بفاصل صغير، والدخول والبحث في أقصى اليسار. والصف الثاني القائمة بكبسولاتها.
+// ومن 1240 ترتيب المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): الرمز والمخطوطة والمربع كتلة يميناً
+// مزاحة قليلاً عن الحافة، والبحث والدخول يساراً مزاحان كذلك.
 // اللقطات: docs/design/screenshots/header-final/<العرض>-top.png و<العرض>-scrolled.png
 import { expect, test } from '@playwright/test';
 
@@ -64,12 +66,16 @@ for (const width of WIDTHS) {
         expect(top.dir).toBe('rtl');
         expect(top.noHorizontalScroll).toBe(true);
 
-        // الرمز في أقصى اليمين بهامش صغير
-        expect(vw - top.mark.right).toBeLessThanOrEqual(24);
-        expect(vw - top.mark.right).toBeGreaterThanOrEqual(8);
+        // الرمز في أقصى اليمين بهامش صغير، ومن 1240 مزاح قليلاً نحو الداخل (توجيه المدير التنفيذي، 3 نوفمبر 2026 —
+        // director-home-2026-11-03.spec.mjs)
+        const inset = width >= 1240 ? [36, 80] : [8, 24];
+        expect(vw - top.mark.right).toBeLessThanOrEqual(inset[1]);
+        expect(vw - top.mark.right).toBeGreaterThanOrEqual(inset[0]);
 
-        if (width >= 1280) {
-            // من 1280 لا تُشترط في منتصف الشاشة: الفراغات الثلاثة متساوية (تعديل المشرف على طلب الدمج 149 — header-center.spec.mjs)
+        if (width >= 1240) {
+            // من 1240 لا تُشترط في منتصف الشاشة: الرمز والمخطوطة والمربع كتلة يميناً (توجيه المدير، ويحل محل الفراغات المتساوية في #154)
+            expect(top.mark.left - top.calligraphy.right).toBeGreaterThanOrEqual(8);
+            expect(top.mark.left - top.calligraphy.right).toBeLessThanOrEqual(24);
         } else if (width >= 800) {
             // المخطوطة في منتصف الشاشة
             expect(Math.abs((top.calligraphy.left + top.calligraphy.right) / 2 - vw / 2)).toBeLessThanOrEqual(3);
@@ -87,21 +93,15 @@ for (const width of WIDTHS) {
             expect(top.capsules).toBe(7);
             expect(top.burger).toBeNull();
 
-            // مربع الترخيص يسار المخطوطة: بجانبها بفاصل صغير دون 1280، ومن 1280 الفراغات الثلاثة متساوية: الرمز إلى المخطوطة،
-            // والمخطوطة إلى المربع، والمربع إلى البحث (طلب صفوان وتعديل المشرف، 3 نوفمبر 2026 — header-center.spec.mjs)
+            // مربع الترخيص يسار المخطوطة قريباً جداً منها (توجيه المدير التنفيذي، 3 نوفمبر 2026)
             expect(top.licence).not.toBeNull();
             const gap = top.calligraphy.left - top.licence.right;
             expect(gap).toBeGreaterThanOrEqual(4);
-            if (width >= 1280) {
-                const gaps = [top.mark.left - top.calligraphy.right, gap, top.licence.left - top.search.right];
-                expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(8);
-            } else {
-                expect(gap).toBeLessThanOrEqual(24);
-            }
+            expect(gap).toBeLessThanOrEqual(16);
 
-            // الدخول في أقصى اليسار بهامش صغير، والبحث بجانبه، وكلاهما يسار مربع الترخيص
-            expect(top.login.left).toBeLessThanOrEqual(24);
-            expect(top.login.left).toBeGreaterThanOrEqual(8);
+            // الدخول في اليسار مزاحاً قليلاً عن الحافة، والبحث بجانبه، وكلاهما يسار مربع الترخيص
+            expect(top.login.left).toBeLessThanOrEqual(80);
+            expect(top.login.left).toBeGreaterThanOrEqual(36);
             expect(top.search.left - top.login.right).toBeGreaterThanOrEqual(0);
             expect(top.search.left - top.login.right).toBeLessThanOrEqual(16);
             expect(top.licence.left).toBeGreaterThanOrEqual(top.search.right);

@@ -325,8 +325,10 @@ class BuildHomePage
     }
 
     /**
-     * بطاقات الأرقام الآلية: الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات. والصفر
-     * لا يظهر، فلا تُعرض بطاقة فارغة قبل أول زيارة أو تسجيل أو قراءة.
+     * بطاقات الأرقام الآلية الأربع معاً (2×2): الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات.
+     * تظهر الأربع متى كان في إحداها رقم، والصفر فيها رقمه الحقيقي (توجيه المدير التنفيذي، 3 نوفمبر 2026 —
+     * docs/decisions/2026-11-03-director-home.md): كانت كل بطاقة صفرية تُخفى، فلم يبق في العرض بلا قراءة في «قراءاتي» إلا
+     * بطاقتان. وكلها صفر (قبل أول زيارة أو تسجيل أو قراءة) لا بطاقة.
      *
      * @param  array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}|null  $portal
      * @return list<array{label: string, value: int, suffix: string, icon: string|null}>
@@ -344,7 +346,7 @@ class BuildHomePage
             ['label' => __('home.portal_stats.media_views'), 'value' => $portal['media_views'], 'suffix' => '', 'icon' => SiteIcon::VideoCamera->value],
         ];
 
-        return array_values(array_filter($cards, fn (array $card): bool => $card['value'] > 0));
+        return max(array_column($cards, 'value')) > 0 ? $cards : [];
     }
 
     /**

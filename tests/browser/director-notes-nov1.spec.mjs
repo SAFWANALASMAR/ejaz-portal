@@ -73,12 +73,9 @@ test('home: the five cards link to their pages, rotate with blue icons and the s
     expect(tile).toContain('gradient');
 
     if (testInfo.project.name === 'desktop') {
-        // ثلاث بطاقات في الصف الأول واثنتان عريضتان في الثاني
+        // الخمس في صف واحد (توجيه المدير التنفيذي، 3 نوفمبر 2026 — director-home-2026-11-03.spec.mjs)، بدل ثلاث ثم اثنتين
         const tops = await page.evaluate(() => ['vision', 'goals', 'values', 'principles', 'initiatives'].map((key) => Math.round(document.querySelector(`[data-identity-card="${key}"]`).getBoundingClientRect().top)));
-        expect(tops[0]).toBe(tops[1]);
-        expect(tops[1]).toBe(tops[2]);
-        expect(tops[3]).toBeGreaterThan(tops[0]);
-        expect(tops[3]).toBe(tops[4]);
+        expect(new Set(tops).size).toBe(1);
     }
 
     await cards.scrollIntoViewIfNeeded();

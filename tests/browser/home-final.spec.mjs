@@ -30,9 +30,9 @@ test('home: the five cards in order, one row on desktop and a moving row on mobi
         }));
 
     if (info.project.name === 'desktop') {
-        // ثلاث في الصف الأول ثم اثنتان أعرض في الثاني، كاللوحة الأولى من ملف التصور (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٧)
-        expect(new Set(boxes.map((box) => box.top)).size, 'صفان').toBe(2);
-        expect(boxes[3].width, 'مبادئنا ومبادراتنا أعرض').toBeGreaterThan(boxes[0].width);
+        // الخمس صف واحد بعرض واحد (توجيه المدير التنفيذي، 3 نوفمبر 2026 — director-home-2026-11-03.spec.mjs)، بدل ثلاث ثم اثنتين
+        expect(new Set(boxes.map((box) => box.top)).size, 'صف واحد').toBe(1);
+        expect(Math.abs(boxes[3].width - boxes[0].width), 'عرض واحد').toBeLessThanOrEqual(2);
         for (const box of boxes) {
             expect(Math.abs(box.height - 168)).toBeLessThanOrEqual(2);
         }
