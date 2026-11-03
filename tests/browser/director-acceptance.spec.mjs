@@ -1132,7 +1132,7 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         await visit(page, '/');
         let items;
         if (testInfo.project.name === 'desktop') {
-            items = page.locator('[data-main-nav] > ul > li > .nav-capsule');
+            items = page.locator('[data-main-nav] ul.nav-capsules > li > .nav-capsule');
         } else {
             await page.locator('[data-toggle="mobile-menu"]').click();
             items = page.locator('#mobile-menu nav > ul > li > :is(a, button)');
@@ -1176,7 +1176,7 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         expect(children['الحوكمة'].length, 'الحوكمة وتصنيفاتها').toBeGreaterThanOrEqual(2);
     });
 
-    test('R2 و١ و٢٥: two sticky rows, the licence box with its number, no supervision line, and the whole header shrinks on scroll', async ({ page }, testInfo) => {
+    test('R2 و١ و٢٥: two sticky rows, the licence box with its number, no supervision line, and the header keeps its size on scroll (#130)', async ({ page }, testInfo) => {
         await visit(page, '/');
         const header = page.locator('[data-site-header]');
         expect(await header.evaluate((el) => [getComputedStyle(el).position, getComputedStyle(el).top])).toEqual(['sticky', '0px']);
@@ -1201,7 +1201,8 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         await page.waitForTimeout(800);
         const scrolled = await header.evaluate((el) => ({ top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height }));
         expect(scrolled.top, 'ثابت في أعلى الشاشة').toBe(0);
-        expect(scrolled.height, 'يصغر كله بتناسب (البند ٢٥)').toBeLessThan(top);
+        // ألغى صفوان التصغير (2 نوفمبر، #130): الرأس ثابت الحجم عند التمرير.
+        expect(Math.abs(scrolled.height - top), 'لا يصغر عند التمرير (#130)').toBeLessThanOrEqual(1);
         if (testInfo.project.name === 'desktop') {
             await expect(header.locator('[data-main-nav]')).toBeVisible();
         }
