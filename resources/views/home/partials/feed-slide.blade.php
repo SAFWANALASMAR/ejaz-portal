@@ -12,7 +12,7 @@
     </svg>
 
     <span data-slide-media @class(['feed-slide-media', 'feed-slide-media-cover' => $slide['cover']])>
-        <img src="{{ $slide['image'] }}" alt="" loading="lazy" width="480" height="360" class="size-full object-cover">
+        <img src="{{ $slide['image'] }}" alt="" loading="lazy" width="400" height="300" class="size-full object-cover">
         @if ($slide['cover'])
             {{-- غلاف بهوية الجمعية حين لا صورة: نقشها ورمز شعارها الأبيض --}}
             <img src="{{ asset('images/brand/logo-mark-white.png') }}" alt="" loading="lazy" width="495" height="505" class="feed-slide-mark">
