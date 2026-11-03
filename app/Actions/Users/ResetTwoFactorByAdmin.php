@@ -7,8 +7,10 @@ use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Notifications\TwoFactorResetByAdmin;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -23,6 +25,11 @@ use Illuminate\Validation\ValidationException;
  * مخزنها (sessions_revoked_at — EnsureAccountIsActive)، في معاملة واحدة مع سجل العمليات: المنفّذ والحساب والسبب، بلا سر ولا
  * رمز. ثم يُبلَّغ صاحب الحساب بالبريد في الطابور بعد اعتماد المعاملة. ومن يشترط دوره التحقق الثنائي يُحوَّل إلى تفعيله قبل
  * اللوحة (EnsureTwoFactorIsEnabled).
+ *
+ * وتُبطَل كلمة المرور معه (قرار المشرف بعد المراجعة الأمنية، 3 نوفمبر 2026): من عرف كلمة مرور غيره وادّعى فقد جواله لا
+ * يدخل بها بعد إعادة الضبط. تُستبدل بتجزئة عشوائية لا يعرفها أحد، ويُعلَّم الحساب must_set_password_at، ويُرسل رابط
+ * تعيين كلمة المرور (وسيط الاستعادة نفسه ومدته) إلى البريد الموثق وحده. فلا دخول ولا تفعيل لتطبيق المصادقة حتى تُعيَّن
+ * برابط البريد (ResetUserPassword يرفع العلامة). والحساب بلا بريد موثق لا يُعاد ضبطه.
  */
 class ResetTwoFactorByAdmin
 {
@@ -56,6 +63,8 @@ class ResetTwoFactorByAdmin
         if (! $actor->can('resetTwoFactor', $user)) {
             throw new AuthorizationException;
         }
+
+        self::ensureVerifiedEmail($user);
 
         $data = Validator::make($input, self::rules(), [], [
             'password' => __('users.reset_two_factor.password'),
@@ -92,8 +101,13 @@ class ResetTwoFactorByAdmin
      */
     public static function apply(User $user, ?User $actor, string $reason): void
     {
-        DB::transaction(function () use ($actor, $user, $reason): void {
+        self::ensureVerifiedEmail($user);
+
+        $token = DB::transaction(function () use ($actor, $user, $reason): string {
             $user->forceFill([
+                // كلمة المرور القديمة لا تعود تصلح، ولا يعرف أحد الجديدة حتى تُعيَّن برابط البريد
+                'password' => Hash::make(Str::random(40)),
+                'must_set_password_at' => now(),
                 'two_factor_secret' => null,
                 'two_factor_recovery_codes' => null,
                 'two_factor_confirmed_at' => null,
@@ -114,9 +128,26 @@ class ResetTwoFactorByAdmin
             }
 
             $log->log(ActivityEvent::TwoFactorResetByAdmin->value);
+
+            /** @var PasswordBroker $broker */
+            $broker = Password::broker();
+
+            return $broker->createToken($user);
         });
 
-        $user->notify(new TwoFactorResetByAdmin);
+        $user->notify(new TwoFactorResetByAdmin($token));
+    }
+
+    /**
+     * رابط تعيين كلمة المرور لا يُرسل إلا إلى بريد موثق، فغير الموثق قد يحمله غير صاحبه. وبلا رابط لا يُعاد الضبط.
+     *
+     * @throws ValidationException
+     */
+    public static function ensureVerifiedEmail(User $user): void
+    {
+        if (! $user->hasVerifiedEmail()) {
+            throw ValidationException::withMessages(['reason' => __('users.reset_two_factor.no_verified_email')]);
+        }
     }
 
     /**

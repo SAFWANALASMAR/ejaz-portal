@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Fortify\EnableTwoFactorAuthentication;
 use App\Actions\Users\ResetTwoFactorByAdmin;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
@@ -10,11 +11,15 @@ use App\Http\Middleware\EnsureAccountIsActive;
 use App\Models\User;
 use App\Notifications\TwoFactorResetByAdmin;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use PragmaRX\Google2FA\Google2FA;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /*
 | إعادة ضبط التحقق الثنائي من اللوحة (قرار صفوان (أ)، 3 نوفمبر 2026 — docs/decisions/2026-11-03-2fa-admin-reset.md).
@@ -30,6 +35,25 @@ function resetInput(array $overrides = []): array
     return [...['password' => 'password', 'reason' => 'فقد جواله وتطبيق المصادقة، بطلبه هاتفياً'], ...$overrides];
 }
 
+/**
+ * يعيّن صاحب الحساب كلمة مرور جديدة من الرابط المرسل إليه بعد إعادة الضبط، ويُعيدها.
+ */
+function setPasswordFromResetLink(User $user): string
+{
+    $token = null;
+    Notification::assertSentTo($user, TwoFactorResetByAdmin::class, function (TwoFactorResetByAdmin $notification) use (&$token): bool {
+        $token = $notification->token;
+
+        return true;
+    });
+
+    $password = 'Brand-New-Pass-2026';
+    test()->post('/reset-password', ['token' => $token, 'email' => $user->email, 'password' => $password, 'password_confirmation' => $password])
+        ->assertRedirect('/login');
+
+    return $password;
+}
+
 it('lets a system manager reset two-factor from the user page, ending the sessions, notifying the holder and logging without secrets', function () {
     $editor = userWithRole(RoleName::ContentEditor);
     $secret = $editor->two_factor_secret;
@@ -42,7 +66,7 @@ it('lets a system manager reset two-factor from the user page, ending the sessio
         ->assertActionVisible('resetTwoFactor')
         ->callAction('resetTwoFactor', data: resetInput())
         ->assertHasNoActionErrors()
-        ->assertNotified(__('users.reset_two_factor.done'));
+        ->assertNotified(__('users.reset_two_factor.done_link'));
 
     $editor->refresh();
 
@@ -51,15 +75,20 @@ it('lets a system manager reset two-factor from the user page, ending the sessio
         ->and($editor->two_factor_confirmed_at)->toBeNull()
         ->and($editor->hasEnabledTwoFactorAuthentication())->toBeFalse()
         ->and($editor->remember_token)->not->toBe($remember)
-        ->and($editor->sessions_revoked_at)->not->toBeNull();
+        ->and($editor->sessions_revoked_at)->not->toBeNull()
+        // وكلمة المرور القديمة أُبطلت، ويلزمه تعيين غيرها برابط البريد
+        ->and(Hash::check('password', $editor->password))->toBeFalse()
+        ->and($editor->must_set_password_at)->not->toBeNull();
 
     Notification::assertSentTo($editor, TwoFactorResetByAdmin::class, function (TwoFactorResetByAdmin $notification) use ($editor): bool {
         $mail = $notification->toMail($editor);
 
         return in_array(__('users.reset_two_factor.mail.line'), $mail->introLines, true)
-            && $mail->actionUrl === route('contact');
+            && in_array(__('users.reset_two_factor.mail.password_line'), $mail->introLines, true)
+            && $mail->actionUrl === url(route('password.reset', ['token' => $notification->token, 'email' => $editor->email], false));
     });
-    expect(new TwoFactorResetByAdmin)->toBeInstanceOf(ShouldQueueAfterCommit::class);
+    expect(new TwoFactorResetByAdmin('token'))->toBeInstanceOf(ShouldQueueAfterCommit::class)
+        ->and(new TwoFactorResetByAdmin('token'))->toBeInstanceOf(ShouldBeEncrypted::class);
 
     $log = Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->sole();
     $stored = json_encode($log->getAttributes(), JSON_UNESCAPED_UNICODE);
@@ -91,10 +120,10 @@ it('ends every session of the account that began before the reset, whatever the 
     $this->actingAs($member->fresh())->get('/account')->assertRedirect(route('login'));
     $this->assertGuest();
 
-    // ودخول بعدها يبقى
+    // ودخول بعدها بكلمة المرور الجديدة من الرابط يبقى
     $this->travel(1)->seconds();
-    $this->post('/login', ['login' => $member->email, 'password' => 'password'])->assertRedirect('/account');
-    // (وتحويل كلمة المرور الضعيفة في المصنع إلى تغييرها لا يخرجه)
+    $password = setPasswordFromResetLink($member);
+    $this->post('/login', ['login' => $member->email, 'password' => $password])->assertRedirect('/account');
     expect($this->get('/account')->headers->get('Location'))->not->toBe(route('login'));
     $this->assertAuthenticatedAs($member);
 });
@@ -105,7 +134,8 @@ it('sends a panel role back to enable two-factor before the panel after a reset'
     app(ResetTwoFactorByAdmin::class)->handle($this->admin, $editor, resetInput());
 
     $this->travel(1)->seconds();
-    $this->post('/login', ['login' => $editor->email, 'password' => 'password'])->assertRedirect();
+    $password = setPasswordFromResetLink($editor);
+    $this->post('/login', ['login' => $editor->email, 'password' => $password])->assertRedirect();
     $this->assertAuthenticatedAs($editor);
 
     $this->get('/admin')->assertRedirect(route('account.security'));
@@ -172,9 +202,16 @@ it('resets a system manager from the server console, logging the console as the 
         ->and($director->two_factor_recovery_codes)->toBeNull()
         ->and($director->two_factor_confirmed_at)->toBeNull()
         ->and($director->remember_token)->not->toBe($remember)
-        ->and($director->sessions_revoked_at)->not->toBeNull();
+        ->and($director->sessions_revoked_at)->not->toBeNull()
+        ->and(Hash::check('password', $director->password))->toBeFalse()
+        ->and($director->must_set_password_at)->not->toBeNull();
 
     Notification::assertSentTo($director, TwoFactorResetByAdmin::class);
+
+    // ومسار الطرفية يُبطل كلمة المرور كاللوحة: القديمة مرفوضة
+    $this->travel(1)->seconds();
+    $this->post('/login', ['login' => $director->email, 'password' => 'password'])->assertSessionHasErrors();
+    $this->assertGuest();
 
     $log = Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->sole();
 
@@ -192,7 +229,7 @@ it('asks for confirmation on the console, and does nothing without --force under
         ->assertFailed();
 
     $this->artisan('ejaz:reset-two-factor', ['email' => $director->email, '--reason' => 'سبب'])
-        ->expectsConfirmation('يُحذف التحقق الثنائي لحساب «'.$director->name.'» ('.$director->email.')، وتنتهي كل جلساته، ويُبلَّغ. أتابع؟', 'no')
+        ->expectsConfirmation('يُحذف التحقق الثنائي لحساب «'.$director->name.'» ('.$director->email.')، وتُبطَل كلمة مروره، وتنتهي كل جلساته، ويُرسل رابط تعيين كلمة المرور إلى بريده الموثق. أتابع؟', 'no')
         ->assertFailed();
 
     expect($director->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue()
@@ -212,6 +249,7 @@ it('refuses on the console an unknown email, a missing or long reason, and an ac
     'too long' => [fn () => userWithRole(RoleName::ExecutiveDirector)->email, str_repeat('س', 256)],
     'no two-factor' => [fn () => User::factory()->create()->email, 'سبب'],
     'anonymized' => [fn () => User::factory()->withTwoFactor()->create(['anonymized_at' => now()])->email, 'سبب'],
+    'no verified email' => [fn () => User::factory()->withTwoFactor()->unverified()->create()->email, 'سبب'],
 ]);
 
 it('refuses an editor, the general supervisor and any role without the permission', function (RoleName $role) {
@@ -373,6 +411,88 @@ it('refuses an anonymized account', function () {
 it('mails only a verified address, and texts a verified phone when messaging is ready', function () {
     $unverified = User::factory()->withTwoFactor()->unverified()->create();
 
-    expect((new TwoFactorResetByAdmin)->via($unverified))->toBe([])
-        ->and((new TwoFactorResetByAdmin)->via(User::factory()->withTwoFactor()->create()))->toBe(['mail']);
+    expect((new TwoFactorResetByAdmin('token'))->via($unverified))->toBe([])
+        ->and((new TwoFactorResetByAdmin('token'))->via(User::factory()->withTwoFactor()->create()))->toBe(['mail']);
+});
+
+/*
+| إبطال كلمة المرور مع إعادة الضبط (قرار المشرف بعد المراجعة الأمنية، 3 نوفمبر 2026): من عرف كلمة مرور غيره وادّعى فقد
+| جواله لا يدخل بها، فلا دخول ولا تطبيق مصادقة جديد قبل تعيين كلمة المرور برابط البريد الموثق.
+*/
+
+it('rejects the old password after a reset, so a claimed lost phone does not let the password alone in', function () {
+    $board = User::factory()->withTwoFactor()->create();
+    $board->assignRole(RoleName::BoardMember->value);
+
+    app(ResetTwoFactorByAdmin::class)->handle(userWithRole(RoleName::ExecutiveDirector), $board, resetInput());
+
+    $this->travel(1)->seconds();
+    $this->post('/login', ['login' => $board->email, 'password' => 'password'])->assertSessionHasErrors();
+    $this->assertGuest();
+    expect(session()->has('login.id'))->toBeFalse();
+});
+
+it('lets the holder set a password from the link, then log in and enrol a new authenticator app', function () {
+    $editor = userWithRole(RoleName::ContentEditor);
+
+    app(ResetTwoFactorByAdmin::class)->handle($this->admin, $editor, resetInput());
+    $this->travel(1)->seconds();
+
+    $password = setPasswordFromResetLink($editor);
+    expect($editor->fresh()->must_set_password_at)->toBeNull();
+
+    $this->post('/login', ['login' => $editor->email, 'password' => $password])->assertRedirect();
+    $this->assertAuthenticatedAs($editor);
+
+    $this->withSession(['auth.password_confirmed_at' => time()])
+        ->post('/user/two-factor-authentication')->assertRedirect();
+    $secret = decrypt($editor->fresh()->two_factor_secret);
+
+    $this->withSession(['auth.password_confirmed_at' => time()])
+        ->post('/user/confirmed-two-factor-authentication', ['code' => (new Google2FA)->getCurrentOtp($secret)])
+        ->assertSessionHasNoErrors();
+
+    expect($editor->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue();
+});
+
+it('refuses the reset of an account without a verified email, from the action and the panel, changing nothing', function () {
+    $member = User::factory()->withTwoFactor()->unverified()->create();
+    $hash = $member->password;
+
+    expect(fn () => app(ResetTwoFactorByAdmin::class)->handle($this->admin, $member, resetInput()))
+        ->toThrow(ValidationException::class, __('users.reset_two_factor.no_verified_email'))
+        ->and(fn () => ResetTwoFactorByAdmin::apply($member, null, 'سبب'))
+        ->toThrow(ValidationException::class, __('users.reset_two_factor.no_verified_email'));
+
+    $this->actingAs($this->admin);
+    Livewire::test(EditUser::class, ['record' => $member->getRouteKey()])
+        ->callAction('resetTwoFactor', data: resetInput())
+        ->assertNotified(__('users.reset_two_factor.no_verified_email'));
+
+    $member->refresh();
+    expect($member->hasEnabledTwoFactorAuthentication())->toBeTrue()
+        ->and($member->password)->toBe($hash)
+        ->and($member->must_set_password_at)->toBeNull()
+        ->and(Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->exists())->toBeFalse();
+    Notification::assertNothingSent();
+});
+
+it('blocks login, open sessions and enrolling an authenticator while the flag is set, even when a password matches', function () {
+    $member = User::factory()->create(['password' => 'Known-Strong-Pass-2026', 'must_set_password_at' => now()]);
+
+    $this->post('/login', ['login' => $member->email, 'password' => 'Known-Strong-Pass-2026'])->assertSessionHasErrors();
+    $this->assertGuest();
+
+    $this->actingAs($member)->withSession([EnsureAccountIsActive::LOGGED_IN_AT => now()->getTimestamp() + 60])
+        ->get('/account')->assertRedirect(route('login'))
+        ->assertSessionHas('status', __('users.reset_two_factor.must_set_password'));
+    $this->assertGuest();
+
+    expect(fn () => app(EnableTwoFactorAuthentication::class)($member))->toThrow(HttpException::class)
+        ->and($member->fresh()->two_factor_secret)->toBeNull();
+
+    // وبعد رفع العلامة يدخل بكلمة المرور نفسها
+    $member->forceFill(['must_set_password_at' => null])->save();
+    $this->post('/login', ['login' => $member->email, 'password' => 'Known-Strong-Pass-2026'])->assertRedirect();
+    $this->assertAuthenticatedAs($member);
 });

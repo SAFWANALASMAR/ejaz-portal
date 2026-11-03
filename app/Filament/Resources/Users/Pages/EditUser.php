@@ -54,7 +54,7 @@ class EditUser extends EditRecord
                         return;
                     }
 
-                    Notification::make()->success()->title(__('users.reset_two_factor.done'))->send();
+                    Notification::make()->success()->title(__('users.reset_two_factor.done_link'))->send();
                 }),
         ];
     }

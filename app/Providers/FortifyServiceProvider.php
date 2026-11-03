@@ -108,7 +108,9 @@ class FortifyServiceProvider extends ServiceProvider
         }
 
         // التجزئة قبل حالة الحساب، فلا يرد الموقوف أسرع بزمن تجزئة كامل (الاختبار الأمني 0.14.0)
-        if (! Hash::check($password, $user->password) || ! $user->is_active) {
+        // ولا دخول قبل تعيين كلمة المرور برابط البريد بعد إعادة ضبط التحقق الثنائي (must_set_password_at —
+        // ResetTwoFactorByAdmin)، ولو طابقت كلمة مرور بطريق ما: مؤقتة من الإدارة مثلاً
+        if (! Hash::check($password, $user->password) || ! $user->is_active || $user->must_set_password_at !== null) {
             return null;
         }
 
@@ -139,7 +141,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         CurrentPasswordLimiter::ensureNotLocked($user, 'password');
 
-        if ($user->is_active && Hash::check((string) $password, $user->password)) {
+        if ($user->is_active && $user->must_set_password_at === null && Hash::check((string) $password, $user->password)) {
             CurrentPasswordLimiter::passed($user);
 
             return true;

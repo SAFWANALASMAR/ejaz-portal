@@ -21,6 +21,11 @@ class EnableTwoFactorAuthentication extends BaseEnableTwoFactorAuthentication
      */
     public function __invoke($user, $force = false): void
     {
+        // ولا تطبيق مصادقة جديد قبل تعيين كلمة المرور برابط البريد بعد إعادة الضبط من الإدارة (ResetTwoFactorByAdmin)
+        if ($user instanceof User && $user->must_set_password_at !== null) {
+            abort(403);
+        }
+
         if ($force === true && $user instanceof User && $user->hasEnabledTwoFactorAuthentication()) {
             activity('security')->causedBy($user)->performedOn($user)
                 ->event(ActivityEvent::TwoFactorRotationRefused->value)

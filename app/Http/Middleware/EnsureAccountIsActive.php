@@ -28,6 +28,11 @@ class EnsureAccountIsActive
             return $this->logout($request, 'error', 'auth.deactivated');
         }
 
+        // ولا جلسة لحساب يلزمه تعيين كلمة المرور برابط البريد (must_set_password_at — ResetTwoFactorByAdmin)
+        if ($user instanceof User && $user->must_set_password_at !== null) {
+            return $this->logout($request, 'status', 'users.reset_two_factor.must_set_password');
+        }
+
         $revokedAt = $user instanceof User ? $user->sessions_revoked_at : null;
 
         if ($revokedAt instanceof CarbonInterface) {
