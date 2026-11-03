@@ -85,11 +85,16 @@ for (const width of WIDTHS) {
             expect(top.capsules).toBe(7);
             expect(top.burger).toBeNull();
 
-            // مربع الترخيص بجانب المخطوطة من اليسار بفاصل صغير واضح
+            // مربع الترخيص يسار المخطوطة: بجانبها بفاصل صغير دون 1280، ومن 1280 في منتصف الفراغ بينها وبين البحث
+            // (طلب صفوان، 3 نوفمبر 2026 — header-center.spec.mjs)
             expect(top.licence).not.toBeNull();
             const gap = top.calligraphy.left - top.licence.right;
             expect(gap).toBeGreaterThanOrEqual(4);
-            expect(gap).toBeLessThanOrEqual(24);
+            if (width >= 1280) {
+                expect(Math.abs(gap - (top.licence.left - top.search.right))).toBeLessThanOrEqual(8);
+            } else {
+                expect(gap).toBeLessThanOrEqual(24);
+            }
 
             // الدخول في أقصى اليسار بهامش صغير، والبحث بجانبه، وكلاهما يسار مربع الترخيص
             expect(top.login.left).toBeLessThanOrEqual(24);
