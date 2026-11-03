@@ -2,10 +2,12 @@
     «شركاؤنا» تحت «البوابة بالأرقام» وقبل التذييل (أمر التصور النهائي، النسخة 63 — البند R17): شريط شعارات متحرك واحد (x-marquee)
     بالشركاء ثم الرعاة بترتيبهم في اللوحة، ويتوقف بالمرور والتركيز وزر الإيقاف ولمن طلب تقليل الحركة، و«عرض الكل» إلى صفحة الشركاء.
     والعنوان من «محتوى الرئيسية». ويُخفى من «إعدادات الموقع» (show_partners).
-    وأقل من ستة شعارات (192 بكسل وفاصل، نحو عرض المحتوى على 1440) صف ثابت في الوسط بلا تكرار ولا زر إيقاف، فلا يتكرر الشعار الواحد متحركاً.
+    وستة شعارات (192 بكسل وفاصل) تملأ عرض المحتوى على 1440، وما قلّ عنها يتكرر في المسار (repeat) ويتحرك أيضاً (إضافة توجيه المدير،
+    3 نوفمبر 2026، البند ١١: «ما كان يتحرك يبقى يتحرك»؛ وكان صفاً ثابتاً بمراجعة المشرف في 2 نوفمبر).
 --}}
 @php
     $logos = $partners->concat($sponsors);
+    $repeat = (int) ceil(6 / max(1, $logos->count()));
 @endphp
 
 <section class="home-band" data-band="{{ $band }}" aria-labelledby="home-partners">
@@ -15,7 +17,7 @@
             <a href="{{ route('media.partners') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}<span class="sr-only">: {{ $title }}</span></a>
         </div>
 
-        <x-marquee id="home-partners-track" :label="$title" :duration="max(25, $logos->count() * 5)" :static="$logos->count() < 6">
+        <x-marquee id="home-partners-track" :label="$title" :duration="max(25, $logos->count() * 5) * $repeat" :repeat="$repeat">
             @foreach ($logos as $partner)
                 <div class="partner-logo">@include('media.partner', ['partner' => $partner])</div>
             @endforeach

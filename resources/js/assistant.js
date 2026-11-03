@@ -19,16 +19,19 @@ function shield(on) {
     });
 }
 
+// الزر الذي فتح النافذة (العائم أو «المساعد الذكي» في الرأس — البند ١٣ من إضافة توجيه المدير)، فيعود إليه التركيز عند الإغلاق
+let opener = null;
+
 function setOpen(open) {
     const element = panel();
-    const button = toggle();
+    const button = opener?.isConnected ? opener : toggle();
 
     if (!element || !button) {
         return;
     }
 
     element.hidden = !open;
-    button.setAttribute('aria-expanded', String(open));
+    document.querySelectorAll('[data-assistant-toggle]').forEach((each) => each.setAttribute('aria-expanded', String(open)));
     // على الجوال تملأ النافذة الشاشة، فلا يتحرك ما خلفها
     document.documentElement.classList.toggle('max-sm:overflow-hidden', open);
     shield(open && mobile());
@@ -223,6 +226,7 @@ document.addEventListener('click', (event) => {
     }
 
     if (event.target.closest('[data-assistant-toggle]')) {
+        opener = event.target.closest('[data-assistant-toggle]');
         setOpen(panel().hidden);
 
         return;

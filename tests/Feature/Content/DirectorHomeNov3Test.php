@@ -2,6 +2,7 @@
 
 use App\Enums\LibrarySection;
 use App\Models\Announcement;
+use App\Models\AssistantSettings;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\DailyVisit;
@@ -13,6 +14,7 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\Icon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -158,11 +160,42 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
         ->and($x->query('.//img[@data-brand-mark]', $row)->item(0)->getAttribute('src'))->toBe(HomeContent::brand('mark_white'))
         ->and($x->query('.//img[@data-logo-calligraphy]', $row)->item(0)->getAttribute('src'))->toBe(HomeContent::brand('calligraphy_white'));
 
-    // الكتلة يميناً والأزرار يساراً بهامش ثابت، لا بتوزيع الفراغات المتساوية (#154)
+    // البند ١٢: المخطوطة في الوسط والرمز بجانبها (justify-self: end في عموده) والأزرار مزاحة عن الحافة بهامش ثابت، لا بتوزيع الفراغات
+    // المتساوية (#154) ولا «الكتلة اليمنى» (display: contents في صف مرن)
     $css = (string) file_get_contents(resource_path('css/concept.css'));
     expect(preg_match('/\.header-top\s*\{[^}]*space-between/', $css))->toBe(0)
-        ->and(preg_match('/\.header-top \.header-actions\s*\{\s*margin-inline: auto 1\.75rem;/', $css))->toBe(1)
-        ->and(preg_match('/\.header-top \.header-mark\s*\{\s*margin-inline-start: 1\.75rem;/', $css))->toBe(1);
+        ->and(preg_match('/\.header-top \.header-end\s*\{\s*display: contents/', $css))->toBe(0)
+        ->and(preg_match('/\.header-top \.header-mark\s*\{\s*justify-self: end;/', $css))->toBe(1)
+        ->and(preg_match('/\.header-top \.header-actions\s*\{\s*margin-inline-end: 1\.75rem;/', $css))->toBe(1);
+});
+
+// البند ١٣ من إضافة التوجيه: «المساعد الذكي» في الصف الأول بجانب البحث والدخول، يفتح المساعد القائم، ويختفي بإطفائه
+it('shows the assistant button beside search and login when the assistant is on, and hides it when off', function () {
+    $this->get('/')->assertOk()->assertDontSee('data-header-assistant', false);
+
+    enableAssistant(['generation_enabled' => false, 'provider' => null]);
+    ContentCache::flush();
+
+    $dom = new DOMDocument;
+    @$dom->loadHTML($this->get('/')->assertOk()->getContent());
+    $x = new DOMXPath($dom);
+    $button = $x->query("//header[@data-site-header]//div[contains(@class, 'header-actions')]/button[@data-header-assistant]")->item(0);
+
+    expect($button)->not->toBeNull()
+        ->and($button->hasAttribute('data-assistant-toggle'))->toBeTrue()
+        ->and($button->getAttribute('aria-controls'))->toBe('assistant-panel')
+        ->and($button->getAttribute('aria-label'))->toBe(__('assistant.header.open'))
+        ->and(__('assistant.header.open'))->toBe('المساعد الذكي')
+        // قبل البحث في الشيفرة، فهو يمينه، والدخول في أقصى اليسار
+        ->and($x->query('following-sibling::button[@data-search-open]', $button)->length)->toBe(1)
+        // والمساعد نفسه في الصفحة، فيفتحه الزر
+        ->and($x->query("//section[@id='assistant-panel']")->length)->toBe(1);
+
+    AssistantSettings::query()->update(['is_enabled' => false]);
+    Cache::forget(AssistantSettings::CACHE_KEY);
+    ContentCache::flush();
+
+    $this->get('/')->assertOk()->assertDontSee('data-header-assistant', false)->assertDontSee('id="assistant-panel"', false);
 });
 
 /*
@@ -190,7 +223,8 @@ it('titles the library strip «الكتب والأبحاث والدراسات»,
     LibraryItem::factory()->unpublished()->create(['title' => 'بحث غير منشور', 'section' => LibrarySection::Research]);
 
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
-    $books = (string) str($strips)->after('data-media-strip="books"');
+    // المجموعة الظاهرة وحدها (الشريط القليل يتكرر في نسخ مخفية)
+    $books = (string) str($strips)->after('data-media-strip="books"')->before('data-marquee-copy');
     preg_match_all('/data-thumb-placeholder aria-hidden="true">\s*(<svg.*?<\/svg>)/s', $books, $icons);
 
     expect($strips)->toContain(__('home.sections_final.headings.books'))

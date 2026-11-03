@@ -6,8 +6,8 @@
     ولمن طلب تقليل الحركة. ولا تشغيل في الرئيسية: الضغط إلى صفحة المقطع أو الكتاب. وما فرغ يختفي، والعناوين من «محتوى الرئيسية».
 
     $videos وَ$books: Collection<LibraryItem>، و$x: array{url, handle}|null، و$headings: عناوين الأقسام.
-    والشريط القليل صف ثابت في الوسط بلا تكرار ولا زر إيقاف: أقل من ستة مقاطع (200 بكسل وفاصل) أو ثمانية كتب (144 بكسل وفاصل)،
-    وهو ما يملأ عرض المحتوى على 1440 (نحو 1264 بكسل).
+    والشريط القليل يتحرك أيضاً (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١١: «ما كان يتحرك يبقى يتحرك»): ستة مقاطع (200 بكسل
+    وفاصل) أو ثمانية كتب (144 بكسل وفاصل) تملأ عرض المحتوى على 1440 (نحو 1264 بكسل)، وما قلّ عنها يتكرر في المسار (repeat) حتى يملأه.
 --}}
 @php
     $movingFrom = ['videos' => 6, 'books' => 8];
@@ -22,7 +22,9 @@
                         <a href="{{ $kind === 'videos' ? route('library.section', \App\Enums\LibrarySection::Videos->value) : route('library.index') }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}<span class="sr-only">: {{ $headings[$kind] }}</span></a>
                     </div>
 
-                    <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7)" :static="$items->count() < $movingFrom[$kind]" data-media-strip="{{ $kind }}"
+                    @php($repeat = (int) ceil($movingFrom[$kind] / $items->count()))
+
+                    <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7) * $repeat" :repeat="$repeat" data-media-strip="{{ $kind }}"
                         @class(['media-marquee', 'media-marquee-reverse' => $kind === 'books'])>
                         @foreach ($items as $item)
                             <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate data-card class="tone-card media-tile group">

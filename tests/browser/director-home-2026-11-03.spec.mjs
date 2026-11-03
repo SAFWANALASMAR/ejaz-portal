@@ -44,6 +44,9 @@ function measureHeader(page) {
             loginFromEdge: login && round(login.left - edge.left),
             verticalOffset: calligraphy && licence && round((licence.top + licence.bottom) / 2 - (calligraphy.top + calligraphy.bottom) / 2),
             calligraphyHeight: calligraphy && round(calligraphy.height),
+            calligraphyOffCentre: calligraphy && round((calligraphy.left + calligraphy.right) / 2 - (edge.left + edge.right) / 2),
+            assistant: box('[data-header-assistant]'),
+            licenceToActions: licence && round(licence.left - header.querySelector('.header-actions').getBoundingClientRect().right),
         };
     });
 }
@@ -55,36 +58,37 @@ async function headerShot(page, width, name) {
 
 // ── ١. الرأس ──
 for (const width of [1280, 1366, 1440, 1920]) {
-    test(`header at ${width}px: the mark, calligraphy and licence are one block inset from the right, search and login inset from the left`, async ({ page }, info) => {
+    // البند ١٢ من الإضافة (يحل محل «الكتلة اليمنى» والفراغات المتساوية): المخطوطة في منتصف الصف، والرمز بجانبها يميناً والمربع
+    // بجانبها يساراً بفاصلين صغيرين، و«المساعد الذكي» والبحث والدخول يساراً مزاحة قليلاً عن الحافة
+    test(`header at ${width}px: the calligraphy in the centre with the mark and the licence beside it, the buttons inset from the left`, async ({ page }, info) => {
         test.skip(info.project.name !== 'desktop', 'العروض في الاختبار نفسه');
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
         await page.evaluate(() => document.fonts.ready);
         const layout = await measureHeader(page);
-        console.log(`header ${width}px:`, JSON.stringify({ ...layout, boxes: undefined }));
+        console.log(`header ${width}px:`, JSON.stringify({ ...layout, boxes: undefined, assistant: undefined }));
 
         expect(layout.noHorizontalScroll).toBe(true);
-        // الرمز مزاح قليلاً عن أقصى اليمين (كان 20 بكسل)
-        expect(layout.markFromEdge).toBeGreaterThanOrEqual(36);
-        expect(layout.markFromEdge).toBeLessThanOrEqual(80);
-        // المخطوطة بعده مباشرة: فراغ صغير غير ملاصق
-        expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(8);
-        expect(layout.markToCalligraphy).toBeLessThanOrEqual(24);
-        // مربع الترخيص قريب جداً من المخطوطة، وبمحاذاتها عمودياً
+        // المخطوطة في منتصف الصف (3 بكسل فأقل)
+        expect(Math.abs(layout.calligraphyOffCentre), 'المخطوطة في المنتصف').toBeLessThanOrEqual(3);
+        // الرمز بجانبها يميناً، والمربع بجانبها يساراً، بفاصلين صغيرين، وبمحاذاتها عمودياً
+        expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(4);
+        expect(layout.markToCalligraphy).toBeLessThanOrEqual(16);
         expect(layout.calligraphyToLicence).toBeGreaterThanOrEqual(4);
         expect(layout.calligraphyToLicence).toBeLessThanOrEqual(16);
         expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
-        // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه
+        // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه، و«المساعد الذكي» بجانب البحث، ولا تراكب مع المربع
         expect(layout.loginFromEdge).toBeGreaterThanOrEqual(36);
         expect(layout.loginFromEdge).toBeLessThanOrEqual(80);
         const { search, login } = layout.boxes;
         expect(search.left - login.right).toBeGreaterThanOrEqual(0);
         expect(search.left - login.right).toBeLessThanOrEqual(16);
-        // والمنطقة قبل البحث فارغة، أوسع من كل فراغ داخل الكتلة، والصف لا ينكسر (نحو 27 بكسل على 1280، وتتسع مع الشاشة)
-        expect(layout.licenceToSearch).toBeGreaterThanOrEqual(24);
-        expect(layout.licenceToSearch).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence));
-        // المخطوطة ممدودة بأكبر ما يتسع (إضافة التوجيه، البند ٤): أكبر مما بعد #154 (96.7 على 1280، و100 على 1440، و108 على 1920)
-        expect(layout.calligraphyHeight).toBeGreaterThan({ 1280: 99, 1366: 103, 1440: 108, 1920: 116 }[width]);
+        expect(layout.assistant, '«المساعد الذكي» ظاهر').not.toBeNull();
+        expect(layout.assistant.left - search.right).toBeGreaterThanOrEqual(0);
+        expect(layout.assistant.left - search.right).toBeLessThanOrEqual(16);
+        expect(layout.licenceToActions).toBeGreaterThanOrEqual(0);
+        // المخطوطة بأكبر ما يتسع بين الطرفين، ولا تقل عن 48 بكسل
+        expect(layout.calligraphyHeight).toBeGreaterThanOrEqual(48);
         expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
         await headerShot(page, width, `header-${width}`);
@@ -319,4 +323,87 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SHOTS}/director-2026-11-03-home-${width}.png`, fullPage: true });
+});
+
+// ── ٣. ما كان يتحرك يبقى يتحرك (إضافة التوجيه، البند ١١): البطل، ودوّارات البطاقات الخمس (والبطاقات نفسها صف ثابت لا يتحرك)،
+//    والإعلانات، والأخبار تصعد، وشريطا يوتيوب والمكتبة، والشركاء. والشريط القليل يتكرر فيتحرك أيضاً
+async function expectRotates(page, selector, timeout) {
+    const root = page.locator(selector).first();
+    // بالتمرير من الصفحة لا من Playwright: العنصر المتحرك لا «يستقر» فينتظره scrollIntoViewIfNeeded بلا نهاية
+    await root.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const active = () => root.evaluate((element) => [...element.querySelectorAll('[data-carousel-item]')].findIndex((item) => item.hasAttribute('data-active')));
+    const first = await active();
+    await expect.poll(active, { message: `${selector} يتبدل`, timeout }).not.toBe(first);
+}
+
+async function expectMoves(page, selector) {
+    const track = page.locator(`${selector} .marquee-track`).first();
+    await track.evaluate((element) => element.closest('.marquee').scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    expect(await track.evaluate((element) => getComputedStyle(element).animationName), `${selector} متحرك`).not.toBe('none');
+    const position = () => track.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+
+        return Math.round((box.left + box.top) * 10) / 10;
+    });
+    const before = await position();
+    await page.waitForTimeout(1500);
+    expect(Math.abs((await position()) - before), `${selector} يتحرك فعلاً`).toBeGreaterThan(1);
+}
+
+test('home: everything that moved keeps moving, and the five cards are one row that does not move', async ({ page }, info) => {
+    test.setTimeout(180_000);
+    await page.goto('/');
+    await page.mouse.move(1, 1);
+
+    await expectRotates(page, '[data-hero-slider]', 10_000);
+
+    // البطاقات الخمس: لا تتحرك هي نفسها، ودوّاراتها (الرؤية والرسالة، والقيم، والمبادرات) تتبدل
+    const cards = page.locator('#home-identity');
+    await cards.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const boxes = () => cards.evaluate((section) => [...section.querySelectorAll('[data-identity-card]')]
+        .filter((card) => !card.closest('[data-marquee-copy]'))
+        .map((card) => Math.round(card.getBoundingClientRect().left)));
+    if (info.project.name === 'desktop') {
+        const before = await boxes();
+        await page.waitForTimeout(1500);
+        expect(await boxes(), 'البطاقات لا تتحرك').toEqual(before);
+    }
+    await expectRotates(page, '[data-identity-slider]', 9_000);
+    // على الجوال واللوحي البطاقات الأربع في شريط يتحرك كما في main: يُوقف بزره فتبقى البطاقة في الشاشة، والدوّار يتوقف خارجها
+    if (info.project.name !== 'desktop') {
+        await expectMoves(page, '#home-identity');
+        await page.locator('[data-ticker-toggle="home-cards-track"]').click();
+    }
+    await expectRotates(page, '[data-values-slider]', 7_000);
+    await expectRotates(page, '[data-initiatives-slider]', 7_000);
+
+    await expectRotates(page, '.home-announcements', 10_000);
+    await expectMoves(page, '#home-news-track');
+    await expectMoves(page, '[data-media-strip="videos"]');
+    await expectMoves(page, '[data-media-strip="books"]');
+    await expectMoves(page, '[aria-labelledby="home-partners"]');
+});
+
+// ── ٤. «المساعد الذكي» في الصف الأول (إضافة التوجيه، البند ١٣): يفتح المساعد القائم ويعمل دليله بلا مزوّد. ويلزمه المساعد مفعّلاً
+//    من «إعدادات المساعد» في البيئة المحلية أو رابط العرض
+test('header: the assistant button opens the existing assistant', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'الزر من 1024');
+    for (const width of [1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        const button = page.locator('[data-site-header] [data-header-assistant]');
+        await expect(button).toBeVisible();
+        await expect(button).toHaveAccessibleName('المساعد الذكي');
+        await expect(page.locator('#assistant-panel')).toBeHidden();
+
+        await button.click();
+        await expect(page.locator('#assistant-panel')).toBeVisible();
+        await expect(button).toHaveAttribute('aria-expanded', 'true');
+        await expect(page.locator('#assistant-question')).toBeFocused();
+
+        await page.locator('[data-assistant-close]').click();
+        await expect(page.locator('#assistant-panel')).toBeHidden();
+        await expect(button).toBeFocused();
+    }
 });
