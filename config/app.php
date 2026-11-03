@@ -76,6 +76,12 @@ return [
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Riyadh'),
 
     /*
+    | علامات 【ناقص】 (x-missing وMissingText) خارج الإنتاج: true يخفيها عن الزوار ويبقيها لمن يدخل لوحة الإدارة، كرابط العرض
+    | (ملاحظة صفوان ٣٠، 3 نوفمبر 2026). والإنتاج يخفيها عن الجميع دائماً.
+    */
+    'hide_missing_markers' => (bool) env('HIDE_MISSING_MARKERS', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

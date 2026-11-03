@@ -23,7 +23,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $starts_on
  * @property Carbon|null $ends_on
  */
-#[Fillable(['title', 'image', 'url', 'kind', 'starts_on', 'ends_on', 'sort', 'is_published'])]
+#[Fillable(['title', 'summary', 'image', 'url', 'kind', 'starts_on', 'ends_on', 'sort', 'is_published'])]
 class Announcement extends Model implements HasPublicImages
 {
     /** @use HasFactory<AnnouncementFactory> */

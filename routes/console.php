@@ -4,6 +4,7 @@ use App\Console\Commands\CheckHealth;
 use App\Models\AssistantLog;
 use App\Models\EvidenceGalleryVisit;
 use App\Models\MessageLog;
+use App\Support\HomeShowcase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
@@ -29,6 +30,12 @@ Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 
 // التسليم الآلي لمحاولات مسابقة الطلاب التي انتهى وقتها ولم يعد صاحبها (docs/plans/student-competition.md)
 Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping()->onOneServer();
+
+// شريحة البراهين في الرئيسية بحالتها: تُمسح الرئيسية المخزّنة حين يعبر الوقت موعد الفتح أو الإغلاق (ملاحظة صفوان ٣٠)
+Schedule::call(fn () => HomeShowcase::forgetHomeAtCompetitionBoundary(now()->subMinutes(2)))
+    ->everyMinute()
+    ->name('home-competition-boundary')
+    ->onOneServer();
 
 // صور القرص العام التي لا يشير إليها سجل بعد مدة (docs/plans/prune-public-files.md)
 Schedule::command('ejaz:prune-public-files')->daily()->onOneServer();

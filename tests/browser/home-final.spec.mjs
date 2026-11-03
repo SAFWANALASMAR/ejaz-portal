@@ -72,6 +72,9 @@ test('home: announcements and news side by side with the same height, the news r
     await expect(news).toHaveAttribute('data-direction', 'vertical');
 
     if (info.project.name === 'desktop') {
+        // بعد حركة الظهور: عمود الأخبار يتأخر عنها 120 ملّي ثانية، فقياسه أثناءها يزيح قمته (ملاحظة ٣٠)
+        await page.locator('#home-news').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(1500);
         const [announcements, feed] = await page.evaluate(() => ['#home-announcements', '#home-news'].map((id) => {
             const column = document.querySelector(id).closest('[data-reveal]').getBoundingClientRect();
 
