@@ -2,6 +2,8 @@
 | مصادر الأصناف محددة صراحةً بدل فحص المشروع كله، لأن الفحص عبر قرص ويندوز المشترك بطيء جداً.
 */
 @import 'tailwindcss' source(none);
+/* طباعة النصوص في الصفحات: طول السطر والتفافه (ملاحظة صفوان ٣٠، الجزء الثاني) */
+@import './typography.css';
 /* التحسين البصري والحركة (docs/plans/visual-refresh.md) */
 @import './visual.css';
 /* التصور النهائي الملزم (docs/design/final-concept) فوق ما قبله */

@@ -18,12 +18,12 @@
                 {{ \App\Support\Icon::svg('chat-bubble-left-right', 'size-4', ['aria-hidden' => 'true']) }}
                 {{ $chairman['heading'] }}
             </h2>
-            <div class="space-y-2 text-xl leading-[1.9]">
+            <div class="measure space-y-2 text-xl leading-[1.9]">
                 @foreach (\App\Support\HomeContent::paragraphs($chairman['excerpt']) as $paragraph)
                     <p>{{ $paragraph }}</p>
                 @endforeach
             </div>
-            <p class="flex flex-col border-s-[3px] border-current ps-3">
+            <p class="measure flex flex-col border-s-[3px] border-current ps-3">
                 <span class="text-[19px] font-black" data-chairman-name>{{ $chairman['name'] }}</span>
                 <span class="tone-card-muted text-[15px]">{{ $chairman['title'] }}</span>
             </p>
@@ -32,7 +32,7 @@
                     {{ __('home.sections.chairman.read_more') }}
                     {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
                 </summary>
-                <div class="mt-5 space-y-4 text-lg leading-8">
+                <div class="measure mt-5 space-y-4 text-lg leading-8">
                     @foreach (\App\Support\HomeContent::paragraphs($chairman['full']) as $paragraph)
                         <p>{{ $paragraph }}</p>
                     @endforeach

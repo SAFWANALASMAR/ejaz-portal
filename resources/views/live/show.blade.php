@@ -45,7 +45,7 @@
             @if (filled($stream->description))
                 <div class="mt-8">
                     <x-section-heading>{{ __('livestream.show.about') }}</x-section-heading>
-                    <p class="mt-4 leading-8 whitespace-pre-line text-ink">{{ $stream->description }}</p>
+                    <p class="measure mt-4 leading-8 whitespace-pre-line text-ink">{{ $stream->description }}</p>
                 </div>
             @endif
         </div>
