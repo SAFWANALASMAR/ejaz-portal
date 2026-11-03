@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Support\AccountNavigation;
 use App\Support\HomeContent;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -159,7 +160,9 @@ it('aligns the live About page with the strategic plan, and restores it when rol
         ['type' => 'text', 'data' => ['heading' => 'التوجه الاستراتيجي', 'body' => '<p>【ناقص: محتوى التوجه الاستراتيجي】</p>']],
         ['type' => 'cards', 'data' => ['heading' => 'قيم الجمعية', 'items' => [['icon' => null, 'title' => 'قيمة قديمة', 'text' => 'وصف قديم', 'picture' => 'pages/value.png']]]],
     ];
-    $page = Page::factory()->create(['slug' => 'about', 'blocks' => $old, 'is_published' => true]);
+    // منشورة قبل منع النشر بالعلامة (Publishable)، فتُنشر من القاعدة كما كانت على رابط العرض
+    $page = Page::factory()->unpublished()->create(['slug' => 'about', 'blocks' => $old]);
+    DB::table('pages')->where('id', $page->id)->update(['is_published' => true]);
     $migration = require database_path('migrations/2026_10_26_094000_align_about_page_with_strategic_plan.php');
 
     $migration->up();

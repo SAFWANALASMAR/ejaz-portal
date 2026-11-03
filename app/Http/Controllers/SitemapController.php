@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Enums\LibrarySection;
 use App\Models\Album;
+use App\Models\Competition;
 use App\Models\Document;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
+use App\Models\Opening;
 use App\Models\Page;
+use App\Models\Program;
 use App\Support\ContentCache;
 use DateTimeInterface;
 use Illuminate\Http\Response;
@@ -25,6 +28,7 @@ class SitemapController extends Controller
         'home', 'initiatives.index', 'governance.index', 'library.index',
         'media.index', 'media.news.index', 'media.albums.index', 'media.partners', 'contact',
         'programs.index', 'competitions.index', 'services.index', 'achievements.index',
+        'services.jobs', 'services.volunteering', 'services.assembly-membership', 'media.announcements',
     ];
 
     public function sitemap(): Response
@@ -87,6 +91,24 @@ class SitemapController extends Controller
 
         foreach (Album::query()->published()->orderBy('id')->get(['slug', 'updated_at']) as $album) {
             $urls[] = self::entry('media.albums.show', ['slug' => $album->slug], $album->updated_at);
+        }
+
+        // البرامج والمسابقات والفرص المنشورة بصفحاتها (مراجعة محركات البحث، 3 نوفمبر 2026). ودليل الدخول لمسابقة الطلاب
+        // التي لها دليل وحدها، كما يعرضه CompetitionController::guide
+        foreach (Program::query()->published()->orderBy('id')->get(['slug', 'updated_at']) as $program) {
+            $urls[] = self::entry('programs.show', ['slug' => $program->slug], $program->updated_at);
+        }
+
+        foreach (Competition::query()->published()->orderBy('id')->get(['id', 'slug', 'student_mode', 'page_content', 'updated_at']) as $competition) {
+            $urls[] = self::entry('competitions.show', ['slug' => $competition->slug], $competition->updated_at);
+
+            if ($competition->student_mode && $competition->hasGuide()) {
+                $urls[] = self::entry('competitions.student.guide', ['slug' => $competition->slug], $competition->updated_at);
+            }
+        }
+
+        foreach (Opening::query()->published()->orderBy('id')->get(['slug', 'updated_at']) as $opening) {
+            $urls[] = self::entry('services.openings.show', ['slug' => $opening->slug], $opening->updated_at);
         }
 
         return $urls;
