@@ -97,7 +97,8 @@ it('shows the visits, the competition registrants and the 30-day chart from the 
     expect(strpos($html, 'data-portal-stats'))->toBeGreaterThan(strpos($html, 'id="home-identity"'));
 });
 
-it('hides the section while there is nothing to show, and before the first background run', function () {
+// إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البند ٢): البطاقات الأربع دائماً بعد أول حساب، والصفر «0»
+it('hides the section before the first background run, then shows the four cards even at zero, with no chart for days without a visit', function () {
     // قبل أول حساب لا رقم ولا استعلام
     visitsOn(0, 10);
     $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
@@ -105,12 +106,15 @@ it('hides the section while there is nothing to show, and before the first backg
     DailyVisit::query()->delete();
     ContentCache::flush();
     $this->artisan('ejaz:refresh-stats');
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
+    $section = (string) str($this->get('/')->assertOk()->assertSee('data-portal-stats', false)->getContent())->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(4)
+        ->and($section)->not->toContain('data-portal-chart');
 
-    // الصفر لا يظهر بطاقة، ولا رسم لأيام بلا زيارة
+    // ولا رسم لأيام بلا زيارة
     visitsOn(1, 0);
     $this->artisan('ejaz:refresh-stats');
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertDontSee('data-portal-chart', false);
 });
 
 it('counts registrants in published competitions only, once each, without cancelled ones or untouched drafts', function () {

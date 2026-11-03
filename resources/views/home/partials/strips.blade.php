@@ -31,10 +31,11 @@
                                         <img src="{{ $thumbnail }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
                                             class="size-full object-cover transition duration-500 group-hover:scale-105">
                                     @else
-                                        {{-- بلا صورة: مربع بتدرج أزرق وأيقونة القسم، كما في التصور (البند ٢٤) --}}
+                                        {{-- بلا صورة: مربع بتدرج أزرق وأيقونة، كما في التصور (البند ٢٤). والكتاب والبحث بأيقونة الكتاب نفسها
+                                             (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٦) --}}
                                         <span class="media-tile-placeholder" data-thumb-placeholder aria-hidden="true">
                                             @if ($kind === 'books')
-                                                {{ \App\Support\Icon::svg($item->section->icon(), 'size-10') }}
+                                                {{ \App\Support\Icon::svg(\App\Enums\LibrarySection::Books->icon(), 'size-10') }}
                                             @endif
                                         </span>
                                     @endif

@@ -54,7 +54,7 @@ async function headerShot(page, width, name) {
 }
 
 // ── ١. الرأس ──
-for (const width of [1280, 1440, 1920]) {
+for (const width of [1280, 1366, 1440, 1920]) {
     test(`header at ${width}px: the mark, calligraphy and licence are one block inset from the right, search and login inset from the left`, async ({ page }, info) => {
         test.skip(info.project.name !== 'desktop', 'العروض في الاختبار نفسه');
         await page.setViewportSize({ width, height: 900 });
@@ -80,12 +80,12 @@ for (const width of [1280, 1440, 1920]) {
         const { search, login } = layout.boxes;
         expect(search.left - login.right).toBeGreaterThanOrEqual(0);
         expect(search.left - login.right).toBeLessThanOrEqual(16);
-        // والمنطقة قبل البحث فارغة: أوسع بوضوح من كل فراغ داخل الكتلة (نحو 60 بكسل على 1280، وتتسع مع الشاشة)
-        expect(layout.licenceToSearch).toBeGreaterThanOrEqual(48);
-        expect(layout.licenceToSearch).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence) * 3);
-        // حجم المخطوطة كما بعد #154 (80 إلى 108 بكسل ارتفاعاً)
-        expect(layout.calligraphyHeight).toBeGreaterThanOrEqual(80);
-        expect(layout.calligraphyHeight).toBeLessThanOrEqual(108);
+        // والمنطقة قبل البحث فارغة، أوسع من كل فراغ داخل الكتلة، والصف لا ينكسر (نحو 27 بكسل على 1280، وتتسع مع الشاشة)
+        expect(layout.licenceToSearch).toBeGreaterThanOrEqual(24);
+        expect(layout.licenceToSearch).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence));
+        // المخطوطة ممدودة بأكبر ما يتسع (إضافة التوجيه، البند ٤): أكبر مما بعد #154 (96.7 على 1280، و100 على 1440، و108 على 1920)
+        expect(layout.calligraphyHeight).toBeGreaterThan({ 1280: 99, 1366: 103, 1440: 108, 1920: 116 }[width]);
+        expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
         await headerShot(page, width, `header-${width}`);
     });
@@ -116,6 +116,82 @@ test('header on the tablet keeps the centred calligraphy, and the phone header i
     if (info.project.name !== 'desktop') {
         await headerShot(page, width, `header-${width}`);
     }
+});
+
+// ── ١ب. صف القائمة (إضافة التوجيه، البند ٣): العناصر السبعة وأيقوناتها ظاهرة دائماً على الحاسوب واللوحي الأفقي، ولا زر ☰،
+//    وبتكبير المتصفح 125% (عرض الشاشة ÷ 1.25 بكثافة 1.25). والاسم لا يُقص على هذه العروض
+async function expectFullMenu(page, label) {
+    const menu = await page.evaluate(() => {
+        const nav = document.querySelector('[data-main-nav]');
+        const vw = document.documentElement.clientWidth;
+        const capsules = [...nav.querySelectorAll('.nav-capsules > li > .nav-capsule')];
+
+        return {
+            navShown: getComputedStyle(nav).display !== 'none' && nav.getBoundingClientRect().height > 0,
+            burgerShown: getComputedStyle(document.querySelector('[data-toggle="mobile-menu"]')).display !== 'none',
+            noHorizontalScroll: document.documentElement.scrollWidth <= window.innerWidth + 1,
+            items: capsules.map((capsule) => {
+                const box = capsule.getBoundingClientRect();
+                const icon = capsule.querySelector('[data-icon-tile]').getBoundingClientRect();
+                const text = capsule.querySelector('.truncate');
+
+                return {
+                    inside: box.left >= -0.5 && box.right <= vw + 0.5 && box.width > 0,
+                    icon: Math.round(icon.width),
+                    clipped: text.scrollWidth > text.clientWidth + 1,
+                    font: parseFloat(getComputedStyle(capsule).fontSize),
+                };
+            }),
+        };
+    });
+    console.log(`menu ${label}:`, JSON.stringify({ ...menu, items: menu.items.map((item) => `${item.icon}/${item.font}${item.clipped ? '/clipped' : ''}`) }));
+    expect(menu.navShown, 'صف القائمة ظاهر').toBe(true);
+    expect(menu.burgerShown, 'لا زر ☰').toBe(false);
+    expect(menu.noHorizontalScroll).toBe(true);
+    expect(menu.items).toHaveLength(7);
+    for (const item of menu.items) {
+        expect(item.inside, 'العنصر داخل الشاشة').toBe(true);
+        expect(item.icon, 'الأيقونة ظاهرة').toBeGreaterThanOrEqual(15);
+        expect(item.clipped, 'الاسم كاملاً').toBe(false);
+        expect(item.font, 'خط مقروء').toBeGreaterThanOrEqual(11);
+    }
+}
+
+for (const width of [1024, 1280, 1366, 1440]) {
+    test(`menu at ${width}px: the seven items and their icons are shown, with no menu button`, async ({ page }, info) => {
+        test.skip(info.project.name !== 'desktop', 'العروض في الاختبار نفسه');
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto('/');
+        await page.evaluate(() => document.fonts.ready);
+        await expectFullMenu(page, `${width}`);
+        // لقطات 1280 و1366 و1440 من اختبار الصف الأول
+        if (width === 1024) {
+            await headerShot(page, width, `header-${width}`);
+        }
+    });
+}
+
+for (const screen of [1280, 1366, 1440]) {
+    test(`menu at ${screen}px with the browser zoomed to 125%: the seven items and their icons are shown`, async ({ browser }, info) => {
+        test.skip(info.project.name !== 'desktop', 'العروض في الاختبار نفسه');
+        const width = Math.round(screen / 1.25);
+        const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'ar-SA', viewport: { width, height: 640 }, deviceScaleFactor: 1.25 });
+        const page = await context.newPage();
+        await page.goto('/');
+        await page.evaluate(() => document.fonts.ready);
+        await expectFullMenu(page, `${screen}@125%`);
+        if (screen === 1280) {
+            await headerShot(page, width, 'header-1280-zoom125');
+        }
+        await context.close();
+    });
+}
+
+test('menu on the portrait tablet and the phone keeps the menu button', async ({ page }, info) => {
+    test.skip(info.project.name === 'desktop', 'اللوحي العمودي والجوال');
+    await page.goto('/');
+    await expect(page.locator('[data-toggle="mobile-menu"]')).toBeVisible();
+    await expect(page.locator('[data-main-nav]')).toBeHidden();
 });
 
 // ── ٢. الرئيسية ──
@@ -181,6 +257,11 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
     console.log(`strips ${width}px: videos ${videosBefore} -> ${videosAfter}, books ${booksBefore} -> ${booksAfter}`);
     expect(videosAfter - videosBefore, 'شريط يوتيوب نحو اليمين').toBeGreaterThan(2);
     expect(booksAfter - booksBefore, 'شريط المكتبة نحو اليسار').toBeLessThan(-2);
+    // شريط المكتبة «الكتب والأبحاث والدراسات»، والبحث بلا غلاف بأيقونة الكتاب نفسها (إضافة التوجيه، البند ٦)
+    await expect(page.locator('#home-strip-books')).toHaveText('من مكتبة إعجاز: الكتب والأبحاث والدراسات');
+    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
+    expect(icons.length).toBeGreaterThan(0);
+    expect(new Set(icons).size, 'أيقونة واحدة للكتب والأبحاث').toBe(1);
     // بعرض المحتوى كاملاً: الشريطان بعرض واحد
     const stripWidths = await page.evaluate(() => ['videos', 'books'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
     expect(Math.abs(stripWidths[0] - stripWidths[1])).toBeLessThanOrEqual(2);

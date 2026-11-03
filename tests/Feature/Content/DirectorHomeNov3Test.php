@@ -10,7 +10,10 @@ use App\Models\LibraryItem;
 use App\Models\NewsArticle;
 use App\Models\Partner;
 use App\Models\Setting;
+use App\Support\ContentCache;
 use App\Support\HomeContent;
+use App\Support\Icon;
+use Illuminate\Support\Facades\Storage;
 
 /*
 | توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): ترتيب الرئيسية من الأعلى، والبطاقات الخمس،
@@ -115,12 +118,16 @@ it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the
         ->and(strpos($section, __('home.portal_stats.book_reads')))->toBeLessThan(strpos($section, __('home.portal_stats.media_views')));
 });
 
-it('shows no portal card while all four numbers are zero, and none with the section switched off', function () {
+it('shows the four portal cards even when all four numbers are zero, and none before the first run or with the section switched off', function () {
     directorHomeContent();
     directorVisits(0, 0);
-    $this->artisan('ejaz:refresh-stats');
-
     $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
+
+    ContentCache::flush();
+    $this->artisan('ejaz:refresh-stats');
+    $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(4);
 
     DailyVisit::query()->update(['visitors' => 5]);
     Setting::put(HomeContent::KEY, ['portal_stats' => ['enabled' => false]]);
@@ -156,4 +163,66 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
     expect(preg_match('/\.header-top\s*\{[^}]*space-between/', $css))->toBe(0)
         ->and(preg_match('/\.header-top \.header-actions\s*\{\s*margin-inline: auto 1\.75rem;/', $css))->toBe(1)
         ->and(preg_match('/\.header-top \.header-mark\s*\{\s*margin-inline-start: 1\.75rem;/', $css))->toBe(1);
+});
+
+/*
+| إضافة التوجيه (3 نوفمبر 2026، 20:39): صف القائمة لا يُخفى على الحاسوب واللوحي الأفقي، وشريط المكتبة «الكتب والأبحاث والدراسات»
+| بأيقونة الكتاب للبحث بلا غلاف، وبحثان تجريبيان لرابط العرض والبيئة المحلية وحدهما.
+*/
+it('never hides the menu row behind the menu button on desktop and the landscape tablet', function () {
+    $dom = new DOMDocument;
+    @$dom->loadHTML($this->get('/')->assertOk()->getContent());
+    $x = new DOMXPath($dom);
+
+    expect($x->query("//nav[@data-main-nav][contains(concat(' ', @class, ' '), ' lg:block ')]")->length)->toBe(1)
+        ->and($x->query("//button[@data-toggle='mobile-menu'][contains(concat(' ', @class, ' '), ' lg:hidden ')]")->length)->toBe(1);
+
+    // لا قاعدة تخفي الصف أو تُظهر زر القائمة حين لا يتسع، بل خط وحشو أصغر
+    foreach (['resources/css/app.css', 'resources/css/concept.css'] as $file) {
+        expect(preg_match('/\[data-nav-overflow\][^{]*\{[^}]*display:\s*(none|block|inline-block)/', (string) file_get_contents(base_path($file))))->toBe(0, $file);
+    }
+    expect(preg_match('/\[data-nav-overflow\] \.nav-capsule\s*\{[^}]*font-size/', (string) file_get_contents(resource_path('css/concept.css'))))->toBe(1);
+});
+
+it('titles the library strip «الكتب والأبحاث والدراسات», shows published research with the same book icon as books', function () {
+    LibraryItem::factory()->create(['title' => 'كتاب الشريط', 'section' => LibrarySection::Books]);
+    LibraryItem::factory()->create(['title' => 'بحث الشريط', 'section' => LibrarySection::Research]);
+    LibraryItem::factory()->unpublished()->create(['title' => 'بحث غير منشور', 'section' => LibrarySection::Research]);
+
+    $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
+    $books = (string) str($strips)->after('data-media-strip="books"');
+    preg_match_all('/data-thumb-placeholder aria-hidden="true">\s*(<svg.*?<\/svg>)/s', $books, $icons);
+
+    expect($strips)->toContain(__('home.sections_final.headings.books'))
+        ->and(__('home.sections_final.headings.books'))->toBe('من مكتبة إعجاز: الكتب والأبحاث والدراسات')
+        ->and($books)->toContain('بحث الشريط')->toContain('كتاب الشريط')->not->toContain('بحث غير منشور')
+        ->and(count($icons[1]))->toBe(2)
+        ->and(array_unique($icons[1]))->toHaveCount(1)
+        ->and($icons[1][0])->toBe(Icon::svg(LibrarySection::Books->icon(), 'size-10')->toHtml());
+});
+
+it('adds two demo research items marked «تجريبي» when none is published, and nothing when one is', function () {
+    Storage::fake(LibraryItem::disk());
+    $this->artisan('ejaz:demo-research')->assertSuccessful();
+
+    $items = LibraryItem::query()->where('section', LibrarySection::Research)->orderBy('slug')->get();
+    expect($items)->toHaveCount(2)
+        ->and($items->pluck('title')->all())->each->toContain('تجريبي')
+        ->and($items->every(fn (LibraryItem $item): bool => $item->is_published && $item->thumbnail === null))->toBeTrue();
+    foreach ($items as $item) {
+        Storage::disk(LibraryItem::disk())->assertExists($item->file);
+    }
+
+    $this->get('/')->assertOk()->assertSee(__('home.demo_research.title', ['number' => 1]));
+
+    $this->artisan('ejaz:demo-research')->assertSuccessful();
+    expect(LibraryItem::query()->where('section', LibrarySection::Research)->count())->toBe(2);
+});
+
+it('refuses to add the demo research outside the local environment', function () {
+    app()->detectEnvironment(fn (): string => 'production');
+
+    $this->artisan('ejaz:demo-research')->assertFailed();
+
+    expect(LibraryItem::query()->where('section', LibrarySection::Research)->count())->toBe(0);
 });

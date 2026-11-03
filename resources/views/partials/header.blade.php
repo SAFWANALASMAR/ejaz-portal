@@ -3,12 +3,13 @@
     وظل (أمر التصور النهائي، النسخة 63 — R2 وR3 وG6، وترتيب صفوان في 2 نوفمبر 2026: docs/decisions/2026-11-02-header-final.md):
     - الصف الأول: رمز الشعار في البداية، ثم المخطوطة، ثم مربع الترخيص بسطريه (من «محتوى الرئيسية»)، ثم البحث و«تسجيل الدخول» (أو
       «حسابي») في النهاية. ودون 1240 ثلاثة أعمدة والمخطوطة في منتصف الشريط. ومن 1240 ترتيب المدير التنفيذي (3 نوفمبر 2026 —
-      docs/decisions/2026-11-03-director-home.md، ويحل محل الفراغات المتساوية في #154): الرمز والمخطوطة والمربع كتلة واحدة في
+      docs/decisions/2026-11-03-director-home.md، ويحل محل الفراغات المتساوية في طلب الدمج 154): الرمز والمخطوطة والمربع كتلة واحدة في
       البداية بفراغات صغيرة، والبحث والدخول في النهاية، والطرفان مزاحان قليلاً نحو الداخل، وما بينهما فارغ. ولا سطر إشراف.
     - الصف الثاني: أفتح قليلاً وبينهما فاصل #8EC5F0، فيه عناصر القائمة كبسولات بأيقونة صغيرة بجانب الكلمة (القائمة «ج»)،
       والنشط بحد #8EC5F0 وخلفية أفتح. والقائمة تُدار من اللوحة، وعناصرها السبعة من MainMenuSevenSeeder.
-    - اللوحي: الترتيب نفسه بلا مربع الترخيص وبزر ☰ في أقصى النهاية. والجوال: الرمز والمخطوطة متجاوران في البداية وزر ☰ في النهاية.
-    والقائمة لا تتسع (عناصر أكثر أو أسماء أطول): زر القائمة بدلها (app.js). $siteMenu من App\View\Composers\SiteChromeComposer،
+    - اللوحي العمودي: الترتيب نفسه بلا مربع الترخيص وبزر ☰ في أقصى النهاية. والجوال: الرمز والمخطوطة متجاوران في البداية وزر ☰ في النهاية.
+    - صف القائمة ظاهر من 1024 (lg:) على الحاسوب واللوحي الأفقي بعناصره وأيقوناتها، ولا يحل محله زر ☰ (إضافة توجيه المدير، 3 نوفمبر
+      2026، البند ٣): لا تتسع (عناصر أكثر أو أسماء أطول أو تكبير المتصفح) فيصغر الخط ثم ينكمش (app.js وconcept.css). $siteMenu من App\View\Composers\SiteChromeComposer،
     والأيقونة من مسار الرابط (App\Support\MenuIcon).
 --}}
 @php
@@ -61,7 +62,7 @@
                 </div>
 
                 <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
-                    class="header-icon-button nav:hidden">
+                    class="header-icon-button lg:hidden">
                     <span class="sr-only">{{ __('site.open_menu') }}</span>
                     {{ \App\Support\Icon::svg('bars-3', 'size-6', ['aria-hidden' => 'true']) }}
                 </button>
@@ -70,7 +71,7 @@
     </div>
 
     {{-- الصف الثاني: القائمة «ج»، وشارة البث في آخره (مراجعة المشرف على طلب الدمج 130: لا تزيح المخطوطة عن منتصف الصف الأول) --}}
-    <nav data-main-nav class="header-nav hidden nav:block" aria-label="{{ __('site.main_navigation') }}">
+    <nav data-main-nav class="header-nav hidden lg:block" aria-label="{{ __('site.main_navigation') }}">
         <div class="header-nav-row mx-auto max-w-[82.5rem] px-4 sm:px-7">
         <ul class="nav-capsules">
             @foreach ($menu as $item)
@@ -111,7 +112,7 @@
     </nav>
 
     {{-- قائمة الجوال واللوحي: العناصر نفسها بأيقوناتها، وشارة البث أولها --}}
-    <div id="mobile-menu" hidden class="header-mobile-menu nav:hidden">
+    <div id="mobile-menu" hidden class="header-mobile-menu lg:hidden">
         <nav class="container-page max-h-[75vh] overflow-y-auto py-3" aria-label="{{ __('site.main_navigation') }}">
             @include('partials.live-badge', ['class' => 'mb-3'])
             <ul class="space-y-1">

@@ -23,11 +23,12 @@ it('puts the menu on its own second row of equal capsules and shows the bar from
             ->and($x->query(".//span[contains(@class, 'truncate')]", $item)->length)->toBe(1);
     }
 
-    // الصف الأول قبل صف القائمة داخل الرأس الثابت نفسه، والشريط من نقطة nav المقيسة، وزر القائمة وقائمة الجوال دونها
+    // الصف الأول قبل صف القائمة داخل الرأس الثابت نفسه، والشريط من 1024 (lg: — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣)،
+    // وزر القائمة وقائمة الجوال دونه
     expect($x->query("//header[@data-site-header][contains(@class, 'sticky')][contains(@class, 'top-0')]/div[contains(@class, 'header-top')]/following-sibling::nav[@data-main-nav]")->length)->toBe(1)
-        ->and($x->query("//nav[@data-main-nav][contains(@class, 'nav:block')]")->length)->toBe(1)
-        ->and($x->query("//button[@data-toggle='mobile-menu'][contains(@class, 'nav:hidden')]")->length)->toBe(1)
-        ->and($x->query("//div[@id='mobile-menu'][contains(@class, 'nav:hidden')]")->length)->toBe(1);
+        ->and($x->query("//nav[@data-main-nav][contains(@class, 'lg:block')]")->length)->toBe(1)
+        ->and($x->query("//button[@data-toggle='mobile-menu'][contains(@class, 'lg:hidden')]")->length)->toBe(1)
+        ->and($x->query("//div[@id='mobile-menu'][contains(@class, 'lg:hidden')]")->length)->toBe(1);
 });
 
 it('shows the two licence lines from the panel in the first row, and no supervision line in the header or the footer', function () {
