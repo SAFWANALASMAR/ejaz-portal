@@ -123,3 +123,15 @@ it('audits the Composer and production npm packages on every run, as a blocking 
         // ولا يُجعل الفحص كله غير مانع
         ->and($job)->not->toMatch('/^    continue-on-error:/m');
 });
+
+it('keeps the optional native packages in the install, and leaves the canvas decision open in the open questions', function () {
+    // npm ci --omit=optional يحذف الحزم الثنائية لـ rolldown وoxide وlightningcss فيكسر البناء (decisions/2026-11-03-security-lows.md)
+    expect(ciJob('quality'))->not->toContain('--omit=optional')
+        ->and((string) file_get_contents(base_path('deploy/docker/Dockerfile')))->not->toContain('--omit=optional');
+
+    $questions = (string) file_get_contents(base_path('docs/open-questions.md'));
+    $decision = (string) file_get_contents(base_path('docs/decisions/2026-11-03-security-lows.md'));
+
+    expect($questions)->toContain('@napi-rs/canvas')->toContain('overrides')
+        ->and($decision)->toContain('docs/open-questions.md')->not->toContain('(ج)');
+});

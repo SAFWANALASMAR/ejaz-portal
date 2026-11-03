@@ -581,7 +581,7 @@ it('refuses in the action itself a link with no expiry or one past a year, and a
 
     expect(fn () => $issue->handle($this->secretary, $gallery, null))->toThrow(ValidationException::class)
         ->and(fn () => $issue->handle($this->secretary, $gallery, ''))->toThrow(ValidationException::class)
-        ->and(fn () => $issue->handle($this->secretary, $gallery, now()->addDays(EvidenceGallery::MAX_LINK_DAYS)->addMinute()))->toThrow(ValidationException::class)
+        ->and(fn () => $issue->handle($this->secretary, $gallery, EvidenceGallery::latestExpiry()->addSecond()))->toThrow(ValidationException::class)
         ->and($gallery->fresh()->token_hash)->toBeNull();
 
     $this->travelTo(now()->startOfSecond());
@@ -613,4 +613,25 @@ it('gives each old link without expiry a year from its issue, so a recent one ke
         ->and($never->fresh()->expires_at)->toBeNull();
     $this->get($recentUrl)->assertOk();
     $this->get($oldUrl)->assertNotFound();
+});
+
+it('agrees in the panel and the action on the last moment of day 365 in Riyadh time, and refuses the next day', function () {
+    $this->actingAs($this->secretary);
+    $this->travelTo(Carbon::parse('2026-11-03 09:00:00', 'Asia/Riyadh'));
+    $gallery = evidenceGalleryWith($this, []);
+    $lastDay = now('Asia/Riyadh')->addDays(EvidenceGallery::MAX_LINK_DAYS)->format('Y-m-d');
+    $nextDay = now('Asia/Riyadh')->addDays(EvidenceGallery::MAX_LINK_DAYS + 1)->format('Y-m-d');
+
+    expect(EvidenceGallery::latestExpiry()->format('Y-m-d H:i:s'))->toBe($lastDay.' 23:59:59');
+
+    // المنتقي يعرض اليوم الأخير كله، فيقبل الإجراء أي ساعة فيه بعد ساعة الإصدار
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
+        ->callAction('issueLink', ['expires_at' => $lastDay.' 23:30:00'])
+        ->assertHasNoActionErrors();
+    expect($gallery->fresh()->expires_at->utc()->format('Y-m-d H:i'))->toBe($lastDay.' 20:30');
+
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
+        ->callAction('issueLink', ['expires_at' => $nextDay.' 00:00:00'])
+        ->assertHasActionErrors(['expires_at']);
+    expect(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, $gallery->fresh(), Carbon::parse($nextDay.' 00:00:00', 'Asia/Riyadh')))->toThrow(ValidationException::class);
 });

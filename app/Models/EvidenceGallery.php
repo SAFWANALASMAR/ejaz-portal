@@ -48,6 +48,15 @@ class EvidenceGallery extends Model
 
     public const MAX_LINK_DAYS = 365;
 
+    /**
+     * أقصى انتهاء لرابط يُصدر الآن: آخر اليوم الـ365 بتوقيت الرياض، فيتفق منتقي اللوحة (باليوم) والإجراء (بالساعة)،
+     * ولا يُرفض وقت يعرضه المنتقي في ذلك اليوم (مراجعة المشرف على #137).
+     */
+    public static function latestExpiry(): Carbon
+    {
+        return now(config('app.display_timezone'))->addDays(self::MAX_LINK_DAYS)->endOfDay();
+    }
+
     protected $hidden = ['token_hash'];
 
     /**
