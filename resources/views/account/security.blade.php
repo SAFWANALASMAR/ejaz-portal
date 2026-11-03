@@ -59,12 +59,12 @@
         @elseif ($pending)
             <p class="mt-4 text-ink">{{ __('account.security.scan') }}</p>
 
-            <div class="mt-4 inline-block rounded-xl border border-line bg-white p-4">
+            <div class="mt-4 inline-block rounded-xl border border-line bg-white p-4" data-two-factor-qr>
                 {!! $user->twoFactorQrCodeSvg() !!}
             </div>
 
             <p class="mt-3 text-sm text-muted">{{ __('account.security.manual_key') }}</p>
-            <p class="mt-1 font-mono text-sm tracking-wider" dir="ltr">{{ decrypt($user->two_factor_secret) }}</p>
+            <p class="mt-1 font-mono text-sm tracking-wider" dir="ltr" data-two-factor-key>{{ decrypt($user->two_factor_secret) }}</p>
 
             <form method="POST" action="{{ route('two-factor.confirm') }}" class="mt-5 max-w-xs space-y-4" novalidate>
                 @csrf
@@ -80,6 +80,9 @@
                 <x-button>{{ __('account.security.enable') }}</x-button>
             </form>
         @endif
+
+        {{-- بعد خطوة الصفحة، فلا يدفع الرمز المربع وخانة التأكيد ورموز الاسترداد إلى الأسفل --}}
+        @include('account.partials.two-factor-guide')
     </x-card>
 
     <x-card class="mt-6">

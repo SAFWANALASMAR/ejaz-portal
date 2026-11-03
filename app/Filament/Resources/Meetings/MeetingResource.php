@@ -117,6 +117,7 @@ class MeetingResource extends Resource
                     ->formatStateUsing(fn (string $state): string => __('assembly.online_statuses.'.$state))
                     ->color(fn (string $state): string => match ($state) {
                         'linked' => 'success',
+                        'manual' => 'info',
                         'failed' => 'danger',
                         default => 'warning',
                     })
@@ -158,6 +159,7 @@ class MeetingResource extends Resource
         return match (true) {
             $meeting->online_sync_error !== null => 'failed',
             $meeting->needsOnlineSync() => 'pending',
+            $meeting->online_join_manual => 'manual',
             $meeting->online_meeting_id !== null => 'linked',
             default => null,
         };
