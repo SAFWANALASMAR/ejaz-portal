@@ -4,10 +4,12 @@ use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Actions\Messaging\DeliverMessage;
 use App\Contracts\WhatsAppNotifier;
+use App\Enums\MessageStatus;
 use App\Jobs\SendExamReceipt;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionSubmission;
+use App\Models\MessageLog;
 use App\Models\MessagingChannel;
 use App\Models\User;
 use App\Notifications\AttemptReceived;
@@ -15,8 +17,10 @@ use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 
 /*
 | بريد تأكيد الاستلام بعد تسليم محاولة في مسابقة الطلاب، يدوياً أو آلياً (قرار صفوان والمدير التنفيذي، 30 أكتوبر 2026):
@@ -363,4 +367,102 @@ it('registers load-test students with the required mobile number and school fiel
     $submissions = CompetitionSubmission::query()->where('competition_id', $brahin->id)->get();
     expect($submissions)->toHaveCount(2)
         ->and($submissions->every(fn (CompetitionSubmission $submission): bool => filled($submission->guardian_phone)))->toBeTrue();
+});
+
+it('tells the reader of an unverified receipt to ignore the link if the account is not theirs, and not the reader of a verified one', function () {
+    Notification::fake();
+    $unverified = receiptAttempt();
+    $unverified->user->forceFill(['email_verified_at' => null])->save();
+    app(SubmitAttempt::class)->handle($unverified->user, $unverified);
+
+    $verified = receiptAttempt(serial: 2);
+    $verified->user->forceFill(['email_verified_at' => now()])->save();
+    app(SubmitAttempt::class)->handle($verified->user, $verified);
+
+    $line = __('competitions.student.receipt_mail.not_you_line');
+    expect($line)->toBe('إن لم تكن أنت صاحب هذا الحساب فتجاهل رابط التوثيق.');
+    Notification::assertSentTo($unverified->user, AttemptReceived::class, fn (AttemptReceived $notification, array $channels, User $notifiable): bool => in_array($line, $notification->toMail($notifiable)->outroLines, true));
+    Notification::assertSentTo($verified->user, AttemptReceived::class, fn (AttemptReceived $notification, array $channels, User $notifiable): bool => ! in_array($line, [...$notification->toMail($notifiable)->introLines, ...$notification->toMail($notifiable)->outroLines], true)
+        && ! str_contains((string) $notification->toMail($notifiable)->render(), $line));
+});
+
+/*
+| حدا إيصال واتساب (المراجعة الأمنية بعد v0.14.2): لكل رقم في اليوم وللبوابة كلها في اليوم. وما تجاوزهما يُتخطى بسجل بلا الرقم.
+*/
+
+/**
+ * تسجيل مُسلَّم برقم ولي أمر، ومهمة إيصاله.
+ */
+function receiptJobFor(string $guardianPhone): SendExamReceipt
+{
+    $submission = CompetitionSubmission::factory()->submitted()->create(['user_id' => User::factory()->create()->id, 'guardian_phone' => $guardianPhone]);
+
+    return new SendExamReceipt($submission->id);
+}
+
+it('skips the WhatsApp receipt past the daily limit for one guardian number, logged without the number, and keeps sending to others', function () {
+    enableExamWhatsApp();
+    config(['messaging.exam_receipt_per_number_per_day' => 2, 'messaging.exam_receipt_per_day' => 100]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.L']]])]);
+    Log::spy();
+
+    foreach (['+966511111111', '+966511111111', '+966511111111', '+966522222222'] as $phone) {
+        receiptJobFor($phone)->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+    }
+
+    expect(Http::recorded()->map(fn (array $pair): string => (string) $pair[0]['to'])->all())->toBe(['+966511111111', '+966511111111', '+966522222222'])
+        ->and(MessageLog::query()->where('status', MessageStatus::Skipped)->pluck('error')->all())->toBe(['number_limit']);
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context): bool => $context === ['limit' => 'number'] && ! str_contains($message.json_encode($context), '511111111'));
+});
+
+it('skips every WhatsApp receipt past the portal daily limit without failing the job, and lets the next day through', function () {
+    enableExamWhatsApp();
+    config(['messaging.exam_receipt_per_number_per_day' => 10, 'messaging.exam_receipt_per_day' => 2]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.G']]])]);
+
+    foreach (['+966511111111', '+966522222222', '+966533333333'] as $phone) {
+        SendExamReceipt::dispatchSync(receiptJobFor($phone)->submissionId);
+    }
+
+    Http::assertSentCount(2);
+    expect(MessageLog::query()->where('status', MessageStatus::Skipped)->pluck('error')->all())->toBe(['global_limit']);
+
+    $this->travel(1441)->minutes();
+    SendExamReceipt::dispatchSync(receiptJobFor('+966544444444')->submissionId);
+
+    Http::assertSentCount(3);
+});
+
+it('reads the WhatsApp receipt limits from the environment with their defaults', function () {
+    expect(config('messaging.exam_receipt_per_number_per_day'))->toBe(10)
+        ->and(config('messaging.exam_receipt_per_day'))->toBe(40000)
+        ->and((string) file_get_contents(base_path('.env.example')))->toContain('MESSAGING_EXAM_RECEIPT_PER_NUMBER_PER_DAY=10')->toContain('MESSAGING_EXAM_RECEIPT_PER_DAY=40000');
+});
+
+it('waits before retrying the WhatsApp receipt after a passing provider failure', function () {
+    expect((new SendExamReceipt(1))->backoff)->toBe([30, 120])
+        ->and((new SendExamReceipt(1))->tries)->toBe(3);
+});
+
+it('counts a WhatsApp receipt once across queue retries, and counts nothing while WhatsApp cannot send', function () {
+    config(['messaging.exam_receipt_per_number_per_day' => 1, 'messaging.exam_receipt_per_day' => 100]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.R']]])]);
+
+    // بلا مزود: لا إرسال ولا عدّ، فالإيصال التالي بعد الضبط يصل
+    receiptJobFor('+966511111111')->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+    expect(RateLimiter::attempts('exam-receipt:global'))->toBe(0);
+
+    enableExamWhatsApp();
+    $job = receiptJobFor('+966511111111');
+    $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+    // إعادة المهمة نفسها (مهلة مزود مثلاً) لا تُعدّ إيصالاً ثانياً
+    $job->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+
+    Http::assertSentCount(2);
+    expect(RateLimiter::attempts('exam-receipt:global'))->toBe(1);
+
+    receiptJobFor('+966511111111')->handle(app(WhatsAppNotifier::class), app(DeliverMessage::class));
+
+    Http::assertSentCount(2);
+    expect(MessageLog::query()->where('status', MessageStatus::Skipped)->pluck('error')->all())->toBe(['number_limit']);
 });

@@ -24,19 +24,20 @@ class IssueEvidenceLink
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function handle(User $actor, EvidenceGallery $gallery, mixed $expiresAt = null): string
+    public function handle(User $actor, EvidenceGallery $gallery, mixed $expiresAt): string
     {
         // والتعديل يشترط اطلاع المُصدر على كل عنصر أرشيف في المعرض (EvidenceGalleryPolicy)، ولا رابط لمعرض محذوف
         if ($gallery->trashed() || ! $actor->can('update', $gallery)) {
             throw new AuthorizationException;
         }
 
+        // انتهاء إلزامي لا يتجاوز سنة من الإصدار، فلا يبقى رابط سري صالحاً بلا حد إن تسرّب (المراجعة الأمنية بعد v0.14.2)
         $validated = Validator::make(['expires_at' => $expiresAt], [
-            'expires_at' => ['nullable', 'date', 'after:now'],
+            'expires_at' => ['required', 'date', 'after:now', 'before_or_equal:'.now()->addDays(EvidenceGallery::MAX_LINK_DAYS)->toDateTimeString()],
         ], attributes: ['expires_at' => __('evidence.fields.expires_at')])->validate();
 
         $token = Str::random(EvidenceGallery::TOKEN_LENGTH);
-        $expires = $validated['expires_at'] === null ? null : Carbon::parse($validated['expires_at']);
+        $expires = Carbon::parse($validated['expires_at']);
 
         $gallery->forceFill([
             'token_hash' => EvidenceGallery::hashToken($token),
@@ -48,7 +49,7 @@ class IssueEvidenceLink
 
         activity('documents')->causedBy($actor)->performedOn($gallery)
             ->event(ActivityEvent::EvidenceLinkIssued->value)
-            ->withProperties(['expires_at' => $expires?->toIso8601String()])
+            ->withProperties(['expires_at' => $expires->toIso8601String()])
             ->log(ActivityEvent::EvidenceLinkIssued->value);
 
         return route('evidence.show', ['token' => $token]);
