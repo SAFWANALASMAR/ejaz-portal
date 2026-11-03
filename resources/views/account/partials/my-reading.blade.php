@@ -8,7 +8,7 @@
             <x-icon-tile icon="book-open" size="sm" shade="medium" />
             {{ __('reading.title') }}
         </h2>
-        <a href="{{ route('account.my-reading') }}" wire:navigate class="more-link shrink-0">{{ __('reading.view_all') }}</a>
+        <a href="{{ route('account.my-reading') }}" wire:navigate class="more-link shrink-0">{{ __('reading.view_all') }}<span class="sr-only">: {{ __('reading.title') }}</span></a>
     </div>
     <p class="mt-1 text-sm text-muted" data-reading-tracking-note="{{ $trackingDisabled ? 'off' : 'on' }}">{{ __($trackingDisabled ? 'reading.tracking.off_note' : 'reading.description') }}</p>
 
