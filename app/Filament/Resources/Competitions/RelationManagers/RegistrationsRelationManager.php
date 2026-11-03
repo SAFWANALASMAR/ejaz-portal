@@ -65,6 +65,8 @@ class RegistrationsRelationManager extends RelationManager
         $fields = $this->competition()->fields()->get();
 
         return $table
+            ->modelLabel(__('competitions.student.admin.registration_model'))
+            ->pluralModelLabel(__('competitions.student.admin.registrations'))
             ->modifyQueryUsing(fn (Builder $query) => $query->whereNotNull('registered_at')->with(['studentCategory', 'studentRegion'])->withCount('attempts'))
             ->defaultSort('registered_at', 'desc')
             ->columns([
