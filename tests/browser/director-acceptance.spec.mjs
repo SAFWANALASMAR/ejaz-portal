@@ -1109,7 +1109,8 @@ const LIBRARY_SECTIONS = ['المكتبة المرئية', 'المكتبة ال�
 const VIEW_ONLY_SLUG = process.env.VIEW_ONLY_SLUG ?? 'license-certificate';
 const BOARD = process.env.BOARD_CREDENTIALS ? JSON.parse(process.env.BOARD_CREDENTIALS) : null;
 const ACCOUNT_STATE = 'storage/playwright/demo-user.json';
-const SHOTS = 'docs/design/screenshots/acceptance-v0.15';
+// ACCEPTANCE_SHOTS_DIR يغيّر المجلد، ومنه لقطات الإصدار docs/design/screenshots/v0.15.
+const SHOTS = process.env.ACCEPTANCE_SHOTS_DIR || 'docs/design/screenshots/acceptance-v0.15';
 
 // يمرّر الصفحة كلها فيظهر ما يظهر عند التمرير (data-reveal)، ثم يعود إلى أعلاها
 async function revealAll(page) {
