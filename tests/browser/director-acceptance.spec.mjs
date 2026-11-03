@@ -1321,9 +1321,10 @@ test.describe('acceptance v0.15.0: home', () => {
         await expect(partners).toBeAttached();
         await expectBefore(stats, partners, '«البوابة بالأرقام» قبل «شركاؤنا»');
         await expectBefore(partners, page.locator('[data-site-footer]'), '«شركاؤنا» قبل التذييل');
-        // H9: قراءات الكتب ومشاهدات المقاطع من البنود المطلوبة
-        await expect(stats, 'H9: قراءات الكتب').toContainText(/قراء|صفحة/);
-        await expect(stats, 'H9: مشاهدات المقاطع').toContainText(/مشاهد/);
+        // H9: قراءات الكتب ومشاهدات المقاطع بعدد المرات (قرار صفوان، 3 نوفمبر، #152)
+        await expect(stats, 'H9: قراءات الكتب').toContainText('قراءات الكتب');
+        await expect(stats, 'H9: مشاهدات المقاطع').toContainText('مشاهدات المقاطع');
+        await expect(stats, 'H9: لا صفحات ولا دقائق').not.toContainText(/صفحة مقروءة|دقيقة مشاهدة/);
         await expectRtlNoScroll(page, '/');
     });
 
