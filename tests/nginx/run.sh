@@ -28,6 +28,8 @@ if command -v cygpath >/dev/null; then DEVNULL=NUL; else DEVNULL=/dev/null; fi
 MSYS2_ARG_CONV_EXCL='*' openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj "/CN=ejaz.test" \
   -keyout "$(native "$work/tls/privkey.pem")" -out "$(native "$work/tls/fullchain.pem")" >/dev/null 2>&1
 echo 'console.log(1)' > "$work/public/build/app.js"
+# وحدة .mjs بحجم يكفي للضغط (عامل قارئ PDF — docs/reviews/2026-11-02-v0.15-perf.md)
+for _ in $(seq 1 200); do echo 'export const pdfWorker = "ejaz";'; done > "$work/public/build/worker.mjs"
 chmod -R a+rX "$work"
 
 # خيارات docker قبل -- والأمر بعدها: run --rm -- nginx -t
@@ -85,3 +87,9 @@ for header in x-frame-options x-content-type-options referrer-policy permissions
   printf '%s\n' "$page" | grep -qi "^$header:" || { echo "✗ الرأس $header غائب" >&2; exit 1; }
 done
 echo "== رؤوس الحماية وCSP حاضرة"
+
+# وحدة .mjs بنوع JavaScript (المتصفح يرفض السكربت الوحدة بغيره مع nosniff)، ومضغوطة
+module="$(headers "${resolve[@]}" -H 'Accept-Encoding: gzip' "https://ejaz.test:$https_port/build/worker.mjs")"
+printf '%s\n' "$module" | grep -qi '^content-type: application/javascript' || { printf '%s\n' "$module" >&2; echo "✗ ملف .mjs بغير نوع JavaScript" >&2; exit 1; }
+printf '%s\n' "$module" | grep -qi '^content-encoding: gzip' || { printf '%s\n' "$module" >&2; echo "✗ ملف .mjs غير مضغوط" >&2; exit 1; }
+echo "== ملف .mjs بنوع JavaScript ومضغوط"

@@ -3,10 +3,16 @@
 use App\Enums\RoleName;
 use App\Filament\Resources\ArchiveCategories\ArchiveCategoryResource;
 use App\Filament\Resources\ArchiveCategories\Pages\ManageArchiveCategories;
+use App\Filament\Resources\Competitions\CompetitionResource;
+use App\Filament\Resources\Competitions\Pages\EditCompetition;
 use App\Filament\Resources\ProgramTypes\Pages\ManageProgramTypes;
 use App\Filament\Resources\ProgramTypes\ProgramTypeResource;
+use App\Models\Achievement;
 use App\Models\ArchiveCategory;
 use App\Models\ArchiveItem;
+use App\Models\Competition;
+use App\Models\CompetitionRound;
+use App\Models\CompetitionSubmission;
 use App\Models\Document;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
@@ -66,12 +72,14 @@ function expectQueryBudget(Closure $seed, Closure $request, int $max): void
 it('keeps the public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
     expectQueryBudget($seed, fn () => $this->get($url), $max);
 })->with([
-    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 3],
+    // والصفحات الثابتة +1 منذ «محرر الصفحات»: عنوانها ووصفها وأقسامها المنشورة، مخزّنة مع المحتوى فتُسأل مرة بعد مسحه
+    // (docs/decisions/2026-11-02-page-editor.md)
+    'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 4],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
     // والحوكمة +1 منذ عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount، مخزّن مع المحتوى — 1 نوفمبر 2026)
-    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 4],
+    'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 5],
     'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
-    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 3],
+    'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 4],
 ]);
 
 it('serves the cached public pages without queries', function () {
@@ -104,15 +112,22 @@ it('keeps the account pages within a fixed number of queries', function (string 
         }
 
         ServiceRequest::factory()->count($n)->create(['user_id' => $user->id]);
+
+        // و«قراءاتي» بصفوفها، فيُحسب تحميل عناصرها مسبقاً (docs/reviews/2026-11-02-v0.15-perf.md)
+        foreach (LibraryItem::factory()->count($n)->create() as $item) {
+            readingProgressFor($user, $item);
+        }
     };
 
     expectQueryBudget($seed, fn () => $this->actingAs($user)->get($url), $max);
 })->with([
     // و14 منذ بطاقات لوحة المستفيد من اللوحة (AccountCard — 25 أكتوبر 2026)، و+2 منذ شريط المكتبة تحت الترحيب (المقاطع والأغلفة، مخزّن مع المحتوى فيُسأل مرة بعد مسحه)
     // و+2 منذ «قراءاتي»: أحدث التقدّم ومجاميع صاحب الحساب (docs/decisions/2026-11-01-my-reading.md)
+    // وبصفوف «قراءاتي» +1 لتحميل عناصرها، و-1 بعدّ التسجيلات المؤكدة والمنجزة باستعلام واحد (docs/reviews/2026-11-02-v0.15-perf.md)
     'dashboard' => ['/account', 18],
     'programs' => ['/account/programs', 5],
     'requests' => ['/account/requests', 4],
+    'my reading' => ['/account/my-reading', 4],
 ]);
 
 it('keeps the program types table to one query for all rows', function () {
@@ -176,3 +191,103 @@ it('indexes the sorted and joined columns of the large tables', function (string
     ['archive_items', 'program_id'],
     ['form_entries', 'form_template_version_id'],
 ]);
+
+/*
+| صفحات النسخة 0.15 (docs/reviews/2026-11-02-v0.15-perf.md): القوائم والصفحات المفردة بلا تخزين، وصفحة مسابقة الطلاب
+| بمراحلها ومسجليها، ونموذج المسابقة في اللوحة بجدول جوائزها.
+*/
+
+/**
+ * تقدّم صاحب الحساب في عنصر من المكتبة كما يكتبه RecordLibraryProgress.
+ */
+function readingProgressFor(User $user, LibraryItem $item): void
+{
+    DB::table('library_progress')->insert([
+        'user_id' => $user->id,
+        'library_item_id' => $item->id,
+        'pages_seen' => '1-3',
+        'pages_count' => 3,
+        'last_page' => 3,
+        'seconds_consumed' => 0,
+        'last_reported_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+it('keeps the v0.15 public lists within a fixed number of queries', function (string $url, Closure $seed, int $max) {
+    expectQueryBudget($seed, fn () => $this->get($url), $max);
+})->with([
+    // والمكتبة والمسابقات +1 منذ «محرر الصفحات» (#124، دُمج بعد كتابة هذين السقفين في #132): سجل الصفحة الثابتة المنشور
+    // (EditablePages::live)، مخزّن في ذاكرة المحتوى فيُسأل مرة بعد مسحها وصفراً بعدها، كالأخبار والبرامج أعلاه
+    'library' => ['/library', fn (int $n) => [LibraryItem::factory()->count($n)->create(), LibraryItem::factory()->count($n)->video()->create(), LibraryItem::factory()->count($n)->audio()->create()], 5],
+    'competitions' => ['/competitions', fn (int $n) => [
+        Competition::factory()->count($n)->create(),
+        Competition::factory()->count($n)->upcoming()->create(),
+        Competition::factory()->count($n)->closed()->create(),
+    ], 5],
+    'achievements' => ['/achievements', fn (int $n) => Achievement::factory()->count($n)->published()->create(), 2],
+]);
+
+it('keeps the public detail pages within a fixed number of queries', function (string $model, string $prefix, int $max) {
+    $target = $model::factory()->create();
+
+    expectQueryBudget(fn (int $n) => $model::factory()->count($n)->create(), fn () => $this->get($prefix.$target->slug), $max);
+})->with([
+    'library book' => [LibraryItem::class, '/library/books/', 3],
+    'news article' => [NewsArticle::class, '/media/news/', 3],
+    'governance document' => [Document::class, '/governance/', 2],
+    'program' => [Program::class, '/programs/', 2],
+    'competition' => [Competition::class, '/competitions/', 1],
+]);
+
+it('keeps the student competition page within a fixed number of queries whatever its rounds and registrations', function (bool $signedIn, int $max) {
+    $competition = Competition::factory()->student()->create();
+    $user = User::factory()->create();
+
+    $seed = function (int $n) use ($competition): void {
+        foreach (range(1, $n) as $i) {
+            $round = new CompetitionRound(['name' => 'مرحلة '.$i, 'sort_order' => $i + 1, 'starts_at' => now()->addDays($i), 'ends_at' => now()->addDays($i)->addHours(3), 'question_count' => 10, 'duration_minutes' => 30]);
+            $round->competition_id = $competition->id;
+            $round->save();
+        }
+
+        CompetitionSubmission::factory()->count($n)->create(['competition_id' => $competition->id])
+            ->each(fn (CompetitionSubmission $submission) => $submission->forceFill(['registered_at' => now()])->save());
+    };
+
+    expectQueryBudget($seed, fn () => $signedIn ? $this->actingAs($user)->get('/competitions/'.$competition->slug) : $this->get('/competitions/'.$competition->slug), $max);
+})->with(['visitor' => [false, 3], 'signed in' => [true, 4]]);
+
+it('keeps the competition form in the panel to a fixed number of queries whatever its prize table', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $competition = Competition::factory()->student()->create();
+
+    // قفل الترتيب يُسأل مرة للسجل لا لكل حقل في كل صف من جدول الجوائز (كان 357 استعلاماً لمسابقة البراهين)
+    expectQueryBudget(
+        fn (int $n) => $competition->forceFill(['prize_table' => array_fill(0, $n, ['male' => 1000, 'female' => 1000])])->save(),
+        fn () => $this->actingAs($admin)->get(CompetitionResource::getUrl('edit', ['record' => $competition])),
+        19,
+    );
+});
+
+it('still disables the locked fields of the competition form, each lock on its own', function () {
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
+    $open = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $schedule = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $schedule->forceFill(['results_approved_at' => now()])->save();
+    $ranking = Competition::factory()->student()->create(['prize_table' => [['male' => 1000, 'female' => 1000]]]);
+    $ranking->forceFill(['ranking_locked_at' => now()])->save();
+
+    Livewire::test(EditCompetition::class, ['record' => $open->getRouteKey()])
+        ->assertFormFieldEnabled('opens_at')->assertFormFieldEnabled('is_published')
+        ->assertFormFieldEnabled('ranking_scope')->assertFormFieldEnabled('prize_table');
+
+    Livewire::test(EditCompetition::class, ['record' => $schedule->getRouteKey()])
+        ->assertFormFieldDisabled('opens_at')->assertFormFieldDisabled('closes_at')->assertFormFieldDisabled('is_published')
+        ->assertFormFieldEnabled('ranking_scope');
+
+    Livewire::test(EditCompetition::class, ['record' => $ranking->getRouteKey()])
+        ->assertFormFieldEnabled('opens_at')
+        ->assertFormFieldDisabled('ranking_scope')->assertFormFieldDisabled('prize_table');
+});

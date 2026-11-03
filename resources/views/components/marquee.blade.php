@@ -6,8 +6,9 @@
 
     id: معرّف الشريط (لزر الإيقاف). label: اسمه لقارئ الشاشة. direction: horizontal أو vertical. duration: مدة الدورة بالثواني.
     height: ارتفاع العمودي (CSS). controls: زر الإيقاف (افتراضاً ظاهر). والعناصر في الـ slot بلا معرّفات (تتكرر في النسخة الثانية).
+    static: صف ثابت في الوسط بلا حركة ولا نسخة ثانية ولا زر إيقاف، لما قلّت عناصره عن ملء العرض (لا يتكرر الشعار الواحد وهو يتحرك).
 --}}
-@props(['id', 'label', 'direction' => 'horizontal', 'duration' => 40, 'height' => '20rem', 'controls' => true])
+@props(['id', 'label', 'direction' => 'horizontal', 'duration' => 40, 'height' => '20rem', 'controls' => true, 'static' => false])
 
 @php
     $direction = $direction === 'vertical' ? 'vertical' : 'horizontal';
@@ -15,19 +16,29 @@
 @endphp
 
 <div {{ $attributes->class(['marquee-wrap relative']) }}>
-    <div id="{{ $id }}" data-marquee data-direction="{{ $direction }}" data-loop role="region" aria-label="{{ $label }}" class="marquee" style="{{ $style }}">
-        <div class="marquee-track">
-            <div class="marquee-group">{{ $slot }}</div>
-            <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
-        </div>
-    </div>
-
-    @if ($controls)
+    {{-- زر الإيقاف قبل الشريط في ترتيب التركيز، كما يظهر في زاويته العليا: يصل إليه مستخدم لوحة المفاتيح قبل أن يمر على كل
+         البطاقات، وباسم شريطه لأنه خارج منطقته (فحص الوصول 0.15). وموضعه مطلق، فلا يتغير شكل الشريط. ولا زر للصف الثابت --}}
+    @if ($controls && ! $static)
         <button type="button" data-ticker-toggle="{{ $id }}" aria-pressed="false" aria-controls="{{ $id }}"
-            data-label-pause="{{ __('ui.marquee.pause') }}" data-label-play="{{ __('ui.marquee.play') }}" aria-label="{{ __('ui.marquee.pause') }}"
+            data-label-pause="{{ __('ui.marquee.pause_named', ['name' => $label]) }}" data-label-play="{{ __('ui.marquee.play_named', ['name' => $label]) }}" aria-label="{{ __('ui.marquee.pause_named', ['name' => $label]) }}"
             class="marquee-toggle">
             {{ \App\Support\Icon::svg('pause', 'size-4', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
             {{ \App\Support\Icon::svg('play', 'size-4', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}
         </button>
+    @endif
+
+    @if ($static)
+        <div id="{{ $id }}" data-marquee-static data-direction="{{ $direction }}" role="region" aria-label="{{ $label }}" class="marquee">
+            <div class="marquee-track">
+                <div class="marquee-group">{{ $slot }}</div>
+            </div>
+        </div>
+    @else
+        <div id="{{ $id }}" data-marquee data-direction="{{ $direction }}" data-loop role="region" aria-label="{{ $label }}" class="marquee" style="{{ $style }}">
+            <div class="marquee-track">
+                <div class="marquee-group">{{ $slot }}</div>
+                <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
+            </div>
+        </div>
     @endif
 </div>

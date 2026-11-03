@@ -24,7 +24,7 @@ class SitemapController extends Controller
     private const STATIC_ROUTES = [
         'home', 'initiatives.index', 'governance.index', 'library.index',
         'media.index', 'media.news.index', 'media.albums.index', 'media.partners', 'contact',
-        'programs.index', 'competitions.index', 'services.index',
+        'programs.index', 'competitions.index', 'services.index', 'achievements.index',
     ];
 
     public function sitemap(): Response
@@ -61,7 +61,7 @@ class SitemapController extends Controller
 
         // «عن الجمعية» و«سياسة الخصوصية» برابطيهما الخاصين وحدهما، ومتى نُشرتا (PageController)
         // وصفحات المقدمة تظهر في روابط قوالبها، فلا تُذكر برابط يحوّل
-        foreach (Page::query()->published()->whereNotIn('slug', array_keys(Page::INTROS))->orderBy('id')->get(['slug', 'updated_at']) as $page) {
+        foreach (Page::query()->published()->whereNotIn('slug', Page::templateSlugs())->orderBy('id')->get(['slug', 'updated_at']) as $page) {
             $urls[] = match ($page->slug) {
                 Page::ABOUT => self::entry('about', [], $page->updated_at),
                 Page::PRIVACY => self::entry('privacy', [], $page->updated_at),

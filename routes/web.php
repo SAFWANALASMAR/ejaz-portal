@@ -23,8 +23,11 @@ use App\Http\Controllers\LiveStreamController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PagePreviewController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAssistantEnabled;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 
@@ -64,6 +67,12 @@ Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 Route::get('/pages/{slug}', [PageController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('pages.show');
+// معاينة نسخة من صفحة ثابتة قبل نشرها («محرر الصفحات»): رابط موقّع قصير المدة، بعد الدخول والتحقق الثنائي، ولمن له
+// pages.edit_all وحده (PagePreviewController)، بلا تخزين ولا فهرسة
+Route::get('/page-preview/{revision}', PagePreviewController::class)
+    ->middleware(['auth', 'auth.session', EnsureTwoFactorIsEnabled::class, AdminIdleTimeout::class, 'signed', 'throttle:60,1', 'cache.headers:private;no_store'])
+    ->whereNumber('revision')
+    ->name('pages.preview');
 Route::get('/governance', [GovernanceController::class, 'index'])->name('governance.index');
 Route::get('/governance/{slug}', [GovernanceController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.show');
 // الملف يُبث من الخادم، فحد معقول لكل عنوان. وفي الإنتاج يُسلَّم للخادم أو لرابط تخزين موقّع (roadmap.md)

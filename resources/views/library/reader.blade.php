@@ -38,7 +38,7 @@
                 {{ svg('heroicon-o-minus', 'size-5', ['aria-hidden' => 'true']) }}
             </button>
             <button type="button" data-pdf-zoom-reset class="min-w-16 rounded-full border border-white/30 bg-white/10 px-3 py-2 text-sm font-semibold text-white tabular-nums transition hover:bg-white/20 disabled:opacity-40"
-                aria-label="{{ $text('zoom_reset') }}" disabled><span data-pdf-zoom dir="ltr">100%</span></button>
+                disabled><span class="sr-only">{{ $text('zoom_reset') }}: </span><span data-pdf-zoom dir="ltr">100%</span></button>
             <button type="button" data-pdf-zoom-in class="{{ $control }}" aria-label="{{ $text('zoom_in') }}" disabled>
                 {{ svg('heroicon-o-plus', 'size-5', ['aria-hidden' => 'true']) }}
             </button>

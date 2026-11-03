@@ -194,3 +194,14 @@ it('limits how often one address streams read-only books, more tightly than the 
 
     $this->get('/library/books/book/file')->assertStatus(429);
 });
+
+it('counts the reader limit per subscriber, so IPv6 addresses of one /64 share it and another /64 does not', function () {
+    readOnlyBook();
+
+    for ($i = 0; $i < 20; $i++) {
+        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:abcd:1::'.dechex($i + 1)])->get('/library/books/book/file')->assertOk();
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:abcd:1:ffff::9'])->get('/library/books/book/file')->assertStatus(429);
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:abcd:2::1'])->get('/library/books/book/file')->assertOk();
+});

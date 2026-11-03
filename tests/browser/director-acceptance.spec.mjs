@@ -421,9 +421,8 @@ test.describe('acceptance: dark header', () => {
             expect(await image.getAttribute('src')).toMatch(/white/);
         }
 
-        // الرأس الثابت عند التمرير داكن أيضاً (data-scrolled يضعه سكربت الرأس)
+        // الرأس الثابت عند التمرير داكن أيضاً (ولا يتغير مقاسه — header-final.spec.mjs)
         await page.evaluate(() => window.scrollTo({ top: 1200, behavior: 'instant' }));
-        await expect(header).toHaveAttribute('data-scrolled', /.*/);
         await expect.poll(async () => rgb(await header.evaluate((element) => getComputedStyle(element).backgroundColor))).toEqual(footerColor);
 
         if (testInfo.project.name === 'mobile') {
