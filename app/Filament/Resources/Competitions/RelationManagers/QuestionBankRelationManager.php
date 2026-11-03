@@ -92,6 +92,8 @@ class QuestionBankRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.student.admin.question_model'))
+            ->pluralModelLabel(__('competitions.student.admin.questions_count'))
             ->modifyQueryUsing(fn (Builder $query) => $query->whereNotNull('round_id')->with(['round', 'category', 'passage']))
             ->defaultSort('sort_order')
             ->columns([
