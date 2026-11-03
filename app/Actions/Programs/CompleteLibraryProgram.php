@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * «أتممت» في برنامج مكتبة: لصاحب التسجيل المؤكد وحده، في برنامج منشور لم ينتهِ، وبعد بلوغ النهاية بقواعد الخادم
- * (LibraryProgramProgress)، فلا يكفي ضغط الزر. ثم تُصدر شهادة الإتمام في الطابور بحالة شهادات الحضور نفسها
+ * (LibraryProgramProgress)، فلا يكفي ضغط الزر. ثم تُصدر شهادة إتمام الاطلاع في الطابور بحالة شهادات الحضور نفسها
  * (SyncAttendanceCertificate، ولا إصدار في الإنتاج قبل قالب الجمعية). ويُسجَّل في سجل العمليات.
  */
 class CompleteLibraryProgram

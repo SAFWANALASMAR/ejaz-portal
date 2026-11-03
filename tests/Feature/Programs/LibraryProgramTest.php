@@ -32,7 +32,7 @@ use Spatie\Activitylog\Models\Activity;
 
 /*
 | برامج المكتبة (قرار صفوان، 31 أكتوبر 19:33 — docs/decisions/2026-11-02-reading-program.md): قراءة كتاب، واستماع، ومشاهدة. يختار
-| البرنامج عنصره من المكتبة، والتقدّم من سجل «قراءاتي»، و«أتممت» بعد بلوغ النهاية بقواعد الخادم، ثم شهادة الإتمام.
+| البرنامج عنصره من المكتبة، والتقدّم من سجل «قراءاتي»، و«أتممت» بعد بلوغ النهاية بقواعد الخادم، ثم شهادة إتمام الاطلاع.
 */
 
 beforeEach(function () {
@@ -351,6 +351,18 @@ it('issues pending completion certificates once the template is ready', function
     $this->artisan('programs:issue-pending-certificates')->assertSuccessful();
 
     Queue::assertPushed(SyncAttendanceCertificate::class);
+});
+
+// قرار صفوان (3 نوفمبر 2026): الشهادة «إتمام اطلاع» لا «إتمام قراءة»
+it('names the completion certificate «إتمام اطلاع»', function () {
+    $program = libraryProgram(LibraryProgramKind::Reading, LibraryItem::factory()->create(['page_count' => 1]));
+    $registration = confirmedIn($program, $this->member);
+    $registration->forceFill(['completed_at' => now()])->save();
+
+    $html = view('certificates.attendance', ['registration' => $registration->fresh()])->render();
+
+    expect($html)->toContain('شهادة إتمام اطلاع')->not->toContain('إتمام قراءة')
+        ->and(__('programs.library.certificate'))->toBe('تنزيل شهادة إتمام الاطلاع');
 });
 
 // مراجعة المشرف على #126 (م٢): التقدّم بعد التسجيل وحده لكل نوع، وإعادة التسجيل، و«لا تحفظ قراءاتي»
