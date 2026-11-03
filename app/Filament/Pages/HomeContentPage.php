@@ -50,6 +50,14 @@ class HomeContentPage extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
+    /**
+     * الصور المقبولة بلا رفع: المحفوظة حالياً بلا صور «محرر الصفحات». تُقرأ مرة لكل طلب لا لكل حقل صورة (مراجعة المشرف على #124،
+     * المنخفضة ١)، والخاصية الخاصة لا يحفظها Livewire بين الطلبات، فلا تبقى قديمة بعد حفظ.
+     *
+     * @var list<string>|null
+     */
+    private ?array $allowedImages = null;
+
     protected static function canWrite(): bool
     {
         return auth()->user()?->can('update', Setting::class) ?? false;
@@ -122,18 +130,18 @@ class HomeContentPage extends Page
             ->components([
                 // صور شرائح البطل بترتيبها (أمر التصور النهائي، النسخة 63 — البند H1). فارغة تعني بديلها: صورة البطل وصورتا المقطعين
                 Section::make(__('settings.home_content.hero_slides'))->description(__('settings.home_content.hero_slides_hint'))->columns(2)->schema(
-                    array_map(fn (string $key): FileUpload => self::image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
+                    array_map(fn (string $key): FileUpload => $this->image('hero_slides.'.$key, 'hero')->label(__('settings.home_content.hero_slide_'.$key)), HomeContent::HERO_SLIDES),
                 ),
                 // صورة رأس كل صفحة داخلية (1 نوفمبر 2026). فارغة تعني البديل الحالي. وصور صفحات الموقع الثابتة في «محرر الصفحات»
                 // بمسودتها ونسخها (EditablePages)، فيبقى هنا ما ليس منها (الإعلانات)
                 Section::make(__('settings.home_content.page_heroes'))->description(__('settings.home_content.page_heroes_hint'))->columns(2)->collapsed()->schema(
-                    array_map(fn (string $key): FileUpload => self::image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(self::pageHeroes())),
+                    array_map(fn (string $key): FileUpload => $this->image('page_heroes.'.$key, 'hero')->label(__('settings.home_content.page_hero_'.$key)), array_keys(self::pageHeroes())),
                 ),
                 Section::make(__('home.sections.king.heading'))->columns(2)->schema([
                     Textarea::make('king.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('king.signature_title')->label(__('settings.home_content.signature_title'))->maxLength(300),
                     TextInput::make('king.signature_name')->label(__('settings.home_content.signature_name'))->maxLength(300),
-                    self::image('king'),
+                    $this->image('king'),
                     TextInput::make('king.image_alt')->label(__('settings.home_content.image_alt'))->maxLength(300),
                     TextInput::make('king.heading')->label(__('settings.home_content.heading'))->maxLength(300),
                 ]),
@@ -143,7 +151,7 @@ class HomeContentPage extends Page
                         ->rows(10)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('chairman.name')->label(__('settings.home_content.name'))->maxLength(300),
                     TextInput::make('chairman.title')->label(__('settings.home_content.person_title'))->maxLength(300),
-                    self::image('chairman'),
+                    $this->image('chairman'),
                     TextInput::make('chairman.image_alt')->label(__('settings.home_content.image_alt'))->maxLength(300),
                     TextInput::make('chairman.heading')->label(__('settings.home_content.heading'))->maxLength(300),
                 ]),
@@ -152,7 +160,7 @@ class HomeContentPage extends Page
                     Textarea::make('rationale.text')->label(__('settings.home_content.text'))->rows(4)->maxLength(6000)->columnSpanFull(),
                     TextInput::make('rationale.lead')->label(__('settings.home_content.lead'))->maxLength(300),
                     TextInput::make('rationale.outcome')->label(__('settings.home_content.outcome'))->maxLength(300),
-                    self::image('rationale'),
+                    $this->image('rationale'),
                     TextInput::make('rationale.image_alt')->label(__('settings.home_content.image_alt'))->helperText(__('settings.home_content.decorative_hint'))->maxLength(300),
                 ]),
                 Section::make(__('home.sections.values.heading'))->schema([
@@ -165,7 +173,7 @@ class HomeContentPage extends Page
                             TextInput::make('title')->label(__('settings.home_content.value_title'))->maxLength(80),
                             Textarea::make('text')->label(__('settings.home_content.value_text'))->rows(2)->maxLength(300),
                             Select::make('icon')->label(__('ui.admin.value_icon'))->options(SiteIcon::class)->required(),
-                            self::image('image', 'values')->columnSpanFull(),
+                            $this->image('image', 'values')->columnSpanFull(),
                         ]),
                 ]),
                 // شرائح الهوية تحت البطل والبطاقة الجانبية في «خدماتنا» (مرجع المدير، 30 أكتوبر 2026). فارغة تعني: الرؤية والرسالة من
@@ -216,7 +224,7 @@ class HomeContentPage extends Page
                 ]),
                 // ملفات الشعار والمخطوطة (HomeContent::BRAND): PNG أو WebP بخلفية شفافة، وفارغة تعني الأصل
                 Section::make(__('settings.home_content.brand'))->description(__('settings.home_content.brand_hint'))->columns(2)->schema(
-                    array_map(fn (string $key): FileUpload => self::brandImage($key), array_keys(HomeContent::BRAND)),
+                    array_map(fn (string $key): FileUpload => $this->brandImage($key), array_keys(HomeContent::BRAND)),
                 ),
             ]);
     }
@@ -256,13 +264,26 @@ class HomeContentPage extends Page
     /**
      * ملف الشعار أو المخطوطة: PNG أو WebP لتبقى الخلفية شفافة، لا SVG (docs/security.md). وفارغ يعني الأصل.
      */
-    private static function brandImage(string $key): FileUpload
+    private function brandImage(string $key): FileUpload
     {
-        return self::image('brand.'.$key, 'brand')
+        return $this->image('brand.'.$key, 'brand')
             ->label(__('settings.home_content.brand_'.$key))
             ->helperText(null)
             ->acceptedFileTypes(['image/png', 'image/webp'])
             ->maxSize(2048);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedImages(): array
+    {
+        if ($this->allowedImages === null) {
+            $stored = Setting::group(HomeContent::KEY);
+            $this->allowedImages = array_values(array_diff(HomeContent::imagePaths($stored), EditablePages::ownedImages($stored)));
+        }
+
+        return $this->allowedImages;
     }
 
     /**
@@ -278,7 +299,7 @@ class HomeContentPage extends Page
     /**
      * صورة المقطع على القرص العام، لا SVG (docs/security.md). وفارغة تعني الأصل من الخطة الاستراتيجية.
      */
-    private static function image(string $section, string $field = ''): FileUpload
+    private function image(string $section, string $field = ''): FileUpload
     {
         $name = $field === '' ? $section.'.image' : $section;
 
@@ -291,11 +312,7 @@ class HomeContentPage extends Page
             ->rules(['dimensions:max_width=5000,max_height=5000'])
             // الصفحة بلا سجل: يُسمح صراحة بالصور المحفوظة حالياً وحدها، بلا صور «محرر الصفحات» (رؤوس صفحاته ونسخها)، فلا تُنقل
             // صورة منها إلى خانة هنا ثم تُحذف بتفريغها (المراجعة الأمنية، م١)
-            ->preventFilePathTampering(allowFilePathUsing: function (string $file): bool {
-                $stored = Setting::group(HomeContent::KEY);
-
-                return in_array($file, HomeContent::imagePaths($stored), true) && ! in_array($file, EditablePages::ownedImages($stored), true);
-            })
+            ->preventFilePathTampering(allowFilePathUsing: fn (string $file): bool => in_array($file, $this->allowedImages(), true))
             ->disk('public')
             ->directory(UpdateSiteSettings::IMAGE_DIRECTORY)
             ->visibility('public');

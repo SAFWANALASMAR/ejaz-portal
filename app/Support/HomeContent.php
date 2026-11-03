@@ -119,6 +119,7 @@ final class HomeContent
         'services' => 'services.index',
         'contact' => 'contact',
         'assembly' => 'assembly.index',
+        'achievements' => 'achievements.index',
     ];
 
     /**

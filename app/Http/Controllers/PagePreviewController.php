@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PageRevision;
 use App\Support\EditablePages;
+use App\Support\NeutralImage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -19,12 +20,16 @@ class PagePreviewController extends Controller
         abort_unless($request->user()?->can('preview', $revision) ?? false, 403);
 
         $content = EditablePages::normalize(is_array($revision->content) ? $revision->content : []);
+        $key = (string) EditablePages::keyForSlug($revision->page->slug);
 
         return response()->view('content.page-preview', [
             'revision' => $revision,
             'content' => $content,
-            'key' => EditablePages::keyForSlug($revision->page->slug),
-            'image' => $content['image'] !== null ? Storage::disk('public')->url($content['image']) : null,
+            'key' => $key,
+            // بلا صورة رأس في النسخة: الرسم البديل لمسار الصفحة نفسها لا لمسار المعاينة، كما سيظهر بعد النشر (مراجعة المشرف على #124، ٥)
+            'image' => $content['image'] !== null
+                ? Storage::disk('public')->url($content['image'])
+                : NeutralImage::forPage(EditablePages::PAGES[$key][1] ?? null),
         ])->withHeaders([
             'Cache-Control' => 'private, no-store',
             'X-Robots-Tag' => 'noindex, nofollow',
