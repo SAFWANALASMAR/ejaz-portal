@@ -20,7 +20,7 @@
                         <x-icon-tile icon="bell" size="sm" shade="medium" class="section-heading-icon" />
                         {{ $tickers['announcements'] }}
                     </h2>
-                    <a href="{{ route('media.announcements') }}" wire:navigate class="more-link">{{ __('ui.announcements.more') }}</a>
+                    <a href="{{ route('media.announcements') }}" wire:navigate class="more-link">{{ __('ui.announcements.more') }}<span class="sr-only">: {{ $tickers['announcements'] }}</span></a>
                 </div>
 
                 <x-carousel :label="$tickers['announcements']" :count="$slides" autoplay :interval="7000" :status="false" class="home-announcements">
@@ -35,7 +35,9 @@
                                     <x-icon-tile icon="trophy" size="sm" shade="dark" />
                                     <span class="flex flex-col leading-[1.05]">
                                         <span class="text-[13px]">{{ __('ui.prize.title') }}</span>
-                                        <span class="text-[2rem] font-black tabular-nums" data-count-to="{{ $prize['total'] }}">{{ number_format($prize['total']) }}</span>
+                                        {{-- العدّ داخل منطقة الدوّار الحية كان يُقرأ رقماً رقماً: الظاهر مخفي عن قارئ الشاشة، والنهائي له ثابت --}}
+                                        <span class="text-[2rem] font-black tabular-nums" aria-hidden="true" data-count-to="{{ $prize['total'] }}">{{ number_format($prize['total']) }}</span>
+                                        <span class="sr-only">{{ number_format($prize['total']) }}</span>
                                         <span class="text-[13px]">{{ __('ui.prize.currency') }}</span>
                                     </span>
                                 </span>
@@ -58,7 +60,7 @@
                         <x-icon-tile icon="megaphone" size="sm" shade="medium" class="section-heading-icon" />
                         {{ $tickers['news'] }}
                     </h2>
-                    <a href="{{ route('media.news.index') }}" wire:navigate class="more-link">{{ __('ui.news.more') }}</a>
+                    <a href="{{ route('media.news.index') }}" wire:navigate class="more-link">{{ __('ui.news.more') }}<span class="sr-only">: {{ $tickers['news'] }}</span></a>
                 </div>
 
                 {{-- الشريط مطلق في صندوقه، فارتفاعه من العمود المجاور (أو حده الأدنى) لا من طول الأخبار --}}

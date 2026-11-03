@@ -270,20 +270,12 @@ onLeave(() => {
 });
 
 onPage((signal) => {
-    // ظل الرأس عند التمرير
+    // الرأس ثابت عند التمرير بمقاساته نفسها، فلا سكربت للتمرير (ترتيب صفوان، 2 نوفمبر 2026 — يلغي البند ٢٥)
     const header = document.querySelector('[data-site-header]');
 
     if (!header) {
         return;
     }
-
-    // والرأس يصغر كله عند التمرير (concept.css، البند ٢٥)، فبين حدّين لا حدّ واحد: لا يتذبذب حين يغيّر صغره موضع الصفحة
-    const onScroll = () => {
-        const scrolled = header.hasAttribute('data-scrolled');
-        header.toggleAttribute('data-scrolled', scrolled ? window.scrollY > 4 : window.scrollY > 32);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true, signal });
 
     // قائمة الرأس صف ثانٍ من كبسولات متساوية (القائمة «ج» — أمر التصور النهائي، النسخة 63). فإن لم يتسع اسم عنصر في كبسولته
     // (عناصر أكثر من القياس أو أسماء أطول، والقائمة تُدار من اللوحة) ظهر زر القائمة بدلها، فلا تُقص الأسماء.
@@ -294,16 +286,21 @@ onPage((signal) => {
         return;
     }
 
-    // والقياس بخط الرأس كاملاً: خط القائمة يصغر مع التمرير (--hs)، فيُقسم عرض الاسم عليه
+    // وشارة البث في آخر الصف بنصها متى اتسع، وإلا فنقطة نابضة (data-compact)، ثم زر القائمة إن لم يتسع حتى بها
+    const liveBadge = mainNav.querySelector('[data-live-badge]');
+    const clipped = () => [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth > label.clientWidth + 1);
     const fit = () => {
         header.removeAttribute('data-nav-overflow');
-        const hs = Number.parseFloat(getComputedStyle(header).getPropertyValue('--hs')) || 1;
-        const scale = 1 - (1 - hs) * 0.55;
-        const clipped = [...mainNav.querySelectorAll('.nav-capsule > .truncate')].some((label) => label.scrollWidth / scale > label.clientWidth + 1);
-        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && clipped);
+        liveBadge?.removeAttribute('data-compact');
+        let overflow = clipped();
+        if (overflow && liveBadge) {
+            liveBadge.setAttribute('data-compact', '');
+            overflow = clipped();
+        }
+        header.toggleAttribute('data-nav-overflow', mainNav.offsetWidth > 0 && overflow);
     };
 
-    // تغيّر العرض وحده: الارتفاع يتغير مع كل إطار من صغر الرأس عند التمرير
+    // تغيّر العرض وحده يغيّر الاتساع، فلا قياس مع غيره (إزاحة التخطيط — #116)
     let width = 0;
     const observer = new ResizeObserver(([entry]) => {
         if (Math.round(entry.contentRect.width) !== width) {
