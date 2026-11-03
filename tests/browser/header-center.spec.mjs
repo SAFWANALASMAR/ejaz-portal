@@ -1,6 +1,7 @@
 // توازن الصف الأول على الحاسوب (طلب صفوان، 3 نوفمبر 2026 — docs/decisions/2026-11-03-header-calligraphy-center.md):
 // «وازن المخطوطة ورقم الترخيص؛ لازم يرى الناظر أنها في الوسط وأن كل شيء متناسق».
-// - من 1280: المخطوطة في منتصف عرض الرأس، ومربع الترخيص في منتصف الفراغ بينها وبين البحث والدخول، وبمحاذاتها عمودياً.
+// - من 1280 (بتعديل المشرف على طلب الدمج 149): الفراغات الثلاثة في الصف الأول متساوية: الرمز إلى المخطوطة، والمخطوطة إلى مربع
+//   الترخيص، والمربع إلى البحث والدخول. والمربع بمحاذاة المخطوطة عمودياً.
 // - الرمز في أقصى اليمين، والبحث والدخول في أقصى اليسار كما كانا. ودون 1280 الترتيب السابق، والجوال على 390 كما كان.
 // اللقطات: docs/design/screenshots/header-center/<العرض>-<before|after>.png (SHOT_PREFIX، وafter افتراضياً).
 // ولقطات «قبل» من main قبل التغيير: SHOT_PREFIX=before يلتقط ويقيس ولا يتحقق من التوازن.
@@ -60,19 +61,22 @@ async function open(page, width) {
     const layout = await measure(page);
     const bottom = await page.evaluate(() => document.querySelector('[data-site-header]').getBoundingClientRect().bottom);
     await page.screenshot({ path: `${SHOTS}/${width}-${PREFIX}.png`, clip: { x: 0, y: 0, width, height: Math.ceil(bottom) + 80 } });
-    console.log(`${width}px ${PREFIX}:`, JSON.stringify({ ...layout, boxes: undefined }));
+    const sizes = Object.fromEntries(Object.entries(layout.boxes).filter(([, b]) => b).map(([name, b]) => [name, `${Math.round(b.width * 10) / 10}x${Math.round(b.height * 10) / 10}`]));
+    console.log(`${width}px ${PREFIX}:`, JSON.stringify({ ...layout, boxes: undefined, sizes }));
 
     return layout;
 }
 
 for (const width of [1280, 1440, 1920]) {
-    test(`header at ${width}px: calligraphy centred, licence midway to search and login`, async ({ page }) => {
+    test(`header at ${width}px: the three gaps of the first row are equal`, async ({ page }) => {
         const layout = await open(page, width);
         expect(layout.noHorizontalScroll).toBe(true);
         test.skip(BEFORE, 'لقطة «قبل» وقياسها فقط');
 
-        // ١. المخطوطة في منتصف عرض الرأس
-        expect(Math.abs(layout.calligraphyOffCentre)).toBeLessThanOrEqual(8);
+        // ١. الفراغات الثلاثة متساوية (8 بكسل فأقل بين أكبرها وأصغرها)، وكلها فراغ حقيقي
+        const gaps = [layout.markToCalligraphy, layout.calligraphyToLicence, layout.licenceToActions];
+        expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(8);
+        expect(Math.min(...gaps)).toBeGreaterThan(12);
         // ٢. الرمز في أقصى اليمين، والدخول في أقصى اليسار بهامش صغير، والبحث بجانبه
         expect(layout.markFromEdge).toBeGreaterThanOrEqual(8);
         expect(layout.markFromEdge).toBeLessThanOrEqual(24);
@@ -81,9 +85,7 @@ for (const width of [1280, 1440, 1920]) {
         const { search, login } = layout.boxes;
         expect(search.left - login.right).toBeGreaterThanOrEqual(0);
         expect(search.left - login.right).toBeLessThanOrEqual(16);
-        // ٣. مربع الترخيص في منتصف الفراغ بين المخطوطة والبحث والدخول، أبعد عن المخطوطة من فاصل الأعمدة، وبمحاذاتها عمودياً
-        expect(layout.calligraphyToLicence).toBeGreaterThan(12);
-        expect(Math.abs(layout.calligraphyToLicence - layout.licenceToActions)).toBeLessThanOrEqual(8);
+        // ٣. مربع الترخيص بمحاذاة المخطوطة عمودياً
         expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
     });
 }
