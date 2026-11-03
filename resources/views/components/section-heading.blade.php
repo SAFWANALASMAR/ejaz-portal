@@ -8,9 +8,10 @@
 @props(['eyebrow' => null, 'highlight' => null, 'center' => false, 'description' => null, 'size' => 'lg', 'icon' => 'sparkles'])
 
 @php
-    // المحتوى مرمَّز من قبل ({{ }} عند المستدعي)، فالمميز يُرمَّز مثله ويُبحث عنه فيه، ويُطبع الناتج بلا ترميز ثانٍ
-    $text = trim((string) $slot);
-    $mark = filled($highlight) ? e($highlight) : null;
+    // المحتوى مرمَّز من قبل ({{ }} عند المستدعي): يُفك ترميزه إلى النص نفسه، ثم يُطبع بـ {{ }} فيُرمَّز مرة واحدة كما
+    // كان، بلا طباعة خام (docs/security.md). والمميز يُبحث عنه في النص المفكوك
+    $text = htmlspecialchars_decode(trim((string) $slot), ENT_QUOTES);
+    $mark = filled($highlight) ? (string) $highlight : null;
     $parts = $mark !== null && str_contains($text, $mark) ? explode($mark, $text, 2) : null;
 @endphp
 
@@ -26,9 +27,9 @@
             <x-icon-tile :icon="$icon" shade="medium" size="sm" class="section-heading-icon" data-loop />
             <span>
                 @if ($parts)
-                    {!! $parts[0] !!}<span class="text-gradient">{!! $mark !!}</span>{!! $parts[1] !!}
+                    {{ $parts[0] }}<span class="text-gradient">{{ $mark }}</span>{{ $parts[1] }}
                 @else
-                    {!! $text !!}
+                    {{ $text }}
                 @endif
             </span>
         </h2>

@@ -12,7 +12,7 @@
             <x-icon-tile icon="calendar-days" size="sm" shade="dark" />
             {{ __('account.summary.upcoming') }}
         </h2>
-        <a href="{{ route('account.programs.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}</a>
+        <a href="{{ route('account.programs.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}<span class="sr-only">: {{ __('account.summary.upcoming') }}</span></a>
     </div>
 
     @if ($summary['upcoming']->isEmpty())
@@ -45,7 +45,7 @@
             <x-icon-tile icon="clipboard-document-list" size="sm" shade="medium" />
             {{ __('account.summary.latest_requests') }}
         </h2>
-        <a href="{{ route('account.requests.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}</a>
+        <a href="{{ route('account.requests.index') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}<span class="sr-only">: {{ __('account.summary.latest_requests') }}</span></a>
     </div>
 
     @if ($summary['latest_requests']->isEmpty())

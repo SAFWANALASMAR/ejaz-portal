@@ -38,14 +38,17 @@ class EditEvidenceGallery extends EditRecord
                 ->schema([
                     DateTimePicker::make('expires_at')
                         ->label(__('evidence.fields.expires_at'))
-                        ->helperText(__('evidence.fields.expires_at_hint'))
+                        ->helperText(__('evidence.fields.expires_at_limits', ['default' => EvidenceGallery::DEFAULT_LINK_DAYS, 'max' => EvidenceGallery::MAX_LINK_DAYS]))
                         ->seconds(false)
-                        ->minDate(now()),
+                        ->required()
+                        ->default(fn () => now()->addDays(EvidenceGallery::DEFAULT_LINK_DAYS))
+                        ->minDate(now())
+                        ->maxDate(fn () => now()->addDays(EvidenceGallery::MAX_LINK_DAYS)),
                 ])
                 ->authorize(fn (EvidenceGallery $record): bool => self::actor()->can('update', $record))
                 ->visible(fn (EvidenceGallery $record): bool => ! $record->trashed())
                 ->action(function (EvidenceGallery $record, array $data, IssueEvidenceLink $issue): void {
-                    $url = $issue->handle(self::actor(), $record, $data['expires_at'] ?? null);
+                    $url = $issue->handle(self::actor(), $record, $data['expires_at']);
 
                     Notification::make()->success()->persistent()
                         ->title(__('evidence.actions.issued'))

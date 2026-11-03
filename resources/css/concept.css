@@ -2514,3 +2514,85 @@ html[data-reveal-ready] [data-reveal]:not([data-revealed]) .portal-chart-line {
 html[data-reveal-ready] .portal-chart-line {
     transition: stroke-dashoffset calc(2200ms * var(--motion)) ease-out calc(250ms * var(--motion));
 }
+
+/* ── فحص الوصول 0.15 (docs/reviews/2026-11-02-v0.15-a11y.md) ──
+   ١. إطار التركيز داخل البطاقة الملونة بلون نصها: إطار accent الافتراضي (#1F5F8F) يذوب في التدرج الداكن (نحو 1.3:1)، فيُرسم بلون
+      نص البطاقة (أبيض على الداكنة، وأزرق داكن على الفاتحة)، وتباينه على طرفي التدرج مختبر في ToneCardContrastTest.
+   ٢. الشريط المتحرك كان يقص إطار تركيز بطاقاته (overflow) ويخفيه في طرفيه (mask)، والبطاقة المركّزة ترتفع 4 بكسل: حيّز داخلي
+      يتسع للإطار والارتفاع بلا تغيير في التخطيط (هامش سالب بقدره)، ولا قناع ما دام التركيز فيه.
+   ٣. نقاط الدوّار غير النشطة بتباين 3:1 على خلفيتها (1.4.11): كانت بين 1.4:1 و2:1.
+   ٤. الرابط الذي يملأ بطاقته (بلاطات أقسام المكتبة وأمثالها: li.tone-card > a): إطاره خارجها فتقصه البطاقة، فيُرسم داخل حافتها.
+   ٥. حقول الإدخال بـ focus:outline-none (وحدها، لا حقل البحث السريع بلا حد): كان يترك الإطار حداً بعرض بكسل يتبدل لونه وحده (ومعه هالة بشفافية 15%)، فيعود إطار التركيز
+      العام (2 بكسل بلون التمييز، وبالفاتح على الخلفيات الداكنة — app.css). والمربعات والدوائر لها إطارها */
+.tone-card :focus-visible {
+    outline-color: var(--tc-text);
+}
+
+.tone-card > a:only-child:focus-visible {
+    outline-offset: -4px;
+}
+
+.focus\:outline-none:is(input:not([type='checkbox'], [type='radio']), select, textarea):focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 2px;
+}
+
+.marquee {
+    padding: 0.75rem 0.5rem;
+    margin: -0.75rem -0.5rem;
+}
+
+/* والعمودي (الأخبار) بارتفاع صريح: يطول بقدر الحيّز فلا ترتفع حافته السفلى عن العمود المجاور */
+.marquee[data-direction='vertical'] {
+    height: calc(var(--marquee-height, 20rem) + 1.5rem);
+}
+
+.marquee:has(:focus-visible) {
+    mask-image: none;
+}
+
+.carousel-dot::before {
+    background: color-mix(in srgb, var(--color-primary) 85%, transparent);
+}
+
+.carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--color-primary) 85%, transparent);
+}
+
+[data-tone="dark"] .carousel-dot::before,
+.tone-card .carousel-controls-compact .carousel-dot::before {
+    background: color-mix(in srgb, var(--tc-text, var(--color-white)) 70%, transparent);
+}
+
+/* ٦. التركيز بلوحة المفاتيح في شريط متحرك يعيده إلى أوله، فتُمرَّر البطاقة المركّزة إلى داخل صندوقه ولا تقف خارجه (home.js) */
+.marquee[data-inview][data-focus-reveal] .marquee-track {
+    animation: none;
+}
+
+/* ٧. زر إيقاف الشريط فوق بطاقاته: إطاره الخارجي يقع على البطاقة تحته فيذوب في الداكنة منها. فالإطار ملاصق للزر على خلفيته الفاتحة
+   (6:1 فأكثر)، وحوله هالة بيضاء تفصله عما تحته */
+.marquee-toggle:focus-visible {
+    outline-offset: 0;
+    box-shadow:
+        inset 0 0 0 1px var(--concept-border),
+        0 0 0 4px var(--color-white);
+}
+
+/* ٨. الشريط الجانبي في لوحة المستخدم أزرق داكن: إطار التركيز بالفاتح كما في بقية الخلفيات الداكنة (app.css)، لا بلون التمييز الذي
+   يذوب فيه */
+.account-nav :focus-visible {
+    outline-color: var(--color-accent-light);
+}
+
+/* وزر القائمة المنسدلة على الجوال يملأ الشريط الذي يقص ما خارجه: إطاره داخل حافته */
+.account-nav > summary:focus-visible {
+    outline-offset: -3px;
+}
+
+/* ٩. ما يملأ صندوقاً يقص ما خارجه: عنوان البطاقة المطوية (details/summary في صفحة المسابقة) وصفحة القارئ (.pdf-stage)، فالإطار
+   داخل حافتهما */
+.collapsible > summary:focus-visible,
+.pdf-stage:focus-visible {
+    outline-offset: -3px;
+}
