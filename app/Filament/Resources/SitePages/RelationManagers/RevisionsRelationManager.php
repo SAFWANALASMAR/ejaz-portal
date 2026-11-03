@@ -38,6 +38,8 @@ class RevisionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('page_editor.revisions.model'))
+            ->pluralModelLabel(__('page_editor.revisions.title'))
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['author', 'publisher']))
             ->defaultSort('id', 'desc')
             ->columns([

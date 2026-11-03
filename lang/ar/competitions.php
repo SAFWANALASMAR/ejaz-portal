@@ -231,6 +231,7 @@ return [
     ],
 
     'submissions' => [
+        'model' => 'مشاركة',
         'plural' => 'المشاركات',
         'applicant' => 'المتقدم',
         'auto_score' => 'التصحيح الآلي',
@@ -861,6 +862,7 @@ return [
             'import_too_many' => 'أكثر من :max صف في الملف.',
             'export' => 'تصدير إلى إكسل',
             'registrations' => 'المسجلون',
+            'registration_model' => 'تسجيل',
             'registered_at' => 'وقت التسجيل',
             'attempts' => 'المراحل التي دخلها',
             'correct' => 'تصحيح التسجيل',
@@ -881,6 +883,7 @@ return [
             'reveal_throttled' => 'بلغت حد عرض أرقام الهوية في الساعة. أعد المحاولة بعد :minutes دقيقة.',
             'close' => 'إغلاق',
             'results' => 'النتائج',
+            'result_model' => 'نتيجة',
             'rank' => 'الترتيب',
             'score' => 'الدرجة',
             'max_score' => 'الدرجة العظمى',
@@ -923,6 +926,7 @@ return [
             'ranking_scope_hint' => 'المطوية: العشرة الأوائل لكل جنس من كل الفئات معاً. والخيار الآخر معلّق بقرار المدير التنفيذي.',
             'branch_hint' => 'مجال أسئلة المرحلة، مثل: الحقائق العلمية في الأنفس.',
             'cumulative' => 'الترتيب التراكمي',
+            'cumulative_model' => 'طالب في الترتيب',
             'cumulative_rank' => 'الترتيب',
             'cumulative_total' => 'المجموع',
             'rounds_done' => 'المراحل',
