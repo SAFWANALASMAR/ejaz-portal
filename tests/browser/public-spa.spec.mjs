@@ -93,7 +93,7 @@ test.describe('public site quick navigation', () => {
         }
 
         // والرابع الرئيسية من الشعار
-        await follow(page, page.locator('[data-site-header] .header-top > a').first(), '/');
+        await follow(page, page.locator('[data-site-header] .header-calligraphy'), '/');
         expect(await marker(page)).toBe('kept');
 
         // شريط التقدّم من الموقع لا من Livewire، ويزول بعد التنقّل

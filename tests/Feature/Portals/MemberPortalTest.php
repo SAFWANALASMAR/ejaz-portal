@@ -43,7 +43,7 @@ it('computes the statistics with a fixed number of queries', function () {
     DB::enableQueryLog();
     app(BuildParticipationStats::class)->handle($this->member);
 
-    expect(count(DB::getQueryLog()))->toBe(3);
+    expect(count(DB::getQueryLog()))->toBe(2);
 });
 
 it('shows the statistics card on the account dashboard', function () {
