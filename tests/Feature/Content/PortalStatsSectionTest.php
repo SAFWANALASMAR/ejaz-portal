@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Settings\UpdateHomeContent;
+use App\Enums\LibrarySection;
 use App\Enums\RoleName;
 use App\Filament\Pages\HomeContentPage;
 use App\Models\Competition;
@@ -124,26 +125,32 @@ it('counts registrants in published competitions only, once each, without cancel
     expect(HomePortalStats::compute()['registrants'])->toBe(1);
 });
 
-it('shows the library cards after the visits and registrants, from the reading progress', function () {
+// بعدد المرات من سجل «قراءاتي» لا بالصفحات ولا بالدقائق (قرار صفوان، 3 نوفمبر — docs/decisions/2026-11-03-portal-stats-counts.md):
+// كل قارئ لكتاب أو بحث قراءة واحدة مهما قرأ من صفحاته، وكل مستمع أو مشاهد لمقطع مرئي أو صوتي مشاهدة واحدة
+it('shows the library cards after the visits and registrants, by the number of reads and views', function () {
     visitsOn(0, 50);
     CompetitionSubmission::factory()->create(['competition_id' => Competition::factory()->create()->id, 'registered_at' => now()]);
-    [$first, $second] = User::factory()->count(2)->create();
+    [$first, $second, $third] = User::factory()->count(3)->create();
     $book = LibraryItem::factory()->create();
     libraryProgressOf($first, $book, pages: 1200);
     libraryProgressOf($second, $book, pages: 34);
-    // المرئي والصوتي معاً بالدقائق: عشر دقائق ونصف مشاهدة، وثلاث دقائق استماع
-    libraryProgressOf($first, LibraryItem::factory()->video()->create(), seconds: 630);
+    libraryProgressOf($third, LibraryItem::factory()->create(['section' => LibrarySection::Research]), pages: 2);
+    // المرئي والصوتي معاً: ثلاث مشاهدات مهما طالت
+    $video = LibraryItem::factory()->video()->create();
+    libraryProgressOf($first, $video, seconds: 630);
+    libraryProgressOf($second, $video, seconds: 5);
     libraryProgressOf($second, LibraryItem::factory()->audio()->create(), seconds: 180);
 
     $this->artisan('ejaz:refresh-stats')->assertSuccessful();
 
-    expect(HomePortalStats::cached())->toMatchArray(['pages_read' => 1234, 'media_minutes' => 13]);
+    expect(HomePortalStats::cached())->toMatchArray(['book_reads' => 3, 'media_views' => 3]);
 
     $html = $this->get('/')->assertOk()
-        ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.pages_read'), __('home.portal_stats.media_minutes')])
+        ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.book_reads'), __('home.portal_stats.media_views')])
+        ->assertDontSee('صفحة مقروءة في المكتبة')->assertDontSee('دقيقة مشاهدة واستماع')
         ->getContent();
 
-    expect($html)->toContain('data-count-to="1234"')->toContain('1,234')->toContain('data-count-to="13"');
+    expect($html)->toContain('data-count-to="3"')->not->toContain('data-count-to="1234"');
 });
 
 it('hides each library card at zero, and keeps a store from before the library cards', function () {
@@ -153,19 +160,19 @@ it('hides each library card at zero, and keeps a store from before the library c
     $this->artisan('ejaz:refresh-stats');
 
     $this->get('/')->assertOk()->assertSee(__('home.portal_stats.visits'))
-        ->assertDontSee(__('home.portal_stats.pages_read'))->assertDontSee(__('home.portal_stats.media_minutes'));
+        ->assertDontSee(__('home.portal_stats.book_reads'))->assertDontSee(__('home.portal_stats.media_views'));
 
-    // دقائق بلا صفحات: بطاقة الدقائق وحدها
+    // مشاهدة بلا قراءة: بطاقة المشاهدات وحدها
     libraryProgressOf(User::factory()->create(), LibraryItem::factory()->audio()->create(), seconds: 120);
     $this->artisan('ejaz:refresh-stats');
-    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.media_minutes'))->assertDontSee(__('home.portal_stats.pages_read'));
+    $this->get('/')->assertOk()->assertSee(__('home.portal_stats.media_views'))->assertDontSee(__('home.portal_stats.book_reads'));
 
-    // المخزّن بشكله السابق (بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي
-    Cache::forever(HomePortalStats::KEY, ['visits' => 9, 'registrants' => 0, 'days' => [9]]);
+    // المخزّن بشكله السابق (بالصفحات والدقائق، أو بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي
+    Cache::forever(HomePortalStats::KEY, ['visits' => 9, 'registrants' => 0, 'pages_read' => 1234, 'media_minutes' => 13, 'days' => [9]]);
     ContentCache::flush();
-    expect(HomePortalStats::cached())->toMatchArray(['visits' => 9, 'pages_read' => 0, 'media_minutes' => 0]);
+    expect(HomePortalStats::cached())->toBe(['visits' => 9, 'registrants' => 0, 'book_reads' => 0, 'media_views' => 0, 'days' => [9]]);
     $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.visits'))
-        ->assertDontSee(__('home.portal_stats.media_minutes'));
+        ->assertDontSee(__('home.portal_stats.media_views'))->assertDontSee('data-count-to="1234"', false);
 });
 
 it('keeps aggregates alone, with no personal data in the store or the page', function () {
@@ -181,10 +188,10 @@ it('keeps aggregates alone, with no personal data in the store or the page', fun
 
     $this->artisan('ejaz:refresh-stats');
 
-    expect(array_keys((array) HomePortalStats::cached()))->toBe(['visits', 'registrants', 'pages_read', 'media_minutes', 'days'])
+    expect(array_keys((array) HomePortalStats::cached()))->toBe(['visits', 'registrants', 'book_reads', 'media_views', 'days'])
         ->and(HomePortalStats::cached()['days'])->each->toBeIn([null, 0, 12]);
 
-    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.pages_read'))
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.book_reads'))
         ->assertDontSee('اسم شخصي للاختبار')->assertDontSee('private-person@example.test')->assertDontSee('طالب سري للاختبار');
 });
 
@@ -196,7 +203,7 @@ it('reads the stored numbers alone on a request, with no aggregate queries', fun
     ContentCache::flush();
 
     DB::enableQueryLog();
-    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.media_minutes'));
+    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.media_views'));
     $queries = collect(DB::getQueryLog())->pluck('query');
 
     expect($queries->filter(fn (string $sql): bool => str_contains($sql, 'daily_visits') || str_contains($sql, 'competition_submissions') || str_contains($sql, 'library_progress')))->toBeEmpty();
