@@ -57,7 +57,7 @@ return [
 
     'opening' => [
         'apply' => 'قدّم الآن',
-        'login_to_apply' => 'سجّل دخولك للتقديم',
+        'login_to_apply' => 'سجّل الدخول للتقديم',
         'view_request' => 'عرض طلبك',
         'already_applied' => 'لديك طلب على هذه الفرصة برقم :reference.',
         'closed' => 'انتهى التقديم على هذه الفرصة.',

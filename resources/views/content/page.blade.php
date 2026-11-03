@@ -9,7 +9,7 @@
     ]));
 @endphp
 
-<x-layouts.app :title="$title" :description="$summary" :image="$image ?? null">
+<x-layouts.app :title="$title" :description="$summary" :image="$image ?? null" :og-type="$ogType ?? 'website'" :published-time="$publishedTime ?? null">
     @if ($structured !== [])
         @push('head')
             {{ StructuredData::script($structured) }}

@@ -46,6 +46,13 @@ class Program extends Model implements HasFormFields, HasPublicImages
     /** @use HasFactory<ProgramFactory> */
     use DefinesFormFields, FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'summary', 'description', 'conditions', 'audience', 'location', 'form_fields'];
+
     public const IMAGE_DIRECTORY = 'programs';
 
     /**

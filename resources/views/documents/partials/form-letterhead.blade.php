@@ -9,7 +9,10 @@
             <div class="org-name">{{ $letterhead['name'] }}</div>
             <div class="org-contact">{{ __('site.license') }}</div>
             @if ($letterhead['contact'] === [])
-                <div class="org-contact missing">{{ __('documents.print.missing_contact') }}</div>
+                {{-- شرط x-missing نفسه: لا علامة ناقص في الإنتاج، فلا تُطبع على نموذج حقيقي --}}
+                @unless (app()->isProduction())
+                    <div class="org-contact missing">{{ __('documents.print.missing_contact') }}</div>
+                @endunless
             @else
                 {{-- الجوال والبريد من اليسار، فلا تنقلب أرقامهما ورموزهما داخل السطر العربي --}}
                 <div class="org-contact">

@@ -39,6 +39,9 @@ class ProgramRegistrationController extends Controller
             ->latest('id')
             ->paginate(15);
 
+        // لا صفحة بعد الأخيرة، فلا تُعرض قائمة فارغة برقمها في العنوان (كبقية القوائم المرقّمة)
+        abort_if($registrations->currentPage() > $registrations->lastPage(), 404);
+
         $completed = ProgramRegistration::query()
             ->whereBelongsTo($user)
             ->whereNotNull('completed_at')

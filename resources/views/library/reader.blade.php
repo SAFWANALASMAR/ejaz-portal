@@ -16,7 +16,7 @@
     data-page-label="{{ $text('canvas') }}" data-title="{{ $title }}"
     role="region" aria-label="{{ $text('label', ['title' => $title]) }}"
     class="concept-panel mt-8 overflow-hidden select-none print:hidden">
-    <div class="flex flex-wrap items-center justify-between gap-3 bg-primary-dark px-3 py-3 text-white sm:px-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-primary px-3 py-3 text-white sm:px-4">
         {{-- السابقة في جهة البداية (اليمين) والتالية في جهة النهاية، كتقليب الكتاب العربي --}}
         <div class="flex items-center gap-2">
             <button type="button" data-pdf-prev class="{{ $control }}" aria-label="{{ $text('previous') }}" disabled>

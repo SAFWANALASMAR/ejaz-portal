@@ -51,6 +51,8 @@ class CumulativeRelationManager extends RelationManager
         $rounds = $this->competition()->rounds()->count();
 
         return $table
+            ->modelLabel(__('competitions.student.admin.cumulative_model'))
+            ->pluralModelLabel(__('competitions.student.admin.cumulative'))
             ->modifyQueryUsing(fn (Builder $query) => CumulativeRanking::apply($query, $this->competition())->with(['studentCategory']))
             ->description(fn (): ?string => CumulativeRanking::hasMixedMax($this->competition()) ? __('competitions.student.cumulative_mixed_max') : null)
             ->defaultSort(fn (Builder $query) => $query->orderByRaw('cumulative_rank ASC NULLS LAST')->orderByDesc('cumulative_total'))

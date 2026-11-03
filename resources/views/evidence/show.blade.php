@@ -53,7 +53,7 @@
                                             @endif
                                         </p>
                                     </div>
-                                    <a href="{{ $file['url'] }}" rel="noreferrer" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-bold text-white hover:bg-primary-dark">
+                                    <a href="{{ $file['url'] }}" rel="noreferrer" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-bold text-white hover:bg-secondary">
                                         {{ svg('heroicon-o-arrow-down-tray', 'size-4') }}<span>{{ __('site.file.download') }}<span class="sr-only">: {{ $file['name'] }}</span></span>
                                     </a>
                                 </article>

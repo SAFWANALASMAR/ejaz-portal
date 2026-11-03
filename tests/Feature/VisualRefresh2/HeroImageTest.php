@@ -93,3 +93,7 @@ it('retries a replaced image under a new path', function () {
 
     Queue::assertPushed(GenerateHeroVariants::class, fn (GenerateHeroVariants $job): bool => $job->path === 'albums/fixed.jpg');
 });
+
+it('waits before retrying the variants', function () {
+    expect((new GenerateHeroVariants('albums/event.jpg'))->backoff)->toBe([30, 120]);
+});

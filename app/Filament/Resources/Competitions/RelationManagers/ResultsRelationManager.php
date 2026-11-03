@@ -55,6 +55,8 @@ class ResultsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.student.admin.result_model'))
+            ->pluralModelLabel(__('competitions.student.admin.results'))
             // والتسجيل الملغى (CorrectStudentRegistration::cancel) خارج النتائج، كما في السحب والترتيب التراكمي
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion'])
                 ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at')))

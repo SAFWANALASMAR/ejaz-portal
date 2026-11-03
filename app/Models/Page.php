@@ -30,6 +30,13 @@ class Page extends Model implements HasPublicImages
     /** @use HasFactory<PageFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'summary', 'blocks'];
+
     public const ABOUT = 'about';
 
     public const PRIVACY = 'privacy';

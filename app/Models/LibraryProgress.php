@@ -127,6 +127,9 @@ class LibraryProgress extends Model
     {
         $row = DB::table('library_progress')
             ->join('library_items', 'library_items.id', '=', 'library_progress.library_item_id')
+            // العناصر المنشورة غير المحذوفة وحدها، كما في «قراءاتي» (visibleFor): ما أُلغي نشره أو حُذف لا يُعدّ
+            ->where('library_items.is_published', true)
+            ->whereNull('library_items.deleted_at')
             ->when($user, fn ($query, User $user) => $query->where('library_progress.user_id', $user->id))
             ->selectRaw('coalesce(sum(library_progress.pages_count), 0) as pages')
             ->selectRaw('coalesce(sum(case when library_items.section = ? then library_progress.seconds_consumed else 0 end), 0) as listened', [LibrarySection::Audio->value])

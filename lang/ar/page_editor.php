@@ -69,6 +69,7 @@ return [
 
     'revisions' => [
         'title' => 'نسخ الصفحة',
+        'model' => 'نسخة',
         'number' => 'النسخة',
         'status' => 'الحالة',
         'author' => 'كتبها',

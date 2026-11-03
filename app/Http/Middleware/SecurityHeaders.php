@@ -49,6 +49,12 @@ class SecurityHeaders
             $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
         } else {
             $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+            // ولا تُفهرس لوحة الإدارة ولا Horizon ولا ملف برابط موقّع (ولا رأس HTML يحمل noindex لها)، ولا الموقع كله في
+            // نسخة غير معلَّمة للفهرسة (SEO_INDEXABLE=false: التجريبية والمحلية) — مراجعة محركات البحث، 3 نوفمبر 2026
+            if (config('app.indexable') !== true || $request->routeIs('filament.*', 'horizon.*') || $request->query->has('signature')) {
+                $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+            }
         }
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
         // عزل النافذة عن صفحات المواقع الأخرى التي تفتحها، ومنع تضمين ردودنا في مواقع أخرى (فحص ZAP،

@@ -6,6 +6,7 @@ use App\Enums\LibrarySection;
 use App\Enums\ProgramDelivery;
 use App\Models\Competition;
 use App\Models\LibraryItem;
+use App\Models\NewsArticle;
 use App\Models\Program;
 use App\Models\Setting;
 use App\Rules\SafeUrl;
@@ -204,6 +205,31 @@ class StructuredData
             'embedUrl' => $youtube !== null ? 'https://www.youtube-nocookie.com/embed/'.$youtube : null,
             'contentUrl' => $youtube === null && filled($item->video_url) && SafeUrl::isSafe($item->video_url, allowInternal: false) ? $item->video_url : null,
             'inLanguage' => 'ar',
+        ]);
+    }
+
+    /**
+     * الخبر NewsArticle: العنوان والملخص وصورة الغلاف وتاريخ النشر، والناشر والمؤلف الجمعية (لا كاتب مُدخل للخبر).
+     * وتعديله آخر حفظ له.
+     *
+     * @return array<string, mixed>
+     */
+    public static function newsArticle(NewsArticle $article): array
+    {
+        $url = route('media.news.show', $article->slug);
+
+        return self::filled([
+            '@type' => 'NewsArticle',
+            'headline' => Str::limit($article->title, 110),
+            'description' => self::text($article->summary),
+            'url' => $url,
+            'mainEntityOfPage' => $url,
+            'image' => $article->image ? Storage::disk('public')->url($article->image) : null,
+            'datePublished' => $article->published_on->toDateString(),
+            'dateModified' => self::date($article->updated_at),
+            'inLanguage' => 'ar',
+            'author' => self::organizer(),
+            'publisher' => [...self::organizer(), 'logo' => ['@type' => 'ImageObject', 'url' => asset(ShareImage::DEFAULT)]],
         ]);
     }
 

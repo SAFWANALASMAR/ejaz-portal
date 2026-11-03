@@ -17,7 +17,7 @@
             <div class="slide group flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-start" data-slide="{{ $index + 1 }}" role="group" aria-roledescription="{{ __('ui.slider.slide') }}" aria-label="{{ __('competitions.student.page.slide_step', ['number' => $index + 1, 'total' => $total]) }}">
                 <span class="relative shrink-0">
                     <x-icon-tile :icon="$icons[min($index, count($icons) - 1)]" :index="$index" size="xl" />
-                    <span class="absolute -top-2 -start-2 grid size-8 place-items-center rounded-full bg-primary-dark text-sm font-bold text-white ring-2 ring-white" aria-hidden="true">{{ $index + 1 }}</span>
+                    <span class="absolute -top-2 -start-2 grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-white ring-2 ring-white" aria-hidden="true">{{ $index + 1 }}</span>
                 </span>
                 <div class="space-y-1">
                     <h3 class="font-black text-primary">{{ __('competitions.student.page.slide_step', ['number' => $index + 1, 'total' => $total]) }}</h3>
@@ -40,7 +40,7 @@
                     </button>
                 @endforeach
             </div>
-            <button type="button" data-slide-next class="inline-flex items-center gap-1 rounded-full bg-primary-dark p-2.5 text-sm font-bold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2">
+            <button type="button" data-slide-next class="inline-flex items-center gap-1 rounded-full bg-primary p-2.5 text-sm font-bold text-white transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2">
                 <span class="sr-only sm:not-sr-only">{{ __('competitions.student.page.slide_next') }}</span>
                 {{ \App\Support\Icon::svg('chevron-left', 'size-4', ['aria-hidden' => 'true']) }}
             </button>

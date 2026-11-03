@@ -2,13 +2,14 @@
 
 namespace App\Support;
 
+use App\Actions\Settings\UpdateSiteSettings;
 use App\Filament\Pages\HomeContentPage;
 use App\Filament\Resources\ContentPages\ContentPageResource;
 use App\Filament\Resources\SitePages\SitePageResource;
 use App\Models\Page;
-use App\Models\PageRevision;
 use App\Models\Setting;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\DB;
 
 /**
  * سجل صفحات الموقع الثابتة في «محرر الصفحات» (قرار صفوان، 31 أكتوبر 2026 — docs/decisions/2026-11-02-page-editor.md): لكل صفحة
@@ -49,6 +50,21 @@ final class EditablePages
     public const SUMMARY_MAX = 300;
 
     public const BLOCKS_MAX = 30;
+
+    /**
+     * مفاتيح بيانات كل نوع مقطع، وهي حقول المحرر (ContentFields::blocks) وما تقرؤه قوالب العرض (content/blocks). وما سواها يسقط
+     * عند الحفظ، فلا تُخزَّن في المسودة ولا تُنشر مفاتيح لم يعرّفها أحد (مراجعة المشرف على #124، المنخفضة ٢).
+     *
+     * @var array<string, list<string>>
+     */
+    public const BLOCK_FIELDS = [
+        'text' => ['visible', 'heading', 'body'],
+        'cards' => ['visible', 'heading', 'items'],
+        'image' => ['visible', 'picture', 'alt', 'caption'],
+    ];
+
+    /** مفاتيح بطاقة في مقطع البطاقات */
+    public const CARD_FIELDS = ['icon', 'title', 'text', 'picture'];
 
     public static function slug(string $key): string
     {
@@ -152,6 +168,14 @@ final class EditablePages
         $blocks = array_map(function (array $block): array {
             // قاعدة boolean تقبل 0 و"0" و"false" أيضاً، فتُحوَّل كلها إلى منطقي قبل الحفظ (المراجعة الأمنية، ن٢)
             $block['data']['visible'] = filter_var($block['data']['visible'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+            $block['data'] = array_intersect_key($block['data'], array_flip(self::BLOCK_FIELDS[$block['type']]));
+
+            if (is_array($block['data']['items'] ?? null)) {
+                $block['data']['items'] = array_values(array_map(
+                    fn (mixed $item): mixed => is_array($item) ? array_intersect_key($item, array_flip(self::CARD_FIELDS)) : $item,
+                    $block['data']['items'],
+                ));
+            }
 
             return $block;
         }, ContentBlocks::normalize($content['blocks'] ?? []));
@@ -175,32 +199,28 @@ final class EditablePages
         $key = self::keyForSlug($page->slug);
         $paths = [...ContentBlocks::images($page->blocks), ...array_filter([$key === null ? null : self::heroImage($key)])];
 
-        foreach (PageRevision::query()->where('page_id', $page->id)->get(['id', 'page_id', 'content']) as $revision) {
-            array_push($paths, ...array_merge(...array_values($revision->publicImages())));
-        }
-
-        return array_values(array_unique($paths));
+        return array_values(array_unique([...$paths, ...self::revisionImages($page->id)]));
     }
 
     /**
      * صور يملكها غير هذه الصفحة في مجلدي المحرر: مقاطع الصفحات الأخرى ونسخها، وصور «محتوى الرئيسية» وخانات الصفحات الأخرى. فلا
-     * تُربط بالصفحة صورة سجل آخر فيحذفها حفظه لاحقاً أو يعيد ترميزها، ولو من غير الشاشة (المراجعة الأمنية، ن٣).
+     * تُربط بالصفحة صورة سجل آخر فيحذفها حفظه لاحقاً أو يعيد ترميزها، ولو من غير الشاشة (المراجعة الأمنية، ن٣). ومعها صورة
+     * «إعدادات الموقع» في مجلد صور الرأس نفسه (مراجعة المشرف على #124، المنخفضة ٣).
      *
+     * @param  list<string>|null  $known  knownImages($page) إن حُسبت قبلها، فلا تُقرأ مرتين
      * @return list<string>
      */
-    public static function foreignImages(Page $page): array
+    public static function foreignImages(Page $page, ?array $known = null): array
     {
-        $paths = HomeContent::imagePaths(Setting::group(HomeContent::KEY));
+        $paths = [...HomeContent::imagePaths(Setting::group(HomeContent::KEY)), ...UpdateSiteSettings::storedImages()];
 
         foreach (Page::query()->whereKeyNot($page->id)->get(['id', 'blocks']) as $other) {
             array_push($paths, ...ContentBlocks::images($other->blocks));
         }
 
-        foreach (PageRevision::query()->where('page_id', '!=', $page->id)->get(['id', 'page_id', 'content']) as $revision) {
-            array_push($paths, ...array_merge(...array_values($revision->publicImages())));
-        }
+        array_push($paths, ...self::revisionImages($page->id, exclude: true));
 
-        return array_values(array_diff(array_unique($paths), self::knownImages($page)));
+        return array_values(array_diff(array_unique($paths), $known ?? self::knownImages($page)));
     }
 
     /**
@@ -221,11 +241,44 @@ final class EditablePages
             }
         }
 
-        foreach (PageRevision::query()->get(['id', 'page_id', 'content']) as $revision) {
-            array_push($paths, ...array_merge(...array_values($revision->publicImages())));
-        }
+        return array_values(array_unique([...$paths, ...self::revisionImages()]));
+    }
 
-        return array_values(array_unique($paths));
+    /**
+     * مسارات صور النسخ (صورة الرأس، وصور مقاطع الصورة، وصور البطاقات) باستعلام jsonb واحد يعيد المسارات وحدها، لا محتوى كل
+     * نسخة (مراجعة المشرف على #124، المنخفضة ١). وهي ما يعيده PageRevision::publicImages لكل نسخة.
+     *
+     * @param  int|null  $pageId  صفحة بعينها، أو كل الصفحات بلا قيمة
+     * @param  bool  $exclude  كل الصفحات إلا $pageId
+     * @return list<string>
+     */
+    private static function revisionImages(?int $pageId = null, bool $exclude = false): array
+    {
+        $blocks = "CASE WHEN jsonb_typeof(r.content->'blocks') = 'array' THEN r.content->'blocks' ELSE '[]'::jsonb END";
+        $items = "CASE WHEN b->>'type' = 'cards' AND jsonb_typeof(b->'data'->'items') = 'array' THEN b->'data'->'items' ELSE '[]'::jsonb END";
+        // المقاطع والبطاقات قوائم دائماً: SavePageDraft وnormalize يعيدان ترقيمها قبل الحفظ
+        [$where, $bindings] = match (true) {
+            $pageId === null => ['true', []],
+            $exclude => ['r.page_id <> ?', [$pageId]],
+            default => ['r.page_id = ?', [$pageId]],
+        };
+
+        $rows = DB::select(<<<SQL
+            SELECT DISTINCT p.path FROM page_revisions r
+            CROSS JOIN LATERAL (
+                SELECT r.content->>'image' AS path WHERE jsonb_typeof(r.content->'image') = 'string'
+                UNION ALL
+                SELECT b->'data'->>'picture' FROM jsonb_array_elements({$blocks}) b
+                    WHERE b->>'type' = 'image' AND jsonb_typeof(b->'data'->'picture') = 'string'
+                UNION ALL
+                SELECT i->>'picture' FROM jsonb_array_elements({$blocks}) b
+                    CROSS JOIN LATERAL jsonb_array_elements({$items}) i
+                    WHERE jsonb_typeof(i->'picture') = 'string'
+            ) p
+            WHERE p.path <> '' AND {$where}
+            SQL, $bindings);
+
+        return array_values(array_map(fn (object $row): string => (string) $row->path, $rows));
     }
 
     /**

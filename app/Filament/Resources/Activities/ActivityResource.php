@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Activities;
 
+use App\Actions\Users\ResetTwoFactorByAdmin;
 use App\Enums\ActivityEvent;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\Activities\Pages\ListActivities;
@@ -96,10 +97,14 @@ class ActivityResource extends Resource
     }
 
     /**
-     * حدث بلا منفّذ: محاولة دخول من مجهول، أو عملية آلية من النظام.
+     * حدث بلا منفّذ: محاولة دخول من مجهول، أو أمر الطرفية على الخادم، أو عملية آلية من النظام.
      */
     public static function causerPlaceholder(?Activity $record): string
     {
+        if ($record?->getProperty('via') === ResetTwoFactorByAdmin::VIA_CONSOLE) {
+            return __('activity.fields.console');
+        }
+
         $anonymous = [ActivityEvent::LoginFailed->value, ActivityEvent::LoginLockout->value];
 
         return __(in_array($record?->event, $anonymous, true) ? 'activity.fields.unknown' : 'activity.fields.system');

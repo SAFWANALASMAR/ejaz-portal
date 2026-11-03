@@ -2,12 +2,13 @@
 
 namespace App\Support;
 
+use App\Enums\LibrarySection;
 use App\Enums\SubmissionStatus;
 use App\Models\CompetitionSubmission;
 use App\Models\DailyVisit;
-use App\Models\LibraryProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * أرقام «البوابة بالأرقام» العامة في الرئيسية (البند H9 — docs/decisions/2026-11-01-site-stats-v2.md): مجاميع وحدها من
@@ -19,8 +20,8 @@ use Illuminate\Support\Facades\Cache;
  *   والمسجل في مسابقتين يُعدّ مرة.
  * - الرسم: الزوار الفريدون لكل يوم من آخر 30 يوماً بتوقيت الرياض، واليوم قبل أول يوم عُدّ فيه بلا رقم لا صفر.
  *
- * - المكتبة (docs/decisions/2026-11-02-portal-stats-library.md): مجموع الصفحات المقروءة، ومجموع دقائق المشاهدة والاستماع،
- *   من library_progress (LibraryProgress::totals) باستعلام واحد. ومن اختار «لا تحفظ قراءاتي» لا صف له، فلا يدخل في العدد.
+ * - المكتبة بعدد المرات (docs/decisions/2026-11-03-portal-stats-counts.md): قراءات الكتب والأبحاث، ومشاهدات المقاطع المرئية والصوتية،
+ *   من صفوف library_progress («قراءاتي») باستعلام واحد: كل قارئ لمادة مرة. ومن اختار «لا تحفظ قراءاتي» لا صف له، فلا يدخل في العدد.
  */
 final class HomePortalStats
 {
@@ -29,7 +30,7 @@ final class HomePortalStats
     public const KEY = 'portal.home-stats';
 
     /**
-     * @return array{visits: int, registrants: int, pages_read: int, media_minutes: int, days: list<int|null>}
+     * @return array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}
      */
     public static function compute(): array
     {
@@ -38,7 +39,7 @@ final class HomePortalStats
         $first = DailyVisit::query()->min('date');
         $rows = DailyVisit::query()->where('date', '>=', $from->toDateString())->toBase()->pluck('visitors', 'date');
 
-        $library = LibraryProgress::totals();
+        $library = self::libraryCounts();
         $days = [];
 
         for ($day = $from; $day->lte($today); $day = $day->copy()->addDay()) {
@@ -52,9 +53,33 @@ final class HomePortalStats
                 ->whereHas('competition', fn (Builder $competition) => $competition->published())
                 ->where(fn (Builder $submission) => $submission->whereNotNull('registered_at')->orWhere('status', SubmissionStatus::Submitted->value))
                 ->distinct()->count('user_id'),
-            'pages_read' => $library['pages_read'],
-            'media_minutes' => $library['watched_minutes'] + $library['listened_minutes'],
+            'book_reads' => $library['book_reads'],
+            'media_views' => $library['media_views'],
             'days' => $days,
+        ];
+    }
+
+    /**
+     * قراءات الكتب والأبحاث ومشاهدات المقاطع المرئية والصوتية بعدد المرات: صف «قراءاتي» لكل قارئ ومادة، فقارئ الكتاب قراءة
+     * واحدة مهما قرأ من صفحاته. والصف بلا صفحة ولا ثانية (فُتحت المادة ولم يُقرأ منها شيء) لا يُعدّ.
+     *
+     * @return array{book_reads: int, media_views: int}
+     */
+    private static function libraryCounts(): array
+    {
+        $books = [LibrarySection::Books->value, LibrarySection::Research->value];
+        $media = [LibrarySection::Videos->value, LibrarySection::Audio->value];
+        $in = fn (array $values): string => implode(',', array_fill(0, count($values), '?'));
+
+        $row = DB::table('library_progress')
+            ->join('library_items', 'library_items.id', '=', 'library_progress.library_item_id')
+            ->selectRaw('count(case when library_items.section in ('.$in($books).') and library_progress.pages_count > 0 then 1 end) as book_reads', $books)
+            ->selectRaw('count(case when library_items.section in ('.$in($media).') and library_progress.seconds_consumed > 0 then 1 end) as media_views', $media)
+            ->first();
+
+        return [
+            'book_reads' => (int) ($row->book_reads ?? 0),
+            'media_views' => (int) ($row->media_views ?? 0),
         ];
     }
 
@@ -76,22 +101,22 @@ final class HomePortalStats
     /**
      * ما يظهر في الرئيسية من المخزّن: الأرقام (والصفر لا يظهر)، والرسم.
      *
-     * @param  array{visits: int, registrants: int, pages_read: int, media_minutes: int, days: list<int|null>}|null  $stats
-     * @return array{visits: int, registrants: int, pages_read: int, media_minutes: int, chart: array{line: string, area: string, total: int, max: int}|null}
+     * @param  array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}|null  $stats
+     * @return array{visits: int, registrants: int, book_reads: int, media_views: int, chart: array{line: string, area: string, total: int, max: int}|null}
      */
     private static function shown(?array $stats): array
     {
         return [
             'visits' => $stats['visits'] ?? 0,
             'registrants' => $stats['registrants'] ?? 0,
-            'pages_read' => $stats['pages_read'] ?? 0,
-            'media_minutes' => $stats['media_minutes'] ?? 0,
+            'book_reads' => $stats['book_reads'] ?? 0,
+            'media_views' => $stats['media_views'] ?? 0,
             'chart' => $stats !== null ? self::chart($stats['days']) : null,
         ];
     }
 
     /**
-     * @return array{visits: int, registrants: int, pages_read: int, media_minutes: int, days: list<int|null>}|null
+     * @return array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}|null
      */
     public static function cached(): ?array
     {
@@ -101,15 +126,15 @@ final class HomePortalStats
             return null;
         }
 
-        // المخزّن قبل بطاقتي المكتبة (بلا مفتاحيهما) يبقى صالحاً بصفر لهما حتى الحساب التالي، فلا يختفي القسم بعد النشر
+        // المخزّن قبل عدد المرات (بالصفحات والدقائق أو بلاهما) يبقى صالحاً بصفر للمكتبة حتى الحساب التالي، فلا يختفي القسم بعد النشر
         /** @var list<int|null> $days */
         $days = $stored['days'];
 
         return [
             'visits' => $stored['visits'],
             'registrants' => $stored['registrants'],
-            'pages_read' => is_int($stored['pages_read'] ?? null) ? $stored['pages_read'] : 0,
-            'media_minutes' => is_int($stored['media_minutes'] ?? null) ? $stored['media_minutes'] : 0,
+            'book_reads' => is_int($stored['book_reads'] ?? null) ? $stored['book_reads'] : 0,
+            'media_views' => is_int($stored['media_views'] ?? null) ? $stored['media_views'] : 0,
             'days' => $days,
         ];
     }

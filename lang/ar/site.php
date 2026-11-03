@@ -26,7 +26,7 @@ return [
     'search_placeholder' => 'ابحث في الموقع',
     'search_soon' => 'البحث قريباً',
     'login' => 'تسجيل الدخول',
-    'register' => 'حساب جديد',
+    'register' => 'إنشاء حساب جديد',
     'my_account' => 'حسابي',
     'logout' => 'تسجيل الخروج',
     'admin_panel' => 'لوحة الإدارة',
@@ -76,5 +76,11 @@ return [
         'preview' => 'عرض',
         'download' => 'تنزيل',
     ],
+
+    // الصفحات التالية من قائمة مرقّمة: في العنوان، ورابطها canonical برقمها (التخطيط العام)
+    'page_number' => 'الصفحة :number',
+
+    // النص البديل لصورة المشاركة الافتراضية (شعار الجمعية — ShareImage)
+    'share_image_alt' => 'شعار :name',
 
 ];

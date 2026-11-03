@@ -52,6 +52,8 @@ class SubmissionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.submissions.model'))
+            ->pluralModelLabel(__('competitions.submissions.plural'))
             ->modifyQueryUsing(fn (Builder $query) => $query->with('user')->withCount('reviews'))
             ->defaultSort('submitted_at', 'desc')
             ->columns([

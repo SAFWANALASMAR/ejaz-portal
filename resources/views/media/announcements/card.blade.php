@@ -18,7 +18,7 @@
         <span class="flex flex-1 items-start justify-between gap-3 p-4">
             <span class="font-bold leading-7 text-ink">{{ $announcement->title }}</span>
             @if ($href)
-                <span class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition group-hover:bg-primary-dark" aria-hidden="true">
+                <span class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition group-hover:bg-secondary" aria-hidden="true">
                     {{ \App\Support\Icon::svg($external ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                 </span>
             @endif

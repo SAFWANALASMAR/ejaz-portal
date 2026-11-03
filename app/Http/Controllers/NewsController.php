@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\NewsIndexRequest;
 use App\Models\NewsArticle;
 use App\Support\ContentCache;
+use App\Support\StructuredData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -70,7 +71,8 @@ class NewsController extends Controller implements HasMiddleware
         abort_unless(in_array($slug, $published, true), 404);
 
         // فضاء مستقل لصفحة كل خبر، فلا يصطدم معرّف مثل index أو slugs بمفاتيح القائمة
-        /** @var array{title: string, summary: ?string, image: ?string, html: string} $page */
+        // والخبر مقالةً لمحركات البحث والمشاركة: NewsArticle في البيانات المنظمة، وog:type=article بتاريخ نشره
+        /** @var array{title: string, summary: ?string, image: ?string, html: string, schema: list<array<string, mixed>>, ogType: string, publishedTime: string} $page */
         $page = ContentCache::remember('media.news.show.'.$slug, function () use ($slug): array {
             $article = NewsArticle::query()->published()->where('slug', $slug)->firstOrFail();
 
@@ -78,6 +80,9 @@ class NewsController extends Controller implements HasMiddleware
                 'title' => $article->title,
                 'summary' => $article->summary,
                 'image' => $article->image ? Storage::disk('public')->url($article->image) : null,
+                'schema' => [StructuredData::newsArticle($article)],
+                'ogType' => 'article',
+                'publishedTime' => $article->published_on->toDateString(),
                 'html' => view('media.news.show', [
                     'article' => $article,
                     'more' => NewsArticle::query()->published()->whereKeyNot($article->getKey())->newestFirst()->limit(self::MORE)->get(),

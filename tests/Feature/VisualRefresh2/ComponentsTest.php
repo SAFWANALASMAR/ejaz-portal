@@ -54,8 +54,8 @@ it('draws the client error pages on the concept hero with the home and contact b
         ->assertSeeInOrder(['data-error-page', 'concept-hero-scrim', 'error-code', '404', __('errors.404.title'), 'title-bar', 'class="hero-cta', __('errors.home'), __('errors.contact')], false);
 });
 
-it('keeps the dark background of the account sidebar, whose links are white', function () {
+it('keeps a dark background on the account sidebar, whose links are white, lighter than the header (director note 29)', function () {
     $css = file_get_contents(resource_path('css/concept.css'));
 
-    expect($css)->toMatch('/\.account-nav \{[^}]*background: var\(--color-primary-dark\)/');
+    expect($css)->toMatch('/\.account-nav \{[^}]*background: var\(--blue-850\)/');
 });

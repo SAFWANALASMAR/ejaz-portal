@@ -37,6 +37,13 @@ class LiveStream extends Model
     use HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'description'];
+
+    /**
      * شارة الرأس تُقرأ من ذاكرة قصيرة تُمسح عند أي حفظ.
      */
     public const ANNOUNCED_CACHE_KEY = 'live-stream.announced';

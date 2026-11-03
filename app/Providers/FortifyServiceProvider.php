@@ -11,6 +11,7 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Auth\CurrentPasswordLimiter;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\NeutralPasswordResetResponse;
@@ -71,6 +72,8 @@ class FortifyServiceProvider extends ServiceProvider
                 Auth::guard('web')->viaRemember()
                     ? session()->put(EnsureTwoFactorIsEnabled::VIA_REMEMBER, true)
                     : session()->forget(EnsureTwoFactorIsEnabled::VIA_REMEMBER);
+                // ووقت الدخول، فتُنهى الجلسة إن أُنهيت جلسات الحساب بعده (sessions_revoked_at — EnsureAccountIsActive)
+                session()->put(EnsureAccountIsActive::LOGGED_IN_AT, now()->getTimestamp());
             }
         });
 
@@ -105,7 +108,9 @@ class FortifyServiceProvider extends ServiceProvider
         }
 
         // التجزئة قبل حالة الحساب، فلا يرد الموقوف أسرع بزمن تجزئة كامل (الاختبار الأمني 0.14.0)
-        if (! Hash::check($password, $user->password) || ! $user->is_active) {
+        // ولا دخول قبل تعيين كلمة المرور برابط البريد بعد إعادة ضبط التحقق الثنائي (must_set_password_at —
+        // ResetTwoFactorByAdmin)، ولو طابقت كلمة مرور بطريق ما: مؤقتة من الإدارة مثلاً
+        if (! Hash::check($password, $user->password) || ! $user->is_active || $user->must_set_password_at !== null) {
             return null;
         }
 
@@ -136,7 +141,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         CurrentPasswordLimiter::ensureNotLocked($user, 'password');
 
-        if ($user->is_active && Hash::check((string) $password, $user->password)) {
+        if ($user->is_active && $user->must_set_password_at === null && Hash::check((string) $password, $user->password)) {
             CurrentPasswordLimiter::passed($user);
 
             return true;

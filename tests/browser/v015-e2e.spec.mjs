@@ -33,8 +33,8 @@ async function menuLinks(page, testInfo) {
         await page.locator('[data-toggle="mobile-menu"]').click();
         const menu = page.locator('#mobile-menu');
         await expect(menu).toBeVisible();
-        // تُفتح كل قائمة ثم تُغلق بالضغط نفسه قبل التي تليها: الضغط على قائمة وأخرى فوقها مفتوحة يغلق الاثنتين
-        // (تقرير الاختبار، البند ١ — مختبر وحده في «the mobile menu opens the next dropdown in one tap»)
+        // تُفتح كل قائمة ثم تُغلق بالضغط نفسه قبل التي تليها، فتُقرأ روابط كل قائمة وحدها. وفتح التالية وأخرى فوقها مفتوحة
+        // مختبر وحده في «the mobile menu opens the next dropdown in one tap» (تقرير الاختبار، البند ١)
         const hrefs = [];
         for (const button of await menu.locator('[data-toggle="dropdown"]').all()) {
             const list = page.locator(`#${await button.getAttribute('aria-controls')}`);
@@ -91,10 +91,8 @@ test.describe('visitor', () => {
 
     test('the mobile menu opens the next dropdown in one tap', async ({ page }, testInfo) => {
         test.skip(!isMobile(testInfo), 'قائمة الجوال');
-        // خلل في التطبيق (تقرير الاختبار 2026-11-03، البند ١): بقائمة مفتوحة فوقها، أول ضغطة على القائمة التالية تغلق الاثنتين،
-        // لأن التركيز (focusin → closeAll) يطوي المفتوحة فتنزاح الأزرار قبل أن يصل الضغط إلى الزر (resources/js/app.js).
-        // مُعلَّم متوقع الفشل حتى يُصلح، فيفشل التشغيل إن أُصلح ولم يُرفع العلم
-        test.fail();
+        // تقرير الاختبار 2026-11-03، البند ١، وأُصلح (docs/decisions/2026-11-03-mobile-menu.md): بقائمة مفتوحة فوقها، كانت أول
+        // ضغطة على القائمة التالية تغلق الاثنتين
         await page.goto('/');
         await page.locator('[data-toggle="mobile-menu"]').click();
         const buttons = page.locator('#mobile-menu [data-toggle="dropdown"]');
@@ -322,10 +320,8 @@ test.describe('executive director', () => {
     test.use({ storageState: state('director') });
 
     test('moving from the site to the panel raises no view-transition error', async ({ page }) => {
-        // خلل في التطبيق (تقرير الاختبار 2026-11-03، البند ٢): الموقع العام يطلب انتقال المستندات (@view-transition في
-        // resources/css/visual.css) واللوحة لا تطلبه، فالانتقال بزر «تعديل هذه الصفحة» يُلغى بخطأ غير ملتقط في وحدة التحكم.
-        // مُعلَّم متوقع الفشل حتى يُصلح
-        test.fail();
+        // تقرير الاختبار 2026-11-03، البند ٢، وأُصلح (docs/decisions/2026-11-03-mobile-menu.md): الموقع العام يطلب انتقال المستندات
+        // (@view-transition في resources/css/visual.css) واللوحة لا تطلبه، فكان الانتقال بزر «تعديل هذه الصفحة» يُلغى بخطأ غير ملتقط
         const errors = [];
         page.on('pageerror', (error) => errors.push(error.message));
         await page.goto('/programs');

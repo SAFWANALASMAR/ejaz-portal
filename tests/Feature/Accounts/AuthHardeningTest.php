@@ -127,6 +127,20 @@ it('resets with the right code once, notifies, renews remember me and does not s
     resetByPhone($code, 'Another-Phone-Pass-2026')->assertSessionHasErrors(['code' => __('account.password_reset.expired')]);
 });
 
+it('refuses a phone-code reset while the account must set its password from the verified email link', function () {
+    $user = phoneAccount(['must_set_password_at' => now()]);
+    $hash = $user->password;
+    requestResetCode();
+    $code = $this->sms->lastCodeFor('+966512345678');
+
+    resetByPhone($code)->assertSessionHasErrors(['code' => __('users.reset_two_factor.phone_reset_refused')]);
+
+    $user->refresh();
+    expect($user->password)->toBe($hash)
+        ->and($user->must_set_password_at)->not->toBeNull();
+    Notification::assertNotSentTo($user, PasswordChanged::class);
+});
+
 it('voids the code after five wrong attempts, and keeps it when only the password is refused', function () {
     phoneAccount();
     requestResetCode();

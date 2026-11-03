@@ -21,6 +21,9 @@ class GenerateHeroVariants implements ShouldBeUnique, ShouldQueue
 
     public int $tries = 2;
 
+    /** @var list<int> المحاولة الثانية بعد مهلة، لا فوراً على قرص أو ذاكرة متعثرة */
+    public array $backoff = [30, 120];
+
     /** صورة حتى ImageSanitizer::MAX_PIXELS تُفك وتُصغَّر مرتين */
     public int $timeout = 120;
 
