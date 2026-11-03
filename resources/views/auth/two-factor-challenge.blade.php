@@ -11,7 +11,7 @@
                 autocomplete="one-time-code" dir="ltr" required autofocus />
         @else
             <x-field name="code" :label="__('account.two_factor_challenge.code')" :placeholder="__('account.two_factor_challenge.code')" icon="device-phone-mobile" hide-label
-                inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" required autofocus />
+                :hint="__('account.two_factor_challenge_hint')" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" required autofocus />
         @endif
 
         <x-button class="w-full">{{ __('account.two_factor_challenge.submit') }}</x-button>

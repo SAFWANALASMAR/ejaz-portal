@@ -104,6 +104,7 @@ return [
         'online_meeting_retried' => 'إعادة محاولة ربط اجتماع بتيمز',
         'online_meetings_settings_updated' => 'تعديل إعدادات ربط تيمز',
         'online_meetings_connection_tested' => 'اختبار الاتصال بتيمز',
+        'meeting_join_link_changed' => 'تعديل رابط الاجتماع اليدوي',
         'viewed' => 'اطلاع',
         'form_entry_approved' => 'اعتماد نموذج معبأ',
         'form_entries_exported' => 'تصدير النماذج المعبأة',

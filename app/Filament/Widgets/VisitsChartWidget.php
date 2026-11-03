@@ -3,7 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\DailyVisit;
+use Filament\Support\Enums\IconSize;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
+
+use function Filament\Support\generate_icon_html;
 
 /**
  * رسم الزيارات في آخر 30 يوماً بتوقيت الرياض (docs/plans/admin-stats.md): المشاهدات والزوار الفريدون لكل يوم من
@@ -30,9 +36,16 @@ class VisitsChartWidget extends ChartWidget
         return auth()->user()?->can('stats.view') ?? false;
     }
 
-    public function getHeading(): string
+    /**
+     * العنوان بمربع أيقونة بدل الشريط كبقية عناصر الرئيسية (البند N2 من تدقيق القبول). قالب الرسم في Filament لا يمرر أيقونة
+     * لقسمه، فالمربع داخل العنوان نفسه (ej-heading-tile في سمة اللوحة)، والنص مهرَّب.
+     */
+    public function getHeading(): Htmlable
     {
-        return __('surveys.stats.visits_chart.heading', ['days' => self::DAYS]);
+        $icon = generate_icon_html(Heroicon::OutlinedChartBar, size: IconSize::Large)?->toHtml() ?? '';
+
+        return new HtmlString('<span class="ej-heading-tile" aria-hidden="true">'.$icon.'</span>'
+            .'<span>'.e(__('surveys.stats.visits_chart.heading', ['days' => self::DAYS])).'</span>');
     }
 
     public function getDescription(): string
