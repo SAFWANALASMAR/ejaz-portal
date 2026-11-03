@@ -44,3 +44,14 @@ it('names the records of every tab a board member sees in Arabic', function (Clo
     expect($checked)->toBeGreaterThan(0)
         ->and($english)->toBe([]);
 })->with('board record pages');
+
+// «Agenda» تسمية مخفية بصرياً يقرؤها قارئ الشاشة في صفحة الاجتماع، اشتقها Filament من اسم الحقل. فحص 3 نوفمبر على main الأخير
+it('reads the meeting agenda in Arabic to a board member, with no English hidden label', function () {
+    $meeting = Meeting::factory()->create(['agenda' => 'بند أول']);
+    $this->actingAs(userWithRole(RoleName::BoardMember));
+
+    Livewire::test(ViewMeeting::class, ['record' => $meeting->uuid])
+        ->assertOk()
+        ->assertSee(__('assembly.fields.agenda'))
+        ->assertDontSeeText('Agenda');
+});
