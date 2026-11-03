@@ -344,7 +344,8 @@ it('shows the approved contact details on the contact page, the footer and the p
         ->assertDontSee(__('contact.info.missing'))
         ->assertSee('https://t.me/ejazsa2025', false)
         ->assertSee(__('settings.social.telegram'))
-        ->assertSee(__('site.license'));
+        // وسطر الترخيص خرج من صفحة التواصل (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣٠)، وبقي في مربع الترخيص في الرأس
+        ->assertDontSee(__('site.license'));
 
     expect(FormEntryLayout::letterhead()['contact'])->toBe([
         'address' => 'مكة المكرمة — برج الساعة، الدور التاسع، بجوار مصلى الرجال',

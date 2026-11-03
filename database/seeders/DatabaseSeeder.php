@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AccessSeeder::class,
             MenuSeeder::class,
+            AboutMenuAnchorsSeeder::class,
             ContentSeeder::class,
             LegacyRedirectsSeeder::class,
             ProgramTypesSeeder::class,

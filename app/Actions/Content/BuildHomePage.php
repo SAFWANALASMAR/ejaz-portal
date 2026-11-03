@@ -91,6 +91,7 @@ class BuildHomePage
      *     top_initiatives: Collection<int, Initiative>,
      *     strip_videos: Collection<int, LibraryItem>,
      *     strip_books: Collection<int, LibraryItem>,
+     *     strip_research: Collection<int, LibraryItem>,
      *     x_account: array{url: string, handle: string|null}|null,
      *     video: string|null,
      *     video_thumbnail: string|null,
@@ -127,7 +128,8 @@ class BuildHomePage
             'strip_videos' => self::stripVideos(),
             // بطاقة «تابعنا على X» من حساب إكس في «الحسابات الرسمية» (قرار صفوان، 31 أكتوبر 01:38): بلا سكربت من إكس، وتختفي بلا رابط
             'x_account' => self::xAccount(),
-            'strip_books' => self::stripBooks(),
+            'strip_books' => self::stripLibrary([LibrarySection::Books]),
+            'strip_research' => self::stripLibrary([LibrarySection::Research]),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
@@ -156,19 +158,21 @@ class BuildHomePage
      */
     public static function libraryStrip(): array
     {
-        return ['videos' => self::stripVideos(), 'books' => self::stripBooks()];
+        return ['videos' => self::stripVideos(), 'books' => self::stripLibrary([LibrarySection::Books, LibrarySection::Research])];
     }
 
     /**
-     * شريط الكتب والأبحاث: القسمان معاً، «الكتب والمؤلفات» و«الأبحاث والدراسات» (البند R9).
+     * شريطا الكتب والأبحاث في الرئيسية منفصلان (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٢٦): «الكتب والمؤلفات» ثم «الأبحاث
+     * والدراسات» تحته، وكانا شريطاً واحداً (البند R9). ولوحة المستفيد تبقى بالقسمين معاً (libraryStrip).
      *
+     * @param  list<LibrarySection>  $sections
      * @return Collection<int, LibraryItem>
      */
-    private static function stripBooks(): Collection
+    private static function stripLibrary(array $sections): Collection
     {
         // الكتب والأبحاث (عنوان الشريط «الكتب والمؤلفات والأبحاث»)، والغلاف إن رُفع وإلا مربع ملون بأيقونة كما في التصور: كان الشرط
         // غلافاً مرفوعاً فاختفى الشريط من رابط العرض (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٤)
-        return LibraryItem::query()->published()->whereIn('section', [LibrarySection::Books, LibrarySection::Research])->newestFirst()->limit(self::STRIP)->get();
+        return LibraryItem::query()->published()->whereIn('section', $sections)->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**

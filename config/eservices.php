@@ -15,15 +15,15 @@ return [
 
     'tiles' => [
         // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات (البند R4)، ثم الاستفسارات (Final-Services، النسخة 63)
-        ['route' => 'programs.index', 'label' => 'ui.inner.services.programs', 'icon' => 'academic-cap'],
-        ['route' => 'competitions.index', 'label' => 'ui.inner.services.competitions', 'icon' => 'trophy'],
-        ['route' => 'initiatives.index', 'label' => 'ui.inner.services.initiatives', 'icon' => 'flag'],
-        ['route' => 'contact', 'label' => 'ui.inner.services.inquiries', 'icon' => 'chat-bubble-left-right'],
-        ['route' => 'services.assembly-membership', 'label' => 'services.tiles.membership', 'icon' => 'user-group'],
-        ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase'],
-        ['route' => 'services.volunteering', 'label' => 'services.tiles.volunteering', 'icon' => 'hand-raised'],
+        ['route' => 'programs.index', 'label' => 'ui.inner.services.programs', 'icon' => 'academic-cap', 'symbol' => 'programs'],
+        ['route' => 'competitions.index', 'label' => 'ui.inner.services.competitions', 'icon' => 'trophy', 'symbol' => 'competitions'],
+        ['route' => 'initiatives.index', 'label' => 'ui.inner.services.initiatives', 'icon' => 'flag', 'symbol' => 'initiatives'],
+        ['route' => 'contact', 'label' => 'ui.inner.services.inquiries', 'icon' => 'chat-bubble-left-right', 'symbol' => 'inquiries'],
+        ['route' => 'services.assembly-membership', 'label' => 'services.tiles.membership', 'icon' => 'user-group', 'symbol' => 'membership'],
+        ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase', 'symbol' => 'jobs'],
+        ['route' => 'services.volunteering', 'label' => 'services.tiles.volunteering', 'icon' => 'hand-raised', 'symbol' => 'volunteering'],
         // الاستبيان العام المفتوح، متى وُجد
-        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'wide' => true, 'available' => [Survey::class, 'hasOpenGeneral']],
+        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'symbol' => 'surveys', 'wide' => true, 'available' => [Survey::class, 'hasOpenGeneral']],
     ],
 
 ];

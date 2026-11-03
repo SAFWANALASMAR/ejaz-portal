@@ -69,10 +69,15 @@ it('orders the first row as mark, centred calligraphy, licence, search then logi
         ->and($actions->item(1)->getAttribute('class'))->toContain('login-pill');
 });
 
-it('keeps the header the same size on scroll: no shrink factor or scroll attribute left in the styles and scripts', function () {
+// البند ٣١ من إضافة توجيه المدير (3 نوفمبر 2026): الرأس يصغر عند التمرير بسمة واحدة (data-header-compact) ويُعوَّض فرقه بهامش فلا
+// يتحرك المحتوى، لا بعامل التصغير السابق (--hs وdata-scrolled) الذي ألغاه صفوان في 2 نوفمبر. والقياس الفعلي في المتصفح
+it('shrinks the header on scroll with one compact attribute and a compensating margin, not the old shrink factor', function () {
     foreach (['resources/css/concept.css', 'resources/css/visual.css', 'resources/css/app.css', 'resources/js/app.js'] as $file) {
         expect(file_get_contents(base_path($file)))->not->toContain('var(--hs')->not->toContain('data-scrolled');
     }
+
+    expect(file_get_contents(resource_path('js/app.js')))->toContain("header.setAttribute('data-header-compact', '')")
+        ->and(file_get_contents(resource_path('css/concept.css')))->toMatch('/\[data-site-header\]\[data-header-compact\] \{\s*margin-bottom: var\(--header-shrink, 0px\);/');
 });
 
 // قرار المشرف على #130: شارة البث في نهاية صف القائمة وأول قائمة الجوال، لا في الصف الأول، فلا تزيح المخطوطة عن المنتصف

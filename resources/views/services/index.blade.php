@@ -1,4 +1,5 @@
 {{--
+    والبطاقات منذ إضافة توجيه المدير (3 نوفمبر 2026، البند ٢٩) بالنمط «أ» من x-service-card.
     خدماتنا الإلكترونية (التصور النهائي — Final-Services): الرأس، ثم «اختر الخدمة» بعنوانها بين الخطين، ثم بطاقات ملونة تتعاقب
     درجتها (المرحلة ج — البند P8)، في كل منها مربع الأيقونة واسم الخدمة وكبسولة «ابدأ الطلب»، وأولها الدورات والبرامج والمسابقات
     والمبادرات (البند R4)، والبطاقة العريضة (قياس الرضا) أفقية بزرها.
@@ -12,35 +13,18 @@
         <div class="mx-auto max-w-[82.5rem] px-4 pt-11 pb-14 sm:px-7">
             <x-section-heading center :description="__('ui.services.choose_hint')" class="mb-6.5">{{ __('ui.services.choose') }}</x-section-heading>
 
-            <ul class="tile-grid" data-reveal-group>
+            {{-- بطاقات بالنمط «أ» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٩ — x-service-card): ثلاثة أعمدة بلا خانة فارغة، وعمودان على
+                 820 فأقل وعمود على 480 فأقل، والبطاقة الأخيرة تمتد بما بقي من الصف --}}
+            <ul class="service-grid" data-service-grid data-reveal-group>
                 @foreach ($tiles as $tile)
-                    @if ($tile['wide'] ?? false)
-                        <li class="tile-wide">
-                            <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="tone-card group flex items-center gap-4 px-6 py-5" data-tone="dark">
-                                <x-icon-tile :icon="$tile['icon']" size="lg" />
-                                <span class="flex-1 text-xl font-black">{{ __($tile['label']) }}</span>
-                                <span class="tone-pill" aria-hidden="true">{{ __('ui.media.survey_cta') }}</span>
-                            </a>
-                        </li>
-                    @else
-                        <li class="tone-card">
-                            <a href="{{ route($tile['route']) }}" @navigate(route($tile['route'])) class="group flex h-full flex-col gap-3 px-6 py-6">
-                                <x-icon-tile :icon="$tile['icon']" size="lg" />
-                                <span class="text-xl font-black">{{ __($tile['label']) }}</span>
-                                <span class="tone-pill mt-auto self-start" aria-hidden="true">{{ __('ui.services.start') }}</span>
-                            </a>
-                        </li>
-                    @endif
+                    <li>
+                        <x-service-card :href="route($tile['route'])" :title="__($tile['label'])" :icon="$tile['symbol'] ?? ''" :fallback="$tile['icon']" />
+                    </li>
                 @endforeach
                 {{-- متجر الجمعية على سلة بتبويب جديد، ولا يظهر بلا رابط صالح (1 نوفمبر 2026) --}}
                 @if ($storeLink = \App\Rules\StoreUrl::link())
-                    <li class="tone-card" data-store-card>
-                        <a href="{{ $storeLink }}" target="_blank" rel="noopener noreferrer" class="group flex h-full flex-col gap-3 px-6 py-6">
-                            <x-icon-tile icon="shopping-bag" size="lg" />
-                            <span class="text-xl font-black">{{ __('ui.services.store') }}</span>
-                            <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
-                            <span class="tone-pill mt-auto self-start" aria-hidden="true">{{ __('ui.services.store_open') }}</span>
-                        </a>
+                    <li data-store-card>
+                        <x-service-card :href="$storeLink" :title="__('ui.services.store')" icon="store" fallback="shopping-bag" external />
                     </li>
                 @endif
             </ul>

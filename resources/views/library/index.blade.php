@@ -8,7 +8,8 @@
     use App\Enums\LibrarySection;
 @endphp
 
-<x-page-hero :title="__('library.title')" :image="\App\Support\HomeContent::heroSlideUrl('library')" />
+{{-- رأس «فاتح بصورة واحدة» بصورة من صور المكتبة المنشورة (غلاف أو صورة مقطع) ما لم تُرفع صورته من اللوحة (إضافة توجيه المدير، البند ٢٥) --}}
+<x-page-hero :title="__('library.title')" :image="\App\Support\HomeContent::heroSlideUrl('library') ?? once(fn () => \App\Models\LibraryItem::query()->published()->whereNotNull('thumbnail')->newestFirst()->first()?->thumbnailUrl())" />
 <x-page-sections />
 
 <section class="pt-8 pb-6">

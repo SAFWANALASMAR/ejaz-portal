@@ -20,7 +20,7 @@
 
 <section class="py-8 sm:py-10">
     <div @class(['container-page grid gap-5 lg:items-start', 'lg:grid-cols-[1fr_2.2fr]' => $document->file !== null])>
-        <aside class="tone-card flex flex-col gap-4 p-6" data-tone="dark" data-document-meta>
+        <aside class="tone-card flex flex-col gap-4 p-6" data-tone="soft" data-document-meta>
             <h2 class="text-xl leading-snug font-black">{{ $document->title }}</h2>
             <dl class="flex flex-col gap-3 text-sm">
                 @foreach ($rows as $row)

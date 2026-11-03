@@ -328,4 +328,77 @@ document.addEventListener('submit', (event) => {
     }
 });
 
+// مرساة الرابط (#about-vision وأخواتها في القائمة المنسدلة «عن الجمعية» — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٨): بعد التنقّل
+// السريع يُمرَّر إلى مقطعها، وإزاحة الرأس الثابت من scroll-margin-top على المقطع وscroll-padding-top على الصفحة
+onPage(() => {
+    if (window.location.hash.length > 1) {
+        document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: 'start' });
+    }
+});
+
+// الرأس يصغر عند التمرير ويعود كاملاً في أعلى الصفحة (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٣١ — يعيد التصغير الذي ألغاه
+// صفوان في 2 نوفمبر). من 1024 وحده، والصف الثاني ظاهر في الحالتين. data-header-compact يصغّر الرمز والمخطوطة ومربع الترخيص والأزرار
+// والحشو (concept.css)، ويعوَّض الفرق بهامش سفلي للرأس نفسه (--header-shrink) بالانتقال نفسه، فلا يتحرك المحتوى. والفرق يُقاس مرة
+// بلا انتقال قبل الرسم، ويُعاد مع تغيّر العرض. وعتبتان متباعدتان (140 ثم 40 بكسل) فلا يرتجف عند الحد. ويُعاد مع كل صفحة (onPage)
+onPage((signal) => {
+    const header = document.querySelector('[data-site-header]');
+
+    if (!header) {
+        return;
+    }
+
+    const desktop = window.matchMedia('(min-width: 64rem)');
+    const ON = 140;
+    const OFF = 40;
+
+    // الفرق بين الحالتين بلا انتقال (data-header-measuring)، في المهمة نفسها فلا يُرسم إطار بينهما
+    const measure = () => {
+        const compact = header.hasAttribute('data-header-compact');
+        header.setAttribute('data-header-measuring', '');
+        header.removeAttribute('data-header-compact');
+        const full = header.getBoundingClientRect().height;
+        header.setAttribute('data-header-compact', '');
+        const small = header.getBoundingClientRect().height;
+        header.toggleAttribute('data-header-compact', compact);
+        header.style.setProperty('--header-shrink', `${Math.max(0, full - small)}px`);
+        void header.offsetHeight;
+        header.removeAttribute('data-header-measuring');
+    };
+
+    let frame = 0;
+    const update = () => {
+        frame = 0;
+        const compact = header.hasAttribute('data-header-compact');
+        const y = window.scrollY;
+
+        if (!desktop.matches) {
+            header.removeAttribute('data-header-compact');
+        } else if (!compact && y > ON) {
+            header.setAttribute('data-header-compact', '');
+        } else if (compact && y < OFF) {
+            header.removeAttribute('data-header-compact');
+        }
+    };
+
+    const schedule = () => {
+        frame ||= requestAnimationFrame(update);
+    };
+
+    measure();
+    update();
+    window.addEventListener('scroll', schedule, { passive: true, signal });
+
+    let width = window.innerWidth;
+    window.addEventListener('resize', () => {
+        if (window.innerWidth !== width) {
+            width = window.innerWidth;
+            measure();
+            schedule();
+        }
+    }, { passive: true, signal });
+    document.fonts?.ready.then(() => signal.aborted || measure());
+    signal.addEventListener('abort', () => frame && cancelAnimationFrame(frame));
+});
+
+// بعد تسجيل كل ما يُهيَّأ مع كل صفحة (onPage)، ومنه المرساة وتصغير الرأس أعلاه
 start();

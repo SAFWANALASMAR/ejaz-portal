@@ -1202,8 +1202,12 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         await page.waitForTimeout(800);
         const scrolled = await header.evaluate((el) => ({ top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height }));
         expect(scrolled.top, 'ثابت في أعلى الشاشة').toBe(0);
-        // ألغى صفوان التصغير (2 نوفمبر، #130): الرأس ثابت الحجم عند التمرير.
-        expect(Math.abs(scrolled.height - top), 'لا يصغر عند التمرير (#130)').toBeLessThanOrEqual(1);
+        // ألغى صفوان التصغير (2 نوفمبر، #130)، ثم أعاده مع المدير على الحاسوب (3 نوفمبر، البند ٣١ — director-home-2026-11-03.spec.mjs)
+        if (testInfo.project.name === 'desktop') {
+            expect(scrolled.height, 'يصغر عند التمرير على الحاسوب (البند ٣١)').toBeLessThan(top);
+        } else {
+            expect(Math.abs(scrolled.height - top), 'لا يصغر على اللوحي العمودي والجوال').toBeLessThanOrEqual(1);
+        }
         if (testInfo.project.name === 'desktop') {
             await expect(header.locator('[data-main-nav]')).toBeVisible();
         }
@@ -1276,7 +1280,8 @@ test.describe('acceptance v0.15.0: home', () => {
         await expectRtlNoScroll(page, '/');
     });
 
-    test('٢٤ وH6: the YouTube strip moves right and the books strip left, with the X card', async ({ page }) => {
+    // اتجاه البند ٢٤ عكسه توجيه المدير التنفيذي (3 نوفمبر 2026، البند ١٧ — director-home-2026-11-03.spec.mjs): يوتيوب يساراً والكتب يميناً
+    test('٢٤ وH6 و١٧: the YouTube strip moves left and the books strip right, with the X card', async ({ page }) => {
         await visit(page, '/');
         await revealAll(page);
         const videos = page.locator('[data-media-strip="videos"] .marquee-track');
@@ -1286,10 +1291,10 @@ test.describe('acceptance v0.15.0: home', () => {
         // الاتجاه يُطبَّق متى دخل الشريط الشاشة (data-inview)
         await videos.evaluate((el) => el.scrollIntoView({ block: 'center' }));
         await page.waitForTimeout(600);
-        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
+        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
         await books.evaluate((el) => el.scrollIntoView({ block: 'center' }));
         await page.waitForTimeout(600);
-        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
+        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
         await expect(page.locator('[data-x-card]')).toBeAttached();
         await expectRtlNoScroll(page, '/');
     });

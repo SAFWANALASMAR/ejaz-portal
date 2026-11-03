@@ -8,12 +8,16 @@ use App\Models\CompetitionSubmission;
 use App\Models\DailyVisit;
 use App\Models\Initiative;
 use App\Models\LibraryItem;
+use App\Models\MenuItem;
 use App\Models\NewsArticle;
+use App\Models\Page;
 use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\Icon;
+use Database\Seeders\AboutMenuAnchorsSeeder;
+use Database\Seeders\MenuSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -83,19 +87,22 @@ it('shows the five identity cards in order, with their inner carousels', functio
         ->and($first)->toContain('قيمة الاختبار')->toContain('مبادرة الاختبار');
 });
 
-it('runs the YouTube strip in the normal direction and the library strip under it in reverse, both full width', function () {
+// البند ١٧ من الإضافة (يحل محل البند ٤): يوتيوب من اليمين إلى اليسار، والمكتبة من اليسار إلى اليمين كـ«خدماتنا»
+// البندان ١٧ و٢٦ من الإضافة: كل شريط عكس الذي قبله — يوتيوب من اليمين إلى اليسار، والكتب من اليسار إلى اليمين، والأبحاث من اليمين إلى اليسار
+it('runs the YouTube, books and research strips in alternating directions, each full width', function () {
     directorHomeContent();
+    LibraryItem::factory()->count(2)->create(['section' => LibrarySection::Research]);
 
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
-    preg_match('/<div ([^>]*data-media-strip="videos"[^>]*)>/', $strips, $videos);
-    preg_match('/<div ([^>]*data-media-strip="books"[^>]*)>/', $strips, $books);
+    $wrap = fn (string $kind): string => preg_match('/<div ([^>]*data-media-strip="'.$kind.'"[^>]*)>/', $strips, $match) === 1 ? $match[1] : '';
 
-    // شريط يوتيوب بحركة marquee-x (نحو اليمين)، وشريط المكتبة معكوسها (نحو اليسار — concept.css)، ويوتيوب أولاً ثم المكتبة ثم X
-    expect($videos[1] ?? null)->toContain('media-marquee')->not->toContain('media-marquee-reverse')
-        ->and($books[1] ?? null)->toContain('media-marquee-reverse')
+    expect($wrap('videos'))->toContain('media-marquee-flip')
+        ->and($wrap('books'))->toContain('media-marquee-books')->not->toContain('media-marquee-flip')
+        ->and($wrap('research'))->toContain('media-marquee-books')->toContain('media-marquee-flip')
         ->and(strpos($strips, 'data-media-strip="videos"'))->toBeLessThan(strpos($strips, 'data-media-strip="books"'))
-        ->and(strpos($strips, 'data-media-strip="books"'))->toBeLessThan(strpos($strips, 'data-x-card'))
-        ->and(substr_count($strips, 'data-marquee data-direction="horizontal" data-loop'))->toBe(2);
+        ->and(strpos($strips, 'data-media-strip="books"'))->toBeLessThan(strpos($strips, 'data-media-strip="research"'))
+        ->and(strpos($strips, 'data-media-strip="research"'))->toBeLessThan(strpos($strips, 'data-x-card'))
+        ->and(substr_count($strips, 'data-marquee data-direction="horizontal" data-loop'))->toBe(3);
 });
 
 it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the library cards at their real zero', function () {
@@ -160,13 +167,12 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
         ->and($x->query('.//img[@data-brand-mark]', $row)->item(0)->getAttribute('src'))->toBe(HomeContent::brand('mark_white'))
         ->and($x->query('.//img[@data-logo-calligraphy]', $row)->item(0)->getAttribute('src'))->toBe(HomeContent::brand('calligraphy_white'));
 
-    // البند ١٢: المخطوطة في الوسط والرمز بجانبها (justify-self: end في عموده) والأزرار مزاحة عن الحافة بهامش ثابت، لا بتوزيع الفراغات
-    // المتساوية (#154) ولا «الكتلة اليمنى» (display: contents في صف مرن)
+    // البند ١٤ (أُلغي التوسيط في البند ١٢): الكتلة يميناً والأزرار يساراً بهامش ثابت، لا بتوزيع الفراغات المتساوية (#154)
     $css = (string) file_get_contents(resource_path('css/concept.css'));
     expect(preg_match('/\.header-top\s*\{[^}]*space-between/', $css))->toBe(0)
-        ->and(preg_match('/\.header-top \.header-end\s*\{\s*display: contents/', $css))->toBe(0)
-        ->and(preg_match('/\.header-top \.header-mark\s*\{\s*justify-self: end;/', $css))->toBe(1)
-        ->and(preg_match('/\.header-top \.header-actions\s*\{\s*margin-inline-end: 1\.75rem;/', $css))->toBe(1);
+        ->and(preg_match('/\.header-top \.header-end\s*\{\s*display: contents/', $css))->toBe(1)
+        ->and(preg_match('/\.header-top \.header-actions\s*\{\s*margin-inline: auto 1\.75rem;/', $css))->toBe(1)
+        ->and(preg_match('/\.header-top \.header-mark\s*\{\s*margin-inline-start: 1\.75rem;/', $css))->toBe(1);
 });
 
 // البند ١٣ من إضافة التوجيه: «المساعد الذكي» في الصف الأول بجانب البحث والدخول، يفتح المساعد القائم، ويختفي بإطفائه
@@ -217,7 +223,8 @@ it('never hides the menu row behind the menu button on desktop and the landscape
     expect(preg_match('/\[data-nav-overflow\] \.nav-capsule\s*\{[^}]*font-size/', (string) file_get_contents(resource_path('css/concept.css'))))->toBe(1);
 });
 
-it('titles the library strip «الكتب والأبحاث والدراسات», shows published research with the same book icon as books', function () {
+// البند ٢٦ من الإضافة (ويعدّل البند ٦): شريط الكتب للكتب وحدها، وتحته شريط «الأبحاث والدراسات» ببطاقة الكتاب نفسها، ويختفي بلا أبحاث
+it('splits the books and research strips, the research card a copy of the book card with the same icon', function () {
     LibraryItem::factory()->create(['title' => 'كتاب الشريط', 'section' => LibrarySection::Books]);
     LibraryItem::factory()->create(['title' => 'بحث الشريط', 'section' => LibrarySection::Research]);
     LibraryItem::factory()->unpublished()->create(['title' => 'بحث غير منشور', 'section' => LibrarySection::Research]);
@@ -225,14 +232,19 @@ it('titles the library strip «الكتب والأبحاث والدراسات»,
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
     // المجموعة الظاهرة وحدها (الشريط القليل يتكرر في نسخ مخفية)
     $books = (string) str($strips)->after('data-media-strip="books"')->before('data-marquee-copy');
-    preg_match_all('/data-thumb-placeholder aria-hidden="true">\s*(<svg.*?<\/svg>)/s', $books, $icons);
+    $research = (string) str($strips)->after('data-media-strip="research"')->before('data-marquee-copy');
+    $icon = fn (string $html): string => preg_match('/data-thumb-placeholder aria-hidden="true">\s*(<svg.*?<\/svg>)/s', $html, $match) === 1 ? $match[1] : '';
 
-    expect($strips)->toContain(__('home.sections_final.headings.books'))
-        ->and(__('home.sections_final.headings.books'))->toBe('من مكتبة إعجاز: الكتب والأبحاث والدراسات')
-        ->and($books)->toContain('بحث الشريط')->toContain('كتاب الشريط')->not->toContain('بحث غير منشور')
-        ->and(count($icons[1]))->toBe(2)
-        ->and(array_unique($icons[1]))->toHaveCount(1)
-        ->and($icons[1][0])->toBe(Icon::svg(LibrarySection::Books->icon(), 'size-10')->toHtml());
+    expect($strips)->toContain(__('home.sections_final.headings.books'))->toContain(__('home.sections_final.headings.research'))
+        ->and(__('home.sections_final.headings.research'))->toBe('من مكتبة إعجاز: الأبحاث والدراسات')
+        ->and($books)->toContain('كتاب الشريط')->not->toContain('بحث الشريط')
+        ->and($research)->toContain('بحث الشريط')->not->toContain('بحث غير منشور')->toContain('media-tile-book')
+        ->and($icon($research))->toBe($icon($books))
+        ->and($icon($books))->toBe(Icon::svg(LibrarySection::Books->icon(), 'size-10')->toHtml());
+
+    LibraryItem::query()->where('section', LibrarySection::Research)->delete();
+    ContentCache::flush();
+    $this->get('/')->assertOk()->assertDontSee('data-media-strip="research"', false);
 });
 
 it('adds two demo research items marked «تجريبي» when none is published, and nothing when one is', function () {
@@ -259,4 +271,191 @@ it('refuses to add the demo research outside the local environment', function ()
     $this->artisan('ejaz:demo-research')->assertFailed();
 
     expect(LibraryItem::query()->where('section', LibrarySection::Research)->count())->toBe(0);
+});
+
+/*
+| إضافة التوجيه، البنود ١٥ إلى ٢٠ (3 نوفمبر 2026، 22:34 فما بعد).
+*/
+it('shows partner logos as images and a temporary named box for a partner without a logo (item 18)', function () {
+    Partner::factory()->create(['name' => 'شريك بشعار', 'logo' => 'partners/logo.png']);
+    Partner::factory()->create(['name' => 'شريك بلا شعار', 'logo' => null]);
+
+    $section = (string) str($this->get('/')->assertOk()->getContent())->after('aria-labelledby="home-partners"')->before('</section>');
+    $visible = (string) str($section)->before('data-marquee-copy');
+
+    expect($visible)->toContain('alt="شريك بشعار"')->toContain('data-partner-logo')
+        ->and($visible)->toMatch('/data-partner-placeholder>\s*شريك بلا شعار\s*</')
+        ->and(substr_count($visible, 'data-partner>') + substr_count($visible, 'data-partner '))->toBeGreaterThanOrEqual(2)
+        ->and($section)->toContain('data-marquee data-direction="horizontal" data-loop');
+});
+
+it('numbers the YouTube cards in solid white (item 19)', function () {
+    LibraryItem::factory()->video()->count(6)->create();
+
+    $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
+    preg_match('/<span data-video-number[^>]*class="([^"]*)"/', $strips, $number);
+
+    expect($number[1] ?? '')->toContain('text-white ')->not->toContain('text-white/');
+});
+
+// البندان ٢٢ و٢٣ من الإضافة: البطل «فاتح بصورة واحدة» بأربع شرائح بالترتيب، وشريحة خادم الحرمين وحدها بحلقة ذهبية وخضراء، وما لا
+// صورة معتمدة له مربع بعلامة «【ناقص】»، والبراهين خارج البطل
+it('shows the four light hero slides in order — the Mushaf, the Haram, the King, the chairman — without the Brahin slide', function () {
+    Competition::factory()->create(['student_mode' => true]);
+
+    $html = $this->get('/')->assertOk()->getContent();
+    $hero = (string) str($html)->after('data-hero-slider')->before('</section>');
+    preg_match_all('/data-hero-slide="(\w+)"/', $hero, $slides);
+
+    expect($slides[1])->toBe(['about', 'haram', 'king', 'chairman'])
+        ->and($hero)->toContain('hero-light')->toContain('data-interval="6000"')
+        ->and(substr_count($hero, 'class="hero-light-frame" data-hero-frame'))->toBe(4)
+        ->and($hero)->toContain(__('ui.hero.haram_title'))
+        // الحرم بلا صورة مرفوعة: مربع محايد بعلامته
+        ->and($hero)->toMatch('/data-hero-slide="haram".*?data-missing.*?data-hero-image-missing/s');
+
+    $css = (string) file_get_contents(resource_path('css/concept.css'));
+    expect($css)->toMatch("/\.hero-light \[data-hero-slide='king'\] \.hero-light-frame \{\s*box-shadow:\s*0 0 0 4px #c9a961,\s*0 0 0 10px rgb\(14 107 71/");
+});
+
+// البند ٢٧ من الإضافة (ويحل محل ذوبان الصورة في البند ١٥): رأس كل صفحة داخلية «فاتح بصورة واحدة» من المكوّن نفسه، بدرجة لكل قسم
+it('draws every inner page hero light with its own shade, dark text and the section image in a tilted white frame', function () {
+    foreach (['/contact', '/governance', '/library', '/media', '/services', '/programs', '/competitions', '/initiatives'] as $path) {
+        $html = (string) $this->get($path)->assertOk()->getContent();
+
+        expect($html)->toMatch('/data-page-hero class="page-hero-light" data-shade="[1-4]"/', $path)
+            ->and($html)->toContain('data-page-hero-visual')->toContain('data-page-hero-image')
+            ->and($html)->not->toContain('concept-hero-scrim');
+    }
+
+    $css = (string) file_get_contents(resource_path('css/concept.css'));
+    expect($css)->toMatch('/\.page-hero-frame \{[^}]*border: 8px solid var\(--color-white\);[^}]*transform: rotate\(-3deg\);/s')
+        ->toMatch('/\.page-hero-back \{[^}]*transform: translate\(-1\.6rem, 0\.75rem\) rotate\(5deg\);/s');
+});
+
+it('varies the home section backgrounds over three light tones (item 15)', function () {
+    directorHomeContent();
+    $html = $this->get('/')->assertOk()->getContent();
+    preg_match_all('/<section class="home-band"[^>]*data-band="(\d)"/', $html, $bands);
+
+    expect(array_unique($bands[1]))->toContain('3');
+    foreach (array_slice($bands[1], 1) as $index => $band) {
+        expect($band)->not->toBe($bands[1][$index]);
+    }
+
+    $css = (string) file_get_contents(resource_path('css/concept.css'));
+    expect($css)->toMatch("/\.home-band\[data-band='3'\] \{\s*background: linear-gradient\(180deg, color-mix\(in srgb, var\(--mid-from\)/");
+});
+
+it('puts «من نحن» in a soft light card with the vision and mission as quotations on the about page (item 20)', function () {
+    $page = Page::query()->where('slug', Page::ABOUT)->first() ?? Page::factory()->create(['slug' => Page::ABOUT]);
+    $page->forceFill(['is_published' => true, 'blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'من نحن', 'body' => '<p>تعريف الاختبار</p>']],
+        ['type' => 'text', 'data' => ['heading' => __('ui.identity.vision'), 'body' => '<p>رؤية الاختبار</p>']],
+        ['type' => 'text', 'data' => ['heading' => __('ui.identity.mission'), 'body' => '<p>رسالة الاختبار</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الأهداف', 'body' => '<p>هدف الاختبار</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'القيم', 'body' => '<p>قيمة الاختبار</p>']],
+    ]])->save();
+    ContentCache::flush();
+
+    $html = $this->get(route('about'))->assertOk()->getContent();
+    $intro = (string) str($html)->after('data-about-intro')->before('</section>');
+
+    expect($intro)->toMatch('/class="tone-card about-who[^"]*" data-tone="soft" data-about-who/')
+        ->and($intro)->toContain('تعريف الاختبار')
+        ->and($intro)->toMatch('/data-about-quote="vision"\s+id="about-vision"/')->toContain('رؤية الاختبار')
+        ->and($intro)->toMatch('/data-about-quote="mission"\s+id="about-mission"/')->toContain('رسالة الاختبار')
+        // «من نحن» أولاً في الشيفرة، فهو يمين الحاسوب وأول الجوال، ثم الاقتباسان
+        ->and(strpos($intro, 'data-about-who'))->toBeLessThan(strpos($intro, 'data-about-quotes'))
+        ->and($intro)->not->toContain('هدف الاختبار');
+
+    // بقية المقاطع بطاقات ناعمة كما كانت، ولا تتكرر الرؤية والرسالة
+    expect(substr_count($html, 'رؤية الاختبار'))->toBe(1)
+        ->and($html)->toContain('data-tone="soft" data-stack-card')->toContain('هدف الاختبار');
+});
+
+/*
+| البند ٢٨ من الإضافة: القائمة المنسدلة «عن الجمعية» بخمس مراسٍ بالترتيب، من بذرة لا تمس ما عدّله المحرر.
+*/
+it('adds the five «عن الجمعية» anchors in order after the parent page, once, keeping what the admin edited (item 28)', function () {
+    (new MenuSeeder)->run();
+    $about = MenuItem::query()->whereNull('parent_id')->where('url', '/about')->firstOrFail();
+    MenuItem::query()->where('parent_id', $about->id)->where('label', 'شهادة ترخيص الجمعية')->update(['label' => 'شهادة الترخيص من المحرر']);
+
+    (new AboutMenuAnchorsSeeder)->run();
+    (new AboutMenuAnchorsSeeder)->run();
+
+    $children = MenuItem::query()->where('parent_id', $about->id)->orderBy('sort')->orderBy('id')->get(['label', 'url']);
+    $anchors = $children->filter(fn (MenuItem $item): bool => str_contains((string) $item->url, '#'))->values();
+
+    expect($anchors->map(fn (MenuItem $item): array => [$item->label, $item->url])->all())->toBe(AboutMenuAnchorsSeeder::ITEMS)
+        // قبل العناصر القائمة في ترتيبها (والصفحة الأم أول القائمة المنسدلة)، ولا تكرار، وما عدّله المحرر باقٍ
+        ->and($children->pluck('url')->slice(0, 5)->values()->all())->toBe(array_column(AboutMenuAnchorsSeeder::ITEMS, 1))
+        ->and($children->where('label', 'شهادة الترخيص من المحرر'))->toHaveCount(1)
+        ->and($children->where('label', 'التوجه الاستراتيجي'))->toHaveCount(1);
+
+    // والقائمة في الرأس بالترتيب نفسه، على الحاسوب وفي قائمة الجوال (وروابط صفحة غير منشورة لا تظهر في القائمة)
+    Page::query()->where('slug', Page::ABOUT)->exists() || Page::factory()->create(['slug' => Page::ABOUT]);
+    ContentCache::flush();
+    $html = $this->get('/')->assertOk()->getContent();
+    $desktop = (string) str($html)->after('data-main-nav')->before('id="mobile-menu"');
+    $mobile = (string) str($html)->after('id="mobile-menu"');
+    foreach ([$desktop, $mobile] as $menu) {
+        $positions = array_map(fn (array $item): int|false => strpos($menu, ltrim($item[1], '/').'"'), AboutMenuAnchorsSeeder::ITEMS);
+        expect($positions)->not->toContain(false);
+        $sorted = $positions;
+        sort($sorted);
+        expect($positions)->toBe($sorted);
+    }
+});
+
+it('leaves a strategic direction item the admin pointed elsewhere, adding the anchor beside it (item 28)', function () {
+    $about = MenuItem::factory()->create(['label' => 'عن الجمعية', 'url' => '/about', 'parent_id' => null]);
+    $edited = MenuItem::factory()->create(['parent_id' => $about->id, 'label' => 'التوجه الاستراتيجي', 'url' => '/governance', 'sort' => 4]);
+
+    (new AboutMenuAnchorsSeeder)->run();
+
+    expect($edited->fresh()->only(['label', 'url', 'sort']))->toBe(['label' => 'التوجه الاستراتيجي', 'url' => '/governance', 'sort' => 4])
+        ->and(MenuItem::query()->where('parent_id', $about->id)->where('url', '/about#about-strategy')->count())->toBe(1);
+});
+
+it('gives each «عن الجمعية» anchor an existing id on the about page, with the strategic direction marked missing (item 28)', function () {
+    $page = Page::query()->where('slug', Page::ABOUT)->first() ?? Page::factory()->create(['slug' => Page::ABOUT]);
+    $page->forceFill(['is_published' => true, 'blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'من نحن', 'body' => '<p>تعريف</p>']],
+        ['type' => 'text', 'data' => ['heading' => __('ui.identity.vision'), 'body' => '<p>رؤية</p>']],
+        ['type' => 'text', 'data' => ['heading' => __('ui.identity.mission'), 'body' => '<p>رسالة</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الأهداف', 'body' => '<p>هدف</p>']],
+        ['type' => 'text', 'data' => ['heading' => __('ui.about_anchors.values'), 'body' => '<p>قيمة</p>']],
+    ]])->save();
+    ContentCache::flush();
+
+    $html = $this->get(route('about'))->assertOk()->getContent();
+
+    foreach (AboutMenuAnchorsSeeder::ITEMS as [, $url]) {
+        expect($html)->toMatch('/\sid="'.preg_quote((string) parse_url($url, PHP_URL_FRAGMENT), '/').'"/');
+    }
+    expect($html)->toContain(__('content.about.strategy_heading'))->toContain(__('content.about.strategy_missing'));
+});
+
+/*
+| البند ٣٠ من الإضافة: رأس «تواصل معنا» بفقرتي صفوان المعتمدتين بنصهما، ولا رقم ترخيص تحت «تواصل عبر الواتساب».
+*/
+it('shows the two approved paragraphs in the contact hero, and no licence number under the WhatsApp block (item 30)', function () {
+    Setting::put('contact', ['whatsapp' => '966550556758']);
+
+    $html = (string) $this->get('/contact')->assertOk()->getContent();
+    $hero = (string) str($html)->after('data-page-hero')->before('</section>');
+    preg_match_all('/<p class="page-hero-light-summary[^"]*" data-hero-summary>(.*?)<\/p>/s', $hero, $paragraphs);
+
+    expect(array_map('trim', $paragraphs[1]))->toBe([
+        'نرحب بتواصلكم مع جمعية إعجاز للدراسات والبحوث العلمية، ويسعدنا استقبال استفساراتكم، ومقترحاتكم، ومبادرات التعاون والشراكات العلمية والتعليمية.',
+        'يسعد جمعية إعجاز للدراسات والبحوث العلمية تلقي استفساراتكم واقتراحاتكم حول برامجها ومبادراتها وخدماتها، وتصل إلى الفريق المختص عبر نموذج «الاستفسارات والاقتراحات» في صفحة التواصل، ليتابعها ويرد عليها.',
+    ])
+        ->and($hero)->not->toContain('【');
+
+    $aside = (string) str($html)->after('data-whatsapp')->before('</aside>');
+    expect($html)->toContain('data-whatsapp')
+        ->and($aside)->not->toContain('1000723700')
+        ->and((string) str($html)->after('data-header-licence')->before('</p>'))->toContain('1000723700');
 });

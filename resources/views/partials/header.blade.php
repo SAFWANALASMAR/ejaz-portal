@@ -1,10 +1,11 @@
 {{--
     رأس الموقع صفّان، وكله ثابت عند التمرير (sticky top:0) بالارتفاع والمقاسات نفسها، ومنفصل عن البطل بتدرج أغمق وحد سفلي #8EC5F0
     وظل (أمر التصور النهائي، النسخة 63 — R2 وR3 وG6، وترتيب صفوان في 2 نوفمبر 2026: docs/decisions/2026-11-02-header-final.md):
-    - الصف الأول ثلاثة أعمدة والمخطوطة في منتصفه تماماً، والرمز بجانبها يميناً، ومربع الترخيص بسطريه (من «محتوى الرئيسية») بجانبها
-      يساراً، ثم «المساعد الذكي» والبحث و«تسجيل الدخول» (أو «حسابي») في النهاية. ومن 1240 تصحيح المدير التنفيذي (3 نوفمبر 2026، البند
-      ١٢ — docs/decisions/2026-11-03-director-home.md، ويحل محل الفراغات المتساوية في طلب الدمج 154 ومحل «الكتلة اليمنى»): الرمز
-      والمخطوطة والمربع كتلة واحدة في الوسط بفاصلين صغيرين، والأزرار مزاحة قليلاً عن الحافة. ولا سطر إشراف.
+    - الصف الأول: رمز الشعار في البداية، ثم المخطوطة، ثم مربع الترخيص بسطريه (من «محتوى الرئيسية»)، ثم «المساعد الذكي» والبحث
+      و«تسجيل الدخول» (أو «حسابي») في النهاية. ودون 1240 ثلاثة أعمدة والمخطوطة في منتصف الشريط. ومن 1240 ترتيب المدير التنفيذي
+      المعتمد (3 نوفمبر 2026، البند ١٤ — docs/decisions/2026-11-03-director-home.md، وأُلغي التوسيط في البند ١٢، ويحل محل الفراغات
+      المتساوية في طلب الدمج 154): الرمز والمخطوطة الممدودة والمربع كتلة واحدة في البداية بفراغات صغيرة، والأزرار في النهاية، والطرفان
+      مزاحان قليلاً نحو الداخل، وما بينهما فارغ. ولا سطر إشراف.
     - الصف الثاني: أفتح قليلاً وبينهما فاصل #8EC5F0، فيه عناصر القائمة كبسولات بأيقونة صغيرة بجانب الكلمة (القائمة «ج»)،
       والنشط بحد #8EC5F0 وخلفية أفتح. والقائمة تُدار من اللوحة، وعناصرها السبعة من MainMenuSevenSeeder.
     - اللوحي العمودي: الترتيب نفسه بلا مربع الترخيص وبزر ☰ في أقصى النهاية. والجوال: الرمز والمخطوطة متجاوران في البداية وزر ☰ في النهاية.
@@ -18,7 +19,7 @@
 @endphp
 
 <header data-site-header class="site-header sticky top-0 z-40 text-white">
-    {{-- الصف الأول بعرض الشاشة كله: المخطوطة في منتصف الشاشة، والرمز والمربع بجانبيها، والأزرار في النهاية (concept.css — .header-top) --}}
+    {{-- الصف الأول بعرض الشاشة كله: دون 1240 المخطوطة في منتصف الشاشة، ومن 1240 الرمز والمخطوطة والمربع كتلة في البداية والأزرار في النهاية (concept.css — .header-top) --}}
     <div class="header-top">
         {{-- الاسم المقروء في المخطوطة، فرابط الرمز خارج ترتيب لوحة المفاتيح وقارئ الشاشة: رابطان إلى الرئيسية لا يتكرران --}}
         <a href="{{ route('home') }}" wire:navigate class="header-mark" tabindex="-1" aria-hidden="true" aria-label="{{ __('site.name') }}">
@@ -41,11 +42,12 @@
 
             <div class="header-actions">
                 {{-- «المساعد الذكي» (البند ١٣ من إضافة توجيه المدير): يفتح المساعد القائم (partials/assistant — resources/js/assistant.js)، ويعمل
-                     دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان --}}
-                @if (\App\Models\AssistantSettings::current()->is_enabled)
+                     دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
+                     ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰ --}}
+                @if ($assistantOn = \App\Models\AssistantSettings::current()->is_enabled)
                     <button type="button" data-assistant-toggle data-header-assistant aria-controls="assistant-panel" aria-expanded="false"
                         class="header-icon-button hidden lg:inline-flex" aria-label="{{ __('assistant.header.open') }}" title="{{ __('assistant.header.open') }}">
-                        {{ \App\Support\Icon::svg('sparkles', 'size-[19px]', ['aria-hidden' => 'true']) }}
+                        <x-icon-tile icon="sparkles" size="xs" />
                     </button>
                 @endif
 
@@ -149,6 +151,14 @@
                     </li>
                 @endforeach
             </ul>
+
+            {{-- «المساعد الذكي» للجوال واللوحي العمودي داخل القائمة (البند ١٣ من إضافة توجيه المدير) --}}
+            @if ($assistantOn)
+                <button type="button" data-assistant-toggle data-menu-assistant aria-controls="assistant-panel" aria-expanded="false"
+                    class="mobile-nav-link mt-1 flex w-full items-center gap-2.5">
+                    <x-icon-tile icon="sparkles" size="xs" />{{ __('assistant.header.open') }}
+                </button>
+            @endif
 
             <div class="mt-3 border-t border-white/10 pt-3 sm:hidden">
                 @auth

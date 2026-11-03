@@ -66,20 +66,16 @@ for (const width of WIDTHS) {
         expect(top.dir).toBe('rtl');
         expect(top.noHorizontalScroll).toBe(true);
 
-        if (width >= 1240) {
-            // من 1240 (تصحيح المدير التنفيذي، 3 نوفمبر 2026، البند ١٢ — director-home-2026-11-03.spec.mjs، ويحل محل الفراغات المتساوية
-            // في #154 ومحل «الكتلة اليمنى»): المخطوطة في منتصف الشاشة، والرمز بجانبها يميناً بفاصل صغير لا في أقصى اليمين
-            expect(Math.abs((top.calligraphy.left + top.calligraphy.right) / 2 - vw / 2)).toBeLessThanOrEqual(3);
-            expect(top.mark.left - top.calligraphy.right).toBeGreaterThanOrEqual(4);
-            expect(top.mark.left - top.calligraphy.right).toBeLessThanOrEqual(16);
-        } else {
-            // الرمز في أقصى اليمين بهامش صغير
-            expect(vw - top.mark.right).toBeLessThanOrEqual(24);
-            expect(vw - top.mark.right).toBeGreaterThanOrEqual(8);
-        }
+        // الرمز في أقصى اليمين بهامش صغير، ومن 1240 مزاح قليلاً نحو الداخل (توجيه المدير التنفيذي، 3 نوفمبر 2026 —
+        // director-home-2026-11-03.spec.mjs)
+        const inset = width >= 1240 ? [36, 80] : [8, 24];
+        expect(vw - top.mark.right).toBeLessThanOrEqual(inset[1]);
+        expect(vw - top.mark.right).toBeGreaterThanOrEqual(inset[0]);
 
         if (width >= 1240) {
-            // سبق في الشرط أعلاه
+            // من 1240 لا تُشترط في منتصف الشاشة: الرمز والمخطوطة والمربع كتلة يميناً (توجيه المدير، ويحل محل الفراغات المتساوية في #154)
+            expect(top.mark.left - top.calligraphy.right).toBeGreaterThanOrEqual(8);
+            expect(top.mark.left - top.calligraphy.right).toBeLessThanOrEqual(24);
         } else if (width >= 800) {
             // المخطوطة في منتصف الشاشة
             expect(Math.abs((top.calligraphy.left + top.calligraphy.right) / 2 - vw / 2)).toBeLessThanOrEqual(3);
@@ -123,14 +119,19 @@ for (const width of WIDTHS) {
         await page.waitForTimeout(500);
         const scrolled = await layout(page);
 
-        // الصفّان معاً ثابتان في أعلى الشاشة، بالمقاسات نفسها
+        // الصفّان معاً ثابتان في أعلى الشاشة. ومن 1024 يصغر الرأس عند التمرير والصف الثاني ظاهر (إضافة توجيه المدير، 3 نوفمبر 2026،
+        // البند ٣١ — director-home-2026-11-03.spec.mjs)، وما دونه بالمقاسات نفسها
         expect(Math.round(scrolled.header.top)).toBe(0);
         expect(Math.round(scrolled.top.top)).toBe(0);
-        if (scrolled.nav) {
-            expect(Math.abs(scrolled.nav.top - top.nav.top)).toBeLessThan(0.5);
+        if (width >= 1024) {
+            expect(scrolled.calligraphy.height).toBeLessThan(top.calligraphy.height);
+            expect(scrolled.mark.height).toBeLessThan(top.mark.height);
+            expect(scrolled.nav).not.toBeNull();
+            expect(scrolled.capsules).toBe(top.capsules);
+        } else {
+            expectSameSizes(top, scrolled);
+            expect(Math.abs(scrolled.calligraphy.left - top.calligraphy.left)).toBeLessThan(0.5);
         }
-        expectSameSizes(top, scrolled);
-        expect(Math.abs(scrolled.calligraphy.left - top.calligraphy.left)).toBeLessThan(0.5);
         expect(scrolled.noHorizontalScroll).toBe(true);
 
         await page.screenshot({ path: `${SHOTS}/${width}-scrolled.png`, clip: { x: 0, y: 0, width, height: Math.ceil(scrolled.header.bottom) + 120 } });

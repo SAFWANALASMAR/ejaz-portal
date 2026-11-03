@@ -19,7 +19,8 @@ use Livewire\Livewire;
 
 function heroImageOf(string $html): string
 {
-    preg_match('/<div class="concept-hero-media">\s*<img src="([^"]+)"/', $html, $match);
+    // رأس «فاتح بصورة واحدة» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٧): الصورة في إطارها المائل
+    preg_match('/<span class="page-hero-frame">\s*<img src="([^"]+)"/', $html, $match);
 
     return $match[1] ?? '';
 }

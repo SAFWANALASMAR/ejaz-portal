@@ -10,6 +10,7 @@ use App\Models\NewsArticle;
 use App\Models\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\Storage;
 final class HomeShowcase
 {
     /**
-     * شرائح البطل بالترتيب المعتمد (أمر التصور النهائي، النسخة 63 — البند H1): تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس
+     * شرائح البطل الأربع (إضافة توجيه المدير، 3 نوفمبر 2026، البندان ٢٢ و٢٣ — يحل محل ما يلي): المصحف، والحرم، وخادم الحرمين،
+     * ورئيس مجلس الإدارة. وكان: (أمر التصور النهائي، النسخة 63 — البند H1): تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس
      * الجمعية، ثم مسابقة البراهين (متى نُشرت)، ثم مكتبة إعجاز. والنصوص من «إعدادات الموقع» و«محتوى الرئيسية» وبيانات المسابقة،
      * فلا نص جديد. وصورة كل شريحة من «محتوى الرئيسية» (شرائح البطل)، وإلا: صورة البطل من الإعدادات ثم أحدث ألبوم منشور للأولى،
      * وصورتا المقطعين للثانية والثالثة، والرسم المؤقت المحايد لما سواها. والأولى بنسختي WebP (HeroImage) لسرعة أول عرض.
@@ -27,7 +29,7 @@ final class HomeShowcase
      * @param  array<string, mixed>  $home  Setting::group('home')
      * @param  array<string, mixed>  $content  HomeContent::resolved()
      * @param  array{title: string, text: string, button: array{label: string, url: string}|null}  $hero
-     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, portrait?: bool}>
+     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, missing: bool}>
      */
     public static function slides(array $home, array $content, array $hero): array
     {
@@ -50,40 +52,32 @@ final class HomeShowcase
             $aboutImage = HeroImage::sources($photo);
         }
 
-        $slides = [[
-            'key' => 'about', ...$image('about', $aboutImage, $aboutAlt),
+        // الشرائح الأربع بالترتيب (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البندان ٢٢ و٢٣): المصحف الشريف وتعريف الجمعية، ثم الحرم
+        // المكي، ثم خادم الحرمين الشريفين، ثم رئيس مجلس الإدارة. والصور من «محتوى الرئيسية» (شرائح البطل) أو صورتي الكلمتين، وما لا
+        // صورة معتمدة له مربع محايد بعلامة «【ناقص】» (missing). ومسابقة البراهين خرجت من البطل إلى الإعلانات
+        $about = $image('about', $aboutImage, $aboutAlt);
+        $haram = $image('haram', null, (string) __('ui.hero.haram_title'));
+        $chairmanUrl = Route::has('about') && Page::isPublishedSlug(Page::ABOUT) ? route('about').'#about-chairman' : null;
+
+        return [[
+            'key' => 'about', ...$about, 'missing' => HomeContent::heroSlideImage('about') === null && $aboutImage === null,
             'title' => $rest !== '' ? $short : $title, 'subtitle' => $rest !== '' ? $rest : null, 'text' => $hero['text'], 'button' => $hero['button'],
         ], [
+            'key' => 'haram', ...$haram, 'missing' => HomeContent::heroSlideImage('haram') === null,
+            'title' => (string) __('ui.hero.haram_title'), 'subtitle' => null,
+            'text' => MissingText::shown('【'.__('site.missing').': '.__('ui.hero.haram_text_missing').'】'), 'button' => null,
+        ], [
             'key' => 'king', ...$image('king', ['src' => (string) $content['king']['image'], 'srcset' => null], (string) $content['king']['image_alt']),
+            'missing' => false,
             'title' => (string) $content['king']['signature_title'], 'subtitle' => (string) $content['king']['signature_name'],
             'text' => (string) $content['king']['text'], 'button' => null,
-            // صورة المقطع الطولية في إطار بجانب النص، لا ممدودة بعرض البطل (ملاحظة صفوان، 1 نوفمبر 2026)، ما لم تُرفع صورة عريضة للشريحة
-            'portrait' => HomeContent::heroSlideImage('king') === null,
         ], [
             'key' => 'chairman', ...$image('chairman', ['src' => (string) $content['chairman']['image'], 'srcset' => null], (string) $content['chairman']['image_alt']),
+            'missing' => false,
             'title' => (string) $content['chairman']['name'], 'subtitle' => (string) $content['chairman']['title'],
-            'text' => HomeContent::paragraphs((string) $content['chairman']['excerpt'])[1] ?? null, 'button' => null,
-            'portrait' => HomeContent::heroSlideImage('chairman') === null,
+            'text' => HomeContent::paragraphs((string) $content['chairman']['excerpt'])[1] ?? null,
+            'button' => $chairmanUrl !== null ? ['label' => (string) __('ui.hero.chairman_read'), 'url' => $chairmanUrl] : null,
         ]];
-
-        $competition = self::studentCompetition();
-
-        if ($competition !== null) {
-            $url = route('competitions.show', $competition->slug);
-            $slides[] = [
-                'key' => 'brahin', ...$image('brahin', null, $competition->title),
-                'title' => $competition->title, 'subtitle' => $competition->pageText('season'), 'text' => null,
-                'button' => ['label' => (string) __('ui.prize.cta'), 'url' => $url],
-            ];
-        }
-
-        $slides[] = [
-            'key' => 'library', ...$image('library', null, (string) __('library.title')),
-            'title' => (string) __('library.title'), 'subtitle' => null, 'text' => null,
-            'button' => ['label' => (string) __('ui.hero.library'), 'url' => route('library.index')],
-        ];
-
-        return $slides;
     }
 
     /**

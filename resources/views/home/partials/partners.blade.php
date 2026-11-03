@@ -18,8 +18,21 @@
         </div>
 
         <x-marquee id="home-partners-track" :label="$title" :duration="max(25, $logos->count() * 5) * $repeat" :repeat="$repeat">
+            {{-- الشعارات صوراً، والشريك بلا شعار مربع مؤقت باسمه بالحجم نفسه (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١٨). والرابط يُفحص
+                 عند العرض كبطاقة الشريك (media.partner)، ويفتح خارجياً بلا صلة بالصفحة --}}
             @foreach ($logos as $partner)
-                <div class="partner-logo">@include('media.partner', ['partner' => $partner])</div>
+                @php($url = \App\Rules\SafeUrl::isSafe($partner->url, allowInternal: false) ? $partner->url : null)
+                <{{ $url !== null ? 'a' : 'div' }} @if ($url !== null) href="{{ $url }}" target="_blank" rel="noopener noreferrer" @endif
+                    class="partner-logo partner-strip-item card-lift" data-partner>
+                    @if ($partner->logo)
+                        <img src="{{ Storage::disk('public')->url($partner->logo) }}" alt="{{ $partner->name }}" width="192" height="80" loading="lazy" class="h-20 w-full object-contain" data-partner-logo>
+                    @else
+                        <span class="partner-placeholder" data-partner-placeholder>{{ $partner->name }}</span>
+                    @endif
+                    @if ($url !== null)
+                        <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
+                    @endif
+                </{{ $url !== null ? 'a' : 'div' }}>
             @endforeach
         </x-marquee>
     </div>

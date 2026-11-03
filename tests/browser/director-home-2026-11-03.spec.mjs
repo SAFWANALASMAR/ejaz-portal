@@ -58,9 +58,9 @@ async function headerShot(page, width, name) {
 
 // ── ١. الرأس ──
 for (const width of [1280, 1366, 1440, 1920]) {
-    // البند ١٢ من الإضافة (يحل محل «الكتلة اليمنى» والفراغات المتساوية): المخطوطة في منتصف الصف، والرمز بجانبها يميناً والمربع
-    // بجانبها يساراً بفاصلين صغيرين، و«المساعد الذكي» والبحث والدخول يساراً مزاحة قليلاً عن الحافة
-    test(`header at ${width}px: the calligraphy in the centre with the mark and the licence beside it, the buttons inset from the left`, async ({ page }, info) => {
+    // البند ١٤ من الإضافة (أُلغي التوسيط في البند ١٢، واعتُمدت «الكتلة اليمنى»): الرمز والمخطوطة الممدودة ومربع الترخيص كتلة يميناً
+    // مزاحة قليلاً عن الحافة، و«المساعد الذكي» والبحث والدخول يساراً مزاحة كذلك، وما بينهما فارغ
+    test(`header at ${width}px: the mark, calligraphy and licence are one block inset from the right, the assistant, search and login inset from the left`, async ({ page }, info) => {
         test.skip(info.project.name !== 'desktop', 'العروض في الاختبار نفسه');
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
@@ -69,15 +69,17 @@ for (const width of [1280, 1366, 1440, 1920]) {
         console.log(`header ${width}px:`, JSON.stringify({ ...layout, boxes: undefined, assistant: undefined }));
 
         expect(layout.noHorizontalScroll).toBe(true);
-        // المخطوطة في منتصف الصف (3 بكسل فأقل)
-        expect(Math.abs(layout.calligraphyOffCentre), 'المخطوطة في المنتصف').toBeLessThanOrEqual(3);
-        // الرمز بجانبها يميناً، والمربع بجانبها يساراً، بفاصلين صغيرين، وبمحاذاتها عمودياً
-        expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(4);
-        expect(layout.markToCalligraphy).toBeLessThanOrEqual(16);
+        // الرمز مزاح قليلاً عن أقصى اليمين (كان 20 بكسل)
+        expect(layout.markFromEdge).toBeGreaterThanOrEqual(36);
+        expect(layout.markFromEdge).toBeLessThanOrEqual(80);
+        // المخطوطة بعده مباشرة: فراغ صغير غير ملاصق
+        expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(8);
+        expect(layout.markToCalligraphy).toBeLessThanOrEqual(24);
+        // مربع الترخيص قريب جداً من المخطوطة، وبمحاذاتها عمودياً
         expect(layout.calligraphyToLicence).toBeGreaterThanOrEqual(4);
         expect(layout.calligraphyToLicence).toBeLessThanOrEqual(16);
         expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
-        // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه، و«المساعد الذكي» بجانب البحث، ولا تراكب مع المربع
+        // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه، و«المساعد الذكي» بجانب البحث
         expect(layout.loginFromEdge).toBeGreaterThanOrEqual(36);
         expect(layout.loginFromEdge).toBeLessThanOrEqual(80);
         const { search, login } = layout.boxes;
@@ -86,9 +88,11 @@ for (const width of [1280, 1366, 1440, 1920]) {
         expect(layout.assistant, '«المساعد الذكي» ظاهر').not.toBeNull();
         expect(layout.assistant.left - search.right).toBeGreaterThanOrEqual(0);
         expect(layout.assistant.left - search.right).toBeLessThanOrEqual(16);
-        expect(layout.licenceToActions).toBeGreaterThanOrEqual(0);
-        // المخطوطة بأكبر ما يتسع بين الطرفين، ولا تقل عن 40 بكسل
-        expect(layout.calligraphyHeight).toBeGreaterThanOrEqual(40);
+        // والمنطقة قبل الأزرار فارغة، أوسع من كل فراغ داخل الكتلة، والصف لا ينكسر
+        expect(layout.licenceToActions).toBeGreaterThanOrEqual(20);
+        expect(layout.licenceToActions).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence));
+        // المخطوطة ممدودة بأكبر ما يتسع (البندان ٤ و١٤): نحو حجمها بعد #154 على 1280 مع زر المساعد، وأكبر منه على العريض
+        expect(layout.calligraphyHeight).toBeGreaterThan({ 1280: 90, 1366: 103, 1440: 108, 1920: 116 }[width]);
         expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
         await headerShot(page, width, `header-${width}`);
@@ -251,24 +255,36 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
         await expect(page.locator('#home-cards-track [data-marquee-copy]')).toBeHidden();
     }
 
-    // اتجاه الشريطين الفعلي: موضع أول بطاقة على الشاشة قبل ثانيتين وبعدهما
-    await page.locator('[data-home-strips]').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    const position = () => page.evaluate(() => ['videos', 'books'].map((kind) => document.querySelector(`[data-media-strip="${kind}"] .marquee-track`).getBoundingClientRect().left));
-    const [videosBefore, booksBefore] = await position();
-    await page.waitForTimeout(2000);
-    const [videosAfter, booksAfter] = await position();
-    console.log(`strips ${width}px: videos ${videosBefore} -> ${videosAfter}, books ${booksBefore} -> ${booksAfter}`);
-    expect(videosAfter - videosBefore, 'شريط يوتيوب نحو اليمين').toBeGreaterThan(2);
-    expect(booksAfter - booksBefore, 'شريط المكتبة نحو اليسار').toBeLessThan(-2);
-    // شريط المكتبة «الكتب والأبحاث والدراسات»، والبحث بلا غلاف بأيقونة الكتاب نفسها (إضافة التوجيه، البند ٦)
-    await expect(page.locator('#home-strip-books')).toHaveText('من مكتبة إعجاز: الكتب والأبحاث والدراسات');
-    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
+    // الاتجاه الفعلي (إضافة التوجيه، البند ١٧، ويحل محل البند ٤): «خدماتنا» من اليسار إلى اليمين، ويوتيوب من اليمين إلى اليسار،
+    // والمكتبة من اليسار إلى اليمين. موضع المسار على الشاشة قبل ثانيتين وبعدهما، وإشارة الفرق هي الاتجاه
+    const trackLeft = (selector) => page.locator(selector).evaluate((element) => element.getBoundingClientRect().left);
+    const direction = async (selector) => {
+        await page.locator(selector).evaluate((element) => element.closest('.marquee').scrollIntoView({ block: 'center', behavior: 'instant' }));
+        await page.waitForTimeout(600);
+        const before = await trackLeft(selector);
+        await page.waitForTimeout(2000);
+
+        return (await trackLeft(selector)) - before;
+    };
+    const services = await direction('#home-services-track .marquee-track');
+    const videos = await direction('[data-media-strip="videos"] .marquee-track');
+    const books = await direction('[data-media-strip="books"] .marquee-track');
+    // والأبحاث تحت الكتب عكسها، من اليمين إلى اليسار (البند ٢٦)
+    const research = await direction('[data-media-strip="research"] .marquee-track');
+    console.log(`directions ${width}px: services ${services}, videos ${videos}, books ${books}, research ${research}`);
+    expect(research, 'الأبحاث من اليمين إلى اليسار').toBeLessThan(-2);
+    expect(services, '«خدماتنا» من اليسار إلى اليمين').toBeGreaterThan(2);
+    expect(videos, 'يوتيوب من اليمين إلى اليسار').toBeLessThan(-2);
+    expect(books, 'المكتبة من اليسار إلى اليمين').toBeGreaterThan(2);
+    // شريطا «الكتب والمؤلفات» و«الأبحاث والدراسات» منفصلان (البند ٢٦)، والبحث بلا غلاف بأيقونة الكتاب نفسها (البند ٦)
+    await expect(page.locator('#home-strip-books')).toHaveText('من مكتبة إعجاز: الكتب والمؤلفات');
+    await expect(page.locator('#home-strip-research')).toHaveText('من مكتبة إعجاز: الأبحاث والدراسات');
+    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg, [data-media-strip="research"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
     expect(icons.length).toBeGreaterThan(0);
     expect(new Set(icons).size, 'أيقونة واحدة للكتب والأبحاث').toBe(1);
     // بعرض المحتوى كاملاً: الشريطان بعرض واحد
-    const stripWidths = await page.evaluate(() => ['videos', 'books'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
-    expect(Math.abs(stripWidths[0] - stripWidths[1])).toBeLessThanOrEqual(2);
+    const stripWidths = await page.evaluate(() => ['videos', 'books', 'research'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
+    expect(Math.max(...stripWidths) - Math.min(...stripWidths)).toBeLessThanOrEqual(2);
 
     // الإعلانات والأخبار: نصفان متساويان على الحاسوب، والأخبار تصعد
     await page.locator('#home-news').scrollIntoViewIfNeeded();
@@ -284,10 +300,11 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
         expect(Math.abs(columns[0].height - columns[1].height)).toBeLessThanOrEqual(2);
         expect(Math.abs(columns[0].top - columns[1].top)).toBeLessThanOrEqual(3);
     }
-    const newsTop = () => page.locator('#home-news-track .marquee-track').evaluate((track) => track.getBoundingClientRect().top);
+    await page.locator('#home-news-track').evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const newsTop = () => page.locator('#home-news-track .marquee-track').evaluate((track) => new DOMMatrixReadOnly(getComputedStyle(track).transform).m42);
     const newsBefore = await newsTop();
-    await page.waitForTimeout(1500);
-    expect((await newsTop()) - newsBefore, 'الأخبار تصعد').toBeLessThan(-1);
+    await page.mouse.move(1, 1);
+    await expect.poll(async () => (await newsTop()) - newsBefore, { message: 'الأخبار تصعد', timeout: 6000 }).toBeLessThan(-1);
 
     // «البوابة بالأرقام»: أربع بطاقات 2×2 يميناً، والرسم يساراً
     await page.locator('[data-portal-stats]').scrollIntoViewIfNeeded();
@@ -394,7 +411,7 @@ test('header: the assistant button opens the existing assistant', async ({ page 
     for (const width of [1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
-        const button = page.locator('[data-site-header] [data-header-assistant]');
+        const button = page.locator('.header-top [data-header-assistant]');
         await expect(button).toBeVisible();
         await expect(button).toHaveAccessibleName('المساعد الذكي');
         await expect(page.locator('#assistant-panel')).toBeHidden();
@@ -408,4 +425,269 @@ test('header: the assistant button opens the existing assistant', async ({ page 
         await expect(page.locator('#assistant-panel')).toBeHidden();
         await expect(button).toBeFocused();
     }
+});
+
+// ── ٥. رأس كل صفحة داخلية «فاتح بصورة واحدة» (البند ٢٧، ويحل محل ذوبان الصورة في البند ١٥)، بلقطة لكل قسم على 1440 و390
+const SECTION_PAGES = {
+    media: '/media',
+    governance: '/governance',
+    services: '/services',
+    programs: '/programs',
+    competitions: '/competitions',
+    initiatives: '/initiatives',
+    contact: '/contact',
+    achievements: '/achievements',
+    library: '/library',
+    about: '/about',
+};
+
+test('inner page heroes: light with dark text, the section image in a tilted white frame, one shot per section', async ({ page }, info) => {
+    test.skip(info.project.name === 'tablet', 'لقطات 1440 و390');
+    test.setTimeout(240_000);
+    const width = widthOf[info.project.name];
+    for (const [name, path] of Object.entries(SECTION_PAGES)) {
+        await page.goto(path);
+        await page.evaluate(() => document.fonts.ready);
+        const hero = page.locator('[data-page-hero]');
+        await expect(hero, name).toHaveClass(/page-hero-light/);
+        const look = await hero.evaluate((section) => {
+            const frame = section.querySelector('.page-hero-frame');
+            const back = section.querySelector('.page-hero-back');
+            const title = section.querySelector('h1');
+
+            return {
+                title: getComputedStyle(title).color,
+                background: getComputedStyle(section).backgroundImage,
+                frameBorder: getComputedStyle(frame).borderTopWidth,
+                frameTransform: getComputedStyle(frame).transform,
+                backShown: getComputedStyle(back).display !== 'none',
+                frameBelowText: frame.getBoundingClientRect().top >= title.getBoundingClientRect().bottom,
+            };
+        });
+        expect(look.title, `${name}: نص داكن`).toBe('rgb(31, 69, 101)');
+        expect(look.background, `${name}: خلفية فاتحة`).toContain('linear-gradient');
+        expect(look.frameBorder).toBe('8px');
+        expect(look.frameTransform, `${name}: مائلة`).not.toBe('none');
+        if (info.project.name === 'mobile') {
+            expect(look.backShown, 'لا بطاقة خلفية على الجوال').toBe(false);
+            expect(look.frameBelowText, 'الصورة تحت النص على الجوال').toBe(true);
+        } else {
+            expect(look.backShown).toBe(true);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), name).toBeLessThanOrEqual(0);
+        await page.waitForTimeout(700);
+        const box = await hero.boundingBox();
+        await page.screenshot({ path: `${SHOTS}/director-2026-11-03-hero-${name}-${width}.png`, clip: { x: 0, y: 0, width, height: Math.ceil(box.y + box.height) } });
+    }
+});
+
+// ── ٦. «عن الجمعية» (البنود ٢٠ و٢١ و٢٤ و٢٨): «من نحن» يميناً في بطاقة ناعمة والرؤية والرسالة اقتباسين يساراً، وشريطا الأهداف والقيم
+//    باتجاهين متعاكسين، وكلمتا خادم الحرمين ورئيس المجلس بلا صورتين. يلزمها «عن الجمعية» منشورة بمقاطعها
+test('about: «من نحن» on the right in a soft light card, the vision and mission on the left as quotations', async ({ page }, info) => {
+    const width = widthOf[info.project.name];
+    await page.goto('/about');
+    await page.evaluate(() => document.fonts.ready);
+    const who = page.locator('[data-about-who]');
+    const quotes = page.locator('[data-about-quotes]');
+    await expect(who).toBeVisible();
+    await expect(quotes.locator('[data-about-quote]')).toHaveCount(2);
+
+    const colours = await who.evaluate((card) => ({ text: getComputedStyle(card).color, background: getComputedStyle(card).backgroundImage }));
+    expect(colours.text).toBe('rgb(20, 46, 69)');
+    expect(colours.background).toContain('rgb(234, 244, 252)');
+    expect(colours.background).toContain('rgb(198, 225, 247)');
+
+    const [whoBox, quotesBox] = [await who.boundingBox(), await quotes.boundingBox()];
+    if (info.project.name === 'desktop') {
+        expect(whoBox.x, '«من نحن» يميناً').toBeGreaterThan(quotesBox.x);
+    } else {
+        expect(whoBox.y, '«من نحن» أولاً').toBeLessThan(quotesBox.y);
+    }
+    const quote = await quotes.locator('.about-quote-text').first().evaluate((el) => ({ size: parseFloat(getComputedStyle(el).fontSize), weight: Number(getComputedStyle(el).fontWeight), border: getComputedStyle(el.closest('blockquote')).borderTopWidth }));
+    expect(quote.size).toBeGreaterThanOrEqual(21);
+    expect(quote.weight).toBeGreaterThanOrEqual(700);
+    expect(quote.border).toBe('0px');
+    // الكلمتان بلا صورتين (البند ٢٤)
+    expect(await page.locator('section[aria-labelledby="about-king"] img, section[aria-labelledby="about-chairman"] img').count()).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+
+    if (info.project.name !== 'tablet') {
+        await page.waitForTimeout(800);
+        await page.screenshot({ path: `${SHOTS}/director-2026-11-03-about-${width}.png`, fullPage: true });
+    }
+});
+
+test('about: the goals strip moves right to left and the values strip after it left to right', async ({ page }) => {
+    await page.goto('/about');
+    const strips = page.locator('[data-cards-block] .marquee');
+    test.skip((await strips.count()) < 2, 'يلزمه مقطعا بطاقات (الأهداف والقيم)');
+    const move = async (index) => {
+        const strip = strips.nth(index);
+        await strip.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+        await page.mouse.move(1, 1);
+        await page.waitForTimeout(600);
+        const left = () => strip.evaluate((el) => el.querySelector('.marquee-track').getBoundingClientRect().left);
+        const before = await left();
+        await page.waitForTimeout(2000);
+
+        return (await left()) - before;
+    };
+    expect(await move(0), 'الأهداف من اليمين إلى اليسار').toBeLessThan(-2);
+    expect(await move(1), 'القيم من اليسار إلى اليمين').toBeGreaterThan(2);
+});
+
+// ── ٧. القائمة المنسدلة «عن الجمعية» (البند ٢٨): الخمسة بالترتيب، مراسٍ إلى مقاطع موجودة، على الحاسوب وفي قائمة ☰
+test('menu: the «عن الجمعية» dropdown lists the five anchors in order, each reaching its section', async ({ page }, info) => {
+    await page.goto('/');
+    const labels = ['التوجه الاستراتيجي', 'من نحن', 'الرؤية', 'الرسالة', 'القيم'];
+    let toggle;
+    // اللوحي العمودي والجوال بقائمة ☰، والحاسوب بصف القائمة
+    if (info.project.name !== 'desktop') {
+        await page.locator('[data-toggle="mobile-menu"]').click();
+        toggle = page.locator('#mobile-menu button[data-toggle="dropdown"]').first();
+    } else {
+        toggle = page.locator('[data-main-nav] [data-nav-dropdown] [data-toggle="dropdown"]').first();
+    }
+    await toggle.click();
+    const menu = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
+    await expect(menu).toBeVisible();
+    const items = await menu.locator('a').evaluateAll((links) => links.map((link) => [link.textContent.trim(), link.getAttribute('href')]));
+    const anchors = items.filter(([, href]) => href.includes('/about#'));
+    expect(anchors.map(([label]) => label)).toEqual(labels);
+
+    // المرساة إلى مقطعها تحت الرأس الثابت
+    await menu.locator('a[href*="/about#about-vision"]').click();
+    await page.waitForURL(/\/about#about-vision$/);
+    await page.waitForTimeout(1200);
+    const reached = await page.evaluate(() => {
+        const box = document.getElementById('about-vision').getBoundingClientRect();
+        const header = document.querySelector('[data-site-header]').getBoundingClientRect().bottom;
+
+        return { belowHeader: box.top >= header - 2, inView: box.top < window.innerHeight };
+    });
+    expect(reached).toEqual({ belowHeader: true, inView: true });
+    for (const [, href] of anchors) {
+        expect(await page.locator(`#${href.split('#')[1]}`).count(), href).toBe(1);
+    }
+});
+
+// ── ٨. البطل «فاتح بصورة واحدة» (البندان ٢٢ و٢٣): أربع شرائح بالترتيب، لقطة لكل منها على 1440
+test('hero: four light slides in order — the Mushaf, the Haram, the King with the national frame, the chairman — one shot each', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'لقطات الشرائح على 1440');
+    await page.goto('/');
+    const slider = page.locator('[data-hero-slider]');
+    const keys = await slider.locator('[data-hero-slide]').evaluateAll((slides) => slides.map((slide) => slide.dataset.heroSlide));
+    expect(keys).toEqual(['about', 'haram', 'king', 'chairman']);
+    await slider.locator('[data-carousel-toggle]').click();
+    for (const [index, key] of keys.entries()) {
+        await slider.locator('[data-carousel-dot]').nth(index).click();
+        const slide = slider.locator(`[data-hero-slide="${key}"]`);
+        await expect(slide).toHaveAttribute('data-active', '');
+        await page.waitForTimeout(900);
+        const look = await slide.evaluate((el) => ({
+            title: getComputedStyle(el.querySelector('h1, h2')).color,
+            frame: getComputedStyle(el.querySelector('[data-hero-frame]')).borderTopWidth,
+            shadow: getComputedStyle(el.querySelector('[data-hero-frame]')).boxShadow,
+        }));
+        expect(look.title).toBe('rgb(31, 69, 101)');
+        expect(look.frame).toBe('8px');
+        if (key === 'king') {
+            expect(look.shadow, 'حلقة ذهبية وخضراء').toContain('rgb(201, 169, 97)');
+            expect(look.shadow).toContain('rgba(14, 107, 71');
+        }
+        const box = await slider.boundingBox();
+        await page.screenshot({ path: `${SHOTS}/director-2026-11-03-hero-slide-${index + 1}-${key}-1440.png`, clip: { x: 0, y: 0, width: 1440, height: Math.ceil(box.y + box.height) } });
+    }
+});
+
+// ── ٩. «خدماتنا الإلكترونية» بالنمط «أ» (البند ٢٩): تسع بطاقات 3×3 بلا خانة فارغة، والبطاقة نفسها في «خدماتنا» بالرئيسية
+test('services: nine style «أ» cards in a 3×3 grid, the same card in the home strip, with shots', async ({ page }, info) => {
+    test.skip(info.project.name === 'tablet', 'لقطات 1440 و390');
+    const width = widthOf[info.project.name];
+    await page.goto('/services');
+    const cards = page.locator('[data-service-grid] > li');
+    await expect(cards).toHaveCount(9);
+    const boxes = await cards.evaluateAll((items) => items.map((item) => {
+        const box = item.getBoundingClientRect();
+
+        return { top: Math.round(box.top), width: Math.round(box.width) };
+    }));
+    if (info.project.name === 'desktop') {
+        expect(new Set(boxes.map((box) => box.top)).size, 'ثلاثة صفوف').toBe(3);
+        expect(new Set(boxes.map((box) => box.width)).size, 'بلا خانة فارغة ولا امتداد').toBe(1);
+    }
+    const look = await page.locator('.service-card').first().evaluate((card) => ({
+        color: getComputedStyle(card).color,
+        tile: getComputedStyle(card.querySelector('.service-card-tile')).width,
+        align: getComputedStyle(card).textAlign,
+    }));
+    expect(look).toEqual({ color: 'rgb(31, 69, 101)', tile: '64px', align: 'center' });
+    await expect(page.locator('[data-store-card] a')).toHaveAttribute('target', '_blank');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SHOTS}/director-2026-11-03-services-${width}.png`, fullPage: true });
+
+    await page.goto('/');
+    const section = page.locator('section[aria-labelledby="home-shortcuts"]');
+    await section.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    expect(await section.locator('.service-card').count()).toBeGreaterThan(2);
+    await page.waitForTimeout(900);
+    const box = await section.boundingBox();
+    await page.screenshot({ path: `${SHOTS}/director-2026-11-03-home-services-${width}.png`, clip: { x: 0, y: Math.max(0, box.y), width, height: Math.ceil(box.height) } });
+});
+
+// ── ١٠. الرأس يصغر عند التمرير ويعود كاملاً في أعلى الصفحة (البند ٣١)، والصف الثاني ظاهر، ولا يتحرك المحتوى
+test('header: shrinks on scroll and returns full at the top, the menu row kept, with no layout shift', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'على 1440');
+    await page.goto('/');
+    await page.evaluate(() => document.fonts.ready);
+    const header = page.locator('[data-site-header]');
+    const state = () => page.evaluate(() => {
+        const element = document.querySelector('[data-site-header]');
+        const first = document.querySelector('main > *');
+
+        return {
+            compact: element.hasAttribute('data-header-compact'),
+            calligraphy: element.querySelector('[data-logo-calligraphy]').getBoundingClientRect().height,
+            mark: element.querySelector('[data-brand-mark]').getBoundingClientRect().height,
+            capsules: [...element.querySelectorAll('[data-main-nav] .nav-capsule')].filter((capsule) => capsule.getBoundingClientRect().height > 0).length,
+            firstOffset: Math.round(first.getBoundingClientRect().top + window.scrollY),
+        };
+    });
+
+    const full = await state();
+    expect(full.compact).toBe(false);
+    expect(full.capsules).toBe(7);
+    await header.screenshot({ path: `${SHOTS}/director-2026-11-03-header-compact-top-1440.png` });
+
+    await page.evaluate(() => window.scrollTo({ top: 700, behavior: 'instant' }));
+    await expect(header).toHaveAttribute('data-header-compact', '');
+    await page.waitForTimeout(600);
+    const small = await state();
+    expect(small.calligraphy, 'المخطوطة أصغر').toBeLessThan(full.calligraphy);
+    expect(small.mark, 'الرمز أصغر').toBeLessThan(full.mark);
+    expect(small.capsules, 'العناصر السبعة ظاهرة').toBe(7);
+    expect(small.firstOffset, 'لا يتحرك المحتوى').toBe(full.firstOffset);
+    await page.screenshot({ path: `${SHOTS}/director-2026-11-03-header-compact-scrolled-1440.png`, clip: { x: 0, y: 0, width: 1440, height: 320 } });
+
+    // عتبتان متباعدتان: بين 40 و140 تبقى الحالة كما هي، وفي الأعلى يعود كاملاً
+    await page.evaluate(() => window.scrollTo({ top: 90, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+    await expect(header).toHaveAttribute('data-header-compact', '');
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await expect(header).not.toHaveAttribute('data-header-compact', /.*/);
+    await page.waitForTimeout(600);
+    const back = await state();
+    expect(Math.abs(back.calligraphy - full.calligraphy)).toBeLessThan(0.5);
+    expect(back.firstOffset).toBe(full.firstOffset);
+});
+
+test('header: the shrink has no transition under reduced motion', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'على 1440');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const duration = await page.locator('.header-top [data-logo-calligraphy]').evaluate((img) => getComputedStyle(img).transitionDuration);
+    expect(duration.split(',').every((value) => parseFloat(value) === 0)).toBe(true);
+    await page.evaluate(() => window.scrollTo({ top: 700, behavior: 'instant' }));
+    await expect(page.locator('[data-site-header]')).toHaveAttribute('data-header-compact', '');
 });

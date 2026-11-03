@@ -56,8 +56,8 @@ test('home: services move in one row, and the mobile sizes follow R12', async ({
     if (info.project.name === 'mobile') {
         const sizes = await page.evaluate(() => ({
             heading: getComputedStyle(document.querySelector('#home-shortcuts h2')).fontSize,
-            title: getComputedStyle(document.querySelector('.service-tile-title')).fontSize,
-            text: getComputedStyle(document.querySelector('.service-tile-text')).fontSize,
+            title: getComputedStyle(document.querySelector('.service-card-name')).fontSize,
+            text: getComputedStyle(document.querySelector('.service-card-text')).fontSize,
             icon: document.querySelector('.home-card-icon').getBoundingClientRect().width,
         }));
         expect(sizes).toEqual({ heading: '24px', title: '19px', text: '14px', icon: 38 });

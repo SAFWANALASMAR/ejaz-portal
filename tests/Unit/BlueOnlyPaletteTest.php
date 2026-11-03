@@ -49,6 +49,15 @@ function hsl(int $r, int $g, int $b): array
     return [$hue * 60, $saturation, $light];
 }
 
+/**
+ * الاستثناء الوحيد من الأزرق وحده (قرار صفوان، إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٢٣): حلقة شريحة خادم الحرمين
+ * الشريفين في البطل بذهبي #C9A961 وأخضر #0E6B47 من الهوية الوطنية، في concept.css وحده.
+ */
+function nationalIdentityAccent(string $path, int $r, int $g, int $b): bool
+{
+    return $path === 'resources/css/concept.css' && in_array([$r, $g, $b], [[201, 169, 97], [14, 107, 71]], true);
+}
+
 it('writes no violet or green colour anywhere in the styles, templates, admin theme or placeholder art', function () {
     $offenders = [];
 
@@ -61,6 +70,10 @@ it('writes no violet or green colour anywhere in the styles, templates, admin th
                 [$r, $g, $b] = array_map(hexdec(...), str_split($hex, 2));
             } else {
                 [$r, $g, $b] = [(int) $colour[2], (int) $colour[3], (int) $colour[4]];
+            }
+
+            if (nationalIdentityAccent($path, $r, $g, $b)) {
+                continue;
             }
 
             [$hue, $saturation, $light] = hsl($r, $g, $b);
@@ -107,6 +120,10 @@ it('writes no amber, yellow or orange colour anywhere in the styles, templates o
                 [$r, $g, $b] = array_map(hexdec(...), str_split($hex, 2));
             } else {
                 [$r, $g, $b] = [(int) $colour[2], (int) $colour[3], (int) $colour[4]];
+            }
+
+            if (nationalIdentityAccent($path, $r, $g, $b)) {
+                continue;
             }
 
             [$hue, $saturation, $light] = hsl($r, $g, $b);

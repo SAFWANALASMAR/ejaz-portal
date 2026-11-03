@@ -1,5 +1,11 @@
 {{--
-    بطل الرئيسية مطابقاً للتصور المعتمد (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البنود ٧ و٢٦ و٢٧ — Final-Home واللوحة الأولى من ملف
+    «فاتح بصورة واحدة» (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البندان ٢٢ و٢٣ — docs/decisions/2026-11-03-director-home.md، ويحل
+    محل الإطار الدائري وما يلي منه): خلفية بتدرج أزرق فاتح تختلف درجته بين الشرائح، ونص داكن، وصورة واحدة في جهة النهاية (اليسار)
+    بإطار أبيض 8 بكسل مائلة −4° وخلفها بطاقة مائلة عكسها، وفوق النص على الجوال بلا البطاقة الخلفية. والشرائح أربع بالترتيب: المصحف
+    الشريف، والحرم المكي، وخادم الحرمين الشريفين بحلقة ذهبية وخضراء، ورئيس مجلس الإدارة. وما لا صورة معتمدة له مربع محايد بعلامة
+    «【ناقص】». والتبديل كل 6 ثوانٍ، ويتوقف لمن طلب تقليل الحركة (carousel.js).
+
+    وكان: بطل الرئيسية مطابقاً للتصور المعتمد (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البنود ٧ و٢٦ و٢٧ — Final-Home واللوحة الأولى من ملف
     التصور): خلفية ثابتة بتدرج أزرق وخطوط مائلة رفيعة، لا صورة بعرض البطل، والنص في جهة البداية، وصورة الشريحة في إطار دائري في جهة
     النهاية (وفوق النص على الجوال). والشرائح بالترتيب: تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس الجمعية، ثم مسابقة البراهين،
     ثم مكتبة إعجاز (App\Support\HomeShowcase::slides). والخلفية واحدة لكل الشرائح، فلا يتبدل إلا النص والإطار.
@@ -8,27 +14,33 @@
     النشطة كبسولة بشريط يمتلئ بمدة الشريحة، وزر إيقاف وتشغيل بجانبها (WCAG 2.2.2). والشريحة المخفية inert (carousel.js). الصورة الأولى
     وحدها بأولوية التحميل وبنسختي WebP (HeroImage)، والبقية بتحميل كسول. وعنوان الأولى h1 والبقية h2.
 
-    $slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, portrait?: bool}>
+    $slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, missing: bool}>
 --}}
-@props(['slides', 'interval' => 7000])
+@props(['slides', 'interval' => 6000])
 
 @php($count = count($slides))
 
 <section data-hero-slider data-carousel aria-roledescription="{{ __('ui.slider.carousel') }}" data-slide-label="{{ __('ui.slider.slide') }}"
     data-of-label="{{ __('ui.slider.of') }}" aria-label="{{ __('ui.hero.label') }}"
     @if ($count > 1) data-autoplay data-interval="{{ (int) $interval }}" @endif
-    {{ $attributes->class(['concept-hero hero-round']) }} data-size="home">
+    {{ $attributes->class(['concept-hero hero-round hero-light']) }} data-size="home">
     <span class="hero-round-lines" data-hero-lines aria-hidden="true"></span>
 
     <div class="concept-hero-media" data-carousel-track aria-live="off" tabindex="-1">
         @foreach ($slides as $index => $slide)
             <figure data-hero-slide="{{ $slide['key'] }}" data-carousel-item @if ($index === 0) data-active @endif class="hero-slide m-0">
                 <div class="hero-round-layout mx-auto max-w-[82.5rem] px-6 sm:px-12 lg:px-24">
-                    {{-- الإطار الدائري: الصورة تملؤه بلا تمديد فوق مقاسها (الإطار أصغر من أصغر صورة)، وأعلاها ظاهر للصور الطولية --}}
-                    <div class="hero-round-frame" data-hero-frame @if ($slide['portrait'] ?? false) data-portrait @endif>
-                        <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="640" height="640"
-                            @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 64rem) 22rem, 12rem" @endif
-                            @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+                    {{-- صورة واحدة بإطار أبيض مائل، وخلفها بطاقة مائلة عكسها (حاسوب)، وما لا صورة معتمدة له مربع محايد بعلامة «【ناقص】» --}}
+                    <div class="hero-light-visual">
+                        <span class="hero-light-back" aria-hidden="true"></span>
+                        <div class="hero-light-frame" data-hero-frame @if ($slide['missing'] ?? false) data-missing @endif>
+                            <img src="{{ $slide['src'] }}" alt="{{ $slide['alt'] }}" width="640" height="586"
+                                @if ($slide['srcset'] ?? null) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 64rem) 22.5rem, 90vw" @endif
+                                @if ($index === 0) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+                            @if ($slide['missing'] ?? false)
+                                <x-missing :what="__('ui.hero.image_missing')" class="hero-light-missing" data-hero-image-missing />
+                            @endif
+                        </div>
                     </div>
 
                     <figcaption class="hero-caption hero-round-text">

@@ -168,7 +168,7 @@ it('shows the file size on the download button in full white, for a contrast of 
     // الحجم يرث الأبيض الكامل من الزر، بلا شفافية ولا لون أخف
     $meta = (string) str($html)->after('data-document-meta>')->before('</aside>');
 
-    expect($html)->toContain('data-tone="dark" data-document-meta')
+    expect($html)->toContain('data-tone="soft" data-document-meta')
         ->and($meta)->toContain('href="'.route('governance.download', 'bylaws').'"')
         ->and($button)->toContain('tone-pill')
         ->and($button)->toContain('<span class="font-normal">('.__('site.file.size_kb', ['size' => 1]).')</span>');
