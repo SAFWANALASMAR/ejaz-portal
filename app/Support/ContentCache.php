@@ -33,7 +33,16 @@ final class ContentCache
      */
     public static function remember(string $key, Closure $render): mixed
     {
-        return Cache::remember('content.'.self::version().'.'.$key, now()->addHour(), $render);
+        return Cache::remember('content.'.self::version().'.'.$key.self::variant(), now()->addHour(), $render);
+    }
+
+    /**
+     * نسخة الإدارة بعلامات 【ناقص】 حين تُخفى عن الزوار (HIDE_MISSING_MARKERS — MissingText::visible)، فلا تختلط بنسخة الزائر.
+     * وتشمل المفاتيح التي ليست HTML (قوائم المعرّفات) فتتكرر لمن يدخل اللوحة وحده، وهذا أبسط من تمييزها والكلفة ضئيلة.
+     */
+    private static function variant(): string
+    {
+        return config('app.hide_missing_markers') && MissingText::visible() ? '.marked' : '';
     }
 
     /**
@@ -42,7 +51,10 @@ final class ContentCache
      */
     public static function forget(string $key): void
     {
-        DB::afterCommit(fn () => Cache::forget('content.'.self::version().'.'.$key));
+        DB::afterCommit(function () use ($key): void {
+            Cache::forget('content.'.self::version().'.'.$key);
+            Cache::forget('content.'.self::version().'.'.$key.'.marked');
+        });
     }
 
     /**

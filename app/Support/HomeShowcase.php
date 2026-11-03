@@ -2,10 +2,15 @@
 
 namespace App\Support;
 
+use App\Enums\CompetitionStatus;
 use App\Models\Album;
+use App\Models\Announcement;
 use App\Models\Competition;
 use App\Models\NewsArticle;
 use App\Models\Page;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * بنية الرئيسية من مرجع المدير التنفيذي (قرار صفوان، 30 أكتوبر 2026 — plans/2026-10-30-director-home-reference.md) من
@@ -149,9 +154,11 @@ final class HomeShowcase
     }
 
     /**
-     * مسابقة البراهين المنشورة (مسابقة الطلاب الأحدث) ومجموع جوائزها من جدولها، أو null بلا مسابقة أو بلا جوائز.
+     * مسابقة البراهين المنشورة (مسابقة الطلاب الأحدث) ومجموع جوائزها من جدولها، أو null بلا مسابقة أو بلا جوائز. ومعها ما تعرضه
+     * شريحتها في «إعلانات» (ملاحظة صفوان ٣٠): حالتها، ومقدمتها من نصوص صفحتها (أو وصفها)، وموعد الفتح أو الإغلاق بحسب الحالة،
+     * وصورة شريحتها في البطل إن رُفعت. وكلها من بيانات المسابقة، فلا نص جديد.
      *
-     * @return array{title: string, total: int, url: string}|null
+     * @return array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null
      */
     public static function prize(): ?array
     {
@@ -163,7 +170,94 @@ final class HomeShowcase
 
         $total = self::prizeTotal($competition);
 
-        return $total > 0 ? ['title' => $competition->title, 'total' => $total, 'url' => route('competitions.show', $competition->slug)] : null;
+        if ($total <= 0) {
+            return null;
+        }
+
+        $status = $competition->status();
+        // وسوم الكتل مسافة قبل نزعها، فلا تلتصق كلمتا فقرتين
+        $description = preg_replace('/<\/(p|li|h\d)>|<br\s*\/?>/i', ' ', (string) $competition->description) ?? '';
+        $text = $competition->pageText('intro') ?? trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($description))) ?? '');
+
+        return [
+            'title' => $competition->title,
+            'total' => $total,
+            'url' => route('competitions.show', $competition->slug),
+            'status' => $status,
+            'text' => $text !== '' ? $text : null,
+            // قبل الفتح موعده، وبعده موعد الإغلاق
+            'date' => $status === CompetitionStatus::Upcoming ? $competition->opens_at : $competition->closes_at,
+            'image' => HomeContent::heroSlideUrl('brahin'),
+        ];
+    }
+
+    /**
+     * شرائح دوّار «إعلانات» بالرئيسية (ملاحظة صفوان ٣٠): مسابقة البراهين أولاً ثم إعلانات اللوحة، بما تعرضه الشريحة
+     * (home/partials/feed-slide). وبلا صورة غلاف بهوية الجمعية (نقش الصفحة ورمز الشعار). وموعد المسابقة بساعته لأن الإغلاق
+     * قد يكون منتصف الليل، وتاريخ الإعلان يومه بلا ساعة.
+     *
+     * @param  array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null  $prize
+     * @param  iterable<Announcement>  $announcements
+     * @return list<array{image: string, cover: bool, badge: string, title: string, text: ?string, date: ?Carbon, date_label: string, with_time: bool, total: ?int, href: ?string, external: bool, cta: string}>
+     */
+    public static function feed(?array $prize, iterable $announcements): array
+    {
+        $slides = [];
+
+        if ($prize !== null) {
+            $slides[] = [
+                'image' => $prize['image'] ?? NeutralImage::forPage('competitions.show'),
+                'cover' => $prize['image'] === null,
+                'badge' => $prize['status']->registrationLabel(),
+                'title' => $prize['title'],
+                'text' => $prize['text'],
+                'date' => $prize['date'],
+                'date_label' => (string) __('ui.feed.date.'.$prize['status']->value),
+                'with_time' => true,
+                'total' => $prize['total'],
+                'href' => $prize['url'],
+                'external' => false,
+                'cta' => (string) __($prize['status'] === CompetitionStatus::Open ? 'ui.feed.register' : 'ui.feed.details'),
+            ];
+        }
+
+        foreach ($announcements as $announcement) {
+            $slides[] = [
+                'image' => filled($announcement->image) ? Storage::disk('public')->url($announcement->image) : NeutralImage::forPage('media.announcements'),
+                'cover' => blank($announcement->image),
+                'badge' => $announcement->kind->getLabel(),
+                'title' => $announcement->title,
+                'text' => filled($announcement->summary) ? $announcement->summary : null,
+                // «يظهر من» إن حُدد، وإلا يوم إضافته: تاريخ الإعلان لا تاريخ حدث
+                'date' => $announcement->starts_on ?? $announcement->created_at,
+                'date_label' => (string) __('ui.feed.announced'),
+                'with_time' => false,
+                'total' => null,
+                'href' => $announcement->href(),
+                'external' => $announcement->opensExternally(),
+                'cta' => (string) __('ui.feed.details'),
+            ];
+        }
+
+        return $slides;
+    }
+
+    /**
+     * حالة شريحة البراهين محسوبة وقت رسم الرئيسية المخزّنة ساعة (ContentCache)، فحين يعبر الوقت موعد فتح مسابقة طلاب منشورة أو
+     * إغلاقها تُمسح الرئيسية، فلا تبقى «قريباً» بعد الفتح ولا «سجّل الآن» بعد الإغلاق (المجدول كل دقيقة — routes/console.php).
+     */
+    public static function forgetHomeAtCompetitionBoundary(Carbon $since): bool
+    {
+        $now = now();
+        $crossed = Competition::query()->published()->where('student_mode', true)
+            ->where(fn (Builder $query) => $query->whereBetween('opens_at', [$since, $now])->orWhereBetween('closes_at', [$since, $now]))
+            ->exists();
+
+        if ($crossed) {
+            ContentCache::forget('home');
+        }
+
+        return $crossed;
     }
 
     /**

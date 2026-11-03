@@ -17,7 +17,7 @@
     $whatsapp = \App\Support\WhatsApp::link(is_string($contact['whatsapp'] ?? null) ? $contact['whatsapp'] : null);
     $hasInfo = filled($email) || filled($phone) || filled($address) || $map !== null || $whatsapp !== null;
     // بلا بيانات تبقى البطاقة بعلامة 【ناقص】 في التطوير، ولا تظهر فارغة للزوار في الإنتاج
-    $showInfo = $hasInfo || ! app()->isProduction();
+    $showInfo = $hasInfo || \App\Support\MissingText::visible();
 @endphp
 
 <x-layouts.app :title="__('contact.title')">
