@@ -134,6 +134,64 @@ $DC ps                                         # كل الخدمات healthy
 
 **ممنوع في الإنتاج:** `cache:clear` و`optimize:clear` (يصفّران قفل الدخول وحدود الرسائل ورموز التحقق — `security.md`)، و`migrate:fresh`، و`db:seed` بلا `--class`، و`docker compose down -v` (يحذف القاعدة).
 
+## الترقية إلى v0.15.0
+
+بحزمة الحاويات، و`$DC` كما في «ثالثاً». وللخادم بلا حاويات الأوامر نفسها بلا `$DC exec -T app` (الملحق). والقرار في `docs/decisions/2026-11-03-deploy-readiness.md`.
+
+### خطوات طلبات دمج v0.15 (حالتها في 3 نوفمبر 2026)
+
+ما عُلّم «غير مدموج» لم يدخل `main` بعد، فإن وُسم v0.15.0 قبل دمجه سقطت خطوته من هذا الإصدار:
+
+- **#124 محرر الصفحات (مدموج):** `migrate` (جدول `page_revisions`)، و`PermissionsSeeder` (صلاحية `pages.edit_all` وتضييق صلاحيات الصفحات لمحرر المحتوى). وكلاهما في سكربت النشر (`AccessSeeder` يشغّل `PermissionsSeeder`). واستيراد الموقع السابق (`import:legacy-site`) يلزمه منفّذ مسؤول تقني.
+- **#126 برامج المكتبة (غير مدموج، مكدّس على #124):** `migrate` (`programs.library_item_id` و`library_items.duration_seconds` و`program_registrations.completed_at`)، ثم **يدوياً مرة**: `$DC exec -T app php artisan db:seed --class=ProgramTypesSeeder --force` (الأنواع الثلاثة، ولا يمس الموجود). وffprobe في صورة العامل (يأتي مع `ffmpeg` في `deploy/docker/Dockerfile`)، وعامل طابور `library` (`supervisor-library` في `config/horizon.php`، مدموج).
+- **#127 إحصائيات البرامج لكل نوع (مدموج):** لا ترحيل ولا بذرة. `$DC exec -T app php artisan ejaz:refresh-stats` بعد النشر، فيظهر الرسم والقسم دون انتظار المجدول.
+- **#132 مراجعة الأداء (مدموج):** `types { application/javascript mjs; }` في nginx. بحزمة الحاويات يكفي بناء صورة الويب (`ejaz-web`) في سكربت النشر. وللخادم بلا حاويات: نسخ `deploy/nginx/ejaz.conf`، ثم `nginx -t` و`nginx -s reload`.
+- **#137 المنخفضات الأمنية (`fix/v0.15-security-lows`، غير مدموج):** تأخير إعادة `SendExamReceipt` (`$backoff = [30, 120]`) في #137 وحده، لا في هذا الطلب. ولا خطوة نشر له.
+
+### قائمة النشر وما بعده (عشرة بنود: ١ و٢ قبله، و٣ هو، والباقي بعده)
+
+1. **قبل الترحيل:** ترحيل «مكتبة إعجاز» بأقسامها الأربعة يحوّل ما خارجها إلى «الكتب والمؤلفات» بلا سجل (`docs/decisions/2026-11-02-library-four-sections.md`، «خطوات النشر»). فيُشغَّل الاستعلام الآتي وتُحفظ نتيجته مع سجل النشر، والمتوقع صفر صفوف:
+
+   ```bash
+   $DC exec -T pgsql psql -U ejaz -d ejaz -c "SELECT id, section, title, deleted_at FROM library_items WHERE lower(trim(section)) NOT IN ('videos', 'audio', 'books', 'research') ORDER BY id;"
+   ```
+
+   والقاعدة والمستخدم من `DB_DATABASE` و`DB_USERNAME` في `.env` (`ejaz` في المثال). ومع قاعدة مُدارة يُشغَّل الاستعلام نفسه بـ `psql` على اتصالها.
+
+   وبعد الترحيل: `SELECT section, count(*) FROM library_items GROUP BY section;` لا يُظهر إلا الأربع، وما ظهر في الاستعلام الأول صار `books`، ويُعاد تصنيف البحث منه من اللوحة.
+2. **نسخة احتياطية** قبل النشر: `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` بلا خطأ (`scripts/restore.md`).
+3. **النشر:** `bash scripts/deploy-compose.sh v0.15.0`. يشغّل الترحيل و`AccessSeeder` و`MainMenuSevenSeeder` مرة واحدة (علامة `.deploy-state/main-menu-seven`) و`ejaz:refresh-content`، ثم `/up` و`ejaz:health`.
+4. **Horizon وطوابيره:** `$DC exec -T horizon php artisan horizon:status` يرد «running»، و`$DC exec -T horizon php artisan horizon:supervisors` فيه `supervisor-1` (`default`) و`supervisor-videos` (`videos`) و`supervisor-receipts` (`receipts`، إيصالات الاختبار) و`supervisor-library` (`library`، عدّ صفحات الكتب).
+5. **متغيرات `.env` الجديدة** منذ v0.14.2 (القيم في `.env.production.example`): `EVIDENCE_PER_MINUTE` و`EVIDENCE_FILES_PER_MINUTE` و`EVIDENCE_FILE_URL_MINUTES` و`EVIDENCE_STORAGE_URL_MINUTES` (معرض الشواهد). وتُراجع `REDIS_QUEUE_RETRY_AFTER=960`: فوق مهلة أطول مهمة (`ProcessSubmissionVideo`، 900 ثانية)، وبدونه 90 فيلتقط عامل آخر مقطعاً ما زال يُعالج.
+6. **المجدول:** `$DC exec -T scheduler php artisan schedule:list` يُظهر المهام كلها، ومنها `ejaz:refresh-stats` كل عشر دقائق و`ejaz:close-expired-attempts` كل دقيقة.
+7. **«للقراءة فقط» (يعتمد على #132):** يُفتح كتاب «للقراءة فقط» في المكتبة فتُرسم صفحاته. ثم اسم عامل القارئ وفحص نوعه:
+
+   ```bash
+   $DC exec -T app sh -c 'ls public/build/assets | grep "\.mjs$"'
+   curl -sI https://ejaz.sa/build/assets/<الاسم>.mjs | grep -i '^content-type'   # application/javascript
+   ```
+
+   وإن ردّ `application/octet-stream` فالقارئ معطّل: صورة الويب لم تُبنَ بالإصدار الجديد، أو إعداد nginx لم يُنسخ على الخادم بلا حاويات.
+8. **وثائق الحوكمة:** ترحيل `is_view_only` جعل كل وثيقة بملف «للاطلاع فقط» (`docs/decisions/2026-11-01-director-notes.md`، البند ٢٢). تُراجع الوثائق في اللوحة مع الجمعية، ويُفتح التنزيل لما تقرر فتحه وحده.
+9. **القائمة وخريطة الموقع:** الشريط بسبعة عناصر بترتيبها: الرئيسية، عن الجمعية، مكتبة إعجاز، المركز الإعلامي، الحوكمة، الخدمات الإلكترونية، تواصل معنا. و`curl -s https://ejaz.sa/sitemap.xml | head` يرد XML بروابط المنشور.
+10. **الصحة:** `$DC exec -T app php artisan ejaz:health` سليم (القاعدة، وRedis، والطوابير والمهام الفاشلة، والقرص، والقرص الخاص، ونبض المجدول).
+
+### التراجع عن v0.15.0: بالوسم وحده
+
+- **التراجع بإعادة نشر الوسم السابق** لا بشيء غيره: `EJAZ_TAG` في `.env` إلى الوسم السابق، ثم `$DC up -d app horizon scheduler web` (صوره باقية على الخادم — `cutover.md` «ب»، «بحزمة الحاويات»). وللخادم بلا حاويات: `RUN_MIGRATIONS=false bash scripts/deploy.sh <الوسم السابق>`.
+- **لا `migrate:rollback` في هذا الإصدار**، خلافاً للخطوة ٣ في `cutover.md` «ب»:
+  - ترحيلات v0.15 إضافة في البنية: جداول وأعمدة جديدة قابلة للفراغ أو بقيمة افتراضية، وفهارس، وقيد أقسام المكتبة الأربعة (وهي القيم التي تحفظها اللوحة من قبل). والإصدار السابق لا يقرأ الجديد منها، فبقاؤها لا يكسر شيئاً إلا ما في النقطة التالية. وما يعدّل البيانات منها (ملاحظات البراهين ودليلها، ومقاطع «عن الجمعية» المكررة، وإظهار «شركاؤنا» في الرئيسية مرة، واسم «الكتب والمؤلفات») تصحيح محتوى يعمل به الإصدار السابق كما هو، ويبقى بعد التراجع. والقائمة الكاملة: `git diff --name-only v0.14.2 v0.15.0 -- database/migrations`.
+  - **حالتان يجب علمهما قبل التراجع بالوسم:**
+    - **وثيقة برابط بلا ملف** (`documents.file` صار قابلاً للفراغ): شيفرة v0.14.2 تفترض الملف دائماً، فتعطي كل وثيقة رابط خطأ أو رابط تنزيل معطلاً في الحوكمة. فقبل التراجع تُسرد ويُلغى نشرها من اللوحة:
+
+      ```bash
+      $DC exec -T pgsql psql -U ejaz -d ejaz -c "SELECT id, slug FROM documents WHERE NULLIF(file, '') IS NULL AND deleted_at IS NULL;"
+      ```
+
+    - **«للاطلاع فقط» يسقط مؤقتاً:** v0.14.2 لا تعرف `is_view_only`، فكل وثيقة حوكمة تعود قابلة للتنزيل حتى العودة إلى v0.15. فإن كان في الوثائق ما لا يجوز تنزيله، يُلغى نشره قبل التراجع.
+  - والرجوع يتلف بيانات: يحذف الجداول الجديدة بما كُتب فيها بعد النشر (نسخ الصفحات، والإنجازات، ومعارض الشواهد، و«قراءاتي»)، ويسقط أعمدة مثل `is_view_only` بقرارات المحرر. وترحيل الأقسام الأربعة لا يعيد ما حوّله. ورجوع ترحيل «الوثيقة برابط» يفشل ما دامت في القاعدة وثيقة رابط بلا ملف (`docs/decisions/2026-10-30-document-url.md`).
+- **وإن تلفت البيانات نفسها:** الاستعادة من نسخة البند ٢ بقرار صفوان (`scripts/restore.md`، القسم ٣ للحاويات).
+
 ## إن فشل النشر
 
 السكربت يتوقف عند أول خطأ. إن وقع قبل وضع الصيانة (الفحوص، وسحب الوسم، والبناء، وتشغيل القاعدة) فالإصدار القديم باقٍ يعمل. وإن وقع بعده بقي الموقع في وضع الصيانة (صفحة 503 العربية).
