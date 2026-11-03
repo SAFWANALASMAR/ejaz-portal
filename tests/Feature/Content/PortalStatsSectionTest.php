@@ -135,22 +135,25 @@ it('shows the library cards after the visits and registrants, by the number of r
     libraryProgressOf($first, $book, pages: 1200);
     libraryProgressOf($second, $book, pages: 34);
     libraryProgressOf($third, LibraryItem::factory()->create(['section' => LibrarySection::Research]), pages: 2);
-    // المرئي والصوتي معاً: ثلاث مشاهدات مهما طالت
+    // المرئي والصوتي معاً: مشاهدتان مهما طالتا
     $video = LibraryItem::factory()->video()->create();
     libraryProgressOf($first, $video, seconds: 630);
-    libraryProgressOf($second, $video, seconds: 5);
     libraryProgressOf($second, LibraryItem::factory()->audio()->create(), seconds: 180);
+    // فُتحت المادة ولم يُقرأ منها شيء: لا قراءة ولا مشاهدة
+    libraryProgressOf($second, $video);
+    libraryProgressOf($first, LibraryItem::factory()->create());
 
     $this->artisan('ejaz:refresh-stats')->assertSuccessful();
 
-    expect(HomePortalStats::cached())->toMatchArray(['book_reads' => 3, 'media_views' => 3]);
+    expect(HomePortalStats::cached())->toMatchArray(['book_reads' => 3, 'media_views' => 2]);
 
     $html = $this->get('/')->assertOk()
         ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.book_reads'), __('home.portal_stats.media_views')])
         ->assertDontSee('صفحة مقروءة في المكتبة')->assertDontSee('دقيقة مشاهدة واستماع')
         ->getContent();
 
-    expect($html)->toContain('data-count-to="3"')->not->toContain('data-count-to="1234"');
+    // رقمان مختلفان، فيُعرف كل منهما في بطاقته
+    expect($html)->toContain('data-count-to="3"')->toContain('data-count-to="2"')->not->toContain('data-count-to="1234"');
 });
 
 it('hides each library card at zero, and keeps a store from before the library cards', function () {
