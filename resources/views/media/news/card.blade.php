@@ -22,7 +22,7 @@
             @endif
             <time datetime="{{ $article->published_on->toDateString() }}" class="tone-card-muted">{{ Dates::display($article->published_on) }}</time>
         </span>
-        <span class="mt-1.5 text-lg font-black">{{ $article->title }}</span>
+        <span class="mt-1.5 line-clamp-2 text-lg leading-snug font-black">{{ $article->title }}</span>
         @if (filled($article->summary))
             <span class="tone-card-muted mt-2 line-clamp-3 text-sm leading-6">{{ $article->summary }}</span>
         @endif

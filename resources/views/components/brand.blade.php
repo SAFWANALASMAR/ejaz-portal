@@ -3,18 +3,15 @@
     الشعار 54 بكسل والمخطوطة 40 في الرأس، و52 و35 في التذييل). من ملفات الهوية المعتمدة بلا تعديل (design-system.md).
     وكل ملف منها يُستبدل من «محتوى الرئيسية» (App\Support\HomeContent::brand)، إلا مع static: الملفات الأصلية بلا قراءة
     الإعدادات، لصفحة أخطاء الخادم التي لا تقرأ القاعدة (errors/5xx).
-    light: النسختان البيضاوان للخلفيات الداكنة. link: رابط إلى الرئيسية (false داخل رابط آخر). size: header أو footer أو masthead.
+    light: النسختان البيضاوان للخلفيات الداكنة. link: رابط إلى الرئيسية (false داخل رابط آخر).
+    size: header أو footer. والرأس العام يضع الرمز والمخطوطة منفصلين (partials/header).
 --}}
 @props(['light' => false, 'static' => false, 'link' => true, 'size' => 'header'])
 
 @php
     $file = fn (string $key): string => $static ? asset(\App\Support\HomeContent::BRAND[$key]) : \App\Support\HomeContent::brand($key);
-    // masthead: الصف الأول من الرأس (أمر التصور النهائي، النسخة 63 — البند R2): الرمز كبيراً والمخطوطة كبيرة ممتدة (98 و90
-    // بكسل على الحاسوب العريض)، وتصغر قليلاً عند التمرير (concept.css)
     [$mark, $calligraphy] = match ($size) {
         'footer' => ['h-[3.25rem]', 'h-[2.2rem]'],
-        // ومقاساتهما في concept.css (.masthead-mark و.masthead-calligraphy) لأن الرأس كله يصغر بتناسب عند التمرير (البند ٢٥)
-        'masthead' => ['masthead-mark', 'masthead-calligraphy'],
         default => ['h-11 sm:h-[3.375rem]', 'h-7 max-w-[44vw] sm:h-10 sm:max-w-none'],
     };
 @endphp

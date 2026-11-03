@@ -18,7 +18,7 @@
 
     <div class="flex flex-1 flex-col gap-2 px-5 pt-4.5 pb-5">
         <span class="tone-chip">{{ $program->type->name }}</span>
-        <h3 class="text-[1.375rem] leading-snug font-black">
+        <h3 class="line-clamp-2 text-[1.375rem] leading-snug font-black">
             <a href="{{ route('programs.show', $program->slug) }}" wire:navigate class="hover:underline">{{ $program->title }}</a>
         </h3>
         <p class="tone-card-muted flex items-center gap-2 text-[15px]">{{ \App\Support\Icon::svg('calendar', 'size-[17px] shrink-0', ['aria-hidden' => 'true']) }} {{ Dates::display($program->starts_at) }}</p>
