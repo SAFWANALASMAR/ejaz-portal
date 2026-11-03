@@ -4,7 +4,7 @@
 // - الشريطان المتحركان: زر الإيقاف [data-ticker-toggle] يوقف شريطه ويشغّله، ويُعلن حاله (aria-pressed واسمه).
 // - كلمة رئيس المجلس كاملة في <dialog>، وبلا سكربت تبقى في <details> تحتها.
 
-import { onPage } from './page';
+import { onLeave, onPage } from './page';
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -160,3 +160,42 @@ onPage((signal) => {
         { signal, passive: true },
     );
 });
+
+// التركيز بلوحة المفاتيح في شريط متحرك (فحص الوصول 0.15): الإيقاف وحده يُبقي الشريط عند موضعه، فقد تقف البطاقة المركّزة خارج
+// صندوقه فلا تُرى. فيعود الشريط إلى أوله (data-focus-reveal — concept.css) وتُمرَّر البطاقة إلى داخله، ثم يعود من أوله حين يخرج
+// التركيز. والفأرة واللمس لا يغيّران شيئاً (:focus-visible وحده)
+const keyboardFocus = (element) => {
+    try {
+        return element.matches(':focus-visible');
+    } catch {
+        return false;
+    }
+};
+
+document.addEventListener('focusin', (event) => {
+    const marquee = event.target.closest?.('[data-marquee]');
+
+    if (!marquee || !keyboardFocus(event.target)) {
+        return;
+    }
+
+    marquee.setAttribute('data-focus-reveal', '');
+    requestAnimationFrame(() => event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+});
+
+document.addEventListener('focusout', (event) => {
+    const marquee = event.target.closest?.('[data-marquee][data-focus-reveal]');
+
+    if (marquee && !marquee.contains(event.relatedTarget)) {
+        marquee.removeAttribute('data-focus-reveal');
+
+        // والقائمة التي يمررها المستخدم بيده (العمودي مع تقليل الحركة) تبقى حيث تركها
+        if (getComputedStyle(marquee).overflowY !== 'auto') {
+            marquee.scrollLeft = 0;
+            marquee.scrollTop = 0;
+        }
+    }
+});
+
+// قبل أن يحفظ Livewire نسخة الصفحة لزر الرجوع (wire:navigate): التنقّل من بطاقة مركّزة لا يطلق focusout، فلا تبقى العلامة فيها
+onLeave(() => document.querySelectorAll('[data-focus-reveal]').forEach((marquee) => marquee.removeAttribute('data-focus-reveal')));

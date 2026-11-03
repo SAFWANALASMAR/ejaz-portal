@@ -32,7 +32,8 @@ final class ReaderFileResponse
             return redirect()->to($pageUrl);
         }
 
-        $key = $limiter.'-reader:'.$request->ip();
+        // لكل مشترك (IPv4 كاملاً، أو /64 في IPv6)، فلا يتجاوز الحد من يدوّر عناوين شبكته
+        $key = $limiter.'-reader:'.NetworkPrefix::subscriber($request->ip());
         abort_if(RateLimiter::tooManyAttempts($key, self::PER_MINUTE), 429);
         RateLimiter::hit($key, 60);
 
