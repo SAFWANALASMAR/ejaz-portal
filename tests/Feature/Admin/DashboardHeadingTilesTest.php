@@ -4,6 +4,7 @@ use App\Enums\RoleName;
 use App\Filament\Widgets\AnnualPlanWidget;
 use App\Filament\Widgets\PeopleStatsWidget;
 use App\Filament\Widgets\RegistersOverviewWidget;
+use App\Filament\Widgets\VisitsChartWidget;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -25,6 +26,17 @@ it('heads the three dashboard sections with an icon tile', function () {
         ->and(Livewire::test(AnnualPlanWidget::class)->assertOk()->html())
         ->toMatch(headingWithTile(__('registers.plan.widget_heading', ['year' => (int) now(config('app.display_timezone'))->year])))
         ->and(Livewire::test(PeopleStatsWidget::class)->assertOk()->html())->toMatch(headingWithTile(__('surveys.stats.groups.people')));
+});
+
+it('heads the visits chart with the icon tile inside its heading, the text escaped and the accessible label unchanged', function () {
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector));
+    $heading = __('surveys.stats.visits_chart.heading', ['days' => 30]);
+
+    $html = Livewire::test(VisitsChartWidget::class)->assertOk()->html();
+
+    expect($html)->toMatch('#<h2[^>]*class="fi-section-header-heading"[^>]*>\s*<span class="ej-heading-tile" aria-hidden="true"><svg class="fi-icon[^"]*"[^>]*>.*?</svg></span><span>'.preg_quote(e($heading), '#').'</span>\s*</h2>#su')
+        // اسم الرسم لقارئ الشاشة من نص العنوان وحده، بلا وسوم
+        ->toContain('aria-label="'.e($heading).'. ');
 });
 
 it('gives the documents box its light blue gradient class', function () {

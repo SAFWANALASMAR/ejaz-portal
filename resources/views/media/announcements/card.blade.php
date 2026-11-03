@@ -14,7 +14,7 @@
 @else
     <div class="{{ $classes }}">
 @endif
-        <img src="{{ Storage::disk('public')->url($announcement->image) }}" alt="" loading="lazy" class="aspect-[4/3] w-full bg-primary-soft object-cover">
+        <img src="{{ Storage::disk('public')->url($announcement->image) }}" alt="" loading="lazy" width="400" height="300" class="aspect-[4/3] w-full bg-primary-soft object-cover">
         <span class="flex flex-1 items-start justify-between gap-3 p-4">
             <span class="font-bold leading-7 text-ink">{{ $announcement->title }}</span>
             @if ($href)

@@ -12,7 +12,7 @@
                 aria-label="{{ __('home.video.play') }}">
                 @if ($thumbnail)
                     <span class="skeleton absolute inset-0 block">
-                        <img src="{{ $thumbnail }}" alt="" loading="lazy" data-video-thumbnail
+                        <img src="{{ $thumbnail }}" alt="" loading="lazy" width="480" height="270" data-video-thumbnail
                             class="size-full object-cover transition duration-700 group-hover:scale-105">
                     </span>
                 @endif
