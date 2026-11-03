@@ -132,6 +132,7 @@ delete from service_requests where user_id = (select id from users where email =
 
 - **الزحف** (`final-crawl.mjs`، يقرأ فقط): كل رابط داخلي للزائر والمستفيد بحالته ولغته واتجاهه وأخطاء وحدة التحكم، والتمرير الأفقي على الجوال، وكل صف في `docs/legacy-import/redirects.csv`، وكل ملف مرتبط. `node tests/browser/final-crawl.mjs`، والنتيجة في `storage/playwright/final-check/crawl.json`.
 - **جولة العرض** (`demo-tour.spec.mjs`، فيديو صامت بعناوين عربية تُحقن أثناء التسجيل وحده): `npx playwright test --config=tests/browser/demo-tour.config.mjs`، و`TOUR=full` أو `TOUR=short` لأحدهما. والفيديو WebM في `storage/playwright/demo-tour/`.
+- **رحلات الإصدار 0.15.0** (`v015-e2e.spec.mjs`، تكتب حسابات وتسجيلات واستفسارات، فللبيئة المحلية وحدها): مستثناة من التشغيل العام، وتعمل بإعدادها `v015-e2e.config.mjs` على 1440 و390 بعد مشروع `setup` الذي يحفظ جلسات الأدوار. التجهيز (ملفا الحسابات في `storage/playwright/v015-creds/`) في رأس الملف، ثم مع الأصول المبنية: `docker compose run --rm --no-deps -e VITE_HOST=none browser npx playwright test --config=tests/browser/v015-e2e.config.mjs`.
 
 ## لوحة الإدارة بوضع SPA
 
