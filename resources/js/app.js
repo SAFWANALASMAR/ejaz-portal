@@ -101,6 +101,12 @@ function togglePassword(button) {
 }
 
 document.addEventListener('click', (event) => {
+    // كل ضغطة خارج أزرار الفتح تطوي القوائم المنسدلة أولاً، ومنها ما يعود قبل آخر المستمع (زر كلمة المرور والنسخ والمقطع)،
+    // لأن تركيز الضغط بالمؤشر لا يطويها (مستمع focusin أدناه — docs/decisions/2026-11-03-mobile-menu.md)
+    if (!event.target.closest('[data-toggle]')) {
+        closeAll();
+    }
+
     const passwordToggle = event.target.closest('[data-password-toggle]');
 
     if (passwordToggle) {
@@ -148,8 +154,6 @@ document.addEventListener('click', (event) => {
 
         return;
     }
-
-    closeAll();
 });
 
 // روابط القائمة المنسدلة لزرها
