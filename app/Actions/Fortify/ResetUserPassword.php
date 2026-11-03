@@ -30,11 +30,14 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules($user->name, $user->email, $user->phone, $user->username),
         ])->validate();
 
-        // كلمة المرور الجديدة تطابق السياسة، فتُرفع مطالبة التغيير (RequirePasswordUpgrade)
+        // كلمة المرور الجديدة تطابق السياسة، فتُرفع مطالبة التغيير (RequirePasswordUpgrade). وتُرفع علامة «يلزمه تعيين كلمة
+        // مرور» بعد إعادة ضبط التحقق الثنائي (ResetTwoFactorByAdmin): هذا رابط البريد الموثق، ورمز الجوال يُرفض قبله
+        // لحسابها (ResetPasswordByPhone)
         $user->forceFill([
             'password' => Hash::make($input['password']),
             'password_upgrade_required_at' => null,
             'password_set_by_admin_at' => null,
+            'must_set_password_at' => null,
         ])->save();
 
         $user->notify(new PasswordChanged);
