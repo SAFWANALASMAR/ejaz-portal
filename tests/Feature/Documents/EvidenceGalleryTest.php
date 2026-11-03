@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Support\NetworkPrefix;
 use App\Support\SpaLink;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
@@ -65,6 +66,14 @@ function evidenceGalleryWith(object $test, array $items): EvidenceGallery
     return app(SaveEvidenceGallery::class)->handle($test->secretary, new EvidenceGallery, evidenceData(['items' => $items]));
 }
 
+/**
+ * انتهاء الرابط الافتراضي: لا رابط بلا انتهاء (المراجعة الأمنية بعد v0.14.2).
+ */
+function evidenceExpiry(): Carbon
+{
+    return now()->addDays(EvidenceGallery::DEFAULT_LINK_DAYS);
+}
+
 function evidenceToken(string $url): string
 {
     return Str::afterLast($url, '/');
@@ -97,7 +106,7 @@ it('builds a gallery from albums and archive items in order, issues a link shown
         ->and($gallery->items[1]->paths)->toBe(['albums/two.webp']);
 
     Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
-        ->callAction('issueLink', ['expires_at' => null])
+        ->callAction('issueLink')
         ->assertNotified(__('evidence.actions.issued'));
 
     $gallery->refresh();
@@ -105,7 +114,7 @@ it('builds a gallery from albums and archive items in order, issues a link shown
         ->and(Activity::where('event', 'evidence_link_issued')->whereMorphedTo('subject', $gallery)->exists())->toBeTrue();
 
     // الرمز لا يُحفظ: يُصدر رابط جديد للزائر (والسابق يبطل)
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     $token = evidenceToken($url);
     expect(strlen($token))->toBe(EvidenceGallery::TOKEN_LENGTH)
         ->and($gallery->fresh()->token_hash)->toBe(hash('sha256', $token))
@@ -151,7 +160,7 @@ it('builds a gallery from albums and archive items in order, issues a link shown
 
 it('answers a wrong, expired or revoked link with the same 404', function () {
     $gallery = evidenceGalleryWith($this, [['source' => 'album', 'album_id' => $this->album->id]]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     $this->get($url)->assertOk();
 
     $wrong = $this->get(route('evidence.show', ['token' => Str::random(EvidenceGallery::TOKEN_LENGTH)]))->assertNotFound();
@@ -180,12 +189,12 @@ it('answers a wrong, expired or revoked link with the same 404', function () {
 
 it('kills the old link and its file links when the link is regenerated, revoked, or the gallery deleted', function () {
     $gallery = evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $this->archive->id]]);
-    $old = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $old = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     preg_match('#<img src="([^"]+/evidence/files/[^"]+)"#', $this->get($old)->getContent(), $match);
     $file = html_entity_decode($match[1]);
     $this->get($file)->assertOk();
 
-    $new = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery->fresh());
+    $new = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery->fresh(), evidenceExpiry());
     $this->get($old)->assertNotFound();
     $this->get($file)->assertNotFound();
     $this->get($new)->assertOk();
@@ -196,7 +205,7 @@ it('kills the old link and its file links when the link is regenerated, revoked,
 
 it('refuses a file link without a valid signature, after it expires, for another item, or once revoked', function () {
     $gallery = evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $this->archive->id, 'paths' => [$this->pdf]]]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     $this->get($url)->assertOk();
     $item = $gallery->items()->sole();
     $key = EvidenceGalleryItem::fileKey($this->pdf);
@@ -228,7 +237,7 @@ it('drops a photo or file that left its source, and an archive item deleted from
         ['source' => 'album', 'album_id' => $this->album->id],
         ['source' => 'archive', 'archive_item_id' => $this->archive->id],
     ]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
 
     $this->album->update(['photos' => ['albums/two.webp']]);
     $this->archive->delete();
@@ -242,7 +251,7 @@ it('drops a photo or file that left its source, and an archive item deleted from
 
 it('drops an album unpublished after it was added, since its photos stay on public links the revoke cannot reach', function () {
     $gallery = evidenceGalleryWith($this, [['source' => 'album', 'album_id' => $this->album->id]]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     $this->get($url)->assertOk()->assertSee(Storage::disk('public')->url('albums/one.webp'), false);
 
     $this->album->update(['is_published' => false]);
@@ -261,7 +270,7 @@ it('drops an archive item that is no longer evidence, and serves no file type ou
     $odd = storedPrivateFile(ArchiveItem::DIRECTORY, 'plain text', 'txt');
     $this->archive->forceFill(['files' => [...$this->archive->files, ['path' => $odd, 'name' => 'ملاحظة.txt', 'size' => 10]]])->save();
     $gallery = evidenceGalleryWith($this, [['source' => 'archive', 'archive_item_id' => $this->archive->id]]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     $item = $gallery->items()->sole();
 
     $this->get($url)->assertOk()->assertSee('تقرير.pdf')->assertDontSee('ملاحظة.txt');
@@ -306,7 +315,7 @@ it('keeps the screens and the link actions from users without the permission', f
         $this->get(EvidenceGalleryResource::getUrl('create'))->assertForbidden();
         $this->get(EvidenceGalleryResource::getUrl('edit', ['record' => $gallery]))->assertForbidden();
 
-        expect(fn () => app(IssueEvidenceLink::class)->handle($user, $gallery))->toThrow(AuthorizationException::class)
+        expect(fn () => app(IssueEvidenceLink::class)->handle($user, $gallery, evidenceExpiry()))->toThrow(AuthorizationException::class)
             ->and(fn () => app(RevokeEvidenceLink::class)->handle($user, $gallery))->toThrow(AuthorizationException::class)
             ->and(fn () => app(SaveEvidenceGallery::class)->handle($user, new EvidenceGallery, evidenceData()))->toThrow(AuthorizationException::class);
     }
@@ -332,7 +341,7 @@ it('limits opening attempts per visitor, wrong tokens included', function () {
 it('stays out of the sitemap and robots, and loads as a full page without fast navigation', function () {
     config(['app.indexable' => true]);
     $gallery = evidenceGalleryWith($this, []);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
 
     $this->get('/sitemap.xml')->assertOk()->assertDontSee('/evidence', false);
     // لا يُذكر في robots: المنع هناك يحجب وسم noindex عن الزاحف (SitemapController::robots)
@@ -355,10 +364,10 @@ it('keeps a gallery holding archive items of a hidden category away from an edit
         'files' => [['path' => $this->pdf, 'name' => 'سري.pdf', 'size' => 200]],
     ]);
     $gallery = app(SaveEvidenceGallery::class)->handle($director, new EvidenceGallery, evidenceData(['items' => [['source' => 'archive', 'archive_item_id' => $boardOnly->id]]]));
-    app(IssueEvidenceLink::class)->handle($director, $gallery);
+    app(IssueEvidenceLink::class)->handle($director, $gallery, evidenceExpiry());
 
     $this->actingAs($this->secretary)->get(EvidenceGalleryResource::getUrl('edit', ['record' => $gallery]))->assertForbidden();
-    expect(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, $gallery->fresh()))->toThrow(AuthorizationException::class)
+    expect(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, $gallery->fresh(), evidenceExpiry()))->toThrow(AuthorizationException::class)
         ->and(fn () => app(SaveEvidenceGallery::class)->handle($this->secretary, $gallery->fresh(), evidenceData()))->toThrow(AuthorizationException::class);
 
     app(RevokeEvidenceLink::class)->handle($this->secretary, $gallery->fresh());
@@ -370,7 +379,7 @@ it('shows only what the issuer may still see, and stops when the issuer is deact
         ['source' => 'album', 'album_id' => $this->album->id],
         ['source' => 'archive', 'archive_item_id' => $this->archive->id],
     ]);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
     preg_match('#<img src="([^"]+/evidence/files/[^"]+)"#', $this->get($url)->assertOk()->assertSee('تقرير.pdf')->getContent(), $match);
     $file = html_entity_decode($match[1]);
 
@@ -385,14 +394,14 @@ it('shows only what the issuer may still see, and stops when the issuer is deact
 
 it('does not bring the old link back when a deleted gallery is restored', function () {
     $gallery = evidenceGalleryWith($this, []);
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
 
     $gallery->delete();
     $gallery->restore();
 
     $this->get($url)->assertNotFound();
     expect(EvidenceGalleryResource::status($gallery->fresh()))->toBe(EvidenceLinkStatus::Revoked)
-        ->and(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, tap($gallery->fresh())->delete()))->toThrow(AuthorizationException::class);
+        ->and(fn () => app(IssueEvidenceLink::class)->handle($this->secretary, tap($gallery->fresh())->delete(), evidenceExpiry()))->toThrow(AuthorizationException::class);
 });
 
 it('keeps item rows and their file links on a save that does not change them, and logs item changes', function () {
@@ -445,7 +454,7 @@ it('stores the expiry picked in Riyadh time as UTC, and revokes from the panel',
     $gallery = evidenceGalleryWith($this, []);
 
     Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
-        ->callAction('issueLink', ['expires_at' => now()->addYear()->format('Y').'-11-05 10:00:00'])
+        ->callAction('issueLink', ['expires_at' => now()->addDays(30)->format('Y-m-d').' 10:00:00'])
         ->assertHasNoActionErrors();
 
     expect($gallery->fresh()->expires_at->utc()->format('H:i'))->toBe('07:00');
@@ -460,7 +469,7 @@ it('stores the expiry picked in Riyadh time as UTC, and revokes from the panel',
 
 it('refuses to revoke without the revoke permission, even with update', function () {
     $gallery = evidenceGalleryWith($this, []);
-    app(IssueEvidenceLink::class)->handle($this->secretary, $gallery);
+    app(IssueEvidenceLink::class)->handle($this->secretary, $gallery, evidenceExpiry());
 
     $editor = userWithRole(RoleName::ContentEditor);
     $editor->givePermissionTo(['evidence_galleries.view', 'evidence_galleries.update']);
@@ -471,7 +480,7 @@ it('refuses to revoke without the revoke permission, even with update', function
 });
 
 it('records one visit per network a minute', function () {
-    $url = app(IssueEvidenceLink::class)->handle($this->secretary, evidenceGalleryWith($this, []));
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, evidenceGalleryWith($this, []), evidenceExpiry());
 
     $this->get($url)->assertOk();
     $this->get($url)->assertOk();
@@ -509,12 +518,6 @@ it('shows the link status the link really has, a disabled issuer included, with 
         ->and(EvidenceLinkStatus::IssuerDisabled->getColor())->toBe('warning')
         ->and(EvidenceLinkStatus::Active->getColor())->toBe('success');
 
-    // والرابط بلا انتهاء لا يُعرض سارياً أبداً (روابط قديمة قبل أن يصير الانتهاء إلزامياً)
-    $forever = evidenceGalleryWith($this, []);
-    $issue($forever, $this->secretary);
-    $forever->forceFill(['expires_at' => null])->save();
-    expect(EvidenceLinkStatus::of($forever->fresh()))->toBe(EvidenceLinkStatus::Expired);
-
     // والجدول: الحالة من الرابط نفسه، والمُصدر محمَّل مع الصفوف فلا استعلام لكل صف
     DB::enableQueryLog();
     $list = Livewire::test(ListEvidenceGalleries::class);
@@ -526,4 +529,88 @@ it('shows the link status the link really has, a disabled issuer included, with 
         ->assertTableColumnStateSet('status', EvidenceLinkStatus::Active, $active)
         ->assertTableColumnStateSet('status', EvidenceLinkStatus::None, $none)
         ->assertSee('مُصدره معطّل');
+});
+
+it('shows a link with no expiry as expired, as linkIsActive() and the link itself refuse it, a disabled issuer included', function () {
+    $forever = evidenceGalleryWith($this, []);
+    $url = app(IssueEvidenceLink::class)->handle($this->secretary, $forever, evidenceExpiry());
+    // رابط قديم من قبل أن يصير الانتهاء إلزامياً
+    $forever->forceFill(['expires_at' => null])->save();
+
+    $this->get($url)->assertNotFound();
+    expect($forever->fresh()->linkIsActive())->toBeFalse()
+        ->and(EvidenceLinkStatus::of($forever->fresh()))->toBe(EvidenceLinkStatus::Expired);
+
+    // والحالة لا تُعرض ساريةً إلا بما تقوله linkIsActive(): مُصدر معطّل بلا انتهاء يبقى منتهياً لا «مُصدره معطّل»
+    $other = userWithRole(RoleName::Secretary);
+    $old = evidenceGalleryWith($this, []);
+    app(IssueEvidenceLink::class)->handle($other, $old, evidenceExpiry());
+    $old->forceFill(['expires_at' => null])->save();
+    $other->forceFill(['is_active' => false])->save();
+
+    expect(EvidenceLinkStatus::of($old->fresh()))->toBe(EvidenceLinkStatus::Expired);
+});
+
+/*
+| لا رابط بلا انتهاء (المراجعة الأمنية بعد v0.14.2، docs/decisions/2026-11-03-security-lows.md): 90 يوماً افتراضياً في
+| النموذج، وأقصاه سنة من الإصدار، والإجراء نفسه يرفض الفارغ وما بعد السنة.
+*/
+
+it('defaults the panel link to 90 days and refuses an empty expiry or one past a year', function () {
+    $this->actingAs($this->secretary);
+    $gallery = evidenceGalleryWith($this, []);
+
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
+        ->callAction('issueLink', ['expires_at' => null])
+        ->assertHasActionErrors(['expires_at' => 'required']);
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
+        ->callAction('issueLink', ['expires_at' => now()->addDays(EvidenceGallery::MAX_LINK_DAYS + 2)->format('Y-m-d H:i:s')])
+        ->assertHasActionErrors(['expires_at']);
+    expect($gallery->fresh()->token_hash)->toBeNull();
+
+    Livewire::test(EditEvidenceGallery::class, ['record' => $gallery->id])
+        ->callAction('issueLink')
+        ->assertHasNoActionErrors();
+
+    expect($gallery->fresh()->expires_at->diffInDays(now()->addDays(90), absolute: true))->toBeLessThan(1);
+});
+
+it('refuses in the action itself a link with no expiry or one past a year, and accepts exactly a year', function () {
+    $gallery = evidenceGalleryWith($this, []);
+    $issue = app(IssueEvidenceLink::class);
+
+    expect(fn () => $issue->handle($this->secretary, $gallery, null))->toThrow(ValidationException::class)
+        ->and(fn () => $issue->handle($this->secretary, $gallery, ''))->toThrow(ValidationException::class)
+        ->and(fn () => $issue->handle($this->secretary, $gallery, now()->addDays(EvidenceGallery::MAX_LINK_DAYS)->addMinute()))->toThrow(ValidationException::class)
+        ->and($gallery->fresh()->token_hash)->toBeNull();
+
+    $this->travelTo(now()->startOfSecond());
+    $url = $issue->handle($this->secretary, $gallery, now()->addDays(EvidenceGallery::MAX_LINK_DAYS));
+
+    $this->get($url)->assertOk();
+    expect($gallery->fresh()->expires_at->toDateTimeString())->toBe(now()->addDays(365)->toDateTimeString());
+});
+
+it('gives each old link without expiry a year from its issue, so a recent one keeps working and an old one ends', function () {
+    $recent = evidenceGalleryWith($this, []);
+    $recentUrl = app(IssueEvidenceLink::class)->handle($this->secretary, $recent, evidenceExpiry());
+    $old = evidenceGalleryWith($this, []);
+    $oldUrl = app(IssueEvidenceLink::class)->handle($this->secretary, $old, evidenceExpiry());
+    $recent->forceFill(['expires_at' => null, 'token_issued_at' => now()->subMonth()])->save();
+    $old->forceFill(['expires_at' => null, 'token_issued_at' => now()->subYears(2)])->save();
+    $never = evidenceGalleryWith($this, []);
+
+    // وما بقي بلا انتهاء قبل الترحيل غير ساري
+    $this->get($recentUrl)->assertNotFound();
+    expect($recent->fresh()->linkIsActive())->toBeFalse();
+
+    (require database_path('migrations/2026_11_03_090000_expire_evidence_links_without_expiry.php'))->up();
+
+    expect($recent->fresh()->expires_at->equalTo($recent->fresh()->token_issued_at->addDays(365)))->toBeTrue()
+        ->and($recent->fresh()->linkIsActive())->toBeTrue()
+        ->and($old->fresh()->expires_at->isPast())->toBeTrue()
+        ->and($old->fresh()->token_hash)->not->toBeNull()
+        ->and($never->fresh()->expires_at)->toBeNull();
+    $this->get($recentUrl)->assertOk();
+    $this->get($oldUrl)->assertNotFound();
 });

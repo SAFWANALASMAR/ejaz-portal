@@ -12,7 +12,7 @@
     <div class="mx-auto max-w-[82.5rem] px-4 pt-6 pb-7 sm:px-7 lg:pt-7 lg:pb-8">
         <div class="mb-3.5 flex items-center justify-between gap-4">
             <x-section-heading id="home-partners" icon="handshake">{{ $title }}</x-section-heading>
-            <a href="{{ route('media.partners') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}</a>
+            <a href="{{ route('media.partners') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}<span class="sr-only">: {{ $title }}</span></a>
         </div>
 
         <x-marquee id="home-partners-track" :label="$title" :duration="max(25, $logos->count() * 5)" :static="$logos->count() < 6">
