@@ -68,7 +68,9 @@ for (const width of WIDTHS) {
         expect(vw - top.mark.right).toBeLessThanOrEqual(24);
         expect(vw - top.mark.right).toBeGreaterThanOrEqual(8);
 
-        if (width >= 800) {
+        if (width >= 1280) {
+            // من 1280 لا تُشترط في منتصف الشاشة: الفراغات الثلاثة متساوية (تعديل المشرف على طلب الدمج 149 — header-center.spec.mjs)
+        } else if (width >= 800) {
             // المخطوطة في منتصف الشاشة
             expect(Math.abs((top.calligraphy.left + top.calligraphy.right) / 2 - vw / 2)).toBeLessThanOrEqual(3);
         } else {
@@ -85,11 +87,17 @@ for (const width of WIDTHS) {
             expect(top.capsules).toBe(7);
             expect(top.burger).toBeNull();
 
-            // مربع الترخيص بجانب المخطوطة من اليسار بفاصل صغير واضح
+            // مربع الترخيص يسار المخطوطة: بجانبها بفاصل صغير دون 1280، ومن 1280 الفراغات الثلاثة متساوية: الرمز إلى المخطوطة،
+            // والمخطوطة إلى المربع، والمربع إلى البحث (طلب صفوان وتعديل المشرف، 3 نوفمبر 2026 — header-center.spec.mjs)
             expect(top.licence).not.toBeNull();
             const gap = top.calligraphy.left - top.licence.right;
             expect(gap).toBeGreaterThanOrEqual(4);
-            expect(gap).toBeLessThanOrEqual(24);
+            if (width >= 1280) {
+                const gaps = [top.mark.left - top.calligraphy.right, gap, top.licence.left - top.search.right];
+                expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(8);
+            } else {
+                expect(gap).toBeLessThanOrEqual(24);
+            }
 
             // الدخول في أقصى اليسار بهامش صغير، والبحث بجانبه، وكلاهما يسار مربع الترخيص
             expect(top.login.left).toBeLessThanOrEqual(24);

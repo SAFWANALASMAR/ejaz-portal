@@ -1,0 +1,44 @@
+{
+    "mark": {
+        "left": 326.953125,
+        "right": 374,
+        "top": 10,
+        "bottom": 58,
+        "width": 47.046875,
+        "height": 48
+    },
+    "calligraphy": {
+        "left": 158.953125,
+        "right": 314.953125,
+        "top": 18,
+        "bottom": 50,
+        "width": 156,
+        "height": 32
+    },
+    "licence": null,
+    "actions": {
+        "left": 16,
+        "right": 116,
+        "top": 11,
+        "bottom": 57,
+        "width": 100,
+        "height": 46
+    },
+    "login": null,
+    "search": {
+        "left": 70,
+        "right": 116,
+        "top": 11,
+        "bottom": 57,
+        "width": 46,
+        "height": 46
+    },
+    "burger": {
+        "left": 16,
+        "right": 62,
+        "top": 11,
+        "bottom": 57,
+        "width": 46,
+        "height": 46
+    }
+}
