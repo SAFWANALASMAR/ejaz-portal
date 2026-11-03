@@ -83,3 +83,29 @@ it('ships neutral images without people for every inner page', function () {
         expect($svg)->toStartWith('<svg')->not->toContain('<image')->not->toContain('<script')->not->toContain('href=');
     }
 });
+
+it('lets the home content screen set the header image of the achievements page', function () {
+    Storage::fake('public');
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(HomeContentPage::class)
+        ->assertFormFieldExists('page_heroes.achievements')
+        ->fillForm(['page_heroes.achievements' => UploadedFile::fake()->image('achievements.jpg', 1600, 600)])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $path = Setting::group(HomeContent::KEY)['page_heroes']['achievements'] ?? null;
+
+    expect($path)->toBeString()
+        ->and(HomeContent::pageHeroUrl('achievements.index'))->toBe(Storage::disk('public')->url($path))
+        ->and(heroImageOf($this->get('/achievements')->assertOk()->getContent()))->toBe(Storage::disk('public')->url($path));
+});
+
+it('keeps the card images rotation of the fourteen patterns, without the achievements copy of the default', function () {
+    $images = collect(range(0, 13))->map(fn (int $seed): string => NeutralImage::forSeed($seed));
+
+    expect($images->unique())->toHaveCount(14)
+        ->and(NeutralImage::forSeed(0))->toBe(asset('images/placeholders/pages/about.svg'))
+        ->and(NeutralImage::forSeed(14))->toBe(asset('images/placeholders/pages/about.svg'))
+        ->and($images)->not->toContain(asset('images/placeholders/pages/achievements.svg'));
+});

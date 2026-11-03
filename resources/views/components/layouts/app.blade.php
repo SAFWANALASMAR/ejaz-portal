@@ -6,13 +6,15 @@
     'noindex' => false,
     // false: بلا canonical ولا og:url، لصفحة في رابطها سر (معرض الشواهد)
     'canonical' => true,
+    // false: صفحة في مسار صفحة ثابتة تعرض غيرها (بوابة الأعضاء في assembly.index)، فلا يغلب عليها عنوان «محرر الصفحات» ووصفه
+    'editable' => true,
 ])
 
 @php
     $siteName = __('site.name');
     // عنوان الصفحة الثابتة ووصفها المنشوران من «محرر الصفحات» يغلبان على عنوان قالبها ووصفه (EditablePages)، فيتفق عنوان
     // المتصفح ووصف المشاركة مع رأس الصفحة
-    $editablePage = \App\Support\EditablePages::live(request()->route()?->getName());
+    $editablePage = $editable ? \App\Support\EditablePages::live(request()->route()?->getName()) : [];
     $title = $editablePage['title'] ?? $title;
     $description = ($editablePage['summary'] ?? null) ?: $description;
     $pageTitle = $title ? $title.' | '.__('site.short_name') : $siteName;
@@ -91,7 +93,7 @@
 
     @include('partials.footer')
 
-    @include('partials.page-edit-button')
+    @includeWhen($editable, 'partials.page-edit-button')
 
     {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
     <span data-scroll-progress aria-hidden="true"></span>
