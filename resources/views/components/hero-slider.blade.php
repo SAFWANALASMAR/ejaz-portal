@@ -49,7 +49,7 @@
                         @endif
                         <span class="title-bar" aria-hidden="true"></span>
                         @if (filled($slide['text'] ?? null))
-                            <p @class(['max-w-[34rem] text-lg leading-[1.75] text-white/90 sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0])>{{ $slide['text'] }}</p>
+                            <p @class(['max-w-[34rem] text-lg leading-[1.75] text-white sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0])>{{ $slide['text'] }}</p>
                         @endif
                         @if ($slide['button'] ?? null)
                             <a href="{{ $slide['button']['url'] }}" @navigate($slide['button']['url']) class="login-pill mt-2 self-start">
@@ -81,7 +81,7 @@
                         @if ($index === 0) aria-current="true" @endif><span class="hero-progress-bar"></span></button>
                 @endforeach
             </div>
-            <button type="button" data-carousel-toggle class="inline-flex size-7 items-center justify-center rounded-full text-white/90 hover:bg-white/15" aria-pressed="false"
+            <button type="button" data-carousel-toggle class="inline-flex size-7 items-center justify-center rounded-full text-white hover:bg-white/15" aria-pressed="false"
                 data-label-pause="{{ __('ui.slider.pause') }}" data-label-play="{{ __('ui.slider.play') }}" aria-label="{{ __('ui.slider.pause') }}">
                 {{ \App\Support\Icon::solid('pause', 'size-3.5', ['aria-hidden' => 'true', 'data-icon-pause' => true]) }}
                 {{ \App\Support\Icon::solid('play', 'size-3.5', ['aria-hidden' => 'true', 'data-icon-play' => true, 'hidden' => true]) }}

@@ -125,6 +125,16 @@ export function start() {
     window.ejazPageStarted = true;
     run();
 
+    // انتقال المستندات (@view-transition في visual.css) يطلبه الموقع العام وحده، فإن طلبه إلى لوحة الإدارة (زر «تعديل هذه
+    // الصفحة»، والدخول إليها) أُلغي في صفحتها بخطأ غير ملتقط. فيُتخطّى قبل مغادرة الصفحة (docs/decisions/2026-11-03-mobile-menu.md)
+    window.addEventListener('pageswap', (event) => {
+        const url = event.activation?.entry?.url;
+
+        if (event.viewTransition && url && /^\/admin(\/|$)/.test(new URL(url).pathname)) {
+            event.viewTransition.skipTransition();
+        }
+    });
+
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
     window.addEventListener('pageshow', (event) => {

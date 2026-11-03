@@ -88,6 +88,35 @@ class UserPolicy extends ModulePolicy
     }
 
     /**
+     * إعادة ضبط التحقق الثنائي لمن فقد تطبيقه (قرار صفوان، 3 نوفمبر 2026 — docs/decisions/2026-11-03-2fa-admin-reset.md):
+     * بصلاحية users.reset_two_factor (لمديري النظام)، لحساب فعّل التحقق الثنائي، لا لحسابه نفسه، ولا للمشرف العام (اطلاع
+     * فقط) ولو وصلته الصلاحية. ولا يعيد الضبط لمن هو أعلى منه أو في رتبته، بلا استثناء: فلا يعيده مدير نظام لمدير نظام
+     * آخر، ويُعاد لمدير النظام بأمر الطرفية على الخادم (ejaz:reset-two-factor — مواصفة صفوان، قرار المشرف 3 نوفمبر 2026).
+     * والنتيجة صريحة فلا يغيّرها Gate::after.
+     */
+    public function resetTwoFactor(User $user, User $record): bool
+    {
+        return $user->isNot($record)
+            && $record->anonymized_at === null
+            && $record->hasEnabledTwoFactorAuthentication()
+            && $this->allows($user, 'reset_two_factor')
+            && (! $user->hasRole(RoleName::SuperAdmin->value) || RoleName::isAdministrator($user))
+            && self::rank($user) > self::rank($record);
+    }
+
+    /**
+     * رتبة الحساب في إعادة الضبط: مديرو النظام أعلاها، ثم كل دور يدخل اللوحة (ومنه المشرف العام)، ثم من سواهم.
+     */
+    private static function rank(User $user): int
+    {
+        return match (true) {
+            RoleName::isAdministrator($user) => 2,
+            $user->hasAnyRole(RoleName::values(RoleName::panelRoles())) => 1,
+            default => 0,
+        };
+    }
+
+    /**
      * إخفاء البيانات (معالجة طلب الحذف). وشروط الحساب نفسه في AnonymizeUser::eligible.
      */
     public function anonymize(User $user, User $record): bool

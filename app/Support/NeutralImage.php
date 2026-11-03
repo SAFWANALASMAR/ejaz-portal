@@ -41,7 +41,8 @@ final class NeutralImage
      */
     public static function forSeed(int $seed): string
     {
-        $keys = array_keys(HomeContent::PAGE_HEROES);
+        // بلا «إنجازاتنا»: نقشها العام نفسه، فلا يتكرر في الشبكة ولا يتغير تعاقب البطاقات القائم
+        $keys = array_values(array_diff(array_keys(HomeContent::PAGE_HEROES), ['achievements']));
 
         return asset(self::DIRECTORY.'/'.$keys[abs($seed) % count($keys)].'.svg');
     }

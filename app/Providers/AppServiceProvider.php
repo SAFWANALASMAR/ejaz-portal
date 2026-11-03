@@ -51,6 +51,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
@@ -76,6 +77,11 @@ class AppServiceProvider extends ServiceProvider
      * سمات سكربت Livewire في صفحات التنقّل السريع (SpaLink::currentPage).
      */
     private const NAVIGATE_SCRIPT_ATTRIBUTES = ['defer' => true, 'data-navigate-track' => 'reload'];
+
+    /**
+     * علامة في الطلب برقم الصفحة الحالية من قائمة مرقّمة رُسمت فيه (التخطيط العام: canonical والعنوان).
+     */
+    public const PAGINATED_PAGE = 'seo.paginated_page';
 
     /**
      * Register any application services.
@@ -174,6 +180,20 @@ class AppServiceProvider extends ServiceProvider
         // الروابط المطلقة (asset وroute وurl) من APP_URL لا من رأس Host في الطلب، فلا يُسمَّم
         // ما يُخزَّن من HTML (ContentCache) بنطاق آخر. ويرفض trustHosts المضيف المجهول في الإنتاج
         URL::forceRootUrl((string) config('app.url'));
+
+        // رقم الصفحة كما يقرؤه لارافيل، ويُعلَّم في الطلب أن قائمة مرقّمة رُسمت فيه: التخطيط العام يضع الرقم في canonical
+        // والعنوان لهذا الطلب وحده، لا لكل رابط فيه ?page (مراجعة محركات البحث، 3 نوفمبر 2026)
+        Paginator::currentPageResolver(function (string $pageName = 'page'): int {
+            $request = $this->app->make('request');
+            $page = $request->input($pageName);
+            $page = filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1 ? (int) $page : 1;
+
+            if ($pageName === 'page') {
+                $request->attributes->set(self::PAGINATED_PAGE, $page);
+            }
+
+            return $page;
+        });
 
         if ($this->app->isProduction()) {
             URL::forceScheme('https');

@@ -26,6 +26,13 @@ class Document extends Model
     /** @use HasFactory<DocumentFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'description'];
+
     public const DIRECTORY = 'documents';
 
     /**

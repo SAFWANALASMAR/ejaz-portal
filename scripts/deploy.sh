@@ -71,6 +71,12 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   say "٧/١١ الأدوار والصلاحيات من config/permissions.php"
   # آمن للتكرار: ينشئ الأدوار الجديدة ويزامن صلاحيات كل دور (RolesSeeder ثم PermissionsSeeder)
   php artisan db:seed --class=AccessSeeder --force
+  # القائمة الرئيسية بسبعة عناصر (MainMenuSevenSeeder، النسخة 0.15): مرة واحدة على الخادم بعلامة في .deploy-state، فلا يعيد كل
+  # نشر ترتيب ما رتّبه المحرر في «القائمة» ولا يخفي ما أظهره بعدها (كما في scripts/deploy-compose.sh)
+  if [ ! -f .deploy-state/main-menu-seven ]; then
+    php artisan db:seed --class=MainMenuSevenSeeder --force
+    mkdir -p .deploy-state && touch .deploy-state/main-menu-seven
+  fi
 else
   say "٦-٧/١١ الترحيل والبذر متخطيان على هذا الخادم (RUN_MIGRATIONS=false)"
 fi

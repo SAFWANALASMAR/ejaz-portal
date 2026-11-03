@@ -67,6 +67,12 @@ class ResetPasswordByPhone
         // يفرق ردها ولا توقيتها بين رقم مسجل وغيره. وكلمة المرور المرفوضة لا تستهلك الرمز ولا تعدّ محاولة
         $this->verify->consume($user, (string) $input['code'], SendPhoneVerificationCode::RESET, $messages,
             function () use ($input, $user): void {
+                // بعد إعادة ضبط التحقق الثنائي من الإدارة تُعيَّن كلمة المرور برابط البريد الموثق وحده (قرار المشرف، 3 نوفمبر
+                // 2026 — ResetTwoFactorByAdmin)، فمن ادّعى فقد جواله لا يعيّنها برمز جوال بيده. ولا يصل هذا الرد إلا من يملك الرمز
+                if ($user->must_set_password_at !== null) {
+                    throw ValidationException::withMessages(['code' => __('users.reset_two_factor.phone_reset_refused')]);
+                }
+
                 Validator::make($input, ['password' => PasswordPolicy::rules($user->name, $user->email, $user->phone, username: $user->username)])->validate();
             });
 

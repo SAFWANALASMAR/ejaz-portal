@@ -73,7 +73,7 @@
             </div>
         @elseif ($document->file !== null)
             <div class="concept-panel hidden overflow-hidden lg:block" data-document-viewer>
-                <p class="flex items-center gap-2.5 bg-primary-dark px-4 py-3 text-sm font-bold text-white">
+                <p class="flex items-center gap-2.5 bg-primary px-4 py-3 text-sm font-bold text-white">
                     <x-icon-tile icon="document-text" variant="glass" size="xs" />
                     {{ $document->title }}
                 </p>
