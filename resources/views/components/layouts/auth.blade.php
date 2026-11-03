@@ -9,7 +9,7 @@
     <div class="auth-stage relative isolate overflow-hidden py-12 sm:py-17">
         <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" aria-hidden="true" width="1440" height="960"
             class="absolute inset-0 -z-10 size-full scale-110 object-cover blur-md">
-        <div class="absolute inset-0 -z-10 bg-primary-dark/80" aria-hidden="true"></div>
+        <div class="absolute inset-0 -z-10 bg-primary/85" aria-hidden="true"></div>
 
         <div class="relative mx-auto w-full max-w-[28.75rem] px-4">
             <div class="form-sky overflow-hidden rounded-[1.75rem] text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]" data-auth-card>

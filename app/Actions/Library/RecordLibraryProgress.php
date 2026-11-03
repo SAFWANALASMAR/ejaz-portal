@@ -121,7 +121,9 @@ class RecordLibraryProgress
         $seen = [...$seen, ...$taken];
         $count = count(array_unique($seen));
 
-        Cache::put($key, $clock + count($taken) * self::SECONDS_PER_PAGE, self::CLOCK_TTL);
+        // الساعة تتقدم بعد حفظ التقدّم وحده، فلا يُستهلك رصيد بلاغ تراجعت معاملته
+        $advanced = $clock + count($taken) * self::SECONDS_PER_PAGE;
+        DB::afterCommit(fn () => Cache::put($key, $advanced, self::CLOCK_TTL));
 
         $progress->forceFill([
             'pages_seen' => PageSet::encode($seen),
@@ -154,7 +156,8 @@ class RecordLibraryProgress
         $base = (float) Cache::get($key, $now);
         $start = max($base, $now - $seconds);
         $credit = (int) max(0, min($seconds, floor($now + self::SECONDS_SLACK - $start)));
-        Cache::put($key, max($base, $start + $credit), self::CLOCK_TTL);
+        $advanced = max($base, $start + $credit);
+        DB::afterCommit(fn () => Cache::put($key, $advanced, self::CLOCK_TTL));
 
         // المدة الأكبر المبلَّغ عنها، للعرض وحده
         $duration = max($progress->duration_seconds ?? 0, $data['duration'] ?? 0) ?: null;

@@ -192,11 +192,11 @@ return [
     'online_statuses' => [
         'linked' => 'مرتبط',
         'pending' => 'قيد المزامنة',
-        'failed' => 'متعذر',
+        'failed' => 'متعذّر',
         'manual' => 'رابط يدوي',
     ],
 
-    // سبب تعذر الربط على الاجتماع وفي «اختبار الاتصال» (OnlineMeetingFailure)، وما يفعله المسؤول
+    // سبب تعذّر الربط على الاجتماع وفي «اختبار الاتصال» (OnlineMeetingFailure)، وما يفعله المسؤول
     'online_failures' => [
         'not_configured' => 'ربط تيمز غير مضبوط',
         'invalid_credentials' => 'رفضت Microsoft بيانات التطبيق',

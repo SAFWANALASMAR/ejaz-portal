@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EvidenceGalleries;
 
 use App\Enums\ArchiveItemType;
+use App\Enums\EvidenceLinkStatus;
 use App\Filament\Concerns\HasTranslatedLabels;
 use App\Filament\Resources\EvidenceGalleries\Pages\CreateEvidenceGallery;
 use App\Filament\Resources\EvidenceGalleries\Pages\EditEvidenceGallery;
@@ -123,21 +124,17 @@ class EvidenceGalleryResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->withCount(['items', 'visits']))
+            // المُصدر مع الصفوف: حالة كل رابط تقرأ حسابه (EvidenceLinkStatus)، فلا استعلام لكل صف
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('issuer')->withCount(['items', 'visits']))
             ->columns([
                 TextColumn::make('title')->label(__('evidence.fields.title'))->searchable()->wrap(),
                 TextColumn::make('status')
                     ->label(__('evidence.fields.link'))
                     ->badge()
-                    ->state(fn (EvidenceGallery $record): string => __('evidence.status.'.self::status($record)))
-                    ->color(fn (EvidenceGallery $record): string => match (self::status($record)) {
-                        'active' => 'success',
-                        'none' => 'gray',
-                        default => 'danger',
-                    }),
+                    ->state(fn (EvidenceGallery $record): EvidenceLinkStatus => self::status($record)),
                 TextColumn::make('expires_at')->label(__('evidence.fields.expires_at'))->dateTime('Y-m-d H:i')->placeholder('—'),
-                TextColumn::make('items_count')->label(__('evidence.fields.items')),
-                TextColumn::make('visits_count')->label(__('evidence.fields.visits')),
+                TextColumn::make('items_count')->label(__('evidence.fields.items'))->numeric(),
+                TextColumn::make('visits_count')->label(__('evidence.fields.visits'))->numeric(),
                 TextColumn::make('created_at')->label(__('evidence.fields.created_at'))->date('Y-m-d')->sortable(),
             ])
             ->filters([TrashedFilter::make()])
@@ -148,14 +145,9 @@ class EvidenceGalleryResource extends Resource
             ]);
     }
 
-    public static function status(EvidenceGallery $gallery): string
+    public static function status(EvidenceGallery $gallery): EvidenceLinkStatus
     {
-        return match (true) {
-            $gallery->token_hash === null => 'none',
-            $gallery->revoked_at !== null => 'revoked',
-            $gallery->expires_at !== null && ! $gallery->expires_at->isFuture() => 'expired',
-            default => 'active',
-        };
+        return EvidenceLinkStatus::of($gallery);
     }
 
     /**

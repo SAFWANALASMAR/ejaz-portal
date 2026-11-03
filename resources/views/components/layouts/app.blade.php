@@ -6,6 +6,9 @@
     'noindex' => false,
     // false: بلا canonical ولا og:url، لصفحة في رابطها سر (معرض الشواهد)
     'canonical' => true,
+    // article لصفحة الخبر، مع وقت نشره (og:type وarticle:published_time)
+    'ogType' => 'website',
+    'publishedTime' => null,
     // false: صفحة في مسار صفحة ثابتة تعرض غيرها (بوابة الأعضاء في assembly.index)، فلا يغلب عليها عنوان «محرر الصفحات» ووصفه
     'editable' => true,
 ])
@@ -17,8 +20,16 @@
     $editablePage = $editable ? \App\Support\EditablePages::live(request()->route()?->getName()) : [];
     $title = $editablePage['title'] ?? $title;
     $description = ($editablePage['summary'] ?? null) ?: $description;
-    $pageTitle = $title ? $title.' | '.__('site.short_name') : $siteName;
+    // الصفحة التالية من قائمة مرقّمة رُسمت في الطلب (AppServiceProvider::PAGINATED_PAGE): رقمها في العنوان، وفي canonical
+    // ما لم تكن في الطلب تصفية (فالمصفّاة تشير إلى الأصل كما كانت). وصفحة بلا ترقيم لا يغيّرها ?page
+    $paginated = request()->attributes->get(\App\Providers\AppServiceProvider::PAGINATED_PAGE);
+    $pageNumber = is_int($paginated) && $paginated > 1 ? $paginated : null;
+    $titleText = $title && $pageNumber ? $title.' - '.__('site.page_number', ['number' => $pageNumber]) : $title;
+    $pageTitle = $titleText ? $titleText.' | '.__('site.short_name') : $siteName;
     $pageDescription = $description ?: __('site.description');
+    $canonicalUrl = url()->current().($pageNumber && array_keys(request()->query()) === ['page'] ? '?page='.$pageNumber : '');
+    $shareImage = \App\Support\ShareImage::url($image);
+    $defaultShareImage = \App\Support\ShareImage::isDefault($shareImage);
 @endphp
 
 <!DOCTYPE html>
@@ -34,19 +45,28 @@
     @endif
     @stack('head')
     @if ($canonical)
-        <link rel="canonical" href="{{ url()->current() }}">
+        <link rel="canonical" href="{{ $canonicalUrl }}">
     @endif
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{{ $ogType === 'article' ? 'article' : 'website' }}">
+    @if ($ogType === 'article' && filled($publishedTime))
+        <meta property="article:published_time" content="{{ $publishedTime }}">
+    @endif
     <meta property="og:locale" content="ar_SA">
     <meta property="og:site_name" content="{{ $siteName }}">
-    <meta property="og:title" content="{{ $title ?? $siteName }}">
+    <meta property="og:title" content="{{ $titleText ?? $siteName }}">
     <meta property="og:description" content="{{ $pageDescription }}">
     @if ($canonical)
-        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:url" content="{{ $canonicalUrl }}">
     @endif
-    <meta property="og:image" content="{{ \App\Support\ShareImage::url($image) }}">
-    <meta name="twitter:image" content="{{ \App\Support\ShareImage::url($image) }}">
-    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:image" content="{{ $shareImage }}">
+    {{-- الصورة الافتراضية شعار شبه مربع: بأبعاده ونصه البديل، وبطاقة summary الصغيرة لا الكبيرة فلا يُقص --}}
+    @if ($defaultShareImage)
+        <meta property="og:image:width" content="{{ \App\Support\ShareImage::DEFAULT_WIDTH }}">
+        <meta property="og:image:height" content="{{ \App\Support\ShareImage::DEFAULT_HEIGHT }}">
+        <meta property="og:image:alt" content="{{ __('site.share_image_alt', ['name' => $siteName]) }}">
+    @endif
+    <meta name="twitter:image" content="{{ $shareImage }}">
+    <meta name="twitter:card" content="{{ $defaultShareImage ? 'summary' : 'summary_large_image' }}">
     <meta name="theme-color" content="#1F4565">
     @include('partials.favicons')
     @fonts

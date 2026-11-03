@@ -34,7 +34,7 @@
                         @else
                             <span class="relative shrink-0" aria-hidden="true">
                                 <x-icon-tile icon="flag" />
-                                <span class="keep-color absolute -top-1.5 -start-1.5 grid size-6 place-items-center rounded-full bg-primary-dark text-xs font-bold text-white ring-2 ring-white">{{ Number::format($loop->iteration) }}</span>
+                                <span class="keep-color absolute -top-1.5 -start-1.5 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-white ring-2 ring-white">{{ Number::format($loop->iteration) }}</span>
                             </span>
                         @endif
                         <div class="space-y-1">

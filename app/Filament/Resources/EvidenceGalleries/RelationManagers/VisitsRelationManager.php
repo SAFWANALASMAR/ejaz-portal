@@ -27,6 +27,8 @@ class VisitsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('evidence.fields.visit'))
+            ->pluralModelLabel(__('evidence.fields.visits'))
             ->defaultSort('visited_at', 'desc')
             ->columns([
                 TextColumn::make('visited_at')->label(__('evidence.fields.visited_at'))->dateTime('Y-m-d H:i'),

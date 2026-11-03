@@ -28,6 +28,13 @@ class NewsArticle extends Model implements HasPublicImages
     /** @use HasFactory<NewsArticleFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'summary', 'blocks'];
+
     public const IMAGE_DIRECTORY = 'news';
 
     /**

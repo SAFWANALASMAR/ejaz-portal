@@ -43,9 +43,24 @@ function a11yToken(string $name): string
  */
 function a11yToneCard(string $tone): array
 {
-    preg_match("/\.tone-card\[data-tone='".$tone."'\]\s*\{\s*--tc-from:\s*(#[0-9a-f]{6});\s*--tc-via:\s*(#[0-9a-f]{6});\s*--tc-to:\s*(#[0-9a-f]{6});\s*--tc-text:\s*(#[0-9a-f]{6});/", a11yCss('concept.css'), $match);
+    $value = '(#[0-9a-f]{6}|var\(--[a-z0-9-]+\))';
+    preg_match("/\.tone-card\[data-tone='".$tone."'\]\s*\{\s*--tc-from:\s*{$value};\s*--tc-via:\s*{$value};\s*--tc-to:\s*{$value};\s*--tc-text:\s*{$value};/", a11yCss('concept.css'), $match);
 
-    return isset($match[4]) ? array_slice($match, 1) : throw new RuntimeException("Missing tone card {$tone}");
+    return isset($match[4]) ? array_map(a11yResolve(...), array_slice($match, 1)) : throw new RuntimeException("Missing tone card {$tone}");
+}
+
+/**
+ * يحل var(--name) إلى قيمته السداسية من app.css، ولو عبر رموز متتابعة (ملاحظة المدير التنفيذي ٢٩: البطاقة الداكنة برموز --mid-*).
+ */
+function a11yResolve(string $value): string
+{
+    for ($depth = 0; str_starts_with($value, 'var(') && $depth < 5; $depth++) {
+        $name = substr($value, 4, -1);
+        preg_match('/'.preg_quote($name, '/').':\s*([^;]+);/', a11yCss('app.css'), $match) || throw new RuntimeException("Missing token {$name}");
+        $value = strtolower(trim($match[1]));
+    }
+
+    return preg_match('/^#[0-9a-f]{6}$/', $value) === 1 ? $value : throw new RuntimeException("Unresolved colour {$value}");
 }
 
 /**

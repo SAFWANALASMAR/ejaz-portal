@@ -171,7 +171,7 @@
 
     /* القسم الداكن: لون الهوية بدوائر باهتة ثابتة (لا حركة مستمرة: مراجعة المشرف على #95) */
     .section-dark {
-        @apply relative isolate overflow-hidden bg-primary-dark text-white;
+        @apply relative isolate overflow-hidden bg-primary text-white;
         background-image:
             radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--color-brand) 35%, transparent), transparent 45%),
             radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--color-accent) 35%, transparent), transparent 45%);
@@ -754,7 +754,7 @@ html[data-motion-off] [data-words-ready] [data-word] {
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    background: var(--color-primary-dark);
+    background: var(--mid-from);
     color: var(--color-white);
     transition:
         background-color 200ms,
@@ -762,7 +762,7 @@ html[data-motion-off] [data-words-ready] [data-word] {
 }
 
 .carousel-arrow:hover {
-    background: var(--color-primary);
+    background: var(--color-secondary);
     transform: scale(calc(1 + 0.06 * var(--motion)));
 }
 
@@ -878,7 +878,8 @@ html[data-motion-off] [data-words-ready] [data-word] {
 
 /* ── شريط العودة ── */
 .back-nav {
-    background: var(--color-primary-deep);
+    /* بين الرأس والمحتوى، فأخف من الرأس (ملاحظة المدير التنفيذي ٢٩) */
+    background: var(--blue-850);
     border-bottom: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
 }
 
