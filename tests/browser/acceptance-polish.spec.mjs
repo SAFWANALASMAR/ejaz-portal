@@ -3,7 +3,7 @@
 //   وواتساب والحسابات) — تُدخل من «إعدادات الموقع» في البيئة المحلية قبل التشغيل، وإلا تخطى الاختبار قياسه.
 // - صور الرئيسية والمركز الإعلامي بعرض وارتفاع صريحين، فلا تزاح الصفحة عند تحميلها.
 // - «شارك واربح» في بطل مسابقة الطلاب بعرض كامل تقريباً على الجوال (COMPETITION_SLUG، الافتراضي brahin-1448).
-// - نقاط الدوّارات أهداف لمس 44 بكسل على الجوال.
+// - نقاط الدوّارات أهداف لمس 44 بكسل، ومركز كل نقطة لها لا لجارتها (elementFromPoint) على العروض الثلاثة.
 //
 // التشغيل (مع الأصول المبنية):
 // docker compose run --rm --no-deps -e VITE_HOST=none -e COMPETITION_SLUG=brahin-1448 browser \
@@ -13,8 +13,12 @@ import { expect, test } from '@playwright/test';
 const SLUG = process.env.COMPETITION_SLUG ?? 'brahin-1448';
 
 async function visit(page, path) {
-    const response = await page.goto(path, { waitUntil: 'networkidle' });
+    // الشجرة ثم «load» وهدوء الشبكة بمهلتين قصيرتين: الرئيسية على 1440 و820 فيها صور خارجية لا تكتمل في الحاوية، فكان الانتظار
+    // يتجاوز 90 ثانية. والفحوص هنا للتخطيط والسمات، لا لاكتمال تحميل الصور الخارجية
+    const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), path).toBe(200);
+    await page.waitForLoadState('load', { timeout: 20_000 }).catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
     // إظهار ما يظهر بالتمرير، فيُقاس كل عنصر في مكانه النهائي
     await page.evaluate(() => document.documentElement.removeAttribute('data-reveal-ready'));
 }
@@ -64,6 +68,8 @@ test('١٥: the floating assistant leaves the footer rights row whole on desktop
 });
 
 test('images on the home and media pages carry width and height', async ({ page }) => {
+    // صفحتان، والأولى بطيئة في الحاوية الباردة على 1440
+    test.setTimeout(240_000);
     for (const path of ['/', '/media']) {
         await visit(page, path);
         const missing = await page.locator('main img').evaluateAll((images) => images
@@ -90,7 +96,7 @@ test('the «شارك واربح» button fills the mobile width under the prize 
 });
 
 // كل زر نقطة ظاهر: ارتفاعه 44 على الأقل، وعرضه 44 (أو 24 في الدوّار الصغير داخل بطاقات الهوية، بفاصل بينها — المعيار 2.5.8)،
-// ونقطته المرسومة صغيرة داخل بطاقته، ونقاط مركزه وأطرافه له وحده لا لجاره (document.elementFromPoint — مراجعة المشرف على #131)
+// ونقطته المرسومة صغيرة داخل بطاقته، ونقاط مركزه وأطرافه له وحده لا لجاره (document.elementFromPoint — مراجعة المشرف على طلب الدمج 131)
 async function touchTargets(page, selector) {
     // الحركة موقوفة، فلا يتحرك الصف بين القياس والفحص
     await page.addStyleTag({ content: '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }' });
@@ -101,9 +107,16 @@ async function touchTargets(page, selector) {
             element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
             const box = element.getBoundingClientRect();
             const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
-            const frame = (element.closest('.home-card') ?? element.closest('[data-carousel]') ?? element.closest('[data-slides]')).getBoundingClientRect();
-            const visible = x > 0 && x < window.innerWidth && x > frame.left && x < frame.right;
             const points = [[x, y], [box.left + 2, y], [box.right - 2, y], [x, box.top + 2], [x, box.bottom - 2]];
+            // يُفحص الزر الظاهر كله: داخل النافذة وداخل كل أب يقص ما خارجه (البطاقة، وصندوق الشريط المتحرك الذي يمر بالبطاقات
+            // فيقص الطرفية منها على 820). والمقصوص لا يُلمس هناك، فلا يُحسب تراكباً
+            const clips = [{ left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight }];
+            for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+                if (getComputedStyle(parent).overflow !== 'visible') {
+                    clips.push(parent.getBoundingClientRect());
+                }
+            }
+            const visible = points.every(([px, py]) => clips.every((clip) => px > clip.left && px < clip.right && py > clip.top && py < clip.bottom));
             const misses = points.filter(([px, py]) => {
                 const hit = document.elementFromPoint(px, py);
                 return !(hit === element || element.contains(hit));
@@ -138,16 +151,15 @@ function expectTargets(targets, what) {
     expect(targets.filter((target) => target.visible).length, `${what}: نقاط فُحصت بـ elementFromPoint`).toBeGreaterThan(0);
 }
 
-test('carousel dots are touch targets of their own on mobile, with a small drawn dot', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'أهداف اللمس على الجوال');
+// على العروض الثلاثة (1440 و820 و390): مراجعة المشرف على طلب الدمج 131
+test('carousel dots are touch targets of their own, with a small drawn dot', async ({ page }) => {
     await visit(page, '/');
     const targets = await touchTargets(page, '[data-carousel-dot]');
     expectTargets(targets, 'الرئيسية');
     await expectRtlNoScroll(page, '/');
 });
 
-test('the Brahin guide dots stay in one row of own touch targets at 390', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'أهداف اللمس على الجوال');
+test('the Brahin guide dots stay in one row of own touch targets', async ({ page }) => {
     await visit(page, `/competitions/${SLUG}`);
     test.skip((await page.locator('[data-slide-dot]').count()) < 2, 'لا دليل دخول في هذه المسابقة');
 
