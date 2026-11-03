@@ -23,7 +23,7 @@
     $joinable = fn ($meeting): bool => $meeting->is_online && filled($meeting->online_join_url);
 @endphp
 
-<x-layouts.app :title="__('assembly.title')">
+<x-layouts.app :title="__('assembly.title')" :editable="$portal === null">
     @if ($portal === null)
         <x-page-hero :title="__('assembly.title')" />
         <x-page-sections />

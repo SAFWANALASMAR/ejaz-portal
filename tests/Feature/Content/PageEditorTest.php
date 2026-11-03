@@ -14,6 +14,7 @@ use App\Filament\Resources\ContentPages\ContentPageResource;
 use App\Filament\Resources\SitePages\Pages\EditSitePage;
 use App\Filament\Resources\SitePages\RelationManagers\RevisionsRelationManager;
 use App\Filament\Resources\SitePages\SitePageResource;
+use App\Models\AssemblyMembership;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Models\Setting;
@@ -23,6 +24,7 @@ use App\Support\HomeContent;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -509,4 +511,114 @@ it('publishes about with its visible sections only', function () {
     app(PublishPageDraft::class)->handle($this->admin, $page);
 
     $this->get('/about')->assertOk()->assertSee('عن جمعية إعجاز')->assertSee('نص القسم الأول')->assertDontSee('نص القسم الثاني');
+});
+
+/*
+| متابعة مراجعة المشرف على #124 (fix/v0.15-review-lows-2)
+*/
+
+it('reads the revision images of every page with one query that returns paths only', function () {
+    $page = editablePage($this->admin);
+    $other = editablePage($this->admin, 'contact');
+    $hero = uploadedPublicImage('settings');
+    $picture = uploadedPublicImage('pages');
+    $card = uploadedPublicImage('pages');
+    $elsewhere = uploadedPublicImage('pages');
+
+    app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['image' => $hero, 'blocks' => [
+        ['type' => 'image', 'data' => ['picture' => $picture]],
+        ['type' => 'cards', 'data' => ['items' => [['title' => 'بطاقة', 'picture' => $card]]]],
+    ]]));
+    app(SavePageDraft::class)->handle($this->admin, $other, pageDraft(['blocks' => [['type' => 'image', 'data' => ['picture' => $elsewhere]]]]));
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $owned = EditablePages::ownedImages([]);
+    $queries = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'page_revisions'));
+    DB::disableQueryLog();
+
+    expect($owned)->toEqualCanonicalizing([$hero, $picture, $card, $elsewhere])
+        ->and($queries)->toHaveCount(1)
+        ->and($queries->first())->not->toContain('select *')
+        ->and(EditablePages::knownImages($page))->toEqualCanonicalizing([$hero, $picture, $card])
+        ->and(EditablePages::foreignImages($page))->toContain($elsewhere)->not->toContain($picture);
+});
+
+it('keeps only the known fields of each section type in the draft', function () {
+    $page = editablePage($this->admin);
+
+    $draft = app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'عنوان', 'body' => '<p>نص</p>', 'extra' => 'لا يُحفظ', 'picture' => 'pages/x.png']],
+        ['type' => 'cards', 'data' => ['items' => [['title' => 'بطاقة', 'secret' => 'لا يُحفظ']]]],
+    ]]));
+
+    expect(array_keys($draft->content['blocks'][0]['data']))->toEqualCanonicalizing(['visible', 'heading', 'body'])
+        ->and(array_keys($draft->content['blocks'][1]['data']))->toEqualCanonicalizing(['visible', 'items'])
+        ->and(array_keys($draft->content['blocks'][1]['data']['items'][0]))->toBe(['title']);
+});
+
+it('refuses to attach the site settings image to a page', function () {
+    $image = uploadedPublicImage('settings');
+    Setting::put('home', ['hero_image' => $image]);
+    $page = editablePage($this->admin);
+
+    expect(fn () => app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['image' => $image])))
+        ->toThrow(ValidationException::class);
+    Storage::disk('public')->assertExists($image);
+});
+
+it('creates the page records on the first list visit only, never again on a later GET', function () {
+    $counts = fn (): array => [Page::query()->count(), PageRevision::query()->count(), Activity::query()->where('description', 'page_revision_initial')->count()];
+    expect($counts())->toBe([0, 0, 0]);
+
+    $this->actingAs($this->admin)->get(SitePageResource::getUrl('index'))->assertOk();
+    $before = $counts();
+    expect($before)->toBe(array_fill(0, 3, count(EditablePages::PAGES)));
+
+    $this->get(SitePageResource::getUrl('index'))->assertOk();
+    $this->get(SitePageResource::getUrl('open', ['key' => 'programs']))->assertRedirect();
+
+    expect($counts())->toBe($before);
+});
+
+it('previews a draft without a header image over the neutral image of its own page', function () {
+    $page = editablePage($this->admin, 'governance');
+    $draft = app(SavePageDraft::class)->handle($this->admin, $page, pageDraft());
+
+    $this->actingAs($this->admin)->get($draft->previewUrl())->assertOk()
+        ->assertSee(asset('images/placeholders/pages/governance.svg'), false)
+        ->assertDontSee(asset('images/placeholders/pages/default.svg'), false);
+});
+
+it('keeps the published assembly page title off the members portal', function () {
+    $page = editablePage($this->admin, 'assembly');
+    app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['title' => 'عنوان الجمعية المنشور']));
+    app(PublishPageDraft::class)->handle($this->admin, $page);
+
+    $this->get('/assembly')->assertOk()->assertSee('<title>عنوان الجمعية المنشور', false);
+
+    $member = AssemblyMembership::factory()->create()->user;
+    $this->actingAs($member)->get('/assembly')->assertOk()
+        ->assertSee('data-board-portal', false)
+        ->assertSee('<title>'.__('assembly.title'), false)
+        ->assertDontSee('عنوان الجمعية المنشور');
+
+    // ولا زر «تعديل هذه الصفحة» على البوابة لمحرر عضو، لأنها ليست الصفحة التي يفتحها
+    $editor = userWithRole(RoleName::TechnicalAdmin);
+    AssemblyMembership::factory()->for($editor)->create();
+    $this->actingAs($editor)->get('/assembly')->assertOk()
+        ->assertSee('data-board-portal', false)
+        ->assertDontSee('data-page-edit-button', false);
+});
+
+it('strips scripts and javascript links from a published section', function () {
+    $page = editablePage($this->admin);
+    app(SavePageDraft::class)->handle($this->admin, $page, pageDraft(['blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'قسم', 'body' => '<p>نص آمن</p><script>alert(1)</script><p><a href="javascript:alert(2)">رابط</a></p>']],
+    ]]));
+    app(PublishPageDraft::class)->handle($this->admin, $page);
+
+    $html = $this->get('/programs')->assertOk()->assertSee('نص آمن')->getContent();
+
+    expect($html)->not->toContain('<script>alert(1)')->not->toContain('javascript:alert(2)');
 });
