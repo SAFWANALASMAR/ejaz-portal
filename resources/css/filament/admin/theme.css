@@ -80,6 +80,11 @@ html:not(.dark) .fi-body {
     .fi-topbar .fi-logo {
         display: none;
     }
+
+    /* ورابطه معه: كان يبقى في ترتيب التركيز بلا اسم (فحص الوصول 0.15، axe: link-name) */
+    .fi-topbar-start > a:has(> .fi-logo) {
+        display: none;
+    }
 }
 
 .ej-sidebar-brand {
@@ -318,7 +323,8 @@ html:not(.dark) {
  * عناوين عناصر الرئيسية بمربع أيقونة بدل الشريط (البند N2 من تدقيق القبول، 2 نوفمبر): مربع متدرج كـ .gt في الموقع
  * (x-icon-tile)، بالدرجة الغامقة ورسم أبيض. للعناصر التي أُعطي قسمها أيقونة وحدها، فلا تتغير أقسام النماذج.
  */
-.fi-wi-widget .fi-section-header > .fi-icon {
+.fi-wi-widget .fi-section-header > .fi-icon,
+.fi-wi-widget .ej-heading-tile > .fi-icon {
     box-sizing: content-box;
     flex-shrink: 0;
     width: 1.25rem;
@@ -338,6 +344,22 @@ html:not(.dark) {
     & .fi-section-header-heading::before {
         content: none;
     }
+}
+
+/* رسم الزيارات: قالب الرسم في Filament لا يمرر أيقونة لقسمه، فالمربع داخل العنوان (VisitsChartWidget::getHeading) */
+.fi-wi-widget .fi-section-header-heading:has(> .ej-heading-tile) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    &::before {
+        content: none;
+    }
+}
+
+.ej-heading-tile {
+    display: inline-flex;
+    flex-shrink: 0;
 }
 
 /* صندوق «المستندات ذات الصلاحية» بتدرج أزرق فاتح لا أبيض (البند G2 من تدقيق القبول) */
@@ -624,4 +646,9 @@ html.dark .fi-header-heading {
     .fi-wi-stats-overview-stat:hover .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
         transform: none;
     }
+}
+
+/* وصف القسم في رئيسية اللوحة بالرمادي الأغمق: الرمادي 500 على خلفية الصفحة #D6E7F6 كان 3.8:1 والحد 4.5 (فحص الوصول 0.15) */
+html:not(.dark) .fi-section-header-description {
+    color: var(--gray-600);
 }

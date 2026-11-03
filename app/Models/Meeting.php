@@ -52,7 +52,7 @@ class Meeting extends Model
      *
      * @var array<string, mixed>
      */
-    protected $attributes = ['body' => 'general_assembly', 'online_generation' => 0, 'online_create_pending' => false];
+    protected $attributes = ['body' => 'general_assembly', 'online_generation' => 0, 'online_create_pending' => false, 'online_join_manual' => false];
 
     public const MINUTES_DIRECTORY = 'meeting-minutes';
 
@@ -69,6 +69,7 @@ class Meeting extends Model
             'ends_at' => 'datetime',
             'is_online' => 'boolean',
             'online_join_url' => 'encrypted',
+            'online_join_manual' => 'boolean',
             'online_sync_error' => OnlineMeetingFailure::class,
             'online_sync_failed_at' => 'datetime',
             'online_generation' => 'integer',
@@ -251,7 +252,8 @@ class Meeting extends Model
      */
     public function wantsOnlineMeeting(): bool
     {
-        return $this->is_online && $this->status !== MeetingStatus::Cancelled && ! $this->trashed();
+        // الرابط اليدوي يغني عن تيمز: لا يُنشأ له اجتماع، ويُلغى ما كان له قبله
+        return $this->is_online && ! $this->online_join_manual && $this->status !== MeetingStatus::Cancelled && ! $this->trashed();
     }
 
     /**
