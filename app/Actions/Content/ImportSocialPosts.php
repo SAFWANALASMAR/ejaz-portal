@@ -11,11 +11,16 @@ use App\Rules\SafeUrl;
 use App\Rules\SocialPostUrl;
 use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\FormulaCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Reader\CSV\Options as CsvOptions;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
+use OpenSpout\Reader\XLSX\Options as XlsxOptions;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use OpenSpout\Writer\XLSX\Writer;
 use Spatie\Activitylog\Support\CauserResolver;
@@ -25,10 +30,10 @@ use ZipArchive;
 
 /**
  * استيراد «منشوراتنا» دفعة واحدة من ملف إكسل أو CSV (طلب صفوان، 3 نوفمبر 2026): كل صف صحيح منشور مسودة، والصف المرفوض
- * يُذكر برقمه وسببه ولا يوقف غيره. والرابط لا يتكرر: لا رابط منشور قائم، ولا رابط تكرر في الملف نفسه. ورابط الصورة يُحفظ
- * مرجعاً للمحرر ولا يُجلب، فلا اتصال من الخادم بالمنصات.
+ * يُذكر برقمه في الملف وسببه ولا يوقف غيره. والرابط لا يتكرر بعد تسويته (SocialPostUrl::normalize): لا رابط منشور قائم، ولا
+ * رابط تكرر في الملف نفسه. ورابط الصورة يُحفظ مرجعاً للمحرر ولا يُجلب، فلا اتصال من الخادم بالمنصات.
  *
- * الأعمدة بترتيبها بعد صف العناوين: المنصة، النوع، التاريخ (YYYY-MM-DD)، الرابط، النص، رابط الصورة (اختياري).
+ * الأعمدة بترتيب القالب بعد صف عناوينه: المنصة، النوع، التاريخ (YYYY-MM-DD)، الرابط، النص، رابط الصورة (اختياري).
  */
 class ImportSocialPosts
 {
@@ -36,8 +41,12 @@ class ImportSocialPosts
 
     public const MAX_BODY = 5000;
 
-    // حجم ملف إكسل بعد فك الضغط: ألف منشور بنصوصها أقل من هذا بكثير
+    private const COLUMNS = 6;
+
+    // حجم ملف إكسل بعد فك الضغط كما يعلنه الأرشيف (الرافع محرر موثوق، والحد يرد الخطأ لا المهاجم): ألف منشور أقل من هذا بكثير
     private const MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024;
+
+    private const MAX_CSV_BYTES = 5 * 1024 * 1024;
 
     /**
      * يعيد عدد المسودات المضافة، والصفوف المرفوضة برقمها في الملف وسببها.
@@ -45,7 +54,7 @@ class ImportSocialPosts
      * @return array{created: int, rejected: list<array{row: int, reason: string}>}
      *
      * @throws AuthorizationException
-     * @throws ValidationException ملف لا يُقرأ، أو فارغ، أو فوق الحد
+     * @throws ValidationException ملف لا يُقرأ، أو فارغ، أو بغير أعمدة القالب، أو فوق الحد
      */
     public function handle(User $actor, string $path, string $extension): array
     {
@@ -54,14 +63,15 @@ class ImportSocialPosts
         }
 
         $rows = $this->read($path, strtolower($extension));
+        $urls = array_map(fn (array $cells): string => SocialPostUrl::normalize($cells[3]), $rows);
+        $existing = array_flip(SocialPost::query()->whereIn('url', array_values(array_unique($urls)))->pluck('url')->all());
         $rejected = [];
         $valid = [];
-        $seen = [];
 
         foreach ($rows as $number => $cells) {
-            [$platformCell, $kindCell, $date, $url, $body, $image] = $cells;
+            [$platformCell, $kindCell, $date, , $body, $image] = $cells;
+            $url = $urls[$number];
             $platform = SocialPlatform::fromCell($platformCell);
-            $url = SocialPostUrl::normalize($url);
 
             $data = [
                 'platform' => $platform,
@@ -80,7 +90,7 @@ class ImportSocialPosts
                 'body' => ['required', 'string', 'max:'.self::MAX_BODY, new PlainText(multiline: true)],
                 'source_image_url' => ['nullable', 'string', 'max:'.SocialPostUrl::MAX_LENGTH, new SafeUrl(allowInternal: false)],
             ], [
-                'platform.required' => __('social_posts.import.platform'),
+                'platform.required' => __('social_posts.import.platform', ['platforms' => self::platforms()]),
                 'kind.required' => __('social_posts.import.kind'),
             ], [
                 'posted_on' => __('social_posts.fields.posted_on'),
@@ -90,30 +100,43 @@ class ImportSocialPosts
             ]);
 
             if ($validator->fails()) {
-                $rejected[] = ['row' => $number, 'reason' => (string) $validator->errors()->first()];
+                $rejected[$number] = (string) $validator->errors()->first();
 
                 continue;
             }
 
-            if (isset($seen[$url]) || SocialPost::query()->where('url', $url)->exists()) {
-                $rejected[] = ['row' => $number, 'reason' => __('social_posts.import.duplicate')];
+            if (isset($existing[$url])) {
+                $rejected[$number] = __('social_posts.import.duplicate');
 
                 continue;
             }
 
-            $seen[$url] = true;
-            $valid[] = [...$data, 'is_published' => false];
+            $existing[$url] = true;
+            $valid[$number] = [...$data, 'is_published' => false];
         }
 
-        app(CauserResolver::class)->withCauser($actor, function () use ($valid): void {
-            DB::transaction(function () use ($valid): void {
-                foreach ($valid as $data) {
-                    SocialPost::query()->create($data);
+        $created = 0;
+
+        app(CauserResolver::class)->withCauser($actor, function () use ($valid, &$rejected, &$created): void {
+            DB::transaction(function () use ($valid, &$rejected, &$created): void {
+                foreach ($valid as $number => $data) {
+                    // كل صف في نقطة حفظ: منشور أُضيف برابطه بين الفحص والإدراج (استيراد أو حفظ متزامن) يُرفض صفه مكرراً وحده
+                    try {
+                        DB::transaction(fn () => SocialPost::query()->create($data));
+                        $created++;
+                    } catch (UniqueConstraintViolationException) {
+                        $rejected[$number] = __('social_posts.import.duplicate');
+                    }
                 }
             });
         });
 
-        return ['created' => count($valid), 'rejected' => $rejected];
+        ksort($rejected);
+
+        return [
+            'created' => $created,
+            'rejected' => array_map(fn (int $row, string $reason): array => ['row' => $row, 'reason' => $reason], array_keys($rejected), array_values($rejected)),
+        ];
     }
 
     /**
@@ -138,8 +161,16 @@ class ImportSocialPosts
     }
 
     /**
+     * أسماء المنصات المقبولة في عمود المنصة، لرسالة الرفض وشرح الاستيراد.
+     */
+    public static function platforms(): string
+    {
+        return implode('، ', array_map(fn (SocialPlatform $platform): string => $platform->getLabel(), SocialPlatform::cases()));
+    }
+
+    /**
      * صفوف البيانات بعد صف العناوين، برقم الصف في الملف، والخلايا نصوصاً مشذبة (والتاريخ من خلية إكسل YYYY-MM-DD). والصف
-     * الفارغ يُتخطى.
+     * الفارغ يُتخطى ويبقى رقمه، فيطابق رقم الصف المرفوض رقمه في الملف.
      *
      * @return array<int, list<string>>
      *
@@ -148,37 +179,71 @@ class ImportSocialPosts
     private function read(string $path, string $extension): array
     {
         $reader = match ($extension) {
-            'xlsx' => new XlsxReader,
-            'csv', 'txt' => new CsvReader,
-            default => throw ValidationException::withMessages(['file' => __('social_posts.import.unreadable')]),
+            'xlsx' => $this->xlsxReader($path),
+            'csv', 'txt' => $this->csvReader($path),
+            default => throw self::fileError('unreadable'),
         };
-
-        // حجم الملف بعد فك ضغطه قبل فتحه: ملايين الصفوف الفارغة المضغوطة في ملف صغير تستنزف المعالج
-        $size = $reader instanceof XlsxReader ? self::uncompressedSize($path) : 0;
-
-        if ($size === null) {
-            throw ValidationException::withMessages(['file' => __('social_posts.import.unreadable')]);
-        }
-
-        if ($size > self::MAX_UNCOMPRESSED_BYTES) {
-            throw ValidationException::withMessages(['file' => __('social_posts.import.too_many', ['max' => self::MAX_ROWS])]);
-        }
-
-        $rows = [];
 
         try {
             $rows = $this->rows($reader, $path);
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable) {
-            throw ValidationException::withMessages(['file' => __('social_posts.import.unreadable')]);
+            throw self::fileError('unreadable');
         }
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['file' => __('social_posts.import.empty')]);
+            throw self::fileError('empty');
         }
 
         return $rows;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function xlsxReader(string $path): XlsxReader
+    {
+        // حجم الملف بعد فك ضغطه قبل فتحه: ملايين الصفوف الفارغة المضغوطة في ملف صغير تستنزف المعالج
+        $size = self::uncompressedSize($path);
+
+        if ($size === null) {
+            throw self::fileError('unreadable');
+        }
+
+        if ($size > self::MAX_UNCOMPRESSED_BYTES) {
+            throw self::fileError('too_many', ['max' => self::MAX_ROWS]);
+        }
+
+        $options = new XlsxOptions;
+        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
+
+        return new XlsxReader($options);
+    }
+
+    /**
+     * CSV بترميز UTF-8، وفاصله الفاصلة أو الفاصلة المنقوطة (إكسل بإعدادات إقليمية) من صف العناوين.
+     *
+     * @throws ValidationException
+     */
+    private function csvReader(string $path): CsvReader
+    {
+        $contents = (string) file_get_contents($path, length: self::MAX_CSV_BYTES + 1);
+
+        if (strlen($contents) > self::MAX_CSV_BYTES) {
+            throw self::fileError('too_many', ['max' => self::MAX_ROWS]);
+        }
+
+        if (! mb_check_encoding($contents, 'UTF-8')) {
+            throw self::fileError('unreadable');
+        }
+
+        $header = strtok($contents, "\n") ?: '';
+        $options = new CsvOptions;
+        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
+        $options->FIELD_DELIMITER = substr_count($header, ';') > substr_count($header, ',') ? ';' : ',';
+
+        return new CsvReader($options);
     }
 
     /**
@@ -193,20 +258,25 @@ class ImportSocialPosts
 
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $index => $row) {
+                $cells = array_pad(array_map(self::cell(...), array_slice($row->getCells(), 0, self::COLUMNS)), self::COLUMNS, '');
+
+                // صف العناوين أولاً بأعمدة القالب، فلا يُفقد صف بيانات بصمت ولا تُرفض الصفوف كلها بسبب غير سببها
                 if ($index === 1) {
+                    if (array_map(fn (string $cell): string => (string) preg_replace('/^\x{FEFF}/u', '', $cell), $cells) !== self::headings()) {
+                        throw self::fileError('header', ['columns' => implode('، ', self::headings())]);
+                    }
+
                     continue;
                 }
-
-                $cells = array_map(self::cell(...), array_slice($row->toArray(), 0, 6));
 
                 if (implode('', $cells) === '') {
                     continue;
                 }
 
-                $rows[$index] = array_pad($cells, 6, '');
+                $rows[$index] = $cells;
 
                 if (count($rows) > self::MAX_ROWS) {
-                    throw ValidationException::withMessages(['file' => __('social_posts.import.too_many', ['max' => self::MAX_ROWS])]);
+                    throw self::fileError('too_many', ['max' => self::MAX_ROWS]);
                 }
             }
 
@@ -219,20 +289,29 @@ class ImportSocialPosts
     }
 
     /**
-     * الخلية نصاً مشذباً، والتاريخ من خلية إكسل بصيغة YYYY-MM-DD. والخلية التي حماها التصدير من الصيغ بفاصلة عليا تعود كما
-     * كانت (كاستيراد بنك الأسئلة — ImportStudentQuestions).
+     * الخلية نصاً مشذباً: قيمة خلية الصيغة المحسوبة لا نصها، والتاريخ من خلية إكسل بصيغة YYYY-MM-DD.
      */
-    private static function cell(mixed $value): string
+    private static function cell(Cell $cell): string
     {
+        $value = $cell instanceof FormulaCell ? $cell->getComputedValue() : $cell->getValue();
+
         if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d');
         }
 
-        return (string) preg_replace("/^'(?=[\\s\\x{00A0}\\x{FEFF}]*[=+\\-@\\t\\r])/u", '', trim(is_scalar($value) ? (string) $value : ''));
+        return trim(is_scalar($value) ? (string) $value : '');
     }
 
     /**
-     * مجموع أحجام ملفات الأرشيف بعد فك الضغط (xlsx أرشيف zip)، وnull إن لم يُقرأ أرشيفاً.
+     * @param  array<string, mixed>  $replace
+     */
+    private static function fileError(string $key, array $replace = []): ValidationException
+    {
+        return ValidationException::withMessages(['file' => __('social_posts.import.'.$key, $replace)]);
+    }
+
+    /**
+     * مجموع أحجام ملفات الأرشيف بعد فك الضغط كما يعلنها (xlsx أرشيف zip)، وnull إن لم يُقرأ أرشيفاً.
      */
     private static function uncompressedSize(string $path): ?int
     {

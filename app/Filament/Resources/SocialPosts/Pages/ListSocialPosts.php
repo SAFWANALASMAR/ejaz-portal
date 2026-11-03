@@ -33,7 +33,7 @@ class ListSocialPosts extends ListRecords
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('gray')
                 ->authorize('create', SocialPost::class)
-                ->modalDescription(__('social_posts.import.hint'))
+                ->modalDescription(__('social_posts.import.hint', ['platforms' => ImportSocialPosts::platforms()]))
                 ->schema([
                     FileUpload::make('file')->label(__('social_posts.import.file'))->required()->storeFiles(false)
                         ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'])

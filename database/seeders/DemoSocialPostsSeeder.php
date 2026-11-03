@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostKind;
 use App\Models\SocialPost;
+use App\Rules\SocialPostUrl;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -27,15 +28,15 @@ class DemoSocialPostsSeeder extends Seeder
 
         $posts = [
             [SocialPlatform::X, SocialPostKind::Post, 'https://x.com/ejaz-demo/status/1'],
-            [SocialPlatform::Instagram, SocialPostKind::Event, 'https://www.instagram.com/p/ejaz-demo-2'],
-            [SocialPlatform::YouTube, SocialPostKind::Post, 'https://www.youtube.com/watch?v=ejaz-demo-3'],
-            [SocialPlatform::LinkedIn, SocialPostKind::Event, 'https://www.linkedin.com/posts/ejaz-demo-4'],
-            [SocialPlatform::Snapchat, SocialPostKind::Post, 'https://www.snapchat.com/add/ejaz-demo-5'],
-            [SocialPlatform::TikTok, SocialPostKind::Post, 'https://www.tiktok.com/@ejaz-demo/video/6'],
+            [SocialPlatform::Instagram, SocialPostKind::Event, 'https://instagram.com/p/ejaz-demo-2'],
+            [SocialPlatform::YouTube, SocialPostKind::Post, 'https://youtube.com/watch?v=ejaz-demo-3'],
+            [SocialPlatform::LinkedIn, SocialPostKind::Event, 'https://linkedin.com/posts/ejaz-demo-4'],
+            [SocialPlatform::Snapchat, SocialPostKind::Post, 'https://snapchat.com/add/ejaz-demo-5'],
+            [SocialPlatform::TikTok, SocialPostKind::Post, 'https://tiktok.com/@ejaz-demo/video/6'],
         ];
 
         foreach ($posts as $index => [$platform, $kind, $url]) {
-            SocialPost::query()->updateOrCreate(['url' => $url], [
+            SocialPost::query()->updateOrCreate(['url' => SocialPostUrl::normalize($url)], [
                 'platform' => $platform,
                 'kind' => $kind,
                 'body' => self::MARK.' '.($index + 1).' — نص للعرض وحده، يحل محله منشور الجمعية من اللوحة أو الاستيراد.',

@@ -115,7 +115,7 @@ it('creates a post with its image as a logged draft, and shows it once published
 
     $post = SocialPost::query()->sole();
 
-    expect($post->url)->toBe('https://www.instagram.com/p/ABC123')
+    expect($post->url)->toBe('https://instagram.com/p/ABC123')
         ->and($post->uuid)->not->toBeEmpty()
         ->and($post->image)->toStartWith(SocialPost::IMAGE_DIRECTORY.'/')
         ->and(Storage::disk('public')->exists($post->image))->toBeTrue()
@@ -192,13 +192,13 @@ it('imports valid rows as drafts and reports the rejected and duplicate rows wit
 
     expect($result['created'])->toBe(2)
         ->and(array_column($result['rejected'], 'row'))->toBe([4, 5, 6, 7, 8, 9, 10])
-        ->and($result['rejected'][0]['reason'])->toBe(__('social_posts.import.platform'))
+        ->and($result['rejected'][0]['reason'])->toBe(__('social_posts.import.platform', ['platforms' => ImportSocialPosts::platforms()]))
         ->and($result['rejected'][1]['reason'])->toBe(__('social_posts.import.kind'))
         ->and($result['rejected'][3]['reason'])->toContain('x.com')
         ->and($result['rejected'][4]['reason'])->toBe(__('social_posts.import.duplicate'))
         ->and($result['rejected'][5]['reason'])->toBe(__('social_posts.import.duplicate'));
 
-    $imported = SocialPost::query()->where('url', 'https://www.instagram.com/p/XYZ')->sole();
+    $imported = SocialPost::query()->where('url', 'https://instagram.com/p/XYZ')->sole();
 
     expect($imported->is_published)->toBeFalse()
         ->and($imported->platform)->toBe(SocialPlatform::Instagram)
@@ -245,11 +245,90 @@ it('imports through the admin action, and refuses an empty or unreadable file', 
     @unlink($path);
 });
 
-it('does not let a user without the permission import, nor see the import action', function () {
+it('does not let a user without the permission import, nor show the import buttons to the read-only super admin', function () {
     expect(fn () => importSocialCsv([['إكس', 'منشور', '2026-10-01', 'https://x.com/ejaz/status/9', 'نص', '']], userWithRole(RoleName::Secretary)))
         ->toThrow(AuthorizationException::class);
 
     expect(SocialPost::query()->count())->toBe(0);
+
+    // المشرف العام اطلاع فقط: يرى القائمة بلا إنشاء ولا استيراد
+    $this->actingAs(userWithRole(RoleName::SuperAdmin));
+    $this->get(SocialPostResource::getUrl('index'))->assertOk();
+    $this->get(SocialPostResource::getUrl('create'))->assertForbidden();
+    Livewire::test(ListSocialPosts::class)->assertActionHidden('import')->assertActionHidden('template');
+});
+
+it('counts every copy of the same post as one link: tracking parameters, letter case, www, m. and twitter.com', function () {
+    SocialPost::factory()->create(['url' => 'https://www.instagram.com/p/ABC/?igsh=first']);
+
+    $result = importSocialCsv([
+        ['إنستغرام', 'منشور', '2026-10-01', 'https://instagram.com/p/ABC?igsh=second', 'نسخة', ''],
+        ['إنستغرام', 'منشور', '2026-10-01', 'https://WWW.Instagram.com/p/ABC/#comments', 'نسخة', ''],
+        ['إكس', 'منشور', '2026-10-01', 'https://twitter.com/ejaz/status/5?s=20&t=abc', 'تغريدة', ''],
+        ['تويتر', 'منشور', '2026-10-01', 'https://mobile.x.com/ejaz/status/5?s=46', 'تغريدة', ''],
+        ['يوتيوب', 'منشور', '2026-10-01', 'https://m.youtube.com/watch?v=abc&feature=share', 'مقطع', ''],
+        ['يوتيوب', 'منشور', '2026-10-01', 'https://www.youtube.com/watch?si=x&v=def', 'مقطع آخر', ''],
+    ]);
+
+    expect($result['created'])->toBe(3)
+        ->and(array_column($result['rejected'], 'row'))->toBe([2, 3, 5])
+        ->and(SocialPost::query()->pluck('url')->sort()->values()->all())->toBe([
+            'https://instagram.com/p/ABC',
+            'https://x.com/ejaz/status/5',
+            'https://youtube.com/watch?v=abc',
+            'https://youtube.com/watch?v=def',
+        ]);
+});
+
+it('refuses redirect pages that lead off the platform', function (string $platform, string $url) {
+    expect(SocialPostUrl::matches(SocialPostUrl::normalize($url), SocialPlatform::from($platform)))->toBeFalse();
+})->with([
+    ['facebook', 'https://l.facebook.com/l.php?u=https://evil.example'],
+    ['instagram', 'https://l.instagram.com/?u=https://evil.example'],
+    ['youtube', 'https://www.youtube.com/redirect?q=https://evil.example'],
+    ['linkedin', 'https://www.linkedin.com/redir/redirect?url=https://evil.example'],
+]);
+
+it('reports the real file row after a blank row, reads a semicolon CSV, and refuses a file without the template header', function () {
+    $path = tempnam(sys_get_temp_dir(), 'social');
+    $header = implode(';', ImportSocialPosts::headings());
+    file_put_contents($path, "\u{FEFF}{$header}\nإكس;منشور;2026-10-01;https://x.com/ejaz/status/1;نص;\n\n\nإكس;منشور;خطأ;https://x.com/ejaz/status/2;نص;\n");
+
+    $result = app(ImportSocialPosts::class)->handle(userWithRole(RoleName::ContentEditor), $path, 'csv');
+
+    expect($result['created'])->toBe(1)
+        ->and(array_column($result['rejected'], 'row'))->toBe([5]);
+
+    file_put_contents($path, "إكس,منشور,2026-10-01,https://x.com/ejaz/status/3,نص,\n");
+
+    expect(fn () => app(ImportSocialPosts::class)->handle(userWithRole(RoleName::ContentEditor), $path, 'csv'))
+        ->toThrow(ValidationException::class, __('social_posts.import.header', ['columns' => implode('، ', ImportSocialPosts::headings())]));
+
+    @unlink($path);
+});
+
+it('refuses more than the row limit, and records the importer as the causer', function () {
+    $rows = array_map(fn (int $i): array => ['إكس', 'منشور', '2026-10-01', 'https://x.com/ejaz/status/'.$i, 'نص', ''], range(1, ImportSocialPosts::MAX_ROWS + 1));
+
+    expect(fn () => importSocialCsv($rows))->toThrow(ValidationException::class, __('social_posts.import.too_many', ['max' => ImportSocialPosts::MAX_ROWS]));
+    expect(SocialPost::query()->count())->toBe(0);
+
+    $editor = userWithRole(RoleName::ContentEditor);
+    importSocialCsv([['إكس', 'منشور', '2026-10-01', 'https://x.com/ejaz/status/1', 'نص', '']], $editor);
+
+    expect(Activity::query()->whereMorphedTo('subject', SocialPost::query()->sole())->where('event', 'created')->value('causer_id'))->toBe($editor->id);
+});
+
+it('lists the rejected rows in the admin notification and downloads the template', function () {
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(ListSocialPosts::class)
+        ->callAction('import', data: ['file' => UploadedFile::fake()->createWithContent('posts.csv', socialCsv([
+            ['ماستودون', 'منشور', '2026-10-01', 'https://x.com/ejaz/status/1', 'نص', ''],
+        ]))])
+        ->assertNotified(__('social_posts.import.rejected_title', ['count' => 1]));
+
+    Livewire::test(ListSocialPosts::class)->callAction('template')->assertFileDownloaded('social-posts-template.xlsx');
 });
 
 it('shows the published posts only, newest first, with the platform, date, excerpt and a safe outbound link', function () {
@@ -266,7 +345,7 @@ it('shows the published posts only, newest first, with the platform, date, excer
         ->assertSee('datetime="2026-10-01"', false)
         ->getContent();
 
-    expect($html)->toContain('href="https://www.instagram.com/p/new" target="_blank" rel="noopener noreferrer"')
+    expect($html)->toContain('href="https://instagram.com/p/new" target="_blank" rel="noopener noreferrer"')
         ->and($html)->not->toContain('<iframe')
         ->and($html)->not->toMatch('#<script[^>]+src="https?://(?!'.preg_quote((string) parse_url((string) config('app.url'), PHP_URL_HOST), '#').')#');
 });

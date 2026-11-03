@@ -44,18 +44,31 @@ enum SocialPlatform: string implements HasLabel
     }
 
     /**
-     * المنصة من خلية الاستيراد: اسمها العربي أو قيمتها اللاتينية.
+     * كتابات شائعة لأسماء المنصات في ملفات الاستيراد، بلا مسافات، غير التسمية المعتمدة.
+     */
+    private const ALIASES = [
+        'تويتر' => self::X, 'twitter' => self::X,
+        'انستقرام' => self::Instagram, 'إنستقرام' => self::Instagram, 'انستغرام' => self::Instagram, 'انستجرام' => self::Instagram,
+        'سناب' => self::Snapchat,
+        'تيكتوك' => self::TikTok,
+        'لينكدان' => self::LinkedIn, 'لينكدإن' => self::LinkedIn,
+        'فيسبوك' => self::Facebook, 'فيس' => self::Facebook,
+        'وتساب' => self::WhatsApp,
+    ];
+
+    /**
+     * المنصة من خلية الاستيراد: اسمها العربي، أو قيمتها اللاتينية، أو كتابة شائعة لها، بلا اعتبار للمسافات وحالة الأحرف.
      */
     public static function fromCell(string $cell): ?self
     {
-        $cell = trim($cell);
+        $key = mb_strtolower((string) preg_replace('/\s+/u', '', $cell));
 
         foreach (self::cases() as $platform) {
-            if ($cell === $platform->getLabel() || strtolower($cell) === $platform->value) {
+            if ($key === (string) preg_replace('/\s+/u', '', $platform->getLabel()) || $key === $platform->value) {
                 return $platform;
             }
         }
 
-        return null;
+        return self::ALIASES[$key] ?? null;
     }
 }

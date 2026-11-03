@@ -1,7 +1,7 @@
 // «منشوراتنا» (docs/decisions/2026-11-04-social-posts.md): الصفحة العامة والبلاطة في المركز الإعلامي، من اليمين بلا تمرير أفقي، وروابط
-// المنشورات في تبويب جديد بـ noopener noreferrer، ولا إطار ولا سكربت من المنصات. على عرضي 1440 و390 (المشروعان desktop وmobile):
+// المنشورات في تبويب جديد بـ noopener noreferrer، ولا إطار ولا سكربت من المنصات. على العروض الثلاثة 1440 و820 و390، والبلاطات على 1280 أيضاً:
 //   docker compose exec -T app php artisan db:seed --class=DemoSocialPostsSeeder
-//   docker compose run --rm --no-deps -e VITE_HOST=none browser npx playwright test --config=tests/browser/playwright.config.mjs social-posts.spec.mjs --project=desktop --project=mobile
+//   docker compose run --rm --no-deps -e VITE_HOST=none browser npx playwright test --config=tests/browser/playwright.config.mjs social-posts.spec.mjs
 // واللقطات في docs/design/screenshots/social-posts/<الشاشة>-<العرض>.png.
 import { expect, test } from '@playwright/test';
 
@@ -16,7 +16,6 @@ test.describe('social posts', () => {
     test.beforeEach(async ({ page }, testInfo) => {
         // بلا حركة الظهور، فتُلتقط البطاقات كاملة لا في منتصف ظهورها
         await page.emulateMedia({ reducedMotion: 'reduce' });
-        test.skip(!['desktop', 'mobile'].includes(testInfo.project.name), '1440 و390 وحدهما');
     });
 
     test('the page lists the posts with safe outbound links, filters by platform, and embeds nothing', async ({ page }, testInfo) => {
@@ -53,5 +52,14 @@ test.describe('social posts', () => {
 
         await expectNoHorizontalScroll(page);
         await page.locator('[data-media-tiles]').screenshot({ path: shot('media-tiles', testInfo) });
+
+        // البلاطات الخمس في صف واحد على أضيق حاسوب: لا يلتف اسم ولا يفيض
+        if (testInfo.project.name === 'desktop') {
+            await page.setViewportSize({ width: 1280, height: 900 });
+            await expectNoHorizontalScroll(page);
+            const tops = await page.locator('[data-media-tiles] > li').evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
+            expect(new Set(tops).size).toBe(1);
+            await page.locator('[data-media-tiles]').screenshot({ path: 'docs/design/screenshots/social-posts/media-tiles-1280.png' });
+        }
     });
 });
