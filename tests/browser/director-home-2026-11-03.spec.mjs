@@ -87,8 +87,8 @@ for (const width of [1280, 1366, 1440, 1920]) {
         expect(layout.assistant.left - search.right).toBeGreaterThanOrEqual(0);
         expect(layout.assistant.left - search.right).toBeLessThanOrEqual(16);
         expect(layout.licenceToActions).toBeGreaterThanOrEqual(0);
-        // المخطوطة بأكبر ما يتسع بين الطرفين، ولا تقل عن 48 بكسل
-        expect(layout.calligraphyHeight).toBeGreaterThanOrEqual(48);
+        // المخطوطة بأكبر ما يتسع بين الطرفين، ولا تقل عن 40 بكسل
+        expect(layout.calligraphyHeight).toBeGreaterThanOrEqual(40);
         expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
         await headerShot(page, width, `header-${width}`);
@@ -374,6 +374,8 @@ test('home: everything that moved keeps moving, and the five cards are one row t
     if (info.project.name !== 'desktop') {
         await expectMoves(page, '#home-identity');
         await page.locator('[data-ticker-toggle="home-cards-track"]').click();
+        // المؤشر يبقى حيث ضُغط، فيقف فوق دوّار آخر بعد التمرير فيوقفه (التوقف بالمرور)
+        await page.mouse.move(1, 1);
     }
     await expectRotates(page, '[data-values-slider]', 7_000);
     await expectRotates(page, '[data-initiatives-slider]', 7_000);

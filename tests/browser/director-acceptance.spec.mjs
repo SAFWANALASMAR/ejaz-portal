@@ -1240,7 +1240,7 @@ test.describe('acceptance v0.15.0: home', () => {
         await expectRtlNoScroll(page, '/');
     });
 
-    test('٢٧ وR6 وR11 و٨ و٩: five cards (three then two wide), each a link, and «مبادراتنا» rotates all initiatives', async ({ page }, testInfo) => {
+    test('٢٧ وR6 وR11 و٨ و٩: five cards in one row, each a link, and «مبادراتنا» rotates all initiatives', async ({ page }, testInfo) => {
         await visit(page, '/');
         // الأصل وحده: على الجوال تُكرَّر البطاقات نسخة مخفية (aria-hidden) للشريط المتحرك (R19)
         const cards = page.locator('#home-identity [data-identity-card]:not([aria-hidden="true"] *):not([aria-hidden="true"])');
@@ -1250,11 +1250,9 @@ test.describe('acceptance v0.15.0: home', () => {
         }
         expect(await page.locator('[data-identity-card="initiatives"] [data-initiative-slide]').count(), 'المبادرات الخمس').toBeGreaterThanOrEqual(5);
         if (testInfo.project.name === 'desktop') {
+            // صف واحد ثابت (توجيه المدير التنفيذي، 3 نوفمبر 2026 — director-home-2026-11-03.spec.mjs)، بدل ثلاث ثم اثنتين
             const tops = await cards.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-            expect(tops[0]).toBe(tops[1]);
-            expect(tops[1]).toBe(tops[2]);
-            expect(tops[3]).toBeGreaterThan(tops[0]);
-            expect(tops[3]).toBe(tops[4]);
+            expect(new Set(tops).size).toBe(1);
         }
         await expectRtlNoScroll(page, '/');
     });
