@@ -67,6 +67,8 @@ class DrawsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.draws.model'))
+            ->pluralModelLabel(__('competitions.draws.plural'))
             // قائمة المشمولين (قد تبلغ عشرات الآلاف) لا تُقرأ في الجدول، بل في صفحة السحب وحدها
             ->modifyQueryUsing(fn ($query) => $query->with(['executor', 'void.voider', 'void.approver', 'voidRequest'])
                 ->select(['id', 'uuid', 'competition_id', 'seed', 'entrants_hash', 'entrants_count', 'winners_count', 'winners', 'executed_by', 'executed_at', 'round_id', 'category_id', 'tie_score', 'gender']))

@@ -61,6 +61,8 @@ class FieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.student.admin.field_model'))
+            ->pluralModelLabel(__('competitions.student.admin.fields'))
             ->defaultSort('sort_order')
             ->columns([
                 TextColumn::make('label')->label(__('competitions.student.field_attributes.label'))->weight('bold'),
