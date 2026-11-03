@@ -53,7 +53,7 @@ it('centres the incomplete last row of the service tiles', function () {
     expect($this->get('/services')->assertOk()->getContent())->toMatch('/<ul class="[^"]*\btile-grid\b/u');
 });
 
-it('lays the beneficiary cards in one column on mobile and two fixed columns from the tablet up (Safwan, #142)', function () {
+it('lays the beneficiary cards in one column on mobile and two fixed columns from the tablet up (Safwan, PR 142)', function () {
     $list = (string) str($this->actingAs(User::factory()->create())->get('/account')->assertOk()->getContent())
         ->match('/<ul class="([^"]*)"[^>]*data-account-cards/u');
 

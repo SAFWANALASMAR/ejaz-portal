@@ -86,7 +86,7 @@ test.describe('account', () => {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto('/account');
 
-        // بطاقات لوحة المستفيد: عمود واحد على الجوال، وعمودان ثابتان على اللوحي والحاسوب (قرار صفوان على #142)
+        // بطاقات لوحة المستفيد: عمود واحد على الجوال، وعمودان ثابتان على اللوحي والحاسوب (قرار صفوان على طلب الدمج 142)
         const columns = await page.locator('[data-account-cards]').evaluate((list) => new Set([...list.children]
             .map((item) => Math.round(item.getBoundingClientRect().left))).size);
         expect(columns, 'أعمدة بطاقات المستفيد').toBe(info.project.name === 'mobile' ? 1 : 2);
@@ -135,7 +135,7 @@ test('note 30 pages: board portal', async ({ page }, info) => {
     await page.screenshot({ path: `${dir}/${prefix}-board-portal-${info.project.name}.png`, fullPage: true });
 });
 
-// الحد 68ch على أبناء النص المنسق لا على حاويته (مراجعة المشرف على #142): جدول عريض في المقطع يبقى بعرض الحاوية، والفقرة بجانبه
+// الحد 68ch على أبناء النص المنسق لا على حاويته (مراجعة المشرف على طلب الدمج 142): جدول عريض في المقطع يبقى بعرض الحاوية، والفقرة بجانبه
 // مقيدة. والجدول يُضاف في الصفحة نفسها، لأن تنقية النص (RichText) لا تحفظ الجداول اليوم، والقاعدة تحمي ما يأتي بعدها.
 test('note 30 pages: a wide table in a text section is not capped at 68ch', async ({ page }) => {
     const response = await page.goto('/media/news/qa-news-1');
