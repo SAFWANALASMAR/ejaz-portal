@@ -493,4 +493,22 @@ return [
         'labels' => ['assembly.title', 'assembly.meetings.title', 'assembly.meetings.details', 'assembly.meetings.join', 'assembly.minutes.title', 'assembly.files.title', 'assembly.index.join', 'services.requests.title'],
     ],
 
+    // ——— الحساب (أُضيف آخراً، فلا يأخذ ترتيب مقال مبذور قبله — AssistantGuideSeeder) ———
+
+    [
+        'slug' => 'two-factor-lost-phone',
+        'title' => 'رمز التحقق الثنائي لا يُقبل، أو ضاع جوالي، كيف أدخل؟',
+        'keywords' => 'التحقق الثنائي الرمز لا يقبل رمز خاطئ ضاع الجوال تعطل التطبيق جوال جديد رموز الاسترداد Google Authenticator Microsoft Authenticator',
+        'route' => 'account.security',
+        'steps' => [
+            'رمز التطبيق يتغير كل 30 ثانية، فاكتب الرمز الظاهر الآن. وإن لم يُقبل فتأكد أن الوقت في جوالك مضبوط تلقائياً من إعداداته.',
+            'إن ضاع الجوال أو تعطّل التطبيق، ففي شاشة رمز التحقق عند الدخول اضغط «استخدم رمز استرداد بدلاً من ذلك»، واكتب أحد رموز الاسترداد التي حفظتها. وكل رمز يُستخدم مرة واحدة.',
+            'بعد الدخول افتح «بياناتي» ثم تبويب «الأمان»، واضغط «توليد رموز جديدة» واحفظها في مكان غير الجوال.',
+            'ولتنقل التحقق إلى جوال جديد اضغط «إيقاف التحقق الثنائي» ثم «تفعيل التحقق الثنائي» وامسح الرمز الجديد. وإن كان إلزامياً لصلاحياتك الإدارية فلا يُوقف من الصفحة، فالنسخ في التطبيق هو ما ينقل رمزك.',
+            'إن فقدت الجوال ورموز الاسترداد معاً، فتواصل مع الجمعية من صفحة «تواصل معنا»، ويعيد مدير النظام ضبط التحقق بعد التحقق من هويتك.',
+            'ولتنتقل الرموز مع جوالك الجديد، فعّل النسخ في التطبيق: في Google Authenticator بالدخول بحساب Google، وفي Microsoft Authenticator بتشغيل النسخ الاحتياطي من إعداداته.',
+        ],
+        'labels' => ['account.two_factor_challenge.use_recovery', 'account.nav.profile', 'account.security.title', 'account.security.regenerate', 'account.security.disable', 'account.security.enable', 'contact.title'],
+    ],
+
 ];

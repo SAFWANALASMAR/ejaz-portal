@@ -175,6 +175,7 @@ return [
     'youtube_url' => 'يجب أن يكون رابط المقطع رابط يوتيوب، لأن هذا الموضع لا يعرض غيره.',
     'safe_url' => 'يجب أن يكون :attribute مساراً داخلياً يبدأ بـ / أو رابطاً كاملاً يبدأ بـ https://',
     'safe_external_url' => 'يجب أن يكون :attribute رابطاً كاملاً آمناً يبدأ بـ https://',
+    'meeting_join_url' => 'يجب أن يكون رابط الاجتماع رابطاً كاملاً يبدأ بـ https:// من مايكروسوفت تيمز (teams.microsoft.com أو teams.live.com) أو زووم (zoom.us) أو جوجل ميت (meet.google.com).',
 
     'custom' => [],
 

@@ -67,6 +67,8 @@ class AgendaItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('registers.agenda.model'))
+            ->pluralModelLabel(__('registers.agenda.plural'))
             ->defaultSort('position')
             ->modifyQueryUsing(fn ($query) => $query->with(['assignee', 'meeting']))
             ->columns([

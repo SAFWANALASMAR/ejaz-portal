@@ -68,6 +68,8 @@ class PassagesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.student.admin.passage_model'))
+            ->pluralModelLabel(__('competitions.student.admin.passages'))
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'category'])->withCount('questions'))
             ->columns([
                 TextColumn::make('round.name')->label(__('competitions.student.question_attributes.round_id')),

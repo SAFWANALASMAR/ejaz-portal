@@ -46,7 +46,7 @@
                 @if ($meeting->is_online && ! $cancelled)
                     <div class="mt-6">
                         @if (filled($meeting->online_join_url))
-                            <x-button :href="$meeting->online_join_url" target="_blank" rel="noopener noreferrer" arrow>{{ __('assembly.meetings.join') }}</x-button>
+                            <x-button :href="$meeting->online_join_url" target="_blank" rel="noopener noreferrer" arrow>{{ __($meeting->online_join_manual ? 'assembly.meetings.join_manual' : 'assembly.meetings.join') }}</x-button>
                         @else
                             <p class="text-sm text-muted">{{ __('assembly.meetings.link_pending') }}</p>
                         @endif
@@ -57,7 +57,7 @@
             @if (filled($meeting->agenda))
                 <x-card class="mt-6">
                     <h2 class="text-lg font-bold text-primary">{{ __('assembly.meetings.agenda') }}</h2>
-                    <p class="mt-3 leading-8 whitespace-pre-line text-ink">{{ $meeting->agenda }}</p>
+                    <p class="measure mt-3 leading-8 whitespace-pre-line text-ink">{{ $meeting->agenda }}</p>
                 </x-card>
             @endif
 

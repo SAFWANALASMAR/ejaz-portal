@@ -71,7 +71,7 @@
                     @if (filled($competition->{$field}))
                         <div>
                             <x-section-heading>{{ __('competitions.show.'.$field) }}</x-section-heading>
-                            <p class="mt-4 leading-8 whitespace-pre-line text-ink">{{ $competition->{$field} }}</p>
+                            <p class="measure mt-4 leading-8 whitespace-pre-line text-ink">{{ $competition->{$field} }}</p>
                         </div>
                     @endif
                 @endforeach

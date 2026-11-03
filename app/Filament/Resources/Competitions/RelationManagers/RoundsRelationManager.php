@@ -85,6 +85,8 @@ class RoundsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modelLabel(__('competitions.student.admin.round_model'))
+            ->pluralModelLabel(__('competitions.student.admin.rounds'))
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->withCount([
                     'attempts as started_count',
