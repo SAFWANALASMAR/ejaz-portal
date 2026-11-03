@@ -18,7 +18,7 @@
 
     $variants = [
         // الممتلئة بلمعة عند المرور وتموّج عند الضغط (.btn-shine — التحسين البصري)
-        'primary' => 'btn-shine bg-primary text-white shadow-sm hover:bg-primary-dark',
+        'primary' => 'btn-shine bg-primary text-white shadow-sm hover:bg-secondary',
         'outline' => 'border border-primary bg-white text-primary hover:bg-primary-soft',
         'accent' => 'btn-shine bg-accent text-white shadow-sm hover:bg-accent-dark',
         'secondary' => 'border border-line bg-white text-primary hover:border-primary',

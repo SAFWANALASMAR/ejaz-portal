@@ -17,7 +17,7 @@
             data-label-remaining="{{ __('assistant.widget.remaining') }}">
 
             <button type="button" data-assistant-toggle aria-expanded="false" aria-controls="assistant-panel"
-                class="fixed bottom-4 end-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                class="fixed bottom-4 end-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 {{ \App\Support\Icon::svg('chat-bubble-left-right', 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
                 <span class="sr-only sm:not-sr-only">{{ __('assistant.widget.open') }}</span>
             </button>
@@ -76,7 +76,7 @@
                             placeholder="{{ __('assistant.widget.placeholder') }}"
                             class="block min-h-12 w-full resize-none rounded-xl border border-muted/70 bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"></textarea>
                         <button type="submit" data-assistant-send
-                            class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60">
+                            class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60">
                             {{ \App\Support\Icon::svg('paper-airplane', 'size-5 -scale-x-100', ['aria-hidden' => 'true']) }}
                             <span class="sr-only">{{ __('assistant.widget.send') }}</span>
                         </button>
@@ -129,7 +129,7 @@
                 </template>
 
                 <template data-assistant-template="go">
-                    <a class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    <a class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                         <span data-label>{{ __('assistant.widget.go') }}</span>
                         {{ \App\Support\Icon::svg('arrow-left', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                     </a>

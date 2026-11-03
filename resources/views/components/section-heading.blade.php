@@ -38,6 +38,6 @@
         @endif
     </div>
     @if (filled($description))
-        <p class="text-lg text-[var(--concept-text)] sm:text-xl [.section-dark_&]:text-white/80">{{ $description }}</p>
+        <p class="text-lg text-[var(--concept-text)] sm:text-xl [.section-dark_&]:text-white">{{ $description }}</p>
     @endif
 </div>

@@ -35,7 +35,7 @@
                         <a href="https://www.youtube.com/watch?v={{ $youtube }}" target="_blank" rel="noopener noreferrer"
                             data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                             data-video-title="{{ __('competitions.student.video_player') }}"
-                            class="group flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl bg-primary-dark p-6 text-center text-white">
+                            class="group flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl bg-primary p-6 text-center text-white">
                             <span class="inline-flex size-16 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-white/20" aria-hidden="true">
                                 {{ \App\Support\Icon::solid('play', 'size-8') }}
                             </span>
