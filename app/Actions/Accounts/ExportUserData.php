@@ -88,6 +88,13 @@ class ExportUserData
                     'status' => $registration->status->value,
                     'answers' => $registration->answers ?? [],
                     'attended_at' => $date($registration->attended_at),
+                    // تقدّمه في برامج المكتبة (docs/decisions/2026-11-02-reading-program.md)
+                    'started_at' => $date($registration->started_at),
+                    'opened_at' => $date($registration->opened_at),
+                    'pages_seen' => $registration->pages_seen,
+                    'pages_count' => $registration->pages_count,
+                    'seconds_baseline' => $registration->seconds_baseline,
+                    'completed_at' => $date($registration->completed_at),
                     'cancelled_at' => $date($registration->cancelled_at),
                     'registered_at' => $date($registration->created_at),
                 ])->all(),

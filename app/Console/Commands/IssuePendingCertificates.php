@@ -31,7 +31,8 @@ class IssuePendingCertificates extends Command
 
         ProgramRegistration::query()
             ->where('status', RegistrationStatus::Confirmed->value)
-            ->whereNotNull('attended_at')
+            // والإتمام في برامج المكتبة كالحضور (docs/decisions/2026-11-02-reading-program.md)
+            ->where(fn (Builder $done) => $done->whereNotNull('attended_at')->orWhereNotNull('completed_at'))
             ->whereNull('certificate_path')
             ->whereHas('user', fn (Builder $user) => $user->whereNull('anonymized_at'))
             ->chunkById(500, function ($registrations) use (&$queued): void {

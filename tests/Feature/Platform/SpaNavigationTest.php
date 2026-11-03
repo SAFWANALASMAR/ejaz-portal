@@ -334,7 +334,7 @@ it('lets quick navigation reach page controllers only, so no file controller run
     $pages = [View::class, RenderedView::class, RedirectResponse::class];
     // و`Response` يحمل أي محتوى (PDF في طباعة النماذج، وXML في خريطة الموقع)، فمساراته المتنقّل إليها مراجَعة
     // بأسمائها: صفحة بترويسات (response()->view)
-    $reviewedResponses = ['account.dashboard', 'account.my-reading', 'assembly.index', 'competitions.show', 'pages.preview', 'programs.show', 'services.openings.show'];
+    $reviewedResponses = ['account.dashboard', 'account.my-reading', 'assembly.index', 'competitions.show', 'pages.preview', 'programs.read', 'programs.show', 'services.openings.show'];
 
     $files = collect(Route::getRoutes()->get('GET'))
         ->reject(fn (RoutingRoute $route): bool => $route->isFallback || Str::is(SpaLink::FULL_PAGE_ROUTES, (string) $route->getName()))

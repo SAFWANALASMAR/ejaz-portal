@@ -53,6 +53,19 @@ class LibraryProgress extends Model
     }
 
     /**
+     * تقدّم صاحب الحساب في عناصر برامج المكتبة لقائمة تسجيلاته، باستعلام واحد (LibraryProgramProgress)، بمعرّف العنصر.
+     *
+     * @param  iterable<ProgramRegistration>  $registrations
+     * @return array<int, LibraryProgress>
+     */
+    public static function forRegistrations(User $user, iterable $registrations): array
+    {
+        $items = collect($registrations)->map(fn (ProgramRegistration $registration): ?int => $registration->program->library_item_id)->filter()->unique()->values()->all();
+
+        return $items === [] ? [] : self::query()->whereBelongsTo($user)->whereIn('library_item_id', $items)->get()->keyBy('library_item_id')->all();
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo

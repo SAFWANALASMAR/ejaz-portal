@@ -7,6 +7,8 @@
     use App\Support\Dates;
 
     $program = $registration->program;
+    // شهادة إتمام برنامج المكتبة: باسم المشارك واسم العنصر ووقت الإتمام (docs/decisions/2026-11-02-reading-program.md)
+    $completion = $registration->completed_at !== null;
 @endphp
 
 <html lang="ar" dir="rtl">
@@ -17,7 +19,7 @@
     <div class="frame">
         <div class="temporary">{{ __('programs.certificate.temporary') }}</div>
         <div class="org">{{ __('site.name') }}</div>
-        <h1>{{ __('programs.certificate.title') }}</h1>
+        <h1>{{ $completion ? __('programs.certificate.completion_title') : __('programs.certificate.title') }}</h1>
         <div class="line"></div>
 
         <div class="label">{{ __('programs.certificate.name') }}</div>
@@ -26,8 +28,13 @@
         <div class="label">{{ __('programs.certificate.program') }}</div>
         <div class="value">{{ $program->title }}</div>
 
+        @if ($completion && $program->libraryItem !== null)
+            <div class="label">{{ __('programs.certificate.item') }}</div>
+            <div class="value">{{ $program->libraryItem->title }}</div>
+        @endif
+
         <div class="label">{{ __('programs.certificate.date') }}</div>
-        <div class="value">{{ Dates::display($program->starts_at) }}</div>
+        <div class="value">{{ Dates::display($completion ? $registration->completed_at : $program->starts_at) }}</div>
 
         {{-- كمكوّن x-missing: لا علامة نقص في الإنتاج (والشهادة لا تُصدر فيه قبل قالب الجمعية) --}}
         @unless (app()->isProduction())

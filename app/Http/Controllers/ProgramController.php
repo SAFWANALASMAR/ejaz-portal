@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\LibraryProgramKind;
 use App\Enums\RegistrationStatus;
 use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
+use App\Support\LibraryProgramProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -54,7 +56,7 @@ class ProgramController extends Controller
 
     public function show(Request $request, string $slug): Response
     {
-        $program = Program::query()->published()->withConfirmedCount()->with(['type', 'initiative'])->where('slug', $slug)->firstOrFail();
+        $program = Program::query()->published()->withConfirmedCount()->with(['type', 'initiative', 'libraryItem'])->where('slug', $slug)->firstOrFail();
 
         $registration = $request->user() === null ? null : ProgramRegistration::query()
             ->where('program_id', $program->id)
@@ -66,6 +68,24 @@ class ProgramController extends Controller
 
         // الصفحة لصاحب الحساب قد تحمل رابط اجتماعه، فلا تُحفظ في ذاكرة متصفح ولا وسيط
         return $request->user() === null ? $response : $response->header('Cache-Control', 'private, no-store');
+    }
+
+    /**
+     * قارئ كتاب برنامج «قراءة كتاب» للمسجل المؤكد فيه وحده: الكتاب في قارئ الصفحة دائماً فتُحصى صفحاته
+     * (docs/decisions/2026-11-02-reading-program.md). ولا يُخزَّن.
+     */
+    public function read(Request $request, string $slug): Response
+    {
+        $program = Program::query()->published()->with(['type', 'libraryItem'])->where('slug', $slug)->firstOrFail();
+        $item = $program->libraryItem;
+
+        abort_unless($program->libraryKind() === LibraryProgramKind::Reading && $item !== null && $item->is_published && ! $item->trashed(), 404);
+        // مسجل مؤكد في هذا البرنامج نفسه، لا في برنامج آخر بالكتاب نفسه
+        $registered = ProgramRegistration::query()->where('program_id', $program->id)->where('user_id', $request->user()?->id)
+            ->where('status', RegistrationStatus::Confirmed->value)->exists();
+        abort_unless($registered && LibraryProgramProgress::readsInProgram($request->user(), $item), 403);
+
+        return response()->view('programs.read', ['program' => $program, 'item' => $item])->header('Cache-Control', 'private, no-store');
     }
 
     /**
