@@ -218,3 +218,8 @@ it('does not let a visitor or a member without a panel role reach the announceme
 
     $this->actingAs(User::factory()->create())->get('/admin/announcements/create')->assertForbidden();
 });
+
+it('runs the home competition boundary task without failing when no competition is opening or closing', function () {
+    // الرد false من الدالة كان يُسجَّل فشلاً للمهمة المجدولة كل دقيقة (فحص رابط العرض، 3 نوفمبر)
+    $this->artisan('schedule:test', ['--name' => 'home-competition-boundary'])->assertSuccessful();
+});
