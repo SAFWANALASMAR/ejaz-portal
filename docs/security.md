@@ -41,7 +41,11 @@
 ## المدخلات والمخرجات
 
 - كل مدخل عبر Form Request أو قواعد تحقق Livewire، بقواعد صريحة للطول والنوع.
-- لا `{!! !!}` في القوالب، إلا رمز QR للتحقق الثنائي (`account/security.blade.php`): SVG يولّده Fortify في الخادم من سر الحساب، لا مدخل فيه من المستخدم. والنص المنسق من المحرر يُعرض بعد تنقية صارمة (`App\Support\RichText` على `symfony/html-sanitizer` — `decisions.md`).
+- لا `{!! !!}` في القوالب، إلا ثلاثة استثناءات يحرسها `tests/Feature/Security/RawOutputTest.php` (فأي طباعة خام جديدة تفشله حتى تُكتب هنا بسببها):
+  - رمز QR للتحقق الثنائي (`account/security.blade.php`): SVG يولّده Fortify في الخادم من سر الحساب، لا مدخل فيه من المستخدم.
+  - بيانات لوحة البحث (`partials/search-palette.blade.php`): JSON داخل `<script type="application/json">` يقرؤه `resources/js/search-palette.js` بـ `JSON.parse`. والترميز بـ `{{ }}` يفسده (`&quot;` بدل علامة الاقتباس)، والحماية من `json_encode` بالخيارات `JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`: لا `<` ولا `>` ولا `&` ولا علامة اقتباس حرفياً داخل النصوص (تصير `\u003C` و`\u003E` و`\u0026` و`\u0027` و`\u0022`)، فلا يُغلق وسم السكربت من عنوان صفحة أو قسم.
+  - شعار منصة التواصل (`components/social-icon.blade.php`): ملف SVG من المستودع (`resources/svg/social`) باسم من قائمة المنصات المسموحة وحدها، والصنف المضاف مرمَّز بـ `e()`.
+- والنص المنسق من المحرر يُعرض بعد تنقية صارمة (`App\Support\RichText` على `symfony/html-sanitizer` — `decisions.md`).
 - لا استعلامات SQL خام بمدخلات المستخدم.
 - حماية CSRF مفعلة (افتراضية في لارافيل) ولا تُستثنى مسارات إلا روابط الاستجابة من بوابات الدفع، وإشعارات تسليم واتساب (`webhooks/whatsapp`)، بعد التحقق من التوقيع.
 
