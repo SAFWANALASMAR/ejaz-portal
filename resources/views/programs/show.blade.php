@@ -30,14 +30,14 @@
 
                 @if (filled($program->description))
                     <x-card>
-                        <div class="leading-8 whitespace-pre-line text-ink">{{ $program->description }}</div>
+                        <div class="measure leading-8 whitespace-pre-line text-ink">{{ $program->description }}</div>
                     </x-card>
                 @endif
 
                 @if (filled($program->conditions))
                     <x-card>
                         <h2 class="flex items-center gap-2 text-lg font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('programs.show.conditions') }}</h2>
-                        <p class="mt-3 leading-8 whitespace-pre-line text-ink">{{ $program->conditions }}</p>
+                        <p class="measure mt-3 leading-8 whitespace-pre-line text-ink">{{ $program->conditions }}</p>
                     </x-card>
                 @endif
 

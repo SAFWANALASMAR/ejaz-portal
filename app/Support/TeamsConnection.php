@@ -31,6 +31,19 @@ final class TeamsConnection
     }
 
     /**
+     * هل ينشئ الربط روابط الاجتماعات آلياً الآن؟ كما يحل AppServiceProvider الواجهة: الوهمي خارج الإنتاج،
+     * أو Graph بإعداد مفعّل كامل. ومطفأً يلزم الاجتماعَ عن بعد رابطٌ يدوي (SaveMeeting).
+     */
+    public static function isOn(): bool
+    {
+        return match (config('services.online_meetings.driver')) {
+            'fake' => ! app()->isProduction(),
+            'graph' => self::current() !== null,
+            default => false,
+        };
+    }
+
+    /**
      * المحفوظ ولو كان مطفأً (لاختبار الاتصال قبل التفعيل)، أو null إن نقص. والسر الذي لا يُفك (مفتاح التطبيق
      * تغيّر) نقص.
      */

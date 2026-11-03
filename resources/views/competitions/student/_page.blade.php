@@ -110,7 +110,7 @@
         @foreach ($sections as $key => $section)
             <x-competitions.collapsible :index="$loop->index" :id="'page-section-'.$key" :title="__('competitions.student.page.'.$key)" :icon="$icons[$key]">
                 @isset($section['text'])
-                    <p class="leading-8 whitespace-pre-line text-ink">{{ $section['text'] }}</p>
+                    <p class="measure leading-8 whitespace-pre-line text-ink">{{ $section['text'] }}</p>
                 @endisset
                 @if (($section['items'] ?? []) !== [])
                     <ul class="list-disc space-y-2 ps-6 leading-8 text-ink">
@@ -120,7 +120,7 @@
                     </ul>
                 @endif
                 @if ($section['note'] ?? null)
-                    <p class="mt-3 text-sm leading-7 text-muted">{{ $section['note'] }}</p>
+                    <p class="measure mt-3 text-sm leading-7 text-muted">{{ $section['note'] }}</p>
                 @endif
             </x-competitions.collapsible>
         @endforeach

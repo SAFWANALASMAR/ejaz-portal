@@ -16,7 +16,7 @@
     <div data-rounds>
         <x-section-heading>{{ __('competitions.student.rounds') }}</x-section-heading>
         @if ($intro = $competition->pageText(CompetitionPage::ROUNDS_INTRO))
-            <p class="mt-3 leading-8 text-ink">{{ $intro }}</p>
+            <p class="measure mt-3 leading-8 text-ink">{{ $intro }}</p>
         @endif
         @if ($submission && $attempts->isNotEmpty())
             <p class="mt-1 text-sm font-semibold text-primary">{{ __('competitions.student.page.branches_done', ['done' => $attempts->filter(fn ($attempt) => ! $attempt->isInProgress())->count(), 'total' => $rounds->count()]) }}</p>

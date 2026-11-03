@@ -37,10 +37,6 @@ class EditSitePage extends EditRecord
     }
 
     /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    /**
      * النسخة الأولى (الأصل الذي يُرجع إليه) قبل أي حفظ، ولو فُتحت الشاشة برابطها مباشرة.
      */
     public function mount(int|string $record): void

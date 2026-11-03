@@ -48,7 +48,7 @@ class SavePageDraft
         $images = (new PageRevision(['content' => $content]))->publicImages();
 
         // صورة سجل آخر لا تُربط بالصفحة (ولا يعيد الحفظ ترميزها)، ولو من غير الشاشة
-        $foreign = EditablePages::foreignImages($page);
+        $foreign = EditablePages::foreignImages($page, $known);
 
         foreach ($images as $field => $paths) {
             if (array_intersect(array_diff($paths, $known), $foreign) !== []) {

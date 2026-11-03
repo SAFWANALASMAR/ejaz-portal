@@ -152,9 +152,14 @@ it('dispatches no Teams sync for a meeting in a hall', function () {
 it('saves an online meeting while Teams is switched off, and shows why it has no link', function () {
     Notification::fake();
     $member = AssemblyMembership::factory()->create()->user;
-    config(['services.online_meetings.driver' => 'graph']);
 
-    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'is_online' => true])->fresh();
+    // أُنشئ والربط يعمل، ثم أُطفئ قبل المزامنة (منذ الرابط اليدوي يلزم الاجتماعَ الجديد رابطٌ والربط مطفأ)
+    Bus::fake();
+    config(['services.online_meetings.driver' => 'fake']);
+    $meeting = app(SaveMeeting::class)->handle($this->secretary, new Meeting, [...$this->data, 'is_online' => true]);
+    config(['services.online_meetings.driver' => 'graph']);
+    (new SyncOnlineMeeting($meeting->id))->handle();
+    $meeting->refresh();
 
     expect($meeting->exists)->toBeTrue()
         ->and($meeting->online_join_url)->toBeNull()
