@@ -9,6 +9,7 @@ use App\Filament\Resources\Achievements\AchievementResource;
 use App\Filament\Resources\Achievements\Pages\CreateAchievement;
 use App\Filament\Resources\Achievements\Pages\EditAchievement;
 use App\Filament\Resources\Achievements\Pages\ListAchievements;
+use App\Http\Middleware\AdminIdleTimeout;
 use App\Models\Achievement;
 use App\Models\AssemblyMembership;
 use App\Models\User;
@@ -306,6 +307,31 @@ it('keeps a draft attachment away from visitors and the board, and logs the exec
     $secretary->forceFill(['is_active' => false])->save();
     $this->actingAs($secretary->fresh())->get($url)->assertRedirect();
     expect(Activity::query()->where('event', 'file_downloaded')->count())->toBe(1);
+});
+
+it('requires two-factor and an active session for a draft attachment, as the page preview does, and leaves a published one public', function () {
+    $draft = storedAchievement();
+    $url = (string) $draft->attachmentUrl();
+    $stale = now()->subMinutes((int) config('security.admin_idle_minutes') + 1)->getTimestamp();
+
+    // حساب إداري بلا تحقق ثنائي يُحوَّل إلى «الأمان» ولا يصل
+    $withoutTwoFactor = User::factory()->create();
+    $withoutTwoFactor->assignRole(RoleName::Secretary->value);
+    $this->actingAs($withoutTwoFactor)->get($url)->assertRedirect(route('account.security'));
+
+    // والجلسة الخاملة تُخرَج إلى الدخول
+    $this->actingAs(userWithRole(RoleName::Secretary))->withSession([AdminIdleTimeout::SESSION_KEY => $stale])
+        ->get($url)->assertRedirect(route('login'));
+    $this->assertGuest();
+
+    expect(Activity::query()->where('event', 'file_downloaded')->count())->toBe(0);
+
+    // ومرفق المنشور محتوى عام: لا يختم الجلسة بمؤقت اللوحة ولا يُخرج صاحبها
+    $published = storedAchievement(['status' => AchievementStatus::Published]);
+    $member = User::factory()->create();
+    $this->actingAs($member)->withSession([AdminIdleTimeout::SESSION_KEY => $stale])
+        ->get((string) $published->attachmentUrl())->assertOk();
+    $this->assertAuthenticatedAs($member);
 });
 
 it('counts the published achievements of this year in Riyadh time on the board portal', function () {
