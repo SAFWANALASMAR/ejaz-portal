@@ -40,8 +40,10 @@ test('home: round-frame hero, sequential slides with no overlapping titles (item
 
     await expect(hero.locator('[data-hero-lines]')).toBeAttached();
     await expect(hero.locator('[data-hero-slide][data-active] [data-hero-frame] img')).toBeVisible();
-    const radius = await hero.locator('[data-hero-slide][data-active] [data-hero-frame]').evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
-    expect(Number.parseFloat(radius), 'إطار دائري').toBeGreaterThan(60);
+    // الإطار الدائري حل محله «فاتح بصورة واحدة»: إطار أبيض 8 بكسل (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٢ —
+    // director-home-2026-11-03.spec.mjs)
+    const border = await hero.locator('[data-hero-slide][data-active] [data-hero-frame]').evaluate((el) => getComputedStyle(el).borderTopWidth);
+    expect(border, 'إطار أبيض').toBe('8px');
     await shot(page, '26-hero', testInfo);
 
     // أثناء التبديل لا تظهر شريحتان معاً بشفافية تُرى
@@ -117,8 +119,10 @@ test('home: partners under the stats, YouTube right and books left (items 12, 24
     if ((await videos.count()) && (await books.count())) {
         await videos.scrollIntoViewIfNeeded();
         await page.waitForTimeout(400);
-        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
-        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
+        // كل شريط عكس الذي قبله (إضافة توجيه المدير، 3 نوفمبر 2026، البندان ٥ و١٧): يوتيوب من اليمين إلى اليسار والكتب عكسه، والاتجاه
+        // الفعلي مقيس في director-home-2026-11-03.spec.mjs
+        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
+        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
         await shot(page, '24-strips', testInfo);
     }
 
@@ -202,7 +206,13 @@ test('header: the licence box and the header keep their size on scroll (items 1,
 
     await page.evaluate(() => window.scrollTo(0, 700));
     await page.waitForTimeout(700);
-    expect(await measure()).toEqual(top);
+    // من 1024 يصغر الرأس عند التمرير (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣١، ويلغي البند ٢٥ هنا — director-home-2026-11-03.spec.mjs)،
+    // وما دونه بمقاساته
+    if (testInfo.project.name === 'desktop') {
+        expect((await measure()).calligraphy).toBeLessThan(top.calligraphy);
+    } else {
+        expect(await measure()).toEqual(top);
+    }
 });
 
 test('transition: no overlay for a quick navigation, a quick fade once the page is in, calligraphy under the logo (items 5, 13, 21)', async ({ page }, testInfo) => {

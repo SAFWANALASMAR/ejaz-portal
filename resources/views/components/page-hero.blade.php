@@ -47,9 +47,11 @@
             </p>
             <h1 class="rise-2 max-w-3xl text-[2.25rem] leading-[1.1] font-black text-balance sm:text-[3.25rem]">{{ $title }}</h1>
             <span class="title-bar" aria-hidden="true"></span>
-            {{-- مخطوطة اسم الجمعية كبيرة تحت العنوان في كل صفحة داخلية (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٤)، بنسختها الداكنة
-                 على الخلفية الفاتحة. زخرفة، والاسم في الرأس --}}
-            <img src="{{ \App\Support\HomeContent::brand('calligraphy') }}" alt="" aria-hidden="true" width="1218" height="185" data-page-calligraphy class="page-hero-calligraphy rise-3">
+            {{-- مخطوطة اسم الجمعية كبيرة تحت العنوان في كل صفحة داخلية (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١٤)، بأزرق الهوية
+                 الداكن #1F4565 بلا ظل على الخلفية الفاتحة (قرار صفوان، 4 نوفمبر 2026، البند ٣٢ — تقييم اللقطات، البند ٣): قناع من ملف المخطوطة
+                 نفسه (mask-image) فوق لون العنوان، فلا ملف جديد، والملف من «محتوى الرئيسية» متى استُبدل --}}
+            <span role="img" aria-label="{{ __('site.name') }}" data-page-calligraphy class="page-hero-calligraphy page-hero-calligraphy-mask rise-3"
+                style="--calligraphy-mask: url('{{ \App\Support\HomeContent::brand('calligraphy') }}')"></span>
 
             {{-- فقرة لكل سطر فارغ في الوصف (نص «تواصل معنا» فقرتان) --}}
             @foreach (filled($summary) ? preg_split('/\n\s*\n/', trim((string) $summary)) : [] as $paragraph)

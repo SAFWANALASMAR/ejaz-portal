@@ -29,7 +29,7 @@ final class HomeShowcase
      * @param  array<string, mixed>  $home  Setting::group('home')
      * @param  array<string, mixed>  $content  HomeContent::resolved()
      * @param  array{title: string, text: string, button: array{label: string, url: string}|null}  $hero
-     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, missing: bool}>
+     * @return list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, buttons: list<array{label: string, url: string, secondary: bool}>, badges: list<string>, missing: bool}>
      */
     public static function slides(array $home, array $content, array $hero): array
     {
@@ -57,26 +57,36 @@ final class HomeShowcase
         // صورة معتمدة له مربع محايد بعلامة «【ناقص】» (missing). ومسابقة البراهين خرجت من البطل إلى الإعلانات
         $about = $image('about', $aboutImage, $aboutAlt);
         $haram = $image('haram', null, (string) __('ui.hero.haram_title'));
-        $chairmanUrl = Route::has('about') && Page::isPublishedSlug(Page::ABOUT) ? route('about').'#about-chairman' : null;
+        $aboutUrl = Route::has('about') && Page::isPublishedSlug(Page::ABOUT) ? route('about') : null;
+        $chairmanUrl = $aboutUrl !== null ? $aboutUrl.'#about-chairman' : null;
+        // أزرار الشريحتين الأوليين (تقييم لقطات التوجيه، البند ٦): «تعرّف علينا» داكناً (وزر «إعدادات الموقع» يغلبه متى ضُبط) و«خدماتنا»
+        // بإطار في الأولى، و«عن الجمعية» في الثانية. ولا رابط إلى «عن الجمعية» قبل نشرها
+        $button = fn (?string $url, string $label, bool $secondary = false): array => $url !== null ? [['label' => $label, 'url' => $url, 'secondary' => $secondary]] : [];
+        $aboutButtons = $hero['button'] !== null
+            ? $button($hero['button']['url'], $hero['button']['label'])
+            : $button($aboutUrl, (string) __('home.hero.about_us'));
+        $aboutButtons = [...$aboutButtons, ...$button(Route::has('services.index') ? route('services.index') : null, (string) __('home.hero.our_services'), true)];
 
         return [[
             'key' => 'about', ...$about, 'missing' => HomeContent::heroSlideImage('about') === null && $aboutImage === null,
-            'title' => $rest !== '' ? $short : $title, 'subtitle' => $rest !== '' ? $rest : null, 'text' => $hero['text'], 'button' => $hero['button'],
+            'title' => $rest !== '' ? $short : $title, 'subtitle' => $rest !== '' ? $rest : null, 'text' => $hero['text'],
+            'buttons' => $aboutButtons, 'badges' => [(string) __('home.hero.badge_ministry'), (string) __('home.hero.badge_seat')],
         ], [
             'key' => 'haram', ...$haram, 'missing' => HomeContent::heroSlideImage('haram') === null,
             'title' => (string) __('ui.hero.haram_title'), 'subtitle' => null,
-            'text' => MissingText::shown('【'.__('site.missing').': '.__('ui.hero.haram_text_missing').'】'), 'button' => null,
+            'text' => MissingText::shown('【'.__('site.missing').': '.__('ui.hero.haram_text_missing').'】'),
+            'buttons' => $button($aboutUrl, (string) __('home.hero.about_society')), 'badges' => [],
         ], [
             'key' => 'king', ...$image('king', ['src' => (string) $content['king']['image'], 'srcset' => null], (string) $content['king']['image_alt']),
             'missing' => false,
             'title' => (string) $content['king']['signature_title'], 'subtitle' => (string) $content['king']['signature_name'],
-            'text' => (string) $content['king']['text'], 'button' => null,
+            'text' => (string) $content['king']['text'], 'buttons' => [], 'badges' => [],
         ], [
             'key' => 'chairman', ...$image('chairman', ['src' => (string) $content['chairman']['image'], 'srcset' => null], (string) $content['chairman']['image_alt']),
             'missing' => false,
             'title' => (string) $content['chairman']['name'], 'subtitle' => (string) $content['chairman']['title'],
             'text' => HomeContent::paragraphs((string) $content['chairman']['excerpt'])[1] ?? null,
-            'button' => $chairmanUrl !== null ? ['label' => (string) __('ui.hero.chairman_read'), 'url' => $chairmanUrl] : null,
+            'buttons' => $button($chairmanUrl, (string) __('ui.hero.chairman_read')), 'badges' => [],
         ]];
     }
 

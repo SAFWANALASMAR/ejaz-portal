@@ -66,11 +66,15 @@ for (const width of WIDTHS) {
         expect(top.dir).toBe('rtl');
         expect(top.noHorizontalScroll).toBe(true);
 
-        // الرمز في أقصى اليمين بهامش صغير، ومن 1240 مزاح قليلاً نحو الداخل (توجيه المدير التنفيذي، 3 نوفمبر 2026 —
-        // director-home-2026-11-03.spec.mjs)
-        const inset = width >= 1240 ? [36, 80] : [8, 24];
-        expect(vw - top.mark.right).toBeLessThanOrEqual(inset[1]);
-        expect(vw - top.mark.right).toBeGreaterThanOrEqual(inset[0]);
+        // الرمز في أقصى اليمين بهامش صغير، ومن 1024 في حاوية صف القائمة (1320 بحشو 28 — تقييم لقطات التوجيه 3 نوفمبر، البند ٥):
+        // حافته حافة محتوى صف القائمة (director-home-2026-11-03.spec.mjs)
+        const containerInset = Math.max(0, (vw - 1320) / 2) + 28;
+        if (width >= 1240) {
+            expect(Math.abs(vw - top.mark.right - containerInset)).toBeLessThanOrEqual(2);
+        } else {
+            expect(vw - top.mark.right).toBeLessThanOrEqual(24);
+            expect(vw - top.mark.right).toBeGreaterThanOrEqual(8);
+        }
 
         if (width >= 1240) {
             // من 1240 لا تُشترط في منتصف الشاشة: الرمز والمخطوطة والمربع كتلة يميناً (توجيه المدير، ويحل محل الفراغات المتساوية في #154)
@@ -100,8 +104,7 @@ for (const width of WIDTHS) {
             expect(gap).toBeLessThanOrEqual(16);
 
             // الدخول في اليسار مزاحاً قليلاً عن الحافة، والبحث بجانبه، وكلاهما يسار مربع الترخيص
-            expect(top.login.left).toBeLessThanOrEqual(80);
-            expect(top.login.left).toBeGreaterThanOrEqual(36);
+            expect(Math.abs(top.login.left - containerInset)).toBeLessThanOrEqual(2);
             expect(top.search.left - top.login.right).toBeGreaterThanOrEqual(0);
             expect(top.search.left - top.login.right).toBeLessThanOrEqual(16);
             expect(top.licence.left).toBeGreaterThanOrEqual(top.search.right);

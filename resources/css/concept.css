@@ -995,33 +995,20 @@ html {
     }
 }
 
-/* الحاسوب: الرمز كبيراً، والمخطوطة ممدودة بأكبر ما يتسع في الكتلة اليمنى بجانب الرمز دون أن تزاحم مربع الترخيص أو تكسر الصف
-   (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البندان ٤ و١٤): بنسبة 6.58 من ارتفاعها، وارتفاعها من عرض الصف نفسه (cqi) بعد ما حولها
-   (الرمز والمربع و«المساعد الذكي» والبحث والدخول والإزاحتان ونحو 24 بكسل فارغة قبل الأزرار)، بحد أدنى 80 بكسل وأعلى 112 (120 من 1536).
-   مقيس في director-home-2026-11-03.spec.mjs */
-@media (min-width: 77.5rem) {
-    .header-top {
-        container-type: inline-size;
-    }
-
-    .masthead-mark {
-        height: 5.5rem;
-    }
-
-    .masthead-calligraphy {
-        height: clamp(5rem, 15.2cqi - 6rem, 7rem);
-    }
-}
-
-/* من 1240 (ظهور مربع الترخيص): ترتيب المدير التنفيذي المعتمد (3 نوفمبر 2026، البند ١٤ — docs/decisions/2026-11-03-director-home.md، وأُلغي التوسيط في البند ١٢)، ويحل محل
+/* من 1024: ترتيب المدير التنفيذي المعتمد (3 نوفمبر 2026، البند ١٤ — docs/decisions/2026-11-03-director-home.md، وأُلغي التوسيط في البند ١٢)، ويحل محل
    الفراغات الثلاثة المتساوية (طلب الدمج 154): الرمز والمخطوطة ومربع الترخيص كتلة واحدة في البداية، والمخطوطة بجانب الرمز بفراغ صغير غير
-   ملاصق، والمربع قريب جداً منها، ثم فراغ، ثم البحث والدخول في النهاية. والطرفان مزاحان قليلاً نحو الداخل بقيمة ثابتة (48 بكسل من
-   حافة الشاشة: حشو الصف 20 ثم هامش 28)، بهامش العنصرين لا بحشو الصف، فلا يتغير عرض الصف الذي تُحسب منه المخطوطة (cqi) ولا حجمها.
-   وغلاف مربع الترخيص والأزرار (.header-end) يذوب في الصف (display: contents) فيصير عنصريه، ولا يصغر عنصر (flex: none) */
-@media (min-width: 77.5rem) {
+   ملاصق، والمربع قريب جداً منها، ثم فراغ، ثم «المساعد الذكي» والبحث والدخول في النهاية. وغلاف مربع الترخيص والأزرار (.header-end) يذوب في
+   الصف (display: contents) فيصير عنصريه، ولا يصغر عنصر (flex: none).
+   والصف في حاوية صف القائمة نفسها (82.5rem بحشو 28 بكسل — تقييم اللقطات، البند ٥)، فتقع حواف الصفين على خط واحد على 1920. والكتلة نفسها
+   على كل عرض حاسوب، ومربع الترخيص ظاهر مصغّراً دون 1240 والمخطوطة ملاصقة للرمز تصغر ولا تتوسط (قرار صفوان، 4 نوفمبر 2026، البند ٤) */
+@media (min-width: 64rem) {
     .header-top {
         display: flex;
         column-gap: 0;
+        max-width: 82.5rem;
+        margin-inline: auto;
+        padding-inline: 0;
+        container-type: inline-size;
     }
 
     .header-top > *,
@@ -1048,15 +1035,24 @@ html {
     .header-top .header-actions {
         margin-inline: auto 1.75rem;
     }
+
+    /* دون 1240: المخطوطة بأكبر ما يتسع بعد الرمز والمربع المصغّر والأزرار (بنسبة 6.58 من ارتفاعها، من عرض الصف — cqi) */
+    .masthead-calligraphy {
+        height: clamp(3rem, 15.2cqi - 5.5rem, 5.5rem);
+    }
 }
 
-@media (min-width: 96rem) {
+/* الحاسوب العريض: الرمز كبيراً، والمخطوطة ممدودة بأكبر ما يتسع في الكتلة اليمنى بجانب الرمز دون أن تزاحم مربع الترخيص أو تكسر الصف
+   (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البندان ٤ و١٤): ارتفاعها من عرض الصف نفسه (cqi) بعد ما حولها (الرمز والمربع و«المساعد الذكي»
+   والبحث والدخول والإزاحتان ونحو 24 بكسل فارغة قبل الأزرار)، بحد أدنى 80 بكسل وأعلى 112. والصف لا يزيد على 1320 (حاوية القائمة)،
+   فالمخطوطة على 1440 و1920 بحجمها على 1320. مقيس في director-home-2026-11-03.spec.mjs */
+@media (min-width: 77.5rem) {
     .masthead-mark {
-        height: 6.125rem;
+        height: 5.5rem;
     }
 
     .masthead-calligraphy {
-        height: clamp(5rem, 15.2cqi - 6rem, 7.5rem);
+        height: clamp(5rem, 15.2cqi - 6rem, 7rem);
     }
 }
 
@@ -1080,6 +1076,17 @@ html {
 
 .header-licence > span + span {
     white-space: nowrap;
+}
+
+/* دون 1240 (ومنه 1280 بتكبير 125%): المربع ظاهر مصغّراً بخط وحشو أصغر (قرار صفوان، 4 نوفمبر 2026، البند ٤ من تقييم اللقطات) */
+@media (min-width: 64rem) and (max-width: 77.49rem) {
+    .header-licence {
+        max-width: 8.5rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        line-height: 1.35;
+    }
 }
 
 .header-nav {
@@ -2968,8 +2975,17 @@ html[data-reveal-ready] .portal-chart-line {
     color: var(--hero-light-text);
 }
 
-.page-hero-light .page-hero-calligraphy {
-    opacity: 0.9;
+/* المخطوطة في الرأس الفاتح بأزرق الهوية الداكن بلا ظل (قرار صفوان، 4 نوفمبر 2026، البند ٣٢): قناع من ملف المخطوطة (--calligraphy-mask
+   من القالب) فوق لون العنوان، بنسبة الملف نفسها. والرأس الداكن والتذييل كما كانا */
+.page-hero-light .page-hero-calligraphy-mask {
+    display: block;
+    aspect-ratio: 1218 / 185;
+    max-width: 100%;
+    opacity: 1;
+    filter: none;
+    background-color: var(--hero-light-text);
+    -webkit-mask: var(--calligraphy-mask) center / contain no-repeat;
+    mask: var(--calligraphy-mask) center / contain no-repeat;
 }
 
 .page-hero-light-row {
@@ -3275,6 +3291,14 @@ html[data-reveal-ready] .portal-chart-line {
     opacity: 0.3;
 }
 
+.service-icon-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
 .service-card-name {
     font-size: 1.1875rem;
     font-weight: 900;
@@ -3404,5 +3428,113 @@ html[data-reveal-ready] .portal-chart-line {
 
     [data-site-header][data-header-compact] .nav-capsule {
         height: 2.375rem;
+    }
+}
+
+/* تقييم لقطات التوجيه (4 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): شارتا الشريحة الأولى، والزر الثانوي بإطار (البند ٦)،
+   وشريحة رئيس المجلس بعنوان أصغر وصفة بسطر واحد على الحاسوب (البند ٩)، واقتباس خادم الحرمين كاملاً بخط أصغر قليلاً (البند ٧)، ومؤشر
+   الشرائح أشرطة رفيعة: 34×6 بشفافية والنشط 52 بالأزرق الداكن، بلا كتلة رمادية ولا نقاط (البند ١٢). وعلى الجوال الصورة أصغر والنص
+   لا يلامس شريط الشرائح، بحشو سفلي بقدره (البند ٨) */
+.hero-light-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.hero-light .hero-light-badges .hero-chip {
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.hero-light .hero-caption .login-pill.hero-light-secondary {
+    color: var(--hero-light-text);
+    background: transparent;
+    border: 2px solid var(--hero-light-text);
+    box-shadow: none;
+}
+
+.hero-light .hero-caption .login-pill.hero-light-secondary:hover {
+    background: rgb(31 69 101 / 0.08);
+}
+
+.hero-light .concept-dot,
+.hero-light .concept-dot[aria-current] {
+    background: transparent;
+}
+
+.hero-light .concept-dot::before {
+    width: 34px;
+    height: 6px;
+    border: 0;
+    border-radius: 9999px;
+    background: rgb(31 69 101 / 0.25);
+}
+
+.hero-light .concept-dot[aria-current] {
+    width: 3.5rem;
+}
+
+.hero-light .concept-dot[aria-current]::before {
+    width: 52px;
+    background: var(--hero-light-text);
+}
+
+.hero-light .concept-dot .hero-progress-bar {
+    display: none;
+}
+
+/* الجوال: الصورة صغيرة فوق النص، والنص من أعلى الشريحة بحشو سفلي 56 بكسل فوق شريط الشرائح، وارتفاع البطل يكفي أطول شريحة
+   (x-hero-slider). واللوحي من 768: الصورة بجانب النص كالحاسوب بمقاس أصغر */
+@media (max-width: 47.99rem) {
+    .hero-light .hero-round-layout {
+        justify-content: flex-start;
+        gap: 1rem;
+        padding-block: 1.5rem 3.5rem;
+    }
+
+    .hero-light .hero-light-visual {
+        width: min(10rem, 44vw);
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+    .hero-light .hero-round-layout {
+        flex-direction: row-reverse;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+        padding-block: 1.5rem 3.5rem;
+    }
+
+    .hero-light .hero-light-visual {
+        width: 13rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-title {
+        font-size: 1.875rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1.125rem;
+    }
+}
+
+@media (min-width: 64rem) {
+    .hero-light [data-hero-slide='chairman'] .hero-light-title {
+        font-size: 1.875rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1.125rem;
+        white-space: nowrap;
+    }
+
+    .hero-light [data-hero-slide='king'] .hero-light-text {
+        font-size: 1.0625rem;
+        line-height: 1.7;
     }
 }

@@ -14,7 +14,7 @@
     النشطة كبسولة بشريط يمتلئ بمدة الشريحة، وزر إيقاف وتشغيل بجانبها (WCAG 2.2.2). والشريحة المخفية inert (carousel.js). الصورة الأولى
     وحدها بأولوية التحميل وبنسختي WebP (HeroImage)، والبقية بتحميل كسول. وعنوان الأولى h1 والبقية h2.
 
-    $slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}, missing: bool}>
+    $slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, buttons: list<array{label: string, url: string, secondary: bool}>, badges: list<string>, missing: bool}>
 --}}
 @props(['slides', 'interval' => 6000])
 
@@ -44,6 +44,14 @@
                     </div>
 
                     <figcaption class="hero-caption hero-round-text">
+                        {{-- شارتا الشريحة الأولى من حقائق docs/overview.md وحدها (تقييم لقطات التوجيه، البند ٦) --}}
+                        @if (($slide['badges'] ?? []) !== [])
+                            <span class="hero-light-badges" data-hero-badges>
+                                @foreach ($slide['badges'] as $badge)
+                                    <span class="hero-chip">{{ $badge }}</span>
+                                @endforeach
+                            </span>
+                        @endif
                         @if ($index === 0)
                             <h1 class="flex flex-col gap-1.5">
                                 <span class="rise-1 text-[2.4rem] leading-[1.08] font-black sm:text-[3.5rem]">{{ $slide['title'] }}</span>
@@ -52,22 +60,31 @@
                                 @endif
                             </h1>
                         @else
+                            {{-- عنوان شريحة رئيس المجلس أصغر وصفته سطر واحد على الحاسوب (البند ٩ — hero-light-title في concept.css) --}}
                             <h2 class="flex flex-col gap-1.5">
-                                <span class="text-[2rem] leading-[1.12] font-black sm:text-[3rem]">{{ $slide['title'] }}</span>
+                                <span class="hero-light-title text-[2rem] leading-[1.12] font-black sm:text-[3rem]">{{ $slide['title'] }}</span>
                                 @if (filled($slide['subtitle'] ?? null))
-                                    <span data-highlight class="text-[1.3rem] font-extrabold text-[#DCEBF8] sm:text-[1.875rem]">{{ $slide['subtitle'] }}</span>
+                                    <span data-highlight class="hero-light-subtitle text-[1.3rem] font-extrabold text-[#DCEBF8] sm:text-[1.875rem]">{{ $slide['subtitle'] }}</span>
                                 @endif
                             </h2>
                         @endif
                         <span class="title-bar" aria-hidden="true"></span>
+                        {{-- اقتباس خادم الحرمين كاملاً بلا قص (البند ٧)، وما سواه في الشرائح التالية بثلاثة أسطر --}}
                         @if (filled($slide['text'] ?? null))
-                            <p @class(['max-w-[34rem] text-lg leading-[1.75] text-white sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0])>{{ $slide['text'] }}</p>
+                            <p data-hero-text @class(['hero-light-text max-w-[34rem] text-lg leading-[1.75] text-white sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0 && $slide['key'] !== 'king'])>{{ $slide['text'] }}</p>
                         @endif
-                        @if ($slide['button'] ?? null)
-                            <a href="{{ $slide['button']['url'] }}" @navigate($slide['button']['url']) class="login-pill mt-2 self-start">
-                                {{ $slide['button']['label'] }}
-                                {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
-                            </a>
+                        {{-- الزر الرئيسي داكن والثانوي بإطار (البند ٢٣، وتقييم اللقطات، البند ٦) --}}
+                        @if (($slide['buttons'] ?? []) !== [])
+                            <span class="mt-2 flex flex-wrap gap-3" data-hero-buttons>
+                                @foreach ($slide['buttons'] as $button)
+                                    <a href="{{ $button['url'] }}" @navigate($button['url']) @class(['login-pill', 'hero-light-secondary' => $button['secondary']]) data-hero-button="{{ $button['secondary'] ? 'secondary' : 'primary' }}">
+                                        {{ $button['label'] }}
+                                        @unless ($button['secondary'])
+                                            {{ \App\Support\Icon::svg('arrow-left', 'size-4', ['aria-hidden' => 'true']) }}
+                                        @endunless
+                                    </a>
+                                @endforeach
+                            </span>
                         @endif
                     </figcaption>
                 </div>
@@ -75,8 +92,8 @@
         @endforeach
     </div>
 
-    {{-- يحجز ارتفاع البطل، والشرائح فوقه بموضع مطلق --}}
-    <div class="min-h-[36rem] sm:min-h-[34rem] lg:h-[32rem] lg:min-h-0" aria-hidden="true"></div>
+    {{-- يحجز ارتفاع البطل، والشرائح فوقه بموضع مطلق. وعلى الجوال يكفي أطول شريحة بأزرارها فوق شريط الشرائح (تقييم اللقطات، البند ٨) --}}
+    <div class="min-h-[39rem] sm:min-h-[37rem] md:min-h-[34rem] lg:h-[32rem] lg:min-h-0" aria-hidden="true"></div>
 
     @if ($count > 1)
         <button type="button" data-carousel-prev class="concept-arrow start-[22px]" aria-label="{{ __('ui.slider.previous') }}">

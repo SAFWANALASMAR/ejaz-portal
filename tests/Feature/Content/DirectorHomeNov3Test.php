@@ -195,7 +195,9 @@ it('shows the assistant button beside search and login when the assistant is on,
         // قبل البحث في الشيفرة، فهو يمينه، والدخول في أقصى اليسار
         ->and($x->query('following-sibling::button[@data-search-open]', $button)->length)->toBe(1)
         // والمساعد نفسه في الصفحة، فيفتحه الزر
-        ->and($x->query("//section[@id='assistant-panel']")->length)->toBe(1);
+        ->and($x->query("//section[@id='assistant-panel']")->length)->toBe(1)
+        // والعائم للجوال واللوحي العمودي وحدهما، فلا يغطي البطاقات على الحاسوب (تقييم لقطات التوجيه، البند ١٣)
+        ->and($x->query("//button[@data-assistant-fab][contains(concat(' ', @class, ' '), ' lg:hidden ')]")->length)->toBe(1);
 
     AssistantSettings::query()->update(['is_enabled' => false]);
     Cache::forget(AssistantSettings::CACHE_KEY);
@@ -318,6 +320,37 @@ it('shows the four light hero slides in order — the Mushaf, the Haram, the Kin
     expect($css)->toMatch("/\.hero-light \[data-hero-slide='king'\] \.hero-light-frame \{\s*box-shadow:\s*0 0 0 4px #c9a961,\s*0 0 0 10px rgb\(14 107 71/");
 });
 
+// تقييم لقطات التوجيه (4 نوفمبر 2026، البنود ٦ و٧ و٩): «تعرّف علينا» داكناً و«خدماتنا» بإطار في الأولى بشارتين من docs/overview.md،
+// و«عن الجمعية» في الثانية، واقتباس خادم الحرمين كاملاً بلا قص، وشريحة رئيس المجلس بعنوان أصغر
+it('gives the first two hero slides their buttons and badges, and shows the King quote in full', function () {
+    Page::factory()->create(['slug' => Page::ABOUT, 'is_published' => true]);
+
+    $hero = (string) str($this->get('/')->assertOk()->getContent())->after('data-hero-slider')->before('</section>');
+    $slide = fn (string $key): string => (string) str($hero)->after('data-hero-slide="'.$key.'"')->before('</figure>');
+
+    expect($slide('about'))
+        ->toMatch('/<a href="'.preg_quote(route('about'), '/').'"[^>]*class="login-pill" data-hero-button="primary">\s*'.preg_quote(__('home.hero.about_us'), '/').'/')
+        ->toMatch('/<a href="'.preg_quote(route('services.index'), '/').'"[^>]*class="login-pill hero-light-secondary" data-hero-button="secondary">\s*'.preg_quote(__('home.hero.our_services'), '/').'/')
+        ->toContain(__('home.hero.badge_ministry'))->toContain(e(__('home.hero.badge_seat')))
+        ->and($slide('haram'))->toMatch('/<a href="'.preg_quote(route('about'), '/').'"[^>]*data-hero-button="primary">\s*'.preg_quote(__('home.hero.about_society'), '/').'/')
+        ->and($slide('king'))->toContain(e(HomeContent::resolved()['king']['text']))->not->toContain('line-clamp')->not->toContain('data-hero-button')
+        ->and($slide('chairman'))->toContain('hero-light-title')->toContain(__('ui.hero.chairman_read'));
+
+    $css = (string) file_get_contents(resource_path('css/concept.css'));
+    // المؤشر أشرطة رفيعة: 34×6 بشفافية، والنشط 52 بالأزرق الداكن، بلا كتلة رمادية (البند ١٢)
+    expect($css)->toMatch('/\.hero-light \.concept-dot::before \{\s*width: 34px;\s*height: 6px;[^}]*background: rgb\(31 69 101 \/ 0\.25\);/')
+        ->toMatch('/\.hero-light \.concept-dot\[aria-current\]::before \{\s*width: 52px;\s*background: var\(--hero-light-text\);/')
+        ->toMatch('/\.hero-light \.concept-dot,\s*\.hero-light \.concept-dot\[aria-current\] \{\s*background: transparent;/');
+});
+
+// لا رابط إلى «عن الجمعية» قبل نشرها، و«خدماتنا» باقٍ
+it('leaves the about buttons out of the hero before the about page is published', function () {
+    $hero = (string) str($this->get('/')->assertOk()->getContent())->after('data-hero-slider')->before('</section>');
+
+    expect($hero)->not->toContain('href="'.route('about').'"')
+        ->toContain('href="'.route('services.index').'"');
+});
+
 // البند ٢٧ من الإضافة (ويحل محل ذوبان الصورة في البند ١٥): رأس كل صفحة داخلية «فاتح بصورة واحدة» من المكوّن نفسه، بدرجة لكل قسم
 it('draws every inner page hero light with its own shade, dark text and the section image in a tilted white frame', function () {
     foreach (['/contact', '/governance', '/library', '/media', '/services', '/programs', '/competitions', '/initiatives'] as $path) {
@@ -331,6 +364,20 @@ it('draws every inner page hero light with its own shade, dark text and the sect
     $css = (string) file_get_contents(resource_path('css/concept.css'));
     expect($css)->toMatch('/\.page-hero-frame \{[^}]*border: 8px solid var\(--color-white\);[^}]*transform: rotate\(-3deg\);/s')
         ->toMatch('/\.page-hero-back \{[^}]*transform: translate\(-1\.6rem, 0\.75rem\) rotate\(5deg\);/s');
+});
+
+// قرار صفوان (4 نوفمبر 2026، البند ٣٢ — تقييم اللقطات، البند ٣): مخطوطة الرأس الفاتح بأزرق الهوية الداكن بلا ظل، قناعاً من ملف المخطوطة نفسه
+it('draws the inner page hero calligraphy in brand blue with no shadow, masked from the calligraphy file itself (item 32)', function () {
+    $html = (string) $this->get('/contact')->assertOk()->getContent();
+    $hero = (string) str($html)->after('data-page-hero ')->before('</section>');
+
+    expect($hero)->toContain('role="img" aria-label="'.e(__('site.name')).'" data-page-calligraphy')
+        ->toContain("--calligraphy-mask: url('".HomeContent::brand('calligraphy')."')")
+        ->not->toContain('<img src="'.HomeContent::brand('calligraphy').'"');
+
+    $css = (string) file_get_contents(resource_path('css/concept.css'));
+    expect($css)->toMatch('/\.page-hero-light \.page-hero-calligraphy-mask \{[^}]*filter: none;[^}]*background-color: var\(--hero-light-text\);[^}]*mask: var\(--calligraphy-mask\)/s')
+        ->toMatch('/--hero-light-text: #1f4565;/i');
 });
 
 it('varies the home section backgrounds over three light tones (item 15)', function () {
@@ -369,9 +416,10 @@ it('puts «من نحن» in a soft light card with the vision and mission as quo
         ->and(strpos($intro, 'data-about-who'))->toBeLessThan(strpos($intro, 'data-about-quotes'))
         ->and($intro)->not->toContain('هدف الاختبار');
 
-    // بقية المقاطع بطاقات ناعمة كما كانت، ولا تتكرر الرؤية والرسالة
+    // بقية المقاطع بطاقات متعاقبة كما كانت لا ناعمة (قرار صفوان، البند ٣٢: الناعم لـ«من نحن» والكلمتين وحدها)، ولا تتكرر الرؤية والرسالة
     expect(substr_count($html, 'رؤية الاختبار'))->toBe(1)
-        ->and($html)->toContain('data-tone="soft" data-stack-card')->toContain('هدف الاختبار');
+        ->and($html)->toContain('data-stack-card')->not->toContain('data-tone="soft" data-stack-card')->toContain('هدف الاختبار')
+        ->and(str($html)->after('data-about-strategy')->before('</section>')->toString())->toContain('data-tone="dark"');
 });
 
 /*

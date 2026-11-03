@@ -30,7 +30,7 @@
             <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-4 sm:px-7" aria-labelledby="competitions-current" data-competitions-current>
                 <x-section-heading id="competitions-current" icon="trophy" class="mb-5">{{ __('ui.inner.competitions.current') }}</x-section-heading>
 
-                <article class="tone-card grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-[1.5fr_1fr]" data-tone="soft">
+                <article class="tone-card grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-[1.5fr_1fr]" data-tone="dark">
                     <div class="flex flex-col gap-3">
                         <span class="flex flex-wrap gap-2">
                             <span class="tone-chip">{{ CompetitionStatus::Open->getLabel() }}</span>

@@ -27,7 +27,7 @@
 {{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨): about-strategy ثم about-who ثم about-vision وabout-mission ثم about-values، بإزاحة
      الرأس الثابت (scroll-mt-48)، ومع التنقّل السريع (app.js) --}}
 <section id="about-strategy" class="mx-auto max-w-[82.5rem] scroll-mt-48 px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
-    <div class="tone-card about-who flex flex-col gap-3" data-tone="soft">
+    <div class="tone-card about-who flex flex-col gap-3" data-tone="dark">
         <h2 id="about-strategy-title" class="text-[1.75rem] font-black">{{ __('content.about.strategy_heading') }}</h2>
         @if ($strategy !== null)
             <div class="prose-ar text-[17px] leading-[1.9]">{{ \App\Support\RichText::toHtml(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : null) }}</div>

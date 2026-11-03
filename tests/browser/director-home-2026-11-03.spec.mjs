@@ -47,8 +47,28 @@ function measureHeader(page) {
             calligraphyOffCentre: calligraphy && round((calligraphy.left + calligraphy.right) / 2 - (edge.left + edge.right) / 2),
             assistant: box('[data-header-assistant]'),
             licenceToActions: licence && round(licence.left - header.querySelector('.header-actions').getBoundingClientRect().right),
+            // حافتا محتوى صف القائمة (تقييم لقطات التوجيه، البند ٥): الصف الأول في الحاوية نفسها
+            navContent: (() => {
+                const row = header.querySelector('.header-nav-row');
+                const { left, right } = row.getBoundingClientRect();
+                const style = getComputedStyle(row);
+
+                return { left: round(left + parseFloat(style.paddingLeft)), right: round(right - parseFloat(style.paddingRight)) };
+            })(),
         };
     });
+}
+
+// قبل كل لقطة صفحة كاملة (تقييم لقطات التوجيه، البند ١): المرور على الصفحة كلها على خطوات، فيظهر كل عنوان وبطاقة بحركة ظهوره
+// (data-reveal) وتبلغ الأرقام نهايتها، ثم انتظار ثانية ونصف لحركات الصعود (rise-*)، ثم العودة إلى الأعلى
+async function settleForShot(page) {
+    for (let top = 0; top < (await page.evaluate(() => document.documentElement.scrollHeight)); top += 400) {
+        await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), top);
+        await page.waitForTimeout(250);
+    }
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(1500);
 }
 
 async function headerShot(page, width, name) {
@@ -57,7 +77,7 @@ async function headerShot(page, width, name) {
 }
 
 // ── ١. الرأس ──
-for (const width of [1280, 1366, 1440, 1920]) {
+for (const width of [1024, 1280, 1366, 1440, 1920]) {
     // البند ١٤ من الإضافة (أُلغي التوسيط في البند ١٢، واعتُمدت «الكتلة اليمنى»): الرمز والمخطوطة الممدودة ومربع الترخيص كتلة يميناً
     // مزاحة قليلاً عن الحافة، و«المساعد الذكي» والبحث والدخول يساراً مزاحة كذلك، وما بينهما فارغ
     test(`header at ${width}px: the mark, calligraphy and licence are one block inset from the right, the assistant, search and login inset from the left`, async ({ page }, info) => {
@@ -69,9 +89,12 @@ for (const width of [1280, 1366, 1440, 1920]) {
         console.log(`header ${width}px:`, JSON.stringify({ ...layout, boxes: undefined, assistant: undefined }));
 
         expect(layout.noHorizontalScroll).toBe(true);
-        // الرمز مزاح قليلاً عن أقصى اليمين (كان 20 بكسل)
-        expect(layout.markFromEdge).toBeGreaterThanOrEqual(36);
-        expect(layout.markFromEdge).toBeLessThanOrEqual(80);
+        // الرمز مزاح قليلاً عن أقصى اليمين (كان 20 بكسل)، والصف الأول في حاوية صف القائمة: حافتاه حافتا محتواها (تقييم اللقطات، البند ٥)
+        expect(layout.markFromEdge).toBeGreaterThanOrEqual(24);
+        if (width >= 1280) {
+            expect(Math.abs(layout.boxes.mark.right - layout.navContent.right), 'حافة الرمز حافة صف القائمة').toBeLessThanOrEqual(2);
+            expect(Math.abs(layout.boxes.login.left - layout.navContent.left), 'حافة الدخول حافة صف القائمة').toBeLessThanOrEqual(2);
+        }
         // المخطوطة بعده مباشرة: فراغ صغير غير ملاصق
         expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(8);
         expect(layout.markToCalligraphy).toBeLessThanOrEqual(24);
@@ -80,8 +103,7 @@ for (const width of [1280, 1366, 1440, 1920]) {
         expect(layout.calligraphyToLicence).toBeLessThanOrEqual(16);
         expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
         // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه، و«المساعد الذكي» بجانب البحث
-        expect(layout.loginFromEdge).toBeGreaterThanOrEqual(36);
-        expect(layout.loginFromEdge).toBeLessThanOrEqual(80);
+        expect(layout.loginFromEdge).toBeGreaterThanOrEqual(24);
         const { search, login } = layout.boxes;
         expect(search.left - login.right).toBeGreaterThanOrEqual(0);
         expect(search.left - login.right).toBeLessThanOrEqual(16);
@@ -91,8 +113,10 @@ for (const width of [1280, 1366, 1440, 1920]) {
         // والمنطقة قبل الأزرار فارغة، أوسع من كل فراغ داخل الكتلة، والصف لا ينكسر
         expect(layout.licenceToActions).toBeGreaterThanOrEqual(20);
         expect(layout.licenceToActions).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence));
-        // المخطوطة ممدودة بأكبر ما يتسع (البندان ٤ و١٤): نحو حجمها بعد #154 على 1280 مع زر المساعد، وأكبر منه على العريض
-        expect(layout.calligraphyHeight).toBeGreaterThan({ 1280: 90, 1366: 103, 1440: 108, 1920: 116 }[width]);
+        // المخطوطة ممدودة بأكبر ما يتسع (البندان ٤ و١٤)، والصف لا يزيد على 1320 فهي على 1440 و1920 بحجمها على 1320. وعلى 1024 تصغر
+        // ملاصقة للرمز، ومربع الترخيص ظاهر مصغّراً (قرار صفوان، 4 نوفمبر 2026، البند ٤ من تقييم اللقطات)
+        expect(layout.calligraphyHeight).toBeGreaterThan({ 1024: 60, 1280: 90, 1366: 100, 1440: 100, 1920: 100 }[width]);
+        expect(layout.boxes.licence, 'مربع الترخيص ظاهر').not.toBeNull();
         expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
         await headerShot(page, width, `header-${width}`);
@@ -172,10 +196,7 @@ for (const width of [1024, 1280, 1366, 1440]) {
         await page.goto('/');
         await page.evaluate(() => document.fonts.ready);
         await expectFullMenu(page, `${width}`);
-        // لقطات 1280 و1366 و1440 من اختبار الصف الأول
-        if (width === 1024) {
-            await headerShot(page, width, `header-${width}`);
-        }
+        // لقطات الرأس من اختبار الصف الأول
     });
 }
 
@@ -188,6 +209,12 @@ for (const screen of [1280, 1366, 1440]) {
         await page.goto('/');
         await page.evaluate(() => document.fonts.ready);
         await expectFullMenu(page, `${screen}@125%`);
+        // مربع الترخيص ظاهر مصغّراً والمخطوطة ملاصقة للرمز لا في الوسط (قرار صفوان، البند ٤ من تقييم اللقطات)
+        const layout = await measureHeader(page);
+        expect(layout.boxes.licence, 'مربع الترخيص ظاهر').not.toBeNull();
+        expect(layout.markToCalligraphy).toBeLessThanOrEqual(24);
+        expect(layout.calligraphyToLicence).toBeLessThanOrEqual(16);
+        expect(layout.licenceToActions).toBeGreaterThanOrEqual(12);
         if (screen === 1280) {
             await headerShot(page, width, 'header-1280-zoom125');
         }
@@ -331,14 +358,7 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
         expect(stats.chartRight, 'الرسم يسار البطاقات').toBeLessThanOrEqual(stats.cardsLeft);
     }
 
-    // اللقطة كاملة بعد المرور على الصفحة كلها، فيظهر كل عنوان وبطاقة بحركة ظهوره (data-reveal) وتبلغ الأرقام نهايتها
-    for (let top = 0; top < (await page.evaluate(() => document.documentElement.scrollHeight)); top += 500) {
-        await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), top);
-        await page.waitForTimeout(250);
-    }
-    await page.waitForTimeout(1500);
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-    await page.waitForTimeout(400);
+    await settleForShot(page);
     await page.screenshot({ path: `${SHOTS}/director-2026-11-03-home-${width}.png`, fullPage: true });
 });
 
@@ -454,9 +474,11 @@ test('inner page heroes: light with dark text, the section image in a tilted whi
             const frame = section.querySelector('.page-hero-frame');
             const back = section.querySelector('.page-hero-back');
             const title = section.querySelector('h1');
+            const calligraphy = section.querySelector('[data-page-calligraphy]');
 
             return {
                 title: getComputedStyle(title).color,
+                calligraphy: { filter: getComputedStyle(calligraphy).filter, colour: getComputedStyle(calligraphy).backgroundColor, mask: getComputedStyle(calligraphy).maskImage || getComputedStyle(calligraphy).webkitMaskImage, label: calligraphy.getAttribute('aria-label'), height: calligraphy.getBoundingClientRect().height },
                 background: getComputedStyle(section).backgroundImage,
                 frameBorder: getComputedStyle(frame).borderTopWidth,
                 frameTransform: getComputedStyle(frame).transform,
@@ -465,6 +487,13 @@ test('inner page heroes: light with dark text, the section image in a tilted whi
             };
         });
         expect(look.title, `${name}: نص داكن`).toBe('rgb(31, 69, 101)');
+        // المخطوطة بأزرق الهوية الداكن بلا ظل، قناعاً من ملف المخطوطة (قرار صفوان، البند ٣٢ — تقييم اللقطات، البند ٣)
+        // بلا ظل (وحركة الصعود rise-3 تُبقي blur(0px) بعد انتهائها، وليس ظلاً)
+        expect(look.calligraphy.filter, `${name}: بلا ظل`).not.toContain('drop-shadow');
+        expect(look.calligraphy.colour, `${name}: أزرق الهوية`).toBe('rgb(31, 69, 101)');
+        expect(look.calligraphy.mask).toContain('logo-calligraphy.png');
+        expect(look.calligraphy.label).toBe('جمعية إعجاز للدراسات والبحوث العلمية');
+        expect(look.calligraphy.height).toBeGreaterThan(20);
         expect(look.background, `${name}: خلفية فاتحة`).toContain('linear-gradient');
         expect(look.frameBorder).toBe('8px');
         expect(look.frameTransform, `${name}: مائلة`).not.toBe('none');
@@ -475,7 +504,9 @@ test('inner page heroes: light with dark text, the section image in a tilted whi
             expect(look.backShown).toBe(true);
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), name).toBeLessThanOrEqual(0);
-        await page.waitForTimeout(700);
+        // بعد اكتمال حركة الصعود (rise-*)، فلا يظهر الوصف والمخطوطة مموَّهين (البند ١)
+        await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+        await page.waitForTimeout(1500);
         const box = await hero.boundingBox();
         await page.screenshot({ path: `${SHOTS}/director-2026-11-03-hero-${name}-${width}.png`, clip: { x: 0, y: 0, width, height: Math.ceil(box.y + box.height) } });
     }
@@ -512,7 +543,7 @@ test('about: «من نحن» on the right in a soft light card, the vision and m
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
     if (info.project.name !== 'tablet') {
-        await page.waitForTimeout(800);
+        await settleForShot(page);
         await page.screenshot({ path: `${SHOTS}/director-2026-11-03-about-${width}.png`, fullPage: true });
     }
 });
@@ -583,20 +614,69 @@ test('hero: four light slides in order — the Mushaf, the Haram, the King with 
         await slider.locator('[data-carousel-dot]').nth(index).click();
         const slide = slider.locator(`[data-hero-slide="${key}"]`);
         await expect(slide).toHaveAttribute('data-active', '');
-        await page.waitForTimeout(900);
+        await page.waitForTimeout(1500);
         const look = await slide.evaluate((el) => ({
+            buttons: [...el.querySelectorAll('[data-hero-button]')].map((button) => button.dataset.heroButton),
+            textClipped: (() => { const text = el.querySelector('[data-hero-text]'); return text ? text.scrollHeight > text.clientHeight + 1 : false; })(),
+            titleLines: Math.round(el.querySelector('h1 span, h2 span').getBoundingClientRect().height / parseFloat(getComputedStyle(el.querySelector('h1 span, h2 span')).lineHeight)),
+            dots: [...document.querySelectorAll('[data-hero-slider] [data-carousel-dot]')].map((dot) => { const bar = getComputedStyle(dot, '::before'); return { width: bar.width, height: bar.height, colour: bar.backgroundColor, button: getComputedStyle(dot).backgroundColor }; }),
             title: getComputedStyle(el.querySelector('h1, h2')).color,
             frame: getComputedStyle(el.querySelector('[data-hero-frame]')).borderTopWidth,
             shadow: getComputedStyle(el.querySelector('[data-hero-frame]')).boxShadow,
         }));
         expect(look.title).toBe('rgb(31, 69, 101)');
         expect(look.frame).toBe('8px');
+        // أزرار الشريحتين الأوليين (البند ٦)، والاقتباس كاملاً (البند ٧)، واسم رئيس المجلس بسطر واحد (البند ٩)، والمؤشر أشرطة رفيعة (البند ١٢)
+        expect(look.buttons, key).toEqual({ about: ['primary', 'secondary'], haram: ['primary'], king: [], chairman: ['primary'] }[key]);
+        if (key === 'king') {
+            expect(look.textClipped, 'الاقتباس كاملاً').toBe(false);
+        }
+        if (key === 'chairman') {
+            expect(look.titleLines, 'الاسم سطر واحد').toBe(1);
+        }
+        for (const [position, dot] of look.dots.entries()) {
+            expect(dot.button, 'لا كتلة رمادية').toBe('rgba(0, 0, 0, 0)');
+            expect(dot.height).toBe('6px');
+            expect(dot.width).toBe(position === index ? '52px' : '34px');
+            expect(dot.colour).toBe(position === index ? 'rgb(31, 69, 101)' : 'rgba(31, 69, 101, 0.25)');
+        }
         if (key === 'king') {
             expect(look.shadow, 'حلقة ذهبية وخضراء').toContain('rgb(201, 169, 97)');
             expect(look.shadow).toContain('rgba(14, 107, 71');
         }
         const box = await slider.boundingBox();
         await page.screenshot({ path: `${SHOTS}/director-2026-11-03-hero-slide-${index + 1}-${key}-1440.png`, clip: { x: 0, y: 0, width: 1440, height: Math.ceil(box.y + box.height) } });
+    }
+});
+
+// تقييم لقطات التوجيه (البند ٨): نص كل شريحة لا يلامس شريط الشرائح على الجوال واللوحي والحاسوب. والبند ١٣: العائم مخفي على الحاسوب
+// وزر الرأس يكفي، ويبقى العائم على الجوال
+test('hero: no slide text touches the slide bar, and the floating assistant shows on phones only', async ({ page }, info) => {
+    await page.goto('/');
+    await page.evaluate(() => document.fonts.ready);
+    const slider = page.locator('[data-hero-slider]');
+    // بالنقر البرمجي: الرأس الثابت قد يغطي الشريط حين يمرّره المتصفح إلى أعلى الشاشة على الجوال
+    await slider.locator('[data-carousel-toggle]').evaluate((button) => button.click());
+    const count = await slider.locator('[data-hero-slide]').count();
+    for (let index = 0; index < count; index++) {
+        await slider.locator('[data-carousel-dot]').nth(index).evaluate((dot) => dot.click());
+        await page.mouse.move(1, 1);
+        await page.waitForTimeout(900);
+        const gap = await page.evaluate((i) => {
+            const caption = document.querySelectorAll('[data-hero-slide]')[i].querySelector('figcaption').getBoundingClientRect();
+
+            return document.querySelector('[data-hero-progress]').getBoundingClientRect().top - caption.bottom;
+        }, index);
+        expect(gap, `الشريحة ${index + 1}: النص فوق الشريط`).toBeGreaterThanOrEqual(8);
+    }
+
+    if (await page.locator('[data-assistant-fab]').count()) {
+        if (info.project.name === 'desktop') {
+            await expect(page.locator('[data-assistant-fab]')).toBeHidden();
+            await expect(page.locator('[data-header-assistant]')).toBeVisible();
+        } else {
+            await expect(page.locator('[data-assistant-fab]')).toBeVisible();
+        }
     }
 });
 
@@ -624,7 +704,7 @@ test('services: nine style «أ» cards in a 3×3 grid, the same card in the hom
     expect(look).toEqual({ color: 'rgb(31, 69, 101)', tile: '64px', align: 'center' });
     await expect(page.locator('[data-store-card] a')).toHaveAttribute('target', '_blank');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-    await page.waitForTimeout(800);
+    await settleForShot(page);
     await page.screenshot({ path: `${SHOTS}/director-2026-11-03-services-${width}.png`, fullPage: true });
 
     await page.goto('/');

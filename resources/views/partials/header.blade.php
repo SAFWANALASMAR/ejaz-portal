@@ -19,7 +19,7 @@
 @endphp
 
 <header data-site-header class="site-header sticky top-0 z-40 text-white">
-    {{-- الصف الأول بعرض الشاشة كله: دون 1240 المخطوطة في منتصف الشاشة، ومن 1240 الرمز والمخطوطة والمربع كتلة في البداية والأزرار في النهاية (concept.css — .header-top) --}}
+    {{-- الصف الأول: دون 1024 المخطوطة في منتصف الشاشة، ومن 1024 الرمز والمخطوطة والمربع كتلة في البداية والأزرار في النهاية في حاوية صف القائمة (concept.css — .header-top) --}}
     <div class="header-top">
         {{-- الاسم المقروء في المخطوطة، فرابط الرمز خارج ترتيب لوحة المفاتيح وقارئ الشاشة: رابطان إلى الرئيسية لا يتكرران --}}
         <a href="{{ route('home') }}" wire:navigate class="header-mark" tabindex="-1" aria-hidden="true" aria-label="{{ __('site.name') }}">
@@ -33,7 +33,7 @@
 
         <div class="header-end">
             {{-- مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطران يُعدَّلان من «محتوى الرئيسية» --}}
-            <p data-header-licence class="header-licence hidden nav:flex">
+            <p data-header-licence class="header-licence hidden lg:flex">
                 <span class="font-extrabold">{{ $header('licensed_by') }}</span>
                 @if (filled($licenseNumber = \App\Support\MissingText::shown($header('license_number'))))
                     <span class="text-brand-light">{{ $licenseNumber }}</span>
