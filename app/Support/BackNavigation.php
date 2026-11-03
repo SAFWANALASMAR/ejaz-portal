@@ -35,6 +35,7 @@ final class BackNavigation
         'media.albums.show' => ['media.albums.index'],
         'media.announcements' => ['media.index'],
         'media.partners' => ['media.index'],
+        'media.social' => ['media.index'],
         'programs.index' => ['home'],
         'programs.show' => ['programs.index'],
         'programs.register' => ['programs.show', ['slug']],

@@ -25,6 +25,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PagePreviewController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\SocialPostController;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAssistantEnabled;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
@@ -108,6 +109,8 @@ Route::get('/media/news/{slug}', [NewsController::class, 'show'])->where('slug',
 Route::get('/media/announcements', [MediaController::class, 'announcements'])->name('media.announcements');
 Route::get('/media/albums', [AlbumController::class, 'index'])->name('media.albums.index');
 Route::get('/media/albums/{slug}', [AlbumController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('media.albums.show');
+// «منشوراتنا»: منشورات الجمعية وأحداثها على منصات التواصل (طلب صفوان، 3 نوفمبر 2026)
+Route::get('/media/social', [SocialPostController::class, 'index'])->name('media.social');
 
 // التواصل: الصفحة ونموذج «الاستفسارات والاقتراحات»، بحدود لكل مشترك وللبوابة (FortifyServiceProvider)
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
