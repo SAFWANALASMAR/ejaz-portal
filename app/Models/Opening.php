@@ -33,6 +33,13 @@ class Opening extends Model implements HasFormFields
     use DefinesFormFields, FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
     /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'summary', 'description', 'form_fields'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

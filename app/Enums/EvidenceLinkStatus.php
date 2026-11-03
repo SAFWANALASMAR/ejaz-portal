@@ -20,14 +20,15 @@ enum EvidenceLinkStatus: string implements HasColor, HasLabel
 
     public static function of(EvidenceGallery $gallery): self
     {
+        // الساري من linkIsActive() وحدها، شرط الرابط الذي يفتحه نفسه (ملاحظة المشرف على طلب الدمج 147)، وما بعدها سبب
+        // التوقف وحده لا يجعل رابطاً سارياً
         return match (true) {
             $gallery->token_hash === null => self::None,
+            $gallery->linkIsActive() => self::Active,
             // حذف المعرض يلغي رابطه (EvidenceGallery::booted)
             $gallery->revoked_at !== null || $gallery->trashed() => self::Revoked,
-            // والرابط بلا انتهاء لا يُعرض سارياً أبداً: الروابط مؤقتة (فرع fix/v0.15-security-lows يجعله غير ساري
-            // في linkIsActive ويضع انتهاءً للقديم)، فيُعرض منتهياً حتى يُجدَّد بانتهاء
-            $gallery->expires_at === null || ! $gallery->expires_at->isFuture() => self::Expired,
-            $gallery->linkIsActive() => self::Active,
+            // ومنه الرابط القديم بلا انتهاء: linkIsActive() ترفضه، فيُعرض منتهياً حتى يُجدَّد بانتهاء
+            $gallery->expires_at?->isFuture() !== true => self::Expired,
             // والباقي حساب المُصدر: معطّل، أو لم يبق (الحسابات تُخفى بالتعطيل لا تُحذف، فهو المعطّل عملياً)
             default => self::IssuerDisabled,
         };

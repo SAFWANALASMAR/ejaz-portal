@@ -65,31 +65,31 @@
              يُقص على الجوال (مراجعة الجودة، 3 نوفمبر 2026). والغلاف منطقة مسماة تُبلغ بلوحة المفاتيح فتُمرَّر بالأسهم --}}
         <div class="card-lift mt-4">
             <div class="overflow-x-auto" role="region" tabindex="0" aria-label="{{ __('competitions.student.page.prizes') }}" data-prize-table>
-            <table class="w-full whitespace-nowrap text-start text-sm">
-                <thead class="bg-primary-soft text-primary">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.page.place') }}</th>
-                        <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.gender_groups.male') }}</th>
-                        <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.gender_groups.female') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line/70">
-                    @foreach ($prizes as $prize)
+                <table class="w-full whitespace-nowrap text-start text-sm">
+                    <thead class="bg-primary-soft text-primary">
                         <tr>
-                            <th scope="row" class="px-4 py-2.5 text-start font-semibold text-ink">{{ __('competitions.student.page.places')[$prize['place']] ?? Number::format($prize['place']) }}</th>
-                            <td class="px-4 py-2.5 text-ink">{{ __('competitions.student.page.currency', ['amount' => Number::format($prize['male'])]) }}</td>
-                            <td class="px-4 py-2.5 text-ink">{{ __('competitions.student.page.currency', ['amount' => Number::format($prize['female'])]) }}</td>
+                            <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.page.place') }}</th>
+                            <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.gender_groups.male') }}</th>
+                            <th scope="col" class="px-4 py-3 text-start font-bold">{{ __('competitions.student.gender_groups.female') }}</th>
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot class="bg-primary-soft font-bold text-primary">
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-start">{{ __('competitions.student.page.prizes_total') }}</th>
-                        <td class="px-4 py-3">{{ __('competitions.student.page.currency', ['amount' => Number::format(array_sum(array_column($prizes, 'male')))]) }}</td>
-                        <td class="px-4 py-3">{{ __('competitions.student.page.currency', ['amount' => Number::format(array_sum(array_column($prizes, 'female')))]) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-line/70">
+                        @foreach ($prizes as $prize)
+                            <tr>
+                                <th scope="row" class="px-4 py-2.5 text-start font-semibold text-ink">{{ __('competitions.student.page.places')[$prize['place']] ?? Number::format($prize['place']) }}</th>
+                                <td class="px-4 py-2.5 text-ink">{{ __('competitions.student.page.currency', ['amount' => Number::format($prize['male'])]) }}</td>
+                                <td class="px-4 py-2.5 text-ink">{{ __('competitions.student.page.currency', ['amount' => Number::format($prize['female'])]) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="bg-primary-soft font-bold text-primary">
+                        <tr>
+                            <th scope="row" class="px-4 py-3 text-start">{{ __('competitions.student.page.prizes_total') }}</th>
+                            <td class="px-4 py-3">{{ __('competitions.student.page.currency', ['amount' => Number::format(array_sum(array_column($prizes, 'male')))]) }}</td>
+                            <td class="px-4 py-3">{{ __('competitions.student.page.currency', ['amount' => Number::format(array_sum(array_column($prizes, 'female')))]) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
         <p class="mt-3 font-bold text-primary">{{ __('competitions.student.page.prizes_grand_total', ['amount' => Number::format(array_sum(array_column($prizes, 'male')) + array_sum(array_column($prizes, 'female')))]) }}</p>

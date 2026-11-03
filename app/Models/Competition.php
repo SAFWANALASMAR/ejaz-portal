@@ -45,6 +45,13 @@ class Competition extends Model
     use FlushesContentCache, HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
 
     /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'description', 'terms', 'prizes', 'page_content', 'prize_table'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

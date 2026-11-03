@@ -36,6 +36,13 @@ class LibraryItem extends Model implements HasPublicImages
     /** @use HasFactory<LibraryItemFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, Publishable, SoftDeletes;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'description', 'author', 'tags'];
+
     public const IMAGE_DIRECTORY = 'library';
 
     public const FILE_DIRECTORY = 'library';

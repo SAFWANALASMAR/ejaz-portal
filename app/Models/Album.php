@@ -26,6 +26,13 @@ class Album extends Model implements HasPublicImages
     /** @use HasFactory<AlbumFactory> */
     use FlushesContentCache, HasFactory, LogsActivity, Publishable;
 
+    /**
+     * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
+     *
+     * @var list<string>
+     */
+    protected array $missingTextFields = ['title', 'description'];
+
     public const IMAGE_DIRECTORY = 'albums';
 
     public const MAX_PHOTOS = 60;

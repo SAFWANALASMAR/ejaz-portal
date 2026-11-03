@@ -3,6 +3,7 @@
 use App\Models\Competition;
 use App\Models\NewsArticle;
 use App\Models\Program;
+use App\Models\User;
 use App\Support\ShareImage;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Middleware\TrustHosts;
@@ -145,5 +146,47 @@ it('keeps TrustHosts in the global middleware, so a production request for anoth
             ->toThrow(SuspiciousOperationException::class);
     } finally {
         Request::setTrustedHosts([]);
+    }
+});
+
+it('keeps a news title with </script> whole and escaped in the JSON-LD, the title and the share tags', function () {
+    $title = 'خبر </script><script>alert(1)</script> & "اقتباس"';
+    NewsArticle::factory()->create(['slug' => 'script-title', 'title' => $title, 'summary' => 'ملخص <b>الخبر</b>']);
+
+    $html = (string) $this->get('/media/news/script-title')->assertOk()->getContent();
+
+    // لا يُغلق العنوانُ كتلة البيانات ولا يفتح سكربتاً: < و> مهرّبة في JSON_HEX_TAG، وفي الوسوم كيانات HTML
+    preg_match_all('#<script type="application/ld\+json"[^>]*>(.*?)</script>#s', $html, $blocks);
+    $nodes = collect($blocks[1])->flatMap(function (string $json): array {
+        $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        return $data['@graph'] ?? [$data];
+    });
+    $article = $nodes->firstWhere('@type', 'NewsArticle');
+
+    expect($html)->not->toContain('<script>alert(1)')
+        ->and($article)->not->toBeNull()
+        ->and($article['headline'])->toBe($title)
+        ->and($article['description'])->toBe('ملخص الخبر')
+        ->and(collect($blocks[1])->first(fn (string $json): bool => str_contains($json, 'NewsArticle')))
+        ->toContain(trim((string) json_encode('</script>', JSON_HEX_TAG | JSON_UNESCAPED_SLASHES), '"'))->not->toContain('</script>')
+        ->and($html)->toContain('<title>'.e($title).' | '.__('site.short_name').'</title>')
+        ->and(headMeta($html, 'property', 'og:title'))->toBe($title);
+});
+
+it('answers 404 for a page number after the last one, in the public lists and the account lists', function () {
+    NewsArticle::factory()->count(13)->create();
+
+    $this->get('/media/news?page=2')->assertOk();
+    $this->get('/media/news?page=3')->assertNotFound();
+    $this->get('/media/news?page=99')->assertNotFound();
+
+    // ولا يُرسم رقم صفحة غير موجودة في عنوانها
+    $this->actingAs(User::factory()->create());
+
+    foreach (['/account/programs', '/account/requests'] as $path) {
+        $this->get($path)->assertOk();
+        $this->get($path.'?page=1')->assertOk();
+        $this->get($path.'?page=2')->assertNotFound();
     }
 });
