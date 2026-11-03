@@ -72,7 +72,9 @@ class AttemptReceived extends Notification implements ShouldQueueAfterCommit
 
         if ($notifiable instanceof User && filled($notifiable->email) && ! $notifiable->hasVerifiedEmail()) {
             $mail->line(__('competitions.student.receipt_mail.verify_line', ['minutes' => (int) config('auth.verification.expire', 60)]))
-                ->line('['.__('account.verify_email.action').']('.(new VerifyEmailNotification)->urlFor($notifiable).')');
+                ->line('['.__('account.verify_email.action').']('.(new VerifyEmailNotification)->urlFor($notifiable).')')
+                // والبريد غير الموثق قد يكون لغير صاحب الحساب (أدخله الطالب خطأً)، فلا يوثّقه من وصله
+                ->line(__('competitions.student.receipt_mail.not_you_line'));
         }
 
         return $mail->salutation(__('account.mail.salutation'));
