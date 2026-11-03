@@ -26,7 +26,7 @@ return [
     'search_placeholder' => 'ابحث في الموقع',
     'search_soon' => 'البحث قريباً',
     'login' => 'تسجيل الدخول',
-    'register' => 'حساب جديد',
+    'register' => 'إنشاء حساب جديد',
     'my_account' => 'حسابي',
     'logout' => 'تسجيل الخروج',
     'admin_panel' => 'لوحة الإدارة',
