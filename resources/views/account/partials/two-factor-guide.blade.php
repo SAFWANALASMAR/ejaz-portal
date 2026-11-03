@@ -44,8 +44,9 @@
                 <li class="flex gap-3 leading-7">
                     <span class="mt-3 size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
                     @if ($key === 'lost_all')
-                        {{-- النص مهرَّب، ثم يُوضع رابط «تواصل معنا» مكان :contact --}}
-                        <span>{!! str_replace(':contact', '<a href="'.e(route('contact')).'" class="font-bold text-primary-dark underline underline-offset-4" data-two-factor-contact>'.e(__('contact.title')).'</a>', e(__('account.two_factor_guide.lost.items.lost_all'))) !!}</span>
+                        {{-- رابط «تواصل معنا» مكان :contact، بطرفي النص مهرَّبين، فلا مخرج خام (RawOutputTest) --}}
+                        @php([$lostBefore, $lostAfter] = array_pad(explode(':contact', __('account.two_factor_guide.lost.items.lost_all'), 2), 2, ''))
+                        <span>{{ $lostBefore }}<a href="{{ route('contact') }}" class="font-bold text-primary-dark underline underline-offset-4" data-two-factor-contact>{{ __('contact.title') }}</a>{{ $lostAfter }}</span>
                     @else
                         <span>{{ __('account.two_factor_guide.lost.items.'.$key, $replace) }}</span>
                     @endif
