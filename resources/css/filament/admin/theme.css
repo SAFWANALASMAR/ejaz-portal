@@ -80,6 +80,11 @@ html:not(.dark) .fi-body {
     .fi-topbar .fi-logo {
         display: none;
     }
+
+    /* ورابطه معه: كان يبقى في ترتيب التركيز بلا اسم (فحص الوصول 0.15، axe: link-name) */
+    .fi-topbar-start > a:has(> .fi-logo) {
+        display: none;
+    }
 }
 
 .ej-sidebar-brand {
@@ -641,4 +646,9 @@ html.dark .fi-header-heading {
     .fi-wi-stats-overview-stat:hover .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
         transform: none;
     }
+}
+
+/* وصف القسم في رئيسية اللوحة بالرمادي الأغمق: الرمادي 500 على خلفية الصفحة #D6E7F6 كان 3.8:1 والحد 4.5 (فحص الوصول 0.15) */
+html:not(.dark) .fi-section-header-description {
+    color: var(--gray-600);
 }

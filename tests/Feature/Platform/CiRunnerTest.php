@@ -111,3 +111,15 @@ it('stops the old persistent runner container on remove, then deletes only its r
         'exit 0',
     ]);
 });
+
+it('audits the Composer and production npm packages on every run, as a blocking step', function () {
+    $job = ciJob('quality');
+
+    expect(preg_match('/- name: تدقيق المكتبات أمنياً\n(.*?)\n\s*\n/su', $job, $step))->toBe(1)
+        ->and($step[1])->toMatch('/^\s+composer audit\s*$/m')
+        ->toContain('npm audit --omit=dev --audit-level=high')
+        ->not->toContain('continue-on-error')
+        ->not->toContain('|| true')
+        // ولا يُجعل الفحص كله غير مانع
+        ->and($job)->not->toMatch('/^    continue-on-error:/m');
+});

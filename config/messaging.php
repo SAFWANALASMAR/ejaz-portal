@@ -15,6 +15,11 @@ return [
     // التحقق (SendPhoneVerificationCode: خمسة في الساعة وعشرة في اليوم للرقم، وحدود الشبكة). 0 بلا حد
     'per_number_per_day' => (int) env('MESSAGING_PER_NUMBER_PER_DAY', 20),
 
+    // إيصال واتساب بعد الاختبار (SendExamReceipt): لكل رقم في اليوم (ولي أمر لعدة أبناء ومراحل)، وللبوابة كلها في
+    // اليوم فوق عدد المتقدمين المتوقع. وما تجاوزهما يُتخطى ويُسجَّل بلا الرقم، ولا تفشل المهمة. 0 بلا حد
+    'exam_receipt_per_number_per_day' => (int) env('MESSAGING_EXAM_RECEIPT_PER_NUMBER_PER_DAY', 10),
+    'exam_receipt_per_day' => (int) env('MESSAGING_EXAM_RECEIPT_PER_DAY', 40000),
+
     // رسائل الاختبار من اللوحة لكل مشرف في الساعة، وللبوابة كلها في اليوم
     'tests_per_hour' => (int) env('MESSAGING_TESTS_PER_HOUR', 10),
     'tests_per_day' => (int) env('MESSAGING_TESTS_PER_DAY', 30),

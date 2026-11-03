@@ -113,8 +113,9 @@ test('home: the services strip still moves for reduced motion, slower, with its 
 test('home: partners under the stats, YouTube right and books left (items 12, 24)', async ({ page }, testInfo) => {
     await page.goto('/');
     await revealAll(page);
-    const videos = page.locator('[data-media-strip="videos"] .marquee-track');
-    const books = page.locator('[data-media-strip="books"] .marquee-track');
+    // المتحرك وحده (data-marquee): الشريط القليل صف ثابت بلا حركة (marquee-pause.spec.mjs)
+    const videos = page.locator('[data-media-strip="videos"] [data-marquee] .marquee-track');
+    const books = page.locator('[data-media-strip="books"] [data-marquee] .marquee-track');
 
     if ((await videos.count()) && (await books.count())) {
         await videos.scrollIntoViewIfNeeded();
@@ -184,7 +185,8 @@ test('header: touch opens a dropdown by tap on tablet and phone (item 3)', async
     await shot(page, '03-mobile-menu', testInfo);
 });
 
-test('header: the whole header shrinks proportionally on scroll and returns at the top (items 1, 2, 25)', async ({ page }, testInfo) => {
+// البند ٢٥ (الصغر عند التمرير) ألغاه ترتيب صفوان في 2 نوفمبر 2026: الرأس بمقاساته نفسها عند التمرير (header-final.spec.mjs)
+test('header: the licence box and the header keep their size on scroll (items 1, 2; item 25 cancelled)', async ({ page }, testInfo) => {
     await page.goto('/contact');
     const header = page.locator('[data-site-header]');
     const measure = () => header.evaluate((el) => ({
@@ -203,15 +205,7 @@ test('header: the whole header shrinks proportionally on scroll and returns at t
 
     await page.evaluate(() => window.scrollTo(0, 700));
     await page.waitForTimeout(700);
-    const scrolled = await measure();
-    expect(scrolled.height).toBeLessThan(top.height);
-    // الرمز والمخطوطة معاً بالنسبة نفسها (البند ٢٥ يلغي البند ٢)
-    expect(Math.abs(scrolled.mark / top.mark - scrolled.calligraphy / top.calligraphy)).toBeLessThan(0.05);
-    await shot(page, '25-header-scrolled', testInfo);
-
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(700);
-    expect(Math.round((await measure()).height)).toBe(Math.round(top.height));
+    expect(await measure()).toEqual(top);
 });
 
 test('transition: no overlay for a quick navigation, a quick fade once the page is in, calligraphy under the logo (items 5, 13, 21)', async ({ page }, testInfo) => {
