@@ -30,6 +30,8 @@ class ResetTwoFactorByAdmin
 
     public const REASON_MAX = 255;
 
+    public const VIA_CONSOLE = 'console';
+
     /**
      * قواعد المدخلات. ونموذج اللوحة يطابقها (الإلزام والحد REASON_MAX)، وهذه هي الحاكمة لكل مستدعٍ.
      *
@@ -81,7 +83,16 @@ class ResetTwoFactorByAdmin
             self::throttled($key);
         }
 
-        DB::transaction(function () use ($actor, $user, $data): void {
+        self::apply($user, $actor, (string) $data['reason']);
+    }
+
+    /**
+     * التنفيذ نفسه بعد الفحوص، مشتركاً بين اللوحة وأمر الطرفية (ejaz:reset-two-factor). والمنفّذ null للطرفية، فيُسجَّل
+     * «via: console» ويظهر منفّذه «الطرفية» في سجل العمليات.
+     */
+    public static function apply(User $user, ?User $actor, string $reason): void
+    {
+        DB::transaction(function () use ($actor, $user, $reason): void {
             $user->forceFill([
                 'two_factor_secret' => null,
                 'two_factor_recovery_codes' => null,
@@ -90,12 +101,19 @@ class ResetTwoFactorByAdmin
                 'sessions_revoked_at' => now(),
             ])->save();
 
-            activity('security')
-                ->causedBy($actor)
+            $log = activity('security')
                 ->performedOn($user)
                 ->event(ActivityEvent::TwoFactorResetByAdmin->value)
-                ->withProperties(['reason' => trim((string) $data['reason'])])
-                ->log(ActivityEvent::TwoFactorResetByAdmin->value);
+                ->withProperties([
+                    'reason' => trim($reason),
+                    ...($actor === null ? ['via' => self::VIA_CONSOLE] : []),
+                ]);
+
+            if ($actor !== null) {
+                $log->causedBy($actor);
+            }
+
+            $log->log(ActivityEvent::TwoFactorResetByAdmin->value);
         });
 
         $user->notify(new TwoFactorResetByAdmin);

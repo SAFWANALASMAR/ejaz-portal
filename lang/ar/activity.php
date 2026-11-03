@@ -16,6 +16,7 @@ return [
         'properties' => 'تفاصيل',
         'system' => 'النظام',
         'unknown' => 'غير معروف',
+        'console' => 'الطرفية',
     ],
 
     'logs' => [

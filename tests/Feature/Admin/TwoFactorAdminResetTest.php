@@ -3,6 +3,7 @@
 use App\Actions\Users\ResetTwoFactorByAdmin;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
+use App\Filament\Resources\Activities\ActivityResource;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\UserResource;
 use App\Http\Middleware\EnsureAccountIsActive;
@@ -110,17 +111,108 @@ it('sends a panel role back to enable two-factor before the panel after a reset'
     $this->get('/admin')->assertRedirect(route('account.security'));
 });
 
-it('lets the two system managers reset each other, and a manager reset any lower account', function () {
+it('keeps a system manager from resetting another system manager, and lets a manager reset any lower account', function () {
     $director = userWithRole(RoleName::ExecutiveDirector);
     $superAdmin = userWithRole(RoleName::SuperAdmin);
     $member = User::factory()->withTwoFactor()->create();
 
-    expect($director->can('resetTwoFactor', $this->admin))->toBeTrue()
-        ->and($this->admin->can('resetTwoFactor', $director))->toBeTrue()
-        ->and($this->admin->can('resetTwoFactor', userWithRole(RoleName::TechnicalAdmin)))->toBeTrue()
+    // لا استثناء لمديري النظام: لا يعيده أحد لمن في رتبته (مواصفة صفوان، قرار المشرف 3 نوفمبر 2026)
+    expect($director->can('resetTwoFactor', $this->admin))->toBeFalse()
+        ->and($this->admin->can('resetTwoFactor', $director))->toBeFalse()
+        ->and($this->admin->can('resetTwoFactor', userWithRole(RoleName::TechnicalAdmin)))->toBeFalse()
+        ->and(fn () => app(ResetTwoFactorByAdmin::class)->handle($director, $this->admin, resetInput()))->toThrow(AuthorizationException::class)
+        ->and($this->admin->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue()
         ->and($this->admin->can('resetTwoFactor', $superAdmin))->toBeTrue()
+        ->and($director->can('resetTwoFactor', userWithRole(RoleName::ContentEditor)))->toBeTrue()
         ->and($director->can('resetTwoFactor', $member))->toBeTrue();
+
+    $this->actingAs($director);
+    Livewire::test(EditUser::class, ['record' => $this->admin->getRouteKey()])->assertActionHidden('resetTwoFactor');
 });
+
+it('locks the reset after five wrong passwords, refusing even the right one until the lock expires', function () {
+    $editor = userWithRole(RoleName::ContentEditor);
+    $reset = app(ResetTwoFactorByAdmin::class);
+
+    foreach (range(1, 5) as $ignored) {
+        expect(fn () => $reset->handle($this->admin, $editor, resetInput(['password' => 'wrong-password'])))
+            ->toThrow(ValidationException::class, __('auth.password'));
+    }
+
+    expect(fn () => $reset->handle($this->admin, $editor, resetInput()))
+        ->toThrow(ValidationException::class, __('account.confirm_password.throttle', ['minutes' => 15]))
+        ->and($editor->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue()
+        ->and(Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->exists())->toBeFalse();
+    Notification::assertNothingSent();
+
+    // والقفل نفسه في اللوحة
+    $this->actingAs($this->admin);
+    Livewire::test(EditUser::class, ['record' => $editor->getRouteKey()])
+        ->callAction('resetTwoFactor', data: resetInput())
+        ->assertNotified(__('account.confirm_password.throttle', ['minutes' => 15]));
+    expect($editor->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue();
+
+    // وبعد انقضاء القفل تُقبل الصحيحة
+    $this->travel(16)->minutes();
+    $reset->handle($this->admin, $editor, resetInput());
+
+    expect($editor->fresh()->hasEnabledTwoFactorAuthentication())->toBeFalse();
+});
+
+it('resets a system manager from the server console, logging the console as the executor', function () {
+    $director = userWithRole(RoleName::ExecutiveDirector);
+    $remember = $director->remember_token;
+
+    $this->artisan('ejaz:reset-two-factor', ['email' => mb_strtoupper($director->email), '--reason' => 'فقد تطبيق المصادقة، بطلبه حضورياً', '--force' => true, '--no-interaction' => true])
+        ->assertSuccessful();
+
+    $director->refresh();
+
+    expect($director->two_factor_secret)->toBeNull()
+        ->and($director->two_factor_recovery_codes)->toBeNull()
+        ->and($director->two_factor_confirmed_at)->toBeNull()
+        ->and($director->remember_token)->not->toBe($remember)
+        ->and($director->sessions_revoked_at)->not->toBeNull();
+
+    Notification::assertSentTo($director, TwoFactorResetByAdmin::class);
+
+    $log = Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->sole();
+
+    expect($log->causer_id)->toBeNull()
+        ->and($log->subject_id)->toBe($director->id)
+        ->and($log->log_name)->toBe('security')
+        ->and($log->properties->all())->toBe(['reason' => 'فقد تطبيق المصادقة، بطلبه حضورياً', 'via' => ResetTwoFactorByAdmin::VIA_CONSOLE])
+        ->and(ActivityResource::causerPlaceholder($log))->toBe('الطرفية');
+});
+
+it('asks for confirmation on the console, and does nothing without --force under --no-interaction', function () {
+    $director = userWithRole(RoleName::ExecutiveDirector);
+
+    $this->artisan('ejaz:reset-two-factor', ['email' => $director->email, '--reason' => 'سبب', '--no-interaction' => true])
+        ->assertFailed();
+
+    $this->artisan('ejaz:reset-two-factor', ['email' => $director->email, '--reason' => 'سبب'])
+        ->expectsConfirmation('يُحذف التحقق الثنائي لحساب «'.$director->name.'» ('.$director->email.')، وتنتهي كل جلساته، ويُبلَّغ. أتابع؟', 'no')
+        ->assertFailed();
+
+    expect($director->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue()
+        ->and(Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->exists())->toBeFalse();
+    Notification::assertNothingSent();
+});
+
+it('refuses on the console an unknown email, a missing or long reason, and an account without two-factor', function (Closure $email, ?string $reason) {
+    $this->artisan('ejaz:reset-two-factor', ['email' => $email(), '--reason' => $reason, '--force' => true, '--no-interaction' => true])
+        ->assertFailed();
+
+    expect(Activity::where('event', ActivityEvent::TwoFactorResetByAdmin->value)->exists())->toBeFalse();
+    Notification::assertNothingSent();
+})->with([
+    'unknown email' => [fn () => 'nobody@example.com', 'سبب'],
+    'no reason' => [fn () => userWithRole(RoleName::ExecutiveDirector)->email, null],
+    'too long' => [fn () => userWithRole(RoleName::ExecutiveDirector)->email, str_repeat('س', 256)],
+    'no two-factor' => [fn () => User::factory()->create()->email, 'سبب'],
+    'anonymized' => [fn () => User::factory()->withTwoFactor()->create(['anonymized_at' => now()])->email, 'سبب'],
+]);
 
 it('refuses an editor, the general supervisor and any role without the permission', function (RoleName $role) {
     $target = User::factory()->withTwoFactor()->create();

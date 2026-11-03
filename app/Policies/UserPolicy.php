@@ -90,7 +90,8 @@ class UserPolicy extends ModulePolicy
     /**
      * إعادة ضبط التحقق الثنائي لمن فقد تطبيقه (قرار صفوان، 3 نوفمبر 2026 — docs/decisions/2026-11-03-2fa-admin-reset.md):
      * بصلاحية users.reset_two_factor (لمديري النظام)، لحساب فعّل التحقق الثنائي، لا لحسابه نفسه، ولا للمشرف العام (اطلاع
-     * فقط) ولو وصلته الصلاحية. ولا يعيد الضبط لمن هو أعلى منه أو في رتبته، إلا مديري النظام فيعيده أحدهما للآخر.
+     * فقط) ولو وصلته الصلاحية. ولا يعيد الضبط لمن هو أعلى منه أو في رتبته، بلا استثناء: فلا يعيده مدير نظام لمدير نظام
+     * آخر، ويُعاد لمدير النظام بأمر الطرفية على الخادم (ejaz:reset-two-factor — مواصفة صفوان، قرار المشرف 3 نوفمبر 2026).
      * والنتيجة صريحة فلا يغيّرها Gate::after.
      */
     public function resetTwoFactor(User $user, User $record): bool
@@ -100,7 +101,7 @@ class UserPolicy extends ModulePolicy
             && $record->hasEnabledTwoFactorAuthentication()
             && $this->allows($user, 'reset_two_factor')
             && (! $user->hasRole(RoleName::SuperAdmin->value) || RoleName::isAdministrator($user))
-            && (RoleName::isAdministrator($user) || self::rank($user) > self::rank($record));
+            && self::rank($user) > self::rank($record);
     }
 
     /**
