@@ -42,7 +42,9 @@ $modules = [
 
     // الإدارة
     // منح الأدوار ليس صلاحية تُمنح: قاعدته في RoleName::assignableBy وUserPolicy::assignRoles
-    'users' => $crud,
+    // reset_two_factor: إعادة ضبط التحقق الثنائي لمن فقد تطبيقه، لمديري النظام وحدهما ('*' في دوريهما — قرار صفوان، 3 نوفمبر
+    // 2026، docs/decisions/2026-11-03-2fa-admin-reset.md)، وقيود الحساب في UserPolicy::resetTwoFactor
+    'users' => [...$crud, 'reset_two_factor'],
     'activity' => ['view'],
     // مدة الاحتفاظ ببيانات الحسابات المحذوفة: لمديري النظام وحدهم (المدير التنفيذي والمسؤول التقني)
     'retention' => ['update'],

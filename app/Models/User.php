@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
@@ -30,6 +31,9 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property Carbon|null $sessions_revoked_at
+ */
 #[Fillable(['name', 'username', 'email', 'phone', 'password', 'privacy_accepted_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
@@ -48,6 +52,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'password_upgrade_required_at' => null,
         'password_set_by_admin_at' => null,
         'reading_tracking_disabled_at' => null,
+        'sessions_revoked_at' => null,
     ];
 
     /**
@@ -69,6 +74,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'password_upgrade_required_at' => 'datetime',
             'password_set_by_admin_at' => 'datetime',
+            // إنهاء الجلسات كلها من اللوحة (ResetTwoFactorByAdmin — EnsureAccountIsActive)
+            'sessions_revoked_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];

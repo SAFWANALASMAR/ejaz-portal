@@ -11,6 +11,7 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Auth\CurrentPasswordLimiter;
 use App\Auth\LoginRateLimiter;
 use App\Enums\RoleName;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Http\Responses\NeutralPasswordResetLinkResponse;
 use App\Http\Responses\NeutralPasswordResetResponse;
@@ -71,6 +72,8 @@ class FortifyServiceProvider extends ServiceProvider
                 Auth::guard('web')->viaRemember()
                     ? session()->put(EnsureTwoFactorIsEnabled::VIA_REMEMBER, true)
                     : session()->forget(EnsureTwoFactorIsEnabled::VIA_REMEMBER);
+                // ووقت الدخول، فتُنهى الجلسة إن أُنهيت جلسات الحساب بعده (sessions_revoked_at — EnsureAccountIsActive)
+                session()->put(EnsureAccountIsActive::LOGGED_IN_AT, now()->getTimestamp());
             }
         });
 
