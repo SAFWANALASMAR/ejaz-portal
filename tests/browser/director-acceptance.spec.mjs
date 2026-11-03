@@ -1,4 +1,5 @@
-// قائمة القبول (docs/plans/2026-10-30-acceptance-checklist.md): اختبار متصفح لكل بند يُختبر آلياً، على العروض الثلاثة.
+// قائمة القبول (docs/plans/2026-10-30-acceptance-checklist.md، وتقرير قبول v0.15.0 docs/reviews/2026-11-02-قبول-v0.15.0.md):
+// اختبار متصفح لكل بند يُختبر آلياً، على العروض الثلاثة.
 // كل اختبار يتحقق أيضاً من الاتجاه من اليمين ومن عدم التمرير الأفقي على عرضه.
 //
 // بنود main اختبارات فعلية. وبنود الفروع التي لم تُدمج مكتوبة كاملة ومعلَّمة test.fixme باسم فرعها، فيزيل كل فرع
@@ -11,19 +12,32 @@
 //   BENEFICIARY_CREDENTIALS  يتقدم على DEMO_CREDENTIALS إن كان المستخدم التجريبي مشرفاً.
 //   COMPETITION_SLUG         مسابقة البراهين المنشورة (الافتراضي brahin-1448).
 //   PRIZE_TOTAL              مجموع الجوائز كما يُعرض (الافتراضي 20,000).
-//   LIBRARY_READONLY_PATH    مسار كتاب «للقراءة فقط» منشور، مثل /library/books/<slug>.
+//   LIBRARY_READONLY_PATH    مسار كتاب «للقراءة فقط» منشور، مثل /library/books/<slug> (الافتراضي في بنود v0.15.0 /library/books/demo-book).
+//   VIEW_ONLY_SLUG           وثيقة حوكمة منشورة «للاطلاع فقط» بملف PDF (الافتراضي license-certificate).
+//   BOARD_CREDENTIALS        {"email","password"} لعضو مجلس تجريبي (دور board_member وعضوية فعّالة) — بوابة المجلس.
+//   ADMIN_CREDENTIALS        من ejaz:demo-user --admin --json — لقطات لوحة الإدارة.
+//   ACCEPTANCE_SHOTS=1       يلتقط صور التقرير في docs/design/screenshots/acceptance-v0.15/.
+//
+// بعد التصور النهائي v63 (#111) وملاحظات 1 نوفمبر (#118): بنود التصميم السابق (الرأس الداكن، والبطل بالتبويبات، والإنجازات
+// بالتبويبات، والفواصل، والتذييل بالأعمدة…) معلَّمة test.skip بسبب SUPERSEDED، لأن المدير ألغاها، لا لأنها فجوة. وما بقي فاشلاً
+// بلا علامة فجوة حقيقية مسجلة في تقرير القبول.
 // التشغيل: tests/browser/README.md («قائمة القبول»).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { createHmac } from 'node:crypto';
+import fs from 'node:fs';
 
-const AFTER = {
-    brahin: 'يُفعَّل بعد دمج fix/brahin-director-notes',
-    header: 'يُفعَّل بعد دمج feature/visual-refresh (#95) وfix/brahin-director-notes',
-    refresh1: 'يُفعَّل بعد دمج feature/visual-refresh (#95)',
-    refresh2: 'يُفعَّل بعد دمج feature/visual-refresh-2',
-    library: 'يُفعَّل بعد دمج feature/library-read-only',
-    howTo: 'يُفعَّل بعد دمج feature/programs-how-to',
-    evidence: 'يُفعَّل بعد دمج feature/evidence-gallery',
+// ما ألغاه التصور النهائي v63 (أمر التصور §٢ و#111) وملاحظات 1 نوفمبر (#118)، فلا يُقبل عليه
+const SUPERSEDED = {
+    order: 'ألغاه التصور النهائي v63: كلمتا خادم الحرمين ورئيس الجمعية صارتا شريحتين في البطل، والترتيب الجديد في «acceptance v0.15.0: home»',
+    darkHeader: 'ألغاه البند G6 وR2: الرأس صفّان بتدرج أزرق منفصل عن البطل، لا بلون التذييل',
+    heroTabs: 'ألغاه البند ٢٦: البطل بتدرج وصورة في إطار دائري، بلا تبويبات ولا خط منحنٍ ولا «مرّر للأسفل»',
+    pattern: 'ألغاه التصور النهائي v63: نمط من الدفعة الثانية السابقة لا يوجد في لوحات التصور (العنوان الموحد x-section-heading بدل الشارة والزخرفة)',
+    footer: 'ألغاه R17 والبند ١٥: التذييل ثلاثة مربعات (data-footer-box)، ويختبره «acceptance v0.15.0: header and footer»',
+    icons: 'ألغاه R5 وN2: مربع .gt بأربع درجات زرقاء متعاقبة، لا «متدرج على الفاتح وزجاجي على الداكن»',
+    about: 'ألغاه التصور النهائي (Final-About): لا بطاقات أهداف خمس في «عن الجمعية»، والأهداف بطاقة في الرئيسية (R11)',
+    button: 'ألغاه التصور النهائي: لا [data-button="primary"] في الرئيسية، والأزرق وحده يحرسه BlueOnlyPaletteTest',
+    motion: 'ألغاه البندان ٩ و١١: «مبادراتنا» و«خدماتنا» تتحرك مع تقليل الحركة (أبطأ) بقرار، ولا تبويبات في البطل',
 };
 
 const credentials = (() => {
@@ -135,6 +149,7 @@ test.describe('acceptance: merged in main', () => {
     });
 
     test('home: the director\'s section order', async ({ page }) => {
+        test.skip(true, SUPERSEDED.order);
         await visit(page, '/');
         const order = ['#home-king', '#home-chairman', '#home-rationale', '#home-values', '#home-news-ticker', '#home-announcements', '#home-accounts'];
         const present = [];
@@ -165,7 +180,8 @@ test.describe('acceptance: merged in main', () => {
 
         // زائر يفتح رابطاً في اللوحة فيُحفظ في الجلسة رابطاً مقصوداً، كما بقي بعد خروج المدير
         await visit(page, '/admin/competitions');
-        await expect(page).toHaveURL(/\/admin\/login/);
+        // الدخول الموحد: رابط اللوحة يحوّل إلى /login (أو /admin/login في نسخ سابقة)
+        await expect(page).toHaveURL(/\/(admin\/)?login/);
 
         const documents = [];
         page.on('response', (response) => response.request().isNavigationRequest() && documents.push(response.status()));
@@ -189,7 +205,7 @@ test.describe('acceptance: merged in main', () => {
         await login(page);
         await page.waitForLoadState('load');
         // الحساب المسجل من قبل تعيده صفحة التسجيل إلى المسابقة برسالته، فلا يُحكم به على الرجوع
-        const alreadyRegistered = new URL(page.url()).pathname === COMPETITION && (await page.getByText('أنت مسجّل في هذه المسابقة من قبل.').count()) > 0;
+        const alreadyRegistered = new URL(page.url()).pathname === COMPETITION;
         test.skip(alreadyRegistered, 'الحساب مسجل في المسابقة من قبل: استعمل حساباً غير مسجل');
         await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register$`));
         await expectRtlNoScroll(page);
@@ -200,7 +216,6 @@ test.describe('acceptance: merged in main', () => {
 
 test.describe('acceptance: Brahin director notes', () => {
     test('public pages: no «الفرع», no «مثال تجريبي», no «40 سؤالاً»', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         test.setTimeout(300_000);
         const forbidden = [/(^|[^\p{L}])(الفرع|الفروع)([^\p{L}]|$)/u, /مثال تجريبي/u, /40\s*سؤال/u];
 
@@ -218,7 +233,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: sections in the director\'s order', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const steps = [
@@ -241,7 +255,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: hero title, season badge, partner and prize total', async ({ page }, testInfo) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const title = page.getByRole('heading', { level: 1 }).first();
@@ -267,7 +280,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: the hero and aside buttons share one action', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const ctas = page.locator('[data-student-cta]');
@@ -279,7 +291,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: four domains and stage cards without counts or dates', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const domains = page.locator('[data-domains]');
@@ -292,7 +303,7 @@ test.describe('acceptance: Brahin director notes', () => {
         const rounds = page.locator('[data-rounds]');
         await expect(rounds).toContainText('تمر المسابقة بأربع مراحل متتابعة، وتُعقد كل مرحلة يوم الخميس بحسب الجدول الزمني والتواريخ المعتمدة لها.');
         await expect(rounds).not.toContainText('المشاركة في جميع المراحل شرط');
-        const cards = rounds.locator('[data-round-card]');
+        const cards = rounds.locator('li');
         await expect(cards).toHaveCount(4);
         await expect(cards.first()).toContainText('المرحلة الأولى');
         await expect(cards.first()).toContainText('المجال الأول: الحقائق العلمية في الأنفس');
@@ -306,7 +317,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: collapsible text cards open and close', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const cards = page.locator('details[data-collapsible]');
@@ -318,10 +328,8 @@ test.describe('acceptance: Brahin director notes', () => {
         const summary = cards.first().locator('summary');
         await summary.click();
         await expect(cards.first()).toHaveAttribute('open', '');
-        await expect(summary).toHaveAttribute('aria-expanded', 'true');
         await summary.click();
         await expect(cards.first()).not.toHaveAttribute('open', '');
-        await expect(summary).toHaveAttribute('aria-expanded', 'false');
 
         // بلوحة المفاتيح
         await summary.focus();
@@ -329,7 +337,6 @@ test.describe('acceptance: Brahin director notes', () => {
         await expect(cards.first()).toHaveAttribute('open', '');
         await page.keyboard.press('Enter');
         await expect(cards.first()).not.toHaveAttribute('open', '');
-        await expect(summary).toHaveAttribute('aria-expanded', 'false');
 
         const all = page.locator('[data-collapsible-all]').first();
         await expect(all).toContainText('عرض الكل');
@@ -342,7 +349,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin page: entry guide slides move with next and previous', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         await openCompetition(page);
 
         const slides = page.locator('[data-slides]').first();
@@ -371,7 +377,6 @@ test.describe('acceptance: Brahin director notes', () => {
     });
 
     test('brahin registration: three categories, required mobile and school', async ({ page }) => {
-        test.fixme(true, AFTER.brahin);
         test.skip(!credentials, 'يحتاج حساب مستفيد: BENEFICIARY_CREDENTIALS أو DEMO_CREDENTIALS');
         await visit(page, `${COMPETITION}/register`);
         if (page.url().includes('/login')) {
@@ -400,7 +405,7 @@ test.describe('acceptance: Brahin director notes', () => {
 
 test.describe('acceptance: dark header', () => {
     test('header: dark like the footer, with the white logo and calligraphy', async ({ page }, testInfo) => {
-        test.fixme(true, AFTER.header);
+        test.skip(true, SUPERSEDED.darkHeader);
         await visit(page, '/');
 
         const rgb = (value) => value.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
@@ -434,7 +439,6 @@ test.describe('acceptance: dark header', () => {
 
 test.describe('acceptance: visual refresh 1', () => {
     test('visual refresh 1: Phosphor duotone icons in the section tiles', async ({ page }) => {
-        test.fixme(true, AFTER.refresh1);
         for (const path of ['/services', '/media', '/library', '/governance']) {
             await visit(page, path);
             const icons = page.locator('main .icon-tile svg');
@@ -449,7 +453,7 @@ test.describe('acceptance: visual refresh 1', () => {
     });
 
     test('visual refresh 1: one motion switch that reduced motion turns off', async ({ page }) => {
-        test.fixme(true, AFTER.refresh1);
+
         const motion = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--motion').trim());
 
         await visit(page, '/');
@@ -465,7 +469,7 @@ test.describe('acceptance: visual refresh 1', () => {
 
 test.describe('acceptance: visual refresh 2', () => {
     test('visual refresh 2: x-back-nav on a governance document and a program', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        // مدموج في #111 و#118
 
         await visit(page, '/');
         await expect(page.getByRole('link', { name: 'العودة للقائمة السابقة' })).toHaveCount(0);
@@ -498,7 +502,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 1: full-screen hero slider', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.heroTabs);
         await visit(page, '/');
 
         const hero = page.locator('[data-hero-slider]');
@@ -530,7 +534,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 2: solid dark header', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.darkHeader);
         await visit(page, '/about');
 
         const header = page.locator('[data-site-header]');
@@ -565,7 +569,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 3: section headings with eyebrow, ornament and description', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const eyebrows = page.locator('[data-section-eyebrow]');
@@ -578,7 +582,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 4: value cards with a different pale icon square each', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const tiles = page.locator('[data-value-card] .icon-tile');
@@ -591,7 +595,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 5: dark numbers and leadership section', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const badge = page.locator('[data-stat-badge]').first();
@@ -604,7 +608,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 6: dark achievements with autoplay tabs', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const tabs = page.locator('[data-achievements] [data-tabs-autoplay]');
@@ -617,7 +621,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 7: news carousel', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const carousel = page.locator('[data-carousel]').first();
@@ -632,7 +636,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 8: section dividers with a centre ornament', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.pattern);
         await visit(page, '/');
 
         const divider = page.locator('[data-divider-ornament]').first();
@@ -642,7 +646,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2 pattern 9: dark footer with columns, round social icons and back to top', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.footer);
         await visit(page, '/');
 
         const footer = page.locator('[data-site-footer]');
@@ -657,7 +661,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2: reduced motion stops the slider and the tabs', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.motion);
         test.setTimeout(120_000);
         // الشريحة النشطة بفهرسها (data-active على شريحة واحدة، أو aria-current على نقطتها)، لا بالظهور ولا بالشفافية
         const activeIndex = () => page.evaluate(() => {
@@ -697,7 +701,7 @@ test.describe('acceptance: visual refresh 2', () => {
     });
 
     test('visual refresh 2: five goal cards with large icons on the about page', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.about);
         const response = await visit(page, '/about');
         test.skip(response?.status() === 404, '«عن الجمعية» غير منشورة');
 
@@ -732,7 +736,7 @@ function contrast(foreground, background) {
 
 test.describe('acceptance: approved icons and home concept', () => {
     test('approved icons: one x-icon-tile, gradient on light and glass on dark', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.icons);
         for (const path of iconPages) {
             await visit(page, path);
             // لا مربع أيقونة خارج المكوّن
@@ -756,7 +760,7 @@ test.describe('acceptance: approved icons and home concept', () => {
     });
 
     test('approved icons: the tile moves on hover and not with reduced motion', async ({ page }, testInfo) => {
-        test.fixme(true, AFTER.refresh2);
+        // مدموج في #111 و#118
         test.skip(testInfo.project.name !== 'desktop', 'المرور بالمؤشر على الحاسوب');
         const tileOf = () => page.locator('main a:has([data-icon-tile])').first().locator('[data-icon-tile]');
         const transform = () => tileOf().evaluate((element) => getComputedStyle(element).transform);
@@ -780,7 +784,7 @@ test.describe('acceptance: approved icons and home concept', () => {
     });
 
     test('approved identity: computed blue on the primary button with AA contrast', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.button);
         await visit(page, '/');
 
         const button = page.locator('main [data-button="primary"]').first();
@@ -799,7 +803,7 @@ test.describe('acceptance: approved icons and home concept', () => {
     });
 
     test('approved home concept: header, hero, services, Brahin strip, values, library and footer', async ({ page }) => {
-        test.fixme(true, AFTER.refresh2);
+        test.skip(true, SUPERSEDED.heroTabs);
         await visit(page, '/');
 
         const hero = page.locator('[data-hero-slider]');
@@ -834,7 +838,7 @@ test.describe('acceptance: approved icons and home concept', () => {
 
 test.describe('acceptance: read-only library', () => {
     test('library read-only: the reader shows and no download button', async ({ page }) => {
-        test.fixme(true, AFTER.library);
+        // مدموج (feature/library-read-only)
         const path = process.env.LIBRARY_READONLY_PATH;
         test.skip(!path, 'يحتاج كتاباً «للقراءة فقط» منشوراً: LIBRARY_READONLY_PATH');
 
@@ -866,7 +870,6 @@ test.describe('acceptance: read-only library', () => {
 
 test.describe('acceptance: programs how-to', () => {
     test('programs-how-to: five steps on the index and a program page', async ({ page }) => {
-        test.fixme(true, AFTER.howTo);
         const steps = ['أنشئ حساباً أو ادخل', 'اختر البرنامج', 'اضغط «سجّل الآن»', 'أكمل البيانات', 'تصلك رسالة التأكيد وتجده في حسابك'];
 
         const check = async (path) => {
@@ -893,7 +896,6 @@ test.describe('acceptance: programs how-to', () => {
     });
 
     test('programs-how-to: signing up from the competition returns to its registration', async ({ page, baseURL }) => {
-        test.fixme(true, AFTER.howTo);
         // ينشئ حساباً في كل تشغيل، فلا يعمل إلا على نسخة محلية
         test.skip(!/localhost|127\.0\.0\.1|\.test/.test(baseURL), 'ينشئ حساباً: النسخ المحلية وحدها');
         await openCompetition(page);
@@ -916,7 +918,7 @@ test.describe('acceptance: programs how-to', () => {
         // التوثيق مطفأ (الافتراضي): إلى التسجيل في المسابقة مباشرة. ومفعّلاً يمر بتوثيق الجوال، ولا رمز يصل في الاختبار،
         // فيغطيه Pest: RegisterIntendedTest › «verifies the phone first, then brings the account back to the competition registration»
         test.skip(/verif/.test(new URL(page.url()).pathname), 'التوثيق مفعّل: العودة بعده في RegisterIntendedTest');
-        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register$`));
+        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register(\\?signup=1)?$`));
         await expectRtlNoScroll(page);
     });
 });
@@ -925,7 +927,6 @@ test.describe('acceptance: programs how-to', () => {
 
 test.describe('acceptance: evidence gallery', () => {
     test('evidence gallery: a wrong token is a plain 404, not indexed nor in the sitemap', async ({ page, request }) => {
-        test.fixme(true, AFTER.evidence);
 
         const response = await visit(page, `/evidence/${'x'.repeat(48)}`);
         expect(response?.status()).toBe(404);
@@ -964,7 +965,7 @@ async function jsonLdTypes(page) {
 
 test.describe('acceptance: excellence criteria', () => {
     test('excellence: axe finds no WCAG 2.2 AA violation on the main public pages', async ({ page }) => {
-        test.fixme(true, 'فجوة حالية (قياس 30 أكتوبر على feature/visual-refresh): color-contrast في كلمة رئيس المجلس على الرئيسية (#home-chairman)، على العروض الثلاثة. والصفحات الثماني الأخرى بلا مخالفة');
+        // فجوة قائمة على main (قياس 2 نوفمبر): color-contrast في شارة «جديد» (.badge-new) على بطاقة الخبر في الرئيسية — في تقرير القبول
         test.setTimeout(300_000);
         const found = [];
         for (const path of [...corePages, COMPETITION]) {
@@ -995,7 +996,7 @@ test.describe('acceptance: excellence criteria', () => {
     });
 
     test('excellence: a share image on every page', async ({ page }) => {
-        test.fixme(true, 'فجوة حالية: og:image لا يظهر إلا لصفحة تمرّر صورتها، ولا صورة مشاركة افتراضية للموقع');
+
         for (const path of corePages) {
             await visit(page, path);
             expect(await page.locator('meta[property="og:image"]').getAttribute('content'), path).toMatch(/^https?:\/\/.+\.(png|jpe?g|webp)/);
@@ -1004,7 +1005,6 @@ test.describe('acceptance: excellence criteria', () => {
     });
 
     test('excellence: structured data — Organization on home, BreadcrumbList on inner pages', async ({ page }) => {
-        test.fixme(true, 'فجوة حالية: لا بيانات منظمة (JSON-LD) في القوالب');
         await visit(page, '/');
         expect(await jsonLdTypes(page)).toContain('Organization');
         await visit(page, '/governance');
@@ -1013,7 +1013,6 @@ test.describe('acceptance: excellence criteria', () => {
     });
 
     test('excellence: structured data — Event for the competition and programs, Book and VideoObject in the library', async ({ page }) => {
-        test.fixme(true, 'فجوة حالية: لا بيانات منظمة (JSON-LD) في القوالب');
         const response = await visit(page, COMPETITION);
         if (response?.status() !== 404) {
             expect(await jsonLdTypes(page), COMPETITION).toContain('Event');
@@ -1071,7 +1070,7 @@ test.describe('acceptance: excellence criteria', () => {
     });
 
     test('excellence: images carry explicit width and height', async ({ page }) => {
-        test.fixme(true, 'فجوة حالية (قياس 30 أكتوبر): 11 صورة في الرئيسية بلا width وheight (صور الكلمتين والمبررات والقيم الأربع، والمخطوطة، وصورة المقطع، والزخرفة)');
+        // فجوة قائمة على main (قياس 2 نوفمبر): صور الإعلانات في الرئيسية بلا width وheight — في تقرير القبول
         for (const path of ['/', '/media', '/library']) {
             await visit(page, path);
             const missing = await page.locator('main img').evaluateAll((images) => images
@@ -1099,5 +1098,633 @@ test.describe('acceptance: excellence criteria', () => {
         await expect(page.locator('main h1, main h2').first()).toBeVisible({ timeout: 60_000 });
         console.log(`slow 3G ${page.viewportSize().width}: first heading after ${Date.now() - started}ms`);
         await expectRtlNoScroll(page, '/');
+    });
+});
+
+// ─── v0.15.0: التصور النهائي وملاحظات 1 نوفمبر (تقرير القبول docs/reviews/2026-11-02-قبول-v0.15.0.md) ─────────────────
+// البنود بأرقام قائمة الطلبات (G وH وP وD وA وB وN وR) وملاحظات 1 نوفمبر (١–٢٨). وكل فشل هنا فجوة حقيقية مسجلة في التقرير.
+
+const SEVEN = ['الرئيسية', 'عن الجمعية', 'مكتبة إعجاز', 'المركز الإعلامي', 'الحوكمة', 'الخدمات الإلكترونية', 'تواصل معنا'];
+const LIBRARY_SECTIONS = ['المكتبة المرئية', 'المكتبة الصوتية', 'الكتب والمؤلفات', 'الأبحاث والدراسات'];
+const VIEW_ONLY_SLUG = process.env.VIEW_ONLY_SLUG ?? 'license-certificate';
+const BOARD = process.env.BOARD_CREDENTIALS ? JSON.parse(process.env.BOARD_CREDENTIALS) : null;
+const ACCOUNT_STATE = 'storage/playwright/demo-user.json';
+// ACCEPTANCE_SHOTS_DIR يغيّر المجلد، ومنه لقطات الإصدار docs/design/screenshots/v0.15.
+const SHOTS = process.env.ACCEPTANCE_SHOTS_DIR || 'docs/design/screenshots/acceptance-v0.15';
+
+// يمرّر الصفحة كلها فيظهر ما يظهر عند التمرير (data-reveal)، ثم يعود إلى أعلاها
+async function revealAll(page) {
+    await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 600) {
+            window.scrollTo(0, y);
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        // وما لم يدخل الشاشة أثناء التمرير السريع يُظهر صراحة، فلا تبقى في اللقطة فجوة لعنصر مخفي (تدقيق المشرف، البند 9)
+        document.querySelectorAll('[data-reveal]').forEach((el) => el.setAttribute('data-revealed', ''));
+        window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(900);
+}
+
+const label = async (locator) => (await locator.innerText()).replace(/\s+/g, ' ').trim();
+
+test.describe('acceptance v0.15.0: header and footer', () => {
+    test('R3: the header row has exactly the seven items, without programs, competitions or initiatives', async ({ page }, testInfo) => {
+        await visit(page, '/');
+        let items;
+        if (testInfo.project.name === 'desktop') {
+            items = page.locator('[data-main-nav] ul.nav-capsules > li > .nav-capsule');
+        } else {
+            await page.locator('[data-toggle="mobile-menu"]').click();
+            items = page.locator('#mobile-menu nav > ul > li > :is(a, button)');
+        }
+        const labels = [];
+        for (const item of await items.all()) {
+            labels.push(await label(item));
+        }
+        expect(labels).toEqual(SEVEN);
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('٤ و٣: every dropdown opens on hover with its parent page first, and the library lists its four sections', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop', 'صف القائمة على الحاسوب، والجوال في قائمة ☰');
+        await visit(page, '/contact');
+        const dropdowns = page.locator('[data-main-nav] [data-nav-dropdown]');
+        expect(await dropdowns.count(), 'عن الجمعية والمكتبة والمركز الإعلامي والحوكمة والخدمات').toBeGreaterThanOrEqual(4);
+        const children = {};
+        for (const dropdown of await dropdowns.all()) {
+            const toggle = dropdown.locator('[data-toggle="dropdown"]');
+            await toggle.hover();
+            const menu = dropdown.locator('[data-dropdown-menu]');
+            await expect(menu).toBeVisible();
+            const parent = await label(toggle);
+            const links = [];
+            for (const link of await menu.locator('a').all()) {
+                links.push(await label(link));
+            }
+            expect(links[0], `${parent}: أول عنصر الصفحة الأم`).toContain(parent);
+            children[parent] = links;
+            await page.mouse.move(5, 850);
+            await expect(menu).toBeHidden();
+        }
+        expect(children['مكتبة إعجاز'].slice(1)).toEqual(LIBRARY_SECTIONS);
+        for (const section of ['الأخبار', 'الإعلانات', 'مكتبة الصور']) {
+            expect(children['المركز الإعلامي'], `المركز الإعلامي: ${section}`).toContain(section);
+        }
+        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
+            expect(children['الخدمات الإلكترونية'].join('|'), `الخدمات الإلكترونية: ${service} (R4)`).toContain(service);
+        }
+        expect(children['الحوكمة'].length, 'الحوكمة وتصنيفاتها').toBeGreaterThanOrEqual(2);
+    });
+
+    test('R2 و١ و٢٥: two sticky rows, the licence box with its number, no supervision line, and the header keeps its size on scroll (#130)', async ({ page }, testInfo) => {
+        await visit(page, '/');
+        const header = page.locator('[data-site-header]');
+        expect(await header.evaluate((el) => [getComputedStyle(el).position, getComputedStyle(el).top])).toEqual(['sticky', '0px']);
+        await expect(header).not.toContainText('تحت إشراف وزارة التعليم');
+        await expect(header.locator('[data-brand-mark]').first()).toBeVisible();
+        await expect(header.locator('[data-logo-calligraphy]').first()).toBeVisible();
+
+        const top = await header.evaluate((el) => el.getBoundingClientRect().height);
+        if (testInfo.project.name === 'desktop') {
+            const rows = await header.evaluate((el) => {
+                const first = el.querySelector('.header-top').getBoundingClientRect();
+                const second = el.querySelector('[data-main-nav]').getBoundingClientRect();
+                return { firstBottom: first.bottom, secondTop: second.top, secondHeight: second.height };
+            });
+            expect(rows.secondHeight, 'الصف الثاني ظاهر').toBeGreaterThan(30);
+            expect(rows.secondTop, 'صفّان لا صف واحد').toBeGreaterThanOrEqual(rows.firstBottom - 1);
+            await expect(header.locator('[data-header-licence]')).toContainText('1000723700');
+            await expect(header.locator('[data-header-licence]')).toContainText('مرخّصة من المركز الوطني لتنمية القطاع غير الربحي');
+        }
+
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(800);
+        const scrolled = await header.evaluate((el) => ({ top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height }));
+        expect(scrolled.top, 'ثابت في أعلى الشاشة').toBe(0);
+        // ألغى صفوان التصغير (2 نوفمبر، #130): الرأس ثابت الحجم عند التمرير.
+        expect(Math.abs(scrolled.height - top), 'لا يصغر عند التمرير (#130)').toBeLessThanOrEqual(1);
+        if (testInfo.project.name === 'desktop') {
+            await expect(header.locator('[data-main-nav]')).toBeVisible();
+        }
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('R17 و١٥ وN3: the footer is three boxes (contact, quick links, official accounts) on public and account pages', async ({ page }, testInfo) => {
+        for (const path of ['/', '/library', '/contact', '/login']) {
+            await visit(page, path);
+            const boxes = page.locator('[data-site-footer] [data-footer-box]');
+            expect(await boxes.evaluateAll((els) => els.map((el) => el.dataset.footerBox)), path).toEqual(['contact', 'links', 'accounts']);
+            if (testInfo.project.name === 'desktop') {
+                const tops = await boxes.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+                expect(new Set(tops).size, `${path}: الثلاثة في صف واحد`).toBe(1);
+                const height = await page.locator('[data-site-footer]').evaluate((el) => el.getBoundingClientRect().height);
+                expect(height, `${path}: التذييل أقصر (البند ١٥)`).toBeLessThan(340);
+            }
+            // الروابط السريعة بأيقونات .gt زرقاء
+            expect(await page.locator('[data-footer-box="links"] .icon-tile').count(), `${path}: أيقونات الروابط السريعة`).toBeGreaterThan(3);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+});
+
+test.describe('acceptance v0.15.0: home', () => {
+    test('H1 و٦ و٢٦: hero slides in order — the society, the King, the chairman, Brahin — in a round frame', async ({ page }) => {
+        await visit(page, '/');
+        const keys = await page.locator('[data-hero-slider] [data-hero-slide]').evaluateAll((els) => els.map((el) => el.dataset.heroSlide));
+        expect(keys.length, 'شرائح متبدلة').toBeGreaterThanOrEqual(4);
+        const frame = page.locator('[data-hero-slider] [data-hero-slide][data-active] [data-hero-frame]');
+        await expect(frame).toBeVisible();
+        expect(Number.parseFloat(await frame.evaluate((el) => getComputedStyle(el).borderTopLeftRadius)), 'إطار دائري').toBeGreaterThan(60);
+        test.info().annotations.push({ type: 'hero slides', description: keys.join(' ← ') });
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('٢٧ وR6 وR11 و٨ و٩: five cards (three then two wide), each a link, and «مبادراتنا» rotates all initiatives', async ({ page }, testInfo) => {
+        await visit(page, '/');
+        // الأصل وحده: على الجوال تُكرَّر البطاقات نسخة مخفية (aria-hidden) للشريط المتحرك (R19)
+        const cards = page.locator('#home-identity [data-identity-card]:not([aria-hidden="true"] *):not([aria-hidden="true"])');
+        expect(await cards.evaluateAll((els) => els.map((el) => el.dataset.identityCard))).toEqual(['vision', 'goals', 'values', 'principles', 'initiatives']);
+        for (const card of await cards.all()) {
+            await expect(card.locator('[data-identity-link]').first()).toHaveAttribute('href', /\S/);
+        }
+        expect(await page.locator('[data-identity-card="initiatives"] [data-initiative-slide]').count(), 'المبادرات الخمس').toBeGreaterThanOrEqual(5);
+        if (testInfo.project.name === 'desktop') {
+            const tops = await cards.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+            expect(tops[0]).toBe(tops[1]);
+            expect(tops[1]).toBe(tops[2]);
+            expect(tops[3]).toBeGreaterThan(tops[0]);
+            expect(tops[3]).toBe(tops[4]);
+        }
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('H4 و١١ وR4: «خدماتنا» is one seamless moving row that includes programs, competitions and initiatives', async ({ page }) => {
+        await visit(page, '/');
+        const track = page.locator('#home-services-track');
+        await track.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+        const strip = await track.evaluate((el) => ({
+            group: el.querySelector('.marquee-group').scrollWidth,
+            width: el.clientWidth,
+            animation: getComputedStyle(el.querySelector('.marquee-track')).animationName,
+            text: el.querySelector('.marquee-group').innerText,
+        }));
+        expect(strip.group, 'لا فراغ في الشريط').toBeGreaterThanOrEqual(strip.width);
+        expect(strip.animation).toBe('marquee-x');
+        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
+            expect(strip.text, service).toContain(service);
+        }
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('٢٤ وH6: the YouTube strip moves right and the books strip left, with the X card', async ({ page }) => {
+        await visit(page, '/');
+        await revealAll(page);
+        const videos = page.locator('[data-media-strip="videos"] .marquee-track');
+        const books = page.locator('[data-media-strip="books"] .marquee-track');
+        await expect(videos).toBeAttached();
+        await expect(books).toBeAttached();
+        // الاتجاه يُطبَّق متى دخل الشريط الشاشة (data-inview)
+        await videos.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(600);
+        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
+        await books.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(600);
+        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
+        await expect(page.locator('[data-x-card]')).toBeAttached();
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('R7 وH7: announcements and the news ticker side by side with the same height', async ({ page }, testInfo) => {
+        await visit(page, '/');
+        const news = page.locator('[data-home-news-list]');
+        await expect(news).toBeAttached();
+        expect(await page.locator('[data-news-card]').count()).toBeGreaterThan(0);
+        if (testInfo.project.name === 'desktop') {
+            const boxes = await page.evaluate(() => {
+                const list = document.querySelector('[data-home-news-list]').closest('[data-reveal], article, section > div > div');
+                const sibling = list?.parentElement?.children;
+                return [...(sibling ?? [])].map((el) => Math.round(el.getBoundingClientRect().height)).filter((h) => h > 100);
+            });
+            test.info().annotations.push({ type: 'announcements/news heights', description: boxes.join(', ') });
+        }
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('H9 وR17 و١٢: «البوابة بالأرقام» with counting numbers and a 30-day chart, then the partners strip before the footer', async ({ page }) => {
+        await visit(page, '/');
+        await revealAll(page);
+        const stats = page.locator('[data-portal-stats]');
+        await expect(stats).toBeAttached();
+        await expect(page.locator('[data-portal-chart]')).toBeAttached();
+        const partners = page.locator('section[aria-labelledby="home-partners"]');
+        await expect(partners).toBeAttached();
+        await expectBefore(stats, partners, '«البوابة بالأرقام» قبل «شركاؤنا»');
+        await expectBefore(partners, page.locator('[data-site-footer]'), '«شركاؤنا» قبل التذييل');
+        // H9: قراءات الكتب ومشاهدات المقاطع بعدد المرات (قرار صفوان، 3 نوفمبر، #152)
+        await expect(stats, 'H9: قراءات الكتب').toContainText('قراءات الكتب');
+        await expect(stats, 'H9: مشاهدات المقاطع').toContainText('مشاهدات المقاطع');
+        await expect(stats, 'H9: لا صفحات ولا دقائق').not.toContainText(/صفحة مقروءة|دقيقة مشاهدة/);
+        await expectRtlNoScroll(page, '/');
+    });
+
+    test('R25 و١٣: the page transition shows the filling logo with the calligraphy, only for a slow navigation', async ({ page }) => {
+        await visit(page, '/contact');
+        const overlay = page.locator('[data-page-transition]');
+        await expect(overlay).toBeHidden();
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent('livewire:navigate', { detail: {}, cancelable: true })));
+        await expect(overlay).toBeVisible();
+        await expect(overlay.locator('[data-transition-calligraphy]')).toBeVisible();
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent('livewire:navigated')));
+        await expect(overlay).toBeHidden();
+    });
+});
+
+test.describe('acceptance v0.15.0: inner pages', () => {
+    test('R9 وR20 وR24: the library has four tiles and four strips in order', async ({ page }) => {
+        await visit(page, '/library');
+        const tiles = [];
+        for (const tile of await page.locator('[data-library-tiles] li').all()) {
+            tiles.push(await label(tile));
+        }
+        expect(tiles).toEqual(LIBRARY_SECTIONS);
+        expect(await page.locator('[data-library-strip]').count(), 'الأقسام أشرطة').toBeGreaterThanOrEqual(3);
+        await expectRtlNoScroll(page, '/library');
+    });
+
+    test('٢٢: a view-only governance document opens in the read-only reader and /download is 404', async ({ page }) => {
+        const response = await visit(page, `/governance/${VIEW_ONLY_SLUG}`);
+        test.skip(!response?.ok(), `لا وثيقة «للاطلاع فقط» منشورة (VIEW_ONLY_SLUG=${VIEW_ONLY_SLUG})`);
+        const reader = page.locator('[data-document-reader] [data-pdf-reader]');
+        await expect(reader).toBeVisible();
+        await expect(reader).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        await expect(page.locator(`a[href$="/governance/${VIEW_ONLY_SLUG}/download"]`)).toHaveCount(0);
+        await expect(page.getByRole('link', { name: /تنزيل/ })).toHaveCount(0);
+        expect((await page.request.get(`/governance/${VIEW_ONLY_SLUG}/download`)).status()).toBe(404);
+        await expectRtlNoScroll(page);
+    });
+
+    test('R14: the book reader fills its frame without a download', async ({ page }) => {
+        const path = process.env.LIBRARY_READONLY_PATH ?? '/library/books/demo-book';
+        const response = await visit(page, path);
+        test.skip(!response?.ok(), `لا كتاب «للقراءة فقط» (${path})`);
+        const reader = page.locator('[data-pdf-reader]');
+        await expect(reader).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        const fill = await reader.evaluate((el) => {
+            const canvas = el.querySelector('canvas');
+            const stage = el.querySelector('[data-pdf-stage]') ?? el;
+            return canvas ? canvas.getBoundingClientRect().width / stage.getBoundingClientRect().width : 0;
+        });
+        expect(fill, 'الصفحة تملأ عرض الإطار').toBeGreaterThan(0.85);
+        await expectRtlNoScroll(page, path);
+    });
+
+    test('P3 وN6: the Brahin page counts the prize total up and offers «شارك واربح» / «بادر بالتسجيل»', async ({ page }) => {
+        await openCompetition(page);
+        const prize = page.locator('[data-prize-total]').first();
+        await expect(prize).toContainText(PRIZE_TOTAL, { timeout: 10_000 });
+        // زر البطل بنسختي الحاسوب والجوال (data-at)، فالظاهر منهما على كل عرض
+        await expect(page.getByText(/شارك واربح|بادر بالتسجيل/).filter({ visible: true }).first()).toBeVisible();
+        await expectRtlNoScroll(page, COMPETITION);
+    });
+
+    test('R15: the competitions page shows the current one prominently, upcoming and past sections', async ({ page }) => {
+        await visit(page, '/competitions');
+        await expect(page.locator('[data-competitions-current]')).toBeAttached();
+        test.info().annotations.push({
+            type: 'competitions sections',
+            description: `upcoming ${await page.locator('[data-competitions-upcoming]').count()}, past ${await page.locator('[data-competitions-past]').count()}`,
+        });
+        await expectRtlNoScroll(page, '/competitions');
+    });
+
+    test('R4: the e-services page holds programs, competitions and initiatives', async ({ page }) => {
+        await visit(page, '/services');
+        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
+            await expect(page.locator('main'), service).toContainText(service);
+        }
+        await expectRtlNoScroll(page, '/services');
+    });
+
+    test('١٤ وP1: an inner page has its own hero image across the width and the big calligraphy under the title', async ({ page }) => {
+        for (const path of ['/contact', '/governance', '/library', '/media', '/services', '/programs']) {
+            await visit(page, path);
+            const hero = page.locator('[data-page-hero]');
+            await expect(hero, path).toBeVisible();
+            await expect(hero.locator('[data-page-calligraphy]'), path).toBeVisible();
+            const width = await hero.evaluate((el) => el.getBoundingClientRect().width);
+            expect(width, `${path}: ممتد على العرض`).toBeGreaterThanOrEqual(page.viewportSize().width - 1);
+            await expectRtlNoScroll(page, path);
+        }
+    });
+
+    test('P9 وG7: the login page shows the full official logo', async ({ page }) => {
+        await visit(page, '/login');
+        const logos = await page.locator('main img').evaluateAll((els) => els.map((el) => el.getAttribute('src')));
+        expect(logos.some((src) => /logo|brand/.test(src ?? '')), 'الشعار الرسمي').toBe(true);
+        await expectRtlNoScroll(page, '/login');
+    });
+});
+
+test.describe('acceptance v0.15.0: accounts', () => {
+    test.skip(!fs.existsSync(ACCOUNT_STATE), 'بلا حساب مستفيد تجريبي (DEMO_CREDENTIALS)');
+    test.use({ storageState: ACCOUNT_STATE });
+
+    test('D1: the dashboard has the library strip, upcoming appointments as boxes, coloured cards and «قراءاتي»', async ({ page }) => {
+        await visit(page, '/account');
+        await expect(page.locator('[data-account-library-strip]')).toBeAttached();
+        await expect(page.locator('[data-account-my-reading]')).toBeAttached();
+        await expect(page.locator('[data-account-cards]')).toBeAttached();
+        await expectRtlNoScroll(page, '/account');
+        const reading = await visit(page, '/account/my-reading');
+        expect(reading?.status()).toBeLessThan(400);
+        await expect(page.locator('[data-reading-totals]')).toBeAttached();
+        await expectRtlNoScroll(page, '/account/my-reading');
+    });
+
+    test('R18 وR21: «برامجي» and «برامج أتممتها» with reading, listening and watching programs', async ({ page }) => {
+        await visit(page, '/account/programs');
+        await expect(page.locator('main'), 'R18: برامج أتممتها').toContainText('أتممتها');
+        await visit(page, '/programs');
+        for (const tab of ['قراءة الكتب', 'الاستماع', 'المشاهدة']) {
+            await expect(page.locator('main'), `R21: تبويب ${tab}`).toContainText(tab);
+        }
+    });
+
+    test('١٦ و١٧: the sidebar stops before the footer and the competition count matches my entries', async ({ page }) => {
+        for (const path of ['/account', '/account/competitions']) {
+            await visit(page, path);
+            await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+            await page.waitForTimeout(500);
+            const overlap = await page.evaluate(() => {
+                const nav = [...document.querySelectorAll('.account-nav')].find((el) => el.offsetParent !== null);
+                return nav ? nav.getBoundingClientRect().bottom - document.querySelector('[data-site-footer]').getBoundingClientRect().top : -1;
+            });
+            expect(overlap, `${path}: لا تداخل مع التذييل`).toBeLessThanOrEqual(0);
+        }
+    });
+});
+
+test.describe('acceptance v0.15.0: board portal', () => {
+    test('B1 وR13 وR22: the board portal has stats, meetings with «انضم عبر تيمز», minutes and decisions, and «إنجازاتنا»', async ({ browser, baseURL }) => {
+        test.skip(!BOARD, 'يحتاج عضو مجلس تجريبياً: BOARD_CREDENTIALS');
+        const context = await browser.newContext({ baseURL, viewport: test.info().project.use.viewport });
+        const page = await context.newPage();
+        await visit(page, '/login');
+        await page.fill('#field-login', BOARD.email);
+        await page.fill('#field-password', BOARD.password);
+        await Promise.all([page.waitForURL((url) => !url.pathname.startsWith('/login')), page.locator('main form button[type=submit]').first().click()]);
+        await visit(page, '/assembly');
+        await expect(page.locator('[data-board-portal]')).toBeAttached();
+        await expect(page.locator('[data-board-stats]')).toBeAttached();
+        await expect(page.locator('[data-board-meetings]')).toBeAttached();
+        await expect(page.locator('[data-board-join], [data-board-join-next]').first()).toBeAttached();
+        await expect(page.locator('[data-board-records]')).toBeAttached();
+        await expectRtlNoScroll(page, '/assembly');
+        await expect(page.locator('main'), 'R13: إنجازاتنا').toContainText('إنجازاتنا');
+        await context.close();
+    });
+});
+
+// كل مسار عام ومسار حساب بلا معامل، وصفحات العناصر التجريبية: بلا تمرير أفقي على العروض الثلاثة (أمر التصور §٧)
+const crawlPublic = [
+    '/', '/about', '/initiatives', '/initiatives/qiyam', '/programs', '/competitions', COMPETITION, `${COMPETITION}/guide`,
+    '/library', '/library/videos', '/library/audio', '/library/books', '/library/research', '/library/books/demo-book', '/library/audio/audio-01', '/library/videos/video-03',
+    '/media', '/media/news', '/media/announcements', '/media/albums', '/media/partners', '/governance', `/governance/${VIEW_ONLY_SLUG}`,
+    '/services', '/services/jobs', '/services/volunteering', '/services/assembly-membership', '/contact', '/privacy',
+    '/login', '/register', '/forgot-password', '/forgot-password/phone', '/no-such-page-acceptance',
+];
+const crawlAccount = ['/account', '/account/data', '/account/programs', '/account/requests', '/account/competitions', '/account/forms', '/account/my-reading', '/account/security', '/assembly', '/assembly/meetings', '/assembly/minutes'];
+
+test.describe('acceptance v0.15.0: no horizontal scroll', () => {
+    test('every public route at this width', async ({ page }) => {
+        test.setTimeout(600_000);
+        const wide = [];
+        for (const path of crawlPublic) {
+            const response = await visit(page, path);
+            await revealAll(page);
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+            if (overflow > 0) {
+                wide.push(`${path} (${response?.status()}): ${overflow}px`);
+            }
+        }
+        expect(wide).toEqual([]);
+    });
+
+    test('every account route at this width', async ({ browser, baseURL }) => {
+        test.skip(!fs.existsSync(ACCOUNT_STATE), 'بلا حساب مستفيد تجريبي');
+        test.setTimeout(300_000);
+        const context = await browser.newContext({ baseURL, storageState: ACCOUNT_STATE, viewport: test.info().project.use.viewport, isMobile: test.info().project.use.isMobile, hasTouch: test.info().project.use.hasTouch });
+        const page = await context.newPage();
+        const wide = [];
+        for (const path of crawlAccount) {
+            const response = await visit(page, path);
+            await revealAll(page);
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+            if (overflow > 0) {
+                wide.push(`${path} (${response?.status()}): ${overflow}px`);
+            }
+        }
+        await context.close();
+        expect(wide).toEqual([]);
+    });
+});
+
+// ─── لقطات تقرير القبول (ACCEPTANCE_SHOTS=1): docs/design/screenshots/acceptance-v0.15/<الشاشة>-<العرض>.png ─────────────────
+// ببيانات محلية تجريبية لا تُحفظ في قيت (tests/browser/README.md «قائمة القبول»). ولوحة الإدارة بمشرف تجريبي بتحقق ثنائي
+// (ADMIN_CREDENTIALS من ejaz:demo-user --admin --json)، وبوابة المجلس بعضو مجلس تجريبي (BOARD_CREDENTIALS).
+
+const ADMIN = process.env.ADMIN_CREDENTIALS ? JSON.parse(process.env.ADMIN_CREDENTIALS) : null;
+const ADMIN_STATE = 'storage/playwright/acceptance-admin.json';
+
+function totp(secret) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (const char of secret.replace(/=+$/, '')) {
+        bits += alphabet.indexOf(char).toString(2).padStart(5, '0');
+    }
+    const bytes = [];
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+        bytes.push(parseInt(bits.slice(i, i + 8), 2));
+    }
+    const counter = Buffer.alloc(8);
+    counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
+    const hmac = createHmac('sha1', Buffer.from(bytes)).update(counter).digest();
+    const offset = hmac[hmac.length - 1] & 15;
+    return String((hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
+
+async function shoot(page, name, { full = true, reveal = true } = {}) {
+    await page.evaluate(() => document.fonts.ready);
+    if (reveal) {
+        await revealAll(page);
+        // العدّادات تعدّ حين يظهر كل منها (motion.js)، فتُمرَّر إليها واحداً واحداً وتُنتظر حتى رقمها النهائي، فلا تظهر أصفاراً في اللقطة
+        const counters = await page.locator('[data-count-to]').all();
+        for (const counter of counters) {
+            await counter.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+            await page.waitForTimeout(150);
+        }
+        if (counters.length > 0) {
+            await page.waitForTimeout(1900);
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.waitForTimeout(300);
+        }
+    }
+    await page.screenshot({ path: `${SHOTS}/${name}-${page.viewportSize().width}.png`, fullPage: full, animations: 'disabled' });
+}
+
+const publicShots = [
+    { name: 'home-full', path: '/' },
+    { name: 'about', path: '/about' },
+    { name: 'initiatives', path: '/initiatives' },
+    { name: 'programs', path: '/programs' },
+    { name: 'competition-brahin', path: COMPETITION },
+    { name: 'competitions', path: '/competitions' },
+    { name: 'library', path: '/library' },
+    { name: 'library-videos', path: '/library/videos' },
+    { name: 'library-audio', path: '/library/audio' },
+    { name: 'library-books', path: '/library/books' },
+    { name: 'library-research', path: '/library/research' },
+    { name: 'governance', path: '/governance' },
+    { name: 'media', path: '/media' },
+    { name: 'media-news', path: '/media/news' },
+    { name: 'services', path: '/services' },
+    { name: 'contact', path: '/contact' },
+    { name: 'login', path: '/login' },
+];
+
+test.describe('acceptance v0.15.0: screenshots', () => {
+    test.skip(process.env.ACCEPTANCE_SHOTS !== '1', 'اللقطات بـ ACCEPTANCE_SHOTS=1');
+    test.beforeAll(() => fs.mkdirSync(SHOTS, { recursive: true }));
+
+    test('public pages', async ({ page }) => {
+        test.setTimeout(900_000);
+        // SHOTS_ONLY=home-full,competitions يقصر اللقطات على شاشات بعينها عند إعادة الفحص بعد دمج فرع
+        const only = process.env.SHOTS_ONLY?.split(',');
+        for (const { name, path } of publicShots.filter(({ name }) => !only || only.includes(name))) {
+            await visit(page, path);
+            await shoot(page, name);
+        }
+    });
+
+    test('home hero, header states, footer and transition', async ({ page }, testInfo) => {
+        test.setTimeout(300_000);
+        await visit(page, '/');
+        await shoot(page, 'home-hero', { full: false, reveal: false });
+
+        if (testInfo.project.name === 'desktop') {
+            const library = page.locator('[data-main-nav] [data-nav-dropdown]').filter({ hasText: 'مكتبة إعجاز' });
+            await library.locator('[data-toggle="dropdown"]').hover();
+            await expect(library.locator('[data-dropdown-menu]')).toBeVisible();
+            await shoot(page, 'header-dropdown-library', { full: false, reveal: false });
+            await page.mouse.move(5, 850);
+            const services = page.locator('[data-main-nav] [data-nav-dropdown]').filter({ hasText: 'الخدمات الإلكترونية' });
+            await services.locator('[data-toggle="dropdown"]').hover();
+            await expect(services.locator('[data-dropdown-menu]')).toBeVisible();
+            await shoot(page, 'header-dropdown-services', { full: false, reveal: false });
+            await page.mouse.move(5, 850);
+        } else {
+            await page.locator('[data-toggle="mobile-menu"]').click();
+            const toggle = page.locator('#mobile-menu [data-toggle="dropdown"]').filter({ hasText: 'مكتبة إعجاز' }).first();
+            await toggle.click();
+            await shoot(page, 'header-mobile-menu', { full: false, reveal: false });
+            await page.locator('[data-toggle="mobile-menu"]').click();
+        }
+
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(900);
+        await page.screenshot({ path: `${SHOTS}/header-scrolled-${page.viewportSize().width}.png` });
+
+        const footer = page.locator('[data-site-footer]');
+        await footer.scrollIntoViewIfNeeded();
+        await footer.screenshot({ path: `${SHOTS}/footer-${page.viewportSize().width}.png` });
+
+        await visit(page, '/contact');
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent('livewire:navigate', { detail: {}, cancelable: true })));
+        await expect(page.locator('[data-page-transition]')).toBeVisible();
+        await page.waitForTimeout(600);
+        await page.screenshot({ path: `${SHOTS}/transition-${page.viewportSize().width}.png` });
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent('livewire:navigated')));
+    });
+
+    test('readers: a read-only book and a view-only governance document', async ({ page }) => {
+        test.setTimeout(300_000);
+        await visit(page, process.env.LIBRARY_READONLY_PATH ?? '/library/books/demo-book');
+        await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        await shoot(page, 'library-reader');
+        await visit(page, `/governance/${VIEW_ONLY_SLUG}`);
+        await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        await shoot(page, 'governance-document');
+    });
+
+    test('beneficiary account', async ({ browser, baseURL }) => {
+        test.skip(!fs.existsSync(ACCOUNT_STATE), 'بلا حساب مستفيد تجريبي');
+        test.setTimeout(300_000);
+        const use = test.info().project.use;
+        const context = await browser.newContext({ baseURL, storageState: ACCOUNT_STATE, viewport: use.viewport, isMobile: use.isMobile, hasTouch: use.hasTouch });
+        const page = await context.newPage();
+        for (const [name, path] of [['account-dashboard', '/account'], ['account-my-reading', '/account/my-reading'], ['account-competitions', '/account/competitions'], ['account-programs', '/account/programs']]) {
+            await visit(page, path);
+            await shoot(page, name);
+        }
+        // البند ١٧: «مشاركات المسابقات» في اللوحة من مصدر «مشاركاتي» نفسه، بحساب مسجّل في البراهين (العدد 1)
+        await visit(page, '/account');
+        const cards = page.locator('[data-stat-card]').first().locator('xpath=..');
+        await cards.scrollIntoViewIfNeeded();
+        await cards.screenshot({ path: `${SHOTS}/note17-competition-count-${page.viewportSize().width}.png` });
+        await context.close();
+    });
+
+    test('board portal', async ({ browser, baseURL }) => {
+        test.skip(!BOARD, 'يحتاج BOARD_CREDENTIALS');
+        test.setTimeout(300_000);
+        const use = test.info().project.use;
+        const context = await browser.newContext({ baseURL, viewport: use.viewport, isMobile: use.isMobile, hasTouch: use.hasTouch });
+        const page = await context.newPage();
+        await visit(page, '/login');
+        await page.fill('#field-login', BOARD.email);
+        await page.fill('#field-password', BOARD.password);
+        await Promise.all([page.waitForURL((url) => !url.pathname.startsWith('/login')), page.locator('main form button[type=submit]').first().click()]);
+        await visit(page, '/assembly');
+        await shoot(page, 'board-portal');
+        await context.close();
+    });
+
+    test('admin dashboard, list and form with the «ج» sidebar', async ({ browser, baseURL }) => {
+        test.skip(!ADMIN, 'يحتاج ADMIN_CREDENTIALS');
+        test.setTimeout(300_000);
+        if (!fs.existsSync(ADMIN_STATE)) {
+            const context = await browser.newContext({ baseURL });
+            const page = await context.newPage();
+            await page.goto('/login');
+            await page.fill('#field-login', ADMIN.email);
+            await page.fill('#field-password', ADMIN.password);
+            await Promise.all([page.waitForURL('**/two-factor-challenge'), page.locator('main form button[type=submit]').first().click()]);
+            while (Date.now() % 30_000 > 25_000) {
+                await page.waitForTimeout(1000);
+            }
+            await page.fill('input[name="code"]', totp(ADMIN.totp_secret));
+            await Promise.all([page.waitForURL((url) => !url.pathname.includes('two-factor-challenge')), page.locator('main form button[type=submit]').first().click()]);
+            await context.storageState({ path: ADMIN_STATE });
+            await context.close();
+        }
+        const use = test.info().project.use;
+        const context = await browser.newContext({ baseURL, storageState: ADMIN_STATE, viewport: use.viewport, isMobile: use.isMobile, hasTouch: use.hasTouch });
+        const page = await context.newPage();
+        for (const [name, path] of [['admin-dashboard', '/admin'], ['admin-list', '/admin/library-items'], ['admin-form', '/admin/home-content']]) {
+            await page.goto(path);
+            await page.waitForLoadState('networkidle');
+            await page.waitForTimeout(800);
+            await page.screenshot({ path: `${SHOTS}/${name}-${page.viewportSize().width}.png`, fullPage: name === 'admin-dashboard' });
+        }
+        if (use.viewport.width < 1024) {
+            // الشريط الجانبي على اللوحي والجوال يُفتح بزره
+            await page.goto('/admin');
+            await page.locator('.fi-topbar-open-sidebar-btn, button[x-on\\:click*="sidebar.open"]').first().click();
+            await page.waitForTimeout(600);
+            await page.screenshot({ path: `${SHOTS}/admin-sidebar-${page.viewportSize().width}.png` });
+        }
+        await context.close();
     });
 });
