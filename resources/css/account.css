@@ -1,0 +1,62 @@
+/*
+ * لوحة المستفيد («حسابي» وصفحاتها) — الدفعة ٤ من طلب لوحة الإدارة (4 نوفمبر 2026).
+ * ملف مستقل لهذه الدفعة: رأس الصفحة الداخلية بأيقونة القسم ووصفه، ودخول ناعم للمحتوى، وتقليل الحركة يوقفه.
+ * الأزرق وحده (الحدود في الطلب).
+ */
+@layer components {
+    .account-head {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-radius: 1.25rem;
+        border: 1px solid color-mix(in srgb, var(--color-brand-light) 55%, transparent);
+        background: linear-gradient(180deg, #f2f8fd 0%, #e8f2fb 100%);
+        box-shadow: 0 10px 28px -18px color-mix(in srgb, var(--color-primary-deep) 45%, transparent);
+    }
+
+    .account-head-tile {
+        flex-shrink: 0;
+    }
+
+    .account-head-text {
+        margin-top: 0.25rem;
+        color: var(--color-muted);
+        font-size: 1.0625rem;
+        line-height: 1.7;
+    }
+
+    @media (max-width: 639px) {
+        .account-head {
+            align-items: flex-start;
+            padding: 1rem 1.125rem;
+        }
+
+        .account-head-text {
+            font-size: 1rem;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .account-head {
+        animation: account-enter 0.45s ease-out both;
+    }
+
+    .account-head + * ,
+    .account-head ~ * {
+        animation: account-enter 0.5s 0.08s ease-out both;
+    }
+}
+
+html[data-motion-off] .account-head,
+html[data-motion-off] .account-head ~ * {
+    animation: none;
+}
+
+@keyframes account-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}

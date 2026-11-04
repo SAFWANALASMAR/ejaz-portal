@@ -3,12 +3,14 @@
     المستخدم، و«مرحباً {الاسم}»)، وشريط جانبي أيمن أزرق داكن بأيقونات و«تسجيل الخروج» منفصل في أسفله، وعلى الجوال قائمة
     منسدلة. وفي غير الرئيسية العنوان بشريط أزرق تحته.
 --}}
-@props(['title', 'welcome' => false])
+@props(['title', 'welcome' => false, 'description' => null])
 
 @php
     $user = auth()->user();
     $links = \App\Support\AccountNavigation::for($user);
     $current = $links->first(fn (array $link) => \App\Support\AccountNavigation::isActive($link));
+    $headIcon = $current['icon'] ?? null;
+    $headDescription = $description ?? (isset($current['description']) ? __($current['description']) : null);
     $canAdmin = $user->canAccessPanel(filament()->getPanel('admin'));
 @endphp
 
@@ -64,11 +66,20 @@
             </aside>
 
             <section class="min-w-0 space-y-6">
+                {{-- رأس الصفحة الداخلية (دفعة ٤ من طلب لوحة الإدارة، 4 نوفمبر 2026): أيقونة القسم ووصفه من config/account.php --}}
                 @unless ($welcome)
-                    <div class="flex flex-col gap-2">
-                        <h1 class="text-2xl font-black text-primary-dark sm:text-[2rem]">{{ $title }}</h1>
-                        <span class="title-bar" aria-hidden="true"></span>
-                    </div>
+                    <header class="account-head" data-account-head>
+                        @if ($headIcon)
+                            <x-icon-tile :icon="$headIcon" shade="dark" size="lg" class="account-head-tile" />
+                        @endif
+                        <div class="min-w-0">
+                            <h1 class="text-2xl font-black text-primary-dark sm:text-[2rem]">{{ $title }}</h1>
+                            @if ($headDescription)
+                                <p class="account-head-text">{{ $headDescription }}</p>
+                            @endif
+                            <span class="title-bar mt-3" aria-hidden="true"></span>
+                        </div>
+                    </header>
                 @endunless
 
                 <x-flash />
