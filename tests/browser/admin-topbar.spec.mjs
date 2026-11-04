@@ -104,6 +104,22 @@ async function checkCommon(page, label) {
         }
     }
 
+    // لا تداخل ولا قص (ملاحظات صفوان على #166): أزرار نهاية الشريط كلها على يسار الهوية وداخل الشاشة، وزر المساعد ظاهر إن شُغّل
+    const layout = await page.evaluate(() => {
+        const brand = document.querySelector('.fi-topbar [data-ej-topbar-brand]')?.getBoundingClientRect();
+        const items = [...document.querySelectorAll('.fi-topbar-end > *, .fi-topbar .fi-user-menu-trigger')]
+            .map((el) => el.getBoundingClientRect())
+            .filter((r) => r.width > 0);
+        return { brandStart: brand?.x ?? 0, endRight: Math.max(...items.map((r) => r.x + r.width)), endLeft: Math.min(...items.map((r) => r.x)) };
+    });
+    expect.soft(layout.endRight, `${label}: أزرار الشريط لا تتداخل مع الهوية`).toBeLessThanOrEqual(layout.brandStart + 1);
+    // هامش عن حافة الشاشة، لا ملاصقة لها (كانت صورة الحساب على بكسلين من الحافة)
+    expect.soft(layout.endLeft, `${label}: أزرار الشريط داخل الشاشة بهامش`).toBeGreaterThanOrEqual(8);
+    const assistant = page.locator('.fi-topbar [data-ej-topbar-assistant]');
+    if (await assistant.count()) {
+        await expect.soft(assistant, `${label}: زر البحث بالذكاء الاصطناعي`).toBeVisible();
+    }
+
     // البحث كبسولي إن ظهر (للأدوار التي لها موارد قابلة للبحث)
     const search = page.locator('.fi-topbar .fi-global-search-field .fi-input-wrp').first();
     if (await search.count() && await search.isVisible()) {
