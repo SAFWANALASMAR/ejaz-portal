@@ -1488,6 +1488,13 @@ html[data-motion-off] .marquee[data-direction='vertical'] .marquee-track {
     filter: drop-shadow(0 0 14px rgb(142 197 240 / 0.45));
 }
 
+/* سطر «جارٍ التحميل…» تحت المخطوطة إن طال التنقّل أكثر من أربع ثوانٍ (page.js) */
+.page-transition-slow {
+    color: rgb(255 255 255 / 0.9);
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
 .page-transition-logo {
     position: relative;
     display: block;

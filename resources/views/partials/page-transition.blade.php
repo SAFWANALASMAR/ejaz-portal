@@ -19,6 +19,8 @@
             </span>
             <img src="{{ \App\Support\HomeContent::brand('calligraphy_white') }}" alt="" aria-hidden="true" data-transition-calligraphy
                 class="page-transition-calligraphy" width="1218" height="185">
+            {{-- إن طال التنقّل أكثر من أربع ثوانٍ يظهره page.js، والطبقة باقية حتى تحل الصفحة (عيب رابط العرض، 4 نوفمبر 2026) --}}
+            <span data-transition-slow hidden class="page-transition-slow">{{ __('ui.transition.slow') }}</span>
             <span class="sr-only">{{ __('ui.transition.loading') }}</span>
         </div>
     @endpersist

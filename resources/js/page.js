@@ -54,10 +54,14 @@ const TRANSITION_DELAY = 400;
 let shownAt = 0;
 let transitionTimer = null;
 
-// والطبقة لا تغطي الشاشة أكثر من نحو أربع ثوانٍ إن تعثّر التنقّل (شريط التقدّم يبقى حتى مهلته)، وتُخفى فوراً عند العودة من ذاكرة
-// الرجوع (bfcache) بنسختها ظاهرةً (مراجعة المشرف على #111، المنخفضة 1)
-const TRANSITION_LIMIT = 4000;
-let transitionLimit = null;
+// والطبقة لا تُخفى قبل حلول الصفحة الجديدة (livewire:navigated): كانت تُخفى قسراً بعد أربع ثوانٍ (TRANSITION_LIMIT، مراجعة المشرف
+// على #111)، فإن أبطأ الخادم عادت الصفحة القديمة ظاهرة حتى يرد ثم تبدّلت وحدها (عيب صوّره صفوان على رابط العرض، 4 نوفمبر 2026).
+// فبعد أربع ثوانٍ يظهر تحت الشعار سطر «جارٍ التحميل…» والطبقة باقية. وتُخفى عند حلول الصفحة، أو فشل التنقّل (مهلة شريط
+// التقدّم القصوى، 15 ثانية: Livewire لا يطلق حدثاً لطلب فشل)، أو العودة من ذاكرة الرجوع (bfcache) بنسختها ظاهرةً
+const TRANSITION_SLOW = 4000;
+let transitionSlow = null;
+
+const slowLine = (overlay) => overlay.querySelector('[data-transition-slow]');
 
 function showTransition() {
     const overlay = transition();
@@ -67,25 +71,37 @@ function showTransition() {
     }
 
     clearTimeout(transitionTimer);
-    clearTimeout(transitionLimit);
+    clearTimeout(transitionSlow);
     overlay.hidden = false;
     overlay.dataset.state = 'loading';
     overlay.setAttribute('aria-busy', 'true');
     shownAt = performance.now();
-    transitionLimit = setTimeout(finishTransition, TRANSITION_LIMIT);
+    transitionSlow = setTimeout(() => {
+        const line = slowLine(overlay);
+
+        if (line) {
+            line.hidden = false;
+        }
+    }, TRANSITION_SLOW);
 }
 
 function hideTransition() {
     const overlay = transition();
 
     clearTimeout(transitionTimer);
-    clearTimeout(transitionLimit);
+    clearTimeout(transitionSlow);
     shownAt = 0;
 
     if (overlay) {
         overlay.hidden = true;
         overlay.setAttribute('aria-busy', 'false');
         delete overlay.dataset.state;
+
+        const line = slowLine(overlay);
+
+        if (line) {
+            line.hidden = true;
+        }
     }
 }
 
@@ -102,13 +118,19 @@ function finishTransition() {
     const wait = Math.max(0, 200 - (performance.now() - shownAt));
     shownAt = 0;
     clearTimeout(transitionTimer);
-    clearTimeout(transitionLimit);
+    clearTimeout(transitionSlow);
     transitionTimer = setTimeout(() => {
         overlay.dataset.state = 'leaving';
         overlay.setAttribute('aria-busy', 'false');
         transitionTimer = setTimeout(() => {
             overlay.hidden = true;
             delete overlay.dataset.state;
+
+            const line = slowLine(overlay);
+
+            if (line) {
+                line.hidden = true;
+            }
         }, 180);
     }, wait);
 }

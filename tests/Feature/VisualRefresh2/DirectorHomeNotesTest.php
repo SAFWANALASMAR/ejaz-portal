@@ -75,11 +75,14 @@ it('takes the goals, principles and section headings from the home content panel
         ->assertDontSee('【ناقص: أهداف الجمعية المعتمدة】');
 });
 
-it('runs the services as one moving row with programmes, competitions, initiatives and partners', function () {
+it('runs the services as one moving row with programmes, competitions, initiatives, partners and the survey card', function () {
     $html = (string) str($this->get('/')->getContent())->after('id="home-services-track"')->before('data-marquee-copy');
     preg_match_all('/data-service-card="(\w+)"/', $html, $keys);
 
-    expect($keys[1])->toBe(['services', 'membership', 'governance', 'competitions', 'initiatives', 'library', 'media', 'partners'])
+    // «قياس الرضا» ظاهرة دائماً، بلا استبيان مفتوح أيضاً (إضافة توجيه المدير، البند ١٧)
+    expect($keys[1])->toBe(['services', 'membership', 'governance', 'competitions', 'initiatives', 'library', 'media', 'partners', 'surveys'])
+        ->and($html)->toContain(__('home.shortcuts_final.surveys.title'))
+        ->and($html)->toContain('href="'.route('surveys.index').'"')
         ->and($html)->toContain(__('home.shortcuts_final.partners.title'))
         ->and($html)->toContain(__('home.shortcuts_final.initiatives.text'));
 });
