@@ -44,6 +44,67 @@ test.describe('social posts', () => {
         await expectNoHorizontalScroll(page);
     });
 
+    // ملاحظة صفوان على #165 (4 نوفمبر 2026): «شريط الأيقونات اجعله أجمل» — resources/css/social-filters.css
+    test('the filter strip: equal pills with an icon tile per platform, a dark active pill, a smaller labelled type strip, a scrolling row on the phone', async ({ page }, testInfo) => {
+        // واتساب آخر المنصات، فعلى الجوال تكون خارج الشريط لولا توسيطها
+        await page.goto('/media/social?platform=whatsapp');
+        const pills = page.locator('[data-social-filter="platform"] [data-social-filter-pill]');
+        await expect(pills).toHaveCount(9);
+        await expect(page.locator('[data-social-filter="platform"] [data-social-filter-pill] > [data-icon-tile]')).toHaveCount(9);
+
+        const heights = await pills.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().height)));
+        expect(new Set(heights).size).toBe(1);
+
+        const active = page.locator('[data-social-filter="platform"] [aria-current="page"]');
+        await expect(active).toContainText('واتساب');
+        const look = await active.evaluate((item) => ({ border: getComputedStyle(item).borderTopColor, shadow: getComputedStyle(item).boxShadow, colour: getComputedStyle(item).color }));
+        expect(look.border).toBe('rgb(142, 197, 240)');
+        expect(look.shadow).toContain('rgba(142, 197, 240');
+        expect(look.colour).toBe('rgb(255, 255, 255)');
+
+        // النوع شريط أصغر منفصل بعنوانه
+        await expect(page.locator('[data-social-filter="kind"] [data-social-filter-label]')).toHaveText('النوع');
+        const kindHeight = await page.locator('[data-social-filter="kind"] [data-social-filter-pill]').first().evaluate((item) => item.getBoundingClientRect().height);
+        expect(kindHeight).toBeLessThan(heights[0]);
+
+        await expectNoHorizontalScroll(page);
+        const track = page.locator('[data-social-filter="platform"] ul');
+
+        if (testInfo.project.name === 'mobile') {
+            // صف واحد يُمرَّر داخله، بتلاشٍ عند حافته، والنشطة ظاهرة فيه
+            const row = await track.evaluate((list) => {
+                const style = getComputedStyle(list);
+                const tops = [...list.children].map((item) => Math.round(item.getBoundingClientRect().top));
+                const box = list.getBoundingClientRect();
+                const current = list.querySelector('[aria-current="page"]').getBoundingClientRect();
+
+                return {
+                    wrap: style.flexWrap,
+                    overflow: style.overflowX,
+                    mask: style.maskImage || style.webkitMaskImage,
+                    scrolls: list.scrollWidth > list.clientWidth,
+                    oneRow: new Set(tops).size === 1,
+                    activeInView: current.left >= box.left - 1 && current.right <= box.right + 1,
+                };
+            });
+            expect(row).toMatchObject({ wrap: 'nowrap', overflow: 'auto', scrolls: true, oneRow: true, activeInView: true });
+            expect(row.mask).toContain('linear-gradient');
+        }
+
+        if (testInfo.project.name === 'desktop') {
+            // ارتفاع بسيط عند المرور، ويُلغى لمن طلب تقليل الحركة
+            const pill = pills.nth(1);
+            await page.emulateMedia({ reducedMotion: 'no-preference' });
+            await pill.hover();
+            await expect.poll(() => pill.evaluate((item) => getComputedStyle(item).transform)).not.toBe('none');
+
+            await page.mouse.move(5, 5);
+            await page.emulateMedia({ reducedMotion: 'reduce' });
+            await pill.hover();
+            expect(await pill.evaluate((item) => getComputedStyle(item).transform)).toBe('none');
+        }
+    });
+
     test('the media center shows the «منشوراتنا» tile', async ({ page }, testInfo) => {
         await page.goto('/media');
         const tile = page.locator('[data-media-tiles] a[href$="/media/social"]');

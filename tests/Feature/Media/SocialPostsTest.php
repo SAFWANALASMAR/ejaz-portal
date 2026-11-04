@@ -17,6 +17,7 @@ use Database\Seeders\DemoSocialPostsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -454,6 +455,22 @@ it('lists «منشوراتنا» in the media center dropdown only, without addi
     ]]);
     expect(array_count_values(array_column($children, 'url'))['/media/social'])->toBe(1)
         ->and(array_column($children, 'label'))->toContain('منشورات الجمعية')->not->toContain(__('media.tiles.social'));
+});
+
+it('draws each platform filter with its logo inside an icon tile, and the type strip under its label', function () {
+    $html = (string) $this->get(route('media.social', ['platform' => 'instagram']))->assertOk()->getContent();
+
+    preg_match('/data-social-filter="platform">(.*?)<\/nav>/s', $html, $platforms);
+    expect(substr_count($platforms[1], 'data-icon-tile'))->toBe(count(SocialPlatform::cases()) + 1)
+        ->and(substr_count($platforms[1], 'data-social-filter-pill'))->toBe(count(SocialPlatform::cases()) + 1)
+        ->and($platforms[1])->toMatch('/aria-current="page"[^>]*>\s*<span data-icon-tile/');
+
+    preg_match('/data-social-filter="kind">(.*?)<\/nav>/s', $html, $kinds);
+    expect($kinds[1])->toContain(__('social_posts.fields.kind'))->not->toContain('data-icon-tile');
+
+    // ومربع الأيقونة بلا محتوى يرسم أيقونته كما كان
+    expect(Blade::render('<x-icon-tile icon="squares-2x2" size="xs" />'))->toContain('<svg')->toContain('icon-tile-xs')
+        ->and(Blade::render('<x-icon-tile size="xs"><b>شعار</b></x-icon-tile>'))->toContain('<b>شعار</b>');
 });
 
 it('seeds marked demo posts in the local environment only', function () {

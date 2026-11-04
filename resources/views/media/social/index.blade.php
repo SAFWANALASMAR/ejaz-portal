@@ -5,9 +5,6 @@
 @php
     $platformLink = fn (?\App\Enums\SocialPlatform $option): string => route('media.social', array_filter(['platform' => $option?->value, 'kind' => $kind?->value]));
     $kindLink = fn (?\App\Enums\SocialPostKind $option): string => route('media.social', array_filter(['platform' => $platform?->value, 'kind' => $option?->value]));
-    $pill = 'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition';
-    $on = 'bg-primary text-white';
-    $off = 'border border-line bg-white text-ink hover:border-primary hover:text-primary';
 @endphp
 
 <x-page-hero :title="__('social_posts.title')" :summary="__('social_posts.list.intro')" />
@@ -15,32 +12,39 @@
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        <nav aria-label="{{ __('social_posts.list.filter_platform') }}" data-social-filter="platform">
-            <ul class="flex flex-wrap gap-2">
-                @foreach ([null, ...\App\Enums\SocialPlatform::cases()] as $option)
-                    <li>
-                        <a href="{{ $platformLink($option) }}" wire:navigate @if ($option === $platform) aria-current="page" @endif @class([$pill, $on => $option === $platform, $off => $option !== $platform])>
-                            @if ($option)
-                                <x-social-icon :network="$option->value" class="size-4" />
-                            @endif
-                            {{ $option?->getLabel() ?? __('social_posts.list.all') }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </nav>
+        {{-- شريط التصفية (ملاحظة صفوان على #165): كبسولة لكل منصة بشعارها في مربع أيقونة صغير، وتحته النوع شريطاً أصغر بعنوانه.
+             الأنماط في resources/css/social-filters.css --}}
+        <div class="social-filters">
+            <nav aria-label="{{ __('social_posts.list.filter_platform') }}" class="social-filter" data-social-filter="platform">
+                <ul class="social-filter-track">
+                    @foreach ([null, ...\App\Enums\SocialPlatform::cases()] as $option)
+                        <li>
+                            <a href="{{ $platformLink($option) }}" wire:navigate @if ($option === $platform) aria-current="page" @endif class="social-filter-pill" data-social-filter-pill>
+                                @if ($option)
+                                    <x-icon-tile size="xs" shade="light" class="social-filter-tile"><x-social-icon :network="$option->value" class="size-3.5" /></x-icon-tile>
+                                @else
+                                    <x-icon-tile icon="squares-2x2" size="xs" shade="light" class="social-filter-tile" />
+                                @endif
+                                <span>{{ $option?->getLabel() ?? __('social_posts.list.all') }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
 
-        <nav aria-label="{{ __('social_posts.list.filter_kind') }}" class="mt-3" data-social-filter="kind">
-            <ul class="flex flex-wrap gap-2">
-                @foreach ([null, ...\App\Enums\SocialPostKind::cases()] as $option)
-                    <li>
-                        <a href="{{ $kindLink($option) }}" wire:navigate @if ($option === $kind) aria-current="page" @endif @class([$pill, $on => $option === $kind, $off => $option !== $kind])>
-                            {{ $option?->getLabel() ?? __('social_posts.list.all') }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </nav>
+            <nav aria-label="{{ __('social_posts.list.filter_kind') }}" class="social-filter social-filter-kind" data-social-filter="kind">
+                <span class="social-filter-label" data-social-filter-label>{{ __('social_posts.fields.kind') }}</span>
+                <ul class="social-filter-track">
+                    @foreach ([null, ...\App\Enums\SocialPostKind::cases()] as $option)
+                        <li>
+                            <a href="{{ $kindLink($option) }}" wire:navigate @if ($option === $kind) aria-current="page" @endif class="social-filter-pill social-filter-pill-sm" data-social-filter-pill>
+                                {{ $option?->getLabel() ?? __('social_posts.list.all') }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
+        </div>
 
         <h2 class="sr-only">{{ __('social_posts.list.items') }}</h2>
 
