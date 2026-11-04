@@ -241,21 +241,39 @@ it('credits a first report with seconds only its small slack', function () {
     expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(RecordLibraryProgress::SECONDS_SLACK);
 });
 
-it('takes only an opened mark for a YouTube video, YouTube audio and a downloadable book', function () {
+// ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026: شاهد مقطع يوتيوب كاملاً فلم تُسجَّل مشاهدته، لأن يوتيوب كان علامة «فتحته» وحدها. ومشغّله
+// يبلّغ الآن تشغيله عبر postMessage (library-progress.js)، فتُقبل الثواني والموضع بساعة الخادم كالملف
+it('takes playback seconds for a YouTube video and YouTube audio, and only an opened mark for a downloadable book', function () {
     $video = LibraryItem::factory()->video()->create(['slug' => 'reading-video']);
     $youtubeAudio = LibraryItem::factory()->state(['section' => LibrarySection::Audio, 'video_url' => 'https://www.youtube.com/watch?v=abcdefghijk', 'file' => null])->create(['slug' => 'youtube-audio']);
     $downloadable = LibraryItem::factory()->create(['slug' => 'reading-downloadable']);
     $this->actingAs($this->reader);
 
+    expect($video->youtubeId())->not->toBeNull()->and($video->tracksPlayback())->toBeTrue()->and($youtubeAudio->tracksPlayback())->toBeTrue();
+
     reportProgress($video)->assertOk();
     reportProgress($youtubeAudio)->assertOk();
     reportProgress($downloadable)->assertOk();
-    reportProgress($video, ['seconds' => 5])->assertJsonValidationErrors('seconds');
-    reportProgress($youtubeAudio, ['seconds' => 5])->assertJsonValidationErrors('seconds');
-    reportProgress($downloadable, ['pages' => [1]])->assertJsonValidationErrors('pages');
 
-    expect(progressOf($this->reader, $video))->not->toBeNull()
+    $this->travel(40)->seconds();
+    reportProgress($video, ['seconds' => 30, 'position' => 30, 'duration' => 213])->assertOk();
+    reportProgress($youtubeAudio, ['seconds' => 5, 'position' => 5])->assertOk();
+    reportProgress($downloadable, ['pages' => [1]])->assertJsonValidationErrors('pages');
+    // والموضع لا يتجاوز المدة المرسلة معه، والثواني بحدها
+    reportProgress($video, ['position' => 300, 'duration' => 213])->assertJsonValidationErrors('position');
+    reportProgress($video, ['seconds' => RecordLibraryProgress::MAX_SECONDS_PER_REPORT + 1])->assertJsonValidationErrors('seconds');
+
+    $watched = progressOf($this->reader, $video);
+    expect($watched->seconds_consumed)->toBe(30)
+        ->and($watched->last_position)->toBe(30)
+        ->and($watched->duration_seconds)->toBe(213)
+        // والثانية للحساب كله لا لكل عنصر: الصوت بعد المقطع في الساعة نفسها لا يُحتسب منه إلا ما بقي منها مع الفسحة
+        ->and(progressOf($this->reader, $youtubeAudio)->seconds_consumed)->toBeLessThanOrEqual(5)
         ->and(progressOf($this->reader, $downloadable)->pages_count)->toBe(0);
+
+    // و«قراءاتي» تعرض موضع المشاهدة ومدتها، وتُحسب في دقائق المشاهدة
+    $this->get(route('account.my-reading'))->assertOk()
+        ->assertSee(__('reading.status.watched', ['position' => '0:30', 'duration' => '3:33']));
 });
 
 it('refuses guests, unpublished, deleted or mismatched items, and inactive or deleted accounts', function () {

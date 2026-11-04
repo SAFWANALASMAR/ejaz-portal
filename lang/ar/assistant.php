@@ -114,7 +114,7 @@ return [
         'account.profile' => 'بياناتي',
         'account.requests.index' => 'طلباتي',
         'account.programs.index' => 'برامجي',
-        'account.competitions' => 'مشاركاتي في المسابقات',
+        'account.competitions' => 'مسابقاتي',
         'account.phone.verify' => 'توثيق الجوال',
         'account.security' => 'الأمان',
         'assembly.index' => 'الجمعية العمومية',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Account;
 use App\Actions\Accounts\BuildAccountSummary;
 use App\Actions\Accounts\BuildOversight;
 use App\Actions\Accounts\BuildParticipationStats;
+use App\Actions\Competitions\BuildStudentCompetitionCards;
 use App\Actions\Content\BuildHomePage;
 use App\Actions\Library\BuildMyReading;
 use App\Enums\RegistrationStatus;
@@ -24,7 +25,7 @@ class DashboardController extends Controller
      */
     private const READING_ITEMS = 3;
 
-    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats, BuildOversight $oversight, BuildMyReading $reading): Response
+    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats, BuildOversight $oversight, BuildMyReading $reading, BuildStudentCompetitionCards $competitions): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -41,6 +42,8 @@ class DashboardController extends Controller
             'summary' => $summary->handle($user),
             'stats' => $stats->handle($user),
             'oversight' => $oversight->handle($user),
+            // بطاقة مسابقة الطلاب بمرحلتها الحالية وزرها (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026)
+            'competitions' => $competitions->handle($user),
             // «قراءاتي»: أحدث ما بدأه في المكتبة ومجاميعه (docs/decisions/2026-11-01-my-reading.md)
             'reading' => $reading->handle($user, self::READING_ITEMS),
             // «برامجي» من برامج المكتبة بتقدّمها، وعدد «برامج أتممتها» (docs/decisions/2026-11-02-reading-program.md)
