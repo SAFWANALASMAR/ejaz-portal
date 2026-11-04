@@ -1,0 +1,355 @@
+/*
+ * رئيسيات اللوحة والبوابات (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ٢، feature/admin-dashboards):
+ * - رأس الرئيسية (dashboard-hero.blade.php): فاتح متدرج بالنقش، ومربع أيقونة متدرج، وتحية باسم صاحب الحساب، وأدواره كبسولات،
+ *   وتاريخ اليوم، ورمز الشعار باهتاً في الطرف. بدل العنوان المجرد وعنصر «مرحباً» الصغير.
+ * - الحالة الفارغة المرسومة لمن لا عنصر في رئيسيته.
+ * - «بوابتي»: كل قدرة بطاقة بمربع أيقونة متدرج ودائرة سهم، بدل قائمة روابط.
+ * - بطاقات الإحصاء: الرقم أبرز بأرقام متساوية العرض.
+ *
+ * ملف مستقل لهذه الدفعة فلا يتعارض مع دفعات السمة الأخرى. يُستورد في أعلى theme.css (قبل قواعده)، فكل قاعدة هنا بتحديد أعلى من
+ * نظيرتها هناك (.fi-body أو html:not(.dark) .fi-body)، والأزرق وحده كبقية السمة، والحركة تتوقف بتقليل الحركة.
+ */
+
+/* ── رأس الرئيسية ─────────────────────────────────────────────── */
+
+.ej-dash {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.ej-dash-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    overflow: hidden;
+    padding: 1.75rem 2rem;
+    border-radius: 1.5rem;
+    border: 1px solid var(--ej-line);
+    background:
+        var(--ej-pattern),
+        linear-gradient(120deg, #e3f1fc 0%, #f2f8fd 50%, #cfe3f4 100%);
+    background-size: 56px 56px, auto;
+    box-shadow: 0 18px 36px -26px rgb(31 69 101 / 0.55);
+    animation: ej-dash-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.ej-dash-hero-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 30%;
+    color: #fff;
+    background: var(--ej-tile-1);
+    box-shadow:
+        inset 0 0 0 1px rgb(142 197 240 / 0.5),
+        0 12px 22px -12px var(--ej-tile-1-shadow);
+}
+
+.ej-dash-hero-text {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.ej-dash-hero-eyebrow {
+    color: var(--ej-primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.ej-dash-hero-greeting {
+    margin-top: 0.25rem;
+    color: var(--ej-deep);
+    font-size: 1.875rem;
+    font-weight: 900;
+    line-height: 1.3;
+
+    &::after {
+        content: '';
+        display: block;
+        width: 3.5rem;
+        height: 3px;
+        margin-top: 0.6rem;
+        border-radius: 3px;
+        background: linear-gradient(90deg, var(--ej-sky), var(--ej-brand));
+    }
+}
+
+.ej-dash-hero-description {
+    margin-top: 0.75rem;
+    max-width: 40rem;
+    color: var(--ej-muted);
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.ej-dash-hero-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+
+    & > li {
+        padding: 0.25rem 0.875rem;
+        border-radius: 999px;
+        color: var(--ej-primary-dark);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        background-color: rgb(255 255 255 / 0.75);
+        box-shadow: inset 0 0 0 1px var(--ej-ring);
+    }
+}
+
+/* رمز الشعار باهتاً في طرف الرأس، زخرفة لا تزاحم النص */
+.ej-dash-hero-mark {
+    position: absolute;
+    inset-inline-end: 1.75rem;
+    top: 50%;
+    width: auto;
+    height: 8.5rem;
+    opacity: 0.1;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+@media (max-width: 39.999rem) {
+    .ej-dash-hero {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 1.25rem;
+    }
+
+    .ej-dash-hero-icon {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .ej-dash-hero-greeting {
+        font-size: 1.5rem;
+    }
+
+    .ej-dash-hero-mark {
+        top: 1.25rem;
+        inset-inline-end: 1.25rem;
+        height: 4.5rem;
+        transform: none;
+    }
+}
+
+/* ── الحالة الفارغة المرسومة ───────────────────────────────────── */
+
+.ej-dash-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1.5rem;
+    border-radius: 1.5rem;
+    border: 1px dashed var(--ej-ring);
+    text-align: center;
+    background:
+        var(--ej-pattern),
+        var(--ej-panel);
+    background-size: 56px 56px, auto;
+}
+
+.ej-dash-empty-art {
+    width: 10rem;
+    height: auto;
+    color: var(--ej-primary);
+}
+
+.ej-dash-empty-heading {
+    color: var(--ej-deep);
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.ej-dash-empty-body {
+    max-width: 28rem;
+    color: var(--ej-muted);
+}
+
+/* ── «بوابتي»: كل قدرة بطاقة ───────────────────────────────────── */
+
+.fi-body .ej-portal .fi-section-content {
+    padding-top: 1.25rem;
+}
+
+.ej-portal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 1rem;
+}
+
+.ej-portal-card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    height: 100%;
+    padding: 1rem 1.125rem;
+    border-radius: 1.125rem;
+    border: 1px solid var(--ej-line);
+    background: linear-gradient(160deg, #ffffff 0%, #f2f8fd 100%);
+    box-shadow: 0 10px 22px -20px rgb(31 69 101 / 0.6);
+    transition:
+        transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.3s,
+        border-color 0.3s;
+}
+
+a.ej-portal-card {
+    &:hover {
+        transform: translateY(-3px);
+        border-color: var(--ej-ring);
+        box-shadow: 0 16px 28px -18px rgb(31 69 101 / 0.6);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--ej-brand);
+        outline-offset: 2px;
+    }
+}
+
+/* المربعات بدرجتين تتعاقبان كأيقونات القائمة الجانبية: الغامقة برسم أبيض، والفاتحة برسم أزرق داكن */
+.ej-portal-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 30%;
+    color: var(--ej-tile-1-glyph);
+    background: var(--ej-tile-1);
+    box-shadow:
+        inset 0 0 0 1px rgb(142 197 240 / 0.5),
+        0 10px 18px -12px var(--ej-tile-1-shadow);
+}
+
+.ej-portal-grid > li:nth-child(even) .ej-portal-icon {
+    color: var(--ej-tile-2-glyph);
+    background: var(--ej-tile-2);
+    box-shadow:
+        inset 0 0 0 1px rgb(255 255 255 / 0.5),
+        0 10px 18px -12px var(--ej-tile-2-shadow);
+}
+
+.ej-portal-label {
+    flex: 1;
+    min-width: 0;
+    color: var(--ej-deep);
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.ej-portal-arrow {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--ej-primary);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+a.ej-portal-card:hover .ej-portal-arrow {
+    /* السهم يتقدم نحو نهاية السطر في RTL */
+    transform: translateX(-3px);
+}
+
+/* قدرة بلا شاشة مستقلة (الإحصائيات العامة في هذه الصفحة): بطاقة بلا سهم */
+.ej-portal-card-static {
+    background: linear-gradient(160deg, #f2f8fd 0%, #e3f1fc 100%);
+}
+
+/* ── بطاقات الإحصاء: الرقم أبرز ───────────────────────────────── */
+
+html:not(.dark) .fi-body .fi-wi-stats-overview-stat-value {
+    font-size: 2.25rem;
+    font-weight: 900;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+@media (max-width: 39.999rem) {
+    html:not(.dark) .fi-body .fi-wi-stats-overview-stat-value {
+        font-size: 1.875rem;
+    }
+}
+
+/* ── الحركة ───────────────────────────────────────────────────── */
+
+@keyframes ej-dash-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ej-dash-hero,
+    .ej-portal-card,
+    .ej-portal-arrow {
+        animation: none;
+        transition: none;
+    }
+
+    a.ej-portal-card:hover,
+    a.ej-portal-card:hover .ej-portal-arrow {
+        transform: none;
+    }
+}
+
+/* ── الوضع الداكن ─────────────────────────────────────────────── */
+
+html.dark .ej-dash-hero,
+html.dark .ej-dash-empty {
+    border-color: rgb(142 197 240 / 0.25);
+    background: linear-gradient(120deg, #1f4565 0%, #142e45 100%);
+}
+
+html.dark .ej-dash-hero-greeting,
+html.dark .ej-dash-empty-heading,
+html.dark .ej-portal-label {
+    color: #fff;
+}
+
+html.dark .ej-dash-hero-eyebrow,
+html.dark .ej-dash-hero-description,
+html.dark .ej-dash-empty-body {
+    color: rgb(255 255 255 / 0.8);
+}
+
+html.dark .ej-dash-hero-roles > li {
+    color: #fff;
+    background-color: rgb(255 255 255 / 0.08);
+}
+
+html.dark .ej-portal-card {
+    border-color: rgb(142 197 240 / 0.25);
+    background: rgb(255 255 255 / 0.05);
+}
+
+/* مربع الأيقونة على بطاقة الإحصاء الملونة: زجاجي بلون نصها كما في السمة (‎.tone-card في الموقع)، بتدرج خفيف من الأعلى بدل اللون
+   المسطح، فيبقى متدرجاً على البطاقتين الداكنة والفاتحة (الدفعة ٢) */
+html:not(.dark) .fi-body .fi-wi-stats-overview .fi-wi-stats-overview-stat .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--ej-card-text) 30%, transparent),
+        color-mix(in srgb, var(--ej-card-text) 8%, transparent)
+    );
+}

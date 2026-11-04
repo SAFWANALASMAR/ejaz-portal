@@ -3,9 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Support\ProgramStatsByType;
+use Filament\Support\Enums\IconSize;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
+
+use function Filament\Support\generate_icon_html;
 
 /**
  * رسم مقارنة بين أنواع البرامج (البند R23 — docs/decisions/2026-11-02-program-stats-by-type.md): المسجلون والمكملون لكل نوع،
@@ -49,9 +53,15 @@ class ProgramStatsByTypeWidget extends ChartWidget
         return $this->rows;
     }
 
-    public function getHeading(): string
+    /**
+     * العنوان بمربع أيقونة كرسم الزيارات وبقية عناصر الرئيسية (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ٢)، كان بالشريط وحده.
+     */
+    public function getHeading(): Htmlable
     {
-        return __('program_stats.heading');
+        $icon = generate_icon_html(Heroicon::OutlinedAcademicCap, size: IconSize::Large)?->toHtml() ?? '';
+
+        return new HtmlString('<span class="ej-heading-tile" aria-hidden="true">'.$icon.'</span>'
+            .'<span>'.e(__('program_stats.heading')).'</span>');
     }
 
     public function getDescription(): string|Htmlable|null
