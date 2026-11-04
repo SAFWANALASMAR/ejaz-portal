@@ -8,6 +8,11 @@
     compact: بطاقات التصور الصغيرة (الرؤية والقيم): نقاط صغيرة وزر إيقاف في الزاوية، بلا أسهم ولا مؤشر.
 --}}
 @props(['label', 'count', 'autoplay' => false, 'interval' => 6000, 'tone' => 'light', 'status' => true, 'compact' => false])
+@php
+    // النقاط لست شرائح فأقل، وما زاد عدّاد «03 / 10» بدلها: صف النقاط لا يلتف، فعشرة إعلانات تزيح الرئيسية أفقياً على 390
+    // (التجربة الشاملة على 9b9ce5f0، 4 نوفمبر 2026)
+    $dots = $count <= 6;
+@endphp
 
 <div data-carousel role="region" aria-roledescription="{{ __('ui.slider.carousel') }}" data-slide-label="{{ __('ui.slider.slide') }}" data-of-label="{{ __('ui.slider.of') }}"
     aria-label="{{ $label }}" data-tone="{{ $tone }}" @if ($compact) data-compact @endif
@@ -25,13 +30,15 @@
                     {{ \App\Support\Icon::svg('chevron-right', 'size-5', ['aria-hidden' => 'true']) }}
                 </button>
             @endunless
-            <div class="flex items-center" data-carousel-dots>
-                @for ($index = 0; $index < $count; $index++)
-                    <button type="button" data-carousel-dot class="carousel-dot" aria-label="{{ __('ui.slider.go_to', ['number' => $index + 1]) }}"
-                        @if ($index === 0) aria-current="true" @endif></button>
-                @endfor
-            </div>
-            @if ($status && ! $compact)
+            @if ($dots)
+                <div class="flex items-center" data-carousel-dots>
+                    @for ($index = 0; $index < $count; $index++)
+                        <button type="button" data-carousel-dot class="carousel-dot" aria-label="{{ __('ui.slider.go_to', ['number' => $index + 1]) }}"
+                            @if ($index === 0) aria-current="true" @endif></button>
+                    @endfor
+                </div>
+            @endif
+            @if (($status && ! $compact) || ! $dots)
                 <span data-carousel-status class="carousel-status tabular-nums" dir="ltr" aria-hidden="true">01 / {{ str_pad((string) $count, 2, '0', STR_PAD_LEFT) }}</span>
             @endif
             @if ($autoplay)

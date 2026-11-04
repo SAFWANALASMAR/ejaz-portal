@@ -740,9 +740,9 @@ html[data-motion-off] [data-words-ready] [data-word] {
     gap: 0.5rem;
 }
 
-/* المؤشر «01 / 03» على الجوال يكفيه النقاط */
+/* المؤشر «01 / 03» على الجوال يكفيه النقاط، ويبقى حين لا نقاط (أكثر من ست شرائح) */
 @media (max-width: 39.99rem) {
-    .carousel-status {
+    [data-carousel-dots] ~ .carousel-status {
         display: none;
     }
 }
