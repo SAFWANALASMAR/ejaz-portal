@@ -113,40 +113,40 @@ it('renders the identity slider as an accessible carousel with one active slide'
         ->and($html)->toContain('نص رؤية الاختبار');
 });
 
-// أمر التصور النهائي، النسخة 63 (البند H1): الترتيب تعريف الجمعية، ثم خادم الحرمين الشريفين، ثم رئيس الجمعية، ثم البراهين متى
-// نُشرت، ثم المكتبة. والصور من «محتوى الرئيسية»، وإلا بدائلها
-it('builds the hero slides in the approved order, with the Brahin slide only for a published student competition', function () {
+// إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البندان ٢٢ و٢٣، ويحل محل البند H1): أربع شرائح بالترتيب — المصحف الشريف وتعريف
+// الجمعية، ثم الحرم المكي، ثم خادم الحرمين الشريفين، ثم رئيس مجلس الإدارة. ومسابقة البراهين خارج البطل (في الإعلانات). والصور من
+// «محتوى الرئيسية»، وإلا بدائلها، وما لا صورة معتمدة له مربع محايد (missing)
+it('builds the four hero slides in the approved order, without the Brahin slide', function () {
     $hero = ['title' => __('site.name'), 'text' => 'تعريف الجمعية', 'button' => null];
     $content = HomeContent::resolved();
 
     $slides = HomeShowcase::slides([], $content, $hero);
-    expect(array_column($slides, 'key'))->toBe(['about', 'king', 'chairman', 'library'])
+    expect(array_column($slides, 'key'))->toBe(['about', 'haram', 'king', 'chairman'])
         ->and($slides[0]['title'])->toBe(__('site.short_name'))
         ->and($slides[0]['subtitle'])->not->toBeEmpty()
         ->and($slides[0]['src'])->toContain('images/placeholders/pages/default.svg')
-        ->and($slides[1]['portrait'])->toBeTrue()
-        ->and($slides[2]['portrait'])->toBeTrue()
-        ->and($slides[3]['src'])->toContain('images/placeholders/pages/library.svg')
-        ->and($slides[1]['src'])->toBe($content['king']['image'])
-        ->and($slides[1]['title'])->toBe(__('home.sections.king.signature_title'))
-        ->and($slides[2]['title'])->toBe(__('home.sections_final.chairman.name'))
-        ->and($slides[3]['button']['url'])->toBe(route('library.index'));
+        ->and($slides[0]['missing'])->toBeTrue()
+        ->and($slides[1]['title'])->toBe(__('ui.hero.haram_title'))
+        ->and($slides[1]['missing'])->toBeTrue()
+        ->and($slides[2]['src'])->toBe($content['king']['image'])
+        ->and($slides[2]['title'])->toBe(__('home.sections.king.signature_title'))
+        ->and($slides[3]['title'])->toBe(__('home.sections_final.chairman.name'));
 
-    Competition::factory()->create(['student_mode' => true, 'is_published' => false, 'title' => 'مسودة']);
-    $competition = Competition::factory()->create(['student_mode' => true, 'is_published' => true, 'title' => 'البراهين العلمية']);
+    Competition::factory()->create(['student_mode' => true, 'is_published' => true, 'title' => 'البراهين العلمية']);
     Album::factory()->create(['is_published' => true, 'photos' => ['albums/a.jpg']]);
 
     $slides = HomeShowcase::slides([], HomeContent::resolved(), $hero);
-    expect(array_column($slides, 'key'))->toBe(['about', 'king', 'chairman', 'brahin', 'library'])
+    expect(array_column($slides, 'key'))->toBe(['about', 'haram', 'king', 'chairman'])
         ->and($slides[0]['src'])->toEndWith('albums/a.jpg')
-        ->and($slides[3]['title'])->toBe('البراهين العلمية')
-        ->and($slides[3]['button']['url'])->toBe(route('competitions.show', $competition->slug));
+        ->and($slides[0]['missing'])->toBeFalse();
 
     // صورة البطل من الإعدادات تتقدم على الألبوم، وصورة الشريحة من «محتوى الرئيسية» تتقدم على بديلها
-    Setting::put(HomeContent::KEY, ['hero_slides' => ['king' => 'settings/king-wide.jpg']]);
+    Setting::put(HomeContent::KEY, ['hero_slides' => ['king' => 'settings/king-wide.jpg', 'haram' => 'settings/haram.jpg']]);
     $slides = HomeShowcase::slides(['hero_image' => 'settings/hero.jpg'], HomeContent::resolved(), $hero);
     expect($slides[0]['src'])->toEndWith('settings/hero.jpg')
-        ->and($slides[1]['src'])->toEndWith('settings/king-wide.jpg');
+        ->and($slides[1]['src'])->toEndWith('settings/haram.jpg')
+        ->and($slides[1]['missing'])->toBeFalse()
+        ->and($slides[2]['src'])->toEndWith('settings/king-wide.jpg');
 });
 
 it('renders the hero slides with the first title as the page heading, the first image eager and the rest lazy', function () {
@@ -154,7 +154,7 @@ it('renders the hero slides with the first title as the page heading, the first 
     preg_match_all('/<figure data-hero-slide="(\w+)"/', $html, $keys);
     preg_match_all('/<figure data-hero-slide.*?<img[^>]*>/s', $html, $images);
 
-    expect($keys[1])->toBe(['about', 'king', 'chairman', 'library'])
+    expect($keys[1])->toBe(['about', 'haram', 'king', 'chairman'])
         ->and($images[0][0])->toContain('fetchpriority="high"')->not->toContain('loading="lazy"')
         ->and($images[0][1])->toContain('loading="lazy"')
         ->and(substr_count($html, '<h1'))->toBe(1)

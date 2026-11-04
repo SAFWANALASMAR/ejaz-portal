@@ -177,7 +177,8 @@ it('aligns the live About page with the strategic plan, and restores it when rol
         // صورة البطاقة القائمة باقية
         ->and($blocks['قيم الجمعية']['data']['items'][0]['picture'])->toBe('pages/value.png');
 
-    $this->get('/about')->assertOk()->assertSee('ريادة تعليمية في ضوء براهين الإيمان العلمية.')->assertDontSee('التوجه الاستراتيجي');
+    // و«التوجه الاستراتيجي» صار مقطعاً أول الصفحة ومرساة في القائمة (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٨)
+    $this->get('/about')->assertOk()->assertSee('ريادة تعليمية في ضوء براهين الإيمان العلمية.')->assertSee('id="about-strategy"', false);
 
     $migration->down();
     expect($page->fresh()->blocks)->toEqual($old);
@@ -319,8 +320,12 @@ it('shows the WhatsApp button, the license and the national address map in the f
             ->toContain('بجوار مصلى الرجال');
     }
 
-    // والترخيص في صفحة التواصل، وخرج سطره من التذييل إلى مربع الترخيص في الرأس (النسخة 63)
-    $this->get('/contact')->assertSee('رقم الترخيص: 1000723700');
+    // وسطر الترخيص خرج من صفحة التواصل (تحت «تواصل عبر الواتساب» — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣٠) ومن التذييل، وبقي
+    // رقمه في مربع الترخيص في الرأس
+    $contact = (string) $this->get('/contact')->assertOk()->getContent();
+    $aside = (string) str($contact)->after('data-whatsapp')->before('</aside>');
+    expect($aside)->not->toContain('1000723700')
+        ->and((string) str($contact)->after('data-header-licence')->before('</p>'))->toContain('1000723700');
 });
 
 it('saves the WhatsApp number from the settings in the international form, and refuses a number that is not a Saudi mobile', function () {

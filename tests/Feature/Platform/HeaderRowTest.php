@@ -23,11 +23,12 @@ it('puts the menu on its own second row of equal capsules and shows the bar from
             ->and($x->query(".//span[contains(@class, 'truncate')]", $item)->length)->toBe(1);
     }
 
-    // الصف الأول قبل صف القائمة داخل الرأس الثابت نفسه، والشريط من نقطة nav المقيسة، وزر القائمة وقائمة الجوال دونها
+    // الصف الأول قبل صف القائمة داخل الرأس الثابت نفسه، والشريط من 1024 (lg: — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣)،
+    // وزر القائمة وقائمة الجوال دونه
     expect($x->query("//header[@data-site-header][contains(@class, 'sticky')][contains(@class, 'top-0')]/div[contains(@class, 'header-top')]/following-sibling::nav[@data-main-nav]")->length)->toBe(1)
-        ->and($x->query("//nav[@data-main-nav][contains(@class, 'nav:block')]")->length)->toBe(1)
-        ->and($x->query("//button[@data-toggle='mobile-menu'][contains(@class, 'nav:hidden')]")->length)->toBe(1)
-        ->and($x->query("//div[@id='mobile-menu'][contains(@class, 'nav:hidden')]")->length)->toBe(1);
+        ->and($x->query("//nav[@data-main-nav][contains(@class, 'lg:block')]")->length)->toBe(1)
+        ->and($x->query("//button[@data-toggle='mobile-menu'][contains(@class, 'lg:hidden')]")->length)->toBe(1)
+        ->and($x->query("//div[@id='mobile-menu'][contains(@class, 'lg:hidden')]")->length)->toBe(1);
 });
 
 it('shows the two licence lines from the panel in the first row, and no supervision line in the header or the footer', function () {
@@ -68,10 +69,15 @@ it('orders the first row as mark, centred calligraphy, licence, search then logi
         ->and($actions->item(1)->getAttribute('class'))->toContain('login-pill');
 });
 
-it('keeps the header the same size on scroll: no shrink factor or scroll attribute left in the styles and scripts', function () {
+// البند ٣١ من إضافة توجيه المدير (3 نوفمبر 2026): الرأس يصغر عند التمرير بسمة واحدة (data-header-compact) ويُعوَّض فرقه بهامش فلا
+// يتحرك المحتوى، لا بعامل التصغير السابق (--hs وdata-scrolled) الذي ألغاه صفوان في 2 نوفمبر. والقياس الفعلي في المتصفح
+it('shrinks the header on scroll with one compact attribute and a compensating margin, not the old shrink factor', function () {
     foreach (['resources/css/concept.css', 'resources/css/visual.css', 'resources/css/app.css', 'resources/js/app.js'] as $file) {
         expect(file_get_contents(base_path($file)))->not->toContain('var(--hs')->not->toContain('data-scrolled');
     }
+
+    expect(file_get_contents(resource_path('js/app.js')))->toContain("header.setAttribute('data-header-compact', '')")
+        ->and(file_get_contents(resource_path('css/concept.css')))->toMatch('/\[data-site-header\]\[data-header-compact\] \{\s*margin-bottom: var\(--header-shrink, 0px\);/');
 });
 
 // قرار المشرف على #130: شارة البث في نهاية صف القائمة وأول قائمة الجوال، لا في الصف الأول، فلا تزيح المخطوطة عن المنتصف

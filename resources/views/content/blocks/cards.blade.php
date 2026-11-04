@@ -16,7 +16,9 @@
                 <x-section-heading class="mb-5" center>{{ $data['heading'] }}</x-section-heading>
             @endif
 
-            <x-marquee :id="$marqueeId" :label="filled($data['heading'] ?? null) ? $data['heading'] : __('ui.inner.cards')" :duration="max(30, count($items) * 9)">
+            {{-- كل شريط عكس الذي قبله (البند ٢١ — x-content-blocks): الأول من اليمين إلى اليسار، والثاني من اليسار إلى اليمين --}}
+            <x-marquee :id="$marqueeId" :label="filled($data['heading'] ?? null) ? $data['heading'] : __('ui.inner.cards')" :duration="max(30, count($items) * 9)"
+                data-cards-strip="{{ ($strip ?? 0) % 2 === 0 ? 'flip' : 'normal' }}" @class(['media-marquee-flip' => ($strip ?? 0) % 2 === 0])>
                 @foreach ($items as $index => $item)
                     @php($icon = is_string($item['icon'] ?? null) ? \App\Enums\SiteIcon::tryFrom($item['icon']) : null)
                     @php($picture = is_string($item['picture'] ?? null) && $item['picture'] !== '' ? $item['picture'] : null)
