@@ -52,15 +52,33 @@ class PortalWidget extends Widget
         $user = auth()->user();
         $definitions = Portals::definitions();
 
+        // «الإحصائيات العامة» في هذه الصفحة: البطاقة تنقل إلى أول مجموعات الإحصاء لمن يراها (ملاحظة المقيّم على #168)
+        $statsUrl = PeopleStatsWidget::canView() ? '#'.PeopleStatsWidget::ANCHOR : null;
+
         $portals = array_map(fn (array $portal): array => [
             ...$portal,
+            'columns' => self::columns(count($portal['items'])),
             'items' => array_map(fn (array $item): array => [
                 ...$item,
+                'url' => $item['url'] ?? ($item['key'] === 'stats' ? $statsUrl : null),
                 'icon' => self::icon($item['key'], $definitions[$portal['key']]['items'][$item['key']] ?? null),
             ], $portal['items']),
         ], Portals::for($user));
 
         return ['portals' => $portals];
+    }
+
+    /**
+     * أعمدة البطاقات على الحاسوب بعددها، فلا تبقى بطاقة وحيدة في سطر ولا تنكسر العناوين في أعمدة ضيقة: حتى ثلاث في سطر واحد،
+     * والأربع اثنتان واثنتان، والخمس فأكثر ثلاث في السطر (ملاحظة المقيّم على #168).
+     */
+    private static function columns(int $count): int
+    {
+        return match (true) {
+            $count <= 3 => max(1, $count),
+            $count === 4 => 2,
+            default => 3,
+        };
     }
 
     /**

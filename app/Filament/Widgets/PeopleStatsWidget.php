@@ -4,6 +4,8 @@ namespace App\Filament\Widgets;
 
 use App\Support\Dates;
 use App\Support\PortalStats;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
 use Illuminate\Support\Carbon;
 
 /**
@@ -13,9 +15,21 @@ class PeopleStatsWidget extends PortalStatsWidget
 {
     protected static ?int $sort = 4;
 
+    /**
+     * مرساة أول مجموعات الإحصاء، تشير إليها بطاقة «الإحصائيات العامة» في بوابة المدير التنفيذي (ملاحظة المقيّم على #168)
+     */
+    public const ANCHOR = 'ej-stats';
+
     public static function canView(): bool
     {
         return auth()->user()?->can('stats.view') ?? false;
+    }
+
+    public function getSectionContentComponent(): Component
+    {
+        $section = parent::getSectionContentComponent();
+
+        return $section instanceof Section ? $section->id(self::ANCHOR) : $section;
     }
 
     protected function group(): string

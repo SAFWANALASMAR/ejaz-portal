@@ -140,10 +140,30 @@ async function checkDashboard(page, role, label, mobile) {
         const withIcon = await page.locator('[data-ej-portal-item] [data-ej-portal-icon]').count();
         expect.soft(cards, `${label}: قدرات البوابة بطاقات`).toBeGreaterThan(0);
         expect.soft(withIcon, `${label}: لكل قدرة أيقونة`).toBe(cards);
+
+        // لا بطاقة وحيدة في السطر الأخير، ولا عنوان مقصوص (ملاحظة المقيّم على #168)
+        const layout = await page.evaluate(() => {
+            const tops = [...document.querySelectorAll('[data-ej-portal-item]')].map((card) => Math.round(card.getBoundingClientRect().top));
+            const lastRow = tops.filter((top) => top === Math.max(...tops)).length;
+            const rows = new Set(tops).size;
+            const clipped = [...document.querySelectorAll('.ej-portal-label')].filter((el) => el.scrollWidth > el.clientWidth + 1).length;
+            return { total: tops.length, lastRow, rows, clipped, wide: window.innerWidth >= 1280 };
+        });
+        if (layout.wide && layout.total > 1) {
+            expect.soft(layout.lastRow, `${label}: بطاقة وحيدة في السطر الأخير`).toBeGreaterThan(1);
+        }
+        expect.soft(layout.clipped, `${label}: عنوان بطاقة مقصوص`).toBe(0);
     } else if (!(await page.locator('.fi-wi-widget').count())) {
-        // لا عنصر في الرئيسية كلها (محرر المحتوى مثلاً)
+        // لا عنصر في الرئيسية كلها (محرر المحتوى مثلاً): حالة مرسومة بأزرار لأول مجموعات القائمة
         await expect.soft(page.locator('[data-ej-dashboard-empty]'), `${label}: حالة فارغة مرسومة`).toBeVisible();
+        expect.soft(await page.locator('[data-ej-dashboard-empty] [data-ej-empty-link]').count(), `${label}: أزرار القائمة في الحالة الفارغة`).toBeGreaterThan(0);
     }
+
+    // صندوق المستندات الفارغ برابط السجل، والرسوم الفارغة مرسومة بلا علامة × (ملاحظة المقيّم على #168)
+    if (await page.locator('[data-ej-registers-empty]').count()) {
+        await expect.soft(page.locator('[data-ej-registers-empty] [data-ej-empty-link]'), `${label}: رابط سجل المستندات`).toBeVisible();
+    }
+    expect.soft(await page.locator('.fi-wi-chart .fi-empty-state-icon-bg').count(), `${label}: علامة × في رسم فارغ`).toBe(0);
 }
 
 test.describe('admin dashboards', () => {

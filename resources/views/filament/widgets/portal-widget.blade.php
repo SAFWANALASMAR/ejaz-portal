@@ -3,7 +3,7 @@
 <x-filament-widgets::widget>
     @foreach ($portals as $portal)
         <x-filament::section :heading="__('portals.'.$portal['key'].'.title')" :description="__('portals.description')" icon="heroicon-o-key" class="ej-portal" data-ej-portal>
-            <ul class="ej-portal-grid">
+            <ul class="ej-portal-grid" style="--ej-portal-columns: {{ (int) $portal['columns'] }}" data-ej-portal-columns="{{ (int) $portal['columns'] }}">
                 @foreach ($portal['items'] as $item)
                     <li>
                         @if ($item['url'])

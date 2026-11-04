@@ -141,37 +141,88 @@
     }
 }
 
-/* ── الحالة الفارغة المرسومة ───────────────────────────────────── */
+/* ── الحالة الفارغة المرسومة (x-admin.empty-state): للرئيسية بإطار، وداخل العناصر والرسوم بلا إطار ─────────── */
 
-.ej-dash-empty {
+.ej-empty {
     display: grid;
     justify-items: center;
     gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+}
+
+.ej-empty-framed {
     padding: 2.5rem 1.5rem;
     border-radius: 1.5rem;
     border: 1px dashed var(--ej-ring);
-    text-align: center;
     background:
         var(--ej-pattern),
         var(--ej-panel);
     background-size: 56px 56px, auto;
 }
 
-.ej-dash-empty-art {
-    width: 10rem;
+.ej-empty-art {
+    width: 8rem;
     height: auto;
     color: var(--ej-primary);
 }
 
-.ej-dash-empty-heading {
+.ej-empty-framed .ej-empty-art {
+    width: 10rem;
+}
+
+.ej-empty-heading {
     color: var(--ej-deep);
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
     font-weight: 800;
 }
 
-.ej-dash-empty-body {
-    max-width: 28rem;
+.ej-empty-body {
+    max-width: 30rem;
     color: var(--ej-muted);
+    line-height: 1.8;
+}
+
+/* أزرار كبسولية لأول مجموعات القائمة، ورابط السجل (ملاحظة المقيّم على #168) */
+.ej-empty-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.625rem;
+    margin-top: 0.75rem;
+}
+
+.ej-empty-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.375rem 1.125rem;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 700;
+    background: linear-gradient(145deg, #2e6898, #1f4565);
+    box-shadow: 0 10px 20px -14px rgb(31 69 101 / 0.9);
+    transition:
+        transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.3s;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 24px -14px rgb(31 69 101 / 0.9);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--ej-brand);
+        outline-offset: 2px;
+    }
+}
+
+/* الرسم بلا بيانات: الحالة المرسومة بارتفاع الرسم تقريباً */
+.ej-chart-empty {
+    display: grid;
+    place-items: center;
+    min-height: 14rem;
 }
 
 /* ── «بوابتي»: كل قدرة بطاقة ───────────────────────────────────── */
@@ -182,8 +233,37 @@
 
 .ej-portal-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
+}
+
+/* الأعمدة بعدد البطاقات (PortalWidget::columns): لا بطاقة وحيدة في سطر ولا عنوان منكسر في عمود ضيق (ملاحظة المقيّم على #168).
+   وعلى اللوحي عمودان، والبطاقة الأخيرة الفردية بعرض السطر */
+@media (min-width: 40rem) {
+    .ej-portal-grid:not([data-ej-portal-columns="1"]) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        & > li:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+        }
+    }
+}
+
+@media (min-width: 80rem) {
+    /* بتحديد قاعدة اللوحي نفسه، فتغلبها على الحاسوب */
+    .ej-portal-grid:not([data-ej-portal-columns="1"]) {
+        grid-template-columns: repeat(var(--ej-portal-columns, 3), minmax(0, 1fr));
+
+        & > li:last-child:nth-child(odd) {
+            grid-column: auto;
+        }
+    }
+}
+
+.ej-portal-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ej-portal-card {
@@ -303,13 +383,15 @@ html:not(.dark) .fi-body .fi-wi-stats-overview-stat-value {
 @media (prefers-reduced-motion: reduce) {
     .ej-dash-hero,
     .ej-portal-card,
-    .ej-portal-arrow {
+    .ej-portal-arrow,
+    .ej-empty-link {
         animation: none;
         transition: none;
     }
 
     a.ej-portal-card:hover,
-    a.ej-portal-card:hover .ej-portal-arrow {
+    a.ej-portal-card:hover .ej-portal-arrow,
+    .ej-empty-link:hover {
         transform: none;
     }
 }
@@ -317,20 +399,20 @@ html:not(.dark) .fi-body .fi-wi-stats-overview-stat-value {
 /* ── الوضع الداكن ─────────────────────────────────────────────── */
 
 html.dark .ej-dash-hero,
-html.dark .ej-dash-empty {
+html.dark .ej-empty-framed {
     border-color: rgb(142 197 240 / 0.25);
     background: linear-gradient(120deg, #1f4565 0%, #142e45 100%);
 }
 
 html.dark .ej-dash-hero-greeting,
-html.dark .ej-dash-empty-heading,
+html.dark .ej-empty-heading,
 html.dark .ej-portal-label {
     color: #fff;
 }
 
 html.dark .ej-dash-hero-eyebrow,
 html.dark .ej-dash-hero-description,
-html.dark .ej-dash-empty-body {
+html.dark .ej-empty-body {
     color: rgb(255 255 255 / 0.8);
 }
 
