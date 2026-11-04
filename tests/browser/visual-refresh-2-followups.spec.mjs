@@ -19,8 +19,13 @@ test('the page transition overlay hides by itself when a navigation stalls (low 
 
     await startStalledNavigation(page);
     await expect(overlay).toBeVisible();
-    // نحو أربع ثوانٍ ثم الإخفاء المتدرج (450 + 300 ملّي ثانية)، لا خمس عشرة
-    await expect(overlay).toBeHidden({ timeout: 7000 });
+    // لا تُخفى بعد أربع ثوانٍ فتظهر الصفحة القديمة (عيب رابط العرض، 4 نوفمبر 2026 — page-transition-swap.spec.mjs): تبقى ويظهر
+    // تحت الشعار «جارٍ التحميل…»، ثم تُخفى عند مهلة الفشل القصوى (15 ثانية) لا تعلق
+    await page.waitForTimeout(4500);
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-transition-slow]')).toBeVisible();
+    await expect(overlay).toBeHidden({ timeout: 13_000 });
+    await expect(overlay.locator('[data-transition-slow]')).toBeHidden();
 });
 
 test('a page restored from the back-forward cache shows no stuck overlay (low note 1)', async ({ page }) => {
