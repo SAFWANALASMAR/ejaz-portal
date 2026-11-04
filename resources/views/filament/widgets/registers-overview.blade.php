@@ -3,7 +3,8 @@
 <x-filament-widgets::widget>
     <x-filament::section :heading="__('registers.widget.heading')" icon="heroicon-o-document-check" class="ej-registers-box">
         @if ($data['counts'] === [])
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('registers.widget.none') }}</p>
+            {{-- لا مستند منتهٍ ولا قريب: حالة مرسومة برابط السجل (ملاحظة المقيّم على #168) --}}
+            <x-admin.empty-state data-ej-registers-empty :heading="__('registers.widget.none')" :links="[['label' => __('admin.dashboard.registers_link'), 'url' => \App\Filament\Resources\RegisterEntries\RegisterEntryResource::getUrl(), 'icon' => \Filament\Support\Icons\Heroicon::OutlinedClipboardDocumentCheck]]" />
         @else
             <div class="grid gap-6 lg:grid-cols-2">
                 <ul class="divide-y divide-gray-100 dark:divide-white/10">
