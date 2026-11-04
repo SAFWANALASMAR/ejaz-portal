@@ -43,10 +43,16 @@
             <div class="header-actions">
                 {{-- «المساعد الذكي» (البند ١٣ من إضافة توجيه المدير): يفتح المساعد القائم (partials/assistant — resources/js/assistant.js)، ويعمل
                      دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
-                     ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰ --}}
+                     ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰.
+                     وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» حتى يُشغَّل (قرار صفوان، 4 نوفمبر 2026) --}}
                 @if ($assistantOn = \App\Models\AssistantSettings::current()->is_enabled)
                     <button type="button" data-assistant-toggle data-header-assistant aria-controls="assistant-panel" aria-expanded="false"
                         class="header-icon-button hidden lg:inline-flex" aria-label="{{ __('assistant.header.open') }}" title="{{ __('assistant.header.open') }}">
+                        <x-icon-tile icon="sparkles" size="xs" />
+                    </button>
+                @else
+                    <button type="button" data-header-assistant data-assistant-soon aria-disabled="true"
+                        class="header-icon-button hidden cursor-not-allowed opacity-60 lg:inline-flex" aria-label="{{ __('assistant.header.soon') }}" title="{{ __('assistant.header.soon') }}">
                         <x-icon-tile icon="sparkles" size="xs" />
                     </button>
                 @endif
@@ -157,6 +163,11 @@
                 <button type="button" data-assistant-toggle data-menu-assistant aria-controls="assistant-panel" aria-expanded="false"
                     class="mobile-nav-link mt-1 flex w-full items-center gap-2.5">
                     <x-icon-tile icon="sparkles" size="xs" />{{ __('assistant.header.open') }}
+                </button>
+            @else
+                <button type="button" data-menu-assistant data-assistant-soon aria-disabled="true"
+                    class="mobile-nav-link mt-1 flex w-full cursor-not-allowed items-center gap-2.5 opacity-60">
+                    <x-icon-tile icon="sparkles" size="xs" />{{ __('assistant.header.soon') }}
                 </button>
             @endif
 
