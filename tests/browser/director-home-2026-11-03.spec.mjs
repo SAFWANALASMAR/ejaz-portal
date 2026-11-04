@@ -620,6 +620,10 @@ test('hero: four light slides in order — the Mushaf, the Haram, the King with 
             title: getComputedStyle(el.querySelector('h1, h2')).color,
             frame: getComputedStyle(el.querySelector('[data-hero-frame]')).borderTopWidth,
             shadow: getComputedStyle(el.querySelector('[data-hero-frame]')).boxShadow,
+            frameClass: el.querySelector('[data-hero-frame]').className,
+            fit: getComputedStyle(el.querySelector('[data-hero-frame] img')).objectFit,
+            position: getComputedStyle(el.querySelector('[data-hero-frame] img')).objectPosition,
+            padding: parseFloat(getComputedStyle(el.querySelector('[data-hero-frame] img')).paddingTop),
         }));
         expect(look.title).toBe('rgb(31, 69, 101)');
         expect(look.frame).toBe('8px');
@@ -640,6 +644,11 @@ test('hero: four light slides in order — the Mushaf, the Haram, the King with 
         if (key === 'king') {
             expect(look.shadow, 'حلقة ذهبية وخضراء').toContain('rgb(201, 169, 97)');
             expect(look.shadow).toContain('rgba(14, 107, 71');
+            // الصورة كاملة بهامش فوق الرأس (ملاحظة صفوان على لقطات #157)، والإطار بصنفه كما هو
+            expect(look.fit).toBe('cover');
+            expect(look.position).toMatch(/^50% 0(%|px)$/);
+            expect(look.padding, 'هامش فوق الرأس').toBeGreaterThanOrEqual(12);
+            expect(look.frameClass).toBe('hero-light-frame');
         }
         const box = await slider.boundingBox();
         await page.screenshot({ path: `${SHOTS}/director-2026-11-03-hero-slide-${index + 1}-${key}-1440.png`, clip: { x: 0, y: 0, width: 1440, height: Math.ceil(box.y + box.height) } });

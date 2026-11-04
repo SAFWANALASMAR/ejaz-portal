@@ -3563,3 +3563,22 @@ html[data-reveal-ready] .portal-chart-line {
 .page-hero-frame[data-page-hero-rotator] > img[data-active] {
     opacity: 1;
 }
+
+/* رأس خادم الحرمين كاملاً في شريحته (ملاحظة صفوان على لقطات #157، 4 نوفمبر): الصورة طولية بخلفية بيضاء، فتُعرض من أعلاها على
+   الأبيض نفسه بهامش فوق الشماغ بدل قصّه (كان 50% 30% فيُقص أعلى الرأس)، ويُقص أسفلها. والحلقة الذهبية والخضراء كما هي */
+.hero-light [data-hero-slide='king'] .hero-light-frame {
+    background: var(--color-white);
+}
+
+.hero-light [data-hero-slide='king'] .hero-light-frame img {
+    box-sizing: border-box;
+    padding-top: 1.25rem;
+    object-fit: cover;
+    object-position: 50% 0;
+}
+
+@media (max-width: 47.99rem) {
+    .hero-light [data-hero-slide='king'] .hero-light-frame img {
+        padding-top: 0.75rem;
+    }
+}
