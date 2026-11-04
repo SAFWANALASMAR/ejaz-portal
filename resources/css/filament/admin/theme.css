@@ -6,6 +6,8 @@
  * بلا !important. وتقليل الحركة يوقف الميل والنمو والانتقالات كلها (آخر الملف).
  */
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
+/* الشريط العلوي والجانبي (الدفعة ١ من طلب لوحة الإدارة، 4 نوفمبر 2026): ملف مستقل بتحديد أعلى من قواعد هذا الملف */
+@import './shell.css';
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';

@@ -24,9 +24,14 @@ class InitialsAvatarProvider implements AvatarProvider
             ->take(2)
             ->join(' ');
 
+        // بتدرج الهوية وحلقة داخلية #8EC5F0 خافتة، والحروف عريضة واضحة (ملاحظات صفوان على #166). والحلقة الخارجية من سمة اللوحة
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
-            .'<rect width="64" height="64" fill="#2E6898"/>'
-            .'<text x="50%" y="50%" dy=".35em" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-size="26">'
+            .'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+            .'<stop offset="0" stop-color="#3E8ACA"/><stop offset=".55" stop-color="#2E6898"/><stop offset="1" stop-color="#142E45"/>'
+            .'</linearGradient></defs>'
+            .'<rect width="64" height="64" fill="url(#g)"/>'
+            .'<circle cx="32" cy="32" r="29" fill="none" stroke="#8EC5F0" stroke-opacity=".55" stroke-width="1.5"/>'
+            .'<text x="50%" y="50%" dy=".36em" text-anchor="middle" fill="#FFFFFF" font-family="Tahoma, \'Segoe UI\', Arial, sans-serif" font-weight="700" font-size="24">'
             .htmlspecialchars($initials, ENT_QUOTES | ENT_XML1, 'UTF-8')
             .'</text></svg>';
 
