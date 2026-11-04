@@ -796,3 +796,12 @@ test('a malformed hash (/about#%) neither throws nor stops the later page setups
 
     expect(errors, 'لا خطأ في الصفحة').toEqual([]);
 });
+
+// البند ٣٠ ومراجعة المشرف على #157: «نرحب بتواصلكم…» مرة واحدة في «تواصل معنا»، في الرأس، ولو نُشرت مقدمة الموقع السابق بالنص نفسه
+test('contact: the first approved paragraph shows once, in the hero', async ({ page }) => {
+    await page.goto('/contact');
+    const first = 'نرحب بتواصلكم مع جمعية إعجاز للدراسات والبحوث العلمية';
+    const count = await page.evaluate((text) => document.body.innerText.split(text).length - 1, first);
+    expect(count).toBe(1);
+    await expect(page.locator('[data-page-hero] [data-hero-summary]').first()).toContainText(first);
+});
