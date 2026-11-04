@@ -93,7 +93,15 @@ async function checkCommon(page, label) {
     // رمز الشعار والمخطوطة ظاهران في الشريط العلوي، داخل حدوده
     const brand = page.locator('.fi-topbar [data-ej-topbar-brand]');
     await expect.soft(brand, `${label}: هوية الشريط العلوي`).toBeVisible();
-    for (const part of ['mark', 'calligraphy']) {
+    // المخطوطة 22 بكسل على الأقل لتُقرأ، وتحت 432 بكسل مخفية والرمز وحده (ملاحظة المقيّم على #166)
+    const narrow = page.viewportSize().width < 432;
+    const calligraphy = page.locator('.fi-topbar [data-ej-topbar-brand] [data-ej-brand-calligraphy]');
+    if (narrow) {
+        await expect.soft(calligraphy, `${label}: المخطوطة مخفية تحت 432`).toBeHidden();
+    } else if (await calligraphy.count()) {
+        expect.soft((await calligraphy.boundingBox())?.height ?? 0, `${label}: المخطوطة مقروءة`).toBeGreaterThanOrEqual(22);
+    }
+    for (const part of narrow ? ['mark'] : ['mark', 'calligraphy']) {
         const img = page.locator(`.fi-topbar [data-ej-topbar-brand] [data-ej-brand-${part}]`);
         await expect.soft(img, `${label}: ${part}`).toBeVisible();
         if (await img.count()) {
@@ -224,6 +232,10 @@ test.describe('admin topbar and sidebar', () => {
                         if (!response || response.status() >= 400) continue;
                         await settle(page);
                         await checkCommon(page, `${role} ${vp.width} ${name}`);
+                        // لا حقل رفع أصلي ظاهر بنص المتصفح الإنجليزي («No file chosen»)، قبل تحميل مكوّن الرفع وبعده (ملاحظة المقيّم)
+                        const rawInputs = await page.evaluate(() => [...document.querySelectorAll('.fi-fo-file-upload input[type=file]')]
+                            .filter((input) => input.getClientRects().length && getComputedStyle(input).opacity !== '0' && !input.closest('.filepond--root')).length);
+                        expect.soft(rawInputs, `${role} ${vp.width} ${name}: حقل رفع أصلي ظاهر`).toBe(0);
                         await shot(page, role, name, vp.width);
                     }
                 }

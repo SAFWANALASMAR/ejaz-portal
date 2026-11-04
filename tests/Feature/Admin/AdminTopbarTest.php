@@ -32,17 +32,17 @@ it('keeps the panel and its topbar away from visitors and beneficiaries', functi
         ->assertDontSee('data-ej-topbar-brand', false);
 });
 
-it('shows the AI search button beside the search only while the assistant is enabled', function () {
+it('shows the assistant button beside the search only while the assistant is enabled', function () {
     $admin = userWithRole(RoleName::TechnicalAdmin);
 
     enableAssistant();
     $this->actingAs($admin)
         ->get('/admin')
         ->assertOk()
-        // يفتح المساعد في الموقع بتبويب جديد (assistant.js يفتح نافذته على #assistant)
+        // يفتح المساعد في الموقع بتبويب جديد (assistant.js يفتح نافذته على #assistant)، واسمه اسم ما يفتحه (ملاحظة المقيّم)
         ->assertSee('data-ej-topbar-assistant', false)
         ->assertSee('href="'.url('/').'#assistant"', false)
-        ->assertSee('aria-label="'.__('admin.topbar.ai_search').'"', false);
+        ->assertSee('aria-label="المساعد الذكي"', false);
 
     enableAssistant(['is_enabled' => false]);
     $this->actingAs($admin)
@@ -83,4 +83,15 @@ it('imports the topbar and sidebar styles into the admin theme with blue colours
         $colour = strtolower($match[1] ?? '') !== '' ? trim(preg_replace('/\s+/', ' ', $match[1])) : strtolower($match[0]);
         expect($allowed)->toContain($colour);
     }
+});
+
+it('covers the browser file input until the upload component replaces it, and hides the calligraphy where it cannot be read', function () {
+    $shell = (string) file_get_contents(resource_path('css/filament/admin/shell.css'));
+
+    // الحقل الأصلي بنص المتصفح «No file chosen» مغطّى قبل تحميل FilePond، ويبقى قابلاً للضغط (ملاحظة المقيّم على #166)
+    expect($shell)->toContain('.fi-fo-file-upload-input-ctn:not(:has(.filepond--root))')
+        ->and($shell)->toMatch("/& > input\[type='file'\] \{[^}]*opacity: 0;/s")
+        // المخطوطة 22 بكسل على الجوال، ومخفية تحت 432 بكسل
+        ->and($shell)->toContain('height: 1.375rem;')
+        ->and($shell)->toMatch('/@media \(max-width: 26\.999rem\) \{\s*\.ej-topbar-brand-calligraphy \{\s*display: none;/');
 });

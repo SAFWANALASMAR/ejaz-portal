@@ -90,7 +90,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::SIDEBAR_NAV_START, fn (): View => view('filament.admin.sidebar-brand'))
             // الهوية في الشريط العلوي (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ١): بعد زر طيّ القائمة، بدل شعار Filament الأفقي
             ->renderHook(PanelsRenderHook::TOPBAR_LOGO_BEFORE, fn (): View => view('filament.admin.topbar-brand'))
-            // زر «البحث بالذكاء الاصطناعي» بجانب البحث العام يفتح المساعد (ملاحظات صفوان على #166)
+            // زر «المساعد الذكي» بجانب البحث العام يفتح المساعد (ملاحظات صفوان على #166)
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn (): View => view('filament.admin.topbar-assistant'))
             // صورة الحساب تُولَّد محلياً، لا من مزود خارجي
             ->defaultAvatarProvider(InitialsAvatarProvider::class)

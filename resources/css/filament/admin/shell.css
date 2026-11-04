@@ -125,7 +125,7 @@ html:not(.dark) .fi-body .fi-topbar {
     box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.3);
 }
 
-/* زر «البحث بالذكاء الاصطناعي» بجانب البحث (ملاحظات صفوان على #166): دائرة بتدرج الهوية ونجوم بيضاء، أبرز من زر الإشعارات */
+/* زر «المساعد الذكي» بجانب البحث (ملاحظات صفوان على #166): دائرة بتدرج الهوية ونجوم بيضاء، أبرز من زر الإشعارات */
 .ej-topbar-assistant {
     display: inline-flex;
     flex: none;
@@ -238,8 +238,9 @@ html:not(.dark) .fi-body .fi-user-menu .fi-dropdown-header {
         display: none;
     }
 
+    /* 22 بكسل على الأقل لتُقرأ (ملاحظة المقيّم على #166)، وتحت 432 بكسل لا تتسع بهذا الحجم بجانب الأزرار فتُخفى ويكبر الرمز */
     .ej-topbar-brand-calligraphy {
-        height: 1.0625rem;
+        height: 1.375rem;
     }
 
     .fi-body .fi-topbar .fi-global-search {
@@ -419,5 +420,39 @@ html:not(.dark) .fi-body .fi-user-menu .fi-dropdown-header {
     .ej-sidebar-close,
     .fi-body .fi-topbar .fi-global-search-field .fi-input-wrp {
         transition: none;
+    }
+}
+
+/* تحت 432 بكسل (قيس العرض: الهوية بالمخطوطة المقروءة 195 بكسل، والمتاح 209 على 432 مع البحث وزر المساعد): الرمز وحده أكبر،
+   والمخطوطة في رأس القائمة المنسدلة (ملاحظة المقيّم على #166) */
+@media (max-width: 26.999rem) {
+    .ej-topbar-brand-calligraphy {
+        display: none;
+    }
+
+    .ej-topbar-brand-mark {
+        height: 2.5rem;
+    }
+}
+
+/* حقل الرفع قبل تحميل مكوّنه (FilePond): الحقل الأصلي يعرض نص المتصفح «No file chosen / Choose File» بلغته، فيُغطّى بإطار بشكل
+   منطقة الإفلات، ويبقى قابلاً للضغط تحته حتى يستبدله المكوّن (ملاحظة المقيّم على #166) */
+.fi-body .fi-fo-file-upload-input-ctn:not(:has(.filepond--root)) {
+    position: relative;
+    min-height: 4.75rem;
+    border: 1px dashed var(--ej-ring);
+    border-radius: 0.75rem;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233e8aca' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z'/%3E%3C/svg%3E")
+            center / 1.75rem no-repeat,
+        #fff;
+
+    & > input[type='file'] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
     }
 }
