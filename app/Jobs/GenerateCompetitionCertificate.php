@@ -29,7 +29,11 @@ class GenerateCompetitionCertificate implements ShouldQueue
     /** @var list<int> */
     public array $backoff = [10, 60];
 
-    public function __construct(public int $submissionId) {}
+    // طابور مستقل: الإصدار مهمة لكل مشارك، فلا تؤخر رموز التحقق في default حتى تنتهي صلاحيتها (config/horizon.php)
+    public function __construct(public int $submissionId)
+    {
+        $this->onQueue('certificates');
+    }
 
     /**
      * @return list<object>
