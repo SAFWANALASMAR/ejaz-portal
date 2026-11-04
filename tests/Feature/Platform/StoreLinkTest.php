@@ -174,3 +174,12 @@ it('stops asking the gateway while archived, yet still closes unstarted payments
         ->and($unstarted->fresh()->status)->toBe(PaymentStatus::Failed)
         ->and($old->fresh()->donor_email)->toBeNull();
 });
+
+// طلب صفوان (4 نوفمبر 2026): أيقونة المتجر في روابط التذييل برسم بطاقته نفسه في «خدماتنا الإلكترونية»
+it('draws the footer store link with the same store icon as its services card', function () {
+    $footer = (string) str($this->get('/services')->assertOk()->getContent())->after('data-footer-box="links"')->before('</nav>');
+    $card = (string) str($this->get('/services')->getContent())->after('data-store-card')->before('</li>');
+
+    expect($card)->toContain('data-service-icon="store"')
+        ->and((string) str($footer)->after('data-store-link')->before('</a>'))->toContain('data-service-icon="store"');
+});
