@@ -22,6 +22,7 @@ import './pdf-reader';
 import './profile-reveal';
 import './image-fit';
 import './contact-form';
+import './file-input';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

@@ -13,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class UserForm
 {
@@ -20,7 +21,8 @@ class UserForm
     {
         return $schema
             ->components([
-                Section::make()
+                Section::make(__('users.sections.account'))
+                    ->icon(Heroicon::OutlinedUserCircle)
                     ->description(fn (string $operation) => $operation === 'create' ? __('users.create_hint') : null)
                     ->columns(2)
                     ->schema([
