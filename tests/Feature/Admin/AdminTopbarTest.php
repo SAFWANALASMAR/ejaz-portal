@@ -32,7 +32,7 @@ it('keeps the panel and its topbar away from visitors and beneficiaries', functi
         ->assertDontSee('data-ej-topbar-brand', false);
 });
 
-it('shows the assistant button beside the search only while the assistant is enabled', function () {
+it('shows the assistant button beside the search, disabled while the assistant is off', function () {
     $admin = userWithRole(RoleName::TechnicalAdmin);
 
     enableAssistant();
@@ -48,7 +48,10 @@ it('shows the assistant button beside the search only while the assistant is ena
     $this->actingAs($admin)
         ->get('/admin')
         ->assertOk()
-        ->assertDontSee('data-ej-topbar-assistant', false);
+        // وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» بلا رابط (قرار صفوان، 4 نوفمبر 2026)
+        ->assertSee('data-assistant-soon', false)
+        ->assertSee('aria-label="'.__('assistant.header.soon').'"', false)
+        ->assertDontSee('href="'.url('/').'#assistant"', false);
 
     expect((string) file_get_contents(resource_path('js/assistant.js')))->toContain("window.location.hash === '#assistant'");
 });
