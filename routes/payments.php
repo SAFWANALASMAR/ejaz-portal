@@ -6,7 +6,7 @@ use App\Http\Controllers\Payments\FakeCheckoutController;
 use App\Http\Controllers\Payments\PaymentReturnController;
 use App\Http\Controllers\Payments\PaymentWebhookController;
 use App\Http\Controllers\StoreController;
-use App\Http\Controllers\StoreRedirectController;
+use App\Http\Controllers\StorePageController;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -20,8 +20,9 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 | المتجر والدفع والتبرعات (المرحلة 5 — docs/plans/store-payments.md). تُحمَّل من routes/web.php.
 */
 
-// المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه بالرابط المضبوط في الإعدادات
-Route::get('/store', StoreRedirectController::class)->name('store.index');
+// «المتجر والتبرعات» (قرار صفوان، 4 نوفمبر 2026 — docs/decisions/2026-11-04-store-page.md): صفحة في الموقع بهويته، والدفع في
+// متجر الجمعية على سلة. وتحل محل تحويل /store إلى سلة (قرار 10 أكتوبر)
+Route::get('/store', StorePageController::class)->name('store.index');
 
 // المتجر الداخلي والدفع والتبرعات بميسر: مؤرشفة خلف PAYMENTS_ENABLED (معطّل افتراضياً). المسارات باقية
 // وترد 404 ما دام المفتاح معطّلاً، فيعود التشغيل بالمفتاح وحده (docs/plans/store-salla.md)

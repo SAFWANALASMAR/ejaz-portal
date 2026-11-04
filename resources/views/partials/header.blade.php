@@ -41,6 +41,14 @@
             </p>
 
             <div class="header-actions">
+                {{-- «المتجر والتبرعات» (قرار صفوان، 4 نوفمبر 2026 — docs/decisions/2026-11-04-store-page.md): صفحة المتجر في الموقع، بأيقونة
+                     Phosphor duotone بمربع الهوية كزر المساعد. من 1024 وحده، وللجوال واللوحي العمودي داخل قائمة ☰. والقائمة السبعة كما هي --}}
+                <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-header-store
+                    @if (request()->routeIs('store.index')) aria-current="page" @endif
+                    class="header-icon-button hidden lg:inline-flex" aria-label="{{ __('store.page.open') }}" title="{{ __('store.page.open') }}">
+                    <x-icon-tile icon="storefront" size="xs" />
+                </a>
+
                 {{-- «المساعد الذكي» (البند ١٣ من إضافة توجيه المدير): يفتح المساعد القائم (partials/assistant — resources/js/assistant.js)، ويعمل
                      دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
                      ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰ --}}
@@ -159,6 +167,13 @@
                     <x-icon-tile icon="sparkles" size="xs" />{{ __('assistant.header.open') }}
                 </button>
             @endif
+
+            {{-- «المتجر والتبرعات» للجوال واللوحي العمودي داخل القائمة --}}
+            <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-menu-store
+                @if (request()->routeIs('store.index')) aria-current="page" @endif
+                class="mobile-nav-link mt-1 flex w-full items-center gap-2.5">
+                <x-icon-tile icon="storefront" size="xs" />{{ __('store.page.open') }}
+            </a>
 
             <div class="mt-3 border-t border-white/10 pt-3 sm:hidden">
                 @auth

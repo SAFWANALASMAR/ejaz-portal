@@ -74,13 +74,13 @@ class Announcement extends Model implements HasPublicImages
     }
 
     /**
-     * يفتح في تبويب جديد ما كان رابطاً كاملاً، ومنه المتجر (/store يحوّل إليه). والمسار الداخلي (/…) في الصفحة نفسها.
+     * يفتح في تبويب جديد ما كان رابطاً كاملاً. والمسار الداخلي (/…) وصفحة «المتجر والتبرعات» في الموقع نفسه (4 نوفمبر 2026).
      */
     public function opensExternally(): bool
     {
         $href = $this->href();
 
-        return $href !== null && ! str_starts_with($href, '/');
+        return $href !== null && ! str_starts_with($href, '/') && $href !== route('store.index');
     }
 
     public function imageDirectory(): string

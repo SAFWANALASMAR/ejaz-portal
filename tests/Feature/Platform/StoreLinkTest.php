@@ -19,20 +19,25 @@ beforeEach(function () {
     showLegacyHomeSections();
 });
 
-it('sends /store to the approved Salla store by default', function () {
-    $this->get('/store')->assertRedirect('https://ejaz.org.sa');
+// /store صفحة «المتجر والتبرعات» منذ 4 نوفمبر 2026 (docs/decisions/2026-11-04-store-page.md)، وزر «ادخل المتجر» فيها بالرابط نفسه
+it('gives /store the approved Salla store as its general store button by default', function () {
+    $html = (string) $this->get('/store')->assertOk()->getContent();
+
+    expect((string) str($html)->after('data-store-page'))->toContain('href="https://ejaz.org.sa" target="_blank" rel="noopener noreferrer"');
 });
 
-it('sends /store to the link set in the panel when it is on an allowed host', function () {
+it('uses the link set in the panel for the store button when it is on an allowed host', function () {
     Setting::put('store', ['url' => 'https://ejaz.org.sa/category/books']);
 
-    $this->get('/store')->assertRedirect('https://ejaz.org.sa/category/books');
+    $this->get('/store')->assertOk()->assertSee('href="https://ejaz.org.sa/category/books"', false);
 });
 
 it('ignores a stored link on another host or without https and falls back to the approved store', function (string $url) {
     Setting::put('store', ['url' => $url]);
 
-    $this->get('/store')->assertRedirect('https://ejaz.org.sa');
+    $html = (string) $this->get('/store')->assertOk()->getContent();
+
+    expect($html)->toContain('href="https://ejaz.org.sa"')->not->toContain('href="'.e($url).'"');
 })->with(['https://evil.example/ejaz', 'http://ejaz.org.sa', 'https://ejaz.org.sa.evil.example', 'javascript:alert(1)']);
 
 it('refuses to save a store link on another host or without https', function (string $url) {
@@ -57,7 +62,7 @@ it('saves a store link on an allowed host, or its subdomain when a wildcard allo
 });
 
 // الشريط سبعة عناصر فقط (أمر التصور النهائي، النسخة 63 — البند R3): المتجر عنصر مخفي في «القائمة» بتبويب جديد، يُظهر من اللوحة
-// متى أُريد، و/store يبقى يحوّل إلى سلة
+// متى أُريد. وزر «المتجر والتبرعات» في الصف الأول من الرأس لا في صف القائمة (StorePageTest)
 it('keeps the store as a hidden main menu item opening in a new tab', function () {
     $this->seed(MenuSeeder::class);
     $item = MenuItem::query()->where('url', '/store')->first();
@@ -76,10 +81,10 @@ it('keeps the store out of the home service cards and out of the seven header it
     $this->seed(MenuSeeder::class);
     $html = (string) $this->get('/')->assertOk()->getContent();
     $cards = (string) str($html)->after('aria-labelledby="home-shortcuts"')->before('</section>');
-    $header = (string) str($html)->after('data-site-header')->before('</header>');
+    $menu = (string) str($html)->after('data-main-nav')->before('</nav>');
 
     expect($cards)->not->toContain(route('store.index'))
-        ->and($header)->not->toContain(route('store.index'));
+        ->and($menu)->not->toContain(route('store.index'));
 });
 
 it('keeps the internal store, donations and payments archived while the switch is off', function () {

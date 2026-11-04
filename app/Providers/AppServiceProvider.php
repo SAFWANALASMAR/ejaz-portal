@@ -30,6 +30,7 @@ use App\Services\OnlineMeetings\GraphOnlineMeetings;
 use App\Services\Payments\FakePaymentGateway;
 use App\Services\Payments\MoyasarPaymentGateway;
 use App\Services\Sms\ConfiguredSmsGateway;
+use App\Services\Store\ManualStoreCatalog;
 use App\Services\Store\SettingsStoreCatalog;
 use App\Services\VideoUploads\S3VideoUploads;
 use App\Services\WhatsApp\ConfiguredWhatsAppNotifier;
@@ -112,8 +113,9 @@ class AppServiceProvider extends ServiceProvider
             default => throw new InvalidArgumentException('Unsupported payment driver: '.config('payments.driver')),
         });
 
-        // منتجات المتجر: من الإعدادات حتى تتوفر واجهة سلة البرمجية
+        // منتجات المتجر: من اللوحة (manual) أو من الإعدادات للمتجر المؤرشف، حتى يُقرر ربط واجهة سلة البرمجية
         $this->app->singleton(StoreCatalog::class, fn () => match (config('store.driver')) {
+            'manual' => new ManualStoreCatalog,
             'settings' => new SettingsStoreCatalog,
             default => throw new InvalidArgumentException('Unsupported store driver: '.config('store.driver')),
         });
