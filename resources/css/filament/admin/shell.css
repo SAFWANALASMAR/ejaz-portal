@@ -1,0 +1,343 @@
+/*
+ * الشريط العلوي والجانبي في لوحة الإدارة (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ١، fix/admin-topbar-sidebar):
+ * - الشريط العلوي بهوية الموقع: تدرج ترويسة الموقع العام (--chrome-gradient) بحد سفلي #8EC5F0، ورمز الشعار والمخطوطة بالأبيض
+ *   (topbar-brand.blade.php)، والبحث كبسولة زجاجية. وعلى الجوال الضيق يصير البحث زراً دائرياً يتسع عند التركيز.
+ * - الشريط الجانبي المصغَّر: كل عنصر مربع بزوايا مستديرة في وسط الشريط، والأيقونة في مربعها المتدرج في وسطه، والمجموعات بفاصل
+ *   رفيع بدل الفراغ، والتلميح بهوية اللوحة. والهوية في الشريط العلوي على الحاسوب، فلا يتكرر الشعار المقصوص في الشريط المصغَّر.
+ * - القائمة المنسدلة على الجوال: بلا رأس فارغ، وبزر إغلاق بجانب الشعار.
+ *
+ * ملف مستقل لهذه الدفعة فلا يتعارض مع دفعات السمة الأخرى. يُستورد في أعلى theme.css (قبل قواعده)، فكل قاعدة هنا بتحديد أعلى
+ * من نظيرتها هناك (.fi-body أو html:not(.dark) .fi-body)، والأزرق وحده كبقية السمة.
+ */
+
+/* ── الشريط العلوي ─────────────────────────────────────────────── */
+
+html:not(.dark) .fi-body .fi-topbar {
+    background:
+        var(--ej-pattern-light),
+        linear-gradient(180deg, #17344f 0%, var(--ej-primary-dark) 100%);
+    background-size: 56px 56px, auto;
+    border-bottom: 1px solid var(--ej-ring);
+    box-shadow: 0 12px 28px -18px rgb(15 37 54 / 0.85);
+}
+
+.fi-body .fi-topbar {
+    gap: 0.75rem;
+    min-height: 4.25rem;
+}
+
+/* نقش الترويسة أبيض باهت على الداكن (النقش في theme.css أزرق للخلفيات الفاتحة) */
+:root {
+    --ej-pattern-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.05' stroke-width='1'%3E%3Cpath d='M28 6l6.4 15.6L50 28l-15.6 6.4L28 50l-6.4-15.6L6 28l15.6-6.4z'/%3E%3Crect x='17' y='17' width='22' height='22' transform='rotate(45 28 28)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* شعار Filament الأفقي لا يظهر في الشريط العلوي على أي عرض: مكانه هوية الموقع (ورابطه بلا اسم كان في ترتيب التركيز) */
+.fi-body .fi-topbar-start > a:has(> .fi-logo) {
+    display: none;
+}
+
+.fi-body .fi-topbar-start {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.ej-topbar-brand {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.75rem;
+    height: 3rem;
+    padding-inline: 0.5rem 0.875rem;
+    border-radius: 999px;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: rgb(255 255 255 / 0.08);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--ej-ring);
+        outline-offset: 2px;
+    }
+}
+
+.ej-topbar-brand-mark {
+    height: 2.5rem;
+    width: auto;
+}
+
+.ej-topbar-brand-rule {
+    width: 1px;
+    height: 1.75rem;
+    background: linear-gradient(180deg, transparent, rgb(142 197 240 / 0.7), transparent);
+}
+
+/* المخطوطة أعرض من الرمز وبارتفاع أقل، كما في ترويسة الموقع */
+.ej-topbar-brand-calligraphy {
+    height: 1.625rem;
+    width: auto;
+}
+
+/* البحث كبسولة زجاجية بحد #8EC5F0 خافت، ويقوى عند التركيز */
+.fi-body .fi-topbar .fi-global-search-field .fi-input-wrp {
+    border-radius: 999px;
+    background-color: rgb(255 255 255 / 0.1);
+    --tw-ring-color: rgb(142 197 240 / 0.45);
+    transition:
+        background-color 0.2s,
+        box-shadow 0.2s;
+
+    &:focus-within {
+        background-color: rgb(255 255 255 / 0.16);
+        --tw-ring-color: var(--ej-ring);
+    }
+
+    & .fi-input {
+        color: #fff;
+
+        &::placeholder {
+            color: rgb(255 255 255 / 0.75);
+        }
+    }
+
+    & .fi-icon {
+        color: var(--ej-ring);
+    }
+}
+
+@media (min-width: 64rem) {
+    .fi-body .fi-topbar .fi-global-search-field {
+        width: 22rem;
+    }
+}
+
+/* وبحث الجداول في الصفحات الداخلية كبسولة مثله (البند ٣: الاتساق بعد تعديل الشريط العلوي)، والحقل أبيض كبقية الحقول */
+.fi-body .fi-ta-search-field .fi-input-wrp {
+    border-radius: 999px;
+}
+
+/* أزرار نهاية الشريط (الإشعارات) دائرية زجاجية */
+.fi-body .fi-topbar-end .fi-icon-btn {
+    border-radius: 999px;
+    background-color: rgb(255 255 255 / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.3);
+}
+
+/* صورة الحساب بحلقة #8EC5F0 */
+.fi-body .fi-topbar .fi-user-menu-trigger .fi-avatar {
+    box-shadow: 0 0 0 2px var(--ej-ring);
+}
+
+/* زر طيّ القائمة للحاسوب وحده: على الجوال زر القائمة (☰) يفتحها، وكان ظهوره يزاحم الهوية فتُقص صورة الحساب */
+@media (max-width: 63.999rem) {
+    .fi-body .fi-topbar-collapse-sidebar-btn-ctn {
+        display: none;
+    }
+}
+
+/* الجوال: الرمز والمخطوطة أصغر، والبحث زر دائري يتسع فوق الشريط كله عند التركيز، فلا يزاحم الهوية */
+@media (max-width: 39.999rem) {
+    .fi-body .fi-topbar {
+        gap: 0.5rem;
+        padding-inline: 0.75rem;
+    }
+
+    .ej-topbar-brand {
+        gap: 0.5rem;
+        height: 2.5rem;
+        padding-inline: 0.25rem 0.5rem;
+    }
+
+    .ej-topbar-brand-mark {
+        height: 2rem;
+    }
+
+    .ej-topbar-brand-rule {
+        display: none;
+    }
+
+    .ej-topbar-brand-calligraphy {
+        height: 1.125rem;
+    }
+
+    .fi-body .fi-topbar .fi-global-search {
+        position: static;
+    }
+
+    .fi-body .fi-topbar .fi-global-search-field .fi-input-wrp {
+        width: 2.5rem;
+        height: 2.5rem;
+        overflow: hidden;
+
+        & .fi-input {
+            opacity: 0;
+        }
+
+        &:focus-within {
+            position: absolute;
+            inset-inline: 0.75rem;
+            top: 50%;
+            z-index: 30;
+            width: auto;
+            transform: translateY(-50%);
+            background-color: #1f4565;
+
+            & .fi-input {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+/* ── القائمة المنسدلة على الجوال: بلا رأس فارغ، وزر إغلاق بجانب الشعار ── */
+
+/* رأس Filament فيه شعاره وحده (مخفي في السمة لأن الهوية البيضاء في أعلى القائمة)، فكان شريطاً داكناً فارغاً */
+.fi-body .fi-sidebar-header-ctn {
+    display: none;
+}
+
+.ej-sidebar-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.12);
+
+    & .ej-sidebar-brand {
+        min-width: 0;
+        margin-bottom: 0;
+        border-bottom: 0;
+    }
+}
+
+.ej-sidebar-close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 0.75rem;
+    border-radius: 999px;
+    color: #fff;
+    background-color: rgb(255 255 255 / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.35);
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: rgb(255 255 255 / 0.16);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--ej-ring);
+        outline-offset: 2px;
+    }
+}
+
+/* على الحاسوب الهوية في الشريط العلوي، فلا تتكرر في الشريط الجانبي (ولا رمز مقصوص في المصغَّر) */
+@media (min-width: 64rem) {
+    .fi-body .ej-sidebar-brand-row {
+        display: none;
+    }
+
+    .fi-body .fi-sidebar-nav {
+        padding-top: 1.25rem;
+    }
+}
+
+/* ── الشريط الجانبي المصغَّر على الحاسوب ──────────────────────── */
+
+@media (min-width: 64rem) {
+    .fi-body .fi-sidebar:not(.fi-sidebar-open) {
+        /* شريط التمرير كان يأخذ 15 بكسل من جهة اليسار فتنزاح الأيقونات عن الوسط، فيُخفى في المصغَّر ويبقى التمرير بالعجلة واللمس
+           ولوحة المفاتيح */
+        & .fi-sidebar-nav {
+            padding-inline: 0;
+            align-items: center;
+            scrollbar-width: none;
+        }
+
+        & .fi-sidebar-nav-groups {
+            width: 100%;
+            align-items: center;
+            gap: 0;
+        }
+
+        & .fi-sidebar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* فاصل رفيع بين المجموعات بدل الفراغ الذي كان يتركه عنوانها المخفي */
+        & .fi-sidebar-group + .fi-sidebar-group {
+            margin-top: 0.625rem;
+            padding-top: 0.625rem;
+            border-top: 1px solid rgb(255 255 255 / 0.12);
+        }
+
+        & .fi-sidebar-group-items {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        & .fi-sidebar-item + .fi-sidebar-item {
+            margin-top: 0;
+        }
+
+        /* كل عنصر مربع بزوايا مستديرة كمربعات الأيقونات، والأيقونة في وسطه (كان كبسولة بحشو غير متساوٍ فتنزاح وتُقص) */
+        & .fi-sidebar-item > .fi-sidebar-item-btn {
+            justify-content: center;
+            width: 2.875rem;
+            height: 2.875rem;
+            padding: 0;
+            border-radius: 0.95rem;
+        }
+
+        & .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+            box-shadow:
+                0 0 0 1px var(--ej-ring),
+                0 8px 18px -10px rgb(142 197 240 / 0.9);
+        }
+
+        & .fi-sidebar-item-grouped-border {
+            display: none;
+        }
+    }
+}
+
+/* التلميح باسم العنصر في الشريط المصغَّر بهوية اللوحة: أزرق داكن بنص أبيض وحد #8EC5F0 (كان أبيض بنص رمادي) */
+.fi-body .tippy-box {
+    border-radius: 0.75rem;
+    background-color: var(--ej-deep);
+    color: #fff;
+    font-weight: 700;
+    box-shadow:
+        0 0 0 1px rgb(142 197 240 / 0.6),
+        0 12px 24px -12px rgb(15 37 54 / 0.8);
+
+    & > .tippy-arrow {
+        color: var(--ej-deep);
+    }
+
+    & > .tippy-content {
+        color: #fff;
+    }
+}
+
+/* ── تقليل الحركة ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .ej-topbar-brand,
+    .ej-sidebar-close,
+    .fi-body .fi-topbar .fi-global-search-field .fi-input-wrp {
+        transition: none;
+    }
+}
