@@ -299,3 +299,9 @@ document.addEventListener('input', (event) => {
         updateRemaining();
     }
 });
+
+// زر «المساعد الذكي» في الشريط العلوي للوحة الإدارة يفتح الموقع على #assistant، فتُفتح النافذة عند التحميل
+// (ملاحظات صفوان على #166، 4 نوفمبر 2026)
+if (window.location.hash === '#assistant' && panel()?.hidden) {
+    setOpen(true);
+}

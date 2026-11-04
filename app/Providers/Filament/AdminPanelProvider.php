@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\AvatarProviders\InitialsAvatarProvider;
+use App\Filament\Pages\Dashboard;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
@@ -18,13 +19,11 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Columns\TextColumn;
 use Filament\View\PanelsRenderHook;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -88,6 +87,10 @@ class AdminPanelProvider extends PanelProvider
             // (docs/decisions/2026-10-30-admin-theme.md)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(PanelsRenderHook::SIDEBAR_NAV_START, fn (): View => view('filament.admin.sidebar-brand'))
+            // الهوية في الشريط العلوي (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ١): بعد زر طيّ القائمة، بدل شعار Filament الأفقي
+            ->renderHook(PanelsRenderHook::TOPBAR_LOGO_BEFORE, fn (): View => view('filament.admin.topbar-brand'))
+            // زر «المساعد الذكي» بجانب البحث العام يفتح المساعد (ملاحظات صفوان على #166)
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn (): View => view('filament.admin.topbar-assistant'))
             // صورة الحساب تُولَّد محلياً، لا من مزود خارجي
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             // التنقّل بين صفحات اللوحة بلا إعادة تحميل كاملة، وما خارجها يُحمَّل تحميلاً كاملاً (decisions.md)
@@ -102,9 +105,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            ->widgets([
-                AccountWidget::class,
-            ])
+            // عنصر الحساب (مرحباً وتسجيل الخروج) صار تحية رأس الرئيسية (App\Filament\Pages\Dashboard)، والخروج في قائمة الحساب
             ->navigationItems([
                 NavigationItem::make(fn (): string => __('admin.view_site'))
                     ->url('/', shouldOpenInNewTab: true)
