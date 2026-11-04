@@ -21,6 +21,7 @@ test('the home page does not scroll sideways at 390 with ten announcements, and 
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     await expect(carousel.locator('[data-carousel-dots]')).toHaveCount(0);
+    await expect(carousel.locator('[data-carousel-status]')).toBeVisible();
     await expect(carousel.locator('[data-carousel-status]')).toHaveText(new RegExp(`^01 / ${slides}$`));
 
     // والعدّاد يتبع الأسهم

@@ -41,5 +41,6 @@ it('labels the add button of the suggested questions in Arabic', function () {
 
     $this->get(AssistantSettingsPage::getUrl())->assertOk()
         ->assertSeeText(__('assistant.admin.settings.add_suggested_question'))
-        ->assertDontSeeText('suggested');
+        ->assertDontSeeText('suggested')
+        ->assertDontSee('Suggested', false);
 });
