@@ -209,6 +209,34 @@ it('streams a video only to whoever may see the review', function () {
     $this->actingAs($entry->user)->get($url)->assertNotFound();
 });
 
+// على S3 كان المقطع (حتى 2 جيجابايت) يمر عبر PHP بلا Range: يحبس عاملاً طوال المشاهدة، ولا تقديم ولا تأخير، ولا
+// يعمل في Safari. الآن رابط تخزين موقّع بعد الفحص كأعمال المشاركة، ومن لا يرى التحكيم لا يصله رابط (تدقيق 4 نوفمبر 2026)
+it('sends the reviewer to a short signed storage link for the video on S3, after the same checks', function () {
+    config(['filesystems.disks.content-s3' => ['driver' => 'local', 'root' => storage_path('framework/testing/disks/content-s3')]]);
+    $disk = Storage::fake('content-s3');
+    config(['filesystems.disks.content-s3.driver' => 's3', 'filesystems.private_disk' => 'content-s3']);
+    $disk->buildTemporaryUrlsUsing(fn (string $path) => 'https://storage.example.test/'.$path.'?signature=x');
+
+    $entry = submittedEntry();
+    $disk->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $url = route('competitions.reviews.video', [SubmissionReview::sole(), $video]);
+
+    $this->actingAs($this->reviewerA)->get($url)
+        ->assertRedirect('https://storage.example.test/competition-videos/clip.mp4?signature=x')
+        ->assertHeader('Cache-Control', 'no-store, private');
+    $this->actingAs($this->reviewerB)->get($url)->assertNotFound();
+});
+
 it('ends an idle reviewer session on the review video, like the panel', function () {
     $entry = submittedEntry();
     Storage::disk('local')->put('competition-videos/clip.mp4', 'video-bytes');
