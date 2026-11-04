@@ -498,6 +498,7 @@ it('gives each «عن الجمعية» anchor an existing id on the about page, 
         ['type' => 'text', 'data' => ['heading' => 'الأهداف', 'body' => '<p>هدف</p>']],
         ['type' => 'text', 'data' => ['heading' => __('ui.about_anchors.values'), 'body' => '<p>قيمة</p>']],
     ]])->save();
+    Initiative::factory()->create();
     ContentCache::flush();
 
     $html = $this->get(route('about'))->assertOk()->getContent();
