@@ -1,0 +1,290 @@
+/*
+ * حساب المستفيد — الدفعة ٤ من طلب لوحة الإدارة (4 نوفمبر 2026): «حسابي» ولوحته وصفحاته بهوية الموقع بعد التوجيه.
+ * ملف مستقل لهذه الدفعة، ونطاقه [data-account] (غلاف x-layouts.account) وحده، فلا يمس الموقع العام ولا Filament.
+ * - ترحيب فاتح بصورة واحدة مائلة (التصور «فاتح بصورة واحدة» — HDCZ59Cbvc4obe93ED6WDN) وتحية باسم المستخدم.
+ * - البطاقات فاتحة بمربعات أيقونات متدرجة (x-icon-tile)، وأرقام بارزة، وشريط قصير ملون أسفلها.
+ * - حالات فارغة مرسومة: حلقتان وبريق خلف مربع الأيقونة.
+ * - دخول ناعم للمحتوى، يتوقف لمن طلب تقليل الحركة (--motion من visual.css) وبمفتاح الموقع.
+ * الأزرق وحده. والتباين مختبر في tests/Unit/AccountPolishContrastTest.php من القيم الصريحة أدناه.
+ */
+
+/* ── الترحيب: فاتح بصورة واحدة ── */
+.acct-welcome {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid color-mix(in srgb, var(--blue-300) 60%, transparent);
+    color: #1f4565;
+    /* الأفتح في جهة النص (البداية في الاتجاه من اليمين)، والأعمق تحت الصورة */
+    background: linear-gradient(225deg, #eef6fd 0%, #cfe5f8 55%, #9ccbf1 100%);
+    box-shadow: 0 18px 40px -26px rgb(15 42 68 / 0.45);
+}
+
+/* نقش هندسي باهت بالأزرق */
+.acct-welcome::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.16;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%231F4565' stroke-width='1.2'%3E%3Cpath d='M40 4l10 26 26 10-26 10-10 26-10-26L4 40l26-10z'/%3E%3Crect x='22' y='22' width='36' height='36' transform='rotate(45 40 40)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.acct-welcome-inner {
+    display: grid;
+    gap: 1.25rem;
+    align-items: center;
+    padding: 1.5rem 1.25rem 1.75rem;
+}
+
+@media (min-width: 48rem) {
+    .acct-welcome-inner {
+        grid-template-columns: 1fr 17rem;
+        min-height: 13.5rem;
+        padding: 1.75rem 2.25rem;
+    }
+}
+
+.acct-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.875rem;
+    border-radius: 999px;
+    border: 1px solid rgb(31 69 101 / 0.18);
+    background: rgb(31 69 101 / 0.08);
+    color: #1f4565;
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.acct-welcome-title {
+    color: #1f4565;
+}
+
+.acct-welcome-intro {
+    color: #28465f;
+}
+
+/* الصورة الواحدة مائلة بإطار أبيض، وخلفها بطاقة متقطعة مائلة بالعكس */
+.acct-welcome-photo {
+    position: relative;
+    justify-self: center;
+    width: min(100% - 2rem, 16rem);
+    aspect-ratio: 16 / 10;
+}
+
+.acct-welcome-photo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1.125rem;
+    border: 2px dashed rgb(31 69 101 / 0.25);
+    background: linear-gradient(135deg, rgb(62 138 202 / 0.35), rgb(31 69 101 / 0.25));
+    transform: translate(-0.875rem, 0.5rem) rotate(5deg);
+}
+
+.acct-welcome-photo img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 1.125rem;
+    border: 6px solid #ffffff;
+    box-shadow: 0 18px 36px -14px rgb(15 42 68 / 0.4);
+    transform: rotate(-4deg);
+}
+
+@media (max-width: 47.99rem) {
+    .acct-welcome-photo {
+        width: min(100% - 2.5rem, 20rem);
+        aspect-ratio: 16 / 7;
+    }
+
+    .acct-welcome-photo img {
+        transform: rotate(-2deg);
+    }
+}
+
+/* ── البطاقات فاتحة في الحساب كله: تغلب تعاقب الداكن والفاتح (.tone-card في concept.css) ── */
+[data-account] .tone-card {
+    --tc-from: #ffffff;
+    --tc-via: #f2f8fd;
+    --tc-to: #e3f1fc;
+    --tc-text: #142e45;
+    --tc-deep: var(--blue-200);
+    --tc-tint: var(--mid-from);
+    --tc-muted: #3b5a78;
+    border: 1px solid color-mix(in srgb, var(--blue-300) 55%, transparent);
+    box-shadow: 0 16px 32px -26px rgb(20 46 69 / 0.6);
+}
+
+/* شريط قصير ملون أسفل البطاقة (المرجع البصري: بطاقة الميزة) */
+[data-account] .tone-card::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: 1.375rem;
+    bottom: 0;
+    width: 3rem;
+    height: 0.25rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+    background: linear-gradient(90deg, var(--blue-700), var(--blue-300));
+    transition: width calc(350ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-account] a.tone-card:hover,
+[data-account] a.tone-card:focus-visible {
+    transform: translateY(calc(-3px * var(--motion)));
+    border-color: var(--blue-300);
+    box-shadow: 0 22px 38px -24px rgb(20 46 69 / 0.6);
+}
+
+[data-account] a.tone-card:hover::after,
+[data-account] a.tone-card:focus-visible::after {
+    width: 5rem;
+}
+
+/* دائرة السهم ومربع التاريخ: متدرجان بالأزرق ونصهما أبيض */
+.acct-arrow,
+.acct-date {
+    background: linear-gradient(135deg, #2e6898, #3476ac);
+    color: #ffffff;
+    box-shadow: 0 8px 16px -10px rgb(31 69 101 / 0.7);
+}
+
+.acct-arrow {
+    transition: transform calc(300ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.group:hover .acct-arrow,
+.group:focus-visible .acct-arrow {
+    transform: translateX(calc(-4px * var(--motion)));
+}
+
+/* الأرقام البارزة في بطاقات الإحصاء */
+[data-account] .acct-number {
+    color: #1f4565;
+    font-size: 1.875rem;
+    line-height: 1.1;
+}
+
+/* عدد البطاقة (المفتوح من الطلبات والقادم من البرامج) في كبسولة بجانب الأيقونة، لا رقماً طافياً (ملاحظة المقيّم على #167) */
+[data-account] .acct-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    border: 1px solid #bfe0fa;
+    background: #e3f1fc;
+    color: #1f4565;
+    font-size: 1.125rem;
+    font-weight: 900;
+}
+
+/* ── الصفوف: الطلبات والبرامج والمشاركات والنماذج ── */
+[data-account] .acct-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.875rem 1rem;
+    padding: 1.125rem 1.25rem;
+    border-radius: 1.125rem;
+    border: 1px solid color-mix(in srgb, var(--blue-300) 50%, transparent);
+    background: linear-gradient(160deg, #ffffff, #f2f8fd);
+    box-shadow: 0 12px 26px -24px rgb(20 46 69 / 0.6);
+    transition:
+        transform calc(300ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color calc(300ms * var(--motion));
+}
+
+[data-account] a.acct-row:hover,
+[data-account] a.acct-row:focus-visible {
+    transform: translateY(calc(-2px * var(--motion)));
+    border-color: var(--blue-300);
+}
+
+/* ── الحالة الفارغة مرسومة: حلقتان (متقطعة ومملوءة) وبريق خلف مربع الأيقونة، ولا شيء يمر تحت النص ── */
+[data-account] .empty-state {
+    border-color: var(--blue-300);
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='208' height='140' viewBox='0 0 208 140'%3E%3Ccircle cx='104' cy='70' r='56' fill='none' stroke='%238EC5F0' stroke-width='2' stroke-dasharray='6 7'/%3E%3Ccircle cx='104' cy='70' r='44' fill='%23E3F1FC'/%3E%3Cg fill='%233E8ACA'%3E%3Cpath d='M30 34l3 8 8 3-8 3-3 8-3-8-8-3 8-3z'/%3E%3Cpath d='M180 96l2 5 5 2-5 2-2 5-2-5-5-2 5-2z'/%3E%3Ccircle cx='176' cy='30' r='3'/%3E%3Ccircle cx='36' cy='108' r='2.5'/%3E%3Ccircle cx='190' cy='58' r='2'/%3E%3C/g%3E%3C/svg%3E")
+            center 0.85rem / 13rem auto no-repeat,
+        linear-gradient(180deg, #ffffff, #f2f8fd);
+    padding-top: 2.75rem;
+}
+
+[data-account] .empty-state > p {
+    color: #3b5a78;
+    margin-top: 0.75rem;
+}
+
+/* ── دخول ناعم لمحتوى الصفحة، عنصراً بعد عنصر: بالشفافية وحدها، فلا يصير العنصر حاوية لنافذة ثابتة داخله أثناء الحركة. والرأس الداخلي
+   ينزلق بحركته في account.css، وصورة الترحيب ترتفع (لا شيء ثابت داخلها) ── */
+@keyframes acct-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes acct-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [data-account-main] > :not(.account-head) {
+        animation: acct-fade calc(520ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    [data-account-main] > :nth-child(2) {
+        animation-delay: calc(60ms * var(--motion));
+    }
+
+    [data-account-main] > :nth-child(3) {
+        animation-delay: calc(120ms * var(--motion));
+    }
+
+    [data-account-main] > :nth-child(4) {
+        animation-delay: calc(180ms * var(--motion));
+    }
+
+    [data-account-main] > :nth-child(n + 5) {
+        animation-delay: calc(240ms * var(--motion));
+    }
+
+    .acct-welcome-photo img {
+        animation: acct-rise calc(700ms * var(--motion)) 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+}
+
+html[data-motion-off] [data-account-main] > *,
+html[data-motion-off] .acct-welcome-photo img {
+    animation: none;
+}
+
+/* ── عنوان القسم في صفحات النماذج (بياناتي والأمان والبيانات الشخصية — x-account-section-title): مربع أيقونة متدرج كالبطاقات،
+   وخط فاصل خفيف تحته يجمع حقول القسم. والمجرد (-bare) بلا فاصل، لعنوان يشاركه زر في صف واحد ── */
+.acct-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid #bfe0fa;
+    color: #1f4565;
+    font-size: 1.25rem;
+    font-weight: 900;
+    line-height: 1.4;
+}
+
+.acct-section-title-bare {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+}

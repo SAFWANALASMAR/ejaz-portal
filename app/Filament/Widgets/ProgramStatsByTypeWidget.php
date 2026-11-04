@@ -3,9 +3,14 @@
 namespace App\Filament\Widgets;
 
 use App\Support\ProgramStatsByType;
+use Filament\Support\Enums\IconSize;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
+
+use function Filament\Support\generate_icon_html;
 
 /**
  * رسم مقارنة بين أنواع البرامج (البند R23 — docs/decisions/2026-11-02-program-stats-by-type.md): المسجلون والمكملون لكل نوع،
@@ -49,16 +54,22 @@ class ProgramStatsByTypeWidget extends ChartWidget
         return $this->rows;
     }
 
-    public function getHeading(): string
+    /**
+     * العنوان بمربع أيقونة كرسم الزيارات وبقية عناصر الرئيسية (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ٢)، كان بالشريط وحده.
+     */
+    public function getHeading(): Htmlable
     {
-        return __('program_stats.heading');
+        $icon = generate_icon_html(Heroicon::OutlinedAcademicCap, size: IconSize::Large)?->toHtml() ?? '';
+
+        return new HtmlString('<span class="ej-heading-tile" aria-hidden="true">'.$icon.'</span>'
+            .'<span>'.e(__('program_stats.heading')).'</span>');
     }
 
     public function getDescription(): string|Htmlable|null
     {
         $rows = $this->rows();
 
-        return $rows === null || $rows === []
+        return $rows === null || $rows === [] || $this->allZero()
             ? __('program_stats.description')
             // HtmlString لا View: الوصف يُطبع بـ {{ }} في القسم فيُهرَّب ما ليس Htmlable صراحةً (اختبار المتصفح)
             : new HtmlString(view('filament.widgets.program-stats-by-type-summary', ['rows' => $rows])->render());
@@ -67,6 +78,31 @@ class ProgramStatsByTypeWidget extends ChartWidget
     public function getEmptyStateHeading(): string
     {
         return __('program_stats.empty');
+    }
+
+    /**
+     * فارغ قبل أول حساب، وكذلك إن كانت الأنواع كلها أصفاراً: لا محوران فارغان ولا فقرة أصفار (ملاحظة المقيّم على #168).
+     */
+    public function isEmpty(): bool
+    {
+        return parent::isEmpty() || $this->allZero();
+    }
+
+    public function getEmptyState(): View
+    {
+        $computed = $this->rows() !== null && $this->rows() !== [];
+
+        return view('filament.admin.chart-empty', [
+            'heading' => $computed ? __('program_stats.summary_none') : __('program_stats.empty'),
+            'body' => $computed ? __('admin.dashboard.program_stats_empty_body') : null,
+        ]);
+    }
+
+    private function allZero(): bool
+    {
+        $rows = $this->rows() ?? [];
+
+        return $rows !== [] && collect($rows)->every(fn (array $row): bool => $row['registered'] === 0 && $row['completed'] === 0);
     }
 
     /**

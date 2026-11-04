@@ -5,7 +5,11 @@ use App\Models\Announcement;
 use App\Models\Competition;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
+use App\Models\Opening;
 use App\Models\Partner;
+use App\Models\Program;
+use App\Models\ProgramRegistration;
+use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Blade;
 
@@ -60,6 +64,9 @@ it('names the section of every «more» and «view all» link on the home page',
 
 it('names the section of the «view all» links on the account home', function () {
     $user = User::factory()->create();
+    // «عرض الكل» يظهر متى كان في القسم شيء (ملاحظة المقيّم على #167)، فللمستخدم موعد قادم وطلب
+    ServiceRequest::factory()->for($user)->for(Opening::factory()->create())->create();
+    ProgramRegistration::factory()->for($user)->for(Program::factory()->create(['starts_at' => now()->addDays(2)]))->create();
 
     $html = $this->actingAs($user)->get('/account')->assertOk()->getContent();
 

@@ -7,6 +7,7 @@ use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
 
 use function Filament\Support\generate_icon_html;
@@ -56,6 +57,17 @@ class VisitsChartWidget extends ChartWidget
     public function getEmptyStateHeading(): string
     {
         return __('surveys.stats.visits_chart.empty');
+    }
+
+    /**
+     * «لا بيانات بعد» مرسومة بسطر شرح، بدل حالة Filament بعلامة × التي تُقرأ خطأ (ملاحظة المقيّم على #168).
+     */
+    public function getEmptyState(): View
+    {
+        return view('filament.admin.chart-empty', [
+            'heading' => __('admin.dashboard.no_data'),
+            'body' => __('surveys.stats.visits_chart.empty').' '.__('admin.dashboard.visits_empty_body'),
+        ]);
     }
 
     /**

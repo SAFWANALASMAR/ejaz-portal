@@ -6,8 +6,9 @@
 <x-layouts.account :title="__('competitions.account.title')">
     @if ($submissions->isEmpty())
         <div class="p-6 concept-panel">
-            <x-empty-state icon="trophy" :message="__('competitions.account.empty')" />
-            <x-button :href="route('competitions.index')" variant="outline" class="mt-4" arrow>{{ __('competitions.account.browse') }}</x-button>
+            <x-empty-state icon="trophy" :message="__('competitions.account.empty')">
+                <x-button :href="route('competitions.index')" variant="outline" arrow>{{ __('competitions.account.browse') }}</x-button>
+            </x-empty-state>
         </div>
     @else
         <ul class="space-y-4">
@@ -16,8 +17,9 @@
                     @include('account.partials.student-competition', ['submission' => $submission])
                     @continue
                 @endif
-                <li class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between concept-panel">
-                    <div>
+                <li class="acct-row">
+                    <x-icon-tile icon="trophy" size="sm" class="shrink-0" />
+                    <div class="min-w-0 flex-1 basis-48">
                         <p class="font-bold text-ink">{{ $submission->competition->title }}</p>
                         <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
                             <span>{{ $submission->status->getLabel() }}</span>
