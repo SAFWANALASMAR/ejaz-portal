@@ -2462,9 +2462,10 @@ html[data-motion-off] .home-card-pick-icon {
     background: linear-gradient(160deg, var(--blue-300), var(--blue-600) 60%, var(--mid-to));
 }
 
-/* مخطوطة اسم الجمعية كبيرة تحت عنوان رأس الصفحة الداخلية (البند ١٤) */
+/* مخطوطة اسم الجمعية كبيرة تحت عنوان رأس الصفحة الداخلية (البند ١٤)، وأكبر قليلاً منذ ملاحظات المدير التنفيذي (4 نوفمبر 2026): 22 ← 25rem
+   على الجوال (بحد عرض الشاشة)، و30 ← 35rem على الحاسوب */
 .page-hero-calligraphy {
-    width: min(80vw, 22rem);
+    width: min(88vw, 25rem);
     height: auto;
     opacity: 0.92;
     filter: drop-shadow(0 4px 14px rgb(15 37 54 / 0.45));
@@ -2472,7 +2473,7 @@ html[data-motion-off] .home-card-pick-icon {
 
 @media (min-width: 64rem) {
     .page-hero-calligraphy {
-        width: 30rem;
+        width: 35rem;
     }
 }
 

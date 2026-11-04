@@ -38,13 +38,13 @@ class BuildHomePage
      * أسماء المسارات عقد مع بنودها في docs/roadmap.md، فلا تُغيَّر هناك دون تغييرها هنا.
      */
     public const SHORTCUTS = [
-        // بترتيب لوحة التصور النهائي (النسخة 63 — Final-Home)، و«الخدمات الإلكترونية» تضم الدورات والمسابقات والمبادرات (البند R4)
+        // بترتيب لوحة التصور النهائي (النسخة 63 — Final-Home)، و«الخدمات الإلكترونية» تضم الدورات والمسابقات (البند R4)، والمبادرات في «عن
+        // الجمعية» لا في «خدماتنا» (ملاحظات المدير التنفيذي، 4 نوفمبر 2026)
         'services' => ['icon' => 'squares-2x2', 'route' => 'programs.index'],
         'membership' => ['icon' => 'user-group', 'route' => 'services.assembly-membership'],
         'governance' => ['icon' => 'shield-check', 'route' => 'governance.index'],
         // أيقونة مستقلة للمسابقات (ملاحظة المدير التنفيذي)
         'competitions' => ['icon' => 'trophy', 'route' => 'competitions.index'],
-        'initiatives' => ['icon' => 'sparkles', 'route' => 'initiatives.index'],
         'library' => ['icon' => 'book-open', 'route' => 'library.index'],
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
         // أيقونة للشركاء في الرئيسية (البند H5)
@@ -56,7 +56,7 @@ class BuildHomePage
     /**
      * لون مربع الأيقونة لكل بطاقة في «خدماتنا» (x-icon-tile): من ألوان الهوية بالتناوب.
      */
-    public const SHORTCUT_TONES = ['services' => 'pale', 'membership' => 'light', 'governance' => 'medium', 'competitions' => 'dark', 'initiatives' => 'pale', 'library' => 'light', 'media' => 'medium', 'partners' => 'dark', 'surveys' => 'pale'];
+    public const SHORTCUT_TONES = ['services' => 'pale', 'membership' => 'light', 'governance' => 'medium', 'competitions' => 'dark', 'library' => 'light', 'media' => 'medium', 'partners' => 'dark', 'surveys' => 'pale'];
 
     /**
      * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.

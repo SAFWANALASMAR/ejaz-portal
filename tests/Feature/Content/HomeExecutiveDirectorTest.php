@@ -107,12 +107,13 @@ it('hides the videos and accounts sections when switched off', function () {
 it('opens the courses and programs hub with training courses, scientific councils and competitions', function () {
     $this->seed(ProgramTypesSeeder::class);
 
+    // شريط واحد بمراسٍ في الصفحة نفسها (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
     $this->get('/programs')->assertOk()
         ->assertSeeInOrder(['<h1', 'الدورات والبرامج'], false)
         ->assertSee('الدورات التدريبية')
         ->assertSee('المجالس العلمية')
-        ->assertSee(route('programs.index', ['type' => 'training-courses']), false)
-        ->assertSee(route('programs.index', ['type' => 'scientific-councils']), false)
+        ->assertSee('href="#programs-training-courses"', false)
+        ->assertSee('href="#programs-scientific-councils"', false)
         ->assertSee(route('competitions.index'), false);
 
     // اسم البطاقة يتبع اسم النوع في اللوحة
@@ -121,7 +122,7 @@ it('opens the courses and programs hub with training courses, scientific council
 
     ProgramType::query()->where('slug', 'scientific-councils')->delete();
 
-    $this->get('/programs')->assertOk()->assertDontSee(route('programs.index', ['type' => 'scientific-councils']), false);
+    $this->get('/programs')->assertOk()->assertDontSee('#programs-scientific-councils', false);
 });
 
 it('seeds every programme type once, keeping later edits', function () {

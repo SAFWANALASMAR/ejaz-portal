@@ -21,8 +21,8 @@
         <x-button class="w-full">{{ __('account.login.submit') }}</x-button>
     </form>
 
-    <x-or-divider class="my-5" />
+    <x-or-divider class="my-5 lg:my-3" />
 
-    <p class="mb-3 text-center text-sm text-muted">{{ __('account.login.no_account') }}</p>
+    <p class="mb-3 text-center text-sm text-muted lg:mb-2">{{ __('account.login.no_account') }}</p>
     <x-button variant="outline" :href="route('register')" class="w-full">{{ __('account.login.create_account') }}</x-button>
 </x-layouts.auth>

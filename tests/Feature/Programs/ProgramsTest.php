@@ -30,7 +30,7 @@ it('lists published programs with type tabs, status badges and the register butt
     Program::factory()->unpublished()->create(['title' => 'برنامج مخفي']);
 
     $this->get('/programs')->assertOk()
-        ->assertSee('جميع البرامج')->assertSee('تدريبية')->assertSee('بحثية')
+        ->assertSee('تدريبية')->assertSee('بحثية')
         ->assertSee('مهارات البحث')->assertSee('برنامج بحثي')->assertDontSee('برنامج مخفي')
         ->assertSee('مفتوح')->assertSee('سجّل الآن');
 

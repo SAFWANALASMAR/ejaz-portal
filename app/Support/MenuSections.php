@@ -31,6 +31,7 @@ final class MenuSections
             'media' => self::media(),
             'governance' => self::governance(),
             'services' => self::services(),
+            'about' => self::about(),
             default => [],
         };
     }
@@ -145,6 +146,16 @@ final class MenuSections
             fn (DocumentCategory $category): array => ['label' => (string) $category->getLabel(), 'url' => '/governance?category='.$category->value],
             array_filter(DocumentCategory::cases(), fn (DocumentCategory $category): bool => in_array($category->value, $used, true)),
         ));
+    }
+
+    /**
+     * «المبادرات» في «عن الجمعية» لا في «الخدمات الإلكترونية» (ملاحظات المدير التنفيذي، 4 نوفمبر 2026).
+     *
+     * @return list<array{label: string, url: string}>
+     */
+    private static function about(): array
+    {
+        return Route::has('initiatives.index') ? [['label' => (string) __('content.initiatives.title'), 'url' => '/initiatives']] : [];
     }
 
     /**

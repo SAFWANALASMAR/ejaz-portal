@@ -65,13 +65,14 @@ final readonly class MenuLink
     }
 
     /**
-     * أقسام يُعلَّم فيها عنصر قسم آخر نشطاً: «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات (أمر التصور النهائي،
-     * النسخة 63 — البند R4)، فهي النشطة في صفحاتها.
+     * أقسام يُعلَّم فيها عنصر قسم آخر نشطاً: «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات (أمر التصور النهائي،
+     * النسخة 63 — البند R4)، و«عن الجمعية» تضم المبادرات (ملاحظات المدير التنفيذي، 4 نوفمبر 2026)، فهي النشطة في صفحاتها.
      *
      * @var array<string, list<string>>
      */
     public const CURRENT_IN = [
-        'services' => ['programs', 'competitions', 'initiatives'],
+        'services' => ['programs', 'competitions'],
+        'about' => ['initiatives'],
     ];
 
     public function isCurrent(): bool

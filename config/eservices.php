@@ -12,10 +12,10 @@
 return [
 
     'tiles' => [
-        // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات (البند R4)، ثم الاستفسارات (Final-Services، النسخة 63)
+        // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات (البند R4)، ثم الاستفسارات (Final-Services، النسخة 63). والمبادرات في «عن الجمعية»
+        // لا هنا (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — MenuSections::about)
         ['route' => 'programs.index', 'label' => 'ui.inner.services.programs', 'icon' => 'academic-cap', 'symbol' => 'programs'],
         ['route' => 'competitions.index', 'label' => 'ui.inner.services.competitions', 'icon' => 'trophy', 'symbol' => 'competitions'],
-        ['route' => 'initiatives.index', 'label' => 'ui.inner.services.initiatives', 'icon' => 'flag', 'symbol' => 'initiatives'],
         ['route' => 'contact', 'label' => 'ui.inner.services.inquiries', 'icon' => 'chat-bubble-left-right', 'symbol' => 'inquiries'],
         ['route' => 'services.assembly-membership', 'label' => 'services.tiles.membership', 'icon' => 'user-group', 'symbol' => 'membership'],
         ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase', 'symbol' => 'jobs'],
