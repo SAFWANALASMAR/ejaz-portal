@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 // لكل مسار بادئة في حده: الحد بلا بادئة مفتاحه المستخدم (أو العنوان) وحده فتشترك فيه المسارات، فيستهلك
 // فتح الصفحة حد الإجابة
-// الاستبيان العام المفتوح (بطاقة «قياس الرضا»)، أو 404
+// الاستبيان العام المفتوح (بطاقة «قياس الرضا»)، وبلا استبيان مفتوح صفحة برسالة أن لا استبيان الآن (SurveyController::index)
 Route::get('/surveys', [SurveyController::class, 'index'])->middleware('throttle:60,1,survey-index')->name('surveys.index');
 
 Route::where(['token' => '[A-Za-z0-9]{32}'])->group(function () {
