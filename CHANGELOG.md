@@ -14,7 +14,7 @@
 
 1. **قبل النشر:** لا متغير جديد في `.env` في الفرعين حتى الآن.
 2. **النشر:** `bash scripts/deploy-compose.sh v0.15.1`. يفعل بنفسه:
-   - بناء الصورة بـ `npm run build`: أنماط #157 (`resources/css/app.css` و`concept.css`، و`resources/js/app.js` و`assistant.js`)، وسمة لوحة الإدارة في #166 (`resources/css/filament/admin/theme.css` والملف الجديد `shell.css`)، وأنماط «حسابي» في #167 (الملفان الجديدان `resources/css/account.css` و`account-polish.css` مستوردين في `app.css`)، وملفا الدفعتين ٢ و٣ في #168 و#169 (`dashboard.css` و`tables-forms.css`، يستوردهما `theme.css`).
+   - بناء الصورة بـ `npm run build`: أنماط #157 (`resources/css/app.css` و`concept.css`، و`resources/js/app.js` و`assistant.js`)، وسمة لوحة الإدارة في #166 (`resources/css/filament/admin/theme.css` والملف الجديد `shell.css`)، وشريط تصفية «منشوراتنا» في #165 (`resources/css/social-filters.css` و`resources/js/social-filters.js`)، وأنماط «حسابي» في #167 (الملفان الجديدان `resources/css/account.css` و`account-polish.css` مستوردين في `app.css`)، وملفا الدفعتين ٢ و٣ في #168 و#169 (`dashboard.css` و`tables-forms.css`، يستوردهما `theme.css`).
    - `php artisan migrate --force`: ترحيل واحد حتى الآن، `2026_11_04_010000_create_social_posts_table` («منشوراتنا»، #165). ولا ترحيل في #157.
    - `php artisan db:seed --class=AccessSeeder --force` (ومعه `PermissionsSeeder`): صلاحيات `social_posts.*` لمحرر المحتوى ومديري النظام، واطلاع للمشرف العام (#165).
    - `php artisan ejaz:refresh-content` ثم `php artisan ejaz:assistant-index`.
@@ -86,7 +86,8 @@
 - **الاختبار:** `tests/Feature/Media/SocialPostsTest.php` (35 حالة)، و`tests/browser/social-posts.spec.mjs` ولقطاته في `docs/design/screenshots/social-posts/`.
 - **في القائمة المنسدلة للمركز الإعلامي** (حسمه المشرف، 4 نوفمبر، `c841f06d`): «منشوراتنا» قسم بعد «الشركاء»، والصف الأول باقٍ بعناصر المدير السبعة. وهو قسم مولَّد في `MenuSections::media()` من الشيفرة لا صف في جدول القائمة، فلا بذرة له ولا يمس ما عدّله المحرر، وعنصر للمحرر بالرابط نفسه يحل محله. ويظهر بعد النشر بـ `ejaz:refresh-content` (يشغّله السكربت). وهذا يحل محل «لا عنصر في قائمة الرأس» في `672b3818`.
 - **مصفوفة الأدوار** (`role-matrix.json`): شاشات «منشورات التواصل» كاملة لمحرر المحتوى ومديري النظام، واطلاع للمشرف العام، و403 لغيرهم.
-- **عند النشر:** `php artisan migrate` (`2026_11_04_010000_create_social_posts_table`)، ثم `php artisan db:seed --class=PermissionsSeeder --force` (`social_posts.*`)، و`ejaz:refresh-content`. ولا `npm run build` لهذا الطلب (بلا أنماط ولا سكربتات)، ولا متغير جديد في `.env`. و`DemoSocialPostsSeeder` للعرض وحده.
+- **شريط تصفية المنصات (`471d8e24`، بملاحظة صفوان عند اعتماده):** كبسولات متساوية بشعار كل منصة في مربع أزرق صغير، والنشطة أزرق داكن بحد `#8EC5F0` وتوهج خفيف، ورفعة صغيرة عند المرور (لا لمن طلب تقليل الحركة). وعلى الجوال صف واحد يُمرَّر بتلاشٍ عند الطرفين ويوسّط النشطة، وشريط النوع أصغر تحته. ولا ترحيل ولا بذرة ولا صلاحية.
+- **عند النشر:** `php artisan migrate` (`2026_11_04_010000_create_social_posts_table`)، ثم `php artisan db:seed --class=PermissionsSeeder --force` (`social_posts.*`)، و`ejaz:refresh-content`، و`npm run build` لشريط التصفية (منذ `471d8e24`). ولا متغير جديد في `.env`. و`DemoSocialPostsSeeder` للعرض وحده.
 - **بعد المراجعة الأمنية (`70f61bcf`):**
   - الرابط الذي يحفظه الاستيراد بين فحص النموذج وحفظه يرد برسالة التكرار تحت الحقل، لا بخطأ 500.
   - يُرفض رابط المنشور بمنفذ.
