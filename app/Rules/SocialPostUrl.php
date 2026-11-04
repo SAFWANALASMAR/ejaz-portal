@@ -27,7 +27,7 @@ class SocialPostUrl implements ValidationRule
      */
     private const REDIRECT_HOSTS = '/^(l|lm)\./';
 
-    private const REDIRECT_PATHS = '#^/(redirect|redir/|l\.php|linkredirect|safety/go)#i';
+    private const REDIRECT_PATHS = '#^/(redirect|redir/|l\.php|linkredirect|safety/go|flx/warn|attribution_link)#i';
 
     public function __construct(private ?SocialPlatform $platform) {}
 
@@ -66,7 +66,15 @@ class SocialPostUrl implements ValidationRule
             return false;
         }
 
-        if (preg_match(self::REDIRECT_HOSTS, $host) === 1 || preg_match(self::REDIRECT_PATHS, (string) parse_url($url, PHP_URL_PATH)) === 1) {
+        // لا منفذ: رابط المنشور على منفذ المنصة المعتاد وحده
+        if (parse_url($url, PHP_URL_PORT) !== null) {
+            return false;
+        }
+
+        // صفحة التحويل تُعرف بمسارها بعد فك الترميز ودمج الشرطات، فلا يُلتف عليها بـ //redirect أو %72edirect
+        $path = (string) preg_replace('#/+#', '/', rawurldecode((string) parse_url($url, PHP_URL_PATH)));
+
+        if (preg_match(self::REDIRECT_HOSTS, $host) === 1 || preg_match(self::REDIRECT_PATHS, $path) === 1) {
             return false;
         }
 

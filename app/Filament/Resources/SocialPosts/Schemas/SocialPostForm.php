@@ -19,6 +19,9 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Validation\ValidationException;
 
 /**
  * نموذج منشور التواصل: المنصة ونوعه وتاريخه، ورابطه الأصلي من نطاق منصته وحده (SocialPostUrl) بلا تكرار، ونصه، وصورة
@@ -74,6 +77,24 @@ class SocialPostForm
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
         ]);
+    }
+
+    /**
+     * حفظ النموذج برسالة التكرار تحت حقل الرابط إن سبقه إلى الرابط نفسه حفظ أو استيراد بعد فحص النموذج (الفهرس الفريد)، لا 500.
+     *
+     * @param  Closure(): Model  $save
+     */
+    public static function saveOnce(Closure $save): Model
+    {
+        try {
+            return $save();
+        } catch (UniqueConstraintViolationException $exception) {
+            if (! str_contains($exception->getMessage(), 'social_posts_url_unique')) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages(['data.url' => __('social_posts.validation.duplicate')]);
+        }
     }
 
     private static function platform(mixed $state): ?SocialPlatform

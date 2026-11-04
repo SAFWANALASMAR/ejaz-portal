@@ -12,6 +12,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -64,7 +65,10 @@ class ListSocialPosts extends ListRecords
 
             return;
         } finally {
+            // والأصل المرفوع وملف بياناته (اسمه الأصلي) لا يبقيان في مجلد الرفع المؤقت حتى تنظيفه بعد يوم
             @unlink($path);
+            $file->delete();
+            FileUploadConfiguration::storage()->delete(FileUploadConfiguration::path($file->getFilename().'.json'));
         }
 
         Notification::make()->success()->title(__('social_posts.import.done', ['count' => $result['created']]))->send();

@@ -258,6 +258,11 @@ class ImportSocialPosts
 
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $index => $row) {
+                // رقم صف بعيد في ملف صغير (<row r="2000000000">) تملأ القراءة ما قبله بصفوف فارغة لا تُعدّ، فيُحدّ الرقم نفسه
+                if ($index > self::MAX_ROWS * 10) {
+                    throw self::fileError('too_many', ['max' => self::MAX_ROWS]);
+                }
+
                 $cells = array_pad(array_map(self::cell(...), array_slice($row->getCells(), 0, self::COLUMNS)), self::COLUMNS, '');
 
                 // صف العناوين أولاً بأعمدة القالب، فلا يُفقد صف بيانات بصمت ولا تُرفض الصفوف كلها بسبب غير سببها

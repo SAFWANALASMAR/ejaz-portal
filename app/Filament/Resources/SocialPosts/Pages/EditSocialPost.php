@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SocialPosts\Pages;
 
 use App\Filament\Actions\DeleteContentAction;
 use App\Filament\Concerns\SavesContentThroughAction;
+use App\Filament\Resources\SocialPosts\Schemas\SocialPostForm;
 use App\Filament\Resources\SocialPosts\SocialPostResource;
 use App\Models\SocialPost;
 use Filament\Resources\Pages\EditRecord;
@@ -28,6 +29,6 @@ class EditSocialPost extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         /** @var SocialPost $record */
-        return $this->saveContent($record, $data);
+        return SocialPostForm::saveOnce(fn (): Model => $this->saveContent($record, $data));
     }
 }

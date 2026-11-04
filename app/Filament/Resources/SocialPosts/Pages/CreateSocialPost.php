@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SocialPosts\Pages;
 
 use App\Filament\Concerns\SavesContentThroughAction;
+use App\Filament\Resources\SocialPosts\Schemas\SocialPostForm;
 use App\Filament\Resources\SocialPosts\SocialPostResource;
 use App\Models\SocialPost;
 use Filament\Resources\Pages\CreateRecord;
@@ -19,6 +20,6 @@ class CreateSocialPost extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        return $this->saveContent(new SocialPost, $data);
+        return SocialPostForm::saveOnce(fn (): Model => $this->saveContent(new SocialPost, $data));
     }
 }

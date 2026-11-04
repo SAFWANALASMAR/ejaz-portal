@@ -5,6 +5,7 @@ use App\Enums\RoleName;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostKind;
 use App\Filament\Resources\SocialPosts\Pages\CreateSocialPost;
+use App\Filament\Resources\SocialPosts\Pages\EditSocialPost;
 use App\Filament\Resources\SocialPosts\Pages\ListSocialPosts;
 use App\Filament\Resources\SocialPosts\SocialPostResource;
 use App\Models\SocialPost;
@@ -14,9 +15,12 @@ use Database\Seeders\DemoSocialPostsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
@@ -145,6 +149,8 @@ it('rejects a post link that is not https on the chosen platform', function (str
     'user before the host' => ['instagram', 'https://instagram.com@evil.example/p/1'],
     'javascript' => ['youtube', 'javascript:alert(1)'],
     'encoded host' => ['facebook', 'https://evil.example%2F.facebook.com/p'],
+    'port' => ['x', 'https://x.com:8443/ejaz/status/1'],
+    'port zero' => ['x', 'https://x.com:0/ejaz/status/1'],
 ]);
 
 it('accepts the platform hosts and their subdomains', function (string $platform, string $url) {
@@ -172,6 +178,28 @@ it('refuses a second post with the same link, and lets a deleted one be entered 
     expect(SocialPost::withTrashed()->find($existing->id)?->trashed())->toBeTrue();
 
     Livewire::test(CreateSocialPost::class)->fillForm($form)->call('create')->assertHasNoFormErrors();
+});
+
+it('answers a link saved by an import between the form check and the save with the duplicate message, not a server error', function () {
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+    $other = SocialPost::factory()->create(['url' => 'https://x.com/ejaz/status/7']);
+
+    // سباق: صف بالرابط نفسه يُدخَل بعد فحص النموذج وقبل حفظه، كاستيراد في اللحظة نفسها
+    $race = fn (SocialPost $post) => DB::table('social_posts')->insert([
+        'uuid' => (string) Str::uuid(), 'platform' => 'x', 'kind' => 'post', 'body' => 'مستورد', 'posted_on' => '2026-10-20',
+        'url' => $post->url, 'is_published' => false, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    SocialPost::creating($race);
+    SocialPost::updating($race);
+
+    $form = ['platform' => 'x', 'kind' => 'post', 'posted_on' => '2026-10-20', 'url' => 'https://x.com/ejaz/status/42', 'body' => 'نص'];
+    // ويرجع الصف المُدخَل مع الحفظ الفاشل لأنه في معاملته نفسها، فالمهم رسالة الحقل لا خطأ الخادم
+    Livewire::test(CreateSocialPost::class)->fillForm($form)->call('create')->assertHasFormErrors(['url']);
+    expect(SocialPost::query()->where('url', 'https://x.com/ejaz/status/42')->exists())->toBeFalse();
+
+    Livewire::test(EditSocialPost::class, ['record' => $other->getRouteKey()])
+        ->fillForm(['url' => 'https://x.com/ejaz/status/43'])->call('save')->assertHasFormErrors(['url']);
+    expect($other->fresh()?->url)->toBe('https://x.com/ejaz/status/7');
 });
 
 it('imports valid rows as drafts and reports the rejected and duplicate rows with their reasons', function () {
@@ -235,6 +263,8 @@ it('imports through the admin action, and refuses an empty or unreadable file', 
         ->assertNotified(__('social_posts.import.done', ['count' => 1]));
 
     expect(SocialPost::query()->count())->toBe(1);
+    // والملف المرفوع لا يبقى في مجلد الرفع المؤقت
+    expect(FileUploadConfiguration::storage()->allFiles(FileUploadConfiguration::directory()))->toBe([]);
 
     expect(fn () => importSocialCsv([]))->toThrow(ValidationException::class, __('social_posts.import.empty'));
 
@@ -287,7 +317,29 @@ it('refuses redirect pages that lead off the platform', function (string $platfo
     ['instagram', 'https://l.instagram.com/?u=https://evil.example'],
     ['youtube', 'https://www.youtube.com/redirect?q=https://evil.example'],
     ['linkedin', 'https://www.linkedin.com/redir/redirect?url=https://evil.example'],
+    'doubled slash' => ['youtube', 'https://youtube.com//redirect?q=1'],
+    'encoded letter' => ['youtube', 'https://youtube.com/%72edirect?q=1'],
+    'doubled slash on linkedin' => ['linkedin', 'https://www.linkedin.com//redir/redirect?url=x'],
+    'facebook warning page' => ['facebook', 'https://facebook.com/flx/warn/?u=https://evil.example'],
+    'youtube attribution link' => ['youtube', 'https://youtube.com/attribution_link?u=https://evil.example'],
 ]);
+
+it('stops at a far row number in a small Excel file instead of reading the blank rows before it', function () {
+    $path = socialXlsx([['إكس', 'منشور', '2026-10-01', 'https://x.com/ejaz/status/1', 'نص', '']]);
+
+    // ورقة صغيرة صفها الثاني برقم ملياري
+    $zip = new ZipArchive;
+    $zip->open($path);
+    $sheet = (string) $zip->getFromName('xl/worksheets/sheet1.xml');
+    $zip->addFromString('xl/worksheets/sheet1.xml', (string) preg_replace(['/<row r="2"/', '/r="([A-F])2"/'], ['<row r="2000000000"', 'r="${1}2000000000"'], $sheet));
+    $zip->close();
+
+    $started = microtime(true);
+    expect(fn () => app(ImportSocialPosts::class)->handle(userWithRole(RoleName::ContentEditor), $path, 'xlsx'))
+        ->toThrow(ValidationException::class, __('social_posts.import.too_many', ['max' => ImportSocialPosts::MAX_ROWS]));
+    expect(microtime(true) - $started)->toBeLessThan(30.0);
+    @unlink($path);
+});
 
 it('reports the real file row after a blank row, reads a semicolon CSV, and refuses a file without the template header', function () {
     $path = tempnam(sys_get_temp_dir(), 'social');
