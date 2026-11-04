@@ -455,19 +455,20 @@ it('does not block a second account on the same device, but blocks a guest after
     expect(SurveyResponse::count())->toBe(2);
 });
 
-it('opens the public general survey from /surveys, and finds nothing without one', function () {
-    $this->get('/surveys')->assertNotFound();
+// وبلا استبيان مفتوح صفحة برسالة لا 404: بطاقة الخدمات ظاهرة دائماً (إضافة توجيه المدير، البند ١٧ — مراجعة المشرف على #157)
+it('opens the public general survey from /surveys, and says there is none without one', function () {
+    $this->get('/surveys')->assertOk()->assertSee(__('surveys.public.none'));
 
     $this->survey->update(['audience' => SurveyAudience::General]);
     $this->get('/surveys')->assertRedirect(route('surveys.show', $this->survey->token));
 
     // استبيان مغلق أو غير منشور لا يُفتح منه
     $this->survey->update(['closes_at' => now()->subMinute()]);
-    $this->get('/surveys')->assertNotFound();
+    $this->get('/surveys')->assertOk()->assertSee(__('surveys.public.none'))->assertDontSee($this->survey->token);
 });
 
-it('shows the satisfaction tile on the services page only while a general survey is open, and picks the newest', function () {
-    $this->get('/services')->assertOk()->assertDontSee(route('surveys.index'));
+it('always shows the satisfaction tile on the services page, and opens the newest general survey', function () {
+    $this->get('/services')->assertOk()->assertSee(route('surveys.index'));
 
     // استبيان قديم بلا موعد فتح، وأحدث منه فُتح أمس: يُفتح الأحدث
     $older = Survey::factory()->withQuestions()->create(['audience' => SurveyAudience::General, 'opens_at' => null, 'created_at' => now()->subMonth()]);

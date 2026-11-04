@@ -77,6 +77,12 @@ return [
         'download' => 'تنزيل',
     ],
 
+    // حقل رفع الملف بنص عربي (resources/views/components/file-input.blade.php): المتصفح يكتب «No file chosen» بلغته
+    'file_input' => [
+        'choose' => 'اختر ملفاً',
+        'none' => 'لم يُختر ملف',
+    ],
+
     // الصفحات التالية من قائمة مرقّمة: في العنوان، ورابطها canonical برقمها (التخطيط العام)
     'page_number' => 'الصفحة :number',
 

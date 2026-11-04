@@ -20,15 +20,10 @@
 
         <div @class(['grid items-center gap-4 lg:gap-5', 'lg:grid-cols-[3fr_1fr]' => $side])>
             <x-marquee id="home-services-track" :label="$headings['services']" :duration="max(24, count($shortcuts) * 4)" class="min-w-0">
+                {{-- بطاقة الخدمة بالنمط «أ» نفسها التي في صفحة «خدماتنا الإلكترونية» (x-service-card — البند ٢٩)، والشريط يتحرك كما هو --}}
                 @foreach ($shortcuts as $shortcut)
-                    <a href="{{ $shortcut['url'] }}" @navigate($shortcut['url']) data-card data-service-card="{{ $shortcut['key'] }}" class="tone-card service-tile group">
-                        <span class="flex items-center justify-between gap-3">
-                            <span class="service-tile-title">{{ $shortcut['title'] }}</span>
-                            <x-icon-tile :icon="$shortcut['icon']" size="md" class="service-tile-icon" />
-                        </span>
-                        <span class="service-tile-text tone-card-muted">{{ $shortcut['text'] }}</span>
-                        <span class="service-tile-enter">{{ __('ui.services.enter') }}</span>
-                    </a>
+                    <x-service-card :href="$shortcut['url']" :title="$shortcut['title']" :icon="['services' => 'programs', 'membership' => 'membership', 'competitions' => 'competitions', 'initiatives' => 'initiatives'][$shortcut['key']] ?? ''"
+                        :fallback="$shortcut['icon']" data-card data-service-card="{{ $shortcut['key'] }}" class="service-tile">{{ $shortcut['text'] }}</x-service-card>
                 @endforeach
             </x-marquee>
 

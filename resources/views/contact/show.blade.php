@@ -21,9 +21,12 @@
 @endphp
 
 <x-layouts.app :title="__('contact.title')">
-    <x-page-hero :title="__('contact.title')" />
+    {{-- نص الرأس المعتمد بفقرتيه (إضافة توجيه المدير، البند ٣٠)، وما نُشر من «محرر الصفحات» يغلبه --}}
+    <x-page-hero :title="__('contact.title')" :summary="__('contact.hero_text')" />
     <x-page-sections />
-    <x-page-intro slug="contact" />
+    {{-- مقدمة صفحة «تواصل معنا» من الموقع السابق (Page::INTROS): إن كان نصها في الرأس (فقرته الأولى نفسها — البند ٣٠) لم تتكرر هنا،
+         ونص آخر يظهر كما كان (مراجعة المشرف على #157) --}}
+    <x-page-intro slug="contact" :except="__('contact.hero_text')" />
     <x-page-intro slug="inquiries" />
 
     <section class="py-10 sm:py-14">
@@ -77,8 +80,8 @@
                             </a>
                         </p>
                     @endif
-                    {{-- رقم الترخيص من «محتوى الرئيسية» كالتذييل --}}
-                    <p class="mt-5 border-t border-line/70 pt-4 text-sm text-muted">{{ \App\Support\HomeContent::text('footer', 'license') }}</p>
+                    {{-- رقم الترخيص الذي كان تحت «تواصل عبر الواتساب» حُذف (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٣٠)، ويبقى في مربع
+                         الترخيص في الرأس --}}
                 @else
                     <p class="mt-4"><x-missing :what="__('contact.info.missing')" /></p>
                 @endif

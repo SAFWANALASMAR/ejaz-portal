@@ -91,16 +91,18 @@ for (const width of [1280, 1366, 1440, 820, 390]) {
     });
 }
 
-test('shows the menu button below the measured width', async ({ page }) => {
+// إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البند ٣): صف القائمة ظاهر من 1024 بخط أصغر، ولا يحل محله زر القائمة
+test('keeps the menu row, not the menu button, below the licence width on the landscape tablet', async ({ page }) => {
     await page.setViewportSize({ width: 1200, height: 900 });
     await page.goto('/');
 
     const layout = await headerLayout(page);
-    expect(layout.navShown).toBe(false);
-    expect(layout.hamburgerShown).toBe(true);
+    expect(layout.navShown).toBe(true);
+    expect(layout.hamburgerShown).toBe(false);
+    expect(layout.clipped).toBe(0);
 });
 
-test('switches to the menu button when the items do not fit, instead of clipping their names', async ({ page }) => {
+test('shrinks the menu row when the items do not fit, instead of hiding it behind the menu button', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
@@ -116,11 +118,13 @@ test('switches to the menu button when the items do not fit, instead of clipping
     });
     await page.setViewportSize({ width: 1439, height: 900 });
 
-    await expect.poll(async () => (await headerLayout(page)).navShown).toBe(false);
+    // الخط الأصغر (data-nav-overflow)، والصف ظاهر بكل عناصره وأيقوناتها داخل الشاشة، ولا زر قائمة
+    await expect(page.locator('[data-site-header]')).toHaveAttribute('data-nav-overflow', '');
     const layout = await headerLayout(page);
-    expect(layout.hamburgerShown).toBe(true);
+    expect(layout.navShown).toBe(true);
+    expect(layout.hamburgerShown).toBe(false);
     expect(layout.noHorizontalScroll).toBe(true);
-
-    await page.locator('[data-toggle="mobile-menu"]').click();
-    await expect(page.locator('#mobile-menu')).toBeVisible();
+    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-main-nav] .nav-capsule [data-icon-tile]')].map((icon) => Math.round(icon.getBoundingClientRect().width)));
+    expect(icons).toHaveLength(13);
+    expect(Math.min(...icons)).toBeGreaterThanOrEqual(15);
 });

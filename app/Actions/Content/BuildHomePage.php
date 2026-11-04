@@ -85,12 +85,13 @@ class BuildHomePage
      * @return array{
      *     content: array<string, mixed>,
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
-     *     slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, button: ?array{label: string, url: string}}>,
+     *     slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, buttons: list<array{label: string, url: string, secondary: bool}>, badges: list<string>, missing: bool}>,
      *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
      *     prize: array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null,
      *     top_initiatives: Collection<int, Initiative>,
      *     strip_videos: Collection<int, LibraryItem>,
      *     strip_books: Collection<int, LibraryItem>,
+     *     strip_research: Collection<int, LibraryItem>,
      *     x_account: array{url: string, handle: string|null}|null,
      *     video: string|null,
      *     video_thumbnail: string|null,
@@ -127,7 +128,8 @@ class BuildHomePage
             'strip_videos' => self::stripVideos(),
             // بطاقة «تابعنا على X» من حساب إكس في «الحسابات الرسمية» (قرار صفوان، 31 أكتوبر 01:38): بلا سكربت من إكس، وتختفي بلا رابط
             'x_account' => self::xAccount(),
-            'strip_books' => self::stripBooks(),
+            'strip_books' => self::stripLibrary([LibrarySection::Books]),
+            'strip_research' => self::stripLibrary([LibrarySection::Research]),
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة
@@ -156,19 +158,21 @@ class BuildHomePage
      */
     public static function libraryStrip(): array
     {
-        return ['videos' => self::stripVideos(), 'books' => self::stripBooks()];
+        return ['videos' => self::stripVideos(), 'books' => self::stripLibrary([LibrarySection::Books, LibrarySection::Research])];
     }
 
     /**
-     * شريط الكتب والأبحاث: القسمان معاً، «الكتب والمؤلفات» و«الأبحاث والدراسات» (البند R9).
+     * شريطا الكتب والأبحاث في الرئيسية منفصلان (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٢٦): «الكتب والمؤلفات» ثم «الأبحاث
+     * والدراسات» تحته، وكانا شريطاً واحداً (البند R9). ولوحة المستفيد تبقى بالقسمين معاً (libraryStrip).
      *
+     * @param  list<LibrarySection>  $sections
      * @return Collection<int, LibraryItem>
      */
-    private static function stripBooks(): Collection
+    private static function stripLibrary(array $sections): Collection
     {
         // الكتب والأبحاث (عنوان الشريط «الكتب والمؤلفات والأبحاث»)، والغلاف إن رُفع وإلا مربع ملون بأيقونة كما في التصور: كان الشرط
         // غلافاً مرفوعاً فاختفى الشريط من رابط العرض (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٤)
-        return LibraryItem::query()->published()->whereIn('section', [LibrarySection::Books, LibrarySection::Research])->newestFirst()->limit(self::STRIP)->get();
+        return LibraryItem::query()->published()->whereIn('section', $sections)->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**
@@ -325,8 +329,10 @@ class BuildHomePage
     }
 
     /**
-     * بطاقات الأرقام الآلية: الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات. والصفر
-     * لا يظهر، فلا تُعرض بطاقة فارغة قبل أول زيارة أو تسجيل أو قراءة.
+     * بطاقات الأرقام الآلية الأربع معاً (2×2): الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات.
+     * تظهر الأربع دائماً متى حُسبت الأرقام والقسم ظاهر، والصفر رقمه الحقيقي «0» (توجيه المدير التنفيذي وإضافته، 3 نوفمبر 2026 —
+     * docs/decisions/2026-11-03-director-home.md): كانت كل بطاقة صفرية تُخفى، فلم يبق في العرض بلا قراءة في «قراءاتي» إلا
+     * بطاقتان. وقبل أول حساب في الخلفية لا بطاقة.
      *
      * @param  array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}|null  $portal
      * @return list<array{label: string, value: int, suffix: string, icon: string|null}>
@@ -337,14 +343,12 @@ class BuildHomePage
             return [];
         }
 
-        $cards = [
+        return [
             ['label' => __('home.portal_stats.visits'), 'value' => $portal['visits'], 'suffix' => '', 'icon' => SiteIcon::Eye->value],
             ['label' => __('home.portal_stats.registrants'), 'value' => $portal['registrants'], 'suffix' => '', 'icon' => SiteIcon::Trophy->value],
             ['label' => __('home.portal_stats.book_reads'), 'value' => $portal['book_reads'], 'suffix' => '', 'icon' => SiteIcon::BookOpen->value],
             ['label' => __('home.portal_stats.media_views'), 'value' => $portal['media_views'], 'suffix' => '', 'icon' => SiteIcon::VideoCamera->value],
         ];
-
-        return array_values(array_filter($cards, fn (array $card): bool => $card['value'] > 0));
     }
 
     /**

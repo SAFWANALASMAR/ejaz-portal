@@ -93,6 +93,25 @@ it('shows a published intro page above its built template, hides a draft, and se
     ['reports', '/governance?category=annual-reports'],
 ]);
 
+// «تواصل معنا» (البند ٣٠ ومراجعة المشرف على #157): مقدمة نصها في الرأس (فقرته الأولى المعتمدة) لا تتكرر تحته، ومقدمة بنص آخر تظهر
+it('hides the contact intro only when its text is already in the hero, and shows a different one above the template', function () {
+    $first = (string) str(__('contact.hero_text'))->before('
+')->trim();
+    $page = Page::factory()->create(['slug' => 'contact', 'is_published' => true,
+        'blocks' => [['type' => 'text', 'data' => ['heading' => null, 'body' => '<p>'.$first.'</p>']]]]);
+
+    $html = (string) $this->get('/contact')->assertOk()->getContent();
+    expect(substr_count($html, $first))->toBe(1)
+        ->and((string) str($html)->after('data-page-hero')->before('</section>'))->toContain($first);
+
+    $page->update(['blocks' => [['type' => 'text', 'data' => ['heading' => null, 'body' => '<p>نص مقدمة مختلف عن الرأس</p>']]]]);
+
+    $html = (string) $this->get('/contact')->assertOk()->getContent();
+    expect($html)->toContain('نص مقدمة مختلف عن الرأس')
+        ->and(strpos($html, 'نص مقدمة مختلف عن الرأس'))->toBeGreaterThan(strpos($html, 'data-page-hero'))
+        ->and(strpos($html, 'نص مقدمة مختلف عن الرأس'))->toBeLessThan(strpos($html, 'data-contact-form'));
+});
+
 it('shows the image alt text of a block, and an empty one for a decorative image', function () {
     Storage::fake('public');
     Page::factory()->create(['slug' => 'privacy', 'is_published' => true, 'blocks' => [

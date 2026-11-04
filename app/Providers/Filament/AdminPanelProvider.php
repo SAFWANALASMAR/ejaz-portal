@@ -22,7 +22,10 @@ use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentIcon;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\View\TablesIconAlias;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -58,6 +61,9 @@ class AdminPanelProvider extends PanelProvider
         // كل عمود تصدير محمي من حقن الصيغ ولو نُسي له safeCell (كان «المسؤول» في تصدير الطلبات بلا حماية — الاختبار
         // الأمني 0.14.0). وsafeCell في الأعمدة يتخطى الفراغات قبل علامة الصيغة أيضاً
         ExportColumn::configureUsing(fn (ExportColumn $column) => $column->preventFormulaInjection());
+
+        // الجدول الفارغ بصندوق فارغ لا بعلامة × التي توحي بخطأ (ملاحظة المشرف على #169)، بالأسلوب الخطي نفسه
+        FilamentIcon::register([TablesIconAlias::EMPTY_STATE => Heroicon::OutlinedInboxStack]);
     }
 
     public function panel(Panel $panel): Panel

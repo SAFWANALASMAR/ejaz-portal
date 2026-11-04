@@ -3,14 +3,14 @@
     والقرارات في docs/decisions/2026-10-31-visual-refresh-2.md): البطل، ثم البطاقات الخمس، ثم «خدماتنا»، ثم شريط يوتيوب وشريط الكتب
     وبطاقة X (ملاحظة المدير ٢٤: «تحت خدماتنا»)، ثم الإعلانات والأخبار متجاورتين، ثم المقاطع الاختيارية السابقة متى أُظهرت من الإعدادات، ثم «البوابة بالأرقام»،
     ثم «شركاؤنا» قبل التذييل. وكلمتا خادم الحرمين الشريفين ورئيس الجمعية صارتا شريحتين في البطل.
-    والخلفيات تتعاقب بين درجتين (data-band 1 و2) بعدّ المقاطع الظاهرة وحدها، فلا تتجاور درجة مع نفسها.
+    والخلفيات تتعاقب بين ثلاث درجات خفيفة (data-band 1 و2 و3 — إضافة توجيه المدير، البند ١٥) بعدّ المقاطع الظاهرة وحدها، فلا تتجاور درجة مع نفسها.
     تُخزَّن نصاً في App\Support\ContentCache، فلا يدخلها ما يتغير بحالة الدخول أو بالطلب.
 --}}
 @php
     $headings = $content['headings'];
     $band = 0;
     $next = function () use (&$band): int {
-        return ($band++ % 2) + 1;
+        return ($band++ % 3) + 1;
     };
 @endphp
 
@@ -23,8 +23,8 @@
 @endif
 
 {{-- شريطا يوتيوب والكتب تحت «خدماتنا» مباشرة (ملاحظة المدير ٢٤: «تحت خدماتنا»)، ثم الإعلانات والأخبار --}}
-@if ($strip_videos->isNotEmpty() || $strip_books->isNotEmpty() || $x_account !== null)
-    @include('home.partials.strips', ['videos' => $strip_videos, 'books' => $strip_books, 'x' => $x_account, 'headings' => $headings, 'band' => $next()])
+@if ($strip_videos->isNotEmpty() || $strip_books->isNotEmpty() || $strip_research->isNotEmpty() || $x_account !== null)
+    @include('home.partials.strips', ['videos' => $strip_videos, 'books' => $strip_books, 'research' => $strip_research, 'x' => $x_account, 'headings' => $headings, 'band' => $next()])
 @endif
 
 @if ($announcements->isNotEmpty() || $prize !== null || $news->isNotEmpty())

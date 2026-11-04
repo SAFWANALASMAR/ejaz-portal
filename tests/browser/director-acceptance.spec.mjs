@@ -1202,8 +1202,12 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         await page.waitForTimeout(800);
         const scrolled = await header.evaluate((el) => ({ top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height }));
         expect(scrolled.top, 'ثابت في أعلى الشاشة').toBe(0);
-        // ألغى صفوان التصغير (2 نوفمبر، #130): الرأس ثابت الحجم عند التمرير.
-        expect(Math.abs(scrolled.height - top), 'لا يصغر عند التمرير (#130)').toBeLessThanOrEqual(1);
+        // ألغى صفوان التصغير (2 نوفمبر، #130)، ثم أعاده مع المدير على الحاسوب (3 نوفمبر، البند ٣١ — director-home-2026-11-03.spec.mjs)
+        if (testInfo.project.name === 'desktop') {
+            expect(scrolled.height, 'يصغر عند التمرير على الحاسوب (البند ٣١)').toBeLessThan(top);
+        } else {
+            expect(Math.abs(scrolled.height - top), 'لا يصغر على اللوحي العمودي والجوال').toBeLessThanOrEqual(1);
+        }
         if (testInfo.project.name === 'desktop') {
             await expect(header.locator('[data-main-nav]')).toBeVisible();
         }
@@ -1240,7 +1244,7 @@ test.describe('acceptance v0.15.0: home', () => {
         await expectRtlNoScroll(page, '/');
     });
 
-    test('٢٧ وR6 وR11 و٨ و٩: five cards (three then two wide), each a link, and «مبادراتنا» rotates all initiatives', async ({ page }, testInfo) => {
+    test('٢٧ وR6 وR11 و٨ و٩: five cards in one row, each a link, and «مبادراتنا» rotates all initiatives', async ({ page }, testInfo) => {
         await visit(page, '/');
         // الأصل وحده: على الجوال تُكرَّر البطاقات نسخة مخفية (aria-hidden) للشريط المتحرك (R19)
         const cards = page.locator('#home-identity [data-identity-card]:not([aria-hidden="true"] *):not([aria-hidden="true"])');
@@ -1250,11 +1254,9 @@ test.describe('acceptance v0.15.0: home', () => {
         }
         expect(await page.locator('[data-identity-card="initiatives"] [data-initiative-slide]').count(), 'المبادرات الخمس').toBeGreaterThanOrEqual(5);
         if (testInfo.project.name === 'desktop') {
+            // صف واحد ثابت (توجيه المدير التنفيذي، 3 نوفمبر 2026 — director-home-2026-11-03.spec.mjs)، بدل ثلاث ثم اثنتين
             const tops = await cards.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-            expect(tops[0]).toBe(tops[1]);
-            expect(tops[1]).toBe(tops[2]);
-            expect(tops[3]).toBeGreaterThan(tops[0]);
-            expect(tops[3]).toBe(tops[4]);
+            expect(new Set(tops).size).toBe(1);
         }
         await expectRtlNoScroll(page, '/');
     });
@@ -1278,7 +1280,8 @@ test.describe('acceptance v0.15.0: home', () => {
         await expectRtlNoScroll(page, '/');
     });
 
-    test('٢٤ وH6: the YouTube strip moves right and the books strip left, with the X card', async ({ page }) => {
+    // اتجاه البند ٢٤ عكسه توجيه المدير التنفيذي (3 نوفمبر 2026، البند ١٧ — director-home-2026-11-03.spec.mjs): يوتيوب يساراً والكتب يميناً
+    test('٢٤ وH6 و١٧: the YouTube strip moves left and the books strip right, with the X card', async ({ page }) => {
         await visit(page, '/');
         await revealAll(page);
         const videos = page.locator('[data-media-strip="videos"] .marquee-track');
@@ -1288,10 +1291,10 @@ test.describe('acceptance v0.15.0: home', () => {
         // الاتجاه يُطبَّق متى دخل الشريط الشاشة (data-inview)
         await videos.evaluate((el) => el.scrollIntoView({ block: 'center' }));
         await page.waitForTimeout(600);
-        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
+        expect(await videos.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
         await books.evaluate((el) => el.scrollIntoView({ block: 'center' }));
         await page.waitForTimeout(600);
-        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('reverse');
+        expect(await books.evaluate((el) => getComputedStyle(el).animationDirection)).toBe('normal');
         await expect(page.locator('[data-x-card]')).toBeAttached();
         await expectRtlNoScroll(page, '/');
     });

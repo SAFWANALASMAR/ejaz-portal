@@ -29,7 +29,8 @@ it('shows the about page with the society image, the two speeches, the rationale
         ->toContain('src="'.HomeContent::resolved()['rationale']['image'].'"')
         ->toContain('id="about-king"')->toContain('id="about-chairman"')->toContain('id="about-rationale"')
         ->toContain('data-rationale-calligraphy')
-        ->toContain('data-chairman-card')->toContain('data-image-slot="chairman"')
+        // بلا صورتي الكلمتين (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٤): الصورتان في شرائح البطل وحدها
+        ->toContain('data-chairman-card')->not->toContain('data-image-slot="chairman"')
         // الاسم الموحد (البند N4) بلا الشرطة المائلة
         ->toContain('الأستاذ الدكتور عبدالله بن عبدالعزيز المصلح')
         ->not->toContain('الأستاذ الدكتور / عبدالله')
@@ -38,15 +39,16 @@ it('shows the about page with the society image, the two speeches, the rationale
         ->and(substr_count($html, 'data-person-card'))->toBe(4);
 });
 
-it('tags the president photo frame as an approved image slot until it is uploaded', function () {
+it('shows the two speeches on the about page without the photos or their approved image slots (item 24)', function () {
     Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'عن الجمعية']);
 
-    $this->get('/about')->assertOk()->assertSee(__('ui.inner.image_slot_chairman'));
+    $html = (string) $this->get('/about')->assertOk()->getContent();
+    $king = (string) str($html)->after('aria-labelledby="about-king"')->before('</section>');
+    $chairman = (string) str($html)->after('aria-labelledby="about-chairman"')->before('</section>');
 
-    Storage::fake('public');
-    Setting::put(HomeContent::KEY, ['chairman' => ['image' => 'settings/chairman.jpg']]);
-
-    $this->get('/about')->assertOk()->assertDontSee(__('ui.inner.image_slot_chairman'));
+    expect($king)->not->toContain('<img')->toContain(HomeContent::resolved()['king']['signature_name'])
+        ->and($chairman)->not->toContain('<img')->toContain('data-chairman-name')
+        ->and($html)->not->toContain(e(__('ui.inner.image_slot_chairman')))->not->toContain(e(__('ui.inner.image_slot_king')));
 });
 
 it('draws the programs tabs as white capsules with a dark active one on a pale bar', function () {
@@ -71,7 +73,7 @@ it('shows the Brahin hero with its image, the register button twice for desktop 
     $html = (string) $this->get('/competitions/brahin-1448')->assertOk()->getContent();
 
     expect($html)->toContain('src="'.Storage::disk('public')->url('settings/brahin.jpg').'"')
-        ->toContain('data-page-hero class="concept-hero" data-size="page"  data-compact')
+        ->toMatch('/data-page-hero class="page-hero-light" data-shade="[1-4]"\s+data-compact/')
         ->toContain('data-at="desktop"')->toContain('data-at="mobile"')
         ->toContain(__('ui.inner.register_now'))
         // على الجوال: العنوان ثم بطاقة الجوائز ثم الزر بعرض كامل
@@ -160,10 +162,11 @@ it('lays the governance categories and documents as adjacent colored tiles, and 
         ->assertSeeInOrder(['data-document-meta', __('governance.fields.category'), 'data-document-viewer'], false);
 });
 
-it('opens the e-services page with programs, competitions, initiatives and inquiries as colored cards', function () {
+it('opens the e-services page with programs, competitions, initiatives and inquiries as style «أ» cards', function () {
     $html = (string) $this->get('/services')->assertOk()->getContent();
 
-    expect($html)->toContain('tone-card')
+    // بطاقات النمط «أ» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٩ — x-service-card)
+    expect($html)->toContain('class="service-card group"')
         ->and(strpos($html, 'href="'.route('programs.index').'"'))->toBeLessThan(strpos($html, 'href="'.route('services.jobs').'"'))
         ->and($html)->toContain('href="'.route('competitions.index').'"')
         ->toContain('href="'.route('initiatives.index').'"')

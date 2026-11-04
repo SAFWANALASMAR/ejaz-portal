@@ -49,8 +49,8 @@ it('clamps card titles at two lines so cards in a row keep one height', function
         ->and($this->get(route('library.section', $book->section->value))->assertOk()->getContent())->toMatch(elementWithClass('line-clamp-2', 'كتاب الاختبار'));
 });
 
-it('centres the incomplete last row of the service tiles', function () {
-    expect($this->get('/services')->assertOk()->getContent())->toMatch('/<ul class="[^"]*\btile-grid\b/u');
+it('fills the last row of the service cards with no empty cell (item 29: service-grid)', function () {
+    expect($this->get('/services')->assertOk()->getContent())->toMatch('/<ul class="[^"]*\bservice-grid\b/u');
 });
 
 it('lays the beneficiary cards in one column on mobile and two fixed columns from the tablet up (Safwan, PR 142)', function () {

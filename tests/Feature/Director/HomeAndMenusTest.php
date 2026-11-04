@@ -50,7 +50,7 @@ it('shows the home sections in the director\'s order with the strategic plan tex
     $this->get('/')
         ->assertSee(__('home.sections.king.text'))
         ->assertSee('الملك سلمان بن عبدالعزيز آل سعود')
-        ->assertSee('رئيس مجلس إدارة جمعية إعجاز للدراسات والبحوث العلمية والتعليمية')
+        ->assertSee('رئيس مجلس إدارة جمعية إعجاز للدراسات والبحوث العلمية')->assertDontSee('العلمية والتعليمية<')
         ->assertSee('تبني الابتكار المؤدي إلى التميز لإيجاد بيئة جاذبة ومحفزة للإبداع.')
         ->assertSee('خبر الشريط')
         ->assertSee('إعلان الشريط')

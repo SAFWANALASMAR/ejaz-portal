@@ -25,7 +25,14 @@ function run() {
     currentBody = document.body;
     currentPage = window.location.pathname + window.location.search;
     hadSession ||= signedIn();
-    setups.forEach((setup) => setup(controller.signal));
+    // كل تهيئة وحدها: خطأ في واحدة لا يوقف ما بعدها (مراجعة المشرف على #157)، ويبقى في وحدة التحكم
+    setups.forEach((setup) => {
+        try {
+            setup(controller.signal);
+        } catch (error) {
+            console.error(error);
+        }
+    });
 }
 
 const signedIn = () => document.querySelector('meta[name="signed-in"]') !== null;

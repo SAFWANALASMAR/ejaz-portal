@@ -30,9 +30,9 @@ test('home: the five cards in order, one row on desktop and a moving row on mobi
         }));
 
     if (info.project.name === 'desktop') {
-        // ثلاث في الصف الأول ثم اثنتان أعرض في الثاني، كاللوحة الأولى من ملف التصور (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٧)
-        expect(new Set(boxes.map((box) => box.top)).size, 'صفان').toBe(2);
-        expect(boxes[3].width, 'مبادئنا ومبادراتنا أعرض').toBeGreaterThan(boxes[0].width);
+        // الخمس صف واحد بعرض واحد (توجيه المدير التنفيذي، 3 نوفمبر 2026 — director-home-2026-11-03.spec.mjs)، بدل ثلاث ثم اثنتين
+        expect(new Set(boxes.map((box) => box.top)).size, 'صف واحد').toBe(1);
+        expect(Math.abs(boxes[3].width - boxes[0].width), 'عرض واحد').toBeLessThanOrEqual(2);
         for (const box of boxes) {
             expect(Math.abs(box.height - 168)).toBeLessThanOrEqual(2);
         }
@@ -56,8 +56,8 @@ test('home: services move in one row, and the mobile sizes follow R12', async ({
     if (info.project.name === 'mobile') {
         const sizes = await page.evaluate(() => ({
             heading: getComputedStyle(document.querySelector('#home-shortcuts h2')).fontSize,
-            title: getComputedStyle(document.querySelector('.service-tile-title')).fontSize,
-            text: getComputedStyle(document.querySelector('.service-tile-text')).fontSize,
+            title: getComputedStyle(document.querySelector('.service-card-name')).fontSize,
+            text: getComputedStyle(document.querySelector('.service-card-text')).fontSize,
             icon: document.querySelector('.home-card-icon').getBoundingClientRect().width,
         }));
         expect(sizes).toEqual({ heading: '24px', title: '19px', text: '14px', icon: 38 });

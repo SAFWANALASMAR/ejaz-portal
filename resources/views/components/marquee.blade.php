@@ -6,9 +6,12 @@
 
     id: معرّف الشريط (لزر الإيقاف). label: اسمه لقارئ الشاشة. direction: horizontal أو vertical. duration: مدة الدورة بالثواني.
     height: ارتفاع العمودي (CSS). controls: زر الإيقاف (افتراضاً ظاهر). والعناصر في الـ slot بلا معرّفات (تتكرر في النسخة الثانية).
-    static: صف ثابت في الوسط بلا حركة ولا نسخة ثانية ولا زر إيقاف، لما قلّت عناصره عن ملء العرض (لا يتكرر الشعار الواحد وهو يتحرك).
+    static: صف ثابت في الوسط بلا حركة ولا نسخة ثانية ولا زر إيقاف.
+    repeat: لعناصر قليلة لا تملأ العرض: المحتوى يتكرر في المسار ضعف هذا العدد (الأولى ظاهرة والبقية مخفية عن قارئ الشاشة ولوحة
+    المفاتيح)، والحركة بمقدار نصف المسار، فيملأ العرض ويستمر بلا فراغ ولا قفزة (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١١:
+    «ما كان يتحرك يبقى يتحرك» — شريطا المكتبة والشركاء بعناصر قليلة على رابط العرض).
 --}}
-@props(['id', 'label', 'direction' => 'horizontal', 'duration' => 40, 'height' => '20rem', 'controls' => true, 'static' => false])
+@props(['id', 'label', 'direction' => 'horizontal', 'duration' => 40, 'height' => '20rem', 'controls' => true, 'static' => false, 'repeat' => 1])
 
 @php
     $direction = $direction === 'vertical' ? 'vertical' : 'horizontal';
@@ -37,7 +40,9 @@
         <div id="{{ $id }}" data-marquee data-direction="{{ $direction }}" data-loop role="region" aria-label="{{ $label }}" class="marquee" style="{{ $style }}">
             <div class="marquee-track">
                 <div class="marquee-group">{{ $slot }}</div>
-                <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
+                @for ($copy = 1; $copy < 2 * max(1, (int) $repeat); $copy++)
+                    <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
+                @endfor
             </div>
         </div>
     @endif
