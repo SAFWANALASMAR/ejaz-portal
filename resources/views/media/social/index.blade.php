@@ -12,7 +12,7 @@
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
-        {{-- شريط التصفية (ملاحظة صفوان على #165): كبسولة لكل منصة بشعارها في مربع أيقونة صغير، وتحته النوع شريطاً أصغر بعنوانه.
+        {{-- شريط التصفية (ملاحظة صفوان على طلب الدمج 165): كبسولة لكل منصة بشعارها في مربع أيقونة صغير، وتحته النوع شريطاً أصغر بعنوانه.
              الأنماط في resources/css/social-filters.css --}}
         <div class="social-filters">
             <nav aria-label="{{ __('social_posts.list.filter_platform') }}" class="social-filter" data-social-filter="platform">

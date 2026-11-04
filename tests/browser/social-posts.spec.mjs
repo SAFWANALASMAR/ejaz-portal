@@ -55,6 +55,13 @@ test.describe('social posts', () => {
         const heights = await pills.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().height)));
         expect(new Set(heights).size).toBe(1);
 
+        // «يكبر شوية» (صفوان، 4 نوفمبر 14:14): 48 بكسل على الحاسوب و44 على الجوال حداً للمس، ومربع الشعار 28، والخط 16
+        const desktop = testInfo.project.name === 'desktop';
+        expect(heights[0]).toBe(desktop ? 48 : 44);
+        const tile = await pills.first().locator('[data-icon-tile]').evaluate((item) => Math.round(item.getBoundingClientRect().width));
+        expect(tile).toBe(28);
+        expect(await pills.first().evaluate((item) => getComputedStyle(item).fontSize)).toBe('16px');
+
         const active = page.locator('[data-social-filter="platform"] [aria-current="page"]');
         await expect(active).toContainText('واتساب');
         const look = await active.evaluate((item) => ({ border: getComputedStyle(item).borderTopColor, shadow: getComputedStyle(item).boxShadow, colour: getComputedStyle(item).color }));
@@ -66,6 +73,7 @@ test.describe('social posts', () => {
         await expect(page.locator('[data-social-filter="kind"] [data-social-filter-label]')).toHaveText('النوع');
         const kindHeight = await page.locator('[data-social-filter="kind"] [data-social-filter-pill]').first().evaluate((item) => item.getBoundingClientRect().height);
         expect(kindHeight).toBeLessThan(heights[0]);
+        expect(Math.round(kindHeight)).toBe(desktop ? 42 : 40);
 
         await expectNoHorizontalScroll(page);
         const track = page.locator('[data-social-filter="platform"] ul');
@@ -91,7 +99,30 @@ test.describe('social posts', () => {
             expect(row.mask).toContain('linear-gradient');
         }
 
-        if (testInfo.project.name === 'desktop') {
+        if (desktop) {
+            // صف واحد على 1440، وعلى عرض أضيق يلتف وكل صف في الوسط
+            const rows = (list) => {
+                const box = list.getBoundingClientRect();
+                const lines = new Map();
+                for (const item of list.children) {
+                    const rect = item.getBoundingClientRect();
+                    const top = Math.round(rect.top);
+                    const line = lines.get(top) ?? { left: Infinity, right: -Infinity };
+                    lines.set(top, { left: Math.min(line.left, rect.left), right: Math.max(line.right, rect.right) });
+                }
+
+                return [...lines.values()].map((line) => ({ start: Math.round(box.right - line.right), end: Math.round(line.left - box.left) }));
+            };
+            expect(await track.evaluate(rows)).toHaveLength(1);
+            await page.setViewportSize({ width: 820, height: 900 });
+            const wrapped = await track.evaluate(rows);
+            expect(wrapped.length).toBeGreaterThan(1);
+            for (const line of wrapped) {
+                expect(Math.abs(line.start - line.end)).toBeLessThanOrEqual(2);
+            }
+            await expectNoHorizontalScroll(page);
+            await page.setViewportSize({ width: 1440, height: 900 });
+
             // ارتفاع بسيط عند المرور، ويُلغى لمن طلب تقليل الحركة
             const pill = pills.nth(1);
             await page.emulateMedia({ reducedMotion: 'no-preference' });
