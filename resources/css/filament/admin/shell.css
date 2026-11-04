@@ -23,7 +23,7 @@ html:not(.dark) .fi-body .fi-topbar {
 
 .fi-body .fi-topbar {
     gap: 0.75rem;
-    min-height: 4.25rem;
+    min-height: 4.75rem;
 }
 
 /* نقش الترويسة أبيض باهت على الداكن (النقش في theme.css أزرق للخلفيات الفاتحة) */
@@ -48,7 +48,7 @@ html:not(.dark) .fi-body .fi-topbar {
     flex: none;
     align-items: center;
     gap: 0.75rem;
-    height: 3rem;
+    height: 3.75rem;
     padding-inline: 0.5rem 0.875rem;
     border-radius: 999px;
     transition: background-color 0.2s;
@@ -64,19 +64,19 @@ html:not(.dark) .fi-body .fi-topbar {
 }
 
 .ej-topbar-brand-mark {
-    height: 2.5rem;
+    height: 3.25rem;
     width: auto;
 }
 
 .ej-topbar-brand-rule {
     width: 1px;
-    height: 1.75rem;
+    height: 2.25rem;
     background: linear-gradient(180deg, transparent, rgb(142 197 240 / 0.7), transparent);
 }
 
 /* المخطوطة أعرض من الرمز وبارتفاع أقل، كما في ترويسة الموقع */
 .ej-topbar-brand-calligraphy {
-    height: 1.625rem;
+    height: 2.25rem;
     width: auto;
 }
 
@@ -125,9 +125,77 @@ html:not(.dark) .fi-body .fi-topbar {
     box-shadow: inset 0 0 0 1px rgb(142 197 240 / 0.3);
 }
 
-/* صورة الحساب بحلقة #8EC5F0 */
+/* زر «البحث بالذكاء الاصطناعي» بجانب البحث (ملاحظات صفوان على #166): دائرة بتدرج الهوية ونجوم بيضاء، أبرز من زر الإشعارات */
+.ej-topbar-assistant {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(145deg, #3e8aca, #1f4565);
+    box-shadow:
+        inset 0 0 0 1px rgb(142 197 240 / 0.6),
+        0 8px 18px -10px rgb(142 197 240 / 0.9);
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow:
+            inset 0 0 0 1px var(--ej-ring),
+            0 10px 22px -10px rgb(142 197 240 / 1);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--ej-ring);
+        outline-offset: 2px;
+    }
+}
+
+/* صورة الحساب: دائرة بتدرج الهوية (InitialsAvatarProvider) بحلقة #8EC5F0 وتوهج خفيف، أكبر قليلاً */
 .fi-body .fi-topbar .fi-user-menu-trigger .fi-avatar {
-    box-shadow: 0 0 0 2px var(--ej-ring);
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    box-shadow:
+        0 0 0 2px var(--ej-ring),
+        0 6px 16px -6px rgb(142 197 240 / 0.8);
+}
+
+/* قائمة الحساب بالنمط نفسه: لوحة مستديرة بحد الهوية، ورأسها باسم صاحب الحساب على تدرج فاتح */
+.fi-body .fi-user-menu .fi-dropdown-panel {
+    overflow: hidden;
+    border-radius: 1rem;
+    box-shadow:
+        0 0 0 1px rgb(142 197 240 / 0.6),
+        0 18px 36px -18px rgb(15 37 54 / 0.6);
+}
+
+html:not(.dark) .fi-body .fi-user-menu .fi-dropdown-header {
+    background: linear-gradient(120deg, #e3f1fc 0%, #f2f8fd 100%);
+    border-bottom: 1px solid rgb(142 197 240 / 0.6);
+
+    & .fi-dropdown-header-label {
+        color: #17344f;
+        font-weight: 800;
+    }
+
+    & .fi-icon {
+        color: #1f4565;
+    }
+}
+
+/* على الجوال الضيق: الزر والصورة أصغر قليلاً، فتتسع الهوية الأكبر بلا قص */
+@media (max-width: 39.999rem) {
+    .ej-topbar-assistant,
+    .fi-body .fi-topbar .fi-user-menu-trigger .fi-avatar {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
 }
 
 /* زر طيّ القائمة للحاسوب وحده: على الجوال زر القائمة (☰) يفتحها، وكان ظهوره يزاحم الهوية فتُقص صورة الحساب */
@@ -146,12 +214,12 @@ html:not(.dark) .fi-body .fi-topbar {
 
     .ej-topbar-brand {
         gap: 0.5rem;
-        height: 2.5rem;
+        height: 2.75rem;
         padding-inline: 0.25rem 0.5rem;
     }
 
     .ej-topbar-brand-mark {
-        height: 2rem;
+        height: 2.25rem;
     }
 
     .ej-topbar-brand-rule {
@@ -159,7 +227,7 @@ html:not(.dark) .fi-body .fi-topbar {
     }
 
     .ej-topbar-brand-calligraphy {
-        height: 1.125rem;
+        height: 1.25rem;
     }
 
     .fi-body .fi-topbar .fi-global-search {

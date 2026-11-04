@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\RoleName;
+use App\Filament\AvatarProviders\InitialsAvatarProvider;
 use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 
 // الشريط العلوي والجانبي في لوحة الإدارة (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ١، resources/css/filament/admin/shell.css).
 // الشكل نفسه (التوسيط في المصغَّر، والكبسولة، وعدم القص) في اختبار المتصفح tests/browser/admin-topbar.spec.mjs
@@ -30,6 +32,42 @@ it('keeps the panel and its topbar away from visitors and beneficiaries', functi
         ->assertDontSee('data-ej-topbar-brand', false);
 });
 
+it('shows the AI search button beside the search only while the assistant is enabled', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+
+    enableAssistant();
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        // يفتح المساعد في الموقع بتبويب جديد (assistant.js يفتح نافذته على #assistant)
+        ->assertSee('data-ej-topbar-assistant', false)
+        ->assertSee('href="'.url('/').'#assistant"', false)
+        ->assertSee('aria-label="'.__('admin.topbar.ai_search').'"', false);
+
+    enableAssistant(['is_enabled' => false]);
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertDontSee('data-ej-topbar-assistant', false);
+
+    expect((string) file_get_contents(resource_path('js/assistant.js')))->toContain("window.location.hash === '#assistant'");
+});
+
+it('draws the account avatar as the initials on the identity gradient, without an outside service', function () {
+    $user = userWithRole(RoleName::TechnicalAdmin);
+    $user->forceFill(['name' => 'صفوان الأسمر'])->save();
+
+    $url = (new InitialsAvatarProvider)->get($user);
+    $svg = base64_decode(Str::after($url, 'base64,'));
+
+    expect($url)->toStartWith('data:image/svg+xml;base64,')
+        ->and($svg)->toContain('<linearGradient')
+        ->and($svg)->toContain('fill="url(#g)"')
+        ->and($svg)->toContain('stroke="#8EC5F0"')
+        ->and($svg)->toContain('font-weight="700"')
+        ->and($svg)->toContain('ص ا');
+});
+
 it('imports the topbar and sidebar styles into the admin theme with blue colours only', function () {
     $theme = (string) file_get_contents(resource_path('css/filament/admin/theme.css'));
     $shell = (string) file_get_contents(resource_path('css/filament/admin/shell.css'));
@@ -37,7 +75,7 @@ it('imports the topbar and sidebar styles into the admin theme with blue colours
     expect($theme)->toContain("@import './shell.css';");
 
     // الأزرق وحده (حدود الطلب، وأمر التصور النهائي البند G1): كل لون صريح في الملف من درجات الهوية الزرقاء أو الأبيض
-    $allowed = ['#17344f', '#1f4565', '#ffffff', '#fff', '255 255 255', '142 197 240', '15 37 54'];
+    $allowed = ['#17344f', '#1f4565', '#3e8aca', '#e3f1fc', '#f2f8fd', '#ffffff', '#fff', '255 255 255', '142 197 240', '15 37 54'];
     preg_match_all('/#[0-9a-f]{3,8}\b|rgb\(\s*([0-9 ]+?)\s*(?:\/|\))/i', (string) preg_replace('#/\*.*?\*/|url\("data:[^"]*"\)#s', '', $shell), $matches, PREG_SET_ORDER);
 
     expect($matches)->not->toBeEmpty();
