@@ -9,7 +9,8 @@ import { expect, test } from '@playwright/test';
 test('opens the assistant, answers with sources, and keeps the chat across navigation', async ({ page }) => {
     await page.goto('/');
 
-    const toggle = page.locator('[data-assistant-toggle]');
+    // على الحاسوب زر «المساعد الذكي» في الرأس، والعائم للجوال واللوحي العمودي (تقييم لقطات التوجيه 3 نوفمبر، البند ١٣)
+    const toggle = page.locator(test.info().project.name === 'desktop' ? '[data-header-assistant]' : '[data-assistant-fab]');
     const dialog = page.getByRole('dialog', { name: 'مساعد البوابة' });
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -95,15 +96,16 @@ test('opens the assistant, answers with sources, and keeps the chat across navig
 });
 
 // الملاحظة 6 من الاختبار الشامل 0.14: الزر العائم لا يغطي سطر الحقوق في آخر الصفحة (ومنه رابط «سياسة الخصوصية» إن نُشرت)
-test('keeps the floating button clear of the footer rights line at the bottom of the page', async ({ page }) => {
+test('keeps the floating button clear of the footer rights line at the bottom of the page', async ({ page }, info) => {
+    test.skip(info.project.name === 'desktop', 'العائم مخفي على الحاسوب، وزر المساعد في الرأس');
     await page.goto('/');
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 
-    const toggle = page.locator('[data-assistant-toggle]');
+    const toggle = page.locator('[data-assistant-fab]');
     await expect(toggle).toBeVisible();
 
     const overlaps = await page.evaluate(() => {
-        const button = document.querySelector('[data-assistant-toggle]').getBoundingClientRect();
+        const button = document.querySelector('[data-assistant-fab]').getBoundingClientRect();
 
         return [...document.querySelectorAll('[data-site-footer] > div:last-child > div > *')].some((item) => {
             const box = item.getBoundingClientRect();

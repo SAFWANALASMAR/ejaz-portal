@@ -7,6 +7,9 @@
 --}}
 @props(['blocks', 'stack' => false])
 
+{{-- كل شريط بطاقات عكس الذي قبله (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢١): الأول من اليمين إلى اليسار («أهداف الجمعية» في «عن
+     الجمعية»)، والثاني من اليسار إلى اليمين («قيم الجمعية»)، وهكذا --}}
+@php($strip = 0)
 @foreach ($stack ? \App\Support\ContentBlocks::grouped(\App\Support\ContentBlocks::visible($blocks)) : \App\Support\ContentBlocks::visible($blocks) as $block)
-    @include('content.blocks.'.$block['type'], ['data' => $block['data']])
+    @include('content.blocks.'.$block['type'], ['data' => $block['data'], 'strip' => $block['type'] === 'cards' ? $strip++ : $strip])
 @endforeach

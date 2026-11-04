@@ -50,17 +50,15 @@ test('١٥: the floating assistant leaves the footer rights row whole on desktop
     await visit(page, '/');
     test.skip((await page.locator('[data-assistant-toggle]').count()) === 0, 'المساعد غير مفعّل في هذه البيئة');
 
-    const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
     for (const width of [1024, 1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
         await page.waitForTimeout(300);
 
-        const assistant = await page.locator('[data-assistant-toggle]').boundingBox();
+        // العائم مخفي على الحاسوب، وزر «المساعد الذكي» في الرأس (تقييم لقطات التوجيه 3 نوفمبر، البند ١٣)، فلا يغطي سطر الحقوق ولا المربعات
+        await expect(page.locator('[data-assistant-fab]'), `${width}: العائم مخفي`).toBeHidden();
+        await expect(page.locator('[data-header-assistant]'), `${width}: زر الرأس ظاهر`).toBeVisible();
         const rights = page.locator('[data-footer-rights]');
-        for (const target of [rights.locator('[data-back-to-top]'), rights.locator('p'), rights.locator('ul'), page.locator('[data-footer-box]').last()]) {
-            expect(overlaps(assistant, await target.boundingBox()), `${width}: المساعد لا يغطي سطر الحقوق ولا المربعات`).toBe(false);
-        }
         // سطر الحقوق سطر واحد: الزر والنص في صف واحد
         const [text, button] = [await rights.locator('p').boundingBox(), await rights.locator('[data-back-to-top]').boundingBox()];
         expect(Math.abs(text.y + text.height / 2 - (button.y + button.height / 2)), `${width}: سطر واحد`).toBeLessThan(12);

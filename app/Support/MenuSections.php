@@ -50,12 +50,13 @@ final class MenuSections
             return [];
         }
 
-        // عناصر المحرر لا يسقط منها شيء (ولو شارك عنصرٌ الأمَّ رابطها، كـ«التوجه الاستراتيجي» في «عن الجمعية»). فإن كان أولها برابط
-        // الأم فهو الأم، وإلا أُضيفت الأم أولاً
+        // عناصر المحرر لا يسقط منها شيء (ولو شارك عنصرٌ الأمَّ رابطها). وأول عنصر برابط الأم هو الأم أولاً ولو سبقته عناصر (مراسي «عن
+        // الجمعية» قبله — إضافة توجيه المدير، البند ٢٨)، وإلا أُضيفت الأم أولاً
         $parentKey = self::key((string) $row['url']);
-        $first = $children !== [] && self::key((string) $children[0]['url']) === $parentKey;
-        $items = $first
-            ? [[...array_shift($children), 'is_parent' => true]]
+        $parentAt = array_key_first(array_filter($children, fn (array $child): bool => self::key((string) $child['url']) === $parentKey));
+        $parent = $parentAt !== null ? array_splice($children, $parentAt, 1)[0] : null;
+        $items = $parent !== null
+            ? [[...$parent, 'is_parent' => true]]
             : [['id' => 0, 'label' => $row['label'], 'url' => $row['url'], 'opens_in_new_tab' => (bool) ($row['opens_in_new_tab'] ?? false), 'is_parent' => true]];
 
         // ثم الأقسام بترتيبها، وما كان منها في عناصر المحرر يأخذ عنصره (باسمه) مكانه، ثم بقية عناصر المحرر
@@ -86,8 +87,10 @@ final class MenuSections
     {
         $parts = parse_url($url);
         $key = '/'.trim($parts['path'] ?? '', '/');
+        $key = isset($parts['query']) ? $key.'?'.$parts['query'] : $key;
 
-        return isset($parts['query']) ? $key.'?'.$parts['query'] : $key;
+        // المرساة جزء من المفتاح: «/about#about-vision» مقطع من الصفحة لا الصفحة الأم نفسها
+        return isset($parts['fragment']) ? $key.'#'.$parts['fragment'] : $key;
     }
 
     /**
@@ -157,11 +160,11 @@ final class MenuSections
      * بطاقات «خدماتنا الإلكترونية» المتاحة الآن: وحدة مبنية مسارها، وبشرطها إن كان لها. الشرط نفسه في صفحة الخدمات، وفي الرأس
      * (cached) يُخزَّن الشرط دقيقة.
      *
-     * @return list<array{route: string, label: string, icon: string, wide?: bool, available?: callable(): bool}>
+     * @return list<array{route: string, label: string, icon: string, symbol?: string, wide?: bool, available?: callable(): bool}>
      */
     public static function availableServices(bool $cached = false): array
     {
-        /** @var list<array{route: string, label: string, icon: string, wide?: bool, available?: callable(): bool}> $tiles */
+        /** @var list<array{route: string, label: string, icon: string, symbol?: string, wide?: bool, available?: callable(): bool}> $tiles */
         $tiles = config('eservices.tiles', []);
 
         return array_values(array_filter($tiles, fn (array $tile): bool => Route::has($tile['route'])

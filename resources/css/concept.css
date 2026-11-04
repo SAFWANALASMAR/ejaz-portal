@@ -898,14 +898,15 @@ html[data-motion-off] .float-soft {
 }
 
 /* الرأس الثابت يغطي أعلى الشاشة بارتفاعه كاملاً، فالتركيز بلوحة المفاتيح والروابط الداخلية (#) تُمرَّر إلى ما تحته (WCAG 2.4.11 —
-   مراجعة المشرف على طلب الدمج 130): نحو 68 بكسل على الجوال، و100 حتى 1240، ونحو 193 بالصفّين من 1240 */
+   مراجعة المشرف على طلب الدمج 130): نحو 68 بكسل على الجوال، ونحو 165 بالصفّين من 1024 (صف القائمة ظاهر منه — إضافة توجيه المدير،
+   3 نوفمبر 2026)، ونحو 213 من 1240 بالمخطوطة الأكبر */
 html {
     scroll-padding-top: 5rem;
 }
 
 @media (min-width: 64rem) {
     html {
-        scroll-padding-top: 7rem;
+        scroll-padding-top: 10.75rem;
     }
 }
 
@@ -994,31 +995,17 @@ html {
     }
 }
 
-/* الحاسوب: الرمز كبيراً، والمخطوطة بأكبر ما يتسع في منتصف الشريط ومربع الترخيص والبحث والدخول في طرفها: عرض الطرف نحو
-   390 بكسل، والمخطوطة بنسبة 6.58 من ارتفاعها، فارتفاعها من عرض الصف نفسه (cqi) بحد أدنى 56 بكسل وأعلى 80 (84 على العريض).
-   مقيس في tests/browser/header-final.spec.mjs على 1263 و1280 و1440 و1920 */
-@media (min-width: 77.5rem) {
-    .header-top {
-        container-type: inline-size;
-    }
-
-    .masthead-mark {
-        height: 5.5rem;
-    }
-
-    .masthead-calligraphy {
-        height: clamp(3.5rem, 15.1cqi - 7.75rem, 5rem);
-    }
-}
-
-/* من 1280: الصف الأول أربعة عناصر بفراغات ثلاثة متساوية (طلب صفوان وتعديل المشرف، 3 نوفمبر 2026:
-   docs/decisions/2026-11-03-header-calligraphy-center.md): الرمز، ثم المخطوطة، ثم مربع الترخيص، ثم البحث والدخول.
-   صف مرن بتوزيع space-between، وغلاف مربع الترخيص والأزرار (.header-end) يذوب فيه (display: contents) فيصير عنصريه.
-   والمقاسات كما هي، ولا يصغر عنصر (flex: none). ودون 1280 الشبكة السابقة والمربع بجانب المخطوطة، فلا تراكب */
-@media (min-width: 80rem) {
+/* من 1024: ترتيب المدير التنفيذي المعتمد (3 نوفمبر 2026، البند ١٤ — docs/decisions/2026-11-03-director-home.md، وأُلغي التوسيط في البند ١٢)، ويحل محل
+   الفراغات الثلاثة المتساوية (طلب الدمج 154): الرمز والمخطوطة ومربع الترخيص كتلة واحدة في البداية، والمخطوطة بجانب الرمز بفراغ صغير غير
+   ملاصق، والمربع قريب جداً منها، ثم فراغ، ثم «المساعد الذكي» والبحث والدخول في النهاية. وغلاف مربع الترخيص والأزرار (.header-end) يذوب في
+   الصف (display: contents) فيصير عنصريه، ولا يصغر عنصر (flex: none).
+   والطرفان مزاحان عن حافة الشاشة 48 بكسل (حشو الصف 20 ثم هامش 28) على كل عرض كما في لقطة 1440 المعتمدة (الإيداع 4cc30242، البند ١٤)، بعرض
+   الشاشة كله لا في حاوية القائمة (مراجعة المشرف على #157، ويلغي البند ٥ من تقييم اللقطات). والكتلة نفسها على كل عرض حاسوب، ومربع الترخيص ظاهر مصغّراً دون 1240 والمخطوطة ملاصقة للرمز تصغر ولا تتوسط (قرار صفوان، 4 نوفمبر 2026، البند ٤) */
+@media (min-width: 64rem) {
     .header-top {
         display: flex;
-        justify-content: space-between;
+        column-gap: 0;
+        container-type: inline-size;
     }
 
     .header-top > *,
@@ -1030,14 +1017,39 @@ html {
         display: contents;
     }
 
-    .header-top .header-actions {
-        margin-inline-start: 0;
+    .header-top .header-mark {
+        margin-inline-start: 1.75rem;
     }
 
-    /* المخطوطة أكبر من 1280 (طلب صفوان، 3 نوفمبر 2026 بعد اعتماد التوازن: «كبّر المخطوطة»): حتى 100 بكسل ارتفاعاً
-       (نحو 658 عرضاً بنسبة 6.58)، من عرض الصف نفسه، والفراغات الثلاثة تبقى متساوية بتوزيع space-between */
+    .header-top .header-calligraphy {
+        margin-inline-start: 1rem;
+    }
+
+    .header-top .header-licence {
+        margin-inline-start: 0.625rem;
+    }
+
+    .header-top .header-actions {
+        margin-inline: auto 1.75rem;
+    }
+
+    /* دون 1240: المخطوطة بأكبر ما يتسع بعد الرمز والمربع المصغّر والأزرار (بنسبة 6.58 من ارتفاعها، من عرض الصف — cqi) */
     .masthead-calligraphy {
-        height: clamp(5rem, 7.8cqi, 6.25rem);
+        height: clamp(3rem, 15.2cqi - 5.5rem, 5.5rem);
+    }
+}
+
+/* الحاسوب العريض: الرمز كبيراً، والمخطوطة ممدودة بأكبر ما يتسع في الكتلة اليمنى بجانب الرمز دون أن تزاحم مربع الترخيص أو تكسر الصف
+   (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البندان ٤ و١٤): ارتفاعها من عرض الصف نفسه (cqi) بعد ما حولها (الرمز والمربع و«المساعد الذكي»
+   والبحث والدخول والإزاحتان ونحو 24 بكسل فارغة قبل الأزرار)، بحد أدنى 80 بكسل وأعلى 112 (120 من 1536).
+   مقيس في director-home-2026-11-03.spec.mjs */
+@media (min-width: 77.5rem) {
+    .masthead-mark {
+        height: 5.5rem;
+    }
+
+    .masthead-calligraphy {
+        height: clamp(5rem, 15.2cqi - 6rem, 7rem);
     }
 }
 
@@ -1047,11 +1059,11 @@ html {
     }
 
     .masthead-calligraphy {
-        height: clamp(5rem, 7.8cqi, 6.75rem);
+        height: clamp(5rem, 15.2cqi - 6rem, 7.5rem);
     }
 }
 
-/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطوره في منتصفه أفقياً وعمودياً، بجانب المخطوطة بفاصل صغير (عمود الشبكة) دون 1280، ومن 1280 بفراغين متساويين على جانبيه،
+/* مربع الترخيص: بخلفية الشريط نفسها وحد رفيع، سطوره في منتصفه أفقياً وعمودياً، بجانب المخطوطة بفاصل صغير (عمود الشبكة دون 1240، وهامشه من 1240)،
    والرقم كاملاً بلا التفاف ولا قص (رقم الترخيص من نص التذييل — HomeContent) */
 .header-licence {
     flex: none;
@@ -1071,6 +1083,17 @@ html {
 
 .header-licence > span + span {
     white-space: nowrap;
+}
+
+/* دون 1240 (ومنه 1280 بتكبير 125%): المربع ظاهر مصغّراً بخط وحشو أصغر (قرار صفوان، 4 نوفمبر 2026، البند ٤ من تقييم اللقطات) */
+@media (min-width: 64rem) and (max-width: 77.49rem) {
+    .header-licence {
+        max-width: 8.5rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        line-height: 1.35;
+    }
 }
 
 .header-nav {
@@ -1202,9 +1225,47 @@ html {
     font-weight: 800;
 }
 
-/* القائمة لا تتسع (app.js): يُخفى صفها ويظهر زر القائمة */
-[data-site-header][data-nav-overflow] .header-nav {
-    display: none;
+/* صف القائمة ظاهر دائماً على الحاسوب واللوحي الأفقي من 1024 بعناصره وأيقوناتها، ولا يحل محله زر القائمة (إضافة توجيه المدير
+   التنفيذي، 3 نوفمبر 2026، البند ٣ — docs/decisions/2026-11-03-director-home.md): يصغر الخط والحشو أولاً، ثم إن لم يتسع (app.js —
+   data-nav-overflow) أصغر منهما، ثم ينكمش الاسم بنقاط ولا تنكمش الأيقونة. والجوال واللوحي العمودي بزر القائمة */
+.nav-capsule .icon-tile {
+    flex: none;
+}
+
+@media (min-width: 64rem) and (max-width: 77.49rem) {
+    .header-nav-row {
+        padding-inline: 1rem;
+    }
+
+    .nav-capsules {
+        gap: 0.3125rem;
+    }
+
+    .nav-capsule {
+        gap: 0.25rem;
+        padding-inline: 0.375rem;
+        font-size: 0.75rem;
+    }
+
+    .nav-capsule .icon-tile {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+}
+
+[data-site-header][data-nav-overflow] .nav-capsules {
+    gap: 0.25rem;
+}
+
+[data-site-header][data-nav-overflow] .nav-capsule {
+    gap: 0.1875rem;
+    padding-inline: 0.25rem;
+    font-size: 0.6875rem;
+}
+
+[data-site-header][data-nav-overflow] .nav-capsule .icon-tile {
+    width: 1rem;
+    height: 1rem;
 }
 
 /* ── التذييل: ثلاثة مربعات متساوية بحشو 24 بكسل، لكل منها مربع أيقونة كبير بجانب عنوانه (البندان N3 وR17) ── */
@@ -1792,7 +1853,8 @@ html[data-motion-off] .page-transition-fill {
     height: 12rem;
 }
 
-.media-marquee-reverse .marquee-group > .media-tile {
+.media-marquee-reverse .marquee-group > .media-tile,
+.media-marquee-books .marquee-group > .media-tile {
     width: 9rem;
 }
 
@@ -1818,8 +1880,10 @@ html[data-motion-off] .page-transition-fill {
     color: var(--color-white);
 }
 
-/* الاتجاه المعاكس يغلب قاعدة الحركة نفسها (أعلى تحديداً منها)، فيتحرك شريط الكتب يساراً والمقاطع يميناً (البند ٢٤) */
-.media-marquee-reverse .marquee[data-direction='horizontal'][data-inview] .marquee-track {
+/* الاتجاه المعاكس يغلب قاعدة الحركة نفسها (أعلى تحديداً منها). وفي الرئيسية (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١٧، ويحل محل
+   البند ٢٤): «خدماتنا» والمكتبة من اليسار إلى اليمين (الاتجاه الأصلي)، ويوتيوب من اليمين إلى اليسار (media-marquee-flip) */
+.media-marquee-reverse .marquee[data-direction='horizontal'][data-inview] .marquee-track,
+.media-marquee-flip .marquee[data-direction='horizontal'][data-inview] .marquee-track {
     animation-direction: reverse;
 }
 
@@ -2324,15 +2388,13 @@ html[data-motion-off] .home-card-pick-icon {
     }
 }
 
+/* الحاسوب: البطاقات الخمس صف واحد ثابت بأعمدة متساوية (توجيه المدير التنفيذي، 3 نوفمبر 2026 — «تجعل الخمسة في صف واحد»:
+   docs/decisions/2026-11-03-director-home.md)، بدل ثلاث ثم اثنتين أعرض. والجوال واللوحي كما كانا */
 @media (min-width: 64rem) {
     .home-cards {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 0.875rem;
-    }
-
-    .home-cards > .home-card {
-        grid-column: span 2;
     }
 
     /* الشريط على الحاسوب يذوب في الشبكة نفسها (display: contents)، فتصير بطاقاته الأربع خلايا فيها بعد «رؤيتنا» */
@@ -2344,17 +2406,37 @@ html[data-motion-off] .home-card-pick-icon {
     }
 
     .home-cards-static .marquee-group > .home-card {
-        grid-column: span 2;
         width: auto;
         height: 10.5rem;
     }
 
-    .home-cards-static .marquee-group > .home-card-wide {
-        grid-column: span 3;
-    }
-
     .home-cards > .home-card {
         height: 10.5rem;
+    }
+}
+
+/* الحاسوب الصغير (1024 إلى 1279): الأعمدة الخمسة أضيق، فالأيقونة والعنوان والحشو أصغر قليلاً ليتسع «مبادراتنا» ورابط «الكل» في سطر */
+@media (min-width: 64rem) and (max-width: 79.99rem) {
+    .home-card-body {
+        padding: 0.875rem;
+    }
+
+    .home-card-slide {
+        padding-inline: 0.875rem;
+    }
+
+    .home-card-head {
+        gap: 0.5rem;
+        font-size: 1.0625rem;
+    }
+
+    .home-card .home-card-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
+    .home-card-pick {
+        font-size: 0.9375rem;
     }
 }
 
@@ -2751,4 +2833,752 @@ html[data-reveal-ready] .portal-chart-line {
 .collapsible > summary:focus-visible,
 .pdf-stage:focus-visible {
     outline-offset: -3px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البنود ١٥ إلى ٢٠ — docs/decisions/2026-11-03-director-home.md). بالألوان القائمة
+   وحدها، ولا تغيير على رموز الهوية في app.css
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* البند ٢٠ (قرار صفوان): البطاقة الكبيرة داخل محتوى الصفحة بالأزرق الفاتح الناعم لا الداكن، والداكن للرأس والتذييل وحدهما. والنص
+   #142E45 على طرفيها بتباين AA فأكثر (tests/Unit/ToneCardContrastTest.php) */
+:root {
+    --soft-card-from: #eaf4fc;
+    --soft-card-to: #c6e1f7;
+    --soft-card-text: #142e45;
+}
+
+.tone-card[data-tone='soft'] {
+    --tc-from: var(--soft-card-from);
+    --tc-via: color-mix(in srgb, var(--soft-card-from) 50%, var(--soft-card-to));
+    --tc-to: var(--soft-card-to);
+    --tc-text: var(--soft-card-text);
+    --tc-deep: var(--soft-card-to);
+    --tc-tint: var(--mid-from);
+    --tc-muted: var(--soft-card-text);
+    border: 1px solid color-mix(in srgb, var(--color-white) 70%, transparent);
+    box-shadow: 0 18px 38px -26px rgb(20 46 69 / 0.45);
+}
+
+/* «عن الجمعية»: «من نحن» يميناً في بطاقة ناعمة، والرؤية والرسالة يساراً اقتباسين بخط كبير عريض بلا إطار وبعلامة تنصيص زخرفية.
+   وعلى الجوال متراصّة و«من نحن» أولاً (ترتيب الشيفرة) */
+.about-who {
+    padding: 1.75rem 1.5rem;
+}
+
+.about-quote {
+    position: relative;
+    margin: 0;
+    padding-inline-start: 3.25rem;
+    color: var(--soft-card-text);
+}
+
+.about-quote-mark {
+    position: absolute;
+    inset-inline-start: 0;
+    top: -0.5rem;
+    font-size: 4.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--blue-300);
+}
+
+.about-quote-label {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--mid-from);
+}
+
+.about-quote-text {
+    font-size: 1.375rem;
+    font-weight: 800;
+    line-height: 1.7;
+}
+
+@media (min-width: 64rem) {
+    .about-who {
+        padding: 2.25rem 2.5rem;
+    }
+
+    .about-quote-text {
+        font-size: 1.625rem;
+    }
+}
+
+/* البند ١٥: مقاطع الرئيسية بثلاث درجات خفيفة متعاقبة من لون غطاء رأس «تواصل معنا» القديم فوق المصحف (الأزرق المتوسط --mid-from)
+   ممزوجاً بخلفية الصفحة، فتتغير الخلفية بين قسم وآخر ولا تتجاور درجة مع نفسها */
+.home-band[data-band='1'] {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--mid-from) 7%, var(--page-bg)), var(--page-bg));
+}
+
+.home-band[data-band='2'] {
+    background: linear-gradient(180deg, var(--section-bg), color-mix(in srgb, var(--mid-from) 14%, var(--section-bg)));
+}
+
+.home-band[data-band='3'] {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--mid-from) 4%, var(--color-white)), color-mix(in srgb, var(--mid-from) 10%, var(--page-bg)));
+}
+
+/* البند ٢٧ (ويحل محل ذوبان الصورة في البند ١٥): رأس كل صفحة داخلية «فاتح بصورة واحدة» في المكوّن x-page-hero وحده. خلفية بتدرج
+   أزرق فاتح بدرجة لكل قسم (data-shade 1 إلى 4)، ونقش الهوية باهت، ونص داكن #1F4565 بتباين AA فأكثر على كل درجة
+   (tests/Unit/ToneCardContrastTest.php)، وصورة القسم بإطار أبيض 8 بكسل مائلة −4° وخلفها بطاقة مائلة +5°. وعلى الجوال الصورة تحت
+   النص والبطاقة الخلفية مخفية */
+:root {
+    --hero-light-text: #1f4565;
+    --hero-light-1-from: #eef6fd;
+    --hero-light-1-via: #cfe5f8;
+    --hero-light-1-to: #9ccbf1;
+    --hero-light-2-from: #f1f6fb;
+    --hero-light-2-via: #d3e3f2;
+    --hero-light-2-to: #a9c7e6;
+    --hero-light-3-from: #eff6f8;
+    --hero-light-3-via: #d2e6ee;
+    --hero-light-3-to: #a6cbdf;
+    --hero-light-4-from: #ecf4fd;
+    --hero-light-4-via: #c9e1f7;
+    --hero-light-4-to: #8ec5f0;
+}
+
+.page-hero-light {
+    --hl-from: var(--hero-light-1-from);
+    --hl-via: var(--hero-light-1-via);
+    --hl-to: var(--hero-light-1-to);
+    position: relative;
+    overflow: hidden;
+    color: var(--hero-light-text);
+    background: linear-gradient(225deg, var(--hl-from), var(--hl-via) 55%, var(--hl-to));
+    border-bottom: 1px solid var(--concept-border);
+}
+
+.page-hero-light[data-shade='2'] {
+    --hl-from: var(--hero-light-2-from);
+    --hl-via: var(--hero-light-2-via);
+    --hl-to: var(--hero-light-2-to);
+}
+
+.page-hero-light[data-shade='3'] {
+    --hl-from: var(--hero-light-3-from);
+    --hl-via: var(--hero-light-3-via);
+    --hl-to: var(--hero-light-3-to);
+}
+
+.page-hero-light[data-shade='4'] {
+    --hl-from: var(--hero-light-4-from);
+    --hl-via: var(--hero-light-4-via);
+    --hl-to: var(--hero-light-4-to);
+}
+
+.page-hero-light-pattern {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+    background: url('/images/brand/emblem.svg') no-repeat right -4rem top -3rem / 22rem;
+}
+
+.page-hero-light h1,
+.page-hero-light .page-hero-light-summary,
+.page-hero-light [data-hero-partner] {
+    color: var(--hero-light-text);
+}
+
+/* المخطوطة في الرأس الفاتح بأزرق الهوية الداكن بلا ظل (قرار صفوان، 4 نوفمبر 2026، البند ٣٢): قناع من ملف المخطوطة (--calligraphy-mask
+   من القالب) فوق لون العنوان، بنسبة الملف نفسها. والرأس الداكن والتذييل كما كانا */
+.page-hero-light .page-hero-calligraphy-mask {
+    display: block;
+    aspect-ratio: 1218 / 185;
+    max-width: 100%;
+    opacity: 1;
+    filter: none;
+    background-color: var(--hero-light-text);
+    -webkit-mask: var(--calligraphy-mask) center / contain no-repeat;
+    mask: var(--calligraphy-mask) center / contain no-repeat;
+}
+
+.page-hero-light-row {
+    min-height: 20rem;
+}
+
+.page-hero-light[data-compact] .page-hero-light-row {
+    min-height: 0;
+    padding-block: 1.25rem 1.75rem;
+}
+
+.page-hero-visual {
+    position: relative;
+    align-self: center;
+    width: 100%;
+    max-width: 22.5rem;
+}
+
+.page-hero-frame {
+    position: relative;
+    z-index: 1;
+    display: block;
+    aspect-ratio: 12 / 11;
+    overflow: hidden;
+    border: 8px solid var(--color-white);
+    border-radius: 1.375rem;
+    background: var(--hl-via);
+    box-shadow: 0 22px 44px -18px rgb(15 42 68 / 0.38);
+    transform: rotate(-3deg);
+}
+
+.page-hero-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.page-hero-back {
+    display: none;
+}
+
+.page-hero-light .page-hero-aside .prize-glass {
+    color: var(--color-white);
+    background: linear-gradient(135deg, var(--mid-from), var(--mid-to));
+}
+
+@media (min-width: 64rem) {
+    .page-hero-visual {
+        flex: none;
+        width: 22.5rem;
+        margin-inline-end: 2rem;
+    }
+
+    .page-hero-frame {
+        transform: rotate(-4deg);
+    }
+
+    .page-hero-back {
+        position: absolute;
+        inset: 0;
+        display: block;
+        border-radius: 1.375rem;
+        border: 2px dashed rgb(31 69 101 / 0.25);
+        background: linear-gradient(135deg, rgb(62 138 202 / 0.35), rgb(31 69 101 / 0.25));
+        transform: translate(-1.6rem, 0.75rem) rotate(5deg);
+    }
+
+    .page-hero-light[data-compact] .page-hero-visual {
+        width: 17rem;
+    }
+}
+
+/* البندان ٢٢ و٢٣ (ويحلان محل البند ١٦ وخياريه): بطل الرئيسية «فاتح بصورة واحدة». خلفية كل شريحة بتدرج أزرق فاتح من درجات رأس
+   الصفحات الداخلية، ونص داكن (#1F4565، والسطر الثاني #3E8ACA بخط كبير)، وصورة واحدة بإطار أبيض 8 بكسل مائلة −4° وخلفها بطاقة مائلة
+   +5°. وشريحة خادم الحرمين الشريفين وحدها بحلقة ذهبية #C9A961 وخضراء #0E6B47 من الهوية الوطنية (استثناء مسمّى في
+   tests/Unit/BlueOnlyPaletteTest.php). والأسهم والنقاط بالأزرق الداكن. وعلى الجوال الصورة فوق النص بلا البطاقة الخلفية */
+.hero-light {
+    color: var(--hero-light-text);
+    background: var(--hero-light-1-from);
+}
+
+.hero-light .hero-round-lines {
+    opacity: 0.25;
+}
+
+.hero-light .hero-slide {
+    background: linear-gradient(225deg, var(--hero-light-1-from), var(--hero-light-1-via) 55%, var(--hero-light-1-to));
+}
+
+.hero-light .hero-slide[data-hero-slide='haram'] {
+    background: linear-gradient(225deg, var(--hero-light-2-from), var(--hero-light-2-via) 55%, var(--hero-light-2-to));
+}
+
+.hero-light .hero-slide[data-hero-slide='king'] {
+    background: linear-gradient(225deg, var(--hero-light-3-from), var(--hero-light-3-via) 55%, var(--hero-light-3-to));
+}
+
+.hero-light .hero-slide[data-hero-slide='chairman'] {
+    background: linear-gradient(225deg, var(--hero-light-4-from), var(--hero-light-4-via) 55%, var(--hero-light-4-to));
+}
+
+.hero-light .hero-caption,
+.hero-light .hero-caption h1,
+.hero-light .hero-caption h2,
+.hero-light .hero-caption p {
+    color: var(--hero-light-text);
+}
+
+.hero-light .hero-caption [data-highlight] {
+    /* السطر الثاني بالأزرق المتوسط لا #3E8ACA: هذا تحت 3:1 على منتصف التدرجات (tests/Unit/ToneCardContrastTest.php) */
+    color: var(--mid-from);
+}
+
+.hero-light .hero-caption .login-pill {
+    color: var(--color-white);
+    background: var(--hero-light-text);
+    box-shadow: 0 8px 18px rgb(31 69 101 / 0.25);
+}
+
+.hero-light .concept-arrow {
+    color: var(--color-white);
+    background: var(--hero-light-text);
+}
+
+.hero-light [data-carousel-toggle] {
+    color: var(--hero-light-text);
+}
+
+.hero-light .concept-dot {
+    background: rgb(31 69 101 / 0.25);
+}
+
+.hero-light .concept-dot[aria-current] {
+    background: var(--hero-light-text);
+}
+
+.hero-light-visual {
+    position: relative;
+    flex: none;
+    width: min(18rem, 78vw);
+    align-self: center;
+}
+
+.hero-light-frame {
+    position: relative;
+    z-index: 1;
+    aspect-ratio: 12 / 11;
+    overflow: hidden;
+    border: 8px solid var(--color-white);
+    border-radius: 1.375rem;
+    background: var(--hero-light-1-via);
+    box-shadow: 0 22px 44px -18px rgb(15 42 68 / 0.38);
+    transform: rotate(-3deg);
+}
+
+.hero-light-frame img {
+    position: static;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: 50% 30%;
+    animation: none !important;
+}
+
+.hero-light-missing {
+    position: absolute;
+    inset-inline: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.625rem;
+    background: rgb(255 255 255 / 0.9);
+    color: var(--hero-light-text);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.hero-light-back {
+    display: none;
+}
+
+.hero-light [data-hero-slide='king'] .hero-light-frame {
+    box-shadow:
+        0 0 0 4px #c9a961,
+        0 0 0 10px rgb(14 107 71 / 0.55),
+        0 22px 44px -18px rgb(15 42 68 / 0.38);
+}
+
+@media (min-width: 64rem) {
+    .hero-light-visual {
+        width: 22.5rem;
+        margin-inline-end: 2rem;
+    }
+
+    .hero-light-frame {
+        transform: rotate(-4deg);
+    }
+
+    .hero-light-back {
+        position: absolute;
+        inset: 0;
+        display: block;
+        border-radius: 1.375rem;
+        border: 2px dashed rgb(31 69 101 / 0.25);
+        background: linear-gradient(135deg, rgb(62 138 202 / 0.35), rgb(31 69 101 / 0.25));
+        transform: translate(-1.6rem, 0.75rem) rotate(5deg);
+    }
+
+    .hero-light [data-hero-slide='king'] .hero-light-back {
+        border-color: rgb(201 169 97 / 0.5);
+        background: linear-gradient(135deg, rgb(14 107 71 / 0.28), rgb(201 169 97 / 0.3));
+    }
+}
+
+/* البند ١٨: شريط الشركاء بالشعارات صوراً في مربع أبيض بالمقاس نفسه، والشريك بلا شعار مربع مؤقت باسمه */
+.partner-strip-item {
+    display: flex;
+    height: 6rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--concept-border);
+    background: var(--color-white);
+}
+
+.partner-placeholder {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px dashed var(--blue-300);
+    background: var(--soft-card-from);
+    color: var(--soft-card-text);
+    font-size: 0.9375rem;
+    font-weight: 800;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* البند ٢٩: بطاقة الخدمة بالنمط «أ» (x-service-card) في صفحة «خدماتنا الإلكترونية» و«خدماتنا» في الرئيسية. بطاقة فاتحة بتدرج من
+   #EEF6FD إلى #D3E7F8 وظل ناعم ونص #1F4565 (تباينه مختبر)، ومربع أيقونة 64 بكسل بزاوية 18 وحشو 13 بتدرج يتعاقب: الفردية من
+   #3E8ACA إلى #1F4565، والزوجية من #8EC5F0 إلى #3E8ACA، والرسم أبيض بخط وتعبئة بشفافية 0.3، والأيقونة والاسم و«ادخل ←» في الوسط */
+:root {
+    --service-card-from: #eef6fd;
+    --service-card-to: #d3e7f8;
+    --service-card-text: #1f4565;
+}
+
+.service-card {
+    display: flex;
+    height: 100%;
+    min-height: 9.375rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    color: var(--service-card-text);
+    text-align: center;
+    background: linear-gradient(135deg, var(--service-card-from), var(--service-card-to));
+    box-shadow: 0 6px 18px rgb(20 46 69 / 0.1);
+    transition:
+        transform calc(250ms * var(--motion)),
+        box-shadow calc(250ms * var(--motion));
+}
+
+.service-card:hover,
+.service-card:focus-visible {
+    transform: translateY(calc(-3px * var(--motion)));
+    box-shadow: 0 14px 28px -12px rgb(20 46 69 / 0.3);
+}
+
+.service-card-tile {
+    display: inline-flex;
+    width: 4rem;
+    height: 4rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8125rem;
+    border-radius: 1.125rem;
+    color: var(--color-white);
+    background: linear-gradient(135deg, #3e8aca, #1f4565);
+    box-shadow: 0 10px 18px rgb(31 69 101 / 0.3);
+}
+
+:is(li, .marquee-group > *):nth-child(even) > .service-card .service-card-tile,
+.marquee-group > .service-card:nth-child(even) .service-card-tile {
+    background: linear-gradient(135deg, #8ec5f0, #3e8aca);
+}
+
+.service-icon {
+    width: 100%;
+    height: 100%;
+}
+
+.service-icon .d {
+    fill: currentColor;
+    opacity: 0.3;
+}
+
+.service-icon-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.service-card-name {
+    font-size: 1.1875rem;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.service-card-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.service-card-go {
+    margin-top: auto;
+    font-size: 0.9375rem;
+    font-weight: 800;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+/* ثلاثة أعمدة بلا خانة فارغة: ما بقي في الصف الأخير يمتد بعرضه */
+.service-grid > :nth-child(3n + 1):last-child {
+    grid-column: 1 / -1;
+}
+
+.service-grid > :nth-child(3n + 2):last-child {
+    grid-column: span 2;
+}
+
+@media (max-width: 51.25rem) {
+    .service-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .service-grid > :nth-child(3n + 1):last-child,
+    .service-grid > :nth-child(3n + 2):last-child {
+        grid-column: auto;
+    }
+
+    /* البطاقة الأخيرة الفردية لا تمتد بعرض الصف: في منتصفه بعرض بطاقة واحدة (قرار صفوان في الملاحظة ٣٠ — مراجعة المشرف على #157) */
+    .service-grid > :nth-child(odd):last-child {
+        grid-column: 1 / -1;
+        justify-self: center;
+        width: calc((100% - 1rem) / 2);
+    }
+}
+
+@media (max-width: 30rem) {
+    .service-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .service-grid > :nth-child(odd):last-child {
+        grid-column: auto;
+        justify-self: stretch;
+        width: auto;
+    }
+}
+
+/* في شريط «خدماتنا» بالرئيسية: عرض البطاقة الثابت (service-tile) والنمط «أ» نفسه */
+.marquee-group > .service-card.service-tile {
+    width: 13.5rem;
+    border-radius: 1.25rem;
+    padding: 1.25rem 1rem 1rem;
+}
+
+/* البند ٣١: الرأس يصغر عند التمرير ويعود كاملاً في أعلى الصفحة (data-header-compact — app.js)، من 1024 وحده. تصغر الرموز والمخطوطة
+   ومربع الترخيص والأزرار والحشو، ويبقى صف القائمة ظاهراً، ويعوَّض الفرق بهامش سفلي للرأس بالانتقال نفسه (--header-shrink) فلا يتحرك
+   المحتوى. والانتقال ناعم بمدة --motion، فلا انتقال لمن طلب تقليل الحركة، ولا انتقال أثناء القياس (data-header-measuring) */
+@media (min-width: 64rem) {
+    [data-site-header],
+    [data-site-header] .header-top,
+    [data-site-header] .masthead-mark,
+    [data-site-header] .masthead-calligraphy,
+    [data-site-header] .header-licence,
+    [data-site-header] .header-icon-button,
+    [data-site-header] .header-top .login-pill,
+    [data-site-header] .nav-capsules,
+    [data-site-header] .nav-capsule {
+        transition-property: margin, padding, height, width, font-size, min-height;
+        transition-duration: calc(260ms * var(--motion));
+        transition-timing-function: ease-out;
+    }
+
+    [data-site-header][data-header-measuring],
+    [data-site-header][data-header-measuring] * {
+        transition: none !important;
+    }
+
+    [data-site-header][data-header-compact] {
+        margin-bottom: var(--header-shrink, 0px);
+    }
+
+    [data-site-header][data-header-compact] .header-top {
+        padding-block: 0.375rem;
+    }
+
+    [data-site-header][data-header-compact] .masthead-mark {
+        height: 3.25rem;
+    }
+
+    [data-site-header][data-header-compact] .masthead-calligraphy {
+        height: 2.75rem;
+    }
+
+    [data-site-header][data-header-compact] .header-licence {
+        padding: 0.1875rem 0.5rem;
+        font-size: 0.6875rem;
+        line-height: 1.3;
+    }
+
+    [data-site-header][data-header-compact] .header-icon-button {
+        width: 2.375rem;
+        height: 2.375rem;
+    }
+
+    [data-site-header][data-header-compact] .header-top .login-pill {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.875rem;
+    }
+
+    [data-site-header][data-header-compact] .nav-capsules {
+        padding-block: 0.375rem;
+    }
+
+    [data-site-header][data-header-compact] .nav-capsule {
+        height: 2.375rem;
+    }
+}
+
+/* تقييم لقطات التوجيه (4 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): شارتا الشريحة الأولى، والزر الثانوي بإطار (البند ٦)،
+   وشريحة رئيس المجلس بعنوان أصغر وصفة بسطر واحد على الحاسوب (البند ٩)، واقتباس خادم الحرمين كاملاً بخط أصغر قليلاً (البند ٧)، ومؤشر
+   الشرائح أشرطة رفيعة: 34×6 بشفافية والنشط 52 بالأزرق الداكن، بلا كتلة رمادية ولا نقاط (البند ١٢). وعلى الجوال الصورة أصغر والنص
+   لا يلامس شريط الشرائح، بحشو سفلي بقدره (البند ٨) */
+.hero-light-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.hero-light .hero-light-badges .hero-chip {
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.hero-light .hero-caption .login-pill.hero-light-secondary {
+    color: var(--hero-light-text);
+    background: transparent;
+    border: 2px solid var(--hero-light-text);
+    box-shadow: none;
+}
+
+.hero-light .hero-caption .login-pill.hero-light-secondary:hover {
+    background: rgb(31 69 101 / 0.08);
+}
+
+.hero-light .concept-dot,
+.hero-light .concept-dot[aria-current] {
+    background: transparent;
+}
+
+.hero-light .concept-dot::before {
+    width: 34px;
+    height: 6px;
+    border: 0;
+    border-radius: 9999px;
+    background: rgb(31 69 101 / 0.25);
+}
+
+.hero-light .concept-dot[aria-current] {
+    width: 3.5rem;
+}
+
+.hero-light .concept-dot[aria-current]::before {
+    width: 52px;
+    background: var(--hero-light-text);
+}
+
+.hero-light .concept-dot .hero-progress-bar {
+    display: none;
+}
+
+/* الجوال: الصورة صغيرة فوق النص، والنص من أعلى الشريحة بحشو سفلي 56 بكسل فوق شريط الشرائح، وارتفاع البطل يكفي أطول شريحة
+   (x-hero-slider). واللوحي من 768: الصورة بجانب النص كالحاسوب بمقاس أصغر */
+@media (max-width: 47.99rem) {
+    .hero-light .hero-round-layout {
+        justify-content: flex-start;
+        gap: 1rem;
+        padding-block: 1.5rem 3.5rem;
+    }
+
+    .hero-light .hero-light-visual {
+        width: min(10rem, 44vw);
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+    .hero-light .hero-round-layout {
+        flex-direction: row-reverse;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+        padding-block: 1.5rem 3.5rem;
+    }
+
+    .hero-light .hero-light-visual {
+        width: 13rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-title {
+        font-size: 1.875rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1.125rem;
+    }
+}
+
+@media (min-width: 64rem) {
+    .hero-light [data-hero-slide='chairman'] .hero-light-title {
+        font-size: 1.875rem;
+    }
+
+    .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
+        font-size: 1.125rem;
+        white-space: nowrap;
+    }
+
+    .hero-light [data-hero-slide='king'] .hero-light-text {
+        font-size: 1.0625rem;
+        line-height: 1.7;
+    }
+}
+
+/* رأس «مكتبة إعجاز» بصور تتبدل (البند ٢٥ — مراجعة المشرف على #157): الصور فوق بعضها في الإطار، والنشطة ظاهرة بتلاشٍ ناعم، ولا انتقال
+   لمن طلب تقليل الحركة (--motion)، والدوّار نفسه لا يبدأ له (carousel.js) */
+.page-hero-frame[data-page-hero-rotator] > img {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity calc(900ms * var(--motion)) ease;
+}
+
+.page-hero-frame[data-page-hero-rotator] > img[data-active] {
+    opacity: 1;
+}
+
+/* رأس خادم الحرمين كاملاً في شريحته (ملاحظة صفوان على لقطات #157، 4 نوفمبر): الصورة طولية بخلفية بيضاء، فتُعرض من أعلاها على
+   الأبيض نفسه بهامش فوق الشماغ بدل قصّه (كان 50% 30% فيُقص أعلى الرأس)، ويُقص أسفلها. والحلقة الذهبية والخضراء كما هي */
+.hero-light [data-hero-slide='king'] .hero-light-frame {
+    background: var(--color-white);
+}
+
+.hero-light [data-hero-slide='king'] .hero-light-frame img {
+    box-sizing: border-box;
+    padding-top: 1.25rem;
+    object-fit: cover;
+    object-position: 50% 0;
+}
+
+@media (max-width: 47.99rem) {
+    .hero-light [data-hero-slide='king'] .hero-light-frame img {
+        padding-top: 0.75rem;
+    }
 }

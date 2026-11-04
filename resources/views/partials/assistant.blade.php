@@ -16,8 +16,9 @@
             data-label-thanks="{{ __('assistant.widget.thanks') }}"
             data-label-remaining="{{ __('assistant.widget.remaining') }}">
 
-            <button type="button" data-assistant-toggle aria-expanded="false" aria-controls="assistant-panel"
-                class="fixed bottom-4 end-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {{-- على الحاسوب يكفي زر «المساعد الذكي» في الرأس (البند ١٣)، فالعائم للجوال واللوحي العمودي وحدهما، ولا يغطي البطاقات (تقييم لقطات التوجيه، البند ١٣) --}}
+            <button type="button" data-assistant-toggle data-assistant-fab aria-expanded="false" aria-controls="assistant-panel"
+                class="fixed bottom-4 end-4 z-40 inline-flex items-center gap-2 rounded-full lg:hidden bg-primary px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 {{ \App\Support\Icon::svg('chat-bubble-left-right', 'size-6 shrink-0', ['aria-hidden' => 'true']) }}
                 <span class="sr-only sm:not-sr-only">{{ __('assistant.widget.open') }}</span>
             </button>
