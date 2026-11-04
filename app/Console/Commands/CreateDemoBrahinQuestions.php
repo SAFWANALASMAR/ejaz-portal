@@ -18,8 +18,9 @@ use Illuminate\Support\Facades\DB;
  * أربعون سؤالاً تجريبياً في بنك مسابقة البراهين لرابط العرض والبيئة المحلية وحدهما (قرار صفوان، 3 نوفمبر 2026 — البند ٩ من
  * إضافة توجيه المدير، docs/decisions/2026-11-03-director-home.md): ليرى المدير الاختبار كاملاً. نص كل سؤال «سؤال تجريبي رقم N —
  * 【ناقص: نص السؤال المعتمد من الجمعية】» وخياراته «خيار أ/ب/ج/د (تجريبي)»، بلا أي محتوى علمي أو شرعي، فالوسم «تجريبي» ظاهر
- * في اللوحة وفي الاختبار. تُضاف إلى المرحلة الجارية، وإلا التالية، وإلا الأولى. ولا يعمل الإضافة في الإنتاج، ولا تتكرر.
- * و--remove يحذفها كلها من البنك بأمر واحد قبل فتح المسابقة للطلاب (ومعها إجاباتها التجريبية بالحذف المتتالي)، في أي بيئة.
+ * في اللوحة وفي الاختبار. تُضاف إلى المرحلة الجارية، وإلا التالية، وإلا الأولى، ولا تتكرر. و--remove يحذفها كلها من البنك بأمر
+ * واحد قبل فتح المسابقة للطلاب (ومعها إجاباتها التجريبية بالحذف المتتالي). والأمر كله، إضافةً وحذفاً، لا يعمل في الإنتاج كأوامر
+ * العرض الأخرى (مراجعة المشرف على #157): لا يمس بنك أسئلة حقيقياً.
  */
 #[Signature('ejaz:demo-brahin-questions {--remove : حذف الأسئلة التجريبية من البنك}')]
 #[Description('إضافة 40 سؤالاً تجريبياً إلى بنك مسابقة البراهين لرابط العرض، أو حذفها بـ --remove')]
@@ -29,16 +30,16 @@ class CreateDemoBrahinQuestions extends Command
 
     public function handle(): int
     {
-        $competition = $this->competition();
-
-        if ($this->option('remove')) {
-            return $this->remove($competition);
-        }
-
         if (! $this->laravel->environment('local', 'testing')) {
             $this->error(__('competitions.demo_questions.refused'));
 
             return self::FAILURE;
+        }
+
+        $competition = $this->competition();
+
+        if ($this->option('remove')) {
+            return $this->remove($competition);
         }
 
         if ($competition === null) {

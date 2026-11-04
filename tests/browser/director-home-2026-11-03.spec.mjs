@@ -771,3 +771,28 @@ test('header: the shrink has no transition under reduced motion', async ({ page 
     await page.evaluate(() => window.scrollTo({ top: 700, behavior: 'instant' }));
     await expect(page.locator('[data-site-header]')).toHaveAttribute('data-header-compact', '');
 });
+
+// مراجعة المشرف على #157 (أمنية، متوسطة): مرساة مشوّهة (/about#%) كانت ترمي URIError من decodeURIComponent فتوقف التهيئة كلها.
+// الآن تُتجاهل، وكل تهيئة في page.js وحدها. فلا خطأ في الصفحة، وما يُسجَّل بعدها يعمل: تصغير الرأس (آخر تهيئة في app.js) على
+// الحاسوب، ودوّار البطل في الرئيسية بالمرساة نفسها
+test('a malformed hash (/about#%) neither throws nor stops the later page setups', async ({ page }, info) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    await page.goto('/about#%');
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.locator('h1').first()).toBeVisible();
+
+    if (info.project.name === 'desktop') {
+        await page.evaluate(() => window.scrollTo({ top: 600, behavior: 'instant' }));
+        await expect(page.locator('[data-site-header]')).toHaveAttribute('data-header-compact', '');
+    }
+
+    await page.goto('/#%');
+    const slider = page.locator('[data-hero-slider]');
+    const first = await slider.locator('[data-carousel-item][data-active]').getAttribute('data-hero-slide');
+    await slider.locator('[data-carousel-dot]').nth(1).evaluate((dot) => dot.click());
+    await expect(slider.locator('[data-carousel-item][data-active]')).not.toHaveAttribute('data-hero-slide', first);
+
+    expect(errors, 'لا خطأ في الصفحة').toEqual([]);
+});

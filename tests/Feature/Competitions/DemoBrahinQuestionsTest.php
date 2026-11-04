@@ -71,3 +71,16 @@ it('fails without the Brahin competition, adding nothing', function () {
 
     expect(CompetitionQuestion::query()->count())->toBe(0);
 });
+
+// مراجعة المشرف على #157: والحذف أيضاً مرفوض في الإنتاج كأوامر العرض الأخرى، فلا يمس الأمر بنكاً حقيقياً
+it('refuses to remove questions in production, deleting nothing', function () {
+    $competition = brahinCompetition();
+    $this->artisan('ejaz:demo-brahin-questions')->assertSuccessful();
+    app()->detectEnvironment(fn (): string => 'production');
+
+    $this->artisan('ejaz:demo-brahin-questions --remove')
+        ->expectsOutput(__('competitions.demo_questions.refused'))
+        ->assertFailed();
+
+    expect(CreateDemoBrahinQuestions::demoQuestions($competition)->count())->toBe(40);
+});

@@ -507,3 +507,19 @@ it('shows the two approved paragraphs in the contact hero, and no licence number
         ->and($aside)->not->toContain('1000723700')
         ->and((string) str($html)->after('data-header-licence')->before('</p>'))->toContain('1000723700');
 });
+
+// مراجعة المشرف على #157 (البند ٣٠): مقدمة «تواصل معنا» من الموقع السابق فقرتها الأولى نفسها في الرأس، فلا تتكرر تحته
+it('shows the first contact paragraph once, in the hero, even with the old contact intro published', function () {
+    $first = 'نرحب بتواصلكم مع جمعية إعجاز للدراسات والبحوث العلمية، ويسعدنا استقبال استفساراتكم، ومقترحاتكم، ومبادرات التعاون والشراكات العلمية والتعليمية.';
+    Page::factory()->create([
+        'slug' => 'contact',
+        'is_published' => true,
+        'blocks' => [['type' => 'text', 'data' => ['heading' => null, 'body' => '<p>'.$first.'</p>']]],
+    ]);
+    ContentCache::flush();
+
+    $html = (string) $this->get('/contact')->assertOk()->getContent();
+
+    expect(substr_count($html, $first))->toBe(1)
+        ->and((string) str($html)->after('data-page-hero')->before('</section>'))->toContain($first);
+});

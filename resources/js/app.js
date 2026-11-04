@@ -330,10 +330,20 @@ document.addEventListener('submit', (event) => {
 
 // مرساة الرابط (#about-vision وأخواتها في القائمة المنسدلة «عن الجمعية» — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٨): بعد التنقّل
 // السريع يُمرَّر إلى مقطعها، وإزاحة الرأس الثابت من scroll-margin-top على المقطع وscroll-padding-top على الصفحة
+// والمرساة المشوّهة (/about#%) لا ترمي URIError توقف التهيئة: تُتجاهل (مراجعة المشرف على #157)
 onPage(() => {
-    if (window.location.hash.length > 1) {
-        document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: 'start' });
+    if (window.location.hash.length <= 1) {
+        return;
     }
+
+    let id;
+    try {
+        id = decodeURIComponent(window.location.hash.slice(1));
+    } catch {
+        return;
+    }
+
+    document.getElementById(id)?.scrollIntoView({ block: 'start' });
 });
 
 // الرأس يصغر عند التمرير ويعود كاملاً في أعلى الصفحة (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٣١ — يعيد التصغير الذي ألغاه
