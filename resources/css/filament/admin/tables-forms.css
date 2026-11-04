@@ -65,20 +65,44 @@ html:not(.dark) .fi-body .fi-ta-text-description {
 
 /* ── البحث والحقول: كبسولة بيضاء بحد أزرق، وحلقة #8EC5F0 عند التركيز ── */
 
+/*
+ * حالتا الخطأ والتعطيل من Filament تبقيان ظاهرتين (مراجعة الشيفرة على #169): الحلقة الزرقاء للحقل السليم وحده،
+ * والمخالف بحلقة الخطر 1px ثم 2px عند التركيز، والمعطّل بخلفية مائلة للأزرق لا بيضاء. واختبارها tests/browser/admin-field-states.spec.mjs
+ */
 html:not(.dark) .fi-body .fi-input-wrp {
     border-radius: 0.85rem;
-    background-color: #fff;
+    transition: box-shadow 0.15s ease;
+}
+
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-invalid) {
     --tw-ring-color: var(--ej-line);
     box-shadow:
         0 0 0 1px var(--ej-line),
         0 6px 14px -12px rgb(31 69 101 / 0.35);
-    transition: box-shadow 0.15s ease;
 }
 
-html:not(.dark) .fi-body .fi-input-wrp:focus-within {
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-invalid):not(.fi-disabled):focus-within {
     box-shadow:
         0 0 0 2px var(--ej-ring),
         0 8px 18px -12px rgb(46 104 152 / 0.45);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-invalid {
+    box-shadow:
+        0 0 0 1px var(--danger-600),
+        0 6px 14px -12px rgb(31 69 101 / 0.35);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-invalid:focus-within {
+    box-shadow: 0 0 0 2px var(--danger-600);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-disabled) {
+    background-color: #fff;
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-disabled {
+    background-color: #eef4fa;
 }
 
 html:not(.dark) .fi-body .fi-ta-search-field .fi-input-wrp {

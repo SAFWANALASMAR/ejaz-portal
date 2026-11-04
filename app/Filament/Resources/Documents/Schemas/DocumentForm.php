@@ -15,13 +15,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class DocumentForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->columns(2)->columnSpanFull()->schema([
+            Section::make(__('governance.sections.document'))->icon(Heroicon::OutlinedDocumentText)->columns(2)->columnSpanFull()->schema([
                 TextInput::make('title')->label(__('governance.fields.title'))->required()->maxLength(200)->columnSpanFull(),
                 ContentFields::slug(),
                 Select::make('category')->label(__('governance.fields.category'))->options(DocumentCategory::class)->required(),
