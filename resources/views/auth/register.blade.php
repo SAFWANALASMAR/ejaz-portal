@@ -1,5 +1,6 @@
 {{-- على الحاسوب عمودان (ملاحظات المدير التنفيذي، 4 نوفمبر 2026): الاسم واسم المستخدم والبريد والجوال، ثم كلمة المرور وشروطها وتأكيدها،
-     فتقصر البطاقة. وعلى الجوال عمود واحد بالترتيب نفسه --}}
+     فتقصر البطاقة. وعلى الجوال عمود واحد بالترتيب نفسه. ونموذج أقصر (إضافة المشرف 01:14): بلا تلميح كلمة المرور (شروطها تحتها
+     بنصها) ولا تلميح البريد (ملاحظة «اختياريان» فوقه تقول ما فيه) --}}
 <x-layouts.auth :title="__('account.register.title')" :intro="__('account.register.intro')" wide>
     <form method="POST" action="{{ route('register.store') }}" class="space-y-4" novalidate>
         @csrf
@@ -18,7 +19,7 @@
                     <legend class="px-1 text-sm leading-6 text-muted">{{ __('account.register.optional_note') }}</legend>
 
                     <x-field name="email" type="email" :label="__('account.register.email')" :placeholder="__('account.register.email_placeholder')" icon="envelope" hide-label
-                        :hint="__('account.register.email_hint')" autocomplete="email" dir="auto" />
+                        autocomplete="email" dir="auto" />
 
                     <x-field name="phone" type="tel" :label="__('account.register.phone')" :placeholder="__('account.register.phone_placeholder')" icon="device-phone-mobile" hide-label
                         :hint="__('account.register.phone_hint')" autocomplete="tel" inputmode="tel" dir="auto" />
@@ -27,7 +28,7 @@
 
             <div class="space-y-4">
                 <x-field name="password" type="password" :label="__('account.register.password')" :placeholder="__('account.register.password')" icon="lock-closed" hide-label
-                    :hint="__('account.register.password_hint')" autocomplete="new-password" required />
+                    autocomplete="new-password" required />
 
                 <x-password-rules />
 

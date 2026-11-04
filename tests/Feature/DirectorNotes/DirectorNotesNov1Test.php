@@ -270,7 +270,8 @@ it('keeps every editor item of a dropdown, even one sharing the parent link, and
         ['id' => 3, 'label' => 'اللوائح والسياسات', 'url' => '/governance?category=policies', 'opens_in_new_tab' => false],
     ]]);
 
-    expect(array_column($children, 'label'))->toBe(['عن الجمعية', 'التوجه الاستراتيجي', 'اللوائح والسياسات'])
+    // و«المبادرات» قسم مولَّد بعد الأم منذ انتقالها من الخدمات (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026)
+    expect(array_column($children, 'label'))->toBe(['عن الجمعية', 'المبادرات', 'التوجه الاستراتيجي', 'اللوائح والسياسات'])
         ->and($children[0]['is_parent'] ?? false)->toBeTrue();
 });
 

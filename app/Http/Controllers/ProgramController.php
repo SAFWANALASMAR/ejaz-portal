@@ -10,6 +10,7 @@ use App\Models\ProgramType;
 use App\Support\LibraryProgramProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,6 +25,9 @@ class ProgramController extends Controller
 
     /** بطاقات كل نوع في مقطعه، وما زاد في «عرض الكل» */
     public const PER_SECTION = 6;
+
+    /** القادمة بأقربها موعداً، ثم المنتهية بأحدثها */
+    private const ORDER = 'case when coalesce(ends_at, starts_at) > now() then 0 else 1 end, case when coalesce(ends_at, starts_at) > now() then starts_at end asc, starts_at desc, id';
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -41,9 +45,15 @@ class ProgramController extends Controller
         if ($active === null) {
             abort_if($request->integer('page', 1) > 1, 404);
 
+            // استعلام واحد لكل الأنواع مهما كثرت: ترتيب البرنامج في نوعه (row_number)، وواحد زائد على المقطع يُظهر «عرض الكل»
+            $ranked = Program::query()->published()->withConfirmedCount()
+                ->selectRaw('row_number() over (partition by program_type_id order by '.self::ORDER.') as section_rank');
+            $byType = Program::query()->fromSub($ranked, 'programs')->where('section_rank', '<=', self::PER_SECTION + 1)
+                ->orderByRaw(self::ORDER)->get()->groupBy('program_type_id');
+
             $sections = $types->map(fn (ProgramType $programType): array => [
                 'type' => $programType,
-                'programs' => self::listing()->where('program_type_id', $programType->id)->limit(self::PER_SECTION + 1)->get()
+                'programs' => ($byType->get($programType->id) ?? new Collection)
                     ->each(fn (Program $program) => $program->setRelation('type', $programType)),
             ]);
 
@@ -67,13 +77,7 @@ class ProgramController extends Controller
      */
     private static function listing(): Builder
     {
-        return Program::query()
-            ->published()
-            ->withConfirmedCount()
-            ->orderByRaw('case when coalesce(ends_at, starts_at) > now() then 0 else 1 end')
-            ->orderByRaw('case when coalesce(ends_at, starts_at) > now() then starts_at end asc')
-            ->orderByDesc('starts_at')
-            ->orderBy('id');
+        return Program::query()->published()->withConfirmedCount()->orderByRaw(self::ORDER);
     }
 
     public function show(Request $request, string $slug): Response
