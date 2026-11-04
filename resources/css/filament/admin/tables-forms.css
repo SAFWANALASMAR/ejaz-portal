@@ -1,0 +1,262 @@
+/*
+ * الجداول والنماذج في لوحة الإدارة (الدفعة ٣ من «طلب-لوحة-الإدارة-2026-11-04.md»): رأس الجدول وصفوفه، والبحث والفلاتر،
+ * والأزرار الثانوية، والترقيم، وحقول النماذج وأقسامها بأيقوناتها. ملف مستقل للدفعة، بالأزرق وحده، على أصناف Filament
+ * وحدها بلا إعادة كتابة لقوالبه ولا تغيير سلوك.
+ *
+ * يُستورد قبل قواعد theme.css، فالقواعد هنا تبدأ بـ .fi-body لتحديد أعلى منها (لا !important). والوضع الداكن على حاله.
+ */
+
+/* ── الجدول ───────────────────────────────────────────────── */
+
+/* شريط الأدوات (البحث والفلاتر والأعمدة) بخلفية فاتحة وحد سفلي رفيع */
+html:not(.dark) .fi-body .fi-ta-header-toolbar {
+    background: linear-gradient(180deg, #f2f8fd 0%, #eaf3fb 100%);
+    border-bottom: 1px solid var(--ej-line);
+}
+
+/* رأس الجدول: خلفية متدرجة خفيفة، ونص أزرق داكن عريض، وحد سفلي بلون الحلقة */
+html:not(.dark) .fi-body .fi-ta-table > thead > tr {
+    background: linear-gradient(180deg, #e3f1fc 0%, #d6e7f6 100%);
+}
+
+/* الحد تحت خلايا الرأس كلها، ومنها خلية الإجراءات الفارغة */
+html:not(.dark) .fi-body .fi-ta-table > thead > tr > th {
+    border-bottom: 2px solid var(--ej-ring);
+}
+
+html:not(.dark) .fi-body .fi-ta-header-cell {
+    color: var(--ej-primary-dark);
+    font-size: 0.875rem;
+    font-weight: 800;
+    padding-block: 0.875rem;
+}
+
+html:not(.dark) .fi-body .fi-ta-header-cell-sorted,
+html:not(.dark) .fi-body .fi-ta-header-cell-sort-btn:hover {
+    color: var(--ej-primary);
+}
+
+/* صفوف مريحة: مسافة رأسية أوسع، وتبادل خفيف، وإبراز عند المرور بلا تغيير ارتفاع */
+html:not(.dark) .fi-body .fi-ta-table > tbody > .fi-ta-row {
+    transition: background-color 0.15s ease;
+}
+
+html:not(.dark) .fi-body .fi-ta-table > tbody > .fi-ta-row:nth-child(even) {
+    background-color: rgb(227 241 252 / 0.45);
+}
+
+html:not(.dark) .fi-body .fi-ta-table > tbody > .fi-ta-row:hover {
+    background-color: #e3f1fc;
+}
+
+html:not(.dark) .fi-body .fi-ta-table > tbody > .fi-ta-row > td {
+    border-color: rgb(201 220 238 / 0.7);
+}
+
+.fi-body .fi-ta-cell > .fi-ta-col,
+.fi-body .fi-ta-cell > .fi-ta-text,
+.fi-body .fi-ta-cell .fi-ta-text {
+    padding-block: 0.875rem;
+}
+
+html:not(.dark) .fi-body .fi-ta-text-description {
+    color: var(--ej-muted);
+}
+
+/* ── البحث والحقول: كبسولة بيضاء بحد أزرق، وحلقة #8EC5F0 عند التركيز ── */
+
+/*
+ * حالتا الخطأ والتعطيل من Filament تبقيان ظاهرتين (مراجعة الشيفرة على #169): الحلقة الزرقاء للحقل السليم وحده،
+ * والمخالف بحلقة الخطر 1px ثم 2px عند التركيز، والمعطّل بخلفية مائلة للأزرق لا بيضاء. واختبارها tests/browser/admin-field-states.spec.mjs
+ */
+html:not(.dark) .fi-body .fi-input-wrp {
+    border-radius: 0.85rem;
+    transition: box-shadow 0.15s ease;
+}
+
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-invalid) {
+    --tw-ring-color: var(--ej-line);
+    box-shadow:
+        0 0 0 1px var(--ej-line),
+        0 6px 14px -12px rgb(31 69 101 / 0.35);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-invalid):not(.fi-disabled):focus-within {
+    box-shadow:
+        0 0 0 2px var(--ej-ring),
+        0 8px 18px -12px rgb(46 104 152 / 0.45);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-invalid {
+    box-shadow:
+        0 0 0 1px var(--danger-600),
+        0 6px 14px -12px rgb(31 69 101 / 0.35);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-invalid:focus-within {
+    box-shadow: 0 0 0 2px var(--danger-600);
+}
+
+html:not(.dark) .fi-body .fi-input-wrp:not(.fi-disabled) {
+    background-color: #fff;
+}
+
+html:not(.dark) .fi-body .fi-input-wrp.fi-disabled {
+    background-color: #eef4fa;
+}
+
+html:not(.dark) .fi-body .fi-ta-search-field .fi-input-wrp {
+    border-radius: 999px;
+}
+
+html:not(.dark) .fi-body .fi-input-wrp-prefix .fi-icon,
+html:not(.dark) .fi-body .fi-input-wrp-suffix .fi-icon {
+    color: var(--ej-brand);
+}
+
+/* تسمية الحقل بالأزرق الداكن، وعلامة الإلزام بالأزرق الأعمق لا الأحمر (5.9:1 على الأبيض) */
+html:not(.dark) .fi-body .fi-fo-field-label-content {
+    color: var(--ej-primary-dark);
+    font-weight: 700;
+}
+
+html:not(.dark) .fi-body .fi-fo-field-label-required-mark {
+    color: var(--ej-primary);
+}
+
+/* ── الفلاتر ─────────────────────────────────────────────── */
+
+html:not(.dark) .fi-body .fi-ta-filters-dropdown .fi-dropdown-panel,
+html:not(.dark) .fi-body .fi-ta-col-manager-dropdown .fi-dropdown-panel {
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #f8fbfe 0%, #eef5fc 100%);
+    box-shadow:
+        0 0 0 1px var(--ej-line),
+        0 20px 40px -24px rgb(20 46 69 / 0.5);
+}
+
+html:not(.dark) .fi-body .fi-ta-filters-heading,
+html:not(.dark) .fi-body .fi-ta-col-manager-heading {
+    color: var(--ej-primary-dark);
+    font-weight: 800;
+}
+
+/* مؤشرات الفلاتر المفعّلة: شريط فاتح بحد علوي */
+html:not(.dark) .fi-body .fi-ta-filter-indicators {
+    background-color: #eaf3fb;
+    border-top: 1px solid var(--ej-line);
+}
+
+/* ── الأزرار الثانوية بالأزرق: الرمادية (Filament لا يعطيها صنف لون، فهي .fi-btn بلا .fi-color) والمحددة ── */
+
+html:not(.dark) .fi-body .fi-btn:not(.fi-color),
+html:not(.dark) .fi-body .fi-btn.fi-outlined:not(.fi-color-danger) {
+    border-radius: 999px;
+    color: var(--ej-primary-dark);
+    background-color: #fff;
+    box-shadow: 0 0 0 1px var(--ej-ring);
+
+    & .fi-icon {
+        color: var(--ej-primary);
+    }
+
+    &:not(.fi-disabled):hover,
+    &:focus-visible {
+        background-color: #e3f1fc;
+    }
+}
+
+/* الزر الرئيسي كبسولي أيضاً بظل أزرق خفيف */
+html:not(.dark) .fi-body .fi-btn.fi-color-primary:not(.fi-outlined) {
+    border-radius: 999px;
+    box-shadow: 0 8px 18px -12px rgb(31 69 101 / 0.7);
+}
+
+/* أزرار الإجراءات في الصف (روابط) بالأزرق، وأيقونتها كذلك. والحذف يبقى بلونه، فهو إجراء لا رجعة فيه */
+html:not(.dark) .fi-body .fi-ta-actions .fi-link:not(.fi-color-danger) {
+    color: var(--ej-primary);
+    font-weight: 700;
+
+    & .fi-icon {
+        color: var(--ej-primary);
+    }
+}
+
+/* ── الترقيم ─────────────────────────────────────────────── */
+
+html:not(.dark) .fi-body .fi-pagination-items {
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--ej-line);
+}
+
+html:not(.dark) .fi-body .fi-pagination-item.fi-active .fi-pagination-item-btn {
+    background-color: var(--ej-primary);
+
+    & .fi-pagination-item-label {
+        color: #fff;
+    }
+}
+
+html:not(.dark) .fi-body .fi-pagination-overview {
+    color: var(--ej-muted);
+}
+
+/* ── أقسام النماذج: الأيقونة في مربع متدرج كعناصر الرئيسية، والرأس بحد سفلي ── */
+
+.fi-body .fi-section:not(.fi-section-not-contained) > .fi-section-header {
+    border-bottom: 1px solid var(--ej-line);
+}
+
+.fi-body .fi-section-header > .fi-icon {
+    box-sizing: content-box;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0.55rem;
+    border-radius: 0.8rem;
+    color: var(--ej-tile-1-glyph);
+    background: var(--ej-tile-1);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.4),
+        0 8px 16px -10px var(--ej-tile-1-shadow);
+}
+
+/* مع الأيقونة لا شريط قبل العنوان */
+.fi-body .fi-section-header:has(> .fi-icon) {
+    align-items: center;
+
+    & .fi-section-header-heading::before {
+        content: none;
+    }
+}
+
+/* ── التبويبات كبسولية: النشط بالأزرق الرسمي ونص أبيض ── */
+
+html:not(.dark) .fi-body .fi-tabs {
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f2f8fd 0%, #e3f1fc 100%);
+    box-shadow: 0 0 0 1px var(--ej-line);
+}
+
+html:not(.dark) .fi-body .fi-tabs-item {
+    border-radius: 999px;
+}
+
+html:not(.dark) .fi-body .fi-tabs-item.fi-active {
+    background-color: var(--ej-primary);
+
+    & .fi-tabs-item-label,
+    & .fi-icon {
+        color: #fff;
+    }
+}
+
+/* ── تقليل الحركة ── */
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-body .fi-ta-row,
+    .fi-body .fi-input-wrp {
+        transition: none;
+    }
+}

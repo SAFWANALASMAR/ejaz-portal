@@ -28,13 +28,16 @@ class SurveyController extends Controller
 
     /**
      * «قياس الرضا» العام (بطاقة المركز الإعلامي والخدمات): الاستبيان العام المفتوح (Survey::openGeneral)،
-     * وإلا 404. وبطاقة الخدمات لا تظهر إلا بوجوده (config/eservices.php).
+     * وبلا استبيان مفتوح صفحة برسالة أن لا استبيان الآن لا 404، لأن بطاقة الخدمات ظاهرة دائماً (config/eservices.php — إضافة
+     * توجيه المدير، البند ١٧، ومراجعة المشرف على #157).
      */
-    public function index(): RedirectResponse
+    public function index(): View|RedirectResponse
     {
         $survey = Survey::openGeneral();
 
-        abort_if($survey === null, 404);
+        if ($survey === null) {
+            return view('surveys.none');
+        }
 
         return redirect()->route('surveys.show', $survey->token);
     }

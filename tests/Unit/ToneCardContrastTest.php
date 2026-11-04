@@ -91,3 +91,57 @@ it('keeps the pill, chip and enter label readable on their deep grounds inside b
         }
     }
 })->with(['dark', 'light']);
+
+// البطاقة الكبيرة داخل المحتوى بالأزرق الفاتح الناعم (قرار صفوان، إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٠): النص #142E45 على
+// طرفي التدرج #EAF4FC و#C6E1F7 بتباين AA فأكثر (4.5:1)، والبطاقة الناعمة (data-tone='soft') بهذه الرموز من concept.css
+it('keeps the soft card text #142E45 readable at AA on #EAF4FC and #C6E1F7', function () {
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+    $token = function (string $name) use ($css): string {
+        preg_match('/--'.$name.':\s*(#[0-9a-f]{6});/i', $css, $match) || throw new RuntimeException("Missing {$name}");
+
+        return strtolower($match[1]);
+    };
+
+    [$from, $to, $text] = [$token('soft-card-from'), $token('soft-card-to'), $token('soft-card-text')];
+
+    expect([$from, $to, $text])->toBe(['#eaf4fc', '#c6e1f7', '#142e45'])
+        ->and(contrastRatio($text, $from))->toBeGreaterThanOrEqual(4.5)
+        ->and(contrastRatio($text, $to))->toBeGreaterThanOrEqual(4.5)
+        ->and($css)->toMatch("/\.tone-card\[data-tone='soft'\]\s*\{\s*--tc-from:\s*var\(--soft-card-from\);[^}]*--tc-to:\s*var\(--soft-card-to\);\s*--tc-text:\s*var\(--soft-card-text\);/");
+});
+
+// «فاتح بصورة واحدة» في بطل الرئيسية ورأس كل صفحة داخلية (إضافة توجيه المدير، 3 نوفمبر 2026، البنود ٢٣ و٢٥ و٢٧): النص الداكن
+// #1F4565 على كل درجة وكل طرف من تدرجاتها بتباين AA فأكثر، والسطر الثاني بالأزرق المتوسط #2E6898 (خط كبير عريض) 3:1 فأكثر على طرفها
+// الفاتح ومنتصفها (و#3E8ACA الذي في المرجع 2.8:1 على منتصفها، فلا يكفي)
+it('keeps the dark text readable at AA on every light hero shade', function (int $shade) {
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+    $token = function (string $name) use ($css): string {
+        preg_match('/--'.$name.':\s*(#[0-9a-f]{6});/i', $css, $match) || throw new RuntimeException("Missing {$name}");
+
+        return strtolower($match[1]);
+    };
+
+    $text = $token('hero-light-text');
+    expect($text)->toBe('#1f4565');
+
+    foreach (['from', 'via', 'to'] as $stop) {
+        expect(contrastRatio($text, $token("hero-light-{$shade}-{$stop}")))->toBeGreaterThanOrEqual(4.5, "shade {$shade} {$stop}");
+    }
+    foreach (['from', 'via'] as $stop) {
+        expect(contrastRatio('#2e6898', $token("hero-light-{$shade}-{$stop}")))->toBeGreaterThanOrEqual(3, "highlight on shade {$shade} {$stop}");
+    }
+})->with([1, 2, 3, 4]);
+
+// بطاقة الخدمة بالنمط «أ» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٩): النص #1F4565 على طرفي تدرجها #EEF6FD و#D3E7F8 بتباين AA فأكثر
+it('keeps the service card text #1F4565 readable at AA on its light gradient', function () {
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/concept.css');
+    $token = function (string $name) use ($css): string {
+        preg_match('/--'.$name.':\s*(#[0-9a-f]{6});/i', $css, $match) || throw new RuntimeException("Missing {$name}");
+
+        return strtolower($match[1]);
+    };
+
+    expect([$token('service-card-from'), $token('service-card-to'), $token('service-card-text')])->toBe(['#eef6fd', '#d3e7f8', '#1f4565'])
+        ->and(contrastRatio($token('service-card-text'), $token('service-card-from')))->toBeGreaterThanOrEqual(4.5)
+        ->and(contrastRatio($token('service-card-text'), $token('service-card-to')))->toBeGreaterThanOrEqual(4.5);
+});

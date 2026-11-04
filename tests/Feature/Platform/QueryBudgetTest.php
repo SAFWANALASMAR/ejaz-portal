@@ -222,7 +222,8 @@ it('keeps the v0.15 public lists within a fixed number of queries', function (st
 })->with([
     // والمكتبة والمسابقات +1 منذ «محرر الصفحات» (#124، دُمج بعد كتابة هذين السقفين في #132): سجل الصفحة الثابتة المنشور
     // (EditablePages::live)، مخزّن في ذاكرة المحتوى فيُسأل مرة بعد مسحها وصفراً بعدها، كالأخبار والبرامج أعلاه
-    'library' => ['/library', fn (int $n) => [LibraryItem::factory()->count($n)->create(), LibraryItem::factory()->count($n)->video()->create(), LibraryItem::factory()->count($n)->audio()->create()], 5],
+    // والمكتبة +1 منذ رأسها «فاتح بصورة واحدة» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٥): صورة أحدث مادة منشورة، مرة واحدة
+    'library' => ['/library', fn (int $n) => [LibraryItem::factory()->count($n)->create(), LibraryItem::factory()->count($n)->video()->create(), LibraryItem::factory()->count($n)->audio()->create()], 6],
     'competitions' => ['/competitions', fn (int $n) => [
         Competition::factory()->count($n)->create(),
         Competition::factory()->count($n)->upcoming()->create(),

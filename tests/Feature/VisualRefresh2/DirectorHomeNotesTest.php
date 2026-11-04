@@ -107,38 +107,45 @@ it('runs the video and book strips from the library, with a hidden copy for the 
         ->and($html)->not->toContain('youtube-nocookie.com/embed');
 });
 
-// ما لا يملأ عرض 1440 صف ثابت: بلا نسخة ثانية ولا حركة ولا زر إيقاف، فلا يتكرر العنصر الواحد (مراجعة المشرف، 2 نوفمبر 2026)
-it('shows a single partner once in a still row, and six partners as the moving strip', function () {
+// ما لا يملأ عرض 1440 يتحرك أيضاً (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١١: «ما كان يتحرك يبقى يتحرك»؛ وكان صفاً ثابتاً
+// بمراجعة المشرف في 2 نوفمبر): يتكرر في المسار حتى يملأه، والظاهر لقارئ الشاشة ولوحة المفاتيح نسخة واحدة
+it('moves a single partner too, repeated to fill the strip and read once, and six partners with one copy', function () {
     Partner::factory()->create(['name' => 'الشريك الوحيد']);
 
     $html = $this->get('/')->assertOk()->getContent();
     $section = (string) str($html)->after('aria-labelledby="home-partners"')->before('</section>');
 
-    expect(substr_count($section, 'الشريك الوحيد'))->toBe(1)
-        ->and($section)->toContain('data-marquee-static')
-        ->and($section)->not->toContain('data-marquee-copy')
-        ->and($section)->not->toContain('data-marquee data-direction')
-        ->and($section)->not->toContain('data-ticker-toggle');
+    // ستة أضعاف تملأ العرض: المجموعة الظاهرة ثم إحدى عشرة نسخة مخفية (المسار ضعف ما يملأ العرض)
+    expect($section)->toContain('data-marquee data-direction="horizontal" data-loop')
+        ->and($section)->not->toContain('data-marquee-static')
+        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true" inert'))->toBe(11)
+        ->and(substr_count((string) str($section)->before('data-marquee-copy'), 'الشريك الوحيد'))->toBe(1)
+        ->and($section)->toContain('data-ticker-toggle="home-partners-track"');
 
     Partner::factory()->count(5)->create();
     ContentCache::flush();
 
     $section = (string) str($this->get('/')->getContent())->after('aria-labelledby="home-partners"')->before('</section>');
     expect($section)->toContain('data-marquee data-direction="horizontal" data-loop')
-        ->and($section)->toContain('data-marquee-copy')
+        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true" inert'))->toBe(1)
         ->and($section)->toContain('data-ticker-toggle="home-partners-track"');
 });
 
-it('keeps fewer than six videos or eight books still, each shown once', function () {
+it('moves fewer than six videos or eight books too, each read once', function () {
     LibraryItem::factory()->video()->count(5)->create(['thumbnail' => 'library/thumbs/a.jpg']);
-    LibraryItem::factory()->count(7)->create(['section' => LibrarySection::Books, 'thumbnail' => 'library/thumbs/b.jpg']);
+    LibraryItem::factory()->count(3)->create(['section' => LibrarySection::Books, 'thumbnail' => 'library/thumbs/b.jpg']);
 
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
+    $videos = (string) str($strips)->after('data-media-strip="videos"')->before('data-media-strip="books"');
+    $books = (string) str($strips)->after('data-media-strip="books"');
 
-    expect(substr_count($strips, 'data-marquee-static'))->toBe(2)
-        ->and($strips)->not->toContain('data-marquee-copy')
-        ->and($strips)->not->toContain('data-ticker-toggle')
-        ->and(substr_count($strips, 'class="tone-card media-tile group"'))->toBe(12);
+    // خمسة مقاطع: ضعفان (ثلاث نسخ مخفية)، وثلاثة كتب: ثلاثة أضعاف (خمس نسخ مخفية)
+    expect($strips)->not->toContain('data-marquee-static')
+        ->and(substr_count($strips, 'data-ticker-toggle'))->toBe(2)
+        ->and(substr_count($videos, 'data-marquee-copy aria-hidden="true" inert'))->toBe(3)
+        ->and(substr_count($books, 'data-marquee-copy aria-hidden="true" inert'))->toBe(5)
+        ->and(substr_count((string) str($videos)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(5)
+        ->and(substr_count((string) str($books)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(3);
 });
 
 // ملاحظة المدير ٢٤: الشريطان «تحت خدماتنا» مباشرة، ثم الإعلانات والأخبار، والدرجات تبقى متعاقبة

@@ -34,9 +34,8 @@
                         <span class="text-red-700" aria-hidden="true">*</span>
                     @endif
                 </label>
-                <input id="{{ $id }}" type="file" name="files[{{ $field['key'] }}]" accept="application/pdf" aria-describedby="{{ $id }}-hint"
-                    @if ($error) aria-invalid="true" @endif
-                    class="block w-full rounded-xl border border-line bg-white px-4 py-2.5 text-ink file:me-4 file:rounded-full file:border-0 file:bg-primary-soft file:px-4 file:py-1.5 file:font-semibold file:text-primary">
+                <x-file-input id="{{ $id }}" name="files[{{ $field['key'] }}]" accept="application/pdf" aria-describedby="{{ $id }}-hint"
+                    :aria-invalid="$error ? 'true' : null" />
                 <p id="{{ $id }}-hint" class="text-sm text-muted">
                     {{ __('services.form.pdf_hint', ['size' => FormFieldRules::PDF_MAX_KB / 1024]) }}
                     @isset($files[$field['key']])

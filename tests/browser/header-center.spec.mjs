@@ -3,6 +3,9 @@
 // - من 1280 (بتعديل المشرف على طلب الدمج 149): الفراغات الثلاثة في الصف الأول متساوية: الرمز إلى المخطوطة، والمخطوطة إلى مربع
 //   الترخيص، والمربع إلى البحث والدخول. والمربع بمحاذاة المخطوطة عمودياً.
 // - الرمز في أقصى اليمين، والبحث والدخول في أقصى اليسار كما كانا. ودون 1280 الترتيب السابق، والجوال على 390 كما كان.
+// - حلّ محل الفراغات المتساوية ترتيبُ المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): الرمز والمخطوطة
+//   والمربع كتلة يميناً، والبحث والدخول يساراً، وكلاهما مزاح قليلاً عن الحافة. وقياسه في director-home-2026-11-03.spec.mjs، فبقي
+//   هنا اختبار المربع بجانب المخطوطة بلا تراكب وثبات الجوال.
 // اللقطات: docs/design/screenshots/header-center/<العرض>-<before|after>.png (SHOT_PREFIX، وafter افتراضياً).
 // ولقطات «قبل» من main قبل التغيير: SHOT_PREFIX=before يلتقط ويقيس ولا يتحقق من التوازن.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -65,29 +68,6 @@ async function open(page, width) {
     console.log(`${width}px ${PREFIX}:`, JSON.stringify({ ...layout, boxes: undefined, sizes }));
 
     return layout;
-}
-
-for (const width of [1280, 1440, 1920]) {
-    test(`header at ${width}px: the three gaps of the first row are equal`, async ({ page }) => {
-        const layout = await open(page, width);
-        expect(layout.noHorizontalScroll).toBe(true);
-        test.skip(BEFORE, 'لقطة «قبل» وقياسها فقط');
-
-        // ١. الفراغات الثلاثة متساوية (8 بكسل فأقل بين أكبرها وأصغرها)، وكلها فراغ حقيقي
-        const gaps = [layout.markToCalligraphy, layout.calligraphyToLicence, layout.licenceToActions];
-        expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(8);
-        expect(Math.min(...gaps)).toBeGreaterThan(12);
-        // ٢. الرمز في أقصى اليمين، والدخول في أقصى اليسار بهامش صغير، والبحث بجانبه
-        expect(layout.markFromEdge).toBeGreaterThanOrEqual(8);
-        expect(layout.markFromEdge).toBeLessThanOrEqual(24);
-        expect(layout.loginFromEdge).toBeGreaterThanOrEqual(8);
-        expect(layout.loginFromEdge).toBeLessThanOrEqual(24);
-        const { search, login } = layout.boxes;
-        expect(search.left - login.right).toBeGreaterThanOrEqual(0);
-        expect(search.left - login.right).toBeLessThanOrEqual(16);
-        // ٣. مربع الترخيص بمحاذاة المخطوطة عمودياً
-        expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
-    });
 }
 
 test('header below 1280px keeps the licence beside the calligraphy without overlapping', async ({ page }) => {

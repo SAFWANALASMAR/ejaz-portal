@@ -17,6 +17,8 @@ class AnnualPlanWidget extends StatsOverviewWidget
 {
     protected static ?int $sort = 3;
 
+    private const ICON = 'heroicon-o-chart-pie';
+
     public static function canView(): bool
     {
         return auth()->user()?->can('viewAny', AnnualPlanItem::class) ?? false;
@@ -34,7 +36,7 @@ class AnnualPlanWidget extends StatsOverviewWidget
     {
         $section = parent::getSectionContentComponent();
 
-        return $section instanceof Section ? $section->icon('heroicon-o-chart-pie') : $section;
+        return $section instanceof Section ? $section->icon(self::ICON) : $section;
     }
 
     /**
@@ -46,7 +48,7 @@ class AnnualPlanWidget extends StatsOverviewWidget
         $overall = $progress['overall'];
 
         if ($overall['items'] === 0) {
-            return [Stat::make(__('registers.plan.executed_items'), '—')->description(__('registers.plan.empty'))];
+            return [Stat::make(__('registers.plan.executed_items'), '—')->description(__('registers.plan.empty'))->icon(self::ICON)];
         }
 
         $stats = [
@@ -64,6 +66,7 @@ class AnnualPlanWidget extends StatsOverviewWidget
             }
         }
 
-        return $stats;
+        // كل بطاقة بمربع أيقونة كبقية بطاقات الإحصاء في الرئيسية (طلب لوحة الإدارة، 4 نوفمبر 2026 — الدفعة ٢)
+        return array_map(fn (Stat $stat): Stat => $stat->icon(self::ICON), $stats);
     }
 }
