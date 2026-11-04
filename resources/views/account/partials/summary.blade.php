@@ -16,13 +16,13 @@
     </div>
 
     @if ($summary['upcoming']->isEmpty())
-        <p class="mt-4 text-muted">{{ __('account.summary.upcoming_empty') }}</p>
+        <x-empty-state icon="calendar-days" :message="__('account.summary.upcoming_empty')" class="mt-4" />
     @else
         <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($summary['upcoming'] as $registration)
                 @php($starts = Dates::local($registration->program->starts_at))
                 <li class="tone-card flex min-h-[10.625rem] flex-col items-center justify-center gap-2.5 p-4 text-center" data-appointment>
-                    <span class="flex size-15 flex-none flex-col items-center justify-center rounded-[0.875rem] border border-current/30 bg-white/15 leading-tight font-black">
+                    <span class="acct-date flex size-15 flex-none flex-col items-center justify-center rounded-[0.875rem] leading-tight font-black">
                         <span class="text-xl tabular-nums">{{ $starts->translatedFormat('j') }}</span>
                         <span class="text-xs">{{ $starts->translatedFormat('F') }}</span>
                     </span>
@@ -49,7 +49,7 @@
     </div>
 
     @if ($summary['latest_requests']->isEmpty())
-        <p class="mt-4 text-muted">{{ __('account.summary.requests_empty') }}</p>
+        <x-empty-state icon="clipboard-document-list" :message="__('account.summary.requests_empty')" class="mt-4" />
     @else
         <ul class="mt-4 divide-y divide-line/70">
             @foreach ($summary['latest_requests'] as $request)

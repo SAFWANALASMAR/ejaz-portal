@@ -12,7 +12,8 @@
     @else
         <ul class="space-y-3">
             @foreach ($registrations as $registration)
-                <li class="flex flex-wrap items-center justify-between gap-3 p-5 concept-panel">
+                <li class="acct-row">
+                    <x-icon-tile icon="academic-cap" size="sm" class="shrink-0" />
                     <div class="min-w-0 flex-1 basis-60">
                         @if ($registration->program->is_published && ! $registration->program->trashed())
                             <a href="{{ route('programs.show', $registration->program->slug) }}" wire:navigate class="block font-semibold text-ink hover:text-primary">{{ $registration->program->title }}</a>
@@ -61,8 +62,9 @@
             <h2 class="mt-8 mb-3 text-lg font-black text-primary-dark" data-my-programs-completed>{{ __('programs.mine.completed_title') }}</h2>
             <ul class="space-y-3">
                 @foreach ($completed as $registration)
-                    <li class="flex flex-wrap items-center justify-between gap-3 p-5 concept-panel">
-                        <div class="min-w-0">
+                    <li class="acct-row">
+                        <x-icon-tile icon="check-badge" size="sm" class="shrink-0" />
+                        <div class="min-w-0 flex-1 basis-48">
                             <span class="block font-semibold text-ink">{{ $registration->program->title }}</span>
                             <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
                                 <span>{{ $registration->program->type->name }}</span>

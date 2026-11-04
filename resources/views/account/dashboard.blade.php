@@ -42,14 +42,14 @@
                     <span class="flex items-center justify-between gap-3">
                         <x-icon-tile :icon="$card['icon']" size="md" />
                         @if (($counts[$card['route']] ?? 0) > 0)
-                            <span class="text-[1.625rem] font-black tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
+                            <span class="acct-number font-black tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
                         @endif
                     </span>
                     <span class="text-[1.3125rem] font-black">{{ $card['title'] }}</span>
                     @if (filled($card['description']))
                         <span class="tone-card-muted text-[15px] leading-6">{{ $card['description'] }}</span>
                     @endif
-                    <span class="mt-auto inline-flex size-[2.375rem] items-center justify-center self-end rounded-full border border-current/40 bg-white/15 transition group-hover:bg-white/25" aria-hidden="true">
+                    <span class="acct-arrow mt-auto inline-flex size-[2.375rem] items-center justify-center self-end rounded-full" aria-hidden="true">
                         {{ \App\Support\Icon::svg($card['external'] ? 'arrow-up-left' : 'arrow-left', 'size-4') }}
                     </span>
                     @if ($card['external'])
