@@ -23,6 +23,7 @@ import './profile-reveal';
 import './image-fit';
 import './contact-form';
 import './file-input';
+import './social-filters';
 
 function setOpen(toggle, open) {
     const target = document.getElementById(toggle.getAttribute('aria-controls'));

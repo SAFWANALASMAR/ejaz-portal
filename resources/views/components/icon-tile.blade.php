@@ -8,7 +8,8 @@
     والرسم Phosphor duotone عبر App\Support\Icon. زخرفة، فاسم البطاقة يكفي. size: xs (القائمة وروابط التذييل) أو sm أو md أو lg أو xl.
     وtone اسم سابق لـ shade، وindex لم يعد يحدد الدرجة (يبقى في الخصائص فلا يتسرب سمةً إلى الصفحة).
 --}}
-@props(['icon', 'variant' => 'gradient', 'shade' => null, 'tone' => null, 'index' => 0, 'size' => 'md'])
+{{-- ورسم غير Phosphor (شعار منصة من x-social-icon) يُمرَّر في المحتوى بدل icon، فيأخذ المربع وحركته كما هما --}}
+@props(['icon' => null, 'variant' => 'gradient', 'shade' => null, 'tone' => null, 'index' => 0, 'size' => 'md'])
 
 @php
     $variant = in_array($variant, ['line', 'glass', 'gradient'], true) ? $variant : 'gradient';
@@ -19,5 +20,9 @@
 
 <span data-icon-tile data-variant="{{ $variant }}" @if ($shade) data-shade="{{ $shade }}" @endif
     {{ $attributes->class(['icon-tile gt', 'icon-tile-'.$size]) }} aria-hidden="true">
-    {{ \App\Support\Icon::svg($icon, $iconSize.' relative') }}
+    @if ($slot->isEmpty())
+        {{ \App\Support\Icon::svg((string) $icon, $iconSize.' relative') }}
+    @else
+        {{ $slot }}
+    @endif
 </span>

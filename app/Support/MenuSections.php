@@ -115,6 +115,8 @@ final class MenuSections
             ['label' => (string) __('media.tiles.albums'), 'url' => '/media/albums'],
             ['label' => (string) __('media.tiles.videos'), 'url' => '/library/'.LibrarySection::Videos->value],
             ['label' => (string) __('media.tiles.partners'), 'url' => '/media/partners'],
+            // «منشوراتنا» قسم من المركز الإعلامي لا عنصر في الصف الأول (المشرف، 4 نوفمبر 2026 — docs/decisions/2026-11-04-social-posts.md)
+            ['label' => (string) __('media.tiles.social'), 'url' => '/media/social'],
         ];
 
         // فتح الاستبيان وإغلاقه بموعدهما لا بحفظ سجله، فيُخزَّن دقيقة واحدة لا مع المحتوى: الرأس في كل صفحة بلا استعلام زائد

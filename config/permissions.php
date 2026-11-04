@@ -109,6 +109,8 @@ $modules = [
 
     // إعلانات الرئيسية (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
     'announcements' => $crud,
+    // «منشوراتنا»: منشورات الجمعية وأحداثها على منصات التواصل في المركز الإعلامي (طلب صفوان، 3 نوفمبر 2026)
+    'social_posts' => $crud,
     // التسجيل والتوثيق وإخفاء البوابات المؤجلة، وإعادة كلمة مرور من لا بريد له ولا جوال
     'accounts' => ['update'],
     // بطاقات لوحة المستفيد: إضافة وتعديل وإخفاء وترتيب (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
@@ -157,7 +159,7 @@ return [
             // الصفحات بلا edit_all: محرر الصفحات لمديري النظام وحدهما
             'menu.*', 'settings.*', 'pages.view', 'pages.create', 'pages.update', 'pages.delete', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*', 'media_assets.*',
-            'livestreams.*', 'announcements.*',
+            'livestreams.*', 'announcements.*', 'social_posts.*',
         ],
         'program_manager' => [
             'program_types.*', 'programs.*',

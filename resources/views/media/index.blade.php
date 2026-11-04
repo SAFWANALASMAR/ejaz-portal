@@ -10,6 +10,8 @@
         ['key' => 'announcements', 'icon' => 'megaphone', 'url' => route('media.announcements')],
         ['key' => 'albums', 'icon' => 'photo', 'url' => route('media.albums.index')],
         ['key' => 'partners', 'icon' => 'user-group', 'url' => route('media.partners')],
+        // «منشوراتنا» (طلب صفوان، 3 نوفمبر 2026)
+        ['key' => 'social', 'icon' => 'chat-bubble-left-right', 'url' => route('media.social')],
     ];
 @endphp
 
@@ -19,7 +21,8 @@
 <section class="pt-8 pb-6">
     <div class="mx-auto max-w-[82.5rem] px-4 sm:px-7">
         <h2 class="sr-only">{{ __('media.tiles.label') }}</h2>
-        <ul class="grid grid-cols-2 gap-3.5 lg:grid-cols-4" data-reveal-group data-media-tiles>
+        {{-- خمس بلاطات: صف واحد على الحاسوب، والأخيرة بعرض كامل في عمودي الجوال فلا تبقى وحدها نصف صف --}}
+        <ul class="grid grid-cols-2 gap-3.5 lg:grid-cols-5 [&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1" data-reveal-group data-media-tiles>
             @foreach ($tiles as $tile)
                 <li class="tone-card">
                     <a href="{{ $tile['url'] }}" wire:navigate class="group flex h-full items-center gap-3.5 px-4.5 py-4.5">

@@ -64,7 +64,7 @@ it('opens every header dropdown with the parent page itself, then its real secti
         ['id' => 9, 'label' => 'الأخبار', 'url' => '/media/news', 'opens_in_new_tab' => false],
         ['id' => 10, 'label' => 'صفحة أضافها المحرر', 'url' => '/competitions', 'opens_in_new_tab' => false],
     ]]);
-    expect(array_column($mediaChildren, 'url'))->toBe(['/media', '/media/news', '/media/announcements', '/media/albums', '/library/videos', '/media/partners', '/competitions'])
+    expect(array_column($mediaChildren, 'url'))->toBe(['/media', '/media/news', '/media/announcements', '/media/albums', '/library/videos', '/media/partners', '/media/social', '/competitions'])
         ->and($mediaChildren[0]['label'])->toBe('المركز الإعلامي');
 
     // الحوكمة: التصنيفات التي فيها وثيقة منشورة وحدها
