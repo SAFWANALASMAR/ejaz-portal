@@ -6,7 +6,7 @@
         @foreach (['registered' => 'academic-cap', 'completed' => 'check-badge', 'entries' => 'trophy'] as $key => $icon)
             <div class="tone-card grid grid-cols-[auto_1fr] items-center gap-x-3 p-4" data-stat-card>
                 <dt class="tone-card-muted contents text-sm"><x-icon-tile :icon="$icon" size="sm" :index="$loop->index" class="row-span-2" /><span>{{ $key === 'entries' ? __('portals.member_entries') : __('portals.member.stats.'.$key) }}</span></dt>
-                <dd class="text-2xl font-black tabular-nums">{{ number_format($stats[$key]) }}</dd>
+                <dd class="acct-number font-black tabular-nums">{{ number_format($stats[$key]) }}</dd>
             </div>
         @endforeach
     </dl>

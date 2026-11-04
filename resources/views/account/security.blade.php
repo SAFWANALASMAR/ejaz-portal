@@ -14,7 +14,7 @@
     @include('account.partials.profile-tabs')
 
     <x-card>
-        <h2 class="text-lg font-semibold text-ink">{{ __('account.security.two_factor') }}</h2>
+        <x-account-section-title icon="shield-check">{{ __('account.security.two_factor') }}</x-account-section-title>
         <p class="mt-2 leading-7 text-muted">{{ __('account.security.two_factor_intro') }}</p>
 
         @if ($user->requiresTwoFactor())
@@ -86,7 +86,7 @@
     </x-card>
 
     <x-card class="mt-6">
-        <h2 class="text-lg font-semibold text-ink">{{ __('account.security.other_sessions.title') }}</h2>
+        <x-account-section-title icon="devices">{{ __('account.security.other_sessions.title') }}</x-account-section-title>
         <p class="mt-2 leading-7 text-muted">{{ __('account.security.other_sessions.intro') }}</p>
 
         <form method="POST" action="{{ route('account.security.other-sessions') }}" class="mt-5 max-w-sm space-y-4" novalidate>

@@ -1,6 +1,6 @@
 {{--
     «قراءاتي ومسموعاتي» في رئيسية اللوحة (Final-Dashboard — البند D1): مجاميع صاحب الحساب في ثلاث بطاقات ملونة، ثم أحدث ما بدأه
-    بتقدّمه وزر المتابعة، و«الكل» إلى صفحة «قراءاتي». وبلا تقدّم: دعوة إلى المكتبة. بياناته وحده (BuildMyReading).
+    بتقدّمه وزر المتابعة، و«عرض الكل» إلى صفحة «قراءاتي». وبلا تقدّم: دعوة إلى المكتبة. بياناته وحده (BuildMyReading).
 --}}
 <section class="concept-panel rounded-[1.25rem] p-5 sm:p-6" aria-labelledby="account-my-reading" data-account-my-reading>
     <div class="flex items-center justify-between gap-3">
@@ -8,7 +8,7 @@
             <x-icon-tile icon="book-open" size="sm" shade="medium" />
             {{ __('reading.title') }}
         </h2>
-        <a href="{{ route('account.my-reading') }}" wire:navigate class="more-link shrink-0">{{ __('reading.view_all') }}<span class="sr-only">: {{ __('reading.title') }}</span></a>
+        <a href="{{ route('account.my-reading') }}" wire:navigate class="more-link shrink-0">{{ __('account.summary.view_all') }}<span class="sr-only">: {{ __('reading.title') }}</span></a>
     </div>
     <p class="mt-1 text-sm text-muted" data-reading-tracking-note="{{ $trackingDisabled ? 'off' : 'on' }}">{{ __($trackingDisabled ? 'reading.tracking.off_note' : 'reading.description') }}</p>
 
