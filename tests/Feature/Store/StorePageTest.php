@@ -8,9 +8,11 @@ use App\Filament\Resources\StoreItems\Pages\CreateStoreItem;
 use App\Filament\Resources\StoreItems\Pages\EditStoreItem;
 use App\Filament\Resources\StoreItems\Pages\ListStoreItems;
 use App\Filament\Resources\StoreItems\StoreItemResource;
+use App\Models\MenuItem;
 use App\Models\StoreItem;
 use App\Services\Store\FakeStoreCatalog;
 use App\Services\Store\ManualStoreCatalog;
+use App\Support\MenuSections;
 use App\Support\Store\StoreProduct;
 use Database\Seeders\DemoStoreItemsSeeder;
 use Filament\Actions\Testing\TestAction;
@@ -126,18 +128,45 @@ it('shows a saved item at once, without waiting for the cached page to expire', 
     $this->get('/store')->assertOk()->assertSee('عنصر جديد');
 });
 
-it('puts the store button in the header first row and inside the mobile menu, and leaves the seven menu items alone', function () {
+// ملاحظات المدير (4 نوفمبر 2026 ليلاً): كبسولة «المتجر الإلكتروني» تحت «تسجيل الدخول» بشكله في الصف الأول، وتحل محل زر الأيقونة
+it('puts the store capsule under the login capsule in the header first row, one store link there, and leaves the seven menu items alone', function () {
     $html = (string) $this->get('/')->assertOk()->getContent();
     $top = (string) str($html)->after('class="header-top"')->before('data-main-nav');
-    $mobile = (string) str($html)->after('id="mobile-menu"')->before('</header>');
-    $menu = (string) str($html)->after('data-main-nav')->before('</nav>');
+    $pills = (string) str($top)->after('class="header-pills')->before('</div>');
+    $store = preg_quote(route('store.index'), '#');
 
-    expect($top)->toMatch('#<a href="'.preg_quote(route('store.index'), '#').'"[^>]*wire:navigate[^>]*data-header-store#')
-        ->toContain('aria-label="'.__('store.page.open').'" title="'.__('store.page.open').'"')
-        ->and(__('store.page.open'))->toBe('المتجر والتبرعات')
-        // في قائمة ☰ بالنص الظاهر لا بالأيقونة وحدها
-        ->and($mobile)->toMatch('#<a href="'.preg_quote(route('store.index'), '#').'"[^>]*data-menu-store[^>]*>\s*<span data-icon-tile[\s\S]*?</span>\s*'.preg_quote(__('store.page.open'), '#').'\s*</a>#')
-        ->and($menu)->not->toContain(route('store.index'));
+    expect($pills)->toMatch('#<a href="'.preg_quote(route('login'), '#').'" class="login-pill">[\s\S]*?</a>\s*<a href="'.$store.'"[^>]*wire:navigate[^>]*data-header-store#')
+        ->toMatch('#data-header-store title="'.preg_quote(__('store.page.open'), '#').'"[^>]*class="login-pill[^"]*"#')
+        ->toContain(__('store.menu.header'))
+        ->and(substr_count($top, 'href="'.route('store.index').'"'))->toBe(1)
+        ->and(__('store.menu.header'))->toBe('المتجر الإلكتروني');
+
+    // صف القائمة سبعة عناصر بلا المتجر عنصراً رئيسياً (قسم في «الخدمات الإلكترونية» متى كان عنصرها في القائمة)
+    preg_match_all('#<(?:a|button)[^>]*class="nav-capsule"#', (string) str($html)->after('data-main-nav')->before('</nav>'), $capsules);
+    expect(implode('', $capsules[0]))->not->toContain(route('store.index'));
+});
+
+it('keeps the account capsule above the store capsule once signed in', function () {
+    $this->actingAs(userWithRole(RoleName::Member));
+    $pills = (string) str($this->get('/')->assertOk()->getContent())->after('class="header-pills')->before('</div>');
+
+    expect($pills)->toMatch('#<a href="'.preg_quote(route('account.dashboard'), '#').'"[^>]*class="login-pill">[\s\S]*?</a>\s*<a href="'.preg_quote(route('store.index'), '#').'"#');
+});
+
+it('keeps one store entry in the mobile menu, with its visible text', function () {
+    $mobile = (string) str($this->get('/')->assertOk()->getContent())->after('id="mobile-menu"')->before('</header>');
+
+    expect(substr_count($mobile, 'href="'.route('store.index').'"'))->toBe(1)
+        ->and($mobile)->toMatch('#<a href="'.preg_quote(route('store.index'), '#').'"[^>]*data-menu-store[^>]*>\s*<span data-icon-tile[\s\S]*?</span>\s*'.preg_quote(__('store.page.open'), '#').'\s*</a>#');
+});
+
+it('adds «متجر الجمعية» to the e-services dropdown, linking to the store page', function () {
+    MenuItem::factory()->create(['label' => 'الخدمات الإلكترونية', 'url' => '/services', 'sort' => 1]);
+
+    $dropdown = (string) str($this->get('/')->assertOk()->getContent())->after('data-main-nav')->before('</nav>');
+
+    expect(MenuSections::for('/services'))->toContain(['label' => 'متجر الجمعية', 'url' => '/store'])
+        ->and($dropdown)->toMatch('#<a href="'.preg_quote(url('/store'), '#').'"[^>]*wire:navigate[^>]*>متجر الجمعية</a>#');
 });
 
 it('lists /store in the sitemap', function () {

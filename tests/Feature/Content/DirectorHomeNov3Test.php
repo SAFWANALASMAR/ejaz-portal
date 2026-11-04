@@ -153,7 +153,8 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
     $x = new DOMXPath($dom);
 
     $row = $x->query("//header[@data-site-header]/div[contains(concat(' ', @class, ' '), ' header-top ')]")->item(0);
-    $items = $x->query(".//img[@data-brand-mark] | .//img[@data-logo-calligraphy] | .//*[@data-header-licence] | .//*[@data-search-open] | .//a[contains(@class, 'login-pill')]", $row);
+    // وكبسولة «المتجر الإلكتروني» تحت الدخول (data-header-store) في StorePageTest
+    $items = $x->query(".//img[@data-brand-mark] | .//img[@data-logo-calligraphy] | .//*[@data-header-licence] | .//*[@data-search-open] | .//a[contains(@class, 'login-pill') and not(@data-header-store)]", $row);
     $names = [];
     foreach ($items as $item) {
         $names[] = match (true) {

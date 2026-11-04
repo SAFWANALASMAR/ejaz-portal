@@ -41,14 +41,6 @@
             </p>
 
             <div class="header-actions">
-                {{-- «المتجر والتبرعات» (قرار صفوان، 4 نوفمبر 2026 — docs/decisions/2026-11-04-store-page.md): صفحة المتجر في الموقع، بأيقونة
-                     Phosphor duotone بمربع الهوية كزر المساعد. من 1024 وحده، وللجوال واللوحي العمودي داخل قائمة ☰. والقائمة السبعة كما هي --}}
-                <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-header-store
-                    @if (request()->routeIs('store.index')) aria-current="page" @endif
-                    class="header-icon-button hidden lg:inline-flex" aria-label="{{ __('store.page.open') }}" title="{{ __('store.page.open') }}">
-                    <x-icon-tile icon="storefront" size="xs" />
-                </a>
-
                 {{-- «المساعد الذكي» (البند ١٣ من إضافة توجيه المدير): يفتح المساعد القائم (partials/assistant — resources/js/assistant.js)، ويعمل
                      دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
                      ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰ --}}
@@ -65,8 +57,10 @@
                     {{ \App\Support\Icon::svg('magnifying-glass', 'size-[19px]', ['aria-hidden' => 'true']) }}
                 </button>
 
-                {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
-                <div class="hidden sm:block">
+                {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة. ومن 1024 تحت الدخول كبسولة «المتجر الإلكتروني» بشكله ومقاسه إلى صفحة
+                     «المتجر والتبرعات» (ملاحظات المدير، 4 نوفمبر 2026 ليلاً — docs/decisions/2026-11-04-store-page.md)، وتتجاوران حين يصغر الرأس
+                     عند التمرير (data-header-compact — concept.css .header-pills). وللجوال واللوحي العمودي داخل قائمة ☰ --}}
+                <div class="header-pills hidden sm:flex">
                     @auth
                         <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
                             <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
@@ -78,6 +72,12 @@
                             {{ __('site.login') }}
                         </a>
                     @endauth
+                    <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-header-store title="{{ __('store.page.open') }}"
+                        @if (request()->routeIs('store.index')) aria-current="page" @endif
+                        class="login-pill hidden lg:inline-flex">
+                        <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('storefront', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
+                        {{ __('store.menu.header') }}
+                    </a>
                 </div>
 
                 <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"

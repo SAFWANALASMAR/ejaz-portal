@@ -81,10 +81,11 @@ it('keeps the store out of the home service cards and out of the seven header it
     $this->seed(MenuSeeder::class);
     $html = (string) $this->get('/')->assertOk()->getContent();
     $cards = (string) str($html)->after('aria-labelledby="home-shortcuts"')->before('</section>');
-    $menu = (string) str($html)->after('data-main-nav')->before('</nav>');
+    // عناصر الصف الرئيسية وحدها: «متجر الجمعية» قسم في قائمة «الخدمات الإلكترونية» المنسدلة (4 نوفمبر 2026)
+    preg_match_all('#<(?:a|button)[^>]*class="nav-capsule"#', (string) str($html)->after('data-main-nav')->before('</nav>'), $capsules);
 
     expect($cards)->not->toContain(route('store.index'))
-        ->and($menu)->not->toContain(route('store.index'));
+        ->and(implode('', $capsules[0]))->not->toContain(route('store.index'));
 });
 
 it('keeps the internal store, donations and payments archived while the switch is off', function () {
