@@ -136,6 +136,68 @@ test.describe('social posts', () => {
         }
     });
 
+    // «لما نضغط على الأيقونة تتحرك» (صفوان، 4 نوفمبر 16:06): انضغاط ثم ارتداد، وقفزة مربع الشعار، ولون بانسياب، وتوسيط بنعومة
+    test('the filter pills move when pressed and chosen, and keep still for reduced motion', async ({ page }, testInfo) => {
+        const scale = (locator) => locator.evaluate((item) => {
+            const transform = getComputedStyle(item).transform;
+
+            return transform === 'none' ? 1 : Math.round(new DOMMatrix(transform).a * 100) / 100;
+        });
+
+        await page.emulateMedia({ reducedMotion: 'no-preference' });
+        await page.goto('/media/social');
+        const pills = page.locator('[data-social-filter="platform"] [data-social-filter-pill]');
+        const youtube = pills.filter({ hasText: 'يوتيوب' });
+        await youtube.scrollIntoViewIfNeeded();
+        expect(await youtube.evaluate((item) => getComputedStyle(item, '::before').transitionDuration)).toBe('0.3s');
+
+        // الضغط: تنضغط إلى 0.94، وترجع عند الرفع
+        const box = await youtube.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await expect.poll(() => scale(youtube)).toBe(0.94);
+        await page.mouse.up();
+
+        // الاختيار: التصفية كما هي، والنشطة الجديدة يقفز مربعها، وعلى الجوال تتوسط الشريط
+        await expect(page).toHaveURL(/platform=youtube/, { timeout: 30_000 });
+        const active = page.locator('[data-social-filter="platform"] [aria-current="page"]');
+        await expect(active).toContainText('يوتيوب');
+        await expect(page.locator('[data-social-post]').first()).toBeVisible();
+        expect(await active.locator('[data-icon-tile]').evaluate((tile) => getComputedStyle(tile).animationName)).toBe('social-tile-pop');
+
+        if (testInfo.project.name === 'mobile') {
+            const centred = () => page.locator('[data-social-filter="platform"] ul').evaluate((list) => {
+                const box = list.getBoundingClientRect();
+                const pill = list.querySelector('[aria-current="page"]').getBoundingClientRect();
+
+                return Math.abs(pill.left + pill.width / 2 - (box.left + box.width / 2)) <= 4;
+            });
+            await expect.poll(centred).toBe(true);
+            // ويبقى في الوسط بعد أن يستقر التمرير (لا يعيده الالتقاط إلى حافة الشريط)
+            await page.waitForTimeout(1000);
+            expect(await centred()).toBe(true);
+        }
+
+        // الرجوع يعيد «الكل» نشطة كما كانت
+        await page.goBack();
+        await expect(page).not.toHaveURL(/platform=/, { timeout: 30_000 });
+        await expect(active).toHaveCount(1);
+        await expect(active).not.toContainText('يوتيوب');
+
+        // لمن طلب تقليل الحركة: لا انضغاط ولا قفزة ولا انتقال
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        const instagram = pills.filter({ hasText: 'إنستغرام' });
+        expect(await instagram.evaluate((item) => getComputedStyle(item, '::before').transitionDuration)).toBe('0s');
+        const second = await instagram.boundingBox();
+        await page.mouse.move(second.x + second.width / 2, second.y + second.height / 2);
+        await page.mouse.down();
+        expect(await scale(instagram)).toBe(1);
+        await page.mouse.up();
+        await expect(page).toHaveURL(/platform=instagram/, { timeout: 30_000 });
+        await expect(active).toContainText('إنستغرام');
+        expect(await active.locator('[data-icon-tile]').evaluate((tile) => getComputedStyle(tile).animationName)).toBe('none');
+    });
+
     test('the media center shows the «منشوراتنا» tile', async ({ page }, testInfo) => {
         await page.goto('/media');
         const tile = page.locator('[data-media-tiles] a[href$="/media/social"]');
