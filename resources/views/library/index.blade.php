@@ -8,8 +8,9 @@
     use App\Enums\LibrarySection;
 @endphp
 
-{{-- رأس «فاتح بصورة واحدة» بصورة من صور المكتبة المنشورة (غلاف أو صورة مقطع) ما لم تُرفع صورته من اللوحة (إضافة توجيه المدير، البند ٢٥) --}}
-<x-page-hero :title="__('library.title')" :image="\App\Support\HomeContent::heroSlideUrl('library') ?? once(fn () => \App\Models\LibraryItem::query()->published()->whereNotNull('thumbnail')->newestFirst()->first()?->thumbnailUrl())" />
+{{-- رأس «فاتح بصورة واحدة» بصور تتبدل (إضافة توجيه المدير، البند ٢٥ — مراجعة المشرف على #157): صور المكتبة من اللوحة ثم أغلفة أحدث
+     العناصر المنشورة حتى أربع (LibraryHeroImages)، والواحدة ثابتة. وتُحسب مرة لعرضي ذاكرة المحتوى --}}
+<x-page-hero :title="__('library.title')" :images="once(fn () => \App\Support\LibraryHeroImages::urls())" />
 <x-page-sections />
 
 <section class="pt-8 pb-6">

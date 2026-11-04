@@ -14,7 +14,7 @@
             <x-section-heading center :description="__('ui.services.choose_hint')" class="mb-6.5">{{ __('ui.services.choose') }}</x-section-heading>
 
             {{-- بطاقات بالنمط «أ» (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٩ — x-service-card): ثلاثة أعمدة بلا خانة فارغة، وعمودان على
-                 820 فأقل وعمود على 480 فأقل، والبطاقة الأخيرة تمتد بما بقي من الصف --}}
+                 820 فأقل وعمود على 480 فأقل. والأخيرة في الثلاثة تمتد بما بقي من الصف، وفي العمودين في المنتصف بعرض بطاقة لا ممتدة --}}
             <ul class="service-grid" data-service-grid data-reveal-group>
                 @foreach ($tiles as $tile)
                     <li>

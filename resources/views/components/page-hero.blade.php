@@ -8,7 +8,7 @@
     جهة النهاية في الـ slot المسمى aside (بطاقة جوائز المسابقة)، تنزل تحت النص على الجوال. وcompact: أقصر بمسافات أقل (صفحة
     المسابقة، البند P3). والصورة صورة الصفحة متى مررتها (المرحلة ج)، وإلا الرسم المؤقت.
 --}}
-@props(['title', 'summary' => null, 'image' => null, 'eyebrow' => null, 'icon' => null, 'compact' => false])
+@props(['title', 'summary' => null, 'image' => null, 'images' => [], 'eyebrow' => null, 'icon' => null, 'compact' => false])
 
 @php
     $section = \App\Support\PageSections::for(request()->route());
@@ -22,7 +22,9 @@
         $summary = filled($summary) && str_contains((string) $editable['summary'], '【') ? $summary : $editable['summary'];
     }
     // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم ما يمرره القالب، ثم نقش الصفحة المحايد (NeutralImage)
-    $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? \App\Support\NeutralImage::forPage(request()->route()?->getName());
+    $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? ($images[0] ?? null) ?? \App\Support\NeutralImage::forPage(request()->route()?->getName());
+    // صور تتبدل في الإطار (رأس «مكتبة إعجاز» — البند ٢٥): أكثر من صورة وحدها، وإلا الصورة الواحدة ثابتة
+    $rotating = count($images) > 1 ? array_values($images) : [];
 @endphp
 
 {{-- «فاتح بصورة واحدة» (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٢٧ — docs/decisions/2026-11-03-director-home.md، ويحل
@@ -67,9 +69,18 @@
 
         <div class="page-hero-visual" data-page-hero-visual aria-hidden="true">
             <span class="page-hero-back"></span>
-            <span class="page-hero-frame">
-                <img src="{{ $heroSrc }}" alt="" width="1280" height="640" data-page-hero-image>
-            </span>
+            @if ($rotating !== [])
+                {{-- الصور تتبدل بتلاشٍ ناعم بالدوّار القائم (carousel.js، data-carousel)، ولا تبدأ لمن طلب تقليل الحركة، ويوقفها المرور --}}
+                <span class="page-hero-frame" data-carousel data-autoplay data-interval="5000" data-page-hero-rotator>
+                    @foreach ($rotating as $index => $src)
+                        <img src="{{ $src }}" alt="" width="1280" height="640" data-carousel-item data-page-hero-image @if ($index === 0) data-active @else loading="lazy" @endif>
+                    @endforeach
+                </span>
+            @else
+                <span class="page-hero-frame">
+                    <img src="{{ $heroSrc }}" alt="" width="1280" height="640" data-page-hero-image>
+                </span>
+            @endif
         </div>
     </div>
 </section>

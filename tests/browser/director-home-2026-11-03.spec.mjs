@@ -89,12 +89,9 @@ for (const width of [1024, 1280, 1366, 1440, 1920]) {
         console.log(`header ${width}px:`, JSON.stringify({ ...layout, boxes: undefined, assistant: undefined }));
 
         expect(layout.noHorizontalScroll).toBe(true);
-        // الرمز مزاح قليلاً عن أقصى اليمين (كان 20 بكسل)، والصف الأول في حاوية صف القائمة: حافتاه حافتا محتواها (تقييم اللقطات، البند ٥)
-        expect(layout.markFromEdge).toBeGreaterThanOrEqual(24);
-        if (width >= 1280) {
-            expect(Math.abs(layout.boxes.mark.right - layout.navContent.right), 'حافة الرمز حافة صف القائمة').toBeLessThanOrEqual(2);
-            expect(Math.abs(layout.boxes.login.left - layout.navContent.left), 'حافة الدخول حافة صف القائمة').toBeLessThanOrEqual(2);
-        }
+        // الرمز والدخول مزاحان 48 بكسل عن حافة الشاشة على كل عرض، كما في لقطة 1440 المعتمدة من «الكتلة اليمنى» (الإيداع 4cc30242 —
+        // مراجعة المشرف على #157، ويلغي محاذاة حاوية القائمة في البند ٥ من تقييم اللقطات)
+        expect(Math.abs(layout.markFromEdge - 48), 'الرمز 48 بكسل من الحافة').toBeLessThanOrEqual(3);
         // المخطوطة بعده مباشرة: فراغ صغير غير ملاصق
         expect(layout.markToCalligraphy).toBeGreaterThanOrEqual(8);
         expect(layout.markToCalligraphy).toBeLessThanOrEqual(24);
@@ -103,7 +100,7 @@ for (const width of [1024, 1280, 1366, 1440, 1920]) {
         expect(layout.calligraphyToLicence).toBeLessThanOrEqual(16);
         expect(Math.abs(layout.verticalOffset)).toBeLessThanOrEqual(4);
         // الدخول مزاح قليلاً عن أقصى اليسار، والبحث بجانبه، و«المساعد الذكي» بجانب البحث
-        expect(layout.loginFromEdge).toBeGreaterThanOrEqual(24);
+        expect(Math.abs(layout.loginFromEdge - 48), 'الدخول 48 بكسل من الحافة').toBeLessThanOrEqual(3);
         const { search, login } = layout.boxes;
         expect(search.left - login.right).toBeGreaterThanOrEqual(0);
         expect(search.left - login.right).toBeLessThanOrEqual(16);
@@ -113,9 +110,9 @@ for (const width of [1024, 1280, 1366, 1440, 1920]) {
         // والمنطقة قبل الأزرار فارغة، أوسع من كل فراغ داخل الكتلة، والصف لا ينكسر
         expect(layout.licenceToActions).toBeGreaterThanOrEqual(20);
         expect(layout.licenceToActions).toBeGreaterThan(Math.max(layout.markToCalligraphy, layout.calligraphyToLicence));
-        // المخطوطة ممدودة بأكبر ما يتسع (البندان ٤ و١٤)، والصف لا يزيد على 1320 فهي على 1440 و1920 بحجمها على 1320. وعلى 1024 تصغر
-        // ملاصقة للرمز، ومربع الترخيص ظاهر مصغّراً (قرار صفوان، 4 نوفمبر 2026، البند ٤ من تقييم اللقطات)
-        expect(layout.calligraphyHeight).toBeGreaterThan({ 1024: 60, 1280: 90, 1366: 100, 1440: 100, 1920: 100 }[width]);
+        // المخطوطة ممدودة بأكبر ما يتسع (البندان ٤ و١٤). وعلى 1024 تصغر ملاصقة للرمز، ومربع الترخيص ظاهر مصغّراً (قرار صفوان،
+        // 4 نوفمبر 2026، البند ٤ من تقييم اللقطات)
+        expect(layout.calligraphyHeight).toBeGreaterThan({ 1024: 55, 1280: 90, 1366: 103, 1440: 108, 1920: 116 }[width]);
         expect(layout.boxes.licence, 'مربع الترخيص ظاهر').not.toBeNull();
         expect(layout.calligraphyHeight).toBeLessThanOrEqual(120);
 
@@ -804,4 +801,46 @@ test('contact: the first approved paragraph shows once, in the hero', async ({ p
     const count = await page.evaluate((text) => document.body.innerText.split(text).length - 1, first);
     expect(count).toBe(1);
     await expect(page.locator('[data-page-hero] [data-hero-summary]').first()).toContainText(first);
+});
+
+// مراجعة المشرف على #157 (10:58)، البند ٢٥: رأس «مكتبة إعجاز» بصور تتبدل بتلاشٍ ناعم، وتقف لمن طلب تقليل الحركة. يلزمه صورتان فأكثر
+// (صور المكتبة من اللوحة أو أغلفة أحدث العناصر — LibraryHeroImages)
+test('library hero: the images rotate, and stay still under reduced motion', async ({ page, browser }, info) => {
+    test.skip(info.project.name !== 'desktop', 'السلوك واحد على العروض');
+    test.setTimeout(60_000);
+    await page.goto('/library');
+    const rotator = page.locator('[data-page-hero-rotator]');
+    test.skip((await rotator.count()) === 0, 'صورة واحدة أو لا صورة في هذه البيئة');
+    await page.mouse.move(1, 1);
+    const active = () => rotator.locator('img[data-active]').getAttribute('src');
+    const first = await active();
+    await expect.poll(active, { timeout: 8000 }).not.toBe(first);
+    expect(await rotator.locator('img[data-active]').evaluate((img) => getComputedStyle(img).transitionDuration)).not.toBe('0s');
+
+    const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'ar-SA', viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+    const still = await context.newPage();
+    await still.goto('/library');
+    const stillActive = () => still.locator('[data-page-hero-rotator] img[data-active]').getAttribute('src');
+    const start = await stillActive();
+    await still.waitForTimeout(6500);
+    expect(await stillActive(), 'لا تبديل مع تقليل الحركة').toBe(start);
+    await context.close();
+});
+
+// البند ٢٩: الخدمات التسع دائماً، وعلى 820 فأقل البطاقة الأخيرة الفردية في منتصف الصف بعرض بطاقة واحدة لا ممتدة (قرار صفوان في الملاحظة ٣٠)
+test('services: nine cards, and an odd last card is one card wide and centred at 820 and 390', async ({ page }, info) => {
+    test.skip(info.project.name === 'desktop', 'العرضان 820 و390');
+    await page.goto('/services');
+    const cards = page.locator('[data-service-grid] > li');
+    await expect(cards).toHaveCount(9);
+    await expect(page.locator('[data-service-grid] a[href$="/surveys"]')).toHaveCount(1);
+    const layout = await page.evaluate(() => {
+        const grid = document.querySelector('[data-service-grid]').getBoundingClientRect();
+        const items = [...document.querySelectorAll('[data-service-grid] > li')].map((item) => item.getBoundingClientRect());
+        const last = items.at(-1);
+
+        return { first: items[0].width, last: last.width, offCentre: (last.left + last.right) / 2 - (grid.left + grid.right) / 2 };
+    });
+    expect(Math.abs(layout.last - layout.first), 'عرض بطاقة واحدة').toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.offCentre), 'في المنتصف').toBeLessThanOrEqual(2);
 });

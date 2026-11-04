@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Survey;
-
 /*
 | بطاقات صفحة «خدماتنا الإلكترونية» (docs/design/ui-reference.md — الصورة 06 اللوحي).
 | البطاقة لا تظهر إلا إن وُجد مسارها، فكل وحدة تضيف بطاقتها هنا عند بنائها:
@@ -22,8 +20,9 @@ return [
         ['route' => 'services.assembly-membership', 'label' => 'services.tiles.membership', 'icon' => 'user-group', 'symbol' => 'membership'],
         ['route' => 'services.jobs', 'label' => 'services.tiles.jobs', 'icon' => 'briefcase', 'symbol' => 'jobs'],
         ['route' => 'services.volunteering', 'label' => 'services.tiles.volunteering', 'icon' => 'hand-raised', 'symbol' => 'volunteering'],
-        // الاستبيان العام المفتوح، متى وُجد
-        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'symbol' => 'surveys', 'wide' => true, 'available' => [Survey::class, 'hasOpenGeneral']],
+        // «قياس الرضا» ظاهر دائماً، فالبطاقات تسع في شبكة 3×3 بلا خانة فارغة (إضافة توجيه المدير، البند ١٧ — مراجعة المشرف على #157):
+        // يفتح الاستبيان العام المفتوح، وبلا استبيان مفتوح صفحة «قياس الرضا» برسالة أن لا استبيان الآن (SurveyController::index)، لا 404
+        ['route' => 'surveys.index', 'label' => 'services.tiles.surveys', 'icon' => 'face-smile', 'symbol' => 'surveys', 'wide' => true],
     ],
 
 ];

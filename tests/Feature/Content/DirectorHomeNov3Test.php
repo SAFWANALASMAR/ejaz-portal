@@ -16,10 +16,12 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\Icon;
+use App\Support\LibraryHeroImages;
 use Database\Seeders\AboutMenuAnchorsSeeder;
 use Database\Seeders\MenuSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Once;
 
 /*
 | توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): ترتيب الرئيسية من الأعلى، والبطاقات الخمس،
@@ -522,4 +524,61 @@ it('shows the first contact paragraph once, in the hero, even with the old conta
 
     expect(substr_count($html, $first))->toBe(1)
         ->and((string) str($html)->after('data-page-hero')->before('</section>'))->toContain($first);
+});
+
+/*
+| مراجعة المشرف على #157 (4 نوفمبر، 10:58): رأس «مكتبة إعجاز» بصور تتبدل (البند ٢٥)، و«قياس الرضا» بطاقة دائمة في الخدمات التسع
+| (البند ١٧ من الإضافة)، وقرارات صفوان في بطاقة المسجلين وصفة رئيس المجلس.
+*/
+it('picks the library hero images from the panel first, then the latest covers, at most four', function () {
+    Storage::fake('public');
+    Setting::put(HomeContent::KEY, ['page_heroes' => ['library' => 'settings/library-hero.jpg']]);
+    foreach (range(1, 5) as $day) {
+        LibraryItem::factory()->create(['thumbnail' => 'library/cover-'.$day.'.jpg', 'published_on' => now()->subDays($day)->toDateString()]);
+    }
+    LibraryItem::factory()->create(['thumbnail' => 'library/draft.jpg', 'is_published' => false, 'published_on' => now()->toDateString()]);
+
+    $urls = LibraryHeroImages::urls();
+
+    expect($urls)->toHaveCount(4)
+        ->and($urls[0])->toBe(Storage::disk('public')->url('settings/library-hero.jpg'))
+        ->and(array_slice($urls, 1))->toBe(array_map(fn (int $day): string => Storage::disk('public')->url('library/cover-'.$day.'.jpg'), [1, 2, 3]))
+        ->and($urls)->not->toContain(Storage::disk('public')->url('library/draft.jpg'));
+
+    $html = (string) $this->get('/library')->assertOk()->getContent();
+    $hero = (string) str($html)->after('data-page-hero ')->before('</section>');
+    expect($hero)->toContain('data-page-hero-rotator')->toContain('data-autoplay')
+        ->and(substr_count($hero, 'data-carousel-item'))->toBe(4);
+});
+
+it('shows a single library hero image without rotation markup, and the neutral picture without any', function () {
+    Storage::fake('public');
+    $hero = fn (): string => (string) str((string) $this->get('/library')->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+
+    expect(LibraryHeroImages::urls())->toBe([])
+        ->and($hero())->not->toContain('data-page-hero-rotator')->toContain('data-page-hero-image');
+
+    LibraryItem::factory()->create(['thumbnail' => 'library/only.jpg']);
+    ContentCache::flush();
+    // once() في القالب يحفظ الصور للطلب، والاختبار طلبان في عملية واحدة
+    Once::flush();
+
+    expect(LibraryHeroImages::urls())->toBe([Storage::disk('public')->url('library/only.jpg')])
+        ->and($hero())->not->toContain('data-page-hero-rotator')->not->toContain('data-carousel-item')
+        ->toContain('src="'.Storage::disk('public')->url('library/only.jpg').'"');
+});
+
+it('always shows the satisfaction card with no open survey: nine services and a link that opens', function () {
+    $html = (string) $this->get('/services')->assertOk()->getContent();
+    $grid = (string) str($html)->after('data-service-grid')->before('</ul>');
+
+    expect($grid)->toContain('href="'.route('surveys.index').'"')->toContain(e(__('services.tiles.surveys')))
+        ->and(substr_count($grid, 'class="service-card group"'))->toBe(9);
+
+    $this->get(route('surveys.index'))->assertOk()->assertSee(__('surveys.public.none'))->assertSee('data-surveys-none', false);
+});
+
+it('names the registrants card as the directive does, and the chairman by the official association name', function () {
+    expect(__('home.portal_stats.registrants'))->toBe('المسجلون في مسابقة البراهين')
+        ->and(__('home.sections.chairman.title'))->toBe('رئيس مجلس إدارة جمعية إعجاز للدراسات والبحوث العلمية');
 });
