@@ -8,9 +8,11 @@ use App\Filament\Resources\SocialPosts\Pages\CreateSocialPost;
 use App\Filament\Resources\SocialPosts\Pages\EditSocialPost;
 use App\Filament\Resources\SocialPosts\Pages\ListSocialPosts;
 use App\Filament\Resources\SocialPosts\SocialPostResource;
+use App\Models\MenuItem;
 use App\Models\SocialPost;
 use App\Models\User;
 use App\Rules\SocialPostUrl;
+use App\Support\MenuSections;
 use Database\Seeders\DemoSocialPostsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -434,6 +436,24 @@ it('shows the empty state, and the tile in the media center', function () {
     $this->get(route('media.index'))->assertOk()
         ->assertSee('href="'.route('media.social').'"', false)
         ->assertSee(__('media.tiles.social'));
+});
+
+it('lists «منشوراتنا» in the media center dropdown only, without adding a menu row or overriding the editor', function () {
+    $media = MenuItem::query()->create(['label' => 'المركز الإعلامي', 'url' => '/media', 'is_visible' => true, 'sort' => 3, 'opens_in_new_tab' => false]);
+    $rows = MenuItem::query()->count();
+
+    $html = $this->get('/contact')->assertOk()->getContent();
+    preg_match('/<ul id="menu-'.$media->id.'"[^>]*>(.*?)<\/ul>/s', (string) $html, $dropdown);
+    expect($dropdown[1])->toContain('href="'.url('/media/social').'"')->toContain(__('media.tiles.social'))
+        // قسم مولَّد لا صف في «القائمة»، فالصف الأول وعناصر المحرر كما هي
+        ->and(MenuItem::query()->count())->toBe($rows);
+
+    // وعنصر المحرر بالرابط نفسه يأخذ مكانه باسمه، ولا يتكرر
+    $children = MenuSections::children(['label' => 'المركز الإعلامي', 'url' => '/media', 'children' => [
+        ['id' => 5, 'label' => 'منشورات الجمعية', 'url' => '/media/social', 'opens_in_new_tab' => false],
+    ]]);
+    expect(array_count_values(array_column($children, 'url'))['/media/social'])->toBe(1)
+        ->and(array_column($children, 'label'))->toContain('منشورات الجمعية')->not->toContain(__('media.tiles.social'));
 });
 
 it('seeds marked demo posts in the local environment only', function () {
