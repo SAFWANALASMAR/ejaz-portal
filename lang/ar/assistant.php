@@ -142,6 +142,7 @@ return [
             'suggested_questions' => 'أسئلة مقترحة',
             'suggested_questions_hint' => 'تظهر أزراراً في النافذة. وفارغةً تُعرض عناوين مقالات الدليل المفعّلة.',
             'suggested_question' => 'السؤال',
+            'add_suggested_question' => 'إضافة سؤال',
             'provider' => 'المزود',
             'provider_hint' => 'البيانات تُعالج عند المزود، فيلزم قبل التشغيل موافقة الجمعية وذكره في سياسة الخصوصية.',
             'model' => 'النموذج',
