@@ -49,12 +49,14 @@ class BuildHomePage
         'media' => ['icon' => 'megaphone', 'route' => 'media.index'],
         // أيقونة للشركاء في الرئيسية (البند H5)
         'partners' => ['icon' => 'hand-raised', 'route' => 'media.partners'],
+        // «قياس الرضا» ظاهرة دائماً كما في صفحة الخدمات (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١٧): الخدمات التسع في الموضعين
+        'surveys' => ['icon' => 'face-smile', 'route' => 'surveys.index'],
     ];
 
     /**
      * لون مربع الأيقونة لكل بطاقة في «خدماتنا» (x-icon-tile): من ألوان الهوية بالتناوب.
      */
-    public const SHORTCUT_TONES = ['services' => 'pale', 'membership' => 'light', 'governance' => 'medium', 'competitions' => 'dark', 'initiatives' => 'pale', 'library' => 'light', 'media' => 'medium', 'partners' => 'dark'];
+    public const SHORTCUT_TONES = ['services' => 'pale', 'membership' => 'light', 'governance' => 'medium', 'competitions' => 'dark', 'initiatives' => 'pale', 'library' => 'light', 'media' => 'medium', 'partners' => 'dark', 'surveys' => 'pale'];
 
     /**
      * نماذج الفيديو في الرئيسية: أحدث ثلاثة مختارة منشورة برابط يوتيوب.

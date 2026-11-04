@@ -29,7 +29,8 @@ Schedule::command('ejaz:prune-video-uploads')->daily()->onOneServer();
 Schedule::command('ejaz:lapse-draw-void-requests')->daily()->onOneServer();
 
 // التسليم الآلي لمحاولات مسابقة الطلاب التي انتهى وقتها ولم يعد صاحبها (docs/plans/student-competition.md)
-Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping()->onOneServer();
+// وقفل منع التداخل خمس دقائق لا 24 ساعة (الافتراضي): إعادة تشغيل الحاويات أثناء التشغيل تترك القفل معلقاً، فيتوقف الإغلاق يوماً كاملاً
+Schedule::command('ejaz:close-expired-attempts')->everyMinute()->withoutOverlapping(5)->onOneServer();
 
 // شريحة البراهين في الرئيسية بحالتها: تُمسح الرئيسية المخزّنة حين يعبر الوقت موعد الفتح أو الإغلاق (ملاحظة صفوان ٣٠)
 // والدالة ترد false حين لا موعد عابر، وLaravel يعدّ الرد false فشلاً فيسجل خطأ كل دقيقة، فالإغلاق لا يرد شيئاً
