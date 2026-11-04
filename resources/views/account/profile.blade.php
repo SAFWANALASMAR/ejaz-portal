@@ -6,7 +6,7 @@
     {{-- رسالة الحفظ وتغيير كلمة المرور من رسائل الجلسة في القالب (components/flash) --}}
 
     <x-card>
-        <h2 class="mb-5 text-lg font-semibold text-ink">{{ __('account.profile.info') }}</h2>
+        <x-account-section-title icon="identification-card">{{ __('account.profile.info') }}</x-account-section-title>
 
         <form method="POST" action="{{ route('user-profile-information.update') }}" class="grid gap-5 md:grid-cols-2" novalidate>
             @csrf
@@ -47,7 +47,7 @@
 
     {{-- «لا تحفظ قراءاتي» (قرار صفوان، 2 نوفمبر 2026 — docs/decisions/2026-11-01-my-reading.md) --}}
     <x-card>
-        <h2 id="reading-tracking" class="mb-3 scroll-mt-24 text-lg font-semibold text-ink">{{ __('reading.tracking.title') }}</h2>
+        <x-account-section-title icon="book-open" id="reading-tracking">{{ __('reading.tracking.title') }}</x-account-section-title>
         <form method="POST" action="{{ route('account.my-reading.tracking') }}" class="grid gap-4" data-reading-tracking-form>
             @csrf
             <input type="hidden" name="disabled" value="0">
@@ -66,7 +66,7 @@
     </x-card>
 
     <x-card>
-        <h2 id="password" class="mb-5 scroll-mt-24 text-lg font-semibold text-ink">{{ __('account.profile.password') }}</h2>
+        <x-account-section-title icon="key" id="password">{{ __('account.profile.password') }}</x-account-section-title>
 
         <form method="POST" action="{{ route('user-password.update') }}" class="grid gap-5 md:grid-cols-2" novalidate>
             @csrf

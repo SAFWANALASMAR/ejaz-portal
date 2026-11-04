@@ -32,7 +32,7 @@
                         <x-icon-tile :icon="$icon" size="xs" />
                         {{ __('account.oversight.'.$key) }}
                     </dt>
-                    <dd class="mt-2 text-2xl font-black tabular-nums">{{ number_format($oversight['stats'][$key]) }}</dd>
+                    <dd class="acct-number mt-2 font-black tabular-nums">{{ number_format($oversight['stats'][$key]) }}</dd>
                 </div>
             @endforeach
         </dl>
