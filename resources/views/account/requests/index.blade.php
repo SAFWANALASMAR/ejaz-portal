@@ -6,10 +6,11 @@
 <x-layouts.account :title="__('services.requests.title')">
     @if ($requests->isEmpty())
         <x-card>
-            <x-empty-state icon="inbox-stack" :message="__('services.requests.empty')" />
-            @if (Route::has('services.index'))
-                <x-button class="mt-4" variant="outline" :href="route('services.index')" arrow>{{ __('services.requests.browse') }}</x-button>
-            @endif
+            <x-empty-state icon="inbox-stack" :message="__('services.requests.empty')">
+                @if (Route::has('services.index'))
+                    <x-button variant="outline" :href="route('services.index')" arrow>{{ __('services.requests.browse') }}</x-button>
+                @endif
+            </x-empty-state>
         </x-card>
     @else
         <ul class="space-y-3">

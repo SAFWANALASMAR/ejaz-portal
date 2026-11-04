@@ -6,8 +6,9 @@
 <x-layouts.account :title="__('competitions.account.title')">
     @if ($submissions->isEmpty())
         <div class="p-6 concept-panel">
-            <x-empty-state icon="trophy" :message="__('competitions.account.empty')" />
-            <x-button :href="route('competitions.index')" variant="outline" class="mt-4" arrow>{{ __('competitions.account.browse') }}</x-button>
+            <x-empty-state icon="trophy" :message="__('competitions.account.empty')">
+                <x-button :href="route('competitions.index')" variant="outline" arrow>{{ __('competitions.account.browse') }}</x-button>
+            </x-empty-state>
         </div>
     @else
         <ul class="space-y-4">

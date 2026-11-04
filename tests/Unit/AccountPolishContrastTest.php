@@ -58,6 +58,12 @@ it('keeps white readable on the arrow and date gradient', function () {
     }
 });
 
+it('keeps the card count readable in its pill', function () {
+    $pill = '[data-account] .acct-count';
+
+    expect(contrastRatio(accountPolishValue($pill, 'color'), accountPolishValue($pill, 'background')))->toBeGreaterThanOrEqual(4.5);
+});
+
 it('uses blue only: every colour in the file is from the blue scale or white', function () {
     preg_match_all('/#([0-9a-f]{6})\b/i', accountPolishCss(), $hexes);
 

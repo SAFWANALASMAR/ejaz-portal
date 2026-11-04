@@ -169,6 +169,22 @@
     line-height: 1.1;
 }
 
+/* عدد البطاقة (المفتوح من الطلبات والقادم من البرامج) في كبسولة بجانب الأيقونة، لا رقماً طافياً (ملاحظة المقيّم على #167) */
+[data-account] .acct-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    border: 1px solid #bfe0fa;
+    background: #e3f1fc;
+    color: #1f4565;
+    font-size: 1.125rem;
+    font-weight: 900;
+}
+
 /* ── الصفوف: الطلبات والبرامج والمشاركات والنماذج ── */
 [data-account] .acct-row {
     display: flex;

@@ -42,7 +42,7 @@
                     <span class="flex items-center justify-between gap-3">
                         <x-icon-tile :icon="$card['icon']" size="md" />
                         @if (($counts[$card['route']] ?? 0) > 0)
-                            <span class="acct-number font-black tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
+                            <span class="acct-count tabular-nums">{{ number_format($counts[$card['route']]) }}</span>
                         @endif
                     </span>
                     <span class="text-[1.3125rem] font-black">{{ $card['title'] }}</span>

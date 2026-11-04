@@ -54,12 +54,56 @@ it('lists my requests and programmes as rows with an icon tile and the status pi
         ->assertSeeInOrder(['acct-row', 'data-icon-tile', 'برنامج الصف'], false);
 });
 
-it('shows the dashboard cards with a bold count and the gradient arrow', function () {
+it('shows the dashboard cards with the count in a pill and the gradient arrow', function () {
     ProgramRegistration::factory()->for($this->user)->for(Program::factory()->create(['starts_at' => now()->addDays(4)]))->create();
 
     $this->actingAs($this->user)->get(route('account.dashboard'))
         ->assertOk()
-        ->assertSeeInOrder(['data-account-cards', 'acct-number', 'acct-arrow'], false);
+        ->assertSeeInOrder(['data-account-cards', 'acct-count', 'acct-arrow'], false);
+});
+
+/** زر «تصفّح…» داخل صندوق الحالة الفارغة تحت رسالتها مباشرة، لا بعد إغلاقه (ملاحظة المقيّم على #167) */
+function expectBrowseInsideEmptyState(string $html, string $message, string $href, string $label): void
+{
+    expect($html)->toMatch('#'.preg_quote(e($message), '#').'</p>\s*<a href="'.preg_quote($href, '#').'"[^>]*>\s*'.preg_quote(e($label), '#').'#u');
+}
+
+it('puts a start button inside each empty panel of the dashboard and hides «view all» while empty', function () {
+    $html = $this->actingAs($this->user)->get(route('account.dashboard'))->assertOk()->getContent();
+
+    expectBrowseInsideEmptyState($html, __('account.summary.upcoming_empty'), route('programs.index'), __('programs.mine.browse'));
+    expectBrowseInsideEmptyState($html, __('account.summary.requests_empty'), route('services.index'), __('services.requests.browse'));
+
+    expect($html)
+        ->not->toContain('<span class="sr-only">: '.__('account.summary.upcoming').'</span>')
+        ->not->toContain('<span class="sr-only">: '.__('account.summary.latest_requests').'</span>');
+});
+
+it('shows «view all» on the dashboard panels once they have something', function () {
+    ServiceRequest::factory()->for($this->user)->for(Opening::factory()->create())->create();
+    ProgramRegistration::factory()->for($this->user)->for(Program::factory()->create(['starts_at' => now()->addDays(2)]))->create();
+
+    $this->actingAs($this->user)->get(route('account.dashboard'))
+        ->assertOk()
+        ->assertSee(__('account.summary.view_all').'<span class="sr-only">: '.__('account.summary.upcoming').'</span>', false)
+        ->assertSee(__('account.summary.view_all').'<span class="sr-only">: '.__('account.summary.latest_requests').'</span>', false)
+        ->assertDontSee(__('account.summary.upcoming_empty'));
+});
+
+it('puts the browse button inside the empty box of my requests, programmes and competitions', function (string $page, string $message, string $target, string $label) {
+    $html = $this->actingAs($this->user)->get(route($page))->assertOk()->getContent();
+
+    expectBrowseInsideEmptyState($html, __($message), route($target), __($label));
+})->with([
+    'requests' => ['account.requests.index', 'services.requests.empty', 'services.index', 'services.requests.browse'],
+    'programmes' => ['account.programs.index', 'programs.mine.empty', 'programs.index', 'programs.mine.browse'],
+    'competitions' => ['account.competitions', 'competitions.account.empty', 'competitions.index', 'competitions.account.browse'],
+]);
+
+it('labels every «view all» on the account home the same', function () {
+    $this->actingAs($this->user)->get(route('account.dashboard'))
+        ->assertOk()
+        ->assertSee(__('account.summary.view_all').'<span class="sr-only">: '.__('reading.title').'</span>', false);
 });
 
 it('heads every section of the form pages with an icon tile, keeping the anchors', function (string $route, array $titles) {
