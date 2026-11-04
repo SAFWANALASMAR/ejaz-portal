@@ -61,3 +61,27 @@ it('shows the dashboard cards with a bold count and the gradient arrow', functio
         ->assertOk()
         ->assertSeeInOrder(['data-account-cards', 'acct-number', 'acct-arrow'], false);
 });
+
+it('heads every section of the form pages with an icon tile, keeping the anchors', function (string $route, array $titles) {
+    $this->actingAs($this->user);
+    if ($route === 'account.security') {
+        session()->put('auth.password_confirmed_at', time());
+    }
+
+    $response = $this->get(route($route))->assertOk();
+
+    foreach ($titles as $title) {
+        $response->assertSeeInOrder(['data-account-section-title', 'data-icon-tile', __($title)], false);
+    }
+})->with([
+    'profile' => ['account.profile', ['account.profile_summary.title', 'account.profile.info', 'reading.tracking.title', 'account.profile.password']],
+    'security' => ['account.security', ['account.security.two_factor', 'account.security.other_sessions.title']],
+    'data' => ['account.data', ['account.data.export', 'account.data.deletion']],
+]);
+
+it('keeps the profile anchors that other pages link to', function () {
+    $this->actingAs($this->user)->get(route('account.profile'))
+        ->assertOk()
+        ->assertSee('id="password"', false)
+        ->assertSee('id="reading-tracking"', false);
+});

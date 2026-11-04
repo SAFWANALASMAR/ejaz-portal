@@ -6,13 +6,13 @@
     </x-card>
 
     <x-card>
-        <h2 class="text-lg font-semibold text-ink">{{ __('account.data.export') }}</h2>
+        <x-account-section-title icon="download-simple">{{ __('account.data.export') }}</x-account-section-title>
         <p class="mt-1 text-muted">{{ __('account.data.export_hint') }}</p>
         <x-button :href="route('account.data.export')" variant="secondary" class="mt-4">{{ __('site.download') }}</x-button>
     </x-card>
 
     <x-card>
-        <h2 class="text-lg font-semibold text-ink">{{ __('account.data.deletion') }}</h2>
+        <x-account-section-title icon="trash">{{ __('account.data.deletion') }}</x-account-section-title>
 
         @if ($user->deletion_requested_at)
             <x-alert type="info" class="mt-4">

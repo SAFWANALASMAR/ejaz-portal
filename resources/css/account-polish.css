@@ -206,7 +206,14 @@
     margin-top: 0.75rem;
 }
 
-/* ── دخول ناعم لمحتوى الصفحة، عنصراً بعد عنصر ── */
+/* ── دخول ناعم لمحتوى الصفحة، عنصراً بعد عنصر: بالشفافية وحدها، فلا يصير العنصر حاوية لنافذة ثابتة داخله أثناء الحركة. والرأس الداخلي
+   ينزلق بحركته في account.css، وصورة الترحيب ترتفع (لا شيء ثابت داخلها) ── */
+@keyframes acct-fade {
+    from {
+        opacity: 0;
+    }
+}
+
 @keyframes acct-rise {
     from {
         opacity: 0;
@@ -215,8 +222,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    [data-account-main] > * {
-        animation: acct-rise calc(520ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    [data-account-main] > :not(.account-head) {
+        animation: acct-fade calc(520ms * var(--motion)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
     [data-account-main] > :nth-child(2) {
@@ -243,4 +250,25 @@
 html[data-motion-off] [data-account-main] > *,
 html[data-motion-off] .acct-welcome-photo img {
     animation: none;
+}
+
+/* ── عنوان القسم في صفحات النماذج (بياناتي والأمان والبيانات الشخصية — x-account-section-title): مربع أيقونة متدرج كالبطاقات،
+   وخط فاصل خفيف تحته يجمع حقول القسم. والمجرد (-bare) بلا فاصل، لعنوان يشاركه زر في صف واحد ── */
+.acct-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid #bfe0fa;
+    color: #1f4565;
+    font-size: 1.25rem;
+    font-weight: 900;
+    line-height: 1.4;
+}
+
+.acct-section-title-bare {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
 }

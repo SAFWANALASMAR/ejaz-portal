@@ -43,9 +43,9 @@
         animation: account-enter 0.45s ease-out both;
     }
 
-    .account-head + * ,
+    /* ما تحت الرأس بالشفافية وحدها، فلا يصير حاوية للعناصر الثابتة أثناء الحركة */
     .account-head ~ * {
-        animation: account-enter 0.5s 0.08s ease-out both;
+        animation: account-fade 0.5s 0.08s ease-out both;
     }
 }
 
@@ -58,5 +58,11 @@ html[data-motion-off] .account-head ~ * {
     from {
         opacity: 0;
         transform: translateY(8px);
+    }
+}
+
+@keyframes account-fade {
+    from {
+        opacity: 0;
     }
 }

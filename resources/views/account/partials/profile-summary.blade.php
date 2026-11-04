@@ -18,7 +18,7 @@
 
 <x-card data-profile-summary>
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="flex items-center gap-2 text-lg font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('account.profile_summary.title') }}</h2>
+        <x-account-section-title icon="user" class="acct-section-title-bare">{{ __('account.profile_summary.title') }}</x-account-section-title>
         @if ($hasMasked)
             <button type="button" data-reveal-toggle aria-expanded="false" aria-controls="profile-summary-list"
                 data-label-show="{{ __('account.profile_summary.show') }}" data-label-hide="{{ __('account.profile_summary.hide') }}"
