@@ -19,13 +19,14 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class ProgramForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make(__('programs.admin.sections.basics'))->columns(2)->columnSpanFull()->schema([
+            Section::make(__('programs.admin.sections.basics'))->icon(Heroicon::OutlinedAcademicCap)->columns(2)->columnSpanFull()->schema([
                 TextInput::make('title')->label(__('programs.admin.fields.title'))->required()->maxLength(200)->columnSpanFull(),
                 ContentFields::slug(),
                 Select::make('program_type_id')->label(__('programs.admin.fields.type'))
@@ -50,7 +51,7 @@ class ProgramForm
                     ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
-            Section::make(__('programs.admin.sections.schedule'))->columns(2)->columnSpanFull()->schema([
+            Section::make(__('programs.admin.sections.schedule'))->icon(Heroicon::OutlinedCalendarDays)->columns(2)->columnSpanFull()->schema([
                 // وبرنامج المكتبة يبقى مفتوحاً بعد بدئه حتى نهايته الاختيارية
                 DateTimePicker::make('starts_at')->label(__('programs.admin.fields.starts_at'))->seconds(false)->required(),
                 DateTimePicker::make('ends_at')->label(__('programs.admin.fields.ends_at'))->seconds(false)->afterOrEqual('starts_at'),
@@ -59,7 +60,7 @@ class ProgramForm
                 TextInput::make('meeting_url')->label(__('programs.admin.fields.meeting_url'))->helperText(__('programs.admin.fields.meeting_url_hint'))
                     ->url()->maxLength(500)->rules([new SafeUrl(allowInternal: false)])->extraInputAttributes(['dir' => 'ltr'])->columnSpanFull(),
             ]),
-            Section::make(__('programs.admin.sections.registration'))->columns(2)->columnSpanFull()->schema([
+            Section::make(__('programs.admin.sections.registration'))->icon(Heroicon::OutlinedClipboardDocumentCheck)->columns(2)->columnSpanFull()->schema([
                 TextInput::make('seats')->label(__('programs.admin.fields.seats'))->helperText(__('programs.admin.fields.seats_hint'))->integer()->minValue(1)->maxValue(100000),
                 Toggle::make('has_waitlist')->label(__('programs.admin.fields.has_waitlist'))->inline(false),
                 DateTimePicker::make('registration_opens_at')->label(__('programs.admin.fields.registration_opens_at'))->helperText(__('programs.admin.fields.registration_opens_at_hint'))->seconds(false),
@@ -68,6 +69,7 @@ class ProgramForm
                 Textarea::make('conditions')->label(__('programs.admin.fields.conditions'))->rows(4)->maxLength(5000)->columnSpanFull(),
             ]),
             Section::make(__('programs.admin.sections.form_fields'))
+                ->icon(Heroicon::OutlinedQueueList)
                 ->description(__('programs.admin.sections.form_fields_hint'))
                 ->columnSpanFull()
                 ->schema([FormFieldsRepeater::make(allowFiles: false)]),
