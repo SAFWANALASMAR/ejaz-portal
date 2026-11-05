@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Actions\Users\ReleasePhone;
 use App\Models\User;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -57,16 +58,17 @@ class VerifyPhoneCode
     {
         $key = SendPhoneVerificationCode::cacheKey($user, $purpose);
         $entry = Cache::get($key);
+        $phone = $purpose === SendPhoneVerificationCode::VERIFY ? $user->phoneToVerify() : $user->phone;
 
         if (! is_array($entry)
-            || $entry['phone'] !== $user->phone
+            || $entry['phone'] !== $phone
             || $entry['attempts'] >= SendPhoneVerificationCode::MAX_ATTEMPTS) {
             Cache::forget($key);
 
             throw ValidationException::withMessages(['code' => $messages['expired']]);
         }
 
-        if (! hash_equals($entry['hash'], SendPhoneVerificationCode::hash($code, (string) $user->phone))) {
+        if (! hash_equals($entry['hash'], SendPhoneVerificationCode::hash($code, (string) $phone))) {
             $entry['attempts']++;
             // لا تمديد لمدة الرمز مع المحاولات الخاطئة
             Cache::put($key, $entry, Carbon::createFromTimestamp($entry['expires_at']));
@@ -85,22 +87,27 @@ class VerifyPhoneCode
     }
 
     /**
-     * الرقم الموثق لحساب واحد (فهرس تفرد جزئي)، والحسابات غير الموثقة التي تحمله تفقده، فلا يحجز
-     * حساب غير موثق رقم صاحبه (decisions.md — 14 أكتوبر 2026). ورقم موثق في حساب آخر لا يُوثَّق ثانية.
+     * الرقم لحساب واحد (فهرس تفرد — decisions/2026-11-05-phone-login.md). ومن سجّل برقم يحمله حساب غير موثق (pending_phone)
+     * يأخذه بالرمز: يُنزع من ذلك الحساب بسجل عملية وتنبيه (ReleasePhone)، فلا يحجز حساب غير موثق رقم صاحبه. ورقم موثق في
+     * حساب آخر لا يُوثَّق ثانية.
      */
     private function claimNumber(User $user): void
     {
-        try {
-            DB::transaction(function () use ($user): void {
-                $holders = User::query()->where('phone', $user->phone)->whereKeyNot($user->getKey());
+        $phone = $user->phoneToVerify();
 
-                if ((clone $holders)->whereNotNull('phone_verified_at')->exists()) {
+        try {
+            DB::transaction(function () use ($user, $phone): void {
+                $holder = User::query()->where('phone', $phone)->whereKeyNot($user->getKey())->lockForUpdate()->first();
+
+                if ($holder !== null && $holder->phone_verified_at !== null) {
                     throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
                 }
 
-                $holders->whereNull('phone_verified_at')->update(['phone' => null]);
+                if ($holder !== null) {
+                    ReleasePhone::release($holder, $user);
+                }
 
-                $user->forceFill(['phone_verified_at' => now()])->save();
+                $user->forceFill(['phone' => $phone, 'pending_phone' => null, 'phone_verified_at' => now()])->save();
             });
         } catch (UniqueConstraintViolationException) {
             // حسابان وثّقا الرقم نفسه في اللحظة نفسها

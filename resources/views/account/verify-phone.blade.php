@@ -1,8 +1,8 @@
 <x-layouts.account :title="__('account.phone.title')">
     <x-card class="max-w-xl">
-        @if ($user->phone)
+        @if ($user->phoneToVerify())
             <p class="leading-7 text-ink">
-                {{ __('account.phone.intro', ['phone' => \App\Support\SaudiPhone::masked($user->phone)]) }}
+                {{ __('account.phone.intro', ['phone' => \App\Support\SaudiPhone::masked($user->phoneToVerify())]) }}
             </p>
 
             <form method="POST" action="{{ route('account.phone.verify.store') }}" class="mt-5 space-y-5" novalidate>

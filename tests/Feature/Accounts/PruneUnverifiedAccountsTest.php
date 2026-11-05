@@ -27,7 +27,7 @@ function abandoned(array $attributes = [], int $days = 15): User
 {
     $at = now()->subDays($days);
     $user = User::factory()->create([
-        'phone' => '+966512345678',
+        'phone' => '+9665'.fake()->unique()->numerify('########'),
         'email_verified_at' => null,
         'phone_verified_at' => null,
         'created_at' => $at,

@@ -56,7 +56,8 @@ class SendPhoneVerificationCode
 
     public function handle(User $user, string $purpose = self::VERIFY): void
     {
-        $phone = $user->phone;
+        // التوثيق إلى الرقم المعلّق إن وُجد، والاستعادة إلى الرقم الموثق وحده
+        $phone = $purpose === self::VERIFY ? $user->phoneToVerify() : $user->phone;
 
         if ($phone === null) {
             throw ValidationException::withMessages(['code' => __('account.phone.no_phone')]);

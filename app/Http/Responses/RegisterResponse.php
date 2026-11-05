@@ -2,7 +2,6 @@
 
 namespace App\Http\Responses;
 
-use App\Models\User;
 use App\Support\AccountSettings;
 use App\Support\IntendedUrl;
 use Illuminate\Http\JsonResponse;
@@ -11,10 +10,10 @@ use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * بعد التسجيل: إلى توثيق الجوال متى كان التوثيق مفعّلاً وللحساب جوال، فقد أُرسل إليه الرمز، والوجهة باقية في الجلسة
- * يتبعها التوثيق بعده (PhoneVerificationController). وإلا إلى الصفحة التي جاء منها (التسجيل في مسابقة أو برنامج — ملاحظة
- * المراجعة على #96)، ولوحة المستخدم إن لم تكن (التوثيق مؤجل بقرار المدير التنفيذي، 25 أكتوبر 2026 — AccountSettings).
- * ولا يُتبع رابط مقصود في لوحة الإدارة لمن لا يدخلها (IntendedUrl).
+ * بعد التسجيل: إلى توثيق الجوال متى كان التوثيق مفعّلاً، فقد أُرسل إليه الرمز، وإلا إلى «حسابي» (التوثيق مؤجل بقرار
+ * المدير التنفيذي، 25 أكتوبر 2026 — AccountSettings). ولا عودة إلى الصفحة التي جاء منها، ولو كانت التسجيل في مسابقة أو
+ * برنامج: الرابط المقصود في الجلسة يُحذف، فلا يتبعه التوثيق بعده أيضاً، إلا رابط الاستبيان برمزه (IntendedUrl — قرار صفوان،
+ * 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md).
  */
 class RegisterResponse implements RegisterResponseContract
 {
@@ -27,10 +26,9 @@ class RegisterResponse implements RegisterResponseContract
             return new JsonResponse('', 201);
         }
 
-        $user = $request->user();
-        IntendedUrl::dropAdminFor($request, $user instanceof User ? $user : null);
+        IntendedUrl::keepOnlyFollowedAfterLogin($request);
 
-        return AccountSettings::verificationEnabled() && $user?->phone !== null
+        return AccountSettings::verificationEnabled() && $request->user()?->phoneToVerify() !== null
             ? redirect()->route('account.phone.verify')
             : redirect()->intended(route('account.dashboard'));
     }

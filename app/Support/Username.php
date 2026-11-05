@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Closure;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -10,7 +9,8 @@ use Illuminate\Support\Facades\DB;
  * والأرقام والنقطة والشرطة السفلية، يبدأ بحرف. فلا يشبه البريد (بلا @) ولا رقم الجوال (يبدأ بحرف)، فيُعرف نوع معرّف
  * الدخول من شكله (LoginIdentifier). ويُوحَّد بأحرف صغيرة قبل الحفظ والبحث.
  *
- * ولا يُقبل اسم محجوز يوهم بأنه حساب رسمي، ولا اسم حساب مجهَّل، برسالة «غير متاح» نفسها (مراجعة المشرف المبكرة، ١٧).
+ * ولا يُنشأ اسم مستخدم جديد منذ التسجيل بالجوال (decisions/2026-11-05-phone-login.md)، والحسابات القديمة تدخل بأسمائها. ويبقى
+ * حجز الأسماء الموهمة وأسماء الحسابات المجهَّلة لأي اسم يُنشأ بعدُ (مراجعة المشرف المبكرة، ١٧).
  */
 final class Username
 {
@@ -31,22 +31,6 @@ final class Username
     public static function normalize(?string $username): string
     {
         return mb_strtolower(trim(Digits::latin((string) $username)));
-    }
-
-    /**
-     * @return list<mixed>
-     */
-    public static function rules(): array
-    {
-        return ['required', 'string', 'min:'.self::MIN, 'max:'.self::MAX, 'regex:'.self::PATTERN,
-            function (string $attribute, mixed $value, Closure $fail): void {
-                $username = self::normalize(is_string($value) ? $value : '');
-
-                if (self::isReserved($username) || self::isRetired($username)) {
-                    $fail(__('account.register.username_taken'));
-                }
-            },
-        ];
     }
 
     public static function isReserved(string $username): bool

@@ -5,6 +5,7 @@ namespace App\Actions\Users;
 use App\Models\User;
 use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -51,14 +52,24 @@ class UpdateUserAccount
         DB::transaction(function () use ($actor, $user, $data, $roles, $nationalIdExport, $isActive, $email, $phone): void {
 
             // البريد أو الجوال الجديد لا يرث توثيق القديم، وتوثيق الجوال أساس التقديم في المسابقات
-            $user->forceFill([
-                'name' => $data['name'],
-                'email' => $email,
-                'phone' => $phone,
-                'is_active' => $isActive,
-                'email_verified_at' => $email === $user->email ? $user->email_verified_at : null,
-                'phone_verified_at' => $phone === $user->phone ? $user->phone_verified_at : null,
-            ])->save();
+            try {
+                $user->forceFill([
+                    'name' => $data['name'],
+                    'email' => $email,
+                    'phone' => $phone,
+                    'is_active' => $isActive,
+                    'email_verified_at' => $email === $user->email ? $user->email_verified_at : null,
+                    'phone_verified_at' => $phone === $user->phone ? $user->phone_verified_at : null,
+                    // رقم يُحفظ يُسقط الرقم المعلّق، فلا يُنزع برمزه القديم رقم غيره بعدُ (مراجعة المشرف، L2)
+                    ...($phone !== null ? ['pending_phone' => null] : []),
+                ])->save();
+            } catch (UniqueConstraintViolationException $exception) {
+                // حفظ متزامن بقيمة أخذها حساب آخر بعد فحص النموذج: خطأ التحقق نفسه لا 500، على حقل الفهرس الذي تعارض
+                // (decisions/2026-11-05-phone-login.md)
+                $field = str_contains($exception->getMessage(), 'email') ? 'email' : 'phone';
+
+                throw ValidationException::withMessages([$field => __('validation.unique', ['attribute' => __('users.fields.'.$field)])]);
+            }
 
             if ($roles !== null && $actor->can('assignRoles', $user)) {
                 $this->changeRoles->handle($actor, $user, $roles);

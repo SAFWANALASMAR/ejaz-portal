@@ -480,15 +480,15 @@ it('ranks tied scores equally in the results export, and shows the grand prize t
 
 // ── بعد دمج ملاحظات المدير التنفيذي (#66) ومراجعة المشرف على 0b788d7f
 
-it('lets a student with a username alone, no email and no phone, register in the competition and take a branch', function () {
+it('lets a student with a phone alone, no email and no username, register in the competition and take a branch', function () {
     studentQuestion($this->round);
 
     $this->post('/register', [
-        'name' => 'طالب المعمل', 'username' => 'lab.student7', 'password' => 'Thursday-Exam-Key-2026', 'password_confirmation' => 'Thursday-Exam-Key-2026', 'privacy' => '1',
+        'name' => 'طالب المعمل', 'phone' => '0551230007', 'password' => 'Thursday-Exam-Key-2026', 'password_confirmation' => 'Thursday-Exam-Key-2026', 'privacy' => '1',
     ])->assertSessionHasNoErrors();
 
-    $student = User::query()->where('username', 'lab.student7')->sole();
-    expect($student->email)->toBeNull()->and($student->phone)->toBeNull();
+    $student = User::query()->where('phone', '+966551230007')->sole();
+    expect($student->email)->toBeNull()->and($student->username)->toBeNull();
 
     $this->actingAs($student)->get('/competitions/brahin/register')->assertOk();
     $this->post('/competitions/brahin/register', [

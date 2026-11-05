@@ -52,12 +52,12 @@ it('sends staff without two-factor yet to the panel, which asks them to set it u
     $this->get('/admin')->assertRedirect(route('account.security'));
 });
 
-it('keeps the page a member asked for before logging in', function () {
+it('sends a member to their account, not to the page they asked for before logging in', function () {
     $member = User::factory()->create(['email' => 'member@example.test']);
     $member->assignRole(RoleName::Member->value);
 
     $this->get('/account/profile')->assertRedirect('/login');
-    $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertRedirect('/account/profile');
+    $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertRedirect('/account'); // decisions/2026-11-05-phone-login.md
 });
 
 it('keeps members and assembly members out of the admin panel', function (RoleName $role) {

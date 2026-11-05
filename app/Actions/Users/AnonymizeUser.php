@@ -57,6 +57,7 @@ class AnonymizeUser
                     'username' => null,
                     'email' => 'deleted-'.$user->id.'@deleted.invalid',
                     'phone' => null,
+                    'pending_phone' => null,
                     'email_verified_at' => null,
                     'phone_verified_at' => null,
                     'password' => Str::password(32),
@@ -75,6 +76,9 @@ class AnonymizeUser
             if ($oldUsername !== null) {
                 Username::retire($oldUsername);
             }
+
+            // ورقمه الذي أفرغه ترحيل تفرد الجوال وحُفظ للرجوع (decisions/2026-11-05-phone-login.md). ويُحذف هذا السطر مع الجدول
+            DB::table('phone_login_cleared_phones')->where('user_id', $user->id)->delete();
 
             // ورسائل «تواصل معنا» من حسابه، أو من بريده الموثّق قبل أن يسجّل: اسم المرسل وبريده وجواله ونصها
             // (Inquiry::FREE_TEXT)، بلا تسجيل. ويبقى رقمها ونوعها وحالتها وتاريخها للإحصاء
