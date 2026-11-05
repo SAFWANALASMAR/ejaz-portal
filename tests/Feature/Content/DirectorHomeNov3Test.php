@@ -153,7 +153,8 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
     $x = new DOMXPath($dom);
 
     $row = $x->query("//header[@data-site-header]/div[contains(concat(' ', @class, ' '), ' header-top ')]")->item(0);
-    $items = $x->query(".//img[@data-brand-mark] | .//img[@data-logo-calligraphy] | .//*[@data-header-licence] | .//*[@data-search-open] | .//a[contains(@class, 'login-pill')]", $row);
+    // وكبسولة «المتجر الإلكتروني» تحت الدخول (data-header-store) في StorePageTest
+    $items = $x->query(".//img[@data-brand-mark] | .//img[@data-logo-calligraphy] | .//*[@data-header-licence] | .//*[@data-search-open] | .//a[contains(@class, 'login-pill') and not(@data-header-store)]", $row);
     $names = [];
     foreach ($items as $item) {
         $names[] = match (true) {
@@ -447,7 +448,7 @@ it('puts «من نحن» in a soft light card with the vision and mission as quo
 /*
 | البند ٢٨ من الإضافة: القائمة المنسدلة «عن الجمعية» بخمس مراسٍ بالترتيب، من بذرة لا تمس ما عدّله المحرر.
 */
-it('adds the five «عن الجمعية» anchors in order after the parent page, once, keeping what the admin edited (item 28)', function () {
+it('adds the «عن الجمعية» anchors in order after the parent page, once, keeping what the admin edited (item 28)', function () {
     (new MenuSeeder)->run();
     $about = MenuItem::query()->whereNull('parent_id')->where('url', '/about')->firstOrFail();
     MenuItem::query()->where('parent_id', $about->id)->where('label', 'شهادة ترخيص الجمعية')->update(['label' => 'شهادة الترخيص من المحرر']);
@@ -460,7 +461,7 @@ it('adds the five «عن الجمعية» anchors in order after the parent page
 
     expect($anchors->map(fn (MenuItem $item): array => [$item->label, $item->url])->all())->toBe(AboutMenuAnchorsSeeder::ITEMS)
         // قبل العناصر القائمة في ترتيبها (والصفحة الأم أول القائمة المنسدلة)، ولا تكرار، وما عدّله المحرر باقٍ
-        ->and($children->pluck('url')->slice(0, 5)->values()->all())->toBe(array_column(AboutMenuAnchorsSeeder::ITEMS, 1))
+        ->and($children->pluck('url')->slice(0, count(AboutMenuAnchorsSeeder::ITEMS))->values()->all())->toBe(array_column(AboutMenuAnchorsSeeder::ITEMS, 1))
         ->and($children->where('label', 'شهادة الترخيص من المحرر'))->toHaveCount(1)
         ->and($children->where('label', 'التوجه الاستراتيجي'))->toHaveCount(1);
 
@@ -498,6 +499,7 @@ it('gives each «عن الجمعية» anchor an existing id on the about page, 
         ['type' => 'text', 'data' => ['heading' => 'الأهداف', 'body' => '<p>هدف</p>']],
         ['type' => 'text', 'data' => ['heading' => __('ui.about_anchors.values'), 'body' => '<p>قيمة</p>']],
     ]])->save();
+    Initiative::factory()->create();
     ContentCache::flush();
 
     $html = $this->get(route('about'))->assertOk()->getContent();
@@ -602,4 +604,28 @@ it('always shows the satisfaction card with no open survey: eight services and a
 it('names the registrants card as the directive does, and the chairman by the official association name', function () {
     expect(__('home.portal_stats.registrants'))->toBe('المسجلون في مسابقة البراهين')
         ->and(__('home.sections.chairman.title'))->toBe('رئيس مجلس إدارة جمعية إعجاز للدراسات والبحوث العلمية');
+});
+
+/*
+| المدير التنفيذي عبر صفوان (4 نوفمبر 2026): «الأهداف» بعد «الرسالة» وقبل «القيم»، و«اللوائح والسياسات» تُخفى من «عن الجمعية».
+*/
+it('puts «الأهداف» between «الرسالة» and «القيم» on a menu seeded before, and hides «اللوائح والسياسات»', function () {
+    (new MenuSeeder)->run();
+    $about = MenuItem::query()->whereNull('parent_id')->where('url', '/about')->firstOrFail();
+    // قائمة رابط العرض قبل التعديل: المراسي الخمس القديمة
+    $old = array_values(array_filter(AboutMenuAnchorsSeeder::ITEMS, fn (array $item): bool => $item[1] !== '/about#about-goals'));
+    $min = (int) MenuItem::query()->where('parent_id', $about->id)->min('sort');
+    foreach ($old as $index => [$label, $url]) {
+        MenuItem::query()->where('parent_id', $about->id)->where('url', $url)->exists()
+            || MenuItem::query()->create(['parent_id' => $about->id, 'label' => $label, 'url' => $url, 'sort' => $min - 5 + $index, 'is_visible' => true]);
+    }
+
+    (new AboutMenuAnchorsSeeder)->run();
+    (new AboutMenuAnchorsSeeder)->run();
+
+    $visible = MenuItem::query()->where('parent_id', $about->id)->where('is_visible', true)->orderBy('sort')->orderBy('id')->pluck('url')->all();
+
+    expect(array_slice($visible, 0, count(AboutMenuAnchorsSeeder::ITEMS)))->toBe(array_column(AboutMenuAnchorsSeeder::ITEMS, 1))
+        ->and(MenuItem::query()->where('parent_id', $about->id)->where('url', '/about#about-goals')->count())->toBe(1)
+        ->and(MenuItem::query()->where('parent_id', $about->id)->where('label', 'اللوائح والسياسات')->value('is_visible'))->toBeFalse();
 });

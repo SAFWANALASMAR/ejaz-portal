@@ -89,7 +89,8 @@ it('shows announcements within their display days, filters them by type, and sen
     $this->get('/media/announcements?kind=programs')->assertSee('إعلان حاضر')->assertDontSee('منتج المتجر');
 
     expect($store->href())->toBe(route('store.index'))
-        ->and($store->opensExternally())->toBeTrue()
+        // صفحة «المتجر والتبرعات» في الموقع نفسه (4 نوفمبر 2026)
+        ->and($store->opensExternally())->toBeFalse()
         ->and($current->href())->toBe($current->url);
 });
 

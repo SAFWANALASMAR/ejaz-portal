@@ -23,4 +23,9 @@ class SettingsStoreCatalog implements StoreCatalog
 
         return $products;
     }
+
+    public function purchaseUrl(StoreProduct $product, int $quantity = 1): ?string
+    {
+        return $product->safeUrl();
+    }
 }

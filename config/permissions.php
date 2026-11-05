@@ -111,6 +111,8 @@ $modules = [
     'announcements' => $crud,
     // «منشوراتنا»: منشورات الجمعية وأحداثها على منصات التواصل في المركز الإعلامي (طلب صفوان، 3 نوفمبر 2026)
     'social_posts' => $crud,
+    // «المتجر والتبرعات»: بطاقات في الموقع يُدفع ثمنها في متجر سلة (قرار صفوان، 4 نوفمبر 2026 — docs/decisions/2026-11-04-store-page.md)
+    'store_items' => $crud,
     // التسجيل والتوثيق وإخفاء البوابات المؤجلة، وإعادة كلمة مرور من لا بريد له ولا جوال
     'accounts' => ['update'],
     // بطاقات لوحة المستفيد: إضافة وتعديل وإخفاء وترتيب (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
@@ -159,7 +161,7 @@ return [
             // الصفحات بلا edit_all: محرر الصفحات لمديري النظام وحدهما
             'menu.*', 'settings.*', 'pages.view', 'pages.create', 'pages.update', 'pages.delete', 'initiatives.*', 'board.*', 'governance.*',
             'library.*', 'news.*', 'media.*', 'partners.*', 'redirects.*', 'media_assets.*',
-            'livestreams.*', 'announcements.*', 'social_posts.*',
+            'livestreams.*', 'announcements.*', 'social_posts.*', 'store_items.*',
         ],
         'program_manager' => [
             'program_types.*', 'programs.*',

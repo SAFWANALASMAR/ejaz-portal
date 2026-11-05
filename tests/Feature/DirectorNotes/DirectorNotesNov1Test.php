@@ -70,8 +70,8 @@ it('opens every header dropdown with the parent page itself, then its real secti
     // الحوكمة: التصنيفات التي فيها وثيقة منشورة وحدها
     expect(array_column(MenuSections::for('/governance'), 'url'))->toBe(['/governance?category='.DocumentCategory::AnnualReports->value]);
 
-    // الخدمات: ما في صفحة الخدمات نفسها
-    expect(array_column(MenuSections::for('/services'), 'label'))->toBe(array_map(fn (array $tile): string => __($tile['label']), MenuSections::availableServices()));
+    // الخدمات: ما في صفحة الخدمات نفسها، ثم «متجر الجمعية» إلى صفحة المتجر (ملاحظات المدير، 4 نوفمبر 2026 ليلاً)
+    expect(array_column(MenuSections::for('/services'), 'label'))->toBe([...array_map(fn (array $tile): string => __($tile['label']), MenuSections::availableServices()), __('store.menu.services_item')]);
 
     // وفي الرأس: أول عنصر في قائمة المركز الإعلامي رابط الصفحة الأم
     preg_match('/<ul id="menu-'.$media->id.'"[^>]*>(.*?)<\/ul>/s', $html, $dropdown);
