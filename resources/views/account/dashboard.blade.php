@@ -4,6 +4,11 @@
 @endphp
 
 <x-layouts.account :title="__('account.dashboard.title')" welcome>
+    {{-- مسابقة الطلاب أولاً بمرحلتها وزرها، فوق الترحيب وشريط المكتبة، فيراها الطالب على الجوال بلا تمرير (ملاحظات المدير
+         التنفيذي، ليلة 4 نوفمبر 2026، وقبولها في 5 نوفمبر) --}}
+    <x-slot:aboveWelcome>
+        @include('account.partials.competition-cards', ['cards' => $competitions])
+    </x-slot:aboveWelcome>
     <x-slot:belowWelcome>{{ $library }}</x-slot:belowWelcome>
 
     {{-- تنبيها التوثيق متى فُعّل من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
@@ -25,9 +30,6 @@
             </x-alert>
         @endif
     @endif
-
-    {{-- مسابقة الطلاب أولاً بمرحلتها وزرها (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026) --}}
-    @include('account.partials.competition-cards', ['cards' => $competitions])
 
     @include('account.partials.attention', ['summary' => $summary])
 
