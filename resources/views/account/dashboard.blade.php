@@ -26,6 +26,9 @@
         @endif
     @endif
 
+    {{-- مسابقة الطلاب أولاً بمرحلتها وزرها (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026) --}}
+    @include('account.partials.competition-cards', ['cards' => $competitions])
+
     @include('account.partials.attention', ['summary' => $summary])
 
     @include('account.partials.oversight', ['oversight' => $oversight])

@@ -44,7 +44,7 @@ beforeEach(function () {
  */
 function reviewRegistration(array $overrides = []): array
 {
-    return ['name' => 'عبدالله محمد', 'username' => uniqueUsername(), 'password' => 'Long-Enough-Pass-2026',
+    return ['name' => 'عبدالله محمد', 'phone' => '05'.fake()->unique()->numerify('########'), 'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
 }
 
@@ -85,14 +85,14 @@ it('makes the one-time password from characters that HTML leaves as they are', f
 it('lets nobody reserve an email by registering it unverified: the verified owner takes it', function () {
     $squatter = User::factory()->create(['username' => 'squatter', 'email' => 'owner@example.test', 'email_verified_at' => null]);
 
-    $this->post('/register', reviewRegistration(['username' => 'real.owner', 'email' => 'owner@example.test']))->assertSessionHasNoErrors();
-    $owner = User::where('username', 'real.owner')->sole();
+    $this->post('/register', reviewRegistration(['phone' => '0512340001', 'email' => 'owner@example.test']))->assertSessionHasNoErrors();
+    $owner = User::where('phone', '+966512340001')->sole();
     $this->post('/logout');
 
-    // بريد يحمله حسابان غير موثقين لا يُدخل به، ويدخل كلٌّ باسم مستخدمه
+    // بريد يحمله حسابان غير موثقين لا يُدخل به، ويدخل كلٌّ بجواله أو باسم مستخدمه
     $this->post('/login', ['login' => 'owner@example.test', 'password' => 'Long-Enough-Pass-2026']);
     $this->assertGuest();
-    $this->post('/login', ['login' => 'real.owner', 'password' => 'Long-Enough-Pass-2026']);
+    $this->post('/login', ['login' => '0512340001', 'password' => 'Long-Enough-Pass-2026']);
     $this->assertAuthenticatedAs($owner);
     $this->post('/logout');
 
@@ -110,16 +110,6 @@ it('lets nobody reserve an email by registering it unverified: the verified owne
     Password::sendResetLink(['email' => 'owner@example.test']);
     Notification::assertSentTo($owner, ResetPasswordNotification::class);
     Notification::assertNotSentTo($late, ResetPasswordNotification::class);
-});
-
-it('does not sign in by a phone shared by more than one unverified account', function () {
-    foreach (['first.holder', 'second.holder'] as $username) {
-        User::factory()->create(['username' => $username, 'phone' => '+966512345678', 'phone_verified_at' => null, 'password' => Hash::make('Long-Enough-Pass-2026')]);
-    }
-
-    expect(User::findByLoginIdentifier('0512345678'))->toBeNull();
-    $this->post('/login', ['login' => '0512345678', 'password' => 'Long-Enough-Pass-2026']);
-    $this->assertGuest();
 });
 
 // ٥
@@ -291,11 +281,11 @@ it('answers the Filament failed-rows download with 404 for everyone, the adminis
 });
 
 // ١٧
-it('refuses reserved usernames and the usernames of anonymized accounts', function () {
-    foreach (['admin', 'info', 'support', 'ejaz', 'ejaz.official'] as $username) {
-        $this->post('/register', reviewRegistration(['username' => $username]))
-            ->assertSessionHasErrors(['username' => __('account.register.username_taken')]);
-    }
+it('takes no username at registration, so neither a reserved nor a retired username can be claimed', function () {
+    // التسجيل بالجوال ولا اسم مستخدم للحساب الجديد (decisions/2026-11-05-phone-login.md): يُهمل الحقل إن أُرسل
+    $this->post('/register', reviewRegistration(['username' => 'admin']))->assertSessionHasNoErrors();
+    $this->post('/logout');
+    expect(User::query()->whereNotNull('username')->exists())->toBeFalse();
 
     $gone = User::factory()->create(['username' => 'gone.user', 'deletion_requested_at' => now()]);
     app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $gone);
@@ -303,6 +293,6 @@ it('refuses reserved usernames and the usernames of anonymized accounts', functi
     expect($gone->fresh()->username)->toBeNull()
         ->and(DB::table('retired_usernames')->count())->toBe(1)
         ->and(DB::table('retired_usernames')->value('hash'))->not->toContain('gone');
-    $this->post('/register', reviewRegistration(['username' => 'gone.user']))
-        ->assertSessionHasErrors(['username' => __('account.register.username_taken')]);
+    $this->post('/register', reviewRegistration(['username' => 'gone.user']))->assertSessionHasNoErrors();
+    expect(User::query()->where('username', 'gone.user')->exists())->toBeFalse();
 });

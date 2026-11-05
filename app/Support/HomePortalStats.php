@@ -29,6 +29,9 @@ final class HomePortalStats
 
     public const KEY = 'portal.home-stats';
 
+    /** ثواني التشغيل التي يُعدّ بعدها المقطع مشاهدة */
+    public const MIN_VIEW_SECONDS = 10;
+
     /**
      * @return array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}
      */
@@ -61,7 +64,8 @@ final class HomePortalStats
 
     /**
      * قراءات الكتب والأبحاث ومشاهدات المقاطع المرئية والصوتية بعدد المرات: صف «قراءاتي» لكل قارئ ومادة، فقارئ الكتاب قراءة
-     * واحدة مهما قرأ من صفحاته. والصف بلا صفحة ولا ثانية (فُتحت المادة ولم يُقرأ منها شيء) لا يُعدّ.
+     * واحدة مهما قرأ من صفحاته. والصف بلا صفحة ولا ثانية (فُتحت المادة ولم يُقرأ منها شيء) لا يُعدّ، والمقطع لا يُعدّ قبل عشر ثوانٍ
+     * من تشغيله، فلا تُنفخ المشاهدات بثانية لكل مقطع (مراجعة المشرف على #182، L2).
      *
      * @return array{book_reads: int, media_views: int}
      */
@@ -74,7 +78,7 @@ final class HomePortalStats
         $row = DB::table('library_progress')
             ->join('library_items', 'library_items.id', '=', 'library_progress.library_item_id')
             ->selectRaw('count(case when library_items.section in ('.$in($books).') and library_progress.pages_count > 0 then 1 end) as book_reads', $books)
-            ->selectRaw('count(case when library_items.section in ('.$in($media).') and library_progress.seconds_consumed > 0 then 1 end) as media_views', $media)
+            ->selectRaw('count(case when library_items.section in ('.$in($media).') and library_progress.seconds_consumed >= ? then 1 end) as media_views', [...$media, self::MIN_VIEW_SECONDS])
             ->first();
 
         return [

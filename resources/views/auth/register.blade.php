@@ -1,6 +1,6 @@
-{{-- على الحاسوب عمودان (ملاحظات المدير التنفيذي، 4 نوفمبر 2026): الاسم واسم المستخدم والبريد والجوال، ثم كلمة المرور وشروطها وتأكيدها،
+{{-- على الحاسوب عمودان (ملاحظات المدير التنفيذي، 4 نوفمبر 2026): الاسم والجوال والبريد، ثم كلمة المرور وشروطها وتأكيدها،
      فتقصر البطاقة. وعلى الجوال عمود واحد بالترتيب نفسه. ونموذج أقصر (إضافة المشرف 01:14): بلا تلميح كلمة المرور (شروطها تحتها
-     بنصها) ولا تلميح البريد (ملاحظة «اختياريان» فوقه تقول ما فيه) --}}
+     بنصها) ولا تلميح البريد («(اختياري)» في نص الحقل) --}}
 <x-layouts.auth :title="__('account.register.title')" :intro="__('account.register.intro')" wide>
     <form method="POST" action="{{ route('register.store') }}" class="space-y-4" novalidate>
         @csrf
@@ -10,20 +10,13 @@
                 <x-field name="name" :label="__('account.register.name')" :placeholder="__('account.register.name')" icon="user" hide-label
                     autocomplete="name" maxlength="120" required autofocus />
 
-                {{-- الدخول باسم المستخدم، والبريد والجوال اختياريان (ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
-                <x-field name="username" :label="__('account.register.username')" :placeholder="__('account.register.username')" icon="at-symbol" hide-label
-                    :hint="__('account.register.username_hint')" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr"
-                    minlength="3" maxlength="30" required />
+                {{-- الدخول بالجوال، والبريد اختياري، ولا اسم مستخدم للحساب الجديد (قرار صفوان، 5 نوفمبر 2026) --}}
+                <x-field name="phone" type="tel" :label="__('account.register.phone')" :placeholder="__('account.register.phone_placeholder')" icon="device-phone-mobile" hide-label
+                    :hint="__('account.register.phone_hint')" autocomplete="tel" inputmode="tel" dir="auto" required />
 
-                <fieldset class="space-y-4 rounded-2xl border border-line/70 p-4">
-                    <legend class="px-1 text-sm leading-6 text-muted">{{ __('account.register.optional_note') }}</legend>
-
-                    <x-field name="email" type="email" :label="__('account.register.email')" :placeholder="__('account.register.email_placeholder')" icon="envelope" hide-label
-                        autocomplete="email" dir="auto" />
-
-                    <x-field name="phone" type="tel" :label="__('account.register.phone')" :placeholder="__('account.register.phone_placeholder')" icon="device-phone-mobile" hide-label
-                        :hint="__('account.register.phone_hint')" autocomplete="tel" inputmode="tel" dir="auto" />
-                </fieldset>
+                {{-- بلا تلميح: «(اختياري)» في نص الحقل (نموذج أقصر، إضافة المشرف 01:14) --}}
+                <x-field name="email" type="email" :label="__('account.register.email')" :placeholder="__('account.register.email_placeholder')" icon="envelope" hide-label
+                    autocomplete="email" dir="auto" />
             </div>
 
             <div class="space-y-4">

@@ -51,6 +51,7 @@ return [
         'logout' => 'خروج',
         'password_reset' => 'تعيين كلمة المرور',
         'password_set_by_admin' => 'كلمة مرور مؤقتة من الإدارة',
+        'phone_released' => 'تحرير رقم جوال من حساب غير موثق',
         'two_factor_reset_by_admin' => 'إعادة ضبط التحقق الثنائي من الإدارة',
         'other_sessions_ended' => 'الخروج من الأجهزة الأخرى',
         'registered' => 'تسجيل حساب جديد',

@@ -28,9 +28,6 @@ class EntryController extends Controller
         $user = $this->user($request);
 
         if (! $user->hasVerifiedPhone()) {
-            // بعد التحقق يعود إلى صفحة المسابقة وزرها، لأن POST لا يُعاد توجيهه
-            redirect()->setIntendedUrl(route('competitions.show', $competition->slug));
-
             return redirect()->route('account.phone.verify')->with('status', __('competitions.entry.verify_phone'));
         }
 

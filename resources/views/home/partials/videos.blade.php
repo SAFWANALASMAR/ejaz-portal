@@ -15,7 +15,7 @@
                 @php($thumbnail = $item->thumbnailUrl())
                 {{-- العنوان فوق الصورة رابطاً إلى صفحة المقطع، ويختفي حين يحل المشغّل مكان الصورة --}}
                 <li class="card-lift relative overflow-hidden [&:has(iframe)_[data-video-caption]]:hidden">
-                    <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
+                    <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-progress="{{ route('library.progress', [$item->section->value, $item->slug]) }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                         data-video-title="{{ __('library.item.player', ['title' => $item->title]) }}"
                         class="group relative block aspect-video overflow-hidden bg-primary text-white"
                         aria-label="{{ __('home.videos.play', ['title' => $item->title]) }}">

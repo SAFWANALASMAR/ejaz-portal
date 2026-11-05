@@ -72,6 +72,18 @@ class UserPolicy extends ModulePolicy
     }
 
     /**
+     * تحرير رقم جوال غير موثق من حساب حجزه عن صاحبه (ReleasePhone — decisions/2026-11-05-phone-login.md): لمديري النظام
+     * وحدهما، فيما يعدّلانه من الحسابات. ولا لرقم موثق، فصاحبه أثبته بالرمز.
+     */
+    public function releasePhone(User $user, User $record): bool
+    {
+        return RoleName::isAdministrator($user)
+            && $record->phone !== null
+            && $record->phone_verified_at === null
+            && $this->update($user, $record);
+    }
+
+    /**
      * كلمة مرور جديدة من اللوحة لمن لا يستعيدها بنفسه: لا بريد موثق له ولا جوال موثق (ملاحظات المدير التنفيذي، 25 أكتوبر
      * 2026). للمدير التنفيذي والمسؤول التقني (accounts.update)، فيما يعدّله من الحسابات، ولا لحسابه نفسه.
      */

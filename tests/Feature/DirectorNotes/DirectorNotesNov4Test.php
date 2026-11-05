@@ -143,7 +143,8 @@ it('keeps the login card short on desktop and lays registration in two columns',
     // صورة أسفل البطاقة للجوال وحده، ومسافات أقل على الحاسوب
     expect($login)->toContain('lg:pt-6 lg:pb-6')->toContain('object-cover lg:hidden')
         ->and($register)->toContain('lg:max-w-[58rem]')->toContain('data-register-columns')->toContain('lg:grid-cols-2')
-        // الحقول كلها باقية، بأسمائها
-        ->and($register)->toContain('name="name"')->toContain('name="username"')->toContain('name="email"')->toContain('name="phone"')
+        // الحقول بأسمائها، بلا اسم مستخدم للحساب الجديد (الدخول بالجوال، #180)
+        ->and($register)->not->toContain('name="username"')
+        ->and($register)->toContain('name="name"')->toContain('name="email"')->toContain('name="phone"')
         ->toContain('name="password"')->toContain('name="password_confirmation"')->toContain('name="privacy"');
 });

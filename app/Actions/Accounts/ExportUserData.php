@@ -47,6 +47,7 @@ class ExportUserData
                 'email' => $user->email,
                 'email_verified_at' => $date($user->email_verified_at),
                 'phone' => $user->phone,
+                'pending_phone' => $user->getAttributes()['pending_phone'] ?? null,
                 'phone_verified_at' => $date($user->phone_verified_at),
                 'privacy_accepted_at' => $date($user->privacy_accepted_at),
                 'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),

@@ -16,7 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * مدخل كل بوابة بعد الدخول (requirements/12 §12): من يدخل لوحة الإدارة (الموظفون والمجلس والمحكّمون)
  * إلى /admin، والمشترك إلى لوحته (/account). والمشرف العام إلى لوحته في حسابه، وفيها رابط لوحة الإدارة وإحصائياته
- * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). والرابط المقصود قبل الدخول مقدَّم على الجميع.
+ * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026).
+ *
+ * ولا عودة إلى أي صفحة سابقة، ولو كانت صفحة المسابقة أو البرنامج التي طلبت الدخول: الرابط المقصود في الجلسة يُحذف
+ * (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md، ويلغي العودة في قرار 30 أكتوبر). إلا رابط الاستبيان
+ * برمزه ورابط توثيق البريد، فيعودان إليهما (IntendedUrl — مراجعة المشرف على #180، ٦).
  */
 class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
 {
@@ -31,13 +35,10 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         }
 
         $user = $request->user();
-        $home = $user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
+        IntendedUrl::keepOnlyFollowedAfterLogin($request);
+
+        return redirect()->intended($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
             ? url(Filament::getPanel('admin')->getPath())
-            : Fortify::redirects('login');
-
-        // ولا يُتبع رابط مقصود في لوحة الإدارة لمن لا يدخلها (رابط بقي في الجلسة من حساب خرج قبله)
-        IntendedUrl::dropAdminFor($request, $user instanceof User ? $user : null);
-
-        return redirect()->intended($home);
+            : Fortify::redirects('login'));
     }
 }

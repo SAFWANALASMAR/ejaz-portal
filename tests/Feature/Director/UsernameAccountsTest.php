@@ -17,8 +17,9 @@ use Spatie\Activitylog\Models\Activity;
 use Tests\Fakes\FakeSmsGateway;
 
 /*
-| التسجيل باسم المستخدم، والبريد والجوال اختياريان، والتوثيق مؤجل بإعداد مطفأ افتراضياً، والاستعادة للبريد أو الجوال
-| الموثق وحده، وكلمة مرور مؤقتة من اللوحة لمن لا يستعيدها (ملاحظات المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
+| التسجيل بالجوال، والبريد اختياري، ولا اسم مستخدم للحساب الجديد (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md)،
+| والحسابات القديمة تدخل باسم مستخدمها. والتوثيق مؤجل بإعداد مطفأ افتراضياً، والاستعادة للبريد أو الجوال الموثق وحده، وكلمة مرور
+| مؤقتة من اللوحة لمن لا يستعيدها (ملاحظات المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
 */
 
 beforeEach(function () {
@@ -29,11 +30,11 @@ beforeEach(function () {
 /**
  * @return array<string, mixed>
  */
-function usernameRegistration(array $overrides = []): array
+function phoneRegistration(array $overrides = []): array
 {
     return [
         'name' => 'عبدالله محمد',
-        'username' => 'abdullah.m',
+        'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
         'privacy' => '1',
@@ -41,25 +42,30 @@ function usernameRegistration(array $overrides = []): array
     ];
 }
 
-it('registers with a full name, a username and a password only, without any verification message', function () {
-    $this->post('/register', usernameRegistration(['username' => 'Abdullah.M']))->assertRedirect(route('account.dashboard'));
+it('registers with a full name, a phone and a password only, without any verification message', function () {
+    $this->post('/register', phoneRegistration(['username' => 'ignored.name']))->assertRedirect(route('account.dashboard'));
 
-    $user = User::query()->where('username', 'abdullah.m')->firstOrFail();
+    $user = User::query()->where('phone', '+966512345678')->firstOrFail();
 
     expect($user->email)->toBeNull()
-        ->and($user->phone)->toBeNull()
+        ->and($user->username)->toBeNull()
         ->and($user->getRoleNames()->all())->toBe([RoleName::Member->value])
         ->and($this->sms->lastCodeFor('+966512345678'))->toBeNull();
 
     $this->assertAuthenticatedAs($user);
     Notification::assertNothingSent();
+
+    // ويدخل بعدها بجواله بأي صيغة
+    $this->post('/logout');
+    $this->post('/login', ['login' => '+966 51 234 5678', 'password' => 'Long-Enough-Pass-2026'])->assertRedirect(route('account.dashboard'));
+    $this->assertAuthenticatedAs($user);
 });
 
-it('keeps the email and the phone optional, and does not send a verification link while verification is off', function () {
-    $this->post('/register', usernameRegistration(['email' => 'a@example.test', 'phone' => '0512345678']))->assertRedirect(route('account.dashboard'));
+it('keeps the email optional, and does not send a verification link while verification is off', function () {
+    $this->post('/register', phoneRegistration(['email' => 'a@example.test']))->assertRedirect(route('account.dashboard'));
 
-    $user = User::query()->where('username', 'abdullah.m')->firstOrFail();
-    expect($user->email)->toBe('a@example.test')->and($user->phone)->toBe('+966512345678');
+    $user = User::query()->where('phone', '+966512345678')->firstOrFail();
+    expect($user->email)->toBe('a@example.test');
 
     Notification::assertNotSentTo($user, VerifyEmailNotification::class);
     expect($this->sms->lastCodeFor('+966512345678'))->toBeNull();
@@ -68,36 +74,22 @@ it('keeps the email and the phone optional, and does not send a verification lin
 it('sends the verification link and code again once verification is turned on from the panel', function () {
     Setting::put(AccountSettings::KEY, ['verification' => true, 'show_deferred_portals' => false]);
 
-    $this->post('/register', usernameRegistration(['email' => 'a@example.test', 'phone' => '0512345678']))->assertRedirect(route('account.phone.verify'));
+    $this->post('/register', phoneRegistration(['email' => 'a@example.test']))->assertRedirect(route('account.phone.verify'));
 
-    Notification::assertSentTo(User::query()->where('username', 'abdullah.m')->firstOrFail(), VerifyEmailNotification::class);
+    Notification::assertSentTo(User::query()->where('phone', '+966512345678')->firstOrFail(), VerifyEmailNotification::class);
     expect($this->sms->lastCodeFor('+966512345678'))->not->toBeNull();
 });
 
-it('rejects a malformed username, and tells plainly that a taken username is unavailable', function () {
-    foreach (['ab', '1abc', 'name@x', 'عبدالله', str_repeat('a', 31)] as $bad) {
-        $this->post('/register', usernameRegistration(['username' => $bad]))->assertSessionHasErrors('username');
-    }
-
-    User::factory()->create(['username' => 'taken.name']);
-    $this->post('/register', usernameRegistration(['username' => 'Taken.Name']))
-        ->assertSessionHasErrors(['username' => __('account.register.username_taken')]);
+it('rejects a missing or malformed phone', function (?string $phone) {
+    $this->post('/register', phoneRegistration(['phone' => $phone]))->assertSessionHasErrors('phone');
 
     expect(User::query()->where('name', 'عبدالله محمد')->exists())->toBeFalse();
-});
-
-it('refuses a password made of the username', function () {
-    $this->post('/register', usernameRegistration([
-        'username' => 'falcon.rider',
-        'password' => 'Falcon-Rider-2026!',
-        'password_confirmation' => 'Falcon-Rider-2026!',
-    ]))->assertSessionHasErrors('password');
-});
+})->with(['missing' => null, 'landline' => '0112345678', 'too short' => '05123', 'letters' => 'abc', 'foreign' => '+14155550100']);
 
 it('still says one general message for a used email or phone, on the field that was given', function () {
     User::factory()->create(['email' => 'used@example.test']);
 
-    $this->post('/register', usernameRegistration(['email' => 'used@example.test']))
+    $this->post('/register', phoneRegistration(['email' => 'used@example.test']))
         ->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
 });
 

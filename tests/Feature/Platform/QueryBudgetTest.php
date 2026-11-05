@@ -124,7 +124,8 @@ it('keeps the account pages within a fixed number of queries', function (string 
     // و+2 منذ «قراءاتي»: أحدث التقدّم ومجاميع صاحب الحساب (docs/decisions/2026-11-01-my-reading.md)
     // وبصفوف «قراءاتي» +1 لتحميل عناصرها، و-1 بعدّ التسجيلات المؤكدة والمنجزة باستعلام واحد (docs/reviews/2026-11-02-v0.15-perf.md)
     // و+2 منذ برامج المكتبة: الجارية منها بتقدّمها وعدد ما أتممه (docs/decisions/2026-11-02-reading-program.md)
-    'dashboard' => ['/account', 20],
+    // و+1 منذ بطاقة مسابقة الطلاب: تسجيلاته في مسابقات الطلاب، ومراحلها ومحاولاته معها لمن سجّل وحده (docs/decisions/2026-11-05-account-competition.md)
+    'dashboard' => ['/account', 21],
     // و+1 منذ «برامج أتممتها» تحت الجارية (docs/decisions/2026-11-02-reading-program.md)
     'programs' => ['/account/programs', 6],
     'requests' => ['/account/requests', 4],
@@ -292,4 +293,18 @@ it('still disables the locked fields of the competition form, each lock on its o
     Livewire::test(EditCompetition::class, ['record' => $ranking->getRouteKey()])
         ->assertFormFieldEnabled('opens_at')
         ->assertFormFieldDisabled('ranking_scope')->assertFormFieldDisabled('prize_table');
+});
+
+// بطاقة مسابقة الطلاب في «حسابي» لطالب مسجل (مراجعة المشرف على #182، L3): تسجيلاته ومسابقاتها ومراحلها ومحاولاته بأربعة استعلامات
+// مهما كثرت مسابقاته، فـ 21 لـ«حسابي» بلا تسجيل وثلاثة لتحميل ما يلزم بطاقته
+it('keeps the account home within its budget for a student registered in competitions', function () {
+    $user = User::factory()->create();
+
+    $seed = function (int $n) use ($user): void {
+        foreach (Competition::factory()->student()->count($n)->create() as $competition) {
+            CompetitionSubmission::factory()->for($competition)->for($user)->create(['registered_at' => now()]);
+        }
+    };
+
+    expectQueryBudget($seed, fn () => $this->actingAs($user)->get('/account')->assertSee('data-account-competition', false), 24);
 });

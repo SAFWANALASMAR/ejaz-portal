@@ -3,7 +3,8 @@
 // وعند مغادرة الصفحة أو إخفائها (keepalive)، بحد الخادم ورمز CSRF. وما يرفضه الخادم (حد أو تحقق) يُترك ولا يُعاد.
 // - الكتاب في قارئ الصفحة (pdf-reader.js): كل صفحة رُسمت.
 // - المقطع والصوت في مشغّل الصفحة: ثواني التشغيل الفعلي بالساعة، والموضع، والمدة.
-// - مقطع يوتيوب والكتاب في عارض المتصفح: علامة «فتحته» وحدها.
+// - مقطع يوتيوب: ثواني التشغيل والموضع والمدة من بلاغات مشغّله نفسه (postMessage، بلا سكربت يوتيوب — ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026).
+// - الكتاب في عارض المتصفح: علامة «فتحته» وحدها.
 // ورابط «أكمل» من «قراءاتي» يحمل ?resume= بالصفحة أو الثانية، فيبدأ القارئ أو المشغّل منها.
 
 import { onPage } from './page';
@@ -202,7 +203,87 @@ function setupMedia(element, signal) {
     });
 }
 
+// مشغّل يوتيوب المضمَّن (youtube-nocookie.com بـ enablejsapi — app.js): يُطلب منه بلاغ حالته («listening»)، فيرسل حالة التشغيل
+// (1 يعمل) والموضع والمدة كل ربع ثانية تقريباً. وثواني التشغيل بالساعة كمشغّل الصفحة، والبلاغ الأول «فتحته» عند ظهوره
+const YOUTUBE_ORIGIN = 'https://www.youtube-nocookie.com';
+const YOUTUBE_PLAYING = 1;
+const YOUTUBE_HANDSHAKE_EVERY = 400;
+const YOUTUBE_HANDSHAKE_MS = 10_000;
+
+function setupYoutube(frame, url, signal) {
+    const reporter = progressReporter(url, signal);
+
+    if (!reporter) {
+        return;
+    }
+
+    reporter.open();
+
+    let playing = false;
+    let last = null;
+    let duration = null;
+    const listen = () => frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YOUTUBE_ORIGIN);
+
+    // المصافحة تُعاد حتى أول بلاغ من المشغّل، فالمشغّل على اتصال بطيء قد لا يكون جاهزاً عند تحميل الإطار ولا بعده بثانية
+    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
+    let delivered = false;
+    const handshakeStart = performance.now();
+    const handshake = setInterval(() => {
+        if (delivered || signal.aborted || performance.now() - handshakeStart > YOUTUBE_HANDSHAKE_MS) {
+            clearInterval(handshake);
+
+            return;
+        }
+
+        listen();
+    }, YOUTUBE_HANDSHAKE_EVERY);
+    signal.addEventListener('abort', () => clearInterval(handshake));
+
+    window.addEventListener('message', (event) => {
+        if (event.origin !== YOUTUBE_ORIGIN || event.source !== frame.contentWindow || typeof event.data !== 'string') {
+            return;
+        }
+
+        let data;
+
+        try {
+            data = JSON.parse(event.data);
+        } catch {
+            return;
+        }
+
+        const info = data?.event === 'infoDelivery' ? data.info : null;
+
+        if (!info || typeof info !== 'object') {
+            return;
+        }
+
+        delivered = true;
+
+        if (Number.isFinite(info.duration) && info.duration > 0) {
+            duration = info.duration;
+        }
+
+        const now = performance.now();
+
+        // ما مضى منذ التحديث السابق وهو يعمل، قبل تغيّر حالته في البلاغ نفسه
+        if (playing && last !== null && Number.isFinite(info.currentTime)) {
+            reporter.media(Math.max(0, Math.min((now - last) / 1000, MAX_TICK)), info.currentTime, duration);
+            last = now;
+        }
+
+        if (typeof info.playerState === 'number') {
+            const wasPlaying = playing;
+            playing = info.playerState === YOUTUBE_PLAYING;
+            last = playing ? (wasPlaying ? last : now) : null;
+        }
+    }, { signal });
+}
+
+let pageSignal = null;
+
 onPage((signal) => {
+    pageSignal = signal;
     document.querySelectorAll('[data-library-media][data-progress]').forEach((element) => setupMedia(element, signal));
 
     // الكتاب في عارض المتصفح: لا يُعرف ما قُرئ منه، فعلامة «فتحته» متى ظهر العارض. وعلى الجوال لا عارض (مخفي)، فلا علامة
@@ -215,11 +296,9 @@ onPage((signal) => {
     }
 });
 
-// مقطع يوتيوب: علامة «فتحته» عند ضغطه (قبل أن يحل المشغّل محل الرابط — app.js)، فلا تُقرأ مدته بلا سكربت يوتيوب
-document.addEventListener('click', (event) => {
-    const video = event.target.closest('[data-video-embed][data-progress]');
-
-    if (video && tracking()) {
-        post(video.dataset.progress, {});
+// مقطع يوتيوب حل مشغّله محل رابطه (app.js): يُتابع تشغيله حتى مغادرة الصفحة
+document.addEventListener('ejaz:video-frame', (event) => {
+    if (pageSignal && !pageSignal.aborted) {
+        setupYoutube(event.detail.frame, event.detail.progress, pageSignal);
     }
-}, { capture: true });
+});

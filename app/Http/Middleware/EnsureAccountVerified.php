@@ -25,7 +25,7 @@ class EnsureAccountVerified
 
         $route = match (true) {
             $user->email !== null => 'verification.notice',
-            $user->phone !== null => 'account.phone.verify',
+            $user->phoneToVerify() !== null => 'account.phone.verify',
             default => 'account.profile',
         };
 

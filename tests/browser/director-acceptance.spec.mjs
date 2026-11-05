@@ -903,9 +903,8 @@ test.describe('acceptance: programs how-to', () => {
         test.skip((await signup.count()) === 0, 'التسجيل في المسابقة غير مفتوح');
 
         await Promise.all([page.waitForURL((url) => url.pathname === '/register'), signup.click()]);
-        const username = `accept${Date.now().toString(36)}`;
         await page.fill('#field-name', 'حساب قبول تجريبي');
-        await page.fill('#field-username', username);
+        await page.fill('#field-phone', `05${String(Date.now()).slice(-8)}`);
         const password = `Ejaz-${Date.now()}-Accept!`;
         await page.fill('#field-password', password);
         await page.fill('#field-password_confirmation', password);
@@ -915,10 +914,10 @@ test.describe('acceptance: programs how-to', () => {
         }
         await Promise.all([page.waitForURL((url) => url.pathname !== '/register'), page.locator('main form button[type=submit]').first().click()]);
 
-        // التوثيق مطفأ (الافتراضي): إلى التسجيل في المسابقة مباشرة. ومفعّلاً يمر بتوثيق الجوال، ولا رمز يصل في الاختبار،
-        // فيغطيه Pest: RegisterIntendedTest › «verifies the phone first, then brings the account back to the competition registration»
-        test.skip(/verif/.test(new URL(page.url()).pathname), 'التوثيق مفعّل: العودة بعده في RegisterIntendedTest');
-        await expect(page).toHaveURL(new RegExp(`/competitions/${SLUG}/register(\\?signup=1)?$`));
+        // إلى «حسابي» لا إلى المسابقة (decisions/2026-11-05-phone-login.md). ومع التوثيق المفعّل يمر بتوثيق الجوال، ولا رمز
+        // يصل في الاختبار، فيغطيه Pest: RegisterDestinationTest
+        test.skip(/verif/.test(new URL(page.url()).pathname), 'التوثيق مفعّل: الوجهة بعده في RegisterDestinationTest');
+        await expect(page).toHaveURL(/\/account\/?$/);
         await expectRtlNoScroll(page);
     });
 });
