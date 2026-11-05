@@ -178,9 +178,10 @@ it('keeps the first header row as mark, calligraphy, licence, then search and lo
         ->and(preg_match('/\.header-top \.header-mark\s*\{\s*margin-inline-start: 1\.75rem;/', $css))->toBe(1);
 });
 
-// البند ١٣ من إضافة التوجيه: «المساعد الذكي» في الصف الأول بجانب البحث والدخول، يفتح المساعد القائم، ويختفي بإطفائه
-it('shows the assistant button beside search and login when the assistant is on, and hides it when off', function () {
-    $this->get('/')->assertOk()->assertDontSee('data-header-assistant', false);
+// البند ١٣ من إضافة التوجيه: «المساعد الذكي» في الصف الأول بجانب البحث والدخول، يفتح المساعد القائم.
+// وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» لا يفتح شيئاً (قرار صفوان، 4 نوفمبر 2026)
+it('shows the assistant button beside search and login when the assistant is on, and a disabled one when off', function () {
+    assertAssistantSoon($this->get('/')->assertOk()->getContent());
 
     enableAssistant(['generation_enabled' => false, 'provider' => null]);
     ContentCache::flush();
@@ -206,8 +207,27 @@ it('shows the assistant button beside search and login when the assistant is on,
     Cache::forget(AssistantSettings::CACHE_KEY);
     ContentCache::flush();
 
-    $this->get('/')->assertOk()->assertDontSee('data-header-assistant', false)->assertDontSee('id="assistant-panel"', false);
+    $html = $this->get('/')->assertOk()->assertDontSee('id="assistant-panel"', false)->getContent();
+    assertAssistantSoon($html);
 });
+
+function assertAssistantSoon(string $html): void
+{
+    $dom = new DOMDocument;
+    @$dom->loadHTML($html);
+    $x = new DOMXPath($dom);
+
+    foreach (['data-header-assistant', 'data-menu-assistant'] as $marker) {
+        $button = $x->query("//button[@{$marker}]")->item(0);
+
+        expect($button)->not->toBeNull($marker)
+            ->and($button->getAttribute('aria-disabled'))->toBe('true')
+            ->and($button->hasAttribute('data-assistant-toggle'))->toBeFalse()
+            ->and($button->hasAttribute('aria-controls'))->toBeFalse();
+    }
+
+    expect($html)->toContain(e(__('assistant.header.soon')));
+}
 
 /*
 | إضافة التوجيه (3 نوفمبر 2026، 20:39): صف القائمة لا يُخفى على الحاسوب واللوحي الأفقي، وشريط المكتبة «الكتب والأبحاث والدراسات»

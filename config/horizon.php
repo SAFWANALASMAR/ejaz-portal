@@ -258,6 +258,20 @@ return [
             'timeout' => 120,
             'nice' => 10,
         ],
+        // شهادات مسابقة الطلاب (GenerateCompetitionCertificate): «إصدار الشهادات» يضع مهمة PDF لكل مشارك، فكانت في default
+        // تؤخر رموز التحقق والاستعادة أكثر من عشر دقائق فتسقط (SendSms). طابور مستقل بعاملين، والإعدادات كما كانت في default
+        'supervisor-certificates' => [
+            'connection' => 'redis',
+            'queue' => ['certificates'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 60,
+            'nice' => 10,
+        ],
     ],
 
     'environments' => [
@@ -270,6 +284,7 @@ return [
             'supervisor-videos' => [],
             'supervisor-receipts' => [],
             'supervisor-library' => [],
+            'supervisor-certificates' => [],
         ],
 
         // التجريبية مطابقة للإنتاج، وإلا لم يُشغّل Horizon فيها عاملاً واحداً
@@ -282,6 +297,7 @@ return [
             'supervisor-videos' => [],
             'supervisor-receipts' => [],
             'supervisor-library' => [],
+            'supervisor-certificates' => [],
         ],
 
         'local' => [
@@ -293,6 +309,9 @@ return [
             ],
             'supervisor-receipts' => [],
             'supervisor-library' => [],
+            'supervisor-certificates' => [
+                'maxProcesses' => 1,
+            ],
         ],
     ],
 

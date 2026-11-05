@@ -76,7 +76,6 @@ it('keeps the public lists within a fixed number of queries', function (string $
     // (docs/decisions/2026-11-02-page-editor.md)
     'news' => ['/media/news', fn (int $n) => NewsArticle::factory()->count($n)->create(), 4],
     'library section' => ['/library/videos', fn (int $n) => LibraryItem::factory()->count($n)->create(), 2],
-    // والحوكمة +1 منذ عدد أعضاء الجمعية العمومية الفعّالين (AssemblyMembersCount، مخزّن مع المحتوى — 1 نوفمبر 2026)
     'governance' => ['/governance', fn (int $n) => Document::factory()->count($n)->create(), 5],
     'home' => ['/', fn (int $n) => NewsArticle::factory()->count($n)->create(), 11],
     'programs' => ['/programs', fn (int $n) => Program::factory()->count($n)->create(), 4],

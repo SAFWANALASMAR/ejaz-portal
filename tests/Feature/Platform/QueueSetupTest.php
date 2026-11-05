@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\GenerateCompetitionCertificate;
 use App\Jobs\ProcessSubmissionVideo;
 
 /*
@@ -21,6 +22,20 @@ it('gives the video queue workers with the job timeout in production and staging
 
     foreach (['production', 'staging'] as $environment) {
         expect(config('horizon.environments.'.$environment))->toHaveKeys(['supervisor-1', 'supervisor-videos']);
+    }
+});
+
+// إصدار الشهادات يضع مهمة لكل مشارك (17,500 في مسابقة الطلاب): في default كانت تؤخر رموز التحقق حتى تنتهي صلاحيتها
+// (SendSms يتخطى رمزاً انتظر أكثر من عشر دقائق). فطابورها مستقل بعمال في كل بيئة (تدقيق 4 نوفمبر 2026)
+it('queues the competition certificates on their own queue, away from the login codes in default', function () {
+    $supervisor = config('horizon.defaults.supervisor-certificates');
+
+    expect((new GenerateCompetitionCertificate(1))->queue)->toBe('certificates')
+        ->and($supervisor['queue'])->toBe(['certificates'])
+        ->and(config('horizon.defaults.supervisor-1.queue'))->not->toContain('certificates');
+
+    foreach (['production', 'staging', 'local'] as $environment) {
+        expect(config('horizon.environments.'.$environment))->toHaveKey('supervisor-certificates');
     }
 });
 

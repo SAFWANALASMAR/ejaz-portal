@@ -7,15 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\SubmissionReview;
 use App\Models\SubmissionVideo;
 use App\Models\User;
+use App\Support\PrivateFileResponse;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * مقطع المشاركة لمن يطّلع على تحكيمها (المحكّم المسند إليه، أو المتابع بصلاحية submissions.view)،
- * يُفحص عند كل طلب. وعلى القرص المحلي بطلب الجزء (Range) للتقديم والتأخير، وفي الإنتاج يُسلَّم للخادم
- * أو لرابط تخزين موقّع قصير بعد الفحص (roadmap.md).
+ * يُفحص عند كل طلب. وعلى القرص المحلي بطلب الجزء (Range) للتقديم والتأخير، وعلى التخزين السحابي
+ * برابط موقّع قصير بعد الفحص (PrivateFileResponse)، فلا يمر المقطع عبر PHP.
  */
 class ReviewVideoController extends Controller
 {
@@ -29,13 +29,7 @@ class ReviewVideoController extends Controller
         // المسار خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا كما في ExportPolicy (قرار صفوان)
         abort_unless($user->hasEnabledTwoFactorAuthentication() && $user->canAccessPanel(Filament::getPanel('admin')), 403);
 
-        $disk = Storage::disk(SubmissionVideo::disk());
-        $headers = ['Content-Type' => 'video/mp4', 'Cache-Control' => 'private, no-store'];
-
-        if (config('filesystems.disks.'.SubmissionVideo::disk().'.driver') === 'local') {
-            return response()->file($disk->path((string) $video->path), $headers);
-        }
-
-        return $disk->response((string) $video->path, $video->uuid.'.mp4', $headers, 'inline');
+        // والرابط بمدة روابط المقاطع لا الأعمال: المتصفح يطلب الأجزاء بالرابط نفسه طوال المشاهدة
+        return PrivateFileResponse::make(SubmissionVideo::disk(), (string) $video->path, 'video/mp4', $video->uuid.'.mp4', (int) config('competitions.video.url_minutes'));
     }
 }
