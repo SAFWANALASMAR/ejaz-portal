@@ -19,14 +19,25 @@ use Spatie\Activitylog\Support\LogOptions;
 #[Fillable(['name', 'slug', 'sort'])]
 class ProgramType extends Model
 {
-    /**
-     * أنواع محور «الدورات والبرامج» بمعرّفاتها وأيقوناتها (ملاحظة المدير التنفيذي — requirements/12).
-     * تُبذر مرة (ProgramTypesSeeder)، والاسم من اللوحة.
-     */
-    public const HUB = ['training-courses' => 'academic-cap', 'scientific-councils' => 'building-library'];
-
     /** @use HasFactory<ProgramTypeFactory> */
     use FlushesContentCache, HasFactory, LogsActivity;
+
+    /**
+     * أيقونة كل نوع في شريط «الدورات والبرامج» (ملاحظات المدير التنفيذي، 4 نوفمبر 2026): الأنواع المبذورة (ProgramTypesSeeder)،
+     * وما أضافته اللوحة بعدها بالأيقونة العامة.
+     */
+    public const ICONS = [
+        'training-courses' => 'academic-cap',
+        'scientific-councils' => 'building-library',
+        'book-reading' => 'book-open',
+        'audio-listening' => 'musical-note',
+        'video-watching' => 'play-circle',
+    ];
+
+    public function icon(): string
+    {
+        return self::ICONS[$this->slug] ?? 'squares-2x2';
+    }
 
     /**
      * @return array<string, string>

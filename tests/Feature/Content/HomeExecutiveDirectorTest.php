@@ -11,6 +11,7 @@ use App\Filament\Resources\Partners\PartnerResource;
 use App\Jobs\FetchHomeVideoThumbnail;
 use App\Models\LibraryItem;
 use App\Models\Partner;
+use App\Models\Program;
 use App\Models\ProgramType;
 use App\Models\Setting;
 use Database\Seeders\ProgramTypesSeeder;
@@ -108,22 +109,26 @@ it('hides the videos and accounts sections when switched off', function () {
 
 it('opens the courses and programs hub with training courses, scientific councils and competitions', function () {
     $this->seed(ProgramTypesSeeder::class);
+    // شريط واحد بمراسٍ في الصفحة نفسها بالأنواع التي فيها برنامج منشور (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
+    $council = Program::factory()->for(ProgramType::query()->where('slug', 'scientific-councils')->sole(), 'type')->create();
+    Program::factory()->for(ProgramType::query()->where('slug', 'training-courses')->sole(), 'type')->create();
 
     $this->get('/programs')->assertOk()
         ->assertSeeInOrder(['<h1', 'الدورات والبرامج'], false)
         ->assertSee('الدورات التدريبية')
         ->assertSee('المجالس العلمية')
-        ->assertSee(route('programs.index', ['type' => 'training-courses']), false)
-        ->assertSee(route('programs.index', ['type' => 'scientific-councils']), false)
+        ->assertSee('href="#programs-training-courses"', false)
+        ->assertSee('href="#programs-scientific-councils"', false)
         ->assertSee(route('competitions.index'), false);
 
     // اسم البطاقة يتبع اسم النوع في اللوحة
     ProgramType::query()->where('slug', 'training-courses')->update(['name' => 'دورات معدّلة']);
     $this->get('/programs')->assertOk()->assertSee('دورات معدّلة');
 
-    ProgramType::query()->where('slug', 'scientific-councils')->delete();
+    // ونوع بلا برنامج منشور لا يظهر
+    $council->update(['is_published' => false]);
 
-    $this->get('/programs')->assertOk()->assertDontSee(route('programs.index', ['type' => 'scientific-councils']), false);
+    $this->get('/programs')->assertOk()->assertDontSee('#programs-scientific-councils', false);
 });
 
 it('seeds every programme type once, keeping later edits', function () {

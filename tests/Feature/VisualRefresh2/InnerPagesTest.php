@@ -51,11 +51,11 @@ it('shows the two speeches on the about page without the photos or their approve
         ->and($html)->not->toContain(e(__('ui.inner.image_slot_chairman')))->not->toContain(e(__('ui.inner.image_slot_king')));
 });
 
-it('draws the programs tabs as white capsules with a dark active one on a pale bar', function () {
+it('draws the programs bar on a pale panel floating over the hero edge', function () {
     $html = (string) $this->get('/programs')->assertOk()->getContent();
 
-    expect($html)->toContain('tabs-bar')
-        ->toMatch('/<a href="'.preg_quote(route('programs.index'), '/').'"[^>]*aria-current="page"[^>]*class="tab-pill"/')
+    // والكبسولات صارت مربعات أيقونات بمراسٍ (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
+    expect($html)->toContain('tabs-bar')->toContain('data-programs-bar')
         // «كيف تسجّل» صف مضغوط بخطوات ملونة (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٠)
         ->toContain('id="programs-how-to-title"')
         ->toContain('tone-card how-to-compact-step');

@@ -16,12 +16,18 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * «الدورات والبرامج» (الصورة 06): تبويبات بالأنواع وبطاقات البرامج المنشورة القادمة أولاً، ثم صفحة
+ * «الدورات والبرامج» (الصورة 06): شريط بالأنواع ومقطع لكل نوع بالبرامج المنشورة القادمة أولاً، ثم صفحة
  * البرنامج. وحالة كل برنامج (قريباً، مفتوح، مكتمل، منتهٍ) تُحسب بعدد المؤكدين في الاستعلام نفسه.
  */
 class ProgramController extends Controller
 {
     private const PER_PAGE = 12;
+
+    /** بطاقات كل نوع في مقطعه، وما زاد في «عرض الكل» */
+    public const PER_SECTION = 6;
+
+    /** القادمة بأقربها موعداً، ثم المنتهية بأحدثها */
+    private const ORDER = 'case when coalesce(ends_at, starts_at) > now() then 0 else 1 end, case when coalesce(ends_at, starts_at) > now() then starts_at end asc, starts_at desc, id';
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -34,24 +40,51 @@ class ProgramController extends Controller
             return redirect()->route('programs.index');
         }
 
-        $programs = Program::query()
-            ->published()
-            ->withConfirmedCount()
-            ->when($active, fn (Builder $query) => $query->where('program_type_id', $active->id))
-            // القادمة بأقربها موعداً، ثم المنتهية بأحدثها
-            ->orderByRaw('case when coalesce(ends_at, starts_at) > now() then 0 else 1 end')
-            ->orderByRaw('case when coalesce(ends_at, starts_at) > now() then starts_at end asc')
-            ->orderByDesc('starts_at')
-            ->orderBy('id')
-            ->paginate(self::PER_PAGE)
-            ->withQueryString();
+        // بلا نوع: مقطع لكل نوع في الصفحة نفسها، وشريط الأيقونات يُنزل إليه (ملاحظات المدير التنفيذي، 4 نوفمبر 2026). والنوع
+        // بقائمته الكاملة المرقّمة في ?type= لـ«عرض الكل» والروابط القديمة
+        if ($active === null) {
+            // والترقيم القديم للصفحة كلها (?page=) صار مقاطع في صفحة واحدة: تحويل دائم إليها (مراجعة المشرف على #181، L1)
+            if ($request->has('page')) {
+                return redirect()->route('programs.index', status: 301);
+            }
+
+            // استعلام واحد لكل الأنواع مهما كثرت: ترتيب البرنامج في نوعه (row_number)، وواحد زائد على المقطع يُظهر «عرض الكل»
+            $ranked = Program::query()->published()->withConfirmedCount()
+                ->selectRaw('row_number() over (partition by program_type_id order by '.self::ORDER.') as section_rank');
+            $byType = Program::query()->fromSub($ranked, 'programs')->where('section_rank', '<=', self::PER_SECTION + 1)
+                ->orderByRaw(self::ORDER)->get()->groupBy('program_type_id');
+
+            // النوع بلا برنامج منشور لا يظهر في الشريط ولا مقطع له، كتصنيفات الحوكمة الفارغة (L3)
+            $shown = $types->filter(fn (ProgramType $programType): bool => $byType->has($programType->id))->values();
+            $sections = $shown->map(fn (ProgramType $programType): array => [
+                'type' => $programType,
+                'programs' => $byType->get($programType->id, new Collection)->each(fn (Program $program) => $program->setRelation('type', $programType)),
+            ]);
+
+            return view('programs.index', ['types' => $shown, 'active' => null, 'sections' => $sections, 'programs' => null]);
+        }
+
+        $programs = self::listing()->where('program_type_id', $active->id)->paginate(self::PER_PAGE)->withQueryString();
 
         abort_if($programs->currentPage() > max($programs->lastPage(), 1), 404);
 
-        // نوع كل برنامج من الأنواع المحمّلة للتبويبات، لا باستعلام ثانٍ عنها
-        $programs->each(fn (Program $program) => $program->setRelation('type', $types->find($program->program_type_id)));
+        // نوع كل برنامج من النوع المحمّل، لا باستعلام ثانٍ عنه
+        $programs->each(fn (Program $program) => $program->setRelation('type', $active));
+        // والشريط بالأنواع التي فيها برنامج منشور كالصفحة الأم، والنوع النشط معها
+        $used = Program::query()->published()->distinct()->pluck('program_type_id');
+        $types = $types->filter(fn (ProgramType $programType): bool => $used->contains($programType->id) || $programType->is($active))->values();
 
-        return view('programs.index', ['types' => $types, 'active' => $active, 'programs' => $programs, 'hub' => self::hub($types)]);
+        return view('programs.index', ['types' => $types, 'active' => $active, 'sections' => null, 'programs' => $programs]);
+    }
+
+    /**
+     * البرامج المنشورة: القادمة بأقربها موعداً، ثم المنتهية بأحدثها.
+     *
+     * @return Builder<Program>
+     */
+    private static function listing(): Builder
+    {
+        return Program::query()->published()->withConfirmedCount()->orderByRaw(self::ORDER);
     }
 
     public function show(Request $request, string $slug): Response
@@ -86,28 +119,5 @@ class ProgramController extends Controller
         abort_unless($registered && LibraryProgramProgress::readsInProgram($request->user(), $item), 403);
 
         return response()->view('programs.read', ['program' => $program, 'item' => $item])->header('Cache-Control', 'private, no-store');
-    }
-
-    /**
-     * بطاقات محور «الدورات والبرامج»: نوعا المحور بأسمائهما من اللوحة متى وُجدا، ثم المسابقات.
-     *
-     * @param  Collection<int, ProgramType>  $types
-     * @return list<array{label: string, url: string, icon: string}>
-     */
-    private static function hub(Collection $types): array
-    {
-        $hub = [];
-
-        foreach (ProgramType::HUB as $slug => $icon) {
-            $type = $types->firstWhere('slug', $slug);
-
-            if ($type !== null) {
-                $hub[] = ['label' => $type->name, 'url' => route('programs.index', ['type' => $slug]), 'icon' => $icon];
-            }
-        }
-
-        $hub[] = ['label' => __('programs.hub.competitions'), 'url' => route('competitions.index'), 'icon' => 'trophy'];
-
-        return $hub;
     }
 }

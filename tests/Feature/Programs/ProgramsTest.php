@@ -30,13 +30,14 @@ it('lists published programs with type tabs, status badges and the register butt
     Program::factory()->unpublished()->create(['title' => 'برنامج مخفي']);
 
     $this->get('/programs')->assertOk()
-        ->assertSee('جميع البرامج')->assertSee('تدريبية')->assertSee('بحثية')
+        ->assertSee('تدريبية')->assertSee('بحثية')
         ->assertSee('مهارات البحث')->assertSee('برنامج بحثي')->assertDontSee('برنامج مخفي')
         ->assertSee('مفتوح')->assertSee('سجّل الآن');
 
     $this->get('/programs?type=research')->assertOk()->assertSee('برنامج بحثي')->assertDontSee('مهارات البحث');
     $this->get('/programs?type=unknown')->assertRedirect(route('programs.index'));
-    $this->get('/programs?page=5')->assertNotFound();
+    // والترقيم القديم للصفحة كلها تحويل دائم إليها (مراجعة المشرف على #181، L1)
+    $this->get('/programs?page=5')->assertStatus(301)->assertRedirect(route('programs.index'));
     $this->get('/programs/research-skills')->assertOk()->assertSee('مهارات البحث');
     $this->get('/programs/'.Program::where('title', 'برنامج مخفي')->value('slug'))->assertNotFound();
 });

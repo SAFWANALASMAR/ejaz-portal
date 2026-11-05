@@ -590,12 +590,13 @@ it('shows a single library hero image without rotation markup, and the neutral p
         ->toContain('src="'.Storage::disk('public')->url('library/only.jpg').'"');
 });
 
-it('always shows the satisfaction card with no open survey: nine services and a link that opens', function () {
+it('always shows the satisfaction card with no open survey: eight services and a link that opens', function () {
     $html = (string) $this->get('/services')->assertOk()->getContent();
     $grid = (string) str($html)->after('data-service-grid')->before('</ul>');
 
     expect($grid)->toContain('href="'.route('surveys.index').'"')->toContain(e(__('services.tiles.surveys')))
-        ->and(substr_count($grid, 'class="service-card group"'))->toBe(9);
+        // ثمانٍ منذ انتقال «المبادرات» إلى «عن الجمعية» (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026)
+        ->and(substr_count($grid, 'class="service-card group"'))->toBe(8);
 
     $this->get(route('surveys.index'))->assertOk()->assertSee(__('surveys.public.none'))->assertSee('data-surveys-none', false);
 });

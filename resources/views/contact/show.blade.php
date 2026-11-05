@@ -25,9 +25,10 @@
     <x-page-hero :title="__('contact.title')" :summary="__('contact.hero_text')" />
     <x-page-sections />
     {{-- مقدمة صفحة «تواصل معنا» من الموقع السابق (Page::INTROS): إن كان نصها في الرأس (فقرته الأولى نفسها — البند ٣٠) لم تتكرر هنا،
-         ونص آخر يظهر كما كان (مراجعة المشرف على #157) --}}
+         ونص آخر يظهر كما كان (مراجعة المشرف على #157). وكذلك مقدمة «الاستفسارات والاقتراحات» وهي الفقرة الثانية في الرأس (ملاحظات
+         المدير التنفيذي، 4 نوفمبر 2026) --}}
     <x-page-intro slug="contact" :except="__('contact.hero_text')" />
-    <x-page-intro slug="inquiries" />
+    <x-page-intro slug="inquiries" :except="__('contact.hero_text')" />
 
     <section class="py-10 sm:py-14">
         <div @class(['container-page grid gap-8 lg:items-start', 'lg:grid-cols-[1fr_2fr]' => $showInfo])>
