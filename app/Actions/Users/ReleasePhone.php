@@ -20,19 +20,24 @@ class ReleasePhone
      */
     public function handle(User $actor, User $user): void
     {
-        if (! $actor->can('releasePhone', $user)) {
-            throw new AuthorizationException;
-        }
+        DB::transaction(function () use ($actor, $user): void {
+            // بقفل ومن القاعدة: فلا يُنزع رقم وثّقه صاحبه بين فتح الصفحة والتأكيد
+            $holder = User::query()->lockForUpdate()->find($user->getKey());
 
-        DB::transaction(fn () => self::release($user, $actor));
+            if ($holder === null || ! $actor->can('releasePhone', $holder)) {
+                throw new AuthorizationException;
+            }
+
+            self::release($holder, $actor);
+        });
     }
 
     /**
-     * ينزع الرقم غير الموثق من الحساب. يُستدعى داخل معاملة.
+     * ينزع الرقم غير الموثق من الحساب. يُستدعى داخل معاملة، والحساب مقفل.
      */
     public static function release(User $holder, User $causer): void
     {
-        $holder->forceFill(['phone' => null])->save();
+        $holder->forceFill(['phone' => null, 'phone_verified_at' => null])->save();
 
         activity('security')
             ->causedBy($causer)

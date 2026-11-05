@@ -32,12 +32,15 @@ class EditUser extends EditRecord
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading(__('users.release_phone.heading'))
-                ->modalDescription(__('users.release_phone.description'))
+                // وتحذير صريح حين يكون الجوال معرّف دخوله الوحيد: بلا اسم مستخدم ولا بريد يدخل به (مراجعة المشرف، L4)
+                ->modalDescription(fn (User $record): string => __('users.release_phone.description')
+                    .($record->username === null && $record->email === null ? ' '.__('users.release_phone.only_identifier') : ''))
                 ->visible(fn (User $record): bool => auth()->user()?->can('releasePhone', $record) ?? false)
                 ->action(function (User $record, ReleasePhone $release): void {
                     /** @var User $actor */
                     $actor = auth()->user();
                     $release->handle($actor, $record);
+                    $record->refresh();
                     $this->refreshFormData(['phone']);
 
                     Notification::make()->success()->title(__('users.release_phone.done'))->send();

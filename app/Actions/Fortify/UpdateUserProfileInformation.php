@@ -90,17 +90,21 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         $previousEmail = $user->email;
 
         try {
-            // في معاملة، فلا يُفسد خطأ التفرد معاملة أوسع حوله
+            // في معاملة، فلا يُفسد خطأ التفرد معاملة أوسع حوله. ورقم يُحفظ يُسقط الرقم المعلّق، فلا يُنزع برمزه القديم رقم
+            // غيره بعدُ (مراجعة المشرف، L2)
             DB::transaction(fn () => $user->forceFill([
                 'name' => trim((string) $input['name']),
                 'email' => $input['email'],
                 'phone' => $input['phone'],
                 'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
                 'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
+                ...($input['phone'] !== null ? ['pending_phone' => null] : []),
             ])->save());
-        } catch (UniqueConstraintViolationException) {
-            // حفظان متزامنان بالرقم نفسه: الثاني يرى رسالة التحقق نفسها لا خطأ 500
-            throw ValidationException::withMessages(['phone' => __('account.register.unavailable')])->errorBag('updateProfileInformation');
+        } catch (UniqueConstraintViolationException $exception) {
+            // حفظان متزامنان بالقيمة نفسها: الثاني يرى رسالة التحقق نفسها لا خطأ 500، على حقل الفهرس الذي تعارض
+            $field = str_contains($exception->getMessage(), 'email') ? 'email' : 'phone';
+
+            throw ValidationException::withMessages([$field => __('account.register.unavailable')])->errorBag('updateProfileInformation');
         }
 
         if (($emailChanged || $phoneChanged) && $previousEmail !== null) {

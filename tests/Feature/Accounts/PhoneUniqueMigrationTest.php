@@ -61,3 +61,19 @@ it('puts the cleared numbers back on rollback', function () {
     expect($cleared->fresh()->phone)->toBe('+966512345671')->and($kept->fresh()->phone)->toBe('+966512345671');
     $migration->up();
 });
+
+it('does not put a number back on an anonymized account on rollback', function () {
+    $migration = require database_path('migrations/2026_11_05_010000_make_phone_unique_for_all_accounts.php');
+    $migration->down();
+
+    User::factory()->create(['phone' => '+966512345671', 'phone_verified_at' => now()]);
+    $cleared = User::factory()->create(['phone' => '+966512345671']);
+
+    $migration->up();
+    // جُهِّل بعد الترحيل، وبقي صفه بلا AnonymizeUser (تجهيل قديم أو يدوي)
+    $cleared->forceFill(['anonymized_at' => now()])->save();
+
+    $migration->down();
+    expect($cleared->fresh()->phone)->toBeNull();
+    $migration->up();
+});

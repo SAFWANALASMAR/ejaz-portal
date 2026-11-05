@@ -60,10 +60,15 @@ class UpdateUserAccount
                     'is_active' => $isActive,
                     'email_verified_at' => $email === $user->email ? $user->email_verified_at : null,
                     'phone_verified_at' => $phone === $user->phone ? $user->phone_verified_at : null,
+                    // رقم يُحفظ يُسقط الرقم المعلّق، فلا يُنزع برمزه القديم رقم غيره بعدُ (مراجعة المشرف، L2)
+                    ...($phone !== null ? ['pending_phone' => null] : []),
                 ])->save();
-            } catch (UniqueConstraintViolationException) {
-                // حفظ متزامن برقم أخذه حساب آخر بعد فحص النموذج: خطأ التحقق نفسه لا 500 (decisions/2026-11-05-phone-login.md)
-                throw ValidationException::withMessages(['phone' => __('validation.unique', ['attribute' => __('users.fields.phone')])]);
+            } catch (UniqueConstraintViolationException $exception) {
+                // حفظ متزامن بقيمة أخذها حساب آخر بعد فحص النموذج: خطأ التحقق نفسه لا 500، على حقل الفهرس الذي تعارض
+                // (decisions/2026-11-05-phone-login.md)
+                $field = str_contains($exception->getMessage(), 'email') ? 'email' : 'phone';
+
+                throw ValidationException::withMessages([$field => __('validation.unique', ['attribute' => __('users.fields.'.$field)])]);
             }
 
             if ($roles !== null && $actor->can('assignRoles', $user)) {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Users\AnonymizeUser;
 use App\Actions\Users\ReleasePhone;
 use App\Actions\Users\UpdateUserAccount;
 use App\Enums\ActivityEvent;
@@ -7,7 +8,9 @@ use App\Enums\RoleName;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\User;
 use App\Notifications\PhoneNumberReleased;
+use Filament\Actions\Action;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -197,4 +200,68 @@ it('answers a save racing another account to the same number with a validation e
         ->toThrow(ValidationException::class);
     expect($user->fresh()->phone)->toBe('+966500000009');
 
+});
+
+// ── إعادة المراجعة (11:00)
+
+it('releases a number from a holder without a verified email without any notice, and warns when the phone is its only identifier', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $holder = User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => null, 'username' => null, 'email' => null, 'email_verified_at' => null]);
+
+    $this->actingAs($admin);
+    $warns = fn (bool $expected) => fn (Action $action): bool => str_contains((string) $action->getModalDescription(), __('users.release_phone.only_identifier')) === $expected;
+
+    Livewire::test(EditUser::class, ['record' => $holder->getRouteKey()])
+        ->assertActionExists('releasePhone', $warns(true))
+        ->callAction('releasePhone');
+
+    expect($holder->fresh()->phone)->toBeNull();
+    Notification::assertNothingSent();
+
+    // ومن له بريد لا يرى التحذير
+    $other = User::factory()->create(['phone' => '+966511111111', 'phone_verified_at' => null]);
+    Livewire::test(EditUser::class, ['record' => $other->getRouteKey()])
+        ->assertActionExists('releasePhone', $warns(false));
+});
+
+it('refuses to release a number the holder verified after the page was opened', function () {
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $holder = User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => null]);
+    $stale = $holder->fresh();
+
+    // وثّقه صاحبه بين فتح الصفحة والتأكيد
+    $holder->forceFill(['phone_verified_at' => now()])->save();
+
+    expect(fn () => app(ReleasePhone::class)->handle($admin, $stale))->toThrow(AuthorizationException::class);
+    expect($holder->fresh()->phone)->toBe('+966512345678')->and($holder->fresh()->hasVerifiedPhone())->toBeTrue();
+});
+
+it('drops the pending number once the account saves a phone of its own, in the profile or by an administrator', function () {
+    enableVerification();
+    $squatter = User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => null]);
+    $this->post('/register', reviewSignUp(['email' => 'pending@example.test']))->assertRedirect(route('account.phone.verify'));
+    $pending = User::query()->where('pending_phone', '+966512345678')->sole();
+
+    // يغيّر رقمه إلى رقم حر: يصير رقمه، ولا يبقى المعلّق ينتزع رقم الحامل برمز قديم
+    $this->put('/user/profile-information', ['name' => $pending->name, 'email' => 'pending@example.test', 'phone' => '0511111111', 'current_password' => 'Long-Enough-Pass-2026'])
+        ->assertSessionHasNoErrors();
+    expect($pending->fresh())->phone->toBe('+966511111111')->pending_phone->toBeNull()
+        ->and($squatter->fresh()->phone)->toBe('+966512345678');
+
+    // وكذلك من تعديل المسؤول
+    $other = User::factory()->create(['phone' => null]);
+    $other->forceFill(['pending_phone' => '+966512345678'])->save();
+    app(UpdateUserAccount::class)->handle(userWithRole(RoleName::TechnicalAdmin), $other, ['name' => $other->name, 'email' => $other->email, 'phone' => '+966522222222']);
+    expect($other->fresh())->phone->toBe('+966522222222')->pending_phone->toBeNull();
+});
+
+it('keeps the cleared numbers only for live accounts: dropped on anonymization and on deletion', function () {
+    $user = User::factory()->create(['deletion_requested_at' => now()]);
+    $gone = User::factory()->create();
+    DB::table('phone_login_cleared_phones')->insert([['user_id' => $user->id, 'phone' => '+966512345671'], ['user_id' => $gone->id, 'phone' => '+966512345672']]);
+
+    app(AnonymizeUser::class)->handle(userWithRole(RoleName::TechnicalAdmin), $user);
+    $gone->forceDelete();
+
+    expect(DB::table('phone_login_cleared_phones')->count())->toBe(0);
 });

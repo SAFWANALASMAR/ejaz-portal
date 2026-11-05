@@ -21,8 +21,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // بيانات شخصية للرجوع وحده: تُحذف مع حذف الحساب وتجهيله (AnonymizeUser)، والجدول بترحيل لاحق بعد 90 يوماً
         Schema::create('phone_login_cleared_phones', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->primary();
+            $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
             $table->string('phone');
         });
 
@@ -62,7 +63,7 @@ return new class extends Migration
     }
 
     /**
-     * يعيد التفرد على الموثق وحده، والأرقام المفرَّغة إلى حساباتها (ما بقي رقمها فارغاً).
+     * يعيد التفرد على الموثق وحده، والأرقام المفرَّغة إلى حساباتها (ما بقي رقمها فارغاً، ولم يُجهَّل).
      */
     public function down(): void
     {
@@ -73,7 +74,7 @@ return new class extends Migration
         });
 
         DB::statement('CREATE UNIQUE INDEX users_verified_phone_unique ON users (phone) WHERE phone_verified_at IS NOT NULL');
-        DB::statement('UPDATE users SET phone = cleared.phone FROM phone_login_cleared_phones cleared WHERE users.id = cleared.user_id AND users.phone IS NULL');
+        DB::statement('UPDATE users SET phone = cleared.phone FROM phone_login_cleared_phones cleared WHERE users.id = cleared.user_id AND users.phone IS NULL AND users.anonymized_at IS NULL');
 
         Schema::drop('phone_login_cleared_phones');
     }
