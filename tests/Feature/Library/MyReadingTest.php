@@ -10,6 +10,7 @@ use App\Jobs\CountLibraryPages;
 use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
 use App\Models\User;
+use App\Support\HomePortalStats;
 use App\Support\LibraryPageCount;
 use App\Support\PageSet;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -241,21 +242,65 @@ it('credits a first report with seconds only its small slack', function () {
     expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(RecordLibraryProgress::SECONDS_SLACK);
 });
 
-it('takes only an opened mark for a YouTube video, YouTube audio and a downloadable book', function () {
+// ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026: شاهد مقطع يوتيوب كاملاً فلم تُسجَّل مشاهدته، لأن يوتيوب كان علامة «فتحته» وحدها. ومشغّله
+// يبلّغ الآن تشغيله عبر postMessage (library-progress.js)، فتُقبل الثواني والموضع بساعة الخادم كالملف
+it('takes playback seconds for a YouTube video and YouTube audio, and only an opened mark for a downloadable book', function () {
     $video = LibraryItem::factory()->video()->create(['slug' => 'reading-video']);
     $youtubeAudio = LibraryItem::factory()->state(['section' => LibrarySection::Audio, 'video_url' => 'https://www.youtube.com/watch?v=abcdefghijk', 'file' => null])->create(['slug' => 'youtube-audio']);
     $downloadable = LibraryItem::factory()->create(['slug' => 'reading-downloadable']);
     $this->actingAs($this->reader);
 
+    expect($video->youtubeId())->not->toBeNull()->and($video->tracksPlayback())->toBeTrue()->and($youtubeAudio->tracksPlayback())->toBeTrue();
+
     reportProgress($video)->assertOk();
     reportProgress($youtubeAudio)->assertOk();
     reportProgress($downloadable)->assertOk();
-    reportProgress($video, ['seconds' => 5])->assertJsonValidationErrors('seconds');
-    reportProgress($youtubeAudio, ['seconds' => 5])->assertJsonValidationErrors('seconds');
-    reportProgress($downloadable, ['pages' => [1]])->assertJsonValidationErrors('pages');
 
-    expect(progressOf($this->reader, $video))->not->toBeNull()
+    $this->travel(40)->seconds();
+    reportProgress($video, ['seconds' => 30, 'position' => 30, 'duration' => 213])->assertOk();
+    reportProgress($youtubeAudio, ['seconds' => 5, 'position' => 5])->assertOk();
+    reportProgress($downloadable, ['pages' => [1]])->assertJsonValidationErrors('pages');
+    // والموضع لا يتجاوز المدة المرسلة معه، والثواني بحدها
+    reportProgress($video, ['position' => 300, 'duration' => 213])->assertJsonValidationErrors('position');
+    reportProgress($video, ['seconds' => RecordLibraryProgress::MAX_SECONDS_PER_REPORT + 1])->assertJsonValidationErrors('seconds');
+
+    $watched = progressOf($this->reader, $video);
+    expect($watched->seconds_consumed)->toBe(30)
+        ->and($watched->last_position)->toBe(30)
+        ->and($watched->duration_seconds)->toBe(213)
+        // والثانية للحساب كله لا لكل عنصر: الصوت بعد المقطع في الساعة نفسها لا يُحتسب منه إلا ما بقي منها مع الفسحة
+        ->and(progressOf($this->reader, $youtubeAudio)->seconds_consumed)->toBeLessThanOrEqual(5)
         ->and(progressOf($this->reader, $downloadable)->pages_count)->toBe(0);
+
+    // و«قراءاتي» تعرض موضع المشاهدة ومدتها، وتُحسب في دقائق المشاهدة
+    $this->get(route('account.my-reading'))->assertOk()
+        ->assertSee(__('reading.status.watched', ['position' => '0:30', 'duration' => '3:33']));
+});
+
+// والإضافة (المشرف، 01:14): «استمعت لمقطع كامل» — الاستماع الكامل والمشاهدة الكاملة يُسجّلان في «قراءاتي» و«البوابة بالأرقام»
+it('records a full YouTube listen and a full YouTube watch in my reading totals and the portal numbers', function () {
+    $audio = LibraryItem::factory()->state(['section' => LibrarySection::Audio, 'video_url' => 'https://www.youtube.com/watch?v=abcdefghijk', 'file' => null])->create(['slug' => 'full-listen']);
+    $video = LibraryItem::factory()->video()->create(['slug' => 'full-watch']);
+    $this->actingAs($this->reader);
+
+    // كما يبلّغ المشغّل: «فتحته» عند ظهوره، ثم كل عشرين ثانية ما شُغّل منها، حتى نهاية مقطع من دقيقتين
+    foreach ([$audio, $video] as $item) {
+        reportProgress($item)->assertOk();
+
+        foreach (range(1, 6) as $step) {
+            $this->travel(20)->seconds();
+            reportProgress($item, ['seconds' => 20, 'position' => $step * 20, 'duration' => 120])->assertOk();
+        }
+    }
+
+    expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(120)
+        ->and(progressOf($this->reader, $video)->seconds_consumed)->toBe(120)
+        ->and(LibraryProgress::totals($this->reader))->toMatchArray(['listened_minutes' => 2, 'watched_minutes' => 2])
+        ->and(HomePortalStats::compute()['media_views'])->toBe(2);
+
+    $this->get(route('account.my-reading'))->assertOk()
+        ->assertSee(__('reading.status.listened', ['position' => '2:00', 'duration' => '2:00']))
+        ->assertSee(__('reading.status.watched', ['position' => '2:00', 'duration' => '2:00']));
 });
 
 it('refuses guests, unpublished, deleted or mismatched items, and inactive or deleted accounts', function () {
@@ -572,4 +617,15 @@ it('moves the account clocks only once the progress is committed, so a rolled-ba
     expect(Cache::has($pages))->toBeTrue()
         ->and(Cache::has($seconds))->toBeTrue()
         ->and(progressOf($this->reader, $book)->pages_count)->toBe(3);
+});
+
+// ولا تُنفخ «مشاهدات المقاطع» بثانية لكل مقطع: تُعدّ من عشر ثوانٍ تشغيل فأكثر (مراجعة المشرف على #182، L2)
+it('counts a portal media view only from ten seconds of playback', function () {
+    $short = LibraryItem::factory()->video()->create(['slug' => 'short-view']);
+    $long = LibraryItem::factory()->video()->create(['slug' => 'long-view']);
+    foreach ([[$short, HomePortalStats::MIN_VIEW_SECONDS - 1], [$long, HomePortalStats::MIN_VIEW_SECONDS]] as [$item, $seconds]) {
+        LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $item->id, 'last_reported_at' => now(), 'seconds_consumed' => $seconds]);
+    }
+
+    expect(HomePortalStats::compute()['media_views'])->toBe(1);
 });

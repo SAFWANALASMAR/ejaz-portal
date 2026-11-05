@@ -96,14 +96,15 @@ class LibraryItem extends Model implements HasPublicImages
     }
 
     /**
-     * والاستماع والمشاهدة بالثواني في مشغّل الصفحة: المقطع من ملف بنطاق معتمد، والصوت القديم بملفه. ومقطع يوتيوب لا تُقرأ
-     * مدته بلا سكربت يوتيوب، وسياسة المحتوى لا تسمح به، فعلامة «فتحته» وحدها.
+     * والاستماع والمشاهدة بالثواني في مشغّل الصفحة: المقطع من ملف بنطاق معتمد، والصوت القديم بملفه، ومقطع يوتيوب (مرئي أو صوتي)
+     * ببلاغات مشغّله نفسه عبر postMessage بلا سكربت يوتيوب، فسياسة المحتوى كما هي (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026:
+     * كان علامة «فتحته» وحدها، فلم تُسجَّل مشاهدة مقطع كامل). والثواني بساعة الخادم كالملف (RecordLibraryProgress).
      */
     public function tracksPlayback(): bool
     {
         return match ($this->section) {
-            LibrarySection::Videos => filled($this->video_url) && $this->youtubeId() === null,
-            LibrarySection::Audio => filled($this->file),
+            LibrarySection::Videos => filled($this->video_url),
+            LibrarySection::Audio => filled($this->file) || $this->youtubeId() !== null,
             default => false,
         };
     }

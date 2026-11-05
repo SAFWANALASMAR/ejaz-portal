@@ -54,6 +54,8 @@ it('shows up to three chosen published YouTube videos, playing only on request',
         ->not->toContain('كتاب مختار')
         ->not->toContain('مرئي مستضاف مختار')
         ->toContain('data-video-embed="https://www.youtube-nocookie.com/embed/aaaaaaaaaaa?autoplay=1"')
+        // وتشغيله من الرئيسية يُحسب في «قراءاتي» كصفحته (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026)
+        ->toContain('data-progress="'.route('library.progress', [LibrarySection::Videos->value, $chosen->first()->slug]).'"')
         ->not->toContain('<iframe')
         ->toContain(route('library.section', LibrarySection::Videos->value));
 

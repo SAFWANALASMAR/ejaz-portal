@@ -17,7 +17,7 @@ import './home';
 import './carousel';
 import './back-nav';
 import './search-palette';
-import './library-progress';
+import { resumePoint } from './library-progress';
 import './pdf-reader';
 import './profile-reveal';
 import './image-fit';
@@ -49,8 +49,22 @@ const VIDEO_EMBED = 'https://www.youtube-nocookie.com/embed/';
 
 function playVideo(link) {
     const frame = document.createElement('iframe');
+    const src = new URL(link.dataset.videoEmbed);
 
-    frame.src = link.dataset.videoEmbed;
+    // مقطع من المكتبة: مشغّله يبلّغ تشغيله لهذه الصفحة عبر postMessage بلا سكربت يوتيوب («قراءاتي» — library-progress.js)، ويبدأ من
+    // موضع رابط «أكمل» (?resume=)
+    if (link.dataset.progress) {
+        const resume = resumePoint();
+
+        src.searchParams.set('enablejsapi', '1');
+        src.searchParams.set('origin', window.location.origin);
+
+        if (resume !== null) {
+            src.searchParams.set('start', String(resume));
+        }
+    }
+
+    frame.src = src.toString();
     frame.title = link.dataset.videoTitle;
     frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
     frame.allowFullscreen = true;
@@ -59,6 +73,10 @@ function playVideo(link) {
     frame.videoLink = link;
     link.replaceWith(frame);
     frame.focus();
+
+    if (link.dataset.progress) {
+        document.dispatchEvent(new CustomEvent('ejaz:video-frame', { detail: { frame, progress: link.dataset.progress } }));
+    }
 }
 
 // والرابط يعود مكان المشغّل قبل مغادرة الصفحة، فلا يحفظه Livewire في نسخة الرجوع فيعمل المقطع وحده (autoplay) عند الرجوع
