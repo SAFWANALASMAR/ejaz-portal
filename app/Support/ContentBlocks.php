@@ -111,19 +111,53 @@ final class ContentBlocks
 
     /**
      * مرسى المقطع في «عن الجمعية» الذي تفتحه بطاقته في الرئيسية وقائمته المنسدلة (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٨):
-     * الرؤية والرسالة والأهداف والقيم والمبادئ، بعنوان المقطع كلمةً وحدها أو أول كلمة فيه، بـ«ال» أو بلاها («الأهداف» و«أهداف
-     * الجمعية»، «القيم» و«قيم الجمعية» — رابط العرض، 5 نوفمبر 2026). والكلمة كاملة لا بعضها («قيمة» ليست «قيم»)، وما سواها بلا مرسى.
+     * الرؤية والرسالة والأهداف والقيم والمبادئ، بعنوان المقطع كلمةً وحدها أو متبوعة بلاحقة معتمدة («الأهداف» و«أهداف الجمعية» — رابط
+     * العرض، 5 نوفمبر 2026)، لا كل عنوان أوله الكلمة («رؤية 2030» و«رسالة رئيس المجلس» و«القيم المضافة» بلا مرسى — قرار المشرف
+     * على طلب الدمج 183). وتُحذف علامات الترقيم الختامية، وتُوحَّد الهمزة («اهداف الجمعية»). والكلمات واللواحق في lang/ar/ui.php.
      */
     public static function anchor(mixed $heading): ?string
     {
-        $first = preg_split('/\s+/u', is_string($heading) ? trim($heading) : '', 2)[0] ?? '';
+        $normalize = fn (string $text): string => strtr((string) preg_replace('/\s+/u', ' ', trim($text)), ['أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا']);
+        $heading = $normalize((string) preg_replace('/[\s.:،؛,;!؟?\-–—]+$/u', '', is_string($heading) ? $heading : ''));
+
+        if ($heading === '') {
+            return null;
+        }
+
+        $suffixes = array_map($normalize, (array) __('ui.about_anchors.suffixes'));
 
         foreach ((array) __('ui.about_anchors.words') as $anchor => $words) {
-            if (in_array($first, (array) $words, true)) {
-                return 'about-'.$anchor;
+            foreach (array_map($normalize, (array) $words) as $word) {
+                if ($heading === $word || in_array($heading, array_map(fn (string $suffix): string => $word.' '.$suffix, $suffixes), true)) {
+                    return 'about-'.$anchor;
+                }
             }
         }
 
         return null;
+    }
+
+    /**
+     * المرسى لأول عنوان مطابق في الصفحة وحده، فلا يتكرر المعرّف إن تشابه عنوانان (قرار المشرف على طلب الدمج 183): القوالب تستدعي
+     * هذه، والصفحة الواحدة طلب واحد (ما عُرض في الطلب يُحفظ في سماته).
+     */
+    public static function anchorOnce(mixed $heading): ?string
+    {
+        $anchor = self::anchor($heading);
+
+        if ($anchor === null) {
+            return null;
+        }
+
+        /** @var list<string> $used */
+        $used = (array) request()->attributes->get('about_anchors', []);
+
+        if (in_array($anchor, $used, true)) {
+            return null;
+        }
+
+        request()->attributes->set('about_anchors', [...$used, $anchor]);
+
+        return $anchor;
     }
 }

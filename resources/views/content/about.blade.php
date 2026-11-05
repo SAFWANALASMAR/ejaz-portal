@@ -52,7 +52,7 @@
                 <div class="flex flex-col gap-9" data-about-quotes>
                     @foreach ($quotes as $heading => $block)
                         <blockquote class="about-quote" data-about-quote="{{ $heading === __('ui.identity.vision') ? 'vision' : 'mission' }}"
-                            @if ($anchor = \App\Support\ContentBlocks::anchor($heading)) id="{{ $anchor }}" @endif>
+                            @if ($anchor = \App\Support\ContentBlocks::anchorOnce($heading)) id="{{ $anchor }}" @endif>
                             <span class="about-quote-mark" aria-hidden="true">”</span>
                             <p class="about-quote-label">{{ $heading }}</p>
                             <div class="about-quote-text">{{ \App\Support\RichText::toHtml(is_string($block['data']['body'] ?? null) ? $block['data']['body'] : null) }}</div>
@@ -98,9 +98,10 @@
 @endif
 
 @if ($initiatives->isNotEmpty())
-    <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-12 sm:px-7" aria-labelledby="about-initiatives">
-        <div class="mb-4.5 flex items-center justify-between gap-4">
-            <x-section-heading id="about-initiatives" icon="flag">{{ __('content.initiatives.title') }}</x-section-heading>
+    {{-- المرسى على الصف الثابت لا على العنوان المنزاح عند ظهوره (data-reveal)، فتقيس قفزة المتصفح موضعه الأخير (المشرف على طلب الدمج 183) --}}
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-12 sm:px-7" aria-labelledby="about-initiatives-title">
+        <div id="about-initiatives" class="mb-4.5 flex items-center justify-between gap-4">
+            <x-section-heading id="about-initiatives-title" icon="flag">{{ __('content.initiatives.title') }}</x-section-heading>
             <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}<span class="sr-only">: {{ __('content.initiatives.title') }}</span></a>
         </div>
         <ul class="grid gap-3.5 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>

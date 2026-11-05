@@ -85,11 +85,19 @@ it('keeps the store as a hidden main menu item opening in the same tab', functio
 it('moves an existing new-tab store menu item to the same tab on migration, and leaves other items alone', function () {
     $store = MenuItem::factory()->create(['label' => 'المتجر', 'url' => '/store', 'opens_in_new_tab' => true]);
     $other = MenuItem::factory()->create(['label' => 'رابط خارجي', 'url' => 'https://example.org', 'opens_in_new_tab' => true]);
+    // ورابط فرعي إلى /store أضافه المحرر في قائمة منسدلة لا يُمس (المشرف على طلب الدمج 183، المنخفضة 6)
+    $child = MenuItem::factory()->create(['parent_id' => $store->id, 'label' => 'متجر فرعي', 'url' => '/store', 'opens_in_new_tab' => true]);
 
     (require database_path('migrations/2026_11_05_090000_open_store_menu_item_in_same_tab.php'))->up();
 
     expect($store->fresh()->opens_in_new_tab)->toBeFalse()
-        ->and($other->fresh()->opens_in_new_tab)->toBeTrue();
+        ->and($other->fresh()->opens_in_new_tab)->toBeTrue()
+        ->and($child->fresh()->opens_in_new_tab)->toBeTrue();
+
+    (require database_path('migrations/2026_11_05_090000_open_store_menu_item_in_same_tab.php'))->down();
+
+    expect($store->fresh()->opens_in_new_tab)->toBeTrue()
+        ->and($child->fresh()->opens_in_new_tab)->toBeTrue();
 });
 
 it('keeps the store out of the home service cards and out of the seven header items', function () {

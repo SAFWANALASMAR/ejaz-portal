@@ -345,8 +345,10 @@ function anchorTarget(hash) {
     }
 }
 
-// ورابط مرساة في الصفحة نفسها (☰ على الجوال من «عن الجمعية» نفسها): يُغلق القائمة ويُمرَّر فوراً، لا تنقّل سريع إلى الخادم
-// يُبقي القائمة مفتوحة ويؤخر النزول ثانية أو اثنتين (رابط العرض، 5 نوفمبر 2026). في مرحلة الالتقاط قبل مستمع wire:navigate على الرابط
+// ورابط مرساة في الصفحة نفسها (☰ على الجوال من «عن الجمعية» نفسها، ورابط التخطي #main): تُغلق القوائم، ويُوقف الحدث قبل مستمع
+// wire:navigate على الرابط (مرحلة الالتقاط) فلا تنقّل سريع إلى الخادم يُبقي القائمة مفتوحة ويؤخر النزول (رابط العرض، 5 نوفمبر 2026).
+// ولا preventDefault ولا pushState: قفزة المتصفح الأصلية تحترم scroll-padding-top، وتنقل التركيز، وتحدّث :target والتاريخ
+// (قرار المشرف على طلب الدمج 183، الخيار ب — كان المنع يكسر رابط التخطي، WCAG 2.4.1)
 document.addEventListener('click', (event) => {
     const link = event.target.closest?.('a[href*="#"]');
 
@@ -360,18 +362,12 @@ document.addEventListener('click', (event) => {
         return;
     }
 
-    const target = anchorTarget(url.hash);
-
-    if (!target) {
+    if (!anchorTarget(url.hash)) {
         return;
     }
 
-    event.preventDefault();
     event.stopPropagation();
     document.querySelectorAll('[data-toggle][aria-expanded="true"]').forEach((toggle) => setOpen(toggle, false));
-    // حالة Livewire في التاريخ تبقى كما هي، فيعمل زر الرجوع
-    window.history.pushState(window.history.state, '', url.hash);
-    target.scrollIntoView({ block: 'start' });
 }, true);
 
 onPage(() => {

@@ -5,7 +5,7 @@
 --}}
 @props(['icon', 'id' => null])
 
-<h2 @if ($id) id="{{ $id }}" @endif {{ $attributes->class(['acct-section-title scroll-mt-24']) }} data-account-section-title>
+<h2 @if ($id) id="{{ $id }}" @endif {{ $attributes->class(['acct-section-title']) }} data-account-section-title>
     <x-icon-tile :icon="$icon" shade="dark" size="sm" class="shrink-0" />
     <span>{{ $slot }}</span>
 </h2>
