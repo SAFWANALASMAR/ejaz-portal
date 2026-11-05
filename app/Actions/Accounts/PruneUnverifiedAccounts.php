@@ -136,6 +136,9 @@ class PruneUnverifiedAccounts
             WHERE con.contype = 'f' AND dst.relname = 'users' AND ns.nspname = current_schema()
             SQL);
 
-        return array_map(fn (object $row) => [(string) $row->table_name, (string) $row->column_name], $rows);
+        // رقم أفرغه ترحيل تفرد الجوال للرجوع وحده ليس ارتباطاً يُبقي الحساب، ويُحذف معه (البلاغ 185، L1)
+        $rows = array_filter($rows, fn (object $row) => $row->table_name !== 'phone_login_cleared_phones');
+
+        return array_values(array_map(fn (object $row) => [(string) $row->table_name, (string) $row->column_name], $rows));
     }
 }
