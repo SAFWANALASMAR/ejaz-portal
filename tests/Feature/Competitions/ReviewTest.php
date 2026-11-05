@@ -237,6 +237,32 @@ it('sends the reviewer to a short signed storage link for the video on S3, after
     $this->actingAs($this->reviewerB)->get($url)->assertNotFound();
 });
 
+// والمتابع بصلاحية submissions.view يصله الرابط على S3 كالمحكّم، وصاحب المشاركة لا (المشرف على #174، ٢)
+it('sends a follower with submissions.view to the signed link on S3, and refuses the entry owner', function () {
+    config(['filesystems.disks.content-s3' => ['driver' => 'local', 'root' => storage_path('framework/testing/disks/content-s3')]]);
+    $disk = Storage::fake('content-s3');
+    config(['filesystems.disks.content-s3.driver' => 's3', 'filesystems.private_disk' => 'content-s3']);
+    $disk->buildTemporaryUrlsUsing(fn (string $path) => 'https://storage.example.test/'.$path.'?signature=x');
+
+    $entry = submittedEntry();
+    $disk->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+    $url = route('competitions.reviews.video', [SubmissionReview::sole(), $video]);
+
+    expect($this->manager->can('submissions.view'))->toBeTrue();
+    $this->actingAs($this->manager)->get($url)->assertRedirect('https://storage.example.test/competition-videos/clip.mp4?signature=x');
+    $this->actingAs($entry->user)->get($url)->assertNotFound();
+});
+
 it('ends an idle reviewer session on the review video, like the panel', function () {
     $entry = submittedEntry();
     Storage::disk('local')->put('competition-videos/clip.mp4', 'video-bytes');

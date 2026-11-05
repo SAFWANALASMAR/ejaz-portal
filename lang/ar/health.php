@@ -6,6 +6,7 @@ return [
         'cache' => 'الذاكرة المؤقتة',
         'queue' => 'الطابور',
         'video_queue' => 'طابور مقاطع المسابقات',
+        'certificate_queue' => 'طابور شهادات المسابقات',
         'failed_jobs' => 'المهام الفاشلة',
         'disk' => 'مساحة القرص',
         'private_storage' => 'التخزين الخاص',

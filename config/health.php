@@ -12,6 +12,10 @@ return [
     // طابور مقاطع المسابقات: المهمة الواحدة حتى 15 دقيقة، فالحد أصغر بكثير
     'video_queue_max_backlog' => (int) env('HEALTH_VIDEO_QUEUE_MAX_BACKLOG', 100),
 
+    // طابور شهادات المسابقة (supervisor-certificates): «إصدار الشهادات» يضع مهمة PDF قصيرة لكل مشارك دفعة واحدة، فالحد للدفعة
+    // الكبيرة لا للمهمة. وتراكمه فوقه يعني عمالاً متوقفين (المشرف على #173، ٢)
+    'certificate_queue_max_backlog' => (int) env('HEALTH_CERTIFICATE_QUEUE_MAX_BACKLOG', 5000),
+
     // أقصى عدد للمهام الفاشلة في آخر 24 ساعة قبل التنبيه
     'failed_jobs_max' => (int) env('HEALTH_FAILED_JOBS_MAX', 0),
 

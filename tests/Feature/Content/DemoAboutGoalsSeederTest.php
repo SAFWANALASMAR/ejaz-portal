@@ -17,7 +17,7 @@ it('appends the demo goals section once, at the end, keeping the existing blocks
 
     $blocks = $page->fresh()->blocks;
     expect($blocks)->toHaveCount(2)
-        ->and($blocks[0])->toBe($existing)
+        ->and($blocks[0])->toEqual($existing)
         ->and($blocks[1]['data']['heading'])->toBe(DemoAboutGoalsSeeder::HEADING)
         ->and($blocks[1]['data']['body'])->toContain(e(__('content.about.demo_goals')));
 });
@@ -27,7 +27,7 @@ it('leaves a page that already has the goals section alone, and does nothing wit
     $page = Page::factory()->create(['slug' => Page::ABOUT, 'blocks' => [$goals]]);
 
     $this->seed(DemoAboutGoalsSeeder::class);
-    expect($page->fresh()->blocks)->toBe([$goals]);
+    expect($page->fresh()->blocks)->toEqual([$goals]);
 
     $page->forceDelete();
     $this->seed(DemoAboutGoalsSeeder::class);

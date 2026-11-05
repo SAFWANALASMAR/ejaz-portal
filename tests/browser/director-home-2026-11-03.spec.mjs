@@ -428,6 +428,8 @@ test('header: the assistant button opens the existing assistant', async ({ page 
     for (const width of [1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
+        // مطفأ من «إعدادات المساعد» يظهر معطّلاً «قيد التفعيل» (قرار صفوان، 4 نوفمبر)، فلا يُفتح (المشرف على #175، ٣)
+        test.skip(await page.locator('[data-assistant-soon]').count() > 0, 'المساعد مطفأ «قيد التفعيل»');
         const button = page.locator('.header-top [data-header-assistant]');
         await expect(button).toBeVisible();
         await expect(button).toHaveAccessibleName('المساعد الذكي');
