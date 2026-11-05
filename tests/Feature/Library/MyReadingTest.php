@@ -10,6 +10,7 @@ use App\Jobs\CountLibraryPages;
 use App\Models\LibraryItem;
 use App\Models\LibraryProgress;
 use App\Models\User;
+use App\Support\HomePortalStats;
 use App\Support\LibraryPageCount;
 use App\Support\PageSet;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -295,7 +296,7 @@ it('records a full YouTube listen and a full YouTube watch in my reading totals 
     expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(120)
         ->and(progressOf($this->reader, $video)->seconds_consumed)->toBe(120)
         ->and(LibraryProgress::totals($this->reader))->toMatchArray(['listened_minutes' => 2, 'watched_minutes' => 2])
-        ->and(\App\Support\HomePortalStats::compute()['media_views'])->toBe(2);
+        ->and(HomePortalStats::compute()['media_views'])->toBe(2);
 
     $this->get(route('account.my-reading'))->assertOk()
         ->assertSee(__('reading.status.listened', ['position' => '2:00', 'duration' => '2:00']))
