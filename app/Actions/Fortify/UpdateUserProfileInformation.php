@@ -8,6 +8,8 @@ use App\Notifications\ContactDetailsChanged;
 use App\Rules\SaudiMobile;
 use App\Support\AccountSettings;
 use App\Support\SaudiPhone;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
@@ -57,9 +59,15 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule($user->id)],
-            // فريد على كل الحسابات، موثقة أو لا (decisions/2026-11-05-phone-login.md)
-            'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)],
+            // فريد على كل الحسابات، موثقة أو لا، برسالة التسجيل العامة. وإلزامي لمن سجّل بنفسه بلا اسم مستخدم، فالتسجيل ألزمه به
+            // (إلا من رقمه معلّق حتى التوثيق — decisions/2026-11-05-phone-login.md)
+            'phone' => [
+                $user->self_registered_at !== null && $user->username === null && ($user->getAttributes()['pending_phone'] ?? null) === null ? 'required' : 'nullable',
+                'string', new SaudiMobile, Rule::unique('users')->ignore($user->id),
+            ],
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
+        ], [
+            'phone.unique' => __('account.register.unavailable'),
         ]);
 
         // التحقق مرة واحدة، ففحص كلمة المرور الحالية تجزئة واحدة لا اثنتان
@@ -81,13 +89,19 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
 
         $previousEmail = $user->email;
 
-        $user->forceFill([
-            'name' => trim((string) $input['name']),
-            'email' => $input['email'],
-            'phone' => $input['phone'],
-            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
-            'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
-        ])->save();
+        try {
+            // في معاملة، فلا يُفسد خطأ التفرد معاملة أوسع حوله
+            DB::transaction(fn () => $user->forceFill([
+                'name' => trim((string) $input['name']),
+                'email' => $input['email'],
+                'phone' => $input['phone'],
+                'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+                'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
+            ])->save());
+        } catch (UniqueConstraintViolationException) {
+            // حفظان متزامنان بالرقم نفسه: الثاني يرى رسالة التحقق نفسها لا خطأ 500
+            throw ValidationException::withMessages(['phone' => __('account.register.unavailable')])->errorBag('updateProfileInformation');
+        }
 
         if (($emailChanged || $phoneChanged) && $previousEmail !== null) {
             Notification::route('mail', $previousEmail)->notify(new ContactDetailsChanged($emailChanged, $phoneChanged));

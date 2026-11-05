@@ -4,6 +4,7 @@ namespace App\Http\Responses;
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\IntendedUrl;
 use Filament\Facades\Filament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
  * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026).
  *
  * ولا عودة إلى أي صفحة سابقة، ولو كانت صفحة المسابقة أو البرنامج التي طلبت الدخول: الرابط المقصود في الجلسة يُحذف
- * (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md، ويلغي العودة في قرار 30 أكتوبر).
+ * (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md، ويلغي العودة في قرار 30 أكتوبر). إلا رابط الاستبيان
+ * برمزه ورابط توثيق البريد، فيعودان إليهما (IntendedUrl — مراجعة المشرف على #180، ٦).
  */
 class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
 {
@@ -33,9 +35,9 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         }
 
         $user = $request->user();
-        $request->session()->forget('url.intended');
+        IntendedUrl::keepOnlyFollowedAfterLogin($request);
 
-        return redirect()->to($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
+        return redirect()->intended($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
             ? url(Filament::getPanel('admin')->getPath())
             : Fortify::redirects('login'));
     }

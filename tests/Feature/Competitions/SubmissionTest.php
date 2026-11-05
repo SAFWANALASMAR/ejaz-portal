@@ -96,7 +96,7 @@ it('asks a guest to log in and an unverified phone to verify before applying', f
     $unverified = User::factory()->create(['phone' => '+966500000002', 'phone_verified_at' => null]);
 
     $this->actingAs($unverified)->post('/competitions/demo/entry/start')->assertRedirect(route('account.phone.verify'));
-    expect(session('url.intended'))->toBe(route('competitions.show', 'demo'));
+    expect(session('url.intended'))->not->toBe(route('competitions.show', 'demo'));
 
     expect(CompetitionSubmission::count())->toBe(0)
         ->and(fn () => app(StartSubmission::class)->handle($unverified, $this->competition))->toThrow(AuthorizationException::class);

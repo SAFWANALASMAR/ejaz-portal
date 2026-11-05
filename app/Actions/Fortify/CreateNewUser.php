@@ -2,11 +2,13 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Accounts\ResetPasswordByPhone;
 use App\Enums\RoleName;
 use App\Models\User;
 use App\Notifications\RegistrationAttemptOnAccount;
 use App\Notifications\RegistrationCapReached;
 use App\Rules\SaudiMobile;
+use App\Support\AccountSettings;
 use App\Support\NetworkPrefix;
 use App\Support\SaudiPhone;
 use App\Support\SchoolNetworkLimits;
@@ -62,11 +64,14 @@ class CreateNewUser implements CreatesNewUsers
         $phone = is_string($input['phone'] ?? null) && trim($input['phone']) !== '' ? $input['phone'] : null;
         $input['phone'] = $phone === null ? null : (SaudiPhone::normalize($phone) ?? $phone);
 
+        // فريد على كل الحسابات، موثقة أو لا، فهو معرّف الدخول (decisions/2026-11-05-phone-login.md). إلا والتوثيق برسالة مفعّل:
+        // رقم يحمله حساب غير موثق يُقبل معلّقاً، فلا يصير لصاحبه إلا بعد الرمز، فيُنزع حينها من الحساب غير الموثق (VerifyPhoneCode)
+        $claimable = AccountSettings::verificationEnabled() && ResetPasswordByPhone::available();
+
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule()],
-            // فريد على كل الحسابات، موثقة أو لا، فهو معرّف الدخول (decisions/2026-11-05-phone-login.md)
-            'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)],
+            'phone' => ['required', 'string', new SaudiMobile, $claimable ? Rule::unique(User::class)->whereNotNull('phone_verified_at') : Rule::unique(User::class)],
             'password' => $this->passwordRules(
                 is_string($input['name'] ?? null) ? $input['name'] : null,
                 $input['email'],
@@ -93,15 +98,18 @@ class CreateNewUser implements CreatesNewUsers
 
         self::hit($limits);
 
+        $held = $claimable && User::query()->where('phone', $input['phone'])->exists();
+
         $user = new User([
             'name' => trim((string) $input['name']),
             'email' => $input['email'],
-            'phone' => $input['phone'],
+            'phone' => $held ? null : $input['phone'],
             'password' => $input['password'],
             'privacy_accepted_at' => now(),
         ]);
         // التسجيل الذاتي وحده يُحذف حسابه إن تُرك غير موثق (PruneUnverifiedAccounts)، لا حساب أنشأه مشرف
         $user->self_registered_at = now();
+        $user->pending_phone = $held ? $input['phone'] : null;
 
         try {
             $user->save();

@@ -57,6 +57,7 @@ class AnonymizeUser
                     'username' => null,
                     'email' => 'deleted-'.$user->id.'@deleted.invalid',
                     'phone' => null,
+                    'pending_phone' => null,
                     'email_verified_at' => null,
                     'phone_verified_at' => null,
                     'password' => Str::password(32),

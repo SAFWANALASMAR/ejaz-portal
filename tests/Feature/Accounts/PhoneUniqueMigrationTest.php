@@ -32,3 +32,32 @@ it('keeps each duplicate number for one account and clears it from the others be
         ->and($alone->fresh()->phone)->toBe($number(4))
         ->and(fn () => User::factory()->create(['phone' => $number(4)]))->toThrow(UniqueConstraintViolationException::class);
 });
+
+it('does not count an unverified email shared with another account as a sign-in identifier', function () {
+    $migration = require database_path('migrations/2026_11_05_010000_make_phone_unique_for_all_accounts.php');
+    $migration->down();
+
+    // الأقدم ببريد غير موثق له وحده (يُدخل به)، والأحدث ببريد غير موثق يشاركه حساب آخر (لا يُدخل به): يبقى الرقم للأحدث
+    $ownEmail = User::factory()->create(['phone' => '+966512345671', 'username' => null, 'email' => 'own@example.test', 'email_verified_at' => null]);
+    $sharedEmail = User::factory()->create(['phone' => '+966512345671', 'username' => null, 'email' => 'shared@example.test', 'email_verified_at' => null]);
+    User::factory()->create(['username' => null, 'email' => 'shared@example.test', 'email_verified_at' => null]);
+
+    $migration->up();
+
+    expect($sharedEmail->fresh()->phone)->toBe('+966512345671')->and($ownEmail->fresh()->phone)->toBeNull();
+});
+
+it('puts the cleared numbers back on rollback', function () {
+    $migration = require database_path('migrations/2026_11_05_010000_make_phone_unique_for_all_accounts.php');
+    $migration->down();
+
+    $kept = User::factory()->create(['phone' => '+966512345671', 'phone_verified_at' => now()]);
+    $cleared = User::factory()->create(['phone' => '+966512345671']);
+
+    $migration->up();
+    expect($cleared->fresh()->phone)->toBeNull();
+
+    $migration->down();
+    expect($cleared->fresh()->phone)->toBe('+966512345671')->and($kept->fresh()->phone)->toBe('+966512345671');
+    $migration->up();
+});

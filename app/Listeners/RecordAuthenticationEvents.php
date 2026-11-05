@@ -100,7 +100,7 @@ class RecordAuthenticationEvents
 
         $this->log(ActivityEvent::Registered, $event->user);
 
-        if (! AccountSettings::verificationEnabled() || $event->user->phone === null) {
+        if (! AccountSettings::verificationEnabled() || $event->user->phoneToVerify() === null) {
             return;
         }
 

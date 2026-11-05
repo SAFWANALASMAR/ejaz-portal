@@ -26,6 +26,7 @@ enum ActivityEvent: string implements HasLabel
     case Logout = 'logout';
     case PasswordReset = 'password_reset';
     case PasswordSetByAdmin = 'password_set_by_admin';
+    case PhoneReleased = 'phone_released';
     // إعادة ضبط التحقق الثنائي من اللوحة: المنفّذ والحساب والسبب، بلا سر ولا رمز
     case TwoFactorResetByAdmin = 'two_factor_reset_by_admin';
     case OtherSessionsEnded = 'other_sessions_ended';

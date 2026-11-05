@@ -102,6 +102,16 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->phone !== null && $this->phone_verified_at !== null;
     }
 
+    /**
+     * الرقم الذي يوثّقه الحساب: المعلّق إن سجّل برقم يحمله حساب غير موثق، فلا يصير رقمه إلا بعد الرمز، وإلا رقمه
+     * (decisions/2026-11-05-phone-login.md).
+     */
+    public function phoneToVerify(): ?string
+    {
+        // من الخصائص مباشرة: الحساب المنشأ للتو لا يحمل العمود إن لم يُضبط، والوصول إليه يُرفض في الوضع الصارم
+        return $this->getAttributes()['pending_phone'] ?? $this->phone;
+    }
+
     public function hasVerifiedEmail(): bool
     {
         return $this->email !== null && $this->email_verified_at !== null;

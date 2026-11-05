@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Actions\Users\ReleasePhone;
 use App\Actions\Users\ResetTwoFactorByAdmin;
 use App\Actions\Users\UpdateUserAccount;
 use App\Filament\Resources\Users\UserResource;
@@ -24,6 +25,23 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // رقم غير موثق حجزه حساب عن صاحبه (decisions/2026-11-05-phone-login.md): لمديري النظام، بسجل وتنبيه (ReleasePhone)
+            Action::make('releasePhone')
+                ->label(__('users.release_phone.action'))
+                ->icon(Heroicon::OutlinedDevicePhoneMobile)
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading(__('users.release_phone.heading'))
+                ->modalDescription(__('users.release_phone.description'))
+                ->visible(fn (User $record): bool => auth()->user()?->can('releasePhone', $record) ?? false)
+                ->action(function (User $record, ReleasePhone $release): void {
+                    /** @var User $actor */
+                    $actor = auth()->user();
+                    $release->handle($actor, $record);
+                    $this->refreshFormData(['phone']);
+
+                    Notification::make()->success()->title(__('users.release_phone.done'))->send();
+                }),
             // لمن فقد تطبيق المصادقة (docs/decisions/2026-11-03-2fa-admin-reset.md): بكلمة مرور المنفّذ وسبب مكتوب.
             // وخطأ الإجراء (كلمة مرور خاطئة أو تجاوز الحد) تنبيه تُغلق معه النافذة. وخطأ النموذج نفسه (سبب فارغ أو طويل)
             // يُبقيها مفتوحة بكلمة المرور في حالتها حتى تُغلق، في متصفح المنفّذ نفسه
