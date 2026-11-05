@@ -19,6 +19,11 @@ final class PasswordPolicy
     public const MIN_LENGTH = 12;
 
     /**
+     * مهلة فحص التسريب بالثواني (AppServiceProvider): زمنه المعتاد نحو 0.3–0.5 ثانية، ومهلة Laravel الافتراضية 30.
+     */
+    public const UNCOMPROMISED_TIMEOUT = 3;
+
+    /**
      * القواعد البنيوية وحدها، بلا فحص التسريب (طلب خارجي).
      */
     public static function structure(): Password
