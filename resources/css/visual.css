@@ -992,12 +992,8 @@ html[data-motion-off] [data-words-ready] [data-word] {
     }
 }
 
-/* انتقال ناعم بين الصفحات بالتحميل الكامل حيث يدعمه المتصفح (View Transitions)، والتنقّل السريع له page-in */
-@media (prefers-reduced-motion: no-preference) {
-    @view-transition {
-        navigation: auto;
-    }
-}
+/* لا انتقال للمستندات (@view-transition) في التحميل الكامل: أُسقط (ملاحظات المدير التنفيذي، ليلة 5 نوفمبر 2026، البند ٥)، فتظهر الصفحة
+   فوراً، ولا يُجهض انتقال جارٍ بخطأ «Transition was aborted … Page already revealed» حين يُنقر رابط أثناءه. والتنقّل السريع له page-in */
 
 @keyframes hero-progress {
     from {

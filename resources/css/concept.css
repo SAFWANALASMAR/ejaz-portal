@@ -1474,13 +1474,14 @@ html[data-motion-off] .marquee[data-direction='vertical'] .marquee-track {
     align-items: center;
     justify-content: center;
     background: linear-gradient(160deg, #0f2536, var(--blue-900));
-    animation: transition-in 160ms ease-out both;
+    animation: transition-in 120ms ease-out both;
 }
 
-/* تتلاشى فور حلول الصفحة الجديدة، فتظهر الصفحة من تحتها بلا انتظار (البندان ٥ و٢١) */
+/* تتلاشى فور حلول الصفحة الجديدة، فتظهر الصفحة من تحتها بلا انتظار (البندان ٥ و٢١). و120 مثل TRANSITION_FADE في page.js، كانت 180
+   (ملاحظات المدير التنفيذي، ليلة 5 نوفمبر 2026، البند ٥) */
 .page-transition[data-state='leaving'] {
     opacity: 0;
-    transition: opacity 180ms ease;
+    transition: opacity 120ms ease;
 }
 
 /* مخطوطة اسم الجمعية كبيرة تحت الرمز (البند ١٣) */
@@ -1531,14 +1532,14 @@ html[data-motion-off] .marquee[data-direction='vertical'] .marquee-track {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    /* يرتفع القناع بطيئاً نحو 85% ما دامت الصفحة تُحمَّل، ثم يكتمل سريعاً عند وصولها */
+    /* يرتفع القناع نحو 85% في 3 ثوانٍ ما دامت الصفحة تُحمَّل (كانت 6)، ثم يكتمل مع التلاشي عند وصولها */
     .page-transition[data-state='loading'] .page-transition-fill {
-        animation: transition-fill 6s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+        animation: transition-fill 3s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
     }
 
     .page-transition:is([data-state='done'], [data-state='leaving']) .page-transition-fill {
         clip-path: inset(0 0 0 0);
-        transition: clip-path 250ms ease-out;
+        transition: clip-path 120ms ease-out;
     }
 
     .page-transition[data-state='done'] .page-transition-shine {
