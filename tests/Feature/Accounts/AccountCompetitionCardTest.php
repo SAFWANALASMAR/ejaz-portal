@@ -7,6 +7,7 @@ use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\Dates;
+use Illuminate\Support\Facades\DB;
 
 /*
 | بطاقة مسابقة الطلاب أعلى «حسابي» (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026، المجموعة ج — BuildStudentCompetitionCards): المرحلة
@@ -102,4 +103,23 @@ it('names the account competitions page «my competitions» with the trophy icon
         ->and(__('competitions.account.title'))->toBe('مسابقاتي')
         ->and($html)->toContain('مسابقاتي')->not->toContain('مشاركاتي')
         ->and(collect(config('account.navigation'))->firstWhere('route', 'account.competitions')['icon'])->toBe('trophy');
+});
+
+it('renames the competitions card of the account home once, keeping an admin edited text', function () {
+    $migration = require database_path('migrations/2026_11_05_010000_rename_competitions_account_card.php');
+    $card = fn () => DB::table('account_cards')->where('route', 'account.competitions');
+
+    // بيئة أُنشئت بطاقتها قبل التسمية الجديدة
+    $card()->update(['title' => 'مشاركاتي', 'description' => 'مشاركاتك في المسابقات وحالة كل منها ورقمها المرجعي.']);
+    $migration->up();
+    expect($card()->first())->title->toBe('مسابقاتي')->description->toBe('مسابقاتك وحالة كل منها ورقمها المرجعي.');
+
+    $html = (string) $this->actingAs($this->student)->get(route('account.dashboard'))->getContent();
+    expect((string) str($html)->after('data-account-cards'))->toContain('مسابقاتي')->not->toContain('مشاركاتي');
+
+    // وما عدّلته الإدارة لا يُمس
+    $card()->update(['title' => 'عنوان من اللوحة']);
+    $migration->down();
+    $migration->up();
+    expect($card()->value('title'))->toBe('عنوان من اللوحة');
 });

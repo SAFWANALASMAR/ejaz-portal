@@ -276,6 +276,32 @@ it('takes playback seconds for a YouTube video and YouTube audio, and only an op
         ->assertSee(__('reading.status.watched', ['position' => '0:30', 'duration' => '3:33']));
 });
 
+// والإضافة (المشرف، 01:14): «استمعت لمقطع كامل» — الاستماع الكامل والمشاهدة الكاملة يُسجّلان في «قراءاتي» و«البوابة بالأرقام»
+it('records a full YouTube listen and a full YouTube watch in my reading totals and the portal numbers', function () {
+    $audio = LibraryItem::factory()->state(['section' => LibrarySection::Audio, 'video_url' => 'https://www.youtube.com/watch?v=abcdefghijk', 'file' => null])->create(['slug' => 'full-listen']);
+    $video = LibraryItem::factory()->video()->create(['slug' => 'full-watch']);
+    $this->actingAs($this->reader);
+
+    // كما يبلّغ المشغّل: «فتحته» عند ظهوره، ثم كل عشرين ثانية ما شُغّل منها، حتى نهاية مقطع من دقيقتين
+    foreach ([$audio, $video] as $item) {
+        reportProgress($item)->assertOk();
+
+        foreach (range(1, 6) as $step) {
+            $this->travel(20)->seconds();
+            reportProgress($item, ['seconds' => 20, 'position' => $step * 20, 'duration' => 120])->assertOk();
+        }
+    }
+
+    expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(120)
+        ->and(progressOf($this->reader, $video)->seconds_consumed)->toBe(120)
+        ->and(LibraryProgress::totals($this->reader))->toMatchArray(['listened_minutes' => 2, 'watched_minutes' => 2])
+        ->and(\App\Support\HomePortalStats::compute()['media_views'])->toBe(2);
+
+    $this->get(route('account.my-reading'))->assertOk()
+        ->assertSee(__('reading.status.listened', ['position' => '2:00', 'duration' => '2:00']))
+        ->assertSee(__('reading.status.watched', ['position' => '2:00', 'duration' => '2:00']));
+});
+
 it('refuses guests, unpublished, deleted or mismatched items, and inactive or deleted accounts', function () {
     $book = readingBook(5);
 
