@@ -24,7 +24,8 @@ it('adds exactly forty demo questions marked «تجريبي» to one round of th
 
     $this->artisan('ejaz:demo-brahin-questions')->assertSuccessful();
 
-    $questions = CreateDemoBrahinQuestions::demoQuestions($competition)->get();
+    // بترتيب الإدراج صراحة: الاستعلام بلا ترتيب قد يعيدها بغيره تحت التشغيل المتوازي
+    $questions = CreateDemoBrahinQuestions::demoQuestions($competition)->orderBy('id')->get();
     expect($questions)->toHaveCount(40)
         ->and($questions->pluck('round_id')->unique())->toHaveCount(1)
         ->and(CompetitionRound::query()->whereKey($questions->first()->round_id)->value('competition_id'))->toBe($competition->id)
