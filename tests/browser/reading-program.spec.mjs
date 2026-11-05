@@ -27,17 +27,23 @@ async function settle(page) {
     );
 }
 
-test('the programs page shows the six tabs from data', async ({ page }) => {
+test('the programs page shows one bar of types from data, then competitions, scrolling to each type on the page', async ({ page }) => {
     await page.goto('/programs');
     await expectRtlNoScroll(page);
 
-    // والقاعدة المحلية قد تحمل أنواعاً تجريبية أخرى، فتُفحص الستة بأسمائها
-    for (const name of ['جميع البرامج', 'الدورات التدريبية', 'المجالس العلمية', 'قراءة الكتب', 'الاستماع', 'المشاهدة']) {
-        await expect(page.locator('.tabs-bar').getByText(name, { exact: true })).toBeVisible();
-    }
+    // شريط واحد بالأنواع التي فيها برنامج منشور ثم «المسابقات» آخره (ملاحظات المدير التنفيذي، 4 نوفمبر 2026). والقاعدة المحلية قد تحمل
+    // أنواعاً تجريبية أخرى، فيُفحص أن «قراءة الكتب» بين الأنواع (لبرنامج القراءة في الاختبار التالي) و«المسابقات» آخرها
+    const bar = page.locator('[data-programs-bar]');
+    const items = await bar.locator('[data-programs-bar-item]').evaluateAll((links) => links.map((link) => link.dataset.programsBarItem));
+    expect(items).toContain('book-reading');
+    expect(items.at(-1)).toBe('competitions');
 
-    await page.locator('.tabs-bar').getByText('قراءة الكتب', { exact: true }).click();
-    await expect(page).toHaveURL(/type=book-reading/);
+    // الضغط ينزل إلى مقطع النوع في الصفحة نفسها، بلا تحميل ولا تغيّر في مسار الرابط
+    const url = page.url();
+    await bar.locator('[data-programs-bar-item="book-reading"]').click();
+    await expect(page).toHaveURL(/\/programs#programs-book-reading$/);
+    expect(page.url().split('#')[0]).toBe(url.split('#')[0]);
+    await expect(page.locator('#programs-book-reading')).toBeInViewport();
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/tabs-${width(page)}.png` });
 });

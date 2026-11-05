@@ -13,7 +13,7 @@
             class="absolute inset-0 -z-10 size-full scale-110 object-cover blur-md">
         <div class="absolute inset-0 -z-10 bg-primary/85" aria-hidden="true"></div>
 
-        <div @class(['relative mx-auto w-full max-w-[28.75rem] px-4', 'lg:max-w-[58rem]' => $wide])>
+        <div @class(['relative mx-auto w-full max-w-[28.75rem] px-4', 'lg:max-w-[58rem]' => $wide, 'lg:max-w-[32rem]' => ! $wide])>
             <div class="form-sky overflow-hidden rounded-[1.75rem] text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]" data-auth-card>
                 <div class="px-6 pt-9 pb-8 sm:px-8.5 lg:pt-6 lg:pb-6">
                     <div class="flex flex-col items-center text-center">

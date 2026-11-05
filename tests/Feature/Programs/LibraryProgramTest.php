@@ -78,7 +78,12 @@ function progressFor(User $user, LibraryItem $item, array $attributes): LibraryP
     return LibraryProgress::query()->forceCreate(['user_id' => $user->id, 'library_item_id' => $item->id, 'last_reported_at' => now(), ...$attributes]);
 }
 
-it('seeds the three library program types, so the programs page has six tabs from data', function () {
+it('seeds the three library program types, shown on the programs bar from data once each has a programme', function () {
+    // والنوع بلا برنامج منشور لا يظهر في الشريط (مراجعة المشرف على #181، L3)
+    foreach (ProgramType::query()->ordered()->get() as $type) {
+        Program::factory()->for($type, 'type')->create();
+    }
+
     $this->get(route('programs.index'))->assertOk()
         ->assertSeeInOrder(['الدورات التدريبية', 'المجالس العلمية', 'قراءة الكتب', 'الاستماع', 'المشاهدة']);
 

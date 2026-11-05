@@ -28,7 +28,7 @@
                         </li>
                     @endforeach
                     <li class="tone-card">
-                        <a href="{{ route('competitions.index') }}" wire:navigate data-programs-bar-item="competitions"
+                        <a href="{{ route('competitions.index') }}" @navigate(route('competitions.index')) data-programs-bar-item="competitions"
                             class="group flex h-full flex-col items-center gap-2 rounded-[1.25rem] p-3 text-center sm:p-4">
                             <x-icon-tile icon="trophy" size="sm" />
                             <span class="text-sm font-black sm:text-base">{{ __('programs.hub.competitions') }}</span>
@@ -62,22 +62,21 @@
                     {{ $programs->links('partials.pagination') }}
                 @endif
             @else
-                @foreach ($sections as $section)
+                {{-- مقطع لكل نوع فيه برنامج منشور (الفارغ لا يظهر — ProgramController)، وبلا نوع حالة فارغة واحدة --}}
+                @forelse ($sections as $section)
                     @php($id = $anchor($section['type']))
                     <section id="{{ $id }}" aria-labelledby="{{ $id }}-title" class="mt-12 scroll-mt-48" data-programs-section="{{ $section['type']->slug }}">
-                        <x-section-header id="{{ $id }}-title" :title="$section['type']->name" :icon="$section['type']->icon()"
+                        <x-section-header id="{{ $id }}-title" :title="$section['type']->name" :icon="$section['type']->icon()" :link-context="$section['type']->name"
                             :href="$section['programs']->count() > $perSection ? route('programs.index', ['type' => $section['type']->slug]) : null" />
-                        @if ($section['programs']->isEmpty())
-                            <p class="mt-4 text-muted">{{ __('programs.hub.empty') }}</p>
-                        @else
-                            <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
-                                @foreach ($section['programs']->take($perSection) as $program)
-                                    <li>@include('programs.card', ['program' => $program])</li>
-                                @endforeach
-                            </ul>
-                        @endif
+                        <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+                            @foreach ($section['programs']->take($perSection) as $program)
+                                <li>@include('programs.card', ['program' => $program])</li>
+                            @endforeach
+                        </ul>
                     </section>
-                @endforeach
+                @empty
+                    <x-empty-state icon="academic-cap" :message="__('programs.list.empty')" class="mt-10" />
+                @endforelse
             @endif
         </div>
     </section>

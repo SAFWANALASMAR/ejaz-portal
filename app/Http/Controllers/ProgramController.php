@@ -43,7 +43,10 @@ class ProgramController extends Controller
         // بلا نوع: مقطع لكل نوع في الصفحة نفسها، وشريط الأيقونات يُنزل إليه (ملاحظات المدير التنفيذي، 4 نوفمبر 2026). والنوع
         // بقائمته الكاملة المرقّمة في ?type= لـ«عرض الكل» والروابط القديمة
         if ($active === null) {
-            abort_if($request->integer('page', 1) > 1, 404);
+            // والترقيم القديم للصفحة كلها (?page=) صار مقاطع في صفحة واحدة: تحويل دائم إليها (مراجعة المشرف على #181، L1)
+            if ($request->has('page')) {
+                return redirect()->route('programs.index', status: 301);
+            }
 
             // استعلام واحد لكل الأنواع مهما كثرت: ترتيب البرنامج في نوعه (row_number)، وواحد زائد على المقطع يُظهر «عرض الكل»
             $ranked = Program::query()->published()->withConfirmedCount()
@@ -51,13 +54,14 @@ class ProgramController extends Controller
             $byType = Program::query()->fromSub($ranked, 'programs')->where('section_rank', '<=', self::PER_SECTION + 1)
                 ->orderByRaw(self::ORDER)->get()->groupBy('program_type_id');
 
-            $sections = $types->map(fn (ProgramType $programType): array => [
+            // النوع بلا برنامج منشور لا يظهر في الشريط ولا مقطع له، كتصنيفات الحوكمة الفارغة (L3)
+            $shown = $types->filter(fn (ProgramType $programType): bool => $byType->has($programType->id))->values();
+            $sections = $shown->map(fn (ProgramType $programType): array => [
                 'type' => $programType,
-                'programs' => ($byType->get($programType->id) ?? new Collection)
-                    ->each(fn (Program $program) => $program->setRelation('type', $programType)),
+                'programs' => $byType->get($programType->id, new Collection)->each(fn (Program $program) => $program->setRelation('type', $programType)),
             ]);
 
-            return view('programs.index', ['types' => $types, 'active' => null, 'sections' => $sections, 'programs' => null]);
+            return view('programs.index', ['types' => $shown, 'active' => null, 'sections' => $sections, 'programs' => null]);
         }
 
         $programs = self::listing()->where('program_type_id', $active->id)->paginate(self::PER_PAGE)->withQueryString();
@@ -66,6 +70,9 @@ class ProgramController extends Controller
 
         // نوع كل برنامج من النوع المحمّل، لا باستعلام ثانٍ عنه
         $programs->each(fn (Program $program) => $program->setRelation('type', $active));
+        // والشريط بالأنواع التي فيها برنامج منشور كالصفحة الأم، والنوع النشط معها
+        $used = Program::query()->published()->distinct()->pluck('program_type_id');
+        $types = $types->filter(fn (ProgramType $programType): bool => $used->contains($programType->id) || $programType->is($active))->values();
 
         return view('programs.index', ['types' => $types, 'active' => $active, 'sections' => null, 'programs' => $programs]);
     }

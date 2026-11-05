@@ -13,7 +13,7 @@ return [
 
     'tiles' => [
         // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات (البند R4)، ثم الاستفسارات (Final-Services، النسخة 63). والمبادرات في «عن الجمعية»
-        // لا هنا (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — MenuSections::about)
+        // لا هنا: مرساتها الأخيرة في قائمتها من بذرة AboutMenuAnchorsSeeder (ملاحظات المدير التنفيذي، 4 نوفمبر 2026)
         ['route' => 'programs.index', 'label' => 'ui.inner.services.programs', 'icon' => 'academic-cap', 'symbol' => 'programs'],
         ['route' => 'competitions.index', 'label' => 'ui.inner.services.competitions', 'icon' => 'trophy', 'symbol' => 'competitions'],
         ['route' => 'contact', 'label' => 'ui.inner.services.inquiries', 'icon' => 'chat-bubble-left-right', 'symbol' => 'inquiries'],

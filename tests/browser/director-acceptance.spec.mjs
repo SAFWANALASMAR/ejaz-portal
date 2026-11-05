@@ -1171,9 +1171,13 @@ test.describe('acceptance v0.15.0: header and footer', () => {
         for (const section of ['الأخبار', 'الإعلانات', 'مكتبة الصور']) {
             expect(children['المركز الإعلامي'], `المركز الإعلامي: ${section}`).toContain(section);
         }
-        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
-            expect(children['الخدمات الإلكترونية'].join('|'), `الخدمات الإلكترونية: ${service} (R4)`).toContain(service);
+        for (const service of ['الدورات والبرامج', 'المسابقات']) {
+            expect(children['الخدمات الإلكترونية'].join('|'), `الخدمات الإلكترونية:  (R4)`).toContain(service);
         }
+        // و«المبادرات» في «عن الجمعية» مرة واحدة آخراً، لا في الخدمات (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — مراجعة المشرف على #181)
+        expect(children['الخدمات الإلكترونية'].join('|')).not.toContain('المبادرات');
+        expect(children['عن الجمعية'].filter((label) => label.includes('المبادرات'))).toHaveLength(1);
+        expect(children['عن الجمعية'].at(-1)).toContain('المبادرات');
         expect(children['الحوكمة'].length, 'الحوكمة وتصنيفاتها').toBeGreaterThanOrEqual(2);
     });
 
@@ -1261,7 +1265,7 @@ test.describe('acceptance v0.15.0: home', () => {
         await expectRtlNoScroll(page, '/');
     });
 
-    test('H4 و١١ وR4: «خدماتنا» is one seamless moving row that includes programs, competitions and initiatives', async ({ page }) => {
+    test('H4 و١١ وR4: «خدماتنا» is one seamless moving row that includes programs and competitions, and no initiatives', async ({ page }) => {
         await visit(page, '/');
         const track = page.locator('#home-services-track');
         await track.scrollIntoViewIfNeeded();
@@ -1274,9 +1278,10 @@ test.describe('acceptance v0.15.0: home', () => {
         }));
         expect(strip.group, 'لا فراغ في الشريط').toBeGreaterThanOrEqual(strip.width);
         expect(strip.animation).toBe('marquee-x');
-        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
+        for (const service of ['الدورات والبرامج', 'المسابقات']) {
             expect(strip.text, service).toContain(service);
         }
+        expect(strip.text, 'المبادرات في «عن الجمعية» لا في «خدماتنا»').not.toContain('المبادرات');
         await expectRtlNoScroll(page, '/');
     });
 
@@ -1402,11 +1407,12 @@ test.describe('acceptance v0.15.0: inner pages', () => {
         await expectRtlNoScroll(page, '/competitions');
     });
 
-    test('R4: the e-services page holds programs, competitions and initiatives', async ({ page }) => {
+    test('R4: the e-services page holds programs and competitions, and initiatives moved to About', async ({ page }) => {
         await visit(page, '/services');
-        for (const service of ['الدورات والبرامج', 'المسابقات', 'المبادرات']) {
+        for (const service of ['الدورات والبرامج', 'المسابقات']) {
             await expect(page.locator('main'), service).toContainText(service);
         }
+        await expect(page.locator('[data-service-grid]')).not.toContainText('المبادرات');
         await expectRtlNoScroll(page, '/services');
     });
 

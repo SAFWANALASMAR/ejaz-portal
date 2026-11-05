@@ -3628,3 +3628,28 @@ html[data-reveal-ready] .portal-chart-line {
         padding-top: 0.75rem;
     }
 }
+
+/* بطاقة الدخول والتسجيل في منتصف المساحة تحت الرأس على الحاسوب (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — مراجعة المشرف على #181، I3):
+   الرأس وشريط العودة نحو 16.75rem (261 بكسل على 1366 و267 على 1440)، فالمسرح بارتفاع ما بقي من الشاشة والبطاقة في وسطه. وعلى
+   الشاشة القصيرة (1366×768) يُخفى شعار البطاقة وحده، والشعار في الرأس فوقها، فتبقى البطاقة كلها في الشاشة */
+@media (min-width: 64rem) {
+    .auth-stage {
+        display: flex;
+        align-items: center;
+        min-height: calc(100svh - 16.75rem);
+    }
+
+    .auth-stage > div {
+        flex: 1;
+    }
+}
+
+@media (min-width: 64rem) and (max-height: 52rem) {
+    .auth-stage [data-auth-logo] {
+        display: none;
+    }
+
+    .auth-stage [data-auth-card] h1 {
+        margin-top: 0;
+    }
+}

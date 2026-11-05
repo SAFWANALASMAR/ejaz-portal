@@ -207,7 +207,6 @@ return [
         'services' => [
             'programs' => 'الدورات والبرامج',
             'competitions' => 'المسابقات',
-            'initiatives' => 'المبادرات',
             'inquiries' => 'الاستفسارات والاقتراحات',
         ],
     ],

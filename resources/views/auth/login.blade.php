@@ -23,6 +23,9 @@
 
     <x-or-divider class="my-5 lg:my-3" />
 
-    <p class="mb-3 text-center text-sm text-muted lg:mb-2">{{ __('account.login.no_account') }}</p>
-    <x-button variant="outline" :href="route('register')" class="w-full">{{ __('account.login.create_account') }}</x-button>
+    {{-- على الحاسوب «ليس لديك حساب؟» والزر في سطر واحد، فتبقى البطاقة في الشاشة (مراجعة المشرف على #181، I3) --}}
+    <div class="lg:flex lg:items-center lg:justify-center lg:gap-4">
+        <p class="mb-3 text-center text-sm text-muted lg:mb-0">{{ __('account.login.no_account') }}</p>
+        <x-button variant="outline" :href="route('register')" class="w-full lg:w-auto lg:px-8">{{ __('account.login.create_account') }}</x-button>
+    </div>
 </x-layouts.auth>
