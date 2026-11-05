@@ -179,11 +179,11 @@
                 </button>
             @endif
 
-            {{-- «المتجر والتبرعات» للجوال واللوحي العمودي داخل القائمة --}}
+            {{-- المتجر للجوال واللوحي العمودي داخل القائمة، باسم زر الرأس نفسه (قرار المشرف على #179، البند 3) --}}
             <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-menu-store
                 @if (request()->routeIs('store.index')) aria-current="page" @endif
                 class="mobile-nav-link mt-1 flex w-full items-center gap-2.5">
-                <x-icon-tile icon="storefront" size="xs" />{{ __('store.page.open') }}
+                <x-icon-tile icon="storefront" size="xs" />{{ __('store.menu.header') }}
             </a>
 
             <div class="mt-3 border-t border-white/10 pt-3 sm:hidden">

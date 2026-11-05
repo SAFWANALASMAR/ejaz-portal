@@ -564,10 +564,11 @@ test('about: the goals strip moves right to left and the values strip after it l
     expect(await move(1), 'القيم من اليسار إلى اليمين').toBeGreaterThan(2);
 });
 
-// ── ٧. القائمة المنسدلة «عن الجمعية» (البند ٢٨): الخمسة بالترتيب، مراسٍ إلى مقاطع موجودة، على الحاسوب وفي قائمة ☰
-test('menu: the «عن الجمعية» dropdown lists the five anchors in order, each reaching its section', async ({ page }, info) => {
+// ── ٧. القائمة المنسدلة «عن الجمعية» (البند ٢٨، وقرار 4 نوفمبر 2026 — AboutMenuAnchorsSeeder::ITEMS): الثماني بالترتيب، مراسٍ إلى
+// مقاطع موجودة، على الحاسوب وفي قائمة ☰. والمبادرات مرساتها متى نُشرت مبادرة
+test('menu: the «عن الجمعية» dropdown lists the eight anchors in order, each reaching its section', async ({ page }, info) => {
     await page.goto('/');
-    const labels = ['التوجه الاستراتيجي', 'من نحن', 'الرؤية', 'الرسالة', 'القيم'];
+    const labels = ['التوجه الاستراتيجي', 'من نحن', 'الرؤية', 'الرسالة', 'الأهداف', 'القيم', 'المبررات', 'المبادرات'];
     let toggle;
     // اللوحي العمودي والجوال بقائمة ☰، والحاسوب بصف القائمة
     if (info.project.name !== 'desktop') {
@@ -594,7 +595,11 @@ test('menu: the «عن الجمعية» dropdown lists the five anchors in order
         return { belowHeader: box.top >= header - 2, inView: box.top < window.innerHeight };
     });
     expect(reached).toEqual({ belowHeader: true, inView: true });
+    const initiatives = (await page.locator('#about-initiatives').count()) > 0;
     for (const [, href] of anchors) {
+        if (href.endsWith('#about-initiatives') && !initiatives) {
+            continue;
+        }
         expect(await page.locator(`#${href.split('#')[1]}`).count(), href).toBe(1);
     }
 });

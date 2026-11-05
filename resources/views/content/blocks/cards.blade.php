@@ -10,10 +10,16 @@
 @endphp
 
 @if ($items !== [])
-    <section class="band-sky scroll-mt-48" data-cards-block @if ($anchor = \App\Support\ContentBlocks::anchor($data['heading'] ?? null)) id="{{ $anchor }}" @endif>
+    {{-- والمرسى على العنوان لا على المقطع، فيقع العنوان تحت الرأس الثابت مباشرة (المشرف على طلب الدمج 183) --}}
+    <section class="band-sky" data-cards-block>
         <div class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-10 sm:px-7">
             @if (filled($data['heading'] ?? null))
-                <x-section-heading class="mb-5" center>{{ $data['heading'] }}</x-section-heading>
+                {{-- في متغير قبل المكوّن: Blade يقيّم تعبير خاصية المكوّن المجهول مرتين، فيأخذ anchorOnce المرسى في الأولى ويرد null في الثانية --}}
+                @php($anchor = \App\Support\ContentBlocks::anchorOnce($data['heading']))
+                {{-- والمرسى على غلاف ثابت لا على العنوان: العنوان يظهر منزاحاً 1.5rem (data-reveal) فتقيس قفزة المتصفح موضعه المنزاح --}}
+                <div @if ($anchor) id="{{ $anchor }}" @endif>
+                    <x-section-heading class="mb-5" center>{{ $data['heading'] }}</x-section-heading>
+                </div>
             @endif
 
             {{-- كل شريط عكس الذي قبله (البند ٢١ — x-content-blocks): الأول من اليمين إلى اليسار، والثاني من اليسار إلى اليمين --}}

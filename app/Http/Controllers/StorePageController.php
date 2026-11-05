@@ -24,10 +24,16 @@ class StorePageController extends Controller
 {
     public function __invoke(StoreIndexRequest $request, StoreCatalog $catalog): View|RedirectResponse
     {
+        // المنتجات تُقرأ مرة في الطلب وإن فرغت الذاكرتان معاً (قرار المشرف على #179، البند 7)
+        $loaded = null;
+        $products = function () use (&$loaded, $catalog): array {
+            return $loaded ??= $catalog->products();
+        };
+
         /** @var list<string> $available */
         $available = ContentCache::remember('store.categories', fn (): array => array_values(array_unique(array_map(
             fn (StoreProduct $product): string => ($product->category ?? StoreItemCategory::Donation)->value,
-            $catalog->products(),
+            $products(),
         ))));
 
         $category = StoreItemCategory::tryFrom((string) $request->validated('category'));
@@ -36,9 +42,8 @@ class StorePageController extends Controller
             return redirect()->route('store.index');
         }
 
-        $html = ContentCache::remember('store.'.($category->value ?? 'all'), function () use ($catalog, $category): string {
-            $products = $catalog->products();
-            $shown = array_values(array_filter($products, fn (StoreProduct $product): bool => $category === null || ($product->category ?? StoreItemCategory::Donation) === $category));
+        $html = ContentCache::remember('store.'.($category->value ?? 'all'), function () use ($catalog, $category, $products): string {
+            $shown = array_values(array_filter($products(), fn (StoreProduct $product): bool => $category === null || ($product->category ?? StoreItemCategory::Donation) === $category));
 
             $cards = array_map(fn (StoreProduct $product): array => [
                 'product' => $product,

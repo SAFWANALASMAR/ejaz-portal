@@ -51,13 +51,13 @@ class MenuSeeder extends Seeder
             // «الخدمات الإلكترونية» تضم الدورات والبرامج والمسابقات والمبادرات في صفحتها، وهي النشطة في صفحاتها (MenuLink)
             ['label' => 'الخدمات الإلكترونية', 'url' => '/services'],
             ['label' => 'تواصل معنا', 'url' => '/contact'],
-            // المتجر المعتمد على سلة (قرار صفوان): /store يحوّل إليه، ويفتح في تبويب جديد. مخفي من الشريط (سبعة عناصر فقط — R3)،
-            // ويُظهر من «القائمة» متى أُريد
-            ['label' => 'المتجر', 'url' => '/store', 'new_tab' => true, 'hidden' => true],
+            // صفحة «المتجر والتبرعات» في الموقع (docs/decisions/2026-11-04-store-page.md)، في التبويب نفسه (قرار المشرف على #179،
+            // البند 2). مخفي من الشريط (سبعة عناصر فقط — R3)، ويُظهر من «القائمة» متى أُريد
+            ['label' => 'المتجر', 'url' => '/store', 'hidden' => true],
         ];
 
         foreach ($menu as $sort => $item) {
-            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => $item['new_tab'] ?? false,
+            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => false,
                 'is_visible' => ! ($item['hidden'] ?? false)]);
 
             foreach ($item['children'] ?? [] as $childSort => $child) {

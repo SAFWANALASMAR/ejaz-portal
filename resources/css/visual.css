@@ -78,7 +78,10 @@
     .group:hover .icon-tile > svg,
     .group:focus-visible .icon-tile > svg,
     a:hover > .icon-tile > svg,
-    a:focus-visible > .icon-tile > svg {
+    a:focus-visible > .icon-tile > svg,
+    /* ورسم الخدمة داخل غلاف (أيقونة المتجر في التذييل، x-service-icon): حفيد لا ابن (مراجعة المشرف على طلب الدمج 176) */
+    a:hover > .icon-tile > span > svg,
+    a:focus-visible > .icon-tile > span > svg {
         transform: rotate(calc(-6deg * var(--motion))) scale(calc(1 + 0.05 * var(--motion)));
     }
 

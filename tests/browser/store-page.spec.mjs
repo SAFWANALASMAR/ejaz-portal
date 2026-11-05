@@ -71,7 +71,8 @@ test.describe('store page', () => {
             await page.locator('[data-toggle="mobile-menu"]').click();
             const entry = page.locator('[data-menu-store]');
             await expect(entry).toBeVisible();
-            await expect(entry).toHaveText('المتجر والتبرعات');
+            // باسم زر الرأس نفسه (قرار المشرف على #179، البند 3)
+            await expect(entry).toHaveText('المتجر الإلكتروني');
             await expect(entry.locator('[data-icon-tile]')).toBeVisible();
             await entry.click();
         }

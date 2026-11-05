@@ -19,6 +19,7 @@ use App\Models\Program;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\ContentBlocks;
+use App\Support\ContentCache;
 use App\Support\FormTimer;
 use App\Support\MenuSections;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -107,6 +108,54 @@ it('links each home identity card to its section of the about page when the page
         ->and(ContentBlocks::anchor('الأهداف'))->toBe('about-goals')
         ->and(ContentBlocks::anchor('قيم الجمعية'))->toBe('about-values')
         ->and(ContentBlocks::anchor('عنوان آخر'))->toBeNull();
+});
+
+// رابط العرض (5 نوفمبر 2026): عنوان «أهداف الجمعية» كان بلا مرساة، فتفتح «الأهداف» في القائمة رأس الصفحة. والمطابقة الكلمة وحدها
+// أو متبوعة بلاحقة معتمدة («الجمعية»)، لا كل عنوان أوله الكلمة (قرار المشرف على طلب الدمج 183، المنخفضة 1)
+it('anchors an about section whose heading is the word alone or followed by an approved suffix', function () {
+    expect(ContentBlocks::anchor('أهداف الجمعية'))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('الأهداف'))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('القيم'))->toBe('about-values')
+        ->and(ContentBlocks::anchor('رؤية الجمعية'))->toBe('about-vision')
+        ->and(ContentBlocks::anchor('رسالة الجمعية'))->toBe('about-mission')
+        ->and(ContentBlocks::anchor('مبادئ الجمعية'))->toBe('about-principles')
+        // علامات الترقيم الختامية والمسافات، وتوحيد الهمزة
+        ->and(ContentBlocks::anchor('  أهداف   الجمعية: '))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('الأهداف.'))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('اهداف الجمعية'))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('الاهداف'))->toBe('about-goals')
+        // لا كل عنوان أوله الكلمة، ولا الكلمة بعضاً ولا في الوسط
+        ->and(ContentBlocks::anchor('رؤية 2030'))->toBeNull()
+        ->and(ContentBlocks::anchor('رسالة رئيس المجلس'))->toBeNull()
+        ->and(ContentBlocks::anchor('القيم المضافة'))->toBeNull()
+        ->and(ContentBlocks::anchor('الأهداف الاستراتيجية'))->toBeNull()
+        ->and(ContentBlocks::anchor('قيمة مضافة'))->toBeNull()
+        ->and(ContentBlocks::anchor('من أهداف الجمعية'))->toBeNull()
+        ->and(ContentBlocks::anchor(null))->toBeNull()
+        ->and(ContentBlocks::anchor(''))->toBeNull()
+        ->and(ContentBlocks::anchor('..'))->toBeNull();
+
+    // وفي الصفحة: مقطع «أهداف الجمعية» يحمل id المرساة التي تفتحها القائمة
+    $page = Page::query()->where('slug', Page::ABOUT)->first() ?? Page::factory()->create(['slug' => Page::ABOUT]);
+    $page->forceFill(['is_published' => true, 'blocks' => [['type' => 'text', 'data' => ['heading' => 'أهداف الجمعية', 'body' => '<p>هدف</p>']]]])->save();
+    ContentCache::flush();
+
+    expect($this->get(route('about'))->assertOk()->getContent())->toMatch('/\sid="about-goals"/');
+});
+
+// المنخفضة 2: عنوانان متطابقان في الصفحة، فالمرسى لأولهما وحده ولا يتكرر المعرّف
+it('gives the anchor to the first matching heading on the page only', function () {
+    $page = Page::query()->where('slug', Page::ABOUT)->first() ?? Page::factory()->create(['slug' => Page::ABOUT]);
+    $page->forceFill(['is_published' => true, 'blocks' => [
+        ['type' => 'text', 'data' => ['heading' => 'أهداف الجمعية', 'body' => '<p>الأول</p>']],
+        ['type' => 'text', 'data' => ['heading' => 'الأهداف', 'body' => '<p>الثاني</p>']],
+    ]])->save();
+    ContentCache::flush();
+
+    $html = (string) $this->get(route('about'))->assertOk()->getContent();
+
+    expect(substr_count($html, 'id="about-goals"'))->toBe(1)
+        ->and((string) str($html)->after('id="about-goals"')->before('</section>'))->toContain('الأول');
 });
 
 it('rotates every published initiative in the initiatives card, linked to the initiatives page (items 8 and 9)', function () {

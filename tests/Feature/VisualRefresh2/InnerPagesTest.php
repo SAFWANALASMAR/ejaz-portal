@@ -177,7 +177,8 @@ it('puts the contact form on a light blue gradient panel with colored contact ca
     Setting::put('contact', ['email' => 'info@ejaz.sa']);
 
     $this->get('/contact')->assertOk()
-        ->assertSee('class="form-sky scroll-mt-48 p-6 sm:p-8" data-contact-form', false)
+        // وإزاحة الرأس من scroll-padding-top على الصفحة وحدها، لا scroll-mt على النموذج (رابط العرض، 5 نوفمبر 2026)
+        ->assertSee('class="form-sky p-6 sm:p-8" data-contact-form', false)
         ->assertSee('tone-card group grid', false);
 });
 

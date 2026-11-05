@@ -4,22 +4,25 @@ use App\Models\Setting;
 use App\Rules\StoreUrl;
 
 /*
-| رابط متجر الجمعية على سلة (المدير عبر صفوان والمشرف، 1 نوفمبر 2026): في روابط التذييل السريعة وبطاقة في «خدماتنا الإلكترونية»،
-| بتبويب جديد (noopener). والرابط من إعدادات الموقع بنطاقاته المسموحة (StoreUrl)، وإلا الرابط المعتمد، ولا يظهر بلا رابط صالح.
+| رابط المتجر (المدير عبر صفوان والمشرف، 1 نوفمبر 2026): في روابط التذييل السريعة وبطاقة في «خدماتنا الإلكترونية». ومنذ صفحة
+| «المتجر والتبرعات» (قرار المشرف على #179، البند 1) يذهبان إلى /store في التبويب نفسه، ومنها إلى سلة. ولا يظهران بلا رابط متجر
+| صالح في إعدادات الموقع بنطاقاته المسموحة (StoreUrl)، وإلا الرابط المعتمد.
 */
 
-it('links the store in the footer quick links and as a services card, in a new tab', function () {
+it('links the store page in the footer quick links and as a services card, in the same tab', function () {
     Setting::put('store', ['url' => 'https://ejaz.org.sa/products']);
 
     $html = $this->get('/services')->assertOk()->getContent();
     $footer = (string) str($html)->after('data-footer-box="links"')->before('</nav>');
     $card = (string) str($html)->after('data-store-card')->before('</li>');
 
-    expect($footer)->toContain('href="https://ejaz.org.sa/products" target="_blank" rel="noopener noreferrer"')
+    expect($footer)->toContain('href="'.route('store.index').'"')
         ->toContain(__('ui.footer.links.store'))
-        ->and($card)->toContain('href="https://ejaz.org.sa/products" target="_blank" rel="noopener noreferrer"')
+        ->not->toContain('https://ejaz.org.sa/products')
+        ->and($card)->toContain('href="'.route('store.index').'"')
         ->toContain(__('ui.services.store'))
-        ->not->toContain('wire:navigate');
+        ->toContain('wire:navigate')
+        ->not->toContain('target="_blank"');
 });
 
 it('falls back to the approved store link when the setting is empty', function () {
