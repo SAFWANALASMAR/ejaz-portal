@@ -10,7 +10,7 @@ use App\Rules\SaudiMobile;
 use App\Support\NetworkPrefix;
 use App\Support\SaudiPhone;
 use App\Support\SchoolNetworkLimits;
-use App\Support\Username;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
@@ -22,8 +22,9 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 /**
- * تسجيل حساب جديد للمستفيد: الاسم الكامل واسم المستخدم وكلمة المرور، والبريد والجوال اختياريان (ملاحظات المدير التنفيذي
- * عبر صفوان، 25 أكتوبر 2026). كل حساب جديد يأخذ الدور member فقط.
+ * تسجيل حساب جديد للمستفيد: الاسم الكامل والجوال وكلمة المرور، والبريد اختياري، ولا اسم مستخدم للحساب الجديد (قرار صفوان،
+ * 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md). والجوال فريد على كل الحسابات، فهو معرّف الدخول. كل حساب جديد
+ * يأخذ الدور member فقط.
  *
  * الحدود (config/security.php — قرار صفوان، 20 أكتوبر 2026): لكل مشترك ولكل جهاز في الساعة، ولكل شبكة في اليوم،
  * وللبوابة كلها في الساعة بتنبيه المشرف العام والمسؤول التقني. وفوقها التحدي ضد الآليات (VerifyBotChallenge).
@@ -31,9 +32,6 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
  * والبريد أو الجوال المستخدم من قبل برسالة عامة واحدة لا تسمّي الحقل، ويُنبَّه صاحب البريد المسجل بالمحاولة، فلا يكشف
  * التسجيل أي الحقلين يخص حساباً، ويعرف صاحب الحساب بمن يجرّب بريده (decisions.md — 20 أكتوبر 2026). والمحاولة تُحسب
  * من الحدود نفسها، فلا يُعدَّد بها بلا سقف.
- *
- * واسم المستخدم المحجوز يُقال صراحة على حقله: لا يُختار اسم آخر بدونه، وهو معرّف يختاره صاحبه لا بيانات شخصية. ومحاولاته
- * تُحسب من الحدود نفسها، فلا يُعدَّد به بلا سقف (decisions.md — 25 أكتوبر 2026).
  */
 class CreateNewUser implements CreatesNewUsers
 {
@@ -56,31 +54,26 @@ class CreateNewUser implements CreatesNewUsers
                     self::warnCapReached($max);
                 }
 
-                throw ValidationException::withMessages(['username' => __($message)]);
+                throw ValidationException::withMessages(['phone' => __($message)]);
             }
         }
 
-        $input['username'] = Username::normalize(is_string($input['username'] ?? null) ? $input['username'] : null);
         $input['email'] = mb_strtolower(trim((string) ($input['email'] ?? ''))) ?: null;
         $phone = is_string($input['phone'] ?? null) && trim($input['phone']) !== '' ? $input['phone'] : null;
         $input['phone'] = $phone === null ? null : (SaudiPhone::normalize($phone) ?? $phone);
 
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
-            'username' => [...Username::rules(), Rule::unique(User::class, 'username')],
             'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule()],
-            // التفرد على الأرقام الموثقة وحدها، فلا يحجز حساب غير موثق رقم غيره (decisions.md — 14 أكتوبر 2026)
-            'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique(User::class)->whereNotNull('phone_verified_at')],
+            // فريد على كل الحسابات، موثقة أو لا، فهو معرّف الدخول (decisions/2026-11-05-phone-login.md)
+            'phone' => ['required', 'string', new SaudiMobile, Rule::unique(User::class)],
             'password' => $this->passwordRules(
                 is_string($input['name'] ?? null) ? $input['name'] : null,
                 $input['email'],
                 $input['phone'],
-                $input['username'],
             ),
             'privacy' => ['accepted'],
         ], [
-            'username.regex' => __('account.register.username_format'),
-            'username.unique' => __('account.register.username_taken'),
             'email.unique' => __('account.register.unavailable'),
             'phone.unique' => __('account.register.unavailable'),
         ]);
@@ -88,13 +81,10 @@ class CreateNewUser implements CreatesNewUsers
         if ($validator->fails()) {
             $taken = $validator->failed();
 
-            if (isset($taken['username']['Unique']) || isset($taken['email']['Unique']) || isset($taken['phone']['Unique'])) {
+            if (isset($taken['email']['Unique']) || isset($taken['phone']['Unique'])) {
                 // تُحسب في حدود المشترك والجهاز والشبكة، لا في سقف البوابة: وإلا أوقف من يجرّب بُرُداً مستخدمة التسجيلَ للجميع
                 self::hit(array_diff_key($limits, ['register:all' => true]));
-            }
-
-            if (isset($taken['email']['Unique']) || isset($taken['phone']['Unique'])) {
-                self::noticeOwner($input['email']);
+                self::noticeOwner($input['email'], $input['phone']);
                 self::mergeTaken($validator, $input['email'] !== null ? 'email' : 'phone');
             }
         }
@@ -105,7 +95,6 @@ class CreateNewUser implements CreatesNewUsers
 
         $user = new User([
             'name' => trim((string) $input['name']),
-            'username' => $input['username'],
             'email' => $input['email'],
             'phone' => $input['phone'],
             'password' => $input['password'],
@@ -113,7 +102,13 @@ class CreateNewUser implements CreatesNewUsers
         ]);
         // التسجيل الذاتي وحده يُحذف حسابه إن تُرك غير موثق (PruneUnverifiedAccounts)، لا حساب أنشأه مشرف
         $user->self_registered_at = now();
-        $user->save();
+
+        try {
+            $user->save();
+        } catch (UniqueConstraintViolationException) {
+            // تسجيلان متزامنان بالرقم نفسه: الثاني يرى الرسالة العامة نفسها لا خطأ 500
+            throw ValidationException::withMessages([$input['email'] !== null ? 'email' : 'phone' => __('account.register.unavailable')]);
+        }
 
         $user->assignRole(RoleName::Member->value);
 
@@ -194,15 +189,16 @@ class CreateNewUser implements CreatesNewUsers
     }
 
     /**
-     * صاحب البريد المسجل يُنبَّه بمحاولة التسجيل ببريده، مرة في اليوم على الأكثر.
+     * صاحب البريد أو الجوال المسجل يُنبَّه ببريده بمحاولة التسجيل بهما، مرة في اليوم على الأكثر. ومن لا بريد له لا يُنبَّه
+     * حتى يُختار مزود الرسائل.
      */
-    private static function noticeOwner(?string $email): void
+    private static function noticeOwner(?string $email, ?string $phone): void
     {
-        if ($email === null) {
-            return;
-        }
-
-        $owner = User::query()->where('email', $email)->first();
+        $owner = User::query()
+            ->whereNotNull('email')
+            ->where(fn ($query) => $query->when($email !== null, fn ($query) => $query->where('email', $email))
+                ->when($phone !== null, fn ($query) => $query->orWhere('phone', $phone)))
+            ->first();
 
         if ($owner !== null && Cache::add('register-attempt-notice:'.$owner->id, true, 86400)) {
             $owner->notify(new RegistrationAttemptOnAccount);

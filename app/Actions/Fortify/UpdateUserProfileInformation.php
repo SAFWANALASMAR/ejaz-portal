@@ -57,7 +57,8 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
             'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule($user->id)],
-            'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)->whereNotNull('phone_verified_at')],
+            // فريد على كل الحسابات، موثقة أو لا (decisions/2026-11-05-phone-login.md)
+            'phone' => ['nullable', 'string', new SaudiMobile, Rule::unique('users')->ignore($user->id)],
             'current_password' => $emailChanged || $phoneChanged ? ['required', 'string', 'current_password:web'] : ['nullable'],
         ]);
 

@@ -251,7 +251,7 @@ it('caps sign ups per device by its own cookie, not by the browser string many s
 
     registerAt(1, [], $device)->assertSessionHasNoErrors();
     registerAt(2, [], $device)->assertSessionHasNoErrors();
-    registerAt(3, [], $device)->assertSessionHasErrors(['username' => __('account.register.too_many')]);
+    registerAt(3, [], $device)->assertSessionHasErrors(['phone' => __('account.register.too_many')]);
 
     // جهاز آخر خلف العنوان نفسه وبنص المتصفح نفسه يسجّل
     registerAt(4, [], ['ejaz_device' => str_repeat('b2', 16)])->assertSessionHasNoErrors();
@@ -262,7 +262,7 @@ it('caps sign ups per network a day, so rotating addresses in one /24 does not h
 
     registerAt(1, ['REMOTE_ADDR' => '198.51.100.10'])->assertSessionHasNoErrors();
     registerAt(2, ['REMOTE_ADDR' => '198.51.100.20'])->assertSessionHasNoErrors();
-    registerAt(3, ['REMOTE_ADDR' => '198.51.100.30'])->assertSessionHasErrors(['username' => __('account.register.too_many')]);
+    registerAt(3, ['REMOTE_ADDR' => '198.51.100.30'])->assertSessionHasErrors(['phone' => __('account.register.too_many')]);
     registerAt(4, ['REMOTE_ADDR' => '203.0.113.30'])->assertSessionHasNoErrors();
 });
 
@@ -271,8 +271,8 @@ it('pauses sign up at the portal cap and tells the super admins once', function 
     config(['security.registration_per_hour' => 1]);
 
     registerAt(1)->assertSessionHasNoErrors();
-    registerAt(2)->assertSessionHasErrors(['username' => __('account.register.busy')]);
-    registerAt(3)->assertSessionHasErrors(['username' => __('account.register.busy')]);
+    registerAt(2)->assertSessionHasErrors(['phone' => __('account.register.busy')]);
+    registerAt(3)->assertSessionHasErrors(['phone' => __('account.register.busy')]);
 
     Notification::assertSentToTimes($admin, RegistrationCapReached::class, 1);
 });
@@ -294,17 +294,18 @@ it('keeps probes of taken emails out of the portal cap, so they cannot pause sig
     registerAt(1, ['REMOTE_ADDR' => '203.0.113.40'])->assertSessionHasNoErrors();
 });
 
-// الجوال اختياري منذ ملاحظات المدير التنفيذي (25 أكتوبر 2026)، واسم المستخدم إلزامي: خطأ تحقق لا خطأ خادم
-it('accepts a sign up without a phone field, and refuses one without a username as a validation error, not a server error', function () {
-    $this->post('/register', ['name' => 'مستفيد تجريبي', 'email' => 'nophone@example.test',
-        'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'username' => uniqueUsername(), 'privacy' => '1'])
+// الجوال إلزامي والبريد اختياري ولا اسم مستخدم (قرار صفوان، 5 نوفمبر 2026): خطأ تحقق لا خطأ خادم
+it('accepts a sign up without an email or a username, and refuses one without a phone as a validation error, not a server error', function () {
+    $this->post('/register', ['name' => 'مستفيد تجريبي', 'phone' => '0512340000',
+        'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
         ->assertRedirect()->assertSessionHasNoErrors();
+    expect(User::query()->where('phone', '+966512340000')->sole())->username->toBeNull()->email->toBeNull();
 
     auth()->logout();
 
-    $this->post('/register', ['name' => 'مستفيد آخر', 'email' => 'nouser@example.test',
+    $this->post('/register', ['name' => 'مستفيد آخر', 'email' => 'nophone@example.test',
         'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
-        ->assertRedirect()->assertSessionHasErrors('username');
+        ->assertRedirect()->assertSessionHasErrors('phone');
 });
 
 // ── التحدي ضد الآليات على نماذج الزائر

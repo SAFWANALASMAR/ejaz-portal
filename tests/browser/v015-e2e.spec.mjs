@@ -150,12 +150,13 @@ test.describe('visitor', () => {
 test.describe('beneficiary: registration', () => {
     test('registers a new account and lands on the dashboard', async ({ page, baseURL }, testInfo) => {
         const watcher = watch(page, baseURL);
-        const username = `e2e${testInfo.project.name.slice(0, 1)}${Date.now().toString(36)}`;
+        // جوال لكل مشروع وتشغيل: الرقم فريد على كل الحسابات (decisions/2026-11-05-phone-login.md)
+        const phone = `05${testInfo.project.name.length % 10}${String(Date.now()).slice(-7)}`;
         const password = `E2e-${randomUUID()}`;
 
         await visit(page, testInfo, watcher, '/register', 'register');
         await page.fill('#field-name', 'مستفيد تجريبي للاختبار');
-        await page.fill('#field-username', username);
+        await page.fill('#field-phone', phone);
         await page.fill('#field-password', password);
         await page.fill('#field-password_confirmation', password);
         await page.locator('input[name=privacy]').check();
@@ -163,11 +164,11 @@ test.describe('beneficiary: registration', () => {
         await expect(page).toHaveURL(/\/account/);
         await checkStep(page, testInfo, watcher, 'registered');
 
-        // الخروج ثم الدخول باسم المستخدم
+        // الخروج ثم الدخول بالجوال
         await page.context().clearCookies();
-        await login(page, { email: username, password });
+        await login(page, { email: phone, password });
         await expect(page).toHaveURL(/\/account/);
-        await checkStep(page, testInfo, watcher, 'login-username');
+        await checkStep(page, testInfo, watcher, 'login-phone');
     });
 });
 
@@ -439,7 +440,7 @@ test.describe('rejections', () => {
         const watcher = watch(page, baseURL);
         await visit(page, testInfo, watcher, '/register', 'register');
         await page.locator('main form').first().evaluate((form) => (form.noValidate = true));
-        await page.fill('#field-username', '1-Bad Name');
+        await page.fill('#field-phone', '0412');
         await page.fill('#field-password', 'short');
         await page.fill('#field-password_confirmation', 'different');
         await page.fill('#field-email', 'not-an-email');
