@@ -225,7 +225,7 @@ function setupYoutube(frame, url, signal) {
     const listen = () => frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YOUTUBE_ORIGIN);
 
     // المصافحة تُعاد حتى أول بلاغ من المشغّل، فالمشغّل على اتصال بطيء قد لا يكون جاهزاً عند تحميل الإطار ولا بعده بثانية
-    // (مراجعة المشرف على #182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
+    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
     let delivered = false;
     const handshakeStart = performance.now();
     const handshake = setInterval(() => {
