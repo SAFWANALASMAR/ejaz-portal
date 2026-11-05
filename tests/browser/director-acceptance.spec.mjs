@@ -1172,7 +1172,7 @@ test.describe('acceptance v0.15.0: header and footer', () => {
             expect(children['المركز الإعلامي'], `المركز الإعلامي: ${section}`).toContain(section);
         }
         for (const service of ['الدورات والبرامج', 'المسابقات']) {
-            expect(children['الخدمات الإلكترونية'].join('|'), `الخدمات الإلكترونية:  (R4)`).toContain(service);
+            expect(children['الخدمات الإلكترونية'].join('|'), `الخدمات الإلكترونية: ${service} (R4)`).toContain(service);
         }
         // و«المبادرات» في «عن الجمعية» مرة واحدة آخراً، لا في الخدمات (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — مراجعة المشرف على #181)
         expect(children['الخدمات الإلكترونية'].join('|')).not.toContain('المبادرات');

@@ -44,6 +44,14 @@ test('the programs page shows one bar of types from data, then competitions, scr
     await expect(page).toHaveURL(/\/programs#programs-book-reading$/);
     expect(page.url().split('#')[0]).toBe(url.split('#')[0]);
     await expect(page.locator('#programs-book-reading')).toBeInViewport();
+    // إزاحة واحدة: المقطع تحت الرأس مباشرة، لا تحته بمئات البكسلات (مراجعة المشرف على #181)
+    await page.waitForTimeout(600);
+    const gap = await page.evaluate(() => {
+        const header = document.querySelector('[data-site-header]').getBoundingClientRect();
+        return Math.round(document.getElementById('programs-book-reading').getBoundingClientRect().top - header.bottom);
+    });
+    expect(gap, 'المقطع تحت الرأس مباشرة').toBeGreaterThanOrEqual(-2);
+    expect(gap, 'المقطع تحت الرأس مباشرة').toBeLessThanOrEqual(48);
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/tabs-${width(page)}.png` });
 });

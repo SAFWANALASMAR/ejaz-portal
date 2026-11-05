@@ -44,7 +44,7 @@
             <x-programs.how-to class="mt-6" />
 
             {{-- وجهة «اختر برنامجاً» في الدليل: أول المقاطع، والشريط أعلى الصفحة --}}
-            <div id="programs-list" class="scroll-mt-28"></div>
+            <div id="programs-list"></div>
 
             @if ($active)
                 <div class="mt-10">
@@ -65,7 +65,7 @@
                 {{-- مقطع لكل نوع فيه برنامج منشور (الفارغ لا يظهر — ProgramController)، وبلا نوع حالة فارغة واحدة --}}
                 @forelse ($sections as $section)
                     @php($id = $anchor($section['type']))
-                    <section id="{{ $id }}" aria-labelledby="{{ $id }}-title" class="mt-12 scroll-mt-48" data-programs-section="{{ $section['type']->slug }}">
+                    <section id="{{ $id }}" aria-labelledby="{{ $id }}-title" class="mt-12" data-programs-section="{{ $section['type']->slug }}">
                         <x-section-header id="{{ $id }}-title" :title="$section['type']->name" :icon="$section['type']->icon()" :link-context="$section['type']->name"
                             :href="$section['programs']->count() > $perSection ? route('programs.index', ['type' => $section['type']->slug]) : null" />
                         <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
