@@ -48,9 +48,11 @@ use App\View\Composers\StructuredDataComposer;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\AwsS3V3Adapter;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Routing\Events\RouteMatched;
@@ -62,6 +64,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\NotPwnedVerifier;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
 use Livewire\Component;
@@ -90,6 +93,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(RecordMenuReorder::class);
+
+        // فحص التسريب (uncompromised) في طلب التسجيل وتغيير كلمة المرور نفسه: مهلة Laravel الافتراضية 30 ثانية يبقى المسجّل
+        // ينتظرها كلها إن تعثّر الاتصال بالخدمة، ثم تُقبل كلمة المرور على كل حال (Laravel يفشل مفتوحاً ويسجّل الخطأ). فالمهلة
+        // أقصر بلا تغيير في الفحص ولا في سلوك الفشل، وزمنه المعتاد نحو 0.3–0.5 ثانية (بطء الدخول والتسجيل، 5 نوفمبر 2026).
+        // وextend لا singleton: مزوّد Laravel المؤجَّل يسجّله عند أول طلب له فيغلب ربطاً سابقاً
+        $this->app->extend(UncompromisedVerifier::class, fn (UncompromisedVerifier $verifier, $app): UncompromisedVerifier => new NotPwnedVerifier($app->make(HttpFactory::class), PasswordPolicy::UNCOMPROMISED_TIMEOUT));
 
         // رسالة التوثيق بعد التسجيل تتبع مفتاحه في اللوحة (ملاحظات المدير التنفيذي، 25 أكتوبر 2026)
         $this->app->bind(SendEmailVerificationNotification::class, SendVerificationWhenRequired::class);
