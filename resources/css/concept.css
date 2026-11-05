@@ -2515,6 +2515,11 @@ html[data-motion-off] .home-card-pick-icon {
     height: 1.5rem;
 }
 
+/* رسم الخدمة على 14 بكسل يرقّ خطه (نحو 0.76 بكسل بسُمك 2.6)، فيُعرَّض في مربع التذييل الصغير (مراجعة المشرف على #176) */
+.footer-line-icon .service-icon-line {
+    stroke-width: 3.5;
+}
+
 .site-footer [data-footer-box='contact'] ul > li {
     margin-block: 0;
 }

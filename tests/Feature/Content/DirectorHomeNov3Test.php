@@ -446,7 +446,8 @@ it('puts «من نحن» in a soft light card with the vision and mission as quo
 });
 
 /*
-| البند ٢٨ من الإضافة: القائمة المنسدلة «عن الجمعية» بخمس مراسٍ بالترتيب، من بذرة لا تمس ما عدّله المحرر.
+| البند ٢٨ من الإضافة: القائمة المنسدلة «عن الجمعية» بمراسيها الثماني بالترتيب (AboutMenuAnchorsSeeder::ITEMS)، من بذرة تفرض ترتيبها
+| وإخفاء «اللوائح والسياسات» ولا تمس غيرهما مما عدّله المحرر.
 */
 it('adds the «عن الجمعية» anchors in order after the parent page, once, keeping what the admin edited (item 28)', function () {
     (new MenuSeeder)->run();
@@ -476,7 +477,9 @@ it('adds the «عن الجمعية» anchors in order after the parent page, onc
         expect($positions)->not->toContain(false);
         $sorted = $positions;
         sort($sorted);
-        expect($positions)->toBe($sorted);
+        expect($positions)->toBe($sorted)
+            // و«اللوائح والسياسات» مخفية من القائمة المعروضة (مراجعة المشرف على #177، L5)
+            ->and($menu)->not->toContain('governance?category=policies');
     }
 });
 
@@ -611,8 +614,14 @@ it('names the registrants card as the directive does, and the chairman by the of
 it('puts «الأهداف» between «الرسالة» and «القيم» on a menu seeded before, and hides «اللوائح والسياسات»', function () {
     (new MenuSeeder)->run();
     $about = MenuItem::query()->whereNull('parent_id')->where('url', '/about')->firstOrFail();
-    // قائمة رابط العرض قبل التعديل: المراسي الخمس القديمة
-    $old = array_values(array_filter(AboutMenuAnchorsSeeder::ITEMS, fn (array $item): bool => $item[1] !== '/about#about-goals'));
+    // قائمة رابط العرض قبل التعديل: المراسي الخمس القديمة وحدها (مراجعة المشرف على #177، L5)
+    $old = [
+        ['التوجه الاستراتيجي', '/about#about-strategy'],
+        ['من نحن', '/about#about-who'],
+        ['الرؤية', '/about#about-vision'],
+        ['الرسالة', '/about#about-mission'],
+        ['القيم', '/about#about-values'],
+    ];
     $min = (int) MenuItem::query()->where('parent_id', $about->id)->min('sort');
     foreach ($old as $index => [$label, $url]) {
         MenuItem::query()->where('parent_id', $about->id)->where('url', $url)->exists()

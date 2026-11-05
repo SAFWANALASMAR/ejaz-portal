@@ -23,7 +23,11 @@ beforeEach(function () {
 it('gives /store the approved Salla store as its general store button by default', function () {
     $html = (string) $this->get('/store')->assertOk()->getContent();
 
-    expect((string) str($html)->after('data-store-page'))->toContain('href="https://ejaz.org.sa" target="_blank" rel="noopener noreferrer"');
+    // وسم الزر نفسه (data-store-enter): كان رابط التذييل إلى سلة يُنجح هذا الاختبار حتى صار إلى /store
+    expect(preg_match('#<a\b[^>]*\bdata-store-enter\b[^>]*>#', $html, $tag))->toBe(1)
+        ->and($tag[0])->toContain('href="https://ejaz.org.sa"')
+        ->toContain('target="_blank"')
+        ->toContain('rel="noopener noreferrer"');
 });
 
 it('uses the link set in the panel for the store button when it is on an allowed host', function () {
@@ -61,20 +65,31 @@ it('saves a store link on an allowed host, or its subdomain when a wildcard allo
     expect(Setting::group('store')['url'])->toBe('https://shop.ejaz.org.sa');
 });
 
-// الشريط سبعة عناصر فقط (أمر التصور النهائي، النسخة 63 — البند R3): المتجر عنصر مخفي في «القائمة» بتبويب جديد، يُظهر من اللوحة
-// متى أُريد. وزر «المتجر والتبرعات» في الصف الأول من الرأس لا في صف القائمة (StorePageTest)
-it('keeps the store as a hidden main menu item opening in a new tab', function () {
+// الشريط سبعة عناصر فقط (أمر التصور النهائي، النسخة 63 — البند R3): المتجر عنصر مخفي في «القائمة»، يُظهر من اللوحة متى أُريد.
+// وصار صفحة في الموقع، فيفتح في التبويب نفسه (قرار المشرف على #179، البند 2). وزر الرأس في الصف الأول لا في صف القائمة (StorePageTest)
+it('keeps the store as a hidden main menu item opening in the same tab', function () {
     $this->seed(MenuSeeder::class);
     $item = MenuItem::query()->where('url', '/store')->first();
 
     expect($item)->not->toBeNull()
-        ->and($item->opens_in_new_tab)->toBeTrue()
+        ->and($item->opens_in_new_tab)->toBeFalse()
         ->and($item->is_visible)->toBeFalse();
 
     $item->update(['is_visible' => true]);
     $header = (string) str($this->get('/')->assertOk()->getContent())->after('data-site-header')->before('</header>');
 
-    expect($header)->toMatch('#href="[^"]*/store"\s+target="_blank"#');
+    expect($header)->toMatch('#href="[^"]*/store"#')
+        ->not->toMatch('#href="[^"]*/store"\s+target="_blank"#');
+});
+
+it('moves an existing new-tab store menu item to the same tab on migration, and leaves other items alone', function () {
+    $store = MenuItem::factory()->create(['label' => 'المتجر', 'url' => '/store', 'opens_in_new_tab' => true]);
+    $other = MenuItem::factory()->create(['label' => 'رابط خارجي', 'url' => 'https://example.org', 'opens_in_new_tab' => true]);
+
+    (require database_path('migrations/2026_11_05_090000_open_store_menu_item_in_same_tab.php'))->up();
+
+    expect($store->fresh()->opens_in_new_tab)->toBeFalse()
+        ->and($other->fresh()->opens_in_new_tab)->toBeTrue();
 });
 
 it('keeps the store out of the home service cards and out of the seven header items', function () {
@@ -183,9 +198,16 @@ it('stops asking the gateway while archived, yet still closes unstarted payments
 
 // طلب صفوان (4 نوفمبر 2026): أيقونة المتجر في روابط التذييل برسم بطاقته نفسه في «خدماتنا الإلكترونية»
 it('draws the footer store link with the same store icon as its services card', function () {
-    $footer = (string) str($this->get('/services')->assertOk()->getContent())->after('data-footer-box="links"')->before('</nav>');
-    $card = (string) str($this->get('/services')->getContent())->after('data-store-card')->before('</li>');
+    $html = (string) $this->get('/services')->assertOk()->getContent();
+
+    // العلامتان أولاً، فلا يمر القص بلا شيء إن غابت إحداهما (مراجعة المشرف على #176)
+    expect($html)->toContain('data-footer-box="links"')->toContain('data-store-card')->toContain('data-store-link');
+
+    $footer = (string) str($html)->after('data-footer-box="links"')->before('</nav>');
+    $card = (string) str($html)->after('data-store-card')->before('</li>');
+    $link = (string) str($footer)->after('data-store-link')->before('</a>');
 
     expect($card)->toContain('data-service-icon="store"')
-        ->and((string) str($footer)->after('data-store-link')->before('</a>'))->toContain('data-service-icon="store"');
+        ->and($link)->toContain('data-service-icon="store"')
+        ->and($link)->toContain('icon-tile-xs');
 });

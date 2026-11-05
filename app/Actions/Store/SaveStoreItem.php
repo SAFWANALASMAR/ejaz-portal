@@ -38,8 +38,13 @@ class SaveStoreItem
             }
         }
 
+        // ومعرّف المنتج في سلة اختياري، وإن وُجد فحروف لاتينية وأرقام و_ و- حتى 50، هنا لكل مستدعٍ كالنموذج (قرار المشرف على #179، البند 4)
         if (array_key_exists('salla_product_id', $data)) {
             $data['salla_product_id'] = filled($data['salla_product_id']) ? trim((string) $data['salla_product_id']) : null;
+
+            if ($data['salla_product_id'] !== null && preg_match('/^[A-Za-z0-9_-]{1,50}$/', $data['salla_product_id']) !== 1) {
+                throw ValidationException::withMessages(['salla_product_id' => __('store.validation.salla_product_id')]);
+            }
         }
 
         return $this->saveContent->handle($actor, $item, $data);

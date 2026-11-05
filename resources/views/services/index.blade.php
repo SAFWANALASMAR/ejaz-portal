@@ -21,10 +21,10 @@
                         <x-service-card :href="route($tile['route'])" :title="__($tile['label'])" :icon="$tile['symbol'] ?? ''" :fallback="$tile['icon']" />
                     </li>
                 @endforeach
-                {{-- متجر الجمعية على سلة بتبويب جديد، ولا يظهر بلا رابط صالح (1 نوفمبر 2026) --}}
-                @if ($storeLink = \App\Rules\StoreUrl::link())
+                {{-- صفحة «المتجر والتبرعات» في الموقع، ومنها إلى سلة (قرار المشرف على #179، البند 1). ولا تظهر بلا رابط متجر صالح --}}
+                @if (\App\Rules\StoreUrl::link())
                     <li data-store-card>
-                        <x-service-card :href="$storeLink" :title="__('ui.services.store')" icon="store" fallback="shopping-bag" external />
+                        <x-service-card :href="route('store.index')" :title="__('ui.services.store')" icon="store" fallback="shopping-bag" />
                     </li>
                 @endif
             </ul>

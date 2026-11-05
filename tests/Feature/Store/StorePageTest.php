@@ -17,7 +17,9 @@ use App\Support\Store\StoreProduct;
 use Database\Seeders\DemoStoreItemsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -153,11 +155,45 @@ it('keeps the account capsule above the store capsule once signed in', function 
     expect($pills)->toMatch('#<a href="'.preg_quote(route('account.dashboard'), '#').'"[^>]*class="login-pill">[\s\S]*?</a>\s*<a href="'.preg_quote(route('store.index'), '#').'"#');
 });
 
-it('keeps one store entry in the mobile menu, with its visible text', function () {
+it('keeps one store entry in the mobile menu, named like the header capsule', function () {
     $mobile = (string) str($this->get('/')->assertOk()->getContent())->after('id="mobile-menu"')->before('</header>');
 
+    // باسم زر الرأس نفسه «المتجر الإلكتروني» (قرار المشرف على #179، البند 3)
     expect(substr_count($mobile, 'href="'.route('store.index').'"'))->toBe(1)
-        ->and($mobile)->toMatch('#<a href="'.preg_quote(route('store.index'), '#').'"[^>]*data-menu-store[^>]*>\s*<span data-icon-tile[\s\S]*?</span>\s*'.preg_quote(__('store.page.open'), '#').'\s*</a>#');
+        ->and($mobile)->toMatch('#<a href="'.preg_quote(route('store.index'), '#').'"[^>]*data-menu-store[^>]*>\s*<span data-icon-tile[\s\S]*?</span>\s*'.preg_quote(__('store.menu.header'), '#').'\s*</a>#');
+});
+
+it('points the services store card and the footer store link to the store page, in the same tab', function () {
+    $html = (string) $this->get('/services')->assertOk()->getContent();
+
+    expect($html)->toContain('data-store-card')->toContain('data-store-link');
+
+    $card = (string) str($html)->after('data-store-card')->before('</li>');
+    $link = (string) str($html)->after('data-store-link')->before('</a>');
+    $linkTag = (string) str($html)->before('data-store-link')->afterLast('<a ');
+
+    // قرار المشرف على #179، البند 1 (أ): إلى /store لا إلى سلة مباشرة
+    expect($card)->toContain('href="'.route('store.index').'"')->not->toContain('target="_blank"')
+        ->and($linkTag)->toContain('href="'.route('store.index').'"')->not->toContain('target="_blank"')
+        ->and($link)->not->toContain(__('site.opens_in_new_tab'));
+});
+
+it('refuses a malformed Salla product id in the action too, and keeps an empty one null', function (string $id) {
+    $editor = userWithRole(RoleName::ContentEditor);
+
+    expect(fn () => app(SaveStoreItem::class)->handle($editor, new StoreItem, ['title' => 'عنصر', 'category' => 'donation', 'salla_url' => 'https://ejaz.org.sa/p1', 'salla_product_id' => $id]))
+        ->toThrow(ValidationException::class)
+        ->and(StoreItem::query()->count())->toBe(0);
+
+    $item = app(SaveStoreItem::class)->handle($editor, new StoreItem, ['title' => 'عنصر', 'category' => 'donation', 'salla_url' => 'https://ejaz.org.sa/p1', 'salla_product_id' => '  ']);
+    expect($item->salla_product_id)->toBeNull();
+})->with(['12 34', '<b>1</b>', 'ﻣﻨﺘﺞ', str_repeat('9', 51)]);
+
+it('keeps the category to the enum values in the database too', function () {
+    $item = StoreItem::factory()->create();
+
+    // قيد CHECK بترحيل جديد (قرار المشرف على #179، البند 5)
+    expect(fn () => DB::table('store_items')->where('id', $item->id)->update(['category' => 'other']))->toThrow(QueryException::class);
 });
 
 it('adds «متجر الجمعية» to the e-services dropdown, linking to the store page', function () {

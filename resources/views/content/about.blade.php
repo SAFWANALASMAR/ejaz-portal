@@ -24,8 +24,9 @@
 
 <x-page-hero :title="$page->title" :summary="$page->summary" :image="$content['rationale']['image']" />
 
-{{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨): about-strategy ثم about-who ثم about-vision وabout-mission ثم about-values، بإزاحة
-     الرأس الثابت (scroll-mt-48)، ومع التنقّل السريع (app.js) --}}
+{{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨، وقرار 4 نوفمبر 2026 — AboutMenuAnchorsSeeder::ITEMS): about-strategy ثم about-who
+     ثم about-vision وabout-mission ثم about-goals ثم about-values ثم about-rationale ثم about-initiatives، بإزاحة الرأس الثابت
+     (scroll-mt-48)، ومع التنقّل السريع (app.js) --}}
 <section id="about-strategy" class="mx-auto max-w-[82.5rem] scroll-mt-48 px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
     <div class="tone-card about-who flex flex-col gap-3" data-tone="dark">
         <h2 id="about-strategy-title" class="text-[1.75rem] font-black">{{ __('content.about.strategy_heading') }}</h2>

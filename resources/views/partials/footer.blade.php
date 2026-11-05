@@ -98,14 +98,13 @@
                         </a>
                     </li>
                 @endforeach
-                {{-- متجر الجمعية على سلة بتبويب جديد، ولا يظهر بلا رابط صالح (1 نوفمبر 2026) --}}
-                @if ($storeLink = \App\Rules\StoreUrl::link())
+                {{-- صفحة «المتجر والتبرعات» في الموقع، ومنها إلى سلة (قرار المشرف على #179، البند 1). ولا تظهر بلا رابط متجر صالح --}}
+                @if (\App\Rules\StoreUrl::link())
                     <li class="min-w-0">
-                        <a href="{{ $storeLink }}" target="_blank" rel="noopener noreferrer" class="footer-link-row" data-store-link>
+                        <a href="{{ route('store.index') }}" @navigate(route('store.index')) class="footer-link-row" data-store-link>
                             {{-- رسم المتجر نفسه الذي في بطاقته بصفحة «خدماتنا الإلكترونية» (x-service-icon، طلب صفوان 4 نوفمبر 2026) --}}
                             <x-icon-tile size="xs" class="footer-line-icon"><span class="relative size-3.5"><x-service-icon name="store" fallback="shopping-bag" /></span></x-icon-tile>
                             <span class="truncate">{{ __('ui.footer.links.store') }}</span>
-                            <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                         </a>
                     </li>
                 @endif
