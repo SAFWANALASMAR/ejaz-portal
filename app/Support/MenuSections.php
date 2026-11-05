@@ -152,10 +152,16 @@ final class MenuSections
      */
     private static function services(): array
     {
-        return array_map(fn (array $tile): array => [
+        $items = array_map(fn (array $tile): array => [
             'label' => (string) __($tile['label']),
             'url' => (string) parse_url(route($tile['route']), PHP_URL_PATH),
         ], self::availableServices(cached: true));
+
+        // «متجر الجمعية» آخرها، إلى صفحة «المتجر والتبرعات» في الموقع (ملاحظات المدير، 4 نوفمبر 2026 ليلاً — docs/decisions/2026-11-04-store-page.md).
+        // وليس بطاقة في config/eservices.php، لأن صفحة الخدمات فيها بطاقة المتجر برابط سلة (data-store-card)
+        $items[] = ['label' => (string) __('store.menu.services_item'), 'url' => (string) parse_url(route('store.index'), PHP_URL_PATH)];
+
+        return $items;
     }
 
     /**

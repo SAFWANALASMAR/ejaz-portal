@@ -14,7 +14,7 @@
         </div>
 
         <div class="order-1 lg:order-2" data-reveal style="--reveal-delay: 120ms">
-            <x-section-heading id="about-rationale" icon="light-bulb">{{ $rationale['heading'] }}</x-section-heading>
+            <x-section-heading id="about-rationale" icon="light-bulb" class="scroll-mt-48">{{ $rationale['heading'] }}</x-section-heading>
             <p class="mt-5 text-lg leading-9 text-[var(--concept-text)] sm:text-xl sm:leading-10">{{ $rationale['text'] }}</p>
             <p class="mt-6 font-semibold text-muted">{{ $rationale['lead'] }}</p>
             <p class="mt-2 text-2xl leading-snug font-black text-primary-dark sm:text-3xl">{{ $rationale['outcome'] }}</p>

@@ -29,7 +29,7 @@ class SitemapController extends Controller
         'media.index', 'media.news.index', 'media.albums.index', 'media.partners', 'contact',
         'programs.index', 'competitions.index', 'services.index', 'achievements.index',
         'services.jobs', 'services.volunteering', 'services.assembly-membership', 'media.announcements',
-        'media.social',
+        'media.social', 'store.index',
     ];
 
     public function sitemap(): Response
