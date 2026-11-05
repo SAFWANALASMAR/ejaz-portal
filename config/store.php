@@ -7,9 +7,10 @@
 
 return [
 
-    // كتالوج المتجر الداخلي المؤرشف (docs/plans/store-payments.md): settings يعرض بطاقات من إعدادات الموقع،
-    // وواجهة سلة البرمجية تُضاف مشغّلاً حين تتوفر صلاحية الربط
-    'driver' => env('STORE_DRIVER', 'settings'),
+    // كتالوج صفحة «المتجر والتبرعات» (docs/decisions/2026-11-04-store-page.md): manual يعرض العناصر المدخلة من اللوحة،
+    // وsettings بطاقات إعدادات الموقع للمتجر الداخلي المؤرشف (docs/plans/store-payments.md). وواجهة Checkout في سلة تُضاف
+    // مشغّلاً حين يُقرر الربط الآلي
+    'driver' => env('STORE_DRIVER', 'manual'),
 
     'url' => env('STORE_URL', 'https://ejaz.org.sa'),
 

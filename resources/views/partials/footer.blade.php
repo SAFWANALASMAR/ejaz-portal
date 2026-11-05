@@ -102,7 +102,8 @@
                 @if ($storeLink = \App\Rules\StoreUrl::link())
                     <li class="min-w-0">
                         <a href="{{ $storeLink }}" target="_blank" rel="noopener noreferrer" class="footer-link-row" data-store-link>
-                            <x-icon-tile icon="shopping-bag" size="xs" class="footer-line-icon" />
+                            {{-- رسم المتجر نفسه الذي في بطاقته بصفحة «خدماتنا الإلكترونية» (x-service-icon، طلب صفوان 4 نوفمبر 2026) --}}
+                            <x-icon-tile size="xs" class="footer-line-icon"><span class="relative size-3.5"><x-service-icon name="store" fallback="shopping-bag" /></span></x-icon-tile>
                             <span class="truncate">{{ __('ui.footer.links.store') }}</span>
                             <span class="sr-only">({{ __('site.opens_in_new_tab') }})</span>
                         </a>
