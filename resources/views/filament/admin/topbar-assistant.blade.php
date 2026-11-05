@@ -1,6 +1,6 @@
 {{-- زر «المساعد الذكي» بجانب البحث العام (ملاحظات صفوان على #166): يفتح المساعد الذكي في الموقع بتبويب جديد
      (resources/js/assistant.js يفتح نافذته على #assistant). وهو مطفأ من «إعدادات المساعد» يبقى ظاهراً معطّلاً «قيد التفعيل»
-     (قرار صفوان، 4 نوفمبر 2026)، زراً معطّلاً بـ aria-disabled لا disabled، فيصله التركيز وتُقرأ تسميته وتلميحه (المشرف على #175، ٢) --}}
+     (قرار صفوان، 4 نوفمبر 2026)، زراً معطّلاً بـ aria-disabled لا disabled، فيصله التركيز وتُقرأ تسميته وتلميحه (المشرف على طلب الدمج 175، ٢) --}}
 @if (\App\Models\AssistantSettings::current()->is_enabled)
     <a href="{{ url('/') }}#assistant" target="_blank" rel="noopener" class="ej-topbar-assistant" data-ej-topbar-assistant
         aria-label="{{ __('admin.topbar.ai_search') }}"
