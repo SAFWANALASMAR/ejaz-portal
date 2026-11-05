@@ -265,3 +265,25 @@ it('keeps the cleared numbers only for live accounts: dropped on anonymization a
 
     expect(DB::table('phone_login_cleared_phones')->count())->toBe(0);
 });
+
+it('puts a phone race on the phone even when the email changes in the same save', function () {
+    // نص الاستعلام فيه email ما دام البريد يُحفظ معه، فيُعرف الحقل باسم القيد (المشرف على #180، N1)
+    $user = User::factory()->create(['phone' => '+966500000009']);
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    User::saving(function (User $saving) use ($user): void {
+        if ($saving->is($user) && User::query()->where('phone', '+966512345678')->doesntExist()) {
+            User::withoutEvents(fn () => User::factory()->create(['phone' => '+966512345678']));
+        }
+    });
+
+    $this->actingAs($user)->put('/user/profile-information', ['name' => $user->name, 'email' => 'new@example.test', 'phone' => '0512345678', 'current_password' => 'password'])
+        ->assertSessionHasErrors(['phone' => __('account.register.unavailable')], null, 'updateProfileInformation')
+        ->assertSessionDoesntHaveErrors('email', null, 'updateProfileInformation');
+
+    try {
+        app(UpdateUserAccount::class)->handle($admin, $user->fresh(), ['name' => $user->name, 'email' => 'other@example.test', 'phone' => '+966512345678']);
+        $this->fail('expected a validation error');
+    } catch (ValidationException $exception) {
+        expect(array_keys($exception->errors()))->toBe(['phone']);
+    }
+});

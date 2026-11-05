@@ -185,14 +185,41 @@ it('refuses the read-only change to anyone without the right to edit the library
         ->and($book->fresh()->is_downloadable)->toBeTrue();
 });
 
-it('limits how often one address streams read-only books, more tightly than the file route', function () {
+it('limits how often one address streams one read-only book, with a retry time, and not the other books', function () {
     readOnlyBook();
+    readOnlyBook(['slug' => 'other-book']);
 
     for ($i = 0; $i < 20; $i++) {
         $this->get('/library/books/book/file')->assertOk();
     }
 
-    $this->get('/library/books/book/file')->assertStatus(429);
+    $retry = $this->get('/library/books/book/file')->assertStatus(429)->headers->get('Retry-After');
+    expect((int) $retry)->toBeGreaterThan(0)->toBeLessThanOrEqual(60);
+
+    // طلاب مدرسة خلف عنوان واحد يقرؤون كتباً مختلفة (المشرف على #101، ١)
+    $this->get('/library/books/other-book/file')->assertOk();
+});
+
+it('names the read-only file after the book, inline, and serves HEAD and Range requests without a partial download', function () {
+    readOnlyBook();
+
+    expect($this->get('/library/books/book/file')->assertOk()->headers->get('Content-Disposition'))
+        ->toBe('inline; filename=book.pdf');
+
+    $this->call('HEAD', '/library/books/book/file')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+
+    // لا جزء بالطلب: الملف كاملاً لقارئ الصفحة، بلا 206
+    $ranged = $this->get('/library/books/book/file', ['Range' => 'bytes=0-9'])->assertOk();
+    expect($ranged->streamedContent())->toBe(pdfContents());
+});
+
+it('keeps an audio item downloadable even when the read-only flag is set in the database', function () {
+    $audio = LibraryItem::factory()->audio()->create(['slug' => 'talk']);
+    Storage::disk(LibraryItem::disk())->put((string) $audio->file, 'ID3 audio bytes');
+    LibraryItem::query()->whereKey($audio->id)->update(['is_downloadable' => false]);
+
+    expect($audio->fresh()->isReadOnly())->toBeFalse();
+    $this->get('/library/audio/talk/download')->assertOk();
 });
 
 it('counts the reader limit per subscriber, so IPv6 addresses of one /64 share it and another /64 does not', function () {
@@ -204,4 +231,14 @@ it('counts the reader limit per subscriber, so IPv6 addresses of one /64 share i
 
     $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:abcd:1:ffff::9'])->get('/library/books/book/file')->assertStatus(429);
     $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:abcd:2::1'])->get('/library/books/book/file')->assertOk();
+});
+
+it('leaves nginx buffering on for the reader stream, so a slow reader does not hold a PHP worker', function () {
+    // docs/deploy/readiness.md §6 (المشرف على #101، ٤)
+    readOnlyBook();
+    expect($this->get('/library/books/book/file')->assertOk()->headers->has('X-Accel-Buffering'))->toBeFalse();
+
+    foreach (['deploy/nginx/ejaz.conf', 'deploy/docker/nginx.conf'] as $config) {
+        expect(file_get_contents(base_path($config)))->not->toMatch('/fastcgi_buffering\s+off/');
+    }
 });

@@ -102,7 +102,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             ])->save());
         } catch (UniqueConstraintViolationException $exception) {
             // حفظان متزامنان بالقيمة نفسها: الثاني يرى رسالة التحقق نفسها لا خطأ 500، على حقل الفهرس الذي تعارض
-            $field = str_contains($exception->getMessage(), 'email') ? 'email' : 'phone';
+            $field = User::uniqueViolationField($exception);
 
             throw ValidationException::withMessages([$field => __('account.register.unavailable')])->errorBag('updateProfileInformation');
         }

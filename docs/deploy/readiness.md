@@ -94,7 +94,9 @@ bash scripts/verify-server.sh https://ejaz.sa --server                       # �
   - `FILESYSTEM_PRIVATE_DISK=s3` في `.env.production.example`.
   - `deploy/storage/` (CORS، ودورة حياة الملفات الخاصة).
   - ملفات الحوكمة والمكتبة بتحويل إلى رابط موقّع قصير بعد فحص النشر (`PrivateFileResponse::temporaryRedirect`)، ونطاق التخزين في `CSP_MEDIA_SRC` و`CSP_FRAME_SRC`.
-  - **الاستثناء:** كتب المكتبة «للقراءة فقط — بلا تحميل» تُبث من PHP لقارئ الصفحة لا برابط موقّع (`decisions.md` — 30 أكتوبر 2026)، بحد 20 فتحة في الدقيقة لكل عنوان. ويلزمها مهلة في nginx وPHP تكفي بث ملف حتى 20 ميجابايت على اتصال بطيء، ومراقبة عمال PHP-FPM في الذروة.
+  - **الاستثناء:** كتب المكتبة «للقراءة فقط — بلا تحميل» تُبث من PHP لقارئ الصفحة لا برابط موقّع (`decisions.md` — 30 أكتوبر 2026)، بحد 20 فتحة في الدقيقة للملف الواحد من كل مشترك. ويلزمها مهلة في nginx وPHP تكفي بث ملف حتى 20 ميجابايت على اتصال بطيء، ومراقبة عمال PHP-FPM في الذروة.
+    - **`fastcgi_buffering` يبقى مفعّلاً لهذا المسار** (الافتراضي في nginx، ولا `fastcgi_buffering off` و`X-Accel-Buffering: no` عليه). فيأخذ nginx الملف من PHP دفعة واحدة إلى ذاكرته أو ملف مؤقت، ويتحرر عامل PHP-FPM، ثم يرسله nginx إلى الاتصال البطيء.
+    - فالقائم كافٍ: `fastcgi_read_timeout 60s` في `deploy/nginx/ejaz.conf` و`deploy/docker/nginx.conf`، و`max_execution_time = 60` في `deploy/php/production.ini`. وهي لقراءة ملف 20 ميجابايت من القرص أو S3، لا لإرساله إلى الزائر (المشرف على #101، ٤).
 - **الدليل:** `deploy/storage/README.md`، و`docs/deploy.md` «الملفات الخاصة».
 - **التحقق:**
   - فحص «التخزين الخاص» في `ejaz:health` (كتابة وقراءة وحذف على القرص الخاص).

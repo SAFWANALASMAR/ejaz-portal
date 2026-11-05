@@ -225,18 +225,25 @@ function setupYoutube(frame, url, signal) {
     const listen = () => frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YOUTUBE_ORIGIN);
 
     // المصافحة تُعاد حتى أول بلاغ من المشغّل، فالمشغّل على اتصال بطيء قد لا يكون جاهزاً عند تحميل الإطار ولا بعده بثانية
-    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
+    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده. والثواني العشر تُعدّ من تحميل الإطار
+    // لا من النقر: الإطار البطيء يبدأ عدّها من جديد عند load، ولو انتهى العدّ الأول قبله (المشرف على 182، المنخفضة ٢)
     let delivered = false;
-    const handshakeStart = performance.now();
-    const handshake = setInterval(() => {
-        if (delivered || signal.aborted || performance.now() - handshakeStart > YOUTUBE_HANDSHAKE_MS) {
-            clearInterval(handshake);
+    let handshake = null;
+    const startHandshake = () => {
+        clearInterval(handshake);
+        const started = performance.now();
+        handshake = setInterval(() => {
+            if (delivered || signal.aborted || performance.now() - started > YOUTUBE_HANDSHAKE_MS) {
+                clearInterval(handshake);
 
-            return;
-        }
+                return;
+            }
 
-        listen();
-    }, YOUTUBE_HANDSHAKE_EVERY);
+            listen();
+        }, YOUTUBE_HANDSHAKE_EVERY);
+    };
+    startHandshake();
+    frame.addEventListener('load', () => delivered || startHandshake(), { signal });
     signal.addEventListener('abort', () => clearInterval(handshake));
 
     window.addEventListener('message', (event) => {
