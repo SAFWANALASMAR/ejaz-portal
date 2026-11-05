@@ -17,7 +17,7 @@ import './home';
 import './carousel';
 import './back-nav';
 import './search-palette';
-import './library-progress';
+import { resumePoint } from './library-progress';
 import './pdf-reader';
 import './profile-reveal';
 import './image-fit';
@@ -54,12 +54,12 @@ function playVideo(link) {
     // مقطع من المكتبة: مشغّله يبلّغ تشغيله لهذه الصفحة عبر postMessage بلا سكربت يوتيوب («قراءاتي» — library-progress.js)، ويبدأ من
     // موضع رابط «أكمل» (?resume=)
     if (link.dataset.progress) {
-        const resume = Number(new URLSearchParams(window.location.search).get('resume'));
+        const resume = resumePoint();
 
         src.searchParams.set('enablejsapi', '1');
         src.searchParams.set('origin', window.location.origin);
 
-        if (Number.isInteger(resume) && resume > 0) {
+        if (resume !== null) {
             src.searchParams.set('start', String(resume));
         }
     }

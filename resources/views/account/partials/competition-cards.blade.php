@@ -21,7 +21,7 @@
         @endphp
 
         @if ($card['url'])
-            <x-button :href="$card['url']" size="lg" :variant="$card['state'] === 'submitted' ? 'outline' : 'primary'" :arrow="$card['state'] !== 'submitted'"
+            <x-button :href="$card['url']" size="lg" :variant="in_array($card['state'], ['submitted', 'expired'], true) ? 'outline' : 'primary'" :arrow="in_array($card['state'], ['start', 'resume'], true)"
                 class="w-full sm:w-auto" data-account-competition-action>{{ $label }}</x-button>
         @else
             <p class="keep-color w-full rounded-full bg-surface px-7 py-3 text-center text-lg font-semibold text-muted sm:w-auto" data-account-competition-action>{{ $label }}</p>

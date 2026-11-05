@@ -3,10 +3,12 @@
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Models\Competition;
+use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
 use App\Support\Dates;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -60,17 +62,60 @@ it('says «continue the test» once started, and «answers submitted ✓» with 
         ->toContain(route('competitions.student.status', [$this->competition->slug, $this->round->uuid]));
 });
 
-it('says «time is up» when the started attempt or the stage window has run out, with no button', function () {
+it('links a started attempt past its deadline to its status, and says «time is up» with no button once the stage window is over', function () {
     $attempt = app(StartAttempt::class)->handle($this->student, $this->round);
     $this->travelTo($attempt->deadline_at->copy()->addMinutes(5));
 
-    expect(accountCompetitionCard($this->student))->state->toBe('ended')
-        ->html->toContain(__('competitions.account_card.ended'))->not->toContain('<a ');
+    // ومحاولته المنتهية تسلّمها صفحة الحالة آلياً، فالزر إليها (مراجعة المشرف على #182، L5)
+    expect(accountCompetitionCard($this->student))->state->toBe('expired')
+        ->html->toContain(__('competitions.account_card.expired'))
+        ->toContain(route('competitions.student.status', [$this->competition->slug, $this->round->uuid]));
 
     $other = registeredStudent($this->competition, 2);
     $this->travelTo($this->round->ends_at->copy()->addMinute());
 
-    expect(accountCompetitionCard($other))->state->toBe('ended');
+    expect(accountCompetitionCard($other))->state->toBe('ended')
+        ->html->toContain(__('competitions.account_card.ended'))->not->toContain('<a ');
+});
+
+// الحدود كقواعد المرحلة نفسها (CompetitionRound::isRunning): تبدأ عند موعدها بالضبط وتنتهي عند نهايتها بالضبط (L3)
+it('starts exactly at the stage start and ends exactly at its end', function () {
+    $this->round->forceFill(['starts_at' => now()->addHour(), 'ends_at' => now()->addHours(4)])->save();
+
+    $this->travelTo($this->round->starts_at);
+    expect(accountCompetitionCard($this->student)['state'])->toBe('start');
+
+    $this->travelTo($this->round->ends_at);
+    expect(accountCompetitionCard($this->student)['state'])->toBe('ended');
+});
+
+// البطاقة لا تعرض رابطاً يرفضه المسار (StartAttempt — مراجعة المشرف على #182، I2)
+it('offers no start for a stage whose results are published, or for a qualified-only stage the student did not qualify for', function () {
+    $this->round->forceFill(['results_published_at' => now()])->save();
+    expect(accountCompetitionCard($this->student))->state->toBe('ended')->html->not->toContain('<a ');
+    expect(fn () => app(StartAttempt::class)->handle($this->student, $this->round->fresh()))->toThrow(AuthorizationException::class);
+
+    // مرحلة ثانية للمتأهلين جارية، والطالب سلّم الأولى ولم يتأهل
+    $this->round->forceFill(['results_published_at' => null])->save();
+    app(SubmitAttempt::class)->handle($this->student, app(StartAttempt::class)->handle($this->student, $this->round));
+    $this->round->forceFill(['starts_at' => now()->subDays(2), 'ends_at' => now()->subDay(), 'results_published_at' => now()->subHour()])->save();
+    $second = new CompetitionRound(['name' => 'المرحلة الثانية', 'sort_order' => 2, 'starts_at' => now()->subMinute(), 'ends_at' => now()->addHours(3), 'question_count' => 1, 'duration_minutes' => 30, 'qualified_only' => true]);
+    $second->competition_id = $this->competition->id;
+    $second->save();
+
+    expect(accountCompetitionCard($this->student))->state->toBe('not_qualified')
+        ->html->toContain(__('competitions.account_card.not_qualified'))->not->toContain('<a ');
+    expect(fn () => app(StartAttempt::class)->handle($this->student, $second))->toThrow(AuthorizationException::class, __('competitions.student.not_qualified'));
+
+    // ومن تأهل يرى «ابدأ الاختبار»
+    CompetitionAttempt::query()->where('round_id', $this->round->id)->update(['qualified_at' => now()]);
+    expect(accountCompetitionCard($this->student)['state'])->toBe('start');
+});
+
+it('shows no card for a soft-deleted competition', function () {
+    $this->competition->delete();
+
+    expect(accountCompetitionCard($this->student)['state'])->toBe('');
 });
 
 it('shows the next stage with its start time when none is running', function () {

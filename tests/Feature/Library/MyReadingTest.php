@@ -618,3 +618,14 @@ it('moves the account clocks only once the progress is committed, so a rolled-ba
         ->and(Cache::has($seconds))->toBeTrue()
         ->and(progressOf($this->reader, $book)->pages_count)->toBe(3);
 });
+
+// ولا تُنفخ «مشاهدات المقاطع» بثانية لكل مقطع: تُعدّ من عشر ثوانٍ تشغيل فأكثر (مراجعة المشرف على #182، L2)
+it('counts a portal media view only from ten seconds of playback', function () {
+    $short = LibraryItem::factory()->video()->create(['slug' => 'short-view']);
+    $long = LibraryItem::factory()->video()->create(['slug' => 'long-view']);
+    foreach ([[$short, HomePortalStats::MIN_VIEW_SECONDS - 1], [$long, HomePortalStats::MIN_VIEW_SECONDS]] as [$item, $seconds]) {
+        LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $item->id, 'last_reported_at' => now(), 'seconds_consumed' => $seconds]);
+    }
+
+    expect(HomePortalStats::compute()['media_views'])->toBe(1);
+});

@@ -207,6 +207,8 @@ function setupMedia(element, signal) {
 // (1 يعمل) والموضع والمدة كل ربع ثانية تقريباً. وثواني التشغيل بالساعة كمشغّل الصفحة، والبلاغ الأول «فتحته» عند ظهوره
 const YOUTUBE_ORIGIN = 'https://www.youtube-nocookie.com';
 const YOUTUBE_PLAYING = 1;
+const YOUTUBE_HANDSHAKE_EVERY = 400;
+const YOUTUBE_HANDSHAKE_MS = 10_000;
 
 function setupYoutube(frame, url, signal) {
     const reporter = progressReporter(url, signal);
@@ -222,11 +224,20 @@ function setupYoutube(frame, url, signal) {
     let duration = null;
     const listen = () => frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YOUTUBE_ORIGIN);
 
-    frame.addEventListener('load', () => {
+    // المصافحة تُعاد حتى أول بلاغ من المشغّل، فالمشغّل على اتصال بطيء قد لا يكون جاهزاً عند تحميل الإطار ولا بعده بثانية
+    // (مراجعة المشرف على #182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
+    let delivered = false;
+    const handshakeStart = performance.now();
+    const handshake = setInterval(() => {
+        if (delivered || signal.aborted || performance.now() - handshakeStart > YOUTUBE_HANDSHAKE_MS) {
+            clearInterval(handshake);
+
+            return;
+        }
+
         listen();
-        // والمشغّل قد لا يكون جاهزاً عند التحميل نفسه
-        setTimeout(() => !signal.aborted && listen(), 1000);
-    }, { signal });
+    }, YOUTUBE_HANDSHAKE_EVERY);
+    signal.addEventListener('abort', () => clearInterval(handshake));
 
     window.addEventListener('message', (event) => {
         if (event.origin !== YOUTUBE_ORIGIN || event.source !== frame.contentWindow || typeof event.data !== 'string') {
@@ -246,6 +257,8 @@ function setupYoutube(frame, url, signal) {
         if (!info || typeof info !== 'object') {
             return;
         }
+
+        delivered = true;
 
         if (Number.isFinite(info.duration) && info.duration > 0) {
             duration = info.duration;

@@ -294,3 +294,17 @@ it('still disables the locked fields of the competition form, each lock on its o
         ->assertFormFieldEnabled('opens_at')
         ->assertFormFieldDisabled('ranking_scope')->assertFormFieldDisabled('prize_table');
 });
+
+// بطاقة مسابقة الطلاب في «حسابي» لطالب مسجل (مراجعة المشرف على #182، L3): تسجيلاته ومسابقاتها ومراحلها ومحاولاته بأربعة استعلامات
+// مهما كثرت مسابقاته، فـ 21 لـ«حسابي» بلا تسجيل وثلاثة لتحميل ما يلزم بطاقته
+it('keeps the account home within its budget for a student registered in competitions', function () {
+    $user = User::factory()->create();
+
+    $seed = function (int $n) use ($user): void {
+        foreach (Competition::factory()->student()->count($n)->create() as $competition) {
+            CompetitionSubmission::factory()->for($competition)->for($user)->create(['registered_at' => now()]);
+        }
+    };
+
+    expectQueryBudget($seed, fn () => $this->actingAs($user)->get('/account')->assertSee('data-account-competition', false), 24);
+});
