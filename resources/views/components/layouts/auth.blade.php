@@ -9,19 +9,20 @@
 @props(['title', 'heading' => null, 'intro' => null, 'image' => true, 'noindex' => true, 'wide' => false])
 
 <x-layouts.app :title="$title" :noindex="$noindex">
-    <div class="auth-stage relative isolate overflow-hidden py-12 sm:py-17 lg:py-3">
+    <div class="auth-stage relative isolate overflow-hidden py-12 sm:py-17 lg:py-2">
         <img src="{{ asset('images/placeholders/architecture.svg') }}" alt="" aria-hidden="true" width="1440" height="960"
             class="absolute inset-0 -z-10 size-full scale-110 object-cover blur-md">
         <div class="absolute inset-0 -z-10 bg-primary/85" aria-hidden="true"></div>
 
         <div @class(['relative mx-auto w-full max-w-[28.75rem] px-4', 'lg:max-w-[58rem]' => $wide, 'lg:max-w-[32rem]' => ! $wide])>
             <div class="form-sky overflow-hidden rounded-[1.75rem] text-ink shadow-[0_40px_80px_-30px_rgba(0,0,0,0.55)]" data-auth-card>
-                <div class="px-6 pt-9 pb-8 sm:px-8.5 lg:pt-4 lg:pb-4">
+                <div class="px-6 pt-9 pb-8 sm:px-8.5 lg:pt-3 lg:pb-3">
                     <div class="flex flex-col items-center text-center">
                         <x-brand :link="false" class="justify-center" data-auth-logo />
                         <h1 class="mt-4 text-[2.125rem] font-black text-primary-dark lg:mt-2 lg:text-2xl">{{ $heading ?? $title }}</h1>
                         @if ($intro)
-                            <p class="mt-2 leading-7 text-muted lg:mt-1">{{ $intro }}</p>
+                            {{-- وفي نافذة الحاسوب القصيرة (720 فأقل) لقارئ الشاشة وحده، فيظهر زر الإرسال بلا تمرير (المشرف على طلب الدمج 189) --}}
+                            <p class="mt-2 leading-7 text-muted lg:mt-1 [@media(min-width:64rem)_and_(max-height:45rem)]:sr-only">{{ $intro }}</p>
                         @endif
                     </div>
 

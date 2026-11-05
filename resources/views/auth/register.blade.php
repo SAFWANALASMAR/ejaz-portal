@@ -30,10 +30,9 @@
             </div>
         </div>
 
-        <x-bot-challenge action="register" />
-
-        {{-- على الحاسوب الموافقة وزر الإنشاء في صف واحد، فتدخل البطاقة كاملة تحت الرأس في 1366×768 (المدير عبر المشرف، 5 نوفمبر 2026) --}}
-        <div class="space-y-4 lg:flex lg:items-center lg:gap-6 lg:space-y-0">
+        {{-- على الحاسوب الموافقة والتحدي (Turnstile، ظاهر في الإنتاج) وزر الإنشاء في صف واحد، فتدخل البطاقة كاملة تحت الرأس في 1366×768
+             والزر في نافذة 1366×657 (المدير والمشرف، 5 و6 نوفمبر 2026 — tests/browser/register-fit.spec.mjs) --}}
+        <div class="space-y-4 lg:flex lg:items-center lg:gap-5 lg:space-y-0" data-register-actions>
             <div class="space-y-1.5 lg:flex-1">
                 <label class="flex items-start gap-3 text-sm leading-6 text-ink">
                     <input type="checkbox" name="privacy" value="1" @checked(old('privacy')) required
@@ -51,6 +50,10 @@
                 @enderror
             </div>
 
+            <div class="space-y-1 lg:shrink-0" data-bot-challenge-slot>
+                <x-bot-challenge action="register" />
+            </div>
+
             <x-button class="w-full lg:w-auto lg:shrink-0 lg:px-10">{{ __('account.register.submit') }}</x-button>
         </div>
     </form>
@@ -58,7 +61,7 @@
     <x-or-divider class="my-5 lg:hidden" />
 
     {{-- على الحاسوب «لديك حساب؟» وزر الدخول في سطر واحد، بخط فاصل بلا «أو» --}}
-    <div class="lg:mt-3 lg:flex lg:items-center lg:justify-center lg:gap-4 lg:border-t lg:border-line/70 lg:pt-3">
+    <div class="lg:mt-2 lg:flex lg:items-center lg:justify-center lg:gap-4 lg:border-t lg:border-line/70 lg:pt-2">
         <p class="mb-3 text-center text-sm text-muted lg:mb-0">{{ __('account.register.have_account') }}</p>
         <x-button variant="outline" :href="route('login')" class="w-full lg:w-auto lg:px-10">{{ __('account.login.title') }}</x-button>
     </div>

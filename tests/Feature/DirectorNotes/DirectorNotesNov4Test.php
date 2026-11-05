@@ -141,7 +141,7 @@ it('keeps the login card short on desktop and lays registration in two columns',
     $register = (string) $this->get('/register')->assertOk()->getContent();
 
     // صورة أسفل البطاقة للجوال وحده، ومسافات أقل على الحاسوب (وأقل منها لتدخل بطاقة التسجيل في 1366×768 — register-fit.spec.mjs)
-    expect($login)->toContain('lg:pt-4 lg:pb-4')->toContain('object-cover lg:hidden')
+    expect($login)->toContain('lg:pt-3 lg:pb-3')->toContain('object-cover lg:hidden')
         ->and($register)->toContain('lg:max-w-[58rem]')->toContain('data-register-columns')->toContain('lg:grid-cols-2')
         // الحقول بأسمائها، بلا اسم مستخدم للحساب الجديد (الدخول بالجوال، #180)
         ->and($register)->not->toContain('name="username"')

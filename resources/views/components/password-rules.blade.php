@@ -10,14 +10,14 @@
 @endphp
 
 {{-- compact (صفحة التسجيل على الحاسوب، فتدخل بطاقتها كاملة في 1366×768 — المدير عبر المشرف، 5 نوفمبر 2026): الشروط متجاورة بخط أصغر،
-     والمؤشر ونص القوة في سطر واحد، وتنبيه التسريب لقارئ الشاشة ويظهر متى كان التركيز في عمود كلمة المرور (concept.css). النصوص كلها
+     والعنوان لقارئ الشاشة يسمّي القائمة (المشرف على طلب الدمج 189)، والمؤشر ونص القوة في سطر واحد، وتنبيه التسريب لقارئ الشاشة ويظهر متى كان التركيز في عمود كلمة المرور (concept.css). النصوص كلها
      كما هي، فلا ينقص قارئَ الشاشة شيء. وعلى الجوال كما هي --}}
 <div data-password-rules data-for="{{ $for }}" @if ($compact) data-compact @endif
     data-met="{{ __('account.password_rules.met') }}" data-unmet="{{ __('account.password_rules.unmet') }}"
     data-strength-label="{{ __('account.password_rules.strength') }}"
     @foreach (['empty', 'weak', 'fair', 'strong'] as $level) data-level-{{ $level }}="{{ __('account.password_rules.levels.'.$level) }}" @endforeach
     {{ $attributes->merge(['class' => 'rounded-xl border border-line bg-surface p-4 text-sm'.($compact ? ' lg:px-3 lg:py-2 lg:text-xs' : '')]) }}>
-    <p class="font-semibold text-ink" id="{{ $for }}-rules-heading">{{ __('account.password_rules.heading') }}</p>
+    <p @class(['font-semibold text-ink', 'lg:sr-only' => $compact]) id="{{ $for }}-rules-heading">{{ __('account.password_rules.heading') }}</p>
 
     <ul @class(['mt-2 space-y-1.5', 'lg:mt-1 lg:flex lg:flex-wrap lg:gap-x-3 lg:gap-y-0.5 lg:space-y-0' => $compact]) aria-labelledby="{{ $for }}-rules-heading">
         @foreach ($rules as $rule)
@@ -37,5 +37,5 @@
             {{ __('account.password_rules.strength', ['level' => __('account.password_rules.levels.empty')]) }}
         </p>
     </div>
-    <p @class(['mt-1 text-muted', 'lg:mt-0.5' => $compact]) data-leaked>{{ __('account.password_rules.leaked') }}</p>
+    <p id="{{ $for }}-rules-leaked" @class(['mt-1 text-muted', 'lg:mt-0.5' => $compact]) data-leaked>{{ __('account.password_rules.leaked') }}</p>
 </div>

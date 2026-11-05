@@ -65,7 +65,11 @@ onPage((signal) => {
             return;
         }
 
-        input.setAttribute('aria-describedby', `${input.getAttribute('aria-describedby') ?? ''} ${box.dataset.for}-rules-heading`.trim());
+        // والعنوان وتنبيه التسريب معاً (المشرف على طلب الدمج 189، المنخفضة 3)، ولا يتكرر المعرّف إن أعيدت التهيئة
+        const described = new Set((input.getAttribute('aria-describedby') ?? '').split(/s+/).filter(Boolean));
+        described.add(`${box.dataset.for}-rules-heading`);
+        described.add(`${box.dataset.for}-rules-leaked`);
+        input.setAttribute('aria-describedby', [...described].join(' '));
         const refresh = () => update(box, input);
         input.addEventListener('input', refresh, { signal });
         ['field-name', 'field-email', 'field-phone'].forEach((id) => document.getElementById(id)?.addEventListener('input', refresh, { signal }));
