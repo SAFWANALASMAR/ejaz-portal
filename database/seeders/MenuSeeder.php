@@ -57,7 +57,7 @@ class MenuSeeder extends Seeder
         ];
 
         foreach ($menu as $sort => $item) {
-            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => $item['new_tab'] ?? false,
+            $parent = MenuItem::create(['label' => $item['label'], 'url' => $item['url'], 'sort' => $sort, 'opens_in_new_tab' => false,
                 'is_visible' => ! ($item['hidden'] ?? false)]);
 
             foreach ($item['children'] ?? [] as $childSort => $child) {
