@@ -42,3 +42,6 @@ Thumbs.db
 
 # ملف مؤقت لتجربة النسخ (tests/backup/run.sh)
 /tests/backup/.old-backup.sh
+
+# Claude Security scan results (summaries go to docs/security/ without exploit detail)
+/CLAUDE-SECURITY-*/
