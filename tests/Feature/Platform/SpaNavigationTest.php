@@ -4,6 +4,7 @@ use App\Enums\RoleName;
 use App\Models\Document;
 use App\Models\MenuItem;
 use App\Models\Setting;
+use App\Models\StoreItem;
 use App\Models\User;
 use App\Support\SpaLink;
 use Illuminate\Contracts\View\View;
@@ -72,7 +73,8 @@ beforeEach(function () {
     MenuItem::factory()->create(['label' => 'الحوكمة', 'url' => '/governance', 'sort' => 1]);
     $media = MenuItem::factory()->create(['label' => 'المركز الإعلامي', 'url' => '/media', 'sort' => 2]);
     MenuItem::factory()->create(['parent_id' => $media->id, 'label' => 'الأخبار', 'url' => '/media/news']);
-    MenuItem::factory()->create(['label' => 'المتجر', 'url' => '/store', 'opens_in_new_tab' => true, 'sort' => 3]);
+    // عنصر يفتح تبويباً جديداً (كان المتجر قبل صفحته في الموقع — docs/decisions/2026-11-04-store-page.md)
+    MenuItem::factory()->create(['label' => 'التطوع', 'url' => '/services/volunteering', 'opens_in_new_tab' => true, 'sort' => 3]);
     MenuItem::factory()->create(['label' => 'تواصل معنا', 'url' => '/contact', 'sort' => 4]);
 });
 
@@ -95,11 +97,14 @@ it('leaves login, new-tab, outside and download links to a full page load', func
 
     $links = pageLinks($this->get('/')->assertOk()->getContent());
 
-    foreach ([route('login'), url('/store'), 'https://x.com/example', '#main'] as $href) {
+    foreach ([route('login'), url('/services/volunteering'), 'https://x.com/example', '#main'] as $href) {
         foreach (linkTo($links, $href) as $link) {
             expect($link['navigate'])->toBeFalse($link['html']);
         }
     }
+
+    // عنصر القائمة بتبويب جديد حاضر في الرأس وقائمة الجوال
+    expect(count(linkTo($links, url('/services/volunteering'))))->toBeGreaterThanOrEqual(2);
 });
 
 it('opens a governance document page quickly, and downloads and views its file with a full load', function () {
@@ -131,7 +136,8 @@ it('decides which addresses are pages for quick navigation', function (string $u
     'library file' => [fn (): string => url('/library/books/guide/file'), false],
     'signed link' => [fn (): string => url('/account/programs?expires=1&signature=abc'), false],
     'admin panel' => [fn (): string => url('/admin'), false],
-    'store redirect' => [fn (): string => url('/store'), false],
+    'store page' => [fn (): string => url('/store'), true],
+    'archived internal store' => [fn (): string => url('/store/catalog'), false],
     'donation' => [fn (): string => url('/donate'), false],
     'survey with its own policy' => [fn (): string => url('/surveys/abc'), false],
     'filled form, a standalone print document' => [fn (): string => url('/account/forms/0f4c2a9e-0000-4000-8000-000000000000'), false],
@@ -209,12 +215,27 @@ it('turns a quick navigation to a file into a full page load of the same address
     $this->get(route('governance.download', 'charter'))->assertDownload();
 });
 
-it('loads the store and the outside store behind it fully', function () {
+// «المتجر والتبرعات» صفحة في الموقع (docs/decisions/2026-11-04-store-page.md)، وأزرارها إلى متجر سلة تحميل كامل في تبويب جديد
+it('opens the store page quickly, and leaves its buttons to the outside store to a full load', function () {
+    StoreItem::factory()->create(['salla_url' => 'https://ejaz.org.sa/p123']);
+
     $this->get('/store', navigateRequest())
         ->assertOk()
-        ->assertSee('<meta http-equiv="refresh" content="0;url='.url('/store').'">', false);
+        ->assertDontSee('http-equiv="refresh"', false)
+        ->assertSee(__('store.page.title'));
 
-    $this->get('/store')->assertRedirect();
+    $links = pageLinks($this->get('/store')->assertOk()->getContent());
+
+    foreach (['https://ejaz.org.sa/p123', 'https://ejaz.org.sa'] as $href) {
+        foreach (linkTo($links, $href) as $link) {
+            expect($link['navigate'])->toBeFalse($link['html'])
+                ->and($link['html'])->toContain('target="_blank"');
+        }
+    }
+
+    foreach (linkTo($links, route('store.index')) as $link) {
+        expect($link['navigate'])->toBeTrue($link['html']);
+    }
 });
 
 it('turns a quick navigation answered by something other than a page into a full page load', function () {

@@ -26,7 +26,7 @@ final class PageSections
         'assembly.' => ['assembly.title', 'user-group'],
         'contact' => ['contact.title', 'chat-bubble-left-right'],
         'live' => ['livestream.title', 'video-camera'],
-        'store.' => ['store.title', 'shopping-bag'],
+        'store.' => ['store.page.title', 'storefront'],
     ];
 
     /**

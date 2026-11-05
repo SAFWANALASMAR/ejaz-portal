@@ -39,6 +39,7 @@ final class BackNavigation
         'programs.index' => ['home'],
         'programs.show' => ['programs.index'],
         'programs.register' => ['programs.show', ['slug']],
+        'store.index' => ['home'],
         'competitions.index' => ['home'],
         'competitions.show' => ['competitions.index'],
         'competitions.entry' => ['competitions.show', ['slug']],

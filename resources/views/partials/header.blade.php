@@ -63,8 +63,10 @@
                     {{ \App\Support\Icon::svg('magnifying-glass', 'size-[19px]', ['aria-hidden' => 'true']) }}
                 </button>
 
-                {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة --}}
-                <div class="hidden sm:block">
+                {{-- على الجوال يكفي الشعار وزر القائمة، والدخول داخل القائمة. ومن 1024 تحت الدخول كبسولة «المتجر الإلكتروني» بشكله ومقاسه إلى صفحة
+                     «المتجر والتبرعات» (ملاحظات المدير، 4 نوفمبر 2026 ليلاً — docs/decisions/2026-11-04-store-page.md)، وتتجاوران حين يصغر الرأس
+                     عند التمرير (data-header-compact — concept.css .header-pills). وللجوال واللوحي العمودي داخل قائمة ☰ --}}
+                <div class="header-pills hidden sm:flex">
                     @auth
                         <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
                             <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
@@ -76,6 +78,12 @@
                             {{ __('site.login') }}
                         </a>
                     @endauth
+                    <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-header-store title="{{ __('store.page.open') }}"
+                        @if (request()->routeIs('store.index')) aria-current="page" @endif
+                        class="login-pill hidden lg:inline-flex">
+                        <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('storefront', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
+                        {{ __('store.menu.header') }}
+                    </a>
                 </div>
 
                 <button type="button" data-toggle="mobile-menu" aria-expanded="false" aria-controls="mobile-menu"
@@ -170,6 +178,13 @@
                     <x-icon-tile icon="sparkles" size="xs" />{{ __('assistant.header.soon') }}
                 </button>
             @endif
+
+            {{-- «المتجر والتبرعات» للجوال واللوحي العمودي داخل القائمة --}}
+            <a href="{{ route('store.index') }}" @navigate(route('store.index')) data-menu-store
+                @if (request()->routeIs('store.index')) aria-current="page" @endif
+                class="mobile-nav-link mt-1 flex w-full items-center gap-2.5">
+                <x-icon-tile icon="storefront" size="xs" />{{ __('store.page.open') }}
+            </a>
 
             <div class="mt-3 border-t border-white/10 pt-3 sm:hidden">
                 @auth

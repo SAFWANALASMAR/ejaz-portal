@@ -8,6 +8,11 @@ use App\Services\Store\FakeStoreCatalog;
 use App\Support\Store\StoreProduct;
 use Livewire\Livewire;
 
+// المتجر الداخلي المؤرشف ببطاقات إعدادات الموقع، وصفحة «المتجر والتبرعات» بمشغّل manual الافتراضي (config/store.php)
+beforeEach(function () {
+    config(['store.driver' => 'settings']);
+});
+
 it('hides the archived internal store page until it is enabled from the panel', function () {
     $this->get('/store/catalog')->assertNotFound();
 });

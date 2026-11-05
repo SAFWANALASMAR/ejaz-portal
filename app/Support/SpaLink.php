@@ -26,8 +26,8 @@ final class SpaLink
         'account.forms.show',
         'account.data.export', 'competitions.works.show', 'competitions.reviews.*', 'competitions.videos.status',
         'competitions.exam.intro.video', 'competitions.exam.media', 'registers.attachment', 'storage.local', 'livewire.preview-file',
-        // الدفع والتبرع، والمتجر (تحويل إلى متجر سلة)
-        'donate', 'payments.*', 'store.*',
+        // الدفع والتبرع، والمتجر الداخلي المؤرشف. وصفحة «المتجر والتبرعات» (store.index) صفحة داخلية بالتنقّل السريع
+        'donate', 'payments.*', 'store.catalog',
         // صفحة الاستبيان: سياسة أمان المحتوى فيها تسمح بعنصر التحدي وحدها، ولا تتغير السياسة بالتنقّل
         'surveys.show',
         // لوحة الإدارة بوضعها الخاص، ولوحة الطوابير، وخريطة الموقع وrobots
