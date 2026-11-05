@@ -19,6 +19,7 @@ use App\Models\Program;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\ContentBlocks;
+use App\Support\ContentCache;
 use App\Support\FormTimer;
 use App\Support\MenuSections;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -107,6 +108,28 @@ it('links each home identity card to its section of the about page when the page
         ->and(ContentBlocks::anchor('الأهداف'))->toBe('about-goals')
         ->and(ContentBlocks::anchor('قيم الجمعية'))->toBe('about-values')
         ->and(ContentBlocks::anchor('عنوان آخر'))->toBeNull();
+});
+
+// رابط العرض (5 نوفمبر 2026): عنوان «أهداف الجمعية» كان بلا مرساة، فتفتح «الأهداف» في القائمة رأس الصفحة
+it('anchors an about section whose heading starts with the word, with or without «ال», and only the whole word', function () {
+    expect(ContentBlocks::anchor('أهداف الجمعية'))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('  الأهداف الاستراتيجية '))->toBe('about-goals')
+        ->and(ContentBlocks::anchor('القيم'))->toBe('about-values')
+        ->and(ContentBlocks::anchor('رؤية الجمعية'))->toBe('about-vision')
+        ->and(ContentBlocks::anchor('رسالة الجمعية'))->toBe('about-mission')
+        ->and(ContentBlocks::anchor('مبادئ العمل'))->toBe('about-principles')
+        // الكلمة كاملة أولاً، لا بعضها ولا في وسط العنوان
+        ->and(ContentBlocks::anchor('قيمة مضافة'))->toBeNull()
+        ->and(ContentBlocks::anchor('من أهداف الجمعية'))->toBeNull()
+        ->and(ContentBlocks::anchor(null))->toBeNull()
+        ->and(ContentBlocks::anchor(''))->toBeNull();
+
+    // وفي الصفحة: مقطع «أهداف الجمعية» يحمل id المرساة التي تفتحها القائمة
+    $page = Page::query()->where('slug', Page::ABOUT)->first() ?? Page::factory()->create(['slug' => Page::ABOUT]);
+    $page->forceFill(['is_published' => true, 'blocks' => [['type' => 'text', 'data' => ['heading' => 'أهداف الجمعية', 'body' => '<p>هدف</p>']]]])->save();
+    ContentCache::flush();
+
+    expect($this->get(route('about'))->assertOk()->getContent())->toMatch('/\sid="about-goals"/');
 });
 
 it('rotates every published initiative in the initiatives card, linked to the initiatives page (items 8 and 9)', function () {

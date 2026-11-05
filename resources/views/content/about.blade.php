@@ -26,8 +26,8 @@
 
 {{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨، وقرار 4 نوفمبر 2026 — AboutMenuAnchorsSeeder::ITEMS): about-strategy ثم about-who
      ثم about-vision وabout-mission ثم about-goals ثم about-values ثم about-rationale ثم about-initiatives، بإزاحة الرأس الثابت
-     (scroll-mt-48)، ومع التنقّل السريع (app.js) --}}
-<section id="about-strategy" class="mx-auto max-w-[82.5rem] scroll-mt-48 px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
+     (scroll-padding-top في concept.css وحده، لا scroll-mt على المقطع فتتضاعف)، ومع التنقّل السريع (app.js) --}}
+<section id="about-strategy" class="mx-auto max-w-[82.5rem] px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
     <div class="tone-card about-who flex flex-col gap-3" data-tone="dark">
         <h2 id="about-strategy-title" class="text-[1.75rem] font-black">{{ __('content.about.strategy_heading') }}</h2>
         @if ($strategy !== null)
@@ -42,7 +42,7 @@
     <section class="mx-auto max-w-[82.5rem] px-4 pt-7 pb-8 sm:px-7" aria-label="{{ __('content.about.intro_label') }}" data-about-intro>
         <div @class(['grid gap-8', 'lg:grid-cols-2 lg:items-center' => $who !== null && $quotes->isNotEmpty()])>
             @if ($who !== null)
-                <article id="about-who" class="tone-card about-who flex scroll-mt-48 flex-col gap-3" data-tone="soft" data-about-who>
+                <article id="about-who" class="tone-card about-who flex flex-col gap-3" data-tone="soft" data-about-who>
                     <h2 class="text-[1.75rem] font-black">{{ $who['data']['heading'] }}</h2>
                     <div class="prose-ar text-[17px] leading-[1.9]">{{ \App\Support\RichText::toHtml(is_string($who['data']['body'] ?? null) ? $who['data']['body'] : null) }}</div>
                 </article>
@@ -51,7 +51,7 @@
             @if ($quotes->isNotEmpty())
                 <div class="flex flex-col gap-9" data-about-quotes>
                     @foreach ($quotes as $heading => $block)
-                        <blockquote class="about-quote scroll-mt-48" data-about-quote="{{ $heading === __('ui.identity.vision') ? 'vision' : 'mission' }}"
+                        <blockquote class="about-quote" data-about-quote="{{ $heading === __('ui.identity.vision') ? 'vision' : 'mission' }}"
                             @if ($anchor = \App\Support\ContentBlocks::anchor($heading)) id="{{ $anchor }}" @endif>
                             <span class="about-quote-mark" aria-hidden="true">”</span>
                             <p class="about-quote-label">{{ $heading }}</p>
@@ -100,7 +100,7 @@
 @if ($initiatives->isNotEmpty())
     <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-12 sm:px-7" aria-labelledby="about-initiatives">
         <div class="mb-4.5 flex items-center justify-between gap-4">
-            <x-section-heading id="about-initiatives" icon="flag" class="scroll-mt-48">{{ __('content.initiatives.title') }}</x-section-heading>
+            <x-section-heading id="about-initiatives" icon="flag">{{ __('content.initiatives.title') }}</x-section-heading>
             <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}<span class="sr-only">: {{ __('content.initiatives.title') }}</span></a>
         </div>
         <ul class="grid gap-3.5 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>

@@ -88,7 +88,7 @@
             </aside>
             @endif
 
-            <div id="contact-form" class="form-sky scroll-mt-48 p-6 sm:p-8" data-contact-form>
+            <div id="contact-form" class="form-sky p-6 sm:p-8" data-contact-form>
                 <h2 class="section-heading-title flex items-center gap-2.5 font-black leading-tight text-primary-dark"><x-icon-tile icon="chat-bubble-left-right" shade="medium" size="sm" class="section-heading-icon" data-loop />{{ __('contact.form.title') }}</h2>
                 <p class="mt-2 text-muted">{{ __('contact.form.intro') }}</p>
 

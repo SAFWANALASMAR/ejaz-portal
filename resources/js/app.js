@@ -331,21 +331,51 @@ document.addEventListener('submit', (event) => {
 });
 
 // مرساة الرابط (#about-vision وأخواتها في القائمة المنسدلة «عن الجمعية» — إضافة توجيه المدير، 3 نوفمبر 2026، البند ٢٨): بعد التنقّل
-// السريع يُمرَّر إلى مقطعها، وإزاحة الرأس الثابت من scroll-margin-top على المقطع وscroll-padding-top على الصفحة
-// والمرساة المشوّهة (/about#%) لا ترمي URIError توقف التهيئة: تُتجاهل (مراجعة المشرف على #157)
-onPage(() => {
-    if (window.location.hash.length <= 1) {
-        return;
+// السريع يُمرَّر إلى مقطعها، وإزاحة الرأس الثابت من scroll-padding-top على الصفحة وحدها (كانت معها scroll-mt-48 على المقطع فتتضاعف
+// الإزاحة — رابط العرض، 5 نوفمبر 2026). والمرساة المشوّهة (/about#%) لا ترمي URIError توقف التهيئة: تُتجاهل (مراجعة المشرف على #157)
+function anchorTarget(hash) {
+    if (hash.length <= 1) {
+        return null;
     }
 
-    let id;
     try {
-        id = decodeURIComponent(window.location.hash.slice(1));
+        return document.getElementById(decodeURIComponent(hash.slice(1)));
     } catch {
+        return null;
+    }
+}
+
+// ورابط مرساة في الصفحة نفسها (☰ على الجوال من «عن الجمعية» نفسها): يُغلق القائمة ويُمرَّر فوراً، لا تنقّل سريع إلى الخادم
+// يُبقي القائمة مفتوحة ويؤخر النزول ثانية أو اثنتين (رابط العرض، 5 نوفمبر 2026). في مرحلة الالتقاط قبل مستمع wire:navigate على الرابط
+document.addEventListener('click', (event) => {
+    const link = event.target.closest?.('a[href*="#"]');
+
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === '_blank') {
         return;
     }
 
-    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    const url = new URL(link.href, window.location.href);
+
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search) {
+        return;
+    }
+
+    const target = anchorTarget(url.hash);
+
+    if (!target) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    document.querySelectorAll('[data-toggle][aria-expanded="true"]').forEach((toggle) => setOpen(toggle, false));
+    // حالة Livewire في التاريخ تبقى كما هي، فيعمل زر الرجوع
+    window.history.pushState(window.history.state, '', url.hash);
+    target.scrollIntoView({ block: 'start' });
+}, true);
+
+onPage(() => {
+    anchorTarget(window.location.hash)?.scrollIntoView({ block: 'start' });
 });
 
 // الرأس يصغر عند التمرير ويعود كاملاً في أعلى الصفحة (إضافة توجيه المدير التنفيذي، 3 نوفمبر 2026، البند ٣١ — يعيد التصغير الذي ألغاه

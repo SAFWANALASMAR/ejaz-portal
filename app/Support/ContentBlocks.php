@@ -110,22 +110,20 @@ final class ContentBlocks
     }
 
     /**
-     * مرسى المقطع في «عن الجمعية» الذي تفتحه بطاقته في الرئيسية (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٨): الرؤية والرسالة
-     * والأهداف والقيم والمبادئ بعنوان المقطع نفسه مطابقاً (لا جزءاً منه). وما سواها بلا مرسى.
+     * مرسى المقطع في «عن الجمعية» الذي تفتحه بطاقته في الرئيسية وقائمته المنسدلة (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٨):
+     * الرؤية والرسالة والأهداف والقيم والمبادئ، بعنوان المقطع كلمةً وحدها أو أول كلمة فيه، بـ«ال» أو بلاها («الأهداف» و«أهداف
+     * الجمعية»، «القيم» و«قيم الجمعية» — رابط العرض، 5 نوفمبر 2026). والكلمة كاملة لا بعضها («قيمة» ليست «قيم»)، وما سواها بلا مرسى.
      */
     public static function anchor(mixed $heading): ?string
     {
-        $heading = is_string($heading) ? trim($heading) : '';
+        $first = preg_split('/\s+/u', is_string($heading) ? trim($heading) : '', 2)[0] ?? '';
 
-        $exact = [
-            (string) __('ui.identity.vision') => 'vision',
-            (string) __('ui.identity.mission') => 'mission',
-            (string) __('ui.about_anchors.goals') => 'goals',
-            (string) __('ui.about_anchors.principles') => 'principles',
-            (string) __('ui.about_anchors.values') => 'values',
-            (string) __('ui.identity.values') => 'values',
-        ];
+        foreach ((array) __('ui.about_anchors.words') as $anchor => $words) {
+            if (in_array($first, (array) $words, true)) {
+                return 'about-'.$anchor;
+            }
+        }
 
-        return isset($exact[$heading]) ? 'about-'.$exact[$heading] : null;
+        return null;
     }
 }
