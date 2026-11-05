@@ -92,9 +92,11 @@ class CreateNewUser implements CreatesNewUsers
                 self::noticeOwner($input['email'], $input['phone']);
                 self::mergeTaken($validator, $input['email'] !== null ? 'email' : 'phone');
             }
-        }
 
-        $validator->validate();
+            // التحقق ثانيةً في طريق الفشل وحده، فيطبّق خطاف mergeTaken ويرمي الأخطاء. والناجح لا يُعاد تحققه: كان validate() بعد fails()
+            // يعيد القواعد كلها، ومنها فحص التسريب بطلب خارجي، فيدفع كل تسجيل ناجح زمنه مرتين (بطء الدخول والتسجيل، 5 نوفمبر 2026)
+            $validator->validate();
+        }
 
         self::hit($limits);
 
