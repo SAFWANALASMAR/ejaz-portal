@@ -29,7 +29,7 @@ class ReviewVideoController extends Controller
         // المسار خارج وسطاء اللوحة، فيُشترط التحقق الثنائي هنا كما في ExportPolicy (قرار صفوان)
         abort_unless($user->hasEnabledTwoFactorAuthentication() && $user->canAccessPanel(Filament::getPanel('admin')), 403);
 
-        // والرابط بمدة روابط المقاطع لا الأعمال: المتصفح يطلب الأجزاء بالرابط نفسه طوال المشاهدة
-        return PrivateFileResponse::make(SubmissionVideo::disk(), (string) $video->path, 'video/mp4', $video->uuid.'.mp4', (int) config('competitions.video.url_minutes'));
+        // ورابط قصير (5 دقائق)، والمشغّل يعيد طلب هذا المسار عند الخطأ أو التوقف (filament/reviews/video — البلاغ 185، I2)
+        return PrivateFileResponse::make(SubmissionVideo::disk(), (string) $video->path, 'video/mp4', $video->uuid.'.mp4', (int) config('competitions.video.review_url_minutes'));
     }
 }

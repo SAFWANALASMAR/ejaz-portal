@@ -204,6 +204,8 @@ class CreateNewUser implements CreatesNewUsers
     {
         $owner = User::query()
             ->whereNotNull('email')
+            // للبريد الموثق وحده: غير الموثق قد يكون بريد غيره كتبه الحامل، فلا يُراسَل (البلاغ 185، L5)
+            ->whereNotNull('email_verified_at')
             ->where(fn ($query) => $query->when($email !== null, fn ($query) => $query->where('email', $email))
                 ->when($phone !== null, fn ($query) => $query->orWhere('phone', $phone)))
             ->first();

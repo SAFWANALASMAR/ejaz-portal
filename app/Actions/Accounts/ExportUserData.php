@@ -24,6 +24,7 @@ use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Models\User;
 use Closure;
+use Illuminate\Support\Facades\DB;
 
 /**
  * نسخة من بيانات المستخدم بصيغة قابلة للقراءة (حق الاطلاع في نظام حماية البيانات).
@@ -48,6 +49,8 @@ class ExportUserData
                 'email_verified_at' => $date($user->email_verified_at),
                 'phone' => $user->phone,
                 'pending_phone' => $user->getAttributes()['pending_phone'] ?? null,
+                // رقم أفرغه ترحيل تفرد الجوال من الحساب ويُحفظ للرجوع حتى يُحذف الجدول (البلاغ 185، L1)
+                'cleared_phone' => DB::table('phone_login_cleared_phones')->where('user_id', $user->id)->value('phone'),
                 'phone_verified_at' => $date($user->phone_verified_at),
                 'privacy_accepted_at' => $date($user->privacy_accepted_at),
                 'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
