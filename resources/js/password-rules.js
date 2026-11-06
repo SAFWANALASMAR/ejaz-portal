@@ -66,7 +66,7 @@ onPage((signal) => {
         }
 
         // والعنوان وتنبيه التسريب معاً (المشرف على طلب الدمج 189، المنخفضة 3)، ولا يتكرر المعرّف إن أعيدت التهيئة
-        const described = new Set((input.getAttribute('aria-describedby') ?? '').split(/s+/).filter(Boolean));
+        const described = new Set((input.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean));
         described.add(`${box.dataset.for}-rules-heading`);
         described.add(`${box.dataset.for}-rules-leaked`);
         input.setAttribute('aria-describedby', [...described].join(' '));

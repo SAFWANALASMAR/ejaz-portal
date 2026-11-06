@@ -85,6 +85,22 @@ for (const [width, height] of [[1366, 768], [1440, 900], [1920, 1080]]) {
     });
 }
 
+// خطأ التحقق في كلمة المرور يبقى موصولاً بالحقل بمعرّفه كاملاً، ولا تتكرر المعرّفات (المشرف على طلب الدمج 189، المهمة 1)
+test('the password error stays described with exact, unique ids', async ({ page }) => {
+    await page.goto('/register');
+    await page.locator('form [name="password"]').fill('Short1!');
+    await page.locator('form [name="password_confirmation"]').fill('Different1!');
+    // submit() يتجاوز تحقق المتصفح فيصل الخطأ من الخادم
+    await page.locator('form [name="password_confirmation"]').evaluate((el) => el.form.submit());
+    await page.locator('#field-password-error').waitFor();
+
+    const ids = ((await page.locator('form [name="password"]').getAttribute('aria-describedby')) ?? '').split(/\s+/).filter(Boolean);
+    expect(ids).toContain('field-password-error');
+    expect(ids).toContain('field-password-rules-heading');
+    expect(ids).toContain('field-password-rules-leaked');
+    expect(new Set(ids).size).toBe(ids.length);
+});
+
 // تخطيط صفحات الحساب كلها تغيّر على الحاسوب (المسافات)، فلقطة للدخول أيضاً (المشرف على طلب الدمج 189، المنخفضة 6)
 test('the login card still fits at 1366×768 after the tighter auth layout', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'الحاسوب');
