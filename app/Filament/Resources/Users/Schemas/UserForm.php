@@ -112,9 +112,9 @@ class UserForm
                 ->where($column, $normalize($value))
                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
                 // الجوال فريد على كل الحسابات (decisions/2026-11-05-phone-login.md). والبريد على الموثق وحده (26 أكتوبر)، وعلى
-                // الحساب القديم بلا اسم مستخدم، فهو معرّف دخوله الوحيد (User::emailTakenRule)
+                // الحساب الذي بريده معرّف دخوله الوحيد، بلا اسم مستخدم ولا جوال (User::emailTakenRule — البلاغ 185، I1)
                 ->when($column === 'email', fn ($query) => $query->where(fn ($query) => $query->whereNotNull('email_verified_at')
-                    ->orWhereNull('username')))
+                    ->orWhere(fn ($query) => $query->whereNull('username')->whereNull('phone'))))
                 ->exists();
 
             if ($exists) {

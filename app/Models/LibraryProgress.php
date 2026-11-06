@@ -118,6 +118,15 @@ class LibraryProgress extends Model
     }
 
     /**
+     * المقطع أو الصوت بلغ موضعُه نهايته (بفسحة ثانية لتقريب الموضع والمدة إلى ثوانٍ كاملة)، فلا «أكمل» له في «قراءاتي».
+     */
+    public function playedToEnd(): bool
+    {
+        return $this->duration_seconds !== null && $this->duration_seconds > 0 && $this->last_position !== null
+            && $this->last_position >= $this->duration_seconds - 1;
+    }
+
+    /**
      * مجاميع البوابة بلا بيانات شخصية: الصفحات المقروءة، ودقائق الاستماع والمشاهدة، وعدد القرّاء. لصفحة «البوابة بالأرقام»
      * ولوحة الإحصائيات (docs/decisions/2026-11-01-my-reading.md)، باستعلام واحد. ومع المستخدم: مجاميعه هو في «قراءاتي».
      *

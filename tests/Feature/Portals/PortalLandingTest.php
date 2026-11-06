@@ -34,15 +34,19 @@ it('sends a member to the account area after login', function () {
     $this->post('/login', ['login' => 'member@example.test', 'password' => 'password'])->assertRedirect('/account');
 });
 
-it('sends staff, the board and reviewers to the admin panel after the two-factor code', function (RoleName $role) {
+it('sends staff and reviewers to the admin panel after the two-factor code, and the board to their account', function (RoleName $role, string $home) {
     $user = userWithRole($role, ['email' => 'staff@example.test']);
 
     $this->post('/login', ['login' => 'staff@example.test', 'password' => 'password'])->assertRedirect('/two-factor-challenge');
 
     $recovery = json_decode(decrypt($user->two_factor_recovery_codes), true)[0];
 
-    $this->post('/two-factor-challenge', ['recovery_code' => $recovery])->assertRedirect('/admin');
-})->with([RoleName::ExecutiveDirector, RoleName::Accountant, RoleName::BoardMember, RoleName::Reviewer, RoleName::Secretary]);
+    // وعضو المجلس كالمستفيد إلى «حسابي» وفيه بطاقات المجلس (البند ٤، ليلة 5 نوفمبر — decisions/2026-11-06-board-portal.md)
+    $this->post('/two-factor-challenge', ['recovery_code' => $recovery])->assertRedirect($home);
+})->with([
+    [RoleName::ExecutiveDirector, '/admin'], [RoleName::Accountant, '/admin'], [RoleName::BoardMember, '/account'],
+    [RoleName::Reviewer, '/admin'], [RoleName::Secretary, '/admin'],
+]);
 
 it('sends staff without two-factor yet to the panel, which asks them to set it up', function () {
     $user = User::factory()->create(['email' => 'new.staff@example.test']);

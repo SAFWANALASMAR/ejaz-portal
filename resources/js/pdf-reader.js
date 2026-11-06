@@ -66,8 +66,11 @@ function setupReader(root, signal) {
     listen(root, 'contextmenu', (event) => event.preventDefault());
     listen(root, 'dragstart', (event) => event.preventDefault());
 
-    // العنوان في سمته، فلا يُستبدل ما في نصه من :page أو :total
-    const label = (page) => root.dataset.pageLabel.replace(':page', page).replace(':total', doc.numPages).replace(':title', root.dataset.title);
+    // العنوان في سمته، فلا يُستبدل ما في نصه من :page أو :total. والقيم بدالة، فلا يُفسَّر $& أو $' في العنوان نمطاً (المشرف على #101، ٣)
+    const label = (page) => root.dataset.pageLabel
+        .replace(':page', () => String(page))
+        .replace(':total', () => String(doc.numPages))
+        .replace(':title', () => root.dataset.title);
 
     const fail = () => {
         root.dataset.state = 'error';

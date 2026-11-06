@@ -182,7 +182,9 @@ it('keeps the YouTube and books strips when no thumbnail or cover was fetched (i
     $html = $this->get('/')->assertOk()->getContent();
 
     expect($html)->toContain('data-media-strip="videos"')->toContain('data-media-strip="books"')
-        ->toContain('مقطع بلا صورة')->toContain('كتاب بلا غلاف')->toContain('بحث بلا غلاف')
+        ->toContain('مقطع بلا صورة')->toContain('كتاب بلا غلاف')
+        // والأبحاث في قسمها بالمكتبة لا في الرئيسية (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3)
+        ->not->toContain('بحث بلا غلاف')
         ->toContain('data-thumb-placeholder');
 });
 

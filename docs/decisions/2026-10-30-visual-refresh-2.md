@@ -58,6 +58,8 @@
 
 ## 10. View Transitions
 
+> **نُسخ** بـ `2026-11-06-transition-speed.md`: أُسقط `@view-transition`.
+
 - **القرار:** `@view-transition { navigation: auto; }` لمن لم يطلب تقليل الحركة: انتقال ناعم في التحميل الكامل حيث يدعمه المتصفح. والتنقّل السريع (`wire:navigate`) يبقى بحركة `page-in` القائمة، لأن Livewire يستبدل الصفحة بلا خطاف يلفّه `startViewTransition`.
 
 ## 11. الوضع المظلم: لا

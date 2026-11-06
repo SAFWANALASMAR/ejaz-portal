@@ -103,6 +103,21 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
+     * حقل القيد الذي تعارض في حفظ متزامن: البريد إن كان قيد البريد الموثق، والجوال إن كان قيده. باسم القيد، لا بكلمة في الرسالة:
+     * نص الاستعلام فيه email كلما حُفظ البريد مع الجوال (المشرف على #180، N1). وقيد غيرهما يُرمى كما هو فلا يُنسب خطأً
+     * إلى الجوال (المشرف على #193).
+     */
+    public static function uniqueViolationField(UniqueConstraintViolationException $exception): string
+    {
+        return match (true) {
+            str_contains($exception->getMessage(), '"users_verified_email_unique"') => 'email',
+            str_contains($exception->getMessage(), '"users_phone_unique"'),
+            str_contains($exception->getMessage(), '"users_verified_phone_unique"') => 'phone',
+            default => throw $exception,
+        };
+    }
+
+    /**
      * الرقم الذي يوثّقه الحساب: المعلّق إن سجّل برقم يحمله حساب غير موثق، فلا يصير رقمه إلا بعد الرمز، وإلا رقمه
      * (decisions/2026-11-05-phone-login.md).
      */
@@ -223,13 +238,14 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * البريد مأخوذ إن حمله حساب موثق البريد، أو حساب قديم بلا اسم مستخدم: بريده معرّف دخوله الوحيد، فلو أخذه غيره لم يعرف
-     * صاحبه من يُدخل (soleHolder) فيُغلق حسابه (مراجعة المشرف، M1 — 26 أكتوبر 2026).
+     * البريد مأخوذ إن حمله حساب موثق البريد، أو حساب قديم بريده معرّف دخوله الوحيد (لا اسم مستخدم ولا جوال): فلو أخذه غيره لم
+     * يعرف صاحبه من يُدخل (soleHolder) فيُغلق حسابه (مراجعة المشرف، M1 — 26 أكتوبر 2026). ولا يكفي غياب اسم المستخدم: كل حساب
+     * يسجّل بالجوال بلا اسم، فكان كل بريد غير موثق يُحجز لمن كتبه أولاً (المراجعة الشاملة، I1 — البلاغ 185).
      */
     public static function emailTakenRule(int|string|null $ignore = null): Unique
     {
         return Rule::unique(self::class, 'email')
-            ->where(fn ($query) => $query->whereNotNull('email_verified_at')->orWhereNull('username'))
+            ->where(fn ($query) => $query->whereNotNull('email_verified_at')->orWhere(fn ($query) => $query->whereNull('username')->whereNull('phone')))
             ->ignore($ignore);
     }
 
@@ -262,7 +278,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      * البيانات الشخصية لا تُسجَّل قيمها في سجل العمليات، بل أسماء ما تغيّر منها فقط
      * (حق الحذف في نظام حماية البيانات الشخصية — docs/decisions.md).
      */
-    public const PERSONAL_FIELDS = ['name', 'username', 'email', 'phone'];
+    public const PERSONAL_FIELDS = ['name', 'username', 'email', 'phone', 'pending_phone'];
 
     protected static function booted(): void
     {

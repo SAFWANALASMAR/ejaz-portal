@@ -144,7 +144,8 @@ return [
             'assembly_members.view', 'meetings.view', 'minutes.approve', 'assembly_files.view',
             // view_all: يعتمد المعبأ ولا يعبّئه، فيطّلع على ما عبّأه غيره
             'forms.view', 'form_entries.view', 'form_entries.approve', 'form_entries.view_all', 'archive.view',
-            'registers.view', 'committees.view', 'annual_plan.view',
+            // بلا registers.view: «المستندات ذات الصلاحية» لا يحتاجها عضو المجلس (ملاحظات المدير التنفيذي، ليلة 5 نوفمبر 2026، البند ٤)
+            'committees.view', 'annual_plan.view',
         ],
         'secretary' => [
             'requests.*',

@@ -92,9 +92,11 @@ class CreateNewUser implements CreatesNewUsers
                 self::noticeOwner($input['email'], $input['phone']);
                 self::mergeTaken($validator, $input['email'] !== null ? 'email' : 'phone');
             }
-        }
 
-        $validator->validate();
+            // التحقق ثانيةً في طريق الفشل وحده، فيطبّق خطاف mergeTaken ويرمي الأخطاء. والناجح لا يُعاد تحققه: كان validate() بعد fails()
+            // يعيد القواعد كلها، ومنها فحص التسريب بطلب خارجي، فيدفع كل تسجيل ناجح زمنه مرتين (بطء الدخول والتسجيل، 5 نوفمبر 2026)
+            $validator->validate();
+        }
 
         self::hit($limits);
 
@@ -204,6 +206,8 @@ class CreateNewUser implements CreatesNewUsers
     {
         $owner = User::query()
             ->whereNotNull('email')
+            // للبريد الموثق وحده: غير الموثق قد يكون بريد غيره كتبه الحامل، فلا يُراسَل (البلاغ 185، L5)
+            ->whereNotNull('email_verified_at')
             ->where(fn ($query) => $query->when($email !== null, fn ($query) => $query->where('email', $email))
                 ->when($phone !== null, fn ($query) => $query->orWhere('phone', $phone)))
             ->first();
