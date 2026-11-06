@@ -85,10 +85,6 @@ export function watch(page, baseURL) {
 // أخطاء وحدة التحكم المتوقعة حين يرد الخادم 403/404/422 عمداً (المتصفح يسجّل «Failed to load resource» لكل رد خطأ)
 const expectedConsole = (text, watcher) => /Failed to load resource: the server responded with a status of (403|404|419|422)/.test(text) && watcher.allow.length > 0;
 
-// خلل معروف مختبر وحده في «moving from the site to the panel raises no view-transition error» (تقرير الاختبار 2026-11-03، البند ٢)،
-// فلا يُسقط بقية الرحلة التي تمر به
-export const KNOWN_VIEW_TRANSITION_ERROR = 'Transition was aborted because of invalid state';
-
 /**
  * فحوص كل خطوة: الاتجاه من اليمين، وبلا تمرير أفقي، وبلا أخطاء في وحدة التحكم، وبلا استجابات خطأ غير متوقعة.
  * فحوص ناعمة (expect.soft) لتُجمع كل الإخفاقات في الرحلة، ولقطة عند أي إخفاق في storage/playwright/v015-shots.
@@ -116,7 +112,7 @@ export async function checkStep(page, testInfo, watcher, step) {
         failures.push(`horizontal scroll ${overflow}px: ${culprits.join(' | ')}`);
     }
 
-    const consoleErrors = watcher.console.filter((text) => !expectedConsole(text, watcher) && !(watcher.knownViewTransition && text.includes(KNOWN_VIEW_TRANSITION_ERROR)));
+    const consoleErrors = watcher.console.filter((text) => !expectedConsole(text, watcher));
     if (consoleErrors.length) failures.push(`console: ${consoleErrors.join(' || ')}`);
     if (watcher.network.length) failures.push(`network: ${watcher.network.join(' || ')}`);
 

@@ -152,14 +152,18 @@ it('lists both sections and their published items in the sitemap', function () {
         ->not->toContain('draft-study');
 });
 
-it('shows book and research covers together in the home strip, leading to the library', function () {
+// والأبحاث خرجت من شريط الرئيسية (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3): شريط واحد للكتب، وقسمها باقٍ في المكتبة
+it('shows book covers in the home strip, leading to the library, and keeps research in its library section', function () {
     fourSectionsItem(['title' => 'غلاف كتاب', 'thumbnail' => 'library/thumbs/b.jpg']);
     fourSectionsItem(['title' => 'غلاف بحث', 'section' => LibrarySection::Research, 'thumbnail' => 'library/thumbs/r.jpg']);
 
     $html = $this->get('/')->assertOk()->getContent();
     $books = (string) str($html)->after('id="home-strip-books"')->before('</section>');
 
-    expect($books)->toContain('غلاف كتاب', 'غلاف بحث', 'href="'.route('library.index').'"');
+    expect($books)->toContain('غلاف كتاب', 'href="'.route('library.index').'"')
+        ->and($html)->not->toContain('غلاف بحث');
+
+    $this->get(route('library.section', LibrarySection::Research->value))->assertOk()->assertSee('غلاف بحث');
 });
 
 it('shows research covers in the account library strip too', function () {

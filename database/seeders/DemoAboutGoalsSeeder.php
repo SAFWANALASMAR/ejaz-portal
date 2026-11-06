@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Page;
+use App\Support\ContentCache;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -39,6 +40,9 @@ class DemoAboutGoalsSeeder extends Seeder
         }
 
         $blocks[] = ['type' => 'text', 'data' => ['heading' => self::HEADING, 'body' => '<p>'.e(__('content.about.demo_goals')).'</p>']];
-        $page->forceFill(['blocks' => $blocks])->save();
+        // بلا أحداث الحفظ: الصفحة منشورة، وقاعدة النشر (Publishable) ترفض نصاً فيه علامة «ناقص»، فكان الأمر يفشل على رابط العرض
+        // نفسه. والتجاوز مقصود هنا وحده، للمحلية والاختبار، ثم يُمسح مخزن المحتوى كما يمسحه الحفظ (اختبار المشرف على 183، ٢)
+        Page::withoutEvents(fn () => $page->forceFill(['blocks' => $blocks])->save());
+        ContentCache::flush();
     }
 }

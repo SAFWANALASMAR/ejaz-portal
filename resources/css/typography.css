@@ -55,6 +55,13 @@
         }
     }
 
+    /* أربع في الصف من 1024 (بطاقات «المتجر والتبرعات» الأصغر — ملاحظات المدير ليلة 5 نوفمبر 2026، البند 2) */
+    @media (min-width: 64rem) {
+        .tile-grid-4 > li {
+            flex-basis: calc((100% - 3rem) / 4 - 0.1px);
+        }
+    }
+
     .tile-grid > li.tile-wide {
         flex-basis: 100%;
     }

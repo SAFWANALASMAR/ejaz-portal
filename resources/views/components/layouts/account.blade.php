@@ -17,6 +17,13 @@
 <x-layouts.app :title="$title" noindex>
     {{-- data-account: نطاق أنماط حساب المستفيد (resources/css/account-polish.css) --}}
     <div class="pb-14" data-account>
+        {{-- ما فوق الترحيب: بطاقة مسابقة الطلاب، أول ما يراه الطالب على الجوال بلا تمرير (قبول ملاحظات 4 نوفمبر، 5 نوفمبر 2026) --}}
+        @if (isset($aboveWelcome) && $aboveWelcome->hasActualContent())
+            <div class="mx-auto max-w-[82.5rem] space-y-4 px-4 pt-5 sm:px-7 sm:pt-7" data-account-above-welcome>
+                {{ $aboveWelcome }}
+            </div>
+        @endif
+
         @if ($welcome)
             {{-- الترحيب «فاتح بصورة واحدة» (التصور المعتمد للبطل والرؤوس، الدفعة ٤): تدرج سماوي ونقش باهت، والتحية باسم المستخدم في جهة
                  البداية، وصورة واحدة مائلة بإطار أبيض في جهة النهاية، وتحت النص على الجوال --}}

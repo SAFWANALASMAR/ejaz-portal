@@ -69,3 +69,37 @@ test.describe('my reading', () => {
         await page.locator('[data-account-my-reading]').screenshot({ path: shot('account-dashboard-my-reading', testInfo) });
     });
 });
+
+// مشغّل يوتيوب بطيء التحميل (المشرف على 182، المنخفضة ٢): المصافحة تُعدّ ثوانيها العشر من تحميل الإطار لا من النقر، فإطار يتأخر
+// أكثر من عشر ثوانٍ يبقى يبلّغ تشغيله. المشغّل الحقيقي يُستبدل ببديل يرد على «listening» ببلاغ تشغيل، بعد تأخير 11.5 ثانية.
+// يلزمه مقطع منشور من يوتيوب في VIDEO_SLUG، وإلا يُتخطى.
+test.describe('my reading: slow YouTube frame', () => {
+    const video = process.env.VIDEO_SLUG;
+    test.skip(!video, 'VIDEO_SLUG غير مضبوط');
+    test.skip(!existsSync(AUTH_STATE), 'يحتاج المستخدم التجريبي: DEMO_CREDENTIALS');
+    test.use({ storageState: AUTH_STATE });
+
+    test('still reports playback when the frame loads after the ten seconds', async ({ page }) => {
+        test.setTimeout(60_000);
+        await page.route('https://www.youtube-nocookie.com/embed/**', async (route) => {
+            await new Promise((resolve) => setTimeout(resolve, 11_500));
+            await route.fulfill({
+                contentType: 'text/html',
+                body: `<script>
+                    let time = 0;
+                    addEventListener('message', (event) => {
+                        if (JSON.parse(event.data).event !== 'listening') return;
+                        setInterval(() => parent.postMessage(JSON.stringify({ event: 'infoDelivery', info: { playerState: 1, currentTime: (time += 0.25), duration: 100 } }), '*'), 250);
+                    });
+                </script>`,
+            });
+        });
+
+        await page.goto(`/library/videos/${video}`);
+        const played = page.waitForRequest((request) => request.method() === 'POST'
+            && request.url().endsWith(`/library/videos/${video}/progress`)
+            && /"seconds":[1-9]/.test(request.postData() ?? ''), { timeout: 40_000 });
+        await page.locator('[data-video-embed][data-progress]').first().click();
+        await played;
+    });
+});

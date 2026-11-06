@@ -384,6 +384,9 @@ document.addEventListener('click', (event) => {
         return;
     }
 
+    // تحذير: الإيقاف في مرحلة الالتقاط على document يمنع النقر عن كل مستمع بعده: مستمعو الرابط نفسه وما فوقه، والمستمعون
+    // المفوَّضون على document (موجة .btn-shine على زر «#programs-list» مثلاً). فرابط مرساة يحتاج سلوكاً عند النقر يُربط مستمعه
+    // بـ window في مرحلة الالتقاط، أو يُستثنى الرابط من هذا الشرط (المشرف على طلب الدمج 183، المنخفضة ١)
     event.stopPropagation();
     document.querySelectorAll('[data-toggle][aria-expanded="true"]').forEach((toggle) => setOpen(toggle, false));
 }, true);

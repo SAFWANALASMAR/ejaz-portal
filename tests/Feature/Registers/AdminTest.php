@@ -39,12 +39,14 @@ beforeEach(function () {
     $this->director = userWithRole(RoleName::ExecutiveDirector);
     $this->secretary = userWithRole(RoleName::Secretary);
     $this->board = userWithRole(RoleName::BoardMember);
+    // المطّلع على السجلات بلا تعديل: المشرف العام. وعضو المجلس لم يعد يراها (البند ٤، ليلة 5 نوفمبر — decisions/2026-11-06-board-portal.md)
+    $this->reader = userWithRole(RoleName::SuperAdmin);
     $this->projects = userWithRole(RoleName::ProjectsManager);
 });
 
 it('opens each screen to its roles and keeps the others out', function () {
     $screens = [
-        RegisterEntryResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 200, 'projects' => 403],
+        RegisterEntryResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 403, 'projects' => 403],
         RegisterEntryResource::getUrl('create') => ['director' => 200, 'secretary' => 200, 'board' => 403, 'projects' => 403],
         CommitteeResource::getUrl('index') => ['director' => 200, 'secretary' => 200, 'board' => 200, 'projects' => 403],
         CommitteeResource::getUrl('create') => ['director' => 200, 'secretary' => 200, 'board' => 403, 'projects' => 403],
@@ -76,9 +78,9 @@ it('creates an entry from the panel with the default alert window, and logs open
     $entry = RegisterEntry::sole();
     expect($entry->alert_days)->toBe(15)->and($entry->created_by)->toBe($this->secretary->id);
 
-    $this->actingAs($this->board);
+    $this->actingAs($this->reader);
     Livewire::test(ViewRegisterEntry::class, ['record' => $entry->uuid])->assertOk()->assertSee('عقد تجريبي')->assertActionHidden('edit');
-    expect(Activity::where('event', 'viewed')->whereMorphedTo('subject', $entry)->sole()->causer_id)->toBe($this->board->id);
+    expect(Activity::where('event', 'viewed')->whereMorphedTo('subject', $entry)->sole()->causer_id)->toBe($this->reader->id);
 });
 
 it('filters the list by type and status', function () {
@@ -103,7 +105,7 @@ it('shows the registers widget with counts per type to those who see the registe
     RegisterEntry::factory()->create(['type' => 'license', 'expires_on' => '2026-10-01', 'title' => 'ترخيص منتهٍ']);
     RegisterEntry::factory()->create(['type' => 'license', 'expires_on' => '2026-10-15', 'alert_days' => 30, 'title' => 'ترخيص قريب']);
 
-    $this->actingAs($this->board);
+    $this->actingAs($this->reader);
     expect(RegistersOverviewWidget::canView())->toBeTrue();
     Livewire::test(RegistersOverviewWidget::class)->assertOk()->assertSee('ترخيص قريب')->assertSee('ترخيص منتهٍ')->assertSee(__('registers.types.license'));
 

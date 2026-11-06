@@ -15,13 +15,11 @@ use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
-use App\Support\Icon;
 use App\Support\LibraryHeroImages;
 use Database\Seeders\AboutMenuAnchorsSeeder;
 use Database\Seeders\MenuSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Once;
 
 /*
 | توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): ترتيب الرئيسية من الأعلى، والبطاقات الخمس،
@@ -90,8 +88,9 @@ it('shows the five identity cards in order, with their inner carousels', functio
 });
 
 // البند ١٧ من الإضافة (يحل محل البند ٤): يوتيوب من اليمين إلى اليسار، والمكتبة من اليسار إلى اليمين كـ«خدماتنا»
-// البندان ١٧ و٢٦ من الإضافة: كل شريط عكس الذي قبله — يوتيوب من اليمين إلى اليسار، والكتب من اليسار إلى اليمين، والأبحاث من اليمين إلى اليسار
-it('runs the YouTube, books and research strips in alternating directions, each full width', function () {
+// البند ١٧ من الإضافة: كل شريط عكس الذي قبله — يوتيوب من اليمين إلى اليسار، والكتب من اليسار إلى اليمين. وشريط «الأبحاث والدراسات»
+// خرج من الرئيسية (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3): شريط واحد للمكتبة، ولو نُشرت أبحاث
+it('runs the YouTube and books strips in alternating directions, each full width, with no research strip', function () {
     directorHomeContent();
     LibraryItem::factory()->count(2)->create(['section' => LibrarySection::Research]);
 
@@ -100,11 +99,10 @@ it('runs the YouTube, books and research strips in alternating directions, each 
 
     expect($wrap('videos'))->toContain('media-marquee-flip')
         ->and($wrap('books'))->toContain('media-marquee-books')->not->toContain('media-marquee-flip')
-        ->and($wrap('research'))->toContain('media-marquee-books')->toContain('media-marquee-flip')
+        ->and($strips)->not->toContain('data-media-strip="research"')
         ->and(strpos($strips, 'data-media-strip="videos"'))->toBeLessThan(strpos($strips, 'data-media-strip="books"'))
-        ->and(strpos($strips, 'data-media-strip="books"'))->toBeLessThan(strpos($strips, 'data-media-strip="research"'))
-        ->and(strpos($strips, 'data-media-strip="research"'))->toBeLessThan(strpos($strips, 'data-x-card'))
-        ->and(substr_count($strips, 'data-marquee data-direction="horizontal" data-loop'))->toBe(3);
+        ->and(strpos($strips, 'data-media-strip="books"'))->toBeLessThan(strpos($strips, 'data-x-card'))
+        ->and(substr_count($strips, 'data-marquee data-direction="horizontal" data-loop'))->toBe(2);
 });
 
 it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the library cards at their real zero', function () {
@@ -248,28 +246,21 @@ it('never hides the menu row behind the menu button on desktop and the landscape
     expect(preg_match('/\[data-nav-overflow\] \.nav-capsule\s*\{[^}]*font-size/', (string) file_get_contents(resource_path('css/concept.css'))))->toBe(1);
 });
 
-// البند ٢٦ من الإضافة (ويعدّل البند ٦): شريط الكتب للكتب وحدها، وتحته شريط «الأبحاث والدراسات» ببطاقة الكتاب نفسها، ويختفي بلا أبحاث
-it('splits the books and research strips, the research card a copy of the book card with the same icon', function () {
+// البند ٢٦ من الإضافة (ويعدّل البند ٦): شريط الكتب للكتب وحدها. وشريط «الأبحاث والدراسات» خرج من الرئيسية (ملاحظات المدير ليلة
+// 5 نوفمبر 2026، البند 3)، وقسمه باقٍ في المكتبة
+it('keeps the books strip for books alone, and no research strip on the home page while the library keeps its research section', function () {
     LibraryItem::factory()->create(['title' => 'كتاب الشريط', 'section' => LibrarySection::Books]);
     LibraryItem::factory()->create(['title' => 'بحث الشريط', 'section' => LibrarySection::Research]);
-    LibraryItem::factory()->unpublished()->create(['title' => 'بحث غير منشور', 'section' => LibrarySection::Research]);
 
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
     // المجموعة الظاهرة وحدها (الشريط القليل يتكرر في نسخ مخفية)
     $books = (string) str($strips)->after('data-media-strip="books"')->before('data-marquee-copy');
-    $research = (string) str($strips)->after('data-media-strip="research"')->before('data-marquee-copy');
-    $icon = fn (string $html): string => preg_match('/data-thumb-placeholder aria-hidden="true">\s*(<svg.*?<\/svg>)/s', $html, $match) === 1 ? $match[1] : '';
 
-    expect($strips)->toContain(__('home.sections_final.headings.books'))->toContain(__('home.sections_final.headings.research'))
-        ->and(__('home.sections_final.headings.research'))->toBe('من مكتبة إعجاز: الأبحاث والدراسات')
-        ->and($books)->toContain('كتاب الشريط')->not->toContain('بحث الشريط')
-        ->and($research)->toContain('بحث الشريط')->not->toContain('بحث غير منشور')->toContain('media-tile-book')
-        ->and($icon($research))->toBe($icon($books))
-        ->and($icon($books))->toBe(Icon::svg(LibrarySection::Books->icon(), 'size-10')->toHtml());
+    expect($strips)->toContain(__('home.sections_final.headings.books'))->not->toContain(__('home.sections_final.headings.research'))
+        ->and($strips)->not->toContain('data-media-strip="research"')
+        ->and($books)->toContain('كتاب الشريط')->not->toContain('بحث الشريط');
 
-    LibraryItem::query()->where('section', LibrarySection::Research)->delete();
-    ContentCache::flush();
-    $this->get('/')->assertOk()->assertDontSee('data-media-strip="research"', false);
+    $this->get(route('library.section', LibrarySection::Research->value))->assertOk()->assertSee('بحث الشريط');
 });
 
 it('adds two demo research items marked «تجريبي» when none is published, and nothing when one is', function () {
@@ -284,7 +275,8 @@ it('adds two demo research items marked «تجريبي» when none is published,
         Storage::disk(LibraryItem::disk())->assertExists($item->file);
     }
 
-    $this->get('/')->assertOk()->assertSee(__('home.demo_research.title', ['number' => 1]));
+    // في قسم «الأبحاث والدراسات» بالمكتبة (شريطه خرج من الرئيسية — ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3)
+    $this->get(route('library.section', LibrarySection::Research->value))->assertOk()->assertSee(__('home.demo_research.title', ['number' => 1]));
 
     $this->artisan('ejaz:demo-research')->assertSuccessful();
     expect(LibraryItem::query()->where('section', LibrarySection::Research)->count())->toBe(2);
@@ -555,42 +547,37 @@ it('shows the first contact paragraph once, in the hero, even with the old conta
 | مراجعة المشرف على #157 (4 نوفمبر، 10:58): رأس «مكتبة إعجاز» بصور تتبدل (البند ٢٥)، و«قياس الرضا» بطاقة دائمة في الخدمات التسع
 | (البند ١٧ من الإضافة)، وقرارات صفوان في بطاقة المسجلين وصفة رئيس المجلس.
 */
-it('picks the library hero images from the panel first, then the latest covers, at most four', function () {
+// ملاحظات المدير ليلة 5 نوفمبر 2026 (البند 1): صور اللوحة، وإلا صور محايدة من المستودع بلا أشخاص، ولا أغلفة عناصر المكتبة (منها
+// صور مقاطع فيها أشخاص)
+it('picks the library hero images from the panel only, never the item covers', function () {
     Storage::fake('public');
     Setting::put(HomeContent::KEY, ['page_heroes' => ['library' => 'settings/library-hero.jpg']]);
     foreach (range(1, 5) as $day) {
         LibraryItem::factory()->create(['thumbnail' => 'library/cover-'.$day.'.jpg', 'published_on' => now()->subDays($day)->toDateString()]);
     }
-    LibraryItem::factory()->create(['thumbnail' => 'library/draft.jpg', 'is_published' => false, 'published_on' => now()->toDateString()]);
 
-    $urls = LibraryHeroImages::urls();
+    expect(LibraryHeroImages::urls())->toBe([Storage::disk('public')->url('settings/library-hero.jpg')]);
 
-    expect($urls)->toHaveCount(4)
-        ->and($urls[0])->toBe(Storage::disk('public')->url('settings/library-hero.jpg'))
-        ->and(array_slice($urls, 1))->toBe(array_map(fn (int $day): string => Storage::disk('public')->url('library/cover-'.$day.'.jpg'), [1, 2, 3]))
-        ->and($urls)->not->toContain(Storage::disk('public')->url('library/draft.jpg'));
-
-    $html = (string) $this->get('/library')->assertOk()->getContent();
-    $hero = (string) str($html)->after('data-page-hero ')->before('</section>');
-    expect($hero)->toContain('data-page-hero-rotator')->toContain('data-autoplay')
-        ->and(substr_count($hero, 'data-carousel-item'))->toBe(4);
+    $hero = (string) str((string) $this->get('/library')->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+    expect($hero)->not->toContain('data-page-hero-rotator')->not->toContain('library/cover-')
+        ->toContain('src="'.Storage::disk('public')->url('settings/library-hero.jpg').'"');
 });
 
-it('shows a single library hero image without rotation markup, and the neutral picture without any', function () {
+it('rotates the neutral book images from the repository when the panel has none, with no item cover', function () {
     Storage::fake('public');
-    $hero = fn (): string => (string) str((string) $this->get('/library')->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+    LibraryItem::factory()->create(['thumbnail' => 'library/person.jpg']);
 
-    expect(LibraryHeroImages::urls())->toBe([])
-        ->and($hero())->not->toContain('data-page-hero-rotator')->toContain('data-page-hero-image');
+    $urls = LibraryHeroImages::urls();
+    expect($urls)->toBe(array_map(fn (string $path): string => asset($path), LibraryHeroImages::DEFAULTS))
+        ->and($urls)->not->toContain(Storage::disk('public')->url('library/person.jpg'));
+    foreach (LibraryHeroImages::DEFAULTS as $path) {
+        expect(file_exists(public_path($path)))->toBeTrue();
+    }
 
-    LibraryItem::factory()->create(['thumbnail' => 'library/only.jpg']);
-    ContentCache::flush();
-    // once() في القالب يحفظ الصور للطلب، والاختبار طلبان في عملية واحدة
-    Once::flush();
-
-    expect(LibraryHeroImages::urls())->toBe([Storage::disk('public')->url('library/only.jpg')])
-        ->and($hero())->not->toContain('data-page-hero-rotator')->not->toContain('data-carousel-item')
-        ->toContain('src="'.Storage::disk('public')->url('library/only.jpg').'"');
+    $hero = (string) str((string) $this->get('/library')->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+    expect($hero)->toContain('data-page-hero-rotator')->toContain('data-autoplay')
+        ->and(substr_count($hero, 'data-carousel-item'))->toBe(2)
+        ->and($hero)->not->toContain('library/person.jpg');
 });
 
 it('always shows the satisfaction card with no open survey: eight services and a link that opens', function () {

@@ -33,7 +33,7 @@
         @endif
     @elseif ($status === CompetitionStatus::Open)
         @if ($hero)
-            {{-- للزائر وللمستفيد إلى صفحة التسجيل نفسها: تطلب الدخول وتحفظ وجهتها --}}
+            {{-- للزائر وللمستفيد إلى صفحة التسجيل نفسها، وهي تطلب الدخول من الزائر --}}
             <a href="{{ $registerUrl }}" @navigate($registerUrl) class="hero-cta">
                 {{ __('ui.prize.cta') }}
                 {{ \App\Support\Icon::svg('arrow-left', 'size-5 shrink-0', ['aria-hidden' => 'true']) }}
@@ -42,7 +42,8 @@
             @auth
                 <x-button :href="$registerUrl" class="w-full" arrow>{{ __('competitions.student.register_cta') }}</x-button>
             @else
-                {{-- إلى صفحة التسجيل نفسها: تطلب الدخول وتحفظ وجهتها، فيعود إليها المستفيد بعد الدخول أو إنشاء الحساب (signup=1) لا إلى /account --}}
+                {{-- إلى صفحة التسجيل نفسها، وهي تطلب الدخول (أو إنشاء الحساب بـ signup=1). وبعدهما إلى «حسابي» دائماً لا إلى هذه الصفحة: الرابط
+                     المقصود يُحذف (PortalLoginResponse وRegisterResponse — قرار صفوان، 5 نوفمبر 2026، decisions/2026-11-05-phone-login.md) --}}
                 <x-button :href="$registerUrl" class="w-full" arrow>{{ __('competitions.student.login_to_register') }}</x-button>
                 <x-button :href="route('competitions.student.register', ['slug' => $competition->slug, 'signup' => 1])" variant="outline" class="w-full">{{ __('competitions.student.create_account') }}</x-button>
             @endauth

@@ -148,3 +148,20 @@ it('writes the heartbeat from the scheduler every minute', function () {
 
     expect(Cache::get(CheckHealth::HEARTBEAT_KEY))->toBe(now()->getTimestamp());
 });
+
+// طابور شهادات المسابقة المستقل كطابور المقاطع: في الفحص، وفي إنذار الانتظار، وفي عمال Horizon المتوقعين (المشرف على #173، ١ و٢)
+it('fails when the competition certificate queue piles up, and watches it in Horizon like the videos', function () {
+    config(['health.certificate_queue_max_backlog' => 1]);
+    beat();
+    Queue::fake();
+    Queue::pushOn('certificates', 'certificate-one');
+    Queue::pushOn('certificates', 'certificate-two');
+
+    $this->artisan('ejaz:health')
+        ->expectsOutputToContain('✗ '.__('health.checks.certificate_queue').': '.__('health.failed.queue', ['size' => 2, 'max' => 1]))
+        ->assertFailed();
+
+    expect(config('horizon.waits'))->toHaveKey('redis:certificates')
+        ->and(config('horizon.defaults'))->toHaveKey('supervisor-certificates')
+        ->and(file_get_contents(base_path('docs/deploy.md')))->toContain('`supervisor-certificates` (`certificates`');
+});

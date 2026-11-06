@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class ReaderFileResponse
 {
     /**
-     * فتحات القارئ لكل عنوان في الدقيقة، لكل قسم حده (library وgovernance).
+     * فتحات القارئ للملف الواحد من كل مشترك في الدقيقة، لكل قسم حده (library وgovernance).
      */
     public const PER_MINUTE = 20;
 
@@ -32,10 +33,13 @@ final class ReaderFileResponse
             return redirect()->to($pageUrl);
         }
 
-        // لكل مشترك (IPv4 كاملاً، أو /64 في IPv6)، فلا يتجاوز الحد من يدوّر عناوين شبكته
-        $key = $limiter.'-reader:'.NetworkPrefix::subscriber($request->ip());
-        abort_if(RateLimiter::tooManyAttempts($key, self::PER_MINUTE), 429);
-        RateLimiter::hit($key, 60);
+        // لكل ملف ومشترك (IPv4 كاملاً، أو /64 في IPv6)، فلا يتجاوز الحد من يدوّر عناوين شبكته، ولا يحجب طلابُ مدرسة خلف
+        // عنوان واحد يقرؤون كتباً مختلفة بعضَهم بعضاً. والعدّ بزيادة واحدة ذرية، و429 بموعد المحاولة (المشرف على #101، ١ و٢)
+        $key = $limiter.'-reader:'.hash('sha256', $disk.'|'.$file).':'.NetworkPrefix::subscriber($request->ip());
+
+        if (RateLimiter::increment($key, 60) > self::PER_MINUTE) {
+            throw new ThrottleRequestsException(headers: ['Retry-After' => RateLimiter::availableIn($key)]);
+        }
 
         $request->attributes->set(SecurityHeaders::READER_ONLY, true);
 

@@ -6,9 +6,11 @@ use App\Models\Competition;
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
+use App\Models\LibraryItem;
 use App\Models\User;
 use App\Support\Dates;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -47,6 +49,24 @@ it('shows the current stage with «start the test» while its window is open, be
         ->toContain(route('competitions.student.round', [$this->competition->slug, $this->round->uuid]))
         // أعلى الصفحة قبل بطاقات الأقسام
         ->and(strpos($html, 'data-account-competition='))->toBeLessThan(strpos($html, 'data-account-cards'));
+});
+
+// قبول ملاحظات 4 نوفمبر (5 نوفمبر 2026): كانت البطاقة تحت شريط الترحيب وشريط «جديد مكتبة إعجاز»، فلا يراها الطالب على الجوال حتى يمرر
+it('puts the card above the welcome strip and the library strip, and leaves no empty box for an account with no competition', function () {
+    LibraryItem::factory()->video()->create(['slug' => 'strip-video']);
+    Cache::flush();
+
+    $html = (string) $this->actingAs($this->student)->get(route('account.dashboard'))->assertOk()->getContent();
+    $card = strpos($html, 'data-account-competition=');
+
+    expect($card)->toBeInt()
+        ->and(strpos($html, 'data-account-above-welcome'))->toBeLessThan($card)
+        ->and($card)->toBeLessThan((int) strpos($html, 'data-account-welcome'))
+        ->and(strpos($html, 'data-account-library-strip'))->toBeInt()
+        ->and($card)->toBeLessThan((int) strpos($html, 'data-account-library-strip'));
+
+    $other = (string) $this->actingAs(User::factory()->create())->get(route('account.dashboard'))->assertOk()->getContent();
+    expect($other)->not->toContain('data-account-above-welcome')->not->toContain('data-account-competition=')->toContain('data-account-welcome');
 });
 
 it('says «continue the test» once started, and «answers submitted ✓» with the status link after submitting', function () {
