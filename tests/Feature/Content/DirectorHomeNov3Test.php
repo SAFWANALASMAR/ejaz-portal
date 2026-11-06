@@ -256,7 +256,7 @@ it('keeps the books strip for books alone, and no research strip on the home pag
     // المجموعة الظاهرة وحدها (الشريط القليل يتكرر في نسخ مخفية)
     $books = (string) str($strips)->after('data-media-strip="books"')->before('data-marquee-copy');
 
-    expect($strips)->toContain(__('home.sections_final.headings.books'))->not->toContain(__('home.sections_final.headings.research'))
+    expect($strips)->toContain(__('home.sections_final.headings.books'))->not->toContain('من مكتبة إعجاز: الأبحاث والدراسات')
         ->and($strips)->not->toContain('data-media-strip="research"')
         ->and($books)->toContain('كتاب الشريط')->not->toContain('بحث الشريط');
 
