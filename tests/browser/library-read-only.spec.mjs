@@ -87,4 +87,19 @@ test.describe('library read-only reader', () => {
         await expect(page.locator('[data-pdf-page]')).toHaveValue('2');
         await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready');
     });
+
+    // عنوان فيه أنماط الاستبدال ($& و$') يظهر كما هو، لا يُفسَّر (المشرف على #101، ٣). العنوان يُحقن في الصفحة بالاعتراض
+    test('shows a title holding replacement patterns literally', async ({ page }) => {
+        const title = "كتاب $& و$' :page";
+        await page.route(`**/library/books/${slug}`, async (route) => {
+            const response = await route.fetch();
+            // البديل بدالة هنا أيضاً، فلا يُفسَّر $& في العنوان المحقون نفسه
+            const html = (await response.text()).replace(/data-title="[^"]*"/, () => `data-title="${title.replace(/'/g, '&#039;')}"`);
+            await route.fulfill({ response, body: html });
+        });
+
+        await page.goto(`/library/books/${slug}`);
+        await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        expect(await page.locator('[data-pdf-reader] canvas').first().getAttribute('aria-label')).toContain(title);
+    });
 });

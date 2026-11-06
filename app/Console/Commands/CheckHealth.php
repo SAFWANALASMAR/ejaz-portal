@@ -31,6 +31,7 @@ class CheckHealth extends Command
             'cache' => fn (): ?string => $this->cache(),
             'queue' => fn (): ?string => $this->queue(),
             'video_queue' => fn (): ?string => $this->videoQueue(),
+            'certificate_queue' => fn (): ?string => $this->certificateQueue(),
             'failed_jobs' => fn (): ?string => $this->failedJobs(),
             'disk' => fn (): ?string => $this->disk(),
             'private_storage' => fn (): ?string => $this->privateStorage(),
@@ -88,6 +89,17 @@ class CheckHealth extends Command
     {
         $size = Queue::size();
         $max = (int) config('health.queue_max_backlog');
+
+        return $size > $max ? __('health.failed.queue', ['size' => $size, 'max' => $max]) : null;
+    }
+
+    /**
+     * طابور شهادات المسابقة المستقل (supervisor-certificates)، كطابور المقاطع (المشرف على #173، ٢).
+     */
+    private function certificateQueue(): ?string
+    {
+        $size = Queue::size('certificates');
+        $max = (int) config('health.certificate_queue_max_backlog');
 
         return $size > $max ? __('health.failed.queue', ['size' => $size, 'max' => $max]) : null;
     }
