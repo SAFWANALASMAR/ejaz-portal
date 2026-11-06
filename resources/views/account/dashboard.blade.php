@@ -35,6 +35,8 @@
 
     @include('account.partials.oversight', ['oversight' => $oversight])
 
+    @include('account.partials.council', ['council' => $council])
+
     {{-- البطاقات ملونة (Final-Dashboard ‎.cc — البند D1): داكنة ثم فاتحة بالتعاقب (.tone-card)، بأيقونتها وعددها وسهمها. وعمودان ثابتان من
          اللوحي فأعلى، فلا تبقى بطاقة وحدها في وسط صف (قرار صفوان على طلب الدمج 142، 3 نوفمبر 2026) --}}
     <h2 class="sr-only">{{ __('account.dashboard.shortcuts') }}</h2>

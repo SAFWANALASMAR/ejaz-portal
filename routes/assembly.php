@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Route;
 | والتنزيل برابط مؤقت موقّع، ويُفحص الدخول والصلاحية عند الطلب، ويُسجَّل.
 */
 
-Route::get('/assembly', AssemblyController::class)->name('assembly.index');
+// والصفحة نفسها تعرض لعضو المنطقة روابط الاجتماعات وقرارات المجلس (BuildBoardPortal)، فخلف التحقق الثنائي لأدواره كبقية المنطقة.
+// والوسيط لا يمس الزائر ولا من لا يلزمه التحقق الثنائي (المراجعة الأمنية على #197)
+Route::get('/assembly', AssemblyController::class)->middleware(EnsureTwoFactorIsEnabled::class)->name('assembly.index');
 
 // والأدوار الإدارية (المجلس والسكرتير والمشرف العام) لا تصل إلى ملفات المجلس ومحاضره قبل تفعيل التحقق الثنائي، كما في اللوحة
 // (docs/security/2026-10-10-security-audit.md)

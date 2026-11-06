@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Account;
 
 use App\Actions\Accounts\BuildAccountSummary;
+use App\Actions\Accounts\BuildCouncilPortal;
 use App\Actions\Accounts\BuildOversight;
 use App\Actions\Accounts\BuildParticipationStats;
 use App\Actions\Competitions\BuildStudentCompetitionCards;
@@ -25,7 +26,7 @@ class DashboardController extends Controller
      */
     private const READING_ITEMS = 3;
 
-    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats, BuildOversight $oversight, BuildMyReading $reading, BuildStudentCompetitionCards $competitions): Response
+    public function __invoke(Request $request, BuildAccountSummary $summary, BuildParticipationStats $stats, BuildOversight $oversight, BuildCouncilPortal $council, BuildMyReading $reading, BuildStudentCompetitionCards $competitions): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -42,6 +43,8 @@ class DashboardController extends Controller
             'summary' => $summary->handle($user),
             'stats' => $stats->handle($user),
             'oversight' => $oversight->handle($user),
+            // بوابة عضو مجلس الإدارة: صف بطاقاته وإحصائيات الموقع، والإحصائيات لعضو الجمعية العمومية (decisions/2026-11-06-board-portal.md)
+            'council' => $council->handle($user),
             // بطاقة مسابقة الطلاب بمرحلتها الحالية وزرها (ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026)
             'competitions' => $competitions->handle($user),
             // «قراءاتي»: أحدث ما بدأه في المكتبة ومجاميعه (docs/decisions/2026-11-01-my-reading.md)
