@@ -23,8 +23,8 @@
 @endif
 
 {{-- شريطا يوتيوب والكتب تحت «خدماتنا» مباشرة (ملاحظة المدير ٢٤: «تحت خدماتنا»)، ثم الإعلانات والأخبار --}}
-@if ($strip_videos->isNotEmpty() || $strip_books->isNotEmpty() || $strip_research->isNotEmpty() || $x_account !== null)
-    @include('home.partials.strips', ['videos' => $strip_videos, 'books' => $strip_books, 'research' => $strip_research, 'x' => $x_account, 'headings' => $headings, 'band' => $next()])
+@if ($strip_videos->isNotEmpty() || $strip_books->isNotEmpty() || $x_account !== null)
+    @include('home.partials.strips', ['videos' => $strip_videos, 'books' => $strip_books, 'x' => $x_account, 'headings' => $headings, 'band' => $next()])
 @endif
 
 @if ($announcements->isNotEmpty() || $prize !== null || $news->isNotEmpty())
