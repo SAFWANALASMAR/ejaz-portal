@@ -66,8 +66,9 @@ class BuildCouncilPortal
             ['key' => 'stats', 'url' => '#site-stats', 'external' => false, 'navigate' => false],
             ['key' => 'assembly_members', 'url' => $user->can('viewAny', AssemblyMembership::class) ? AssemblyMembershipResource::getUrl() : null, 'external' => false, 'navigate' => false],
             ['key' => 'board', 'url' => AssemblyArea::board($user) ? route('assembly.index') : null, 'external' => false, 'navigate' => true],
-            // إلى رابط تيمز للاجتماع القادم أو الجاري الذي يراه، وإلا صفحة البث المباشر العامة
-            ['key' => 'live', 'url' => $meeting->online_join_url ?? route('live'), 'external' => $meeting !== null, 'navigate' => $meeting === null],
+            // إلى صفحة الاجتماع القادم أو الجاري في منطقة الأعضاء، خلف التحقق الثنائي، لا إلى رابط تيمز الخام: «حسابي» بلا التحقق
+            // الثنائي، والرابط سرّ (المراجعة الأمنية على #197، العالية). وإلا صفحة البث المباشر العامة
+            ['key' => 'live', 'url' => $meeting !== null && $user->can('accessAssemblyArea') ? route('assembly.meetings.show', $meeting) : route('live'), 'external' => false, 'navigate' => true],
             ['key' => 'governance', 'url' => route('governance.index'), 'external' => false, 'navigate' => true],
         ];
 

@@ -18,10 +18,11 @@ use App\Models\User;
 const BP_PASSWORD = 'Thursday-Exam-Key-2026';
 
 it('sends a board member to their account after login, and a board member with a staff role to the panel', function () {
-    // بلا تحقق ثنائي مفعّل، فيصل الدخول إلى PortalLoginResponse مباشرة (وإتمام التحقق الثنائي يمر بالاستجابة نفسها)
+    // بلا تحقق ثنائي مفعّل، فيصل الدخول إلى PortalLoginResponse مباشرة (وإتمام التحقق الثنائي يمر بالاستجابة نفسها):
+    // يلزمه التحقق الثنائي فيبدأ في «الأمان» ليفعّله (المراجعة الأمنية على #197)
     $board = User::factory()->create(['email' => 'board@example.test', 'password' => BP_PASSWORD]);
     $board->assignRole(RoleName::BoardMember->value);
-    $this->post('/login', ['login' => 'board@example.test', 'password' => BP_PASSWORD])->assertRedirect(route('account.dashboard'));
+    $this->post('/login', ['login' => 'board@example.test', 'password' => BP_PASSWORD])->assertRedirect(route('account.security'));
     $this->post('/logout');
 
     $both = User::factory()->create(['email' => 'both@example.test', 'password' => BP_PASSWORD]);
@@ -43,7 +44,7 @@ it('shows the board the council cards and the site stats in their account, each 
         ->assertSee('data-council-card="stats"', false)
         ->assertSee('href="'.AssemblyMembershipResource::getUrl().'"', false)
         ->assertSee('href="'.route('assembly.index').'"', false)
-        ->assertSee('href="'.$meeting->online_join_url.'"', false)
+        ->assertSee('href="'.route('assembly.meetings.show', $meeting).'" data-council-card="live"', false)
         ->assertSee('href="'.route('governance.index').'"', false)
         ->assertSee('id="site-stats"', false)
         ->assertSee(__('account.council.stats.visits'))
@@ -94,4 +95,22 @@ it('takes «documents with validity» away from the board: no widget, no list, n
     // ويبقى للسكرتير كما كان
     $this->actingAs(userWithRole(RoleName::Secretary));
     expect(RegistersOverviewWidget::canView())->toBeTrue();
+});
+
+it('never shows the raw meeting link in the account, and links the live card to the meeting page behind two-factor', function () {
+    // المراجعة الأمنية على #197، العالية: «حسابي» بلا التحقق الثنائي، ورابط الاجتماع سرّ
+    $board = userWithRole(RoleName::BoardMember);
+    $meeting = Meeting::factory()->online()->create(['body' => MeetingBody::Board, 'starts_at' => now()->addDay(), 'online_join_url' => 'https://teams.microsoft.com/l/meetup-join/board-secret']);
+
+    $html = (string) $this->actingAs($board)->get('/account')->assertOk()->getContent();
+
+    expect($html)->not->toContain('board-secret')
+        ->toContain('href="'.route('assembly.meetings.show', $meeting).'" data-council-card="live"');
+
+    // وعضو مجلس لم يفعّل التحقق الثنائي: لا رابط في «حسابي»، وصفحة الاجتماع تعيده إلى «الأمان»
+    $without = User::factory()->create();
+    $without->assignRole(RoleName::BoardMember->value);
+    showDeferredPortals();
+    expect((string) $this->actingAs($without)->get('/account')->assertOk()->getContent())->not->toContain('board-secret');
+    $this->actingAs($without)->get(route('assembly.meetings.show', $meeting))->assertRedirect(route('account.security'));
 });

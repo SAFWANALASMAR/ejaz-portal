@@ -31,10 +31,12 @@ class BuildOversight
     public function handle(User $user): array
     {
         $overseer = RoleName::isOverseer($user);
+        // رابط الاجتماع سرّ، و«حسابي» بلا التحقق الثنائي: لا يُعرض لمن يلزمه ولم يفعّله (المراجعة الأمنية على #197)
+        $secured = ! $user->requiresTwoFactor() || $user->hasEnabledTwoFactorAuthentication();
 
         return [
             'stats' => $overseer ? self::stats() : null,
-            'meeting' => $overseer || AccountSettings::showsDeferredPortals() ? self::nextMeeting($user) : null,
+            'meeting' => $secured && ($overseer || AccountSettings::showsDeferredPortals()) ? self::nextMeeting($user) : null,
         ];
     }
 

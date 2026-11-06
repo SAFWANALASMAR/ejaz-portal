@@ -41,9 +41,17 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         // أدوار اللوحة سوى عضو المجلس: من له أحدها يبدأ في اللوحة
         $staffRoles = array_values(array_diff(RoleName::values(RoleName::panelRoles()), [RoleName::BoardMember->value]));
 
-        return redirect()->intended($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin'))
-            && ! $user->hasRole(RoleName::SuperAdmin->value) && $user->hasAnyRole($staffRoles)
-            ? url(Filament::getPanel('admin')->getPath())
-            : Fortify::redirects('login'));
+        if ($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin'))
+            && ! $user->hasRole(RoleName::SuperAdmin->value) && $user->hasAnyRole($staffRoles)) {
+            return redirect()->intended(url(Filament::getPanel('admin')->getPath()));
+        }
+
+        // ومن يلزمه التحقق الثنائي (عضو المجلس) ولم يفعّله يبدأ في «الأمان» ليفعّله، كما كانت اللوحة تعيده إليه
+        // (المراجعة الأمنية على #197)
+        if ($user instanceof User && $user->requiresTwoFactor() && ! $user->hasEnabledTwoFactorAuthentication()) {
+            return redirect()->route('account.security')->with('status', __('auth.two_factor_required'));
+        }
+
+        return redirect()->intended(Fortify::redirects('login'));
     }
 }
