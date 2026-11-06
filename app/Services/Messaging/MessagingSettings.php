@@ -79,6 +79,17 @@ final class MessagingSettings
     }
 
     /**
+     * هل تُرسل رموز التحقق عبر واتساب؟ متى فُعّل استعمالها، وللقناة مزود بمفاتيحه، وقالبها مضبوط. وإلا فالرسائل النصية
+     * كما كانت (قرار صفوان، 6 نوفمبر 2026: واتساب، ومن لا واتساب له يوثّق ببريده).
+     */
+    public static function otpViaWhatsApp(): bool
+    {
+        return self::usageEnabled(MessagingChannel::WHATSAPP, 'otp')
+            && self::ready(MessagingChannel::WHATSAPP)
+            && isset(self::whatsapp()['templates']['otp']);
+    }
+
+    /**
      * هل للقناة مزود حقيقي بمفاتيحه؟ (log وfake ليسا مزودين: الأول للتطوير ويرفض الإنتاج)
      */
     public static function ready(string $channel): bool

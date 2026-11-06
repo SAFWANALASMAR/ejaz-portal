@@ -4,8 +4,10 @@ namespace App\Actions\Accounts;
 
 use App\Enums\RoleName;
 use App\Jobs\SendSms;
+use App\Jobs\SendWhatsAppCode;
 use App\Models\User;
 use App\Notifications\SmsCapWarning;
+use App\Services\Messaging\MessagingSettings;
 use App\Support\LoginIdentifier;
 use App\Support\NetworkPrefix;
 use App\Support\SaudiPhone;
@@ -149,10 +151,13 @@ class SendPhoneVerificationCode
             'expires_at' => $expiresAt->getTimestamp(),
         ], $expiresAt);
 
-        SendSms::dispatch($phone, __($purpose === self::RESET ? 'account.password_reset.sms' : 'account.phone.sms', [
+        $text = __($purpose === self::RESET ? 'account.password_reset.sms' : 'account.phone.sms', [
             'code' => $code,
             'minutes' => self::TTL_MINUTES,
-        ]));
+        ]);
+
+        // واتساب متى ضُبط له (قرار صفوان، 6 نوفمبر 2026)، وإلا رسالة نصية
+        MessagingSettings::otpViaWhatsApp() ? SendWhatsAppCode::dispatch($phone, $code, $text) : SendSms::dispatch($phone, $text);
     }
 
     /**
