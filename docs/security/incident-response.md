@@ -5,7 +5,7 @@
 - **التاريخ:** 5 نوفمبر 2026.
 - **الأساس:** `origin/main` عند `a2cc0d39`.
 - **الحالة:** مسودة بانتظار اعتماد صفوان. كل مدة أو مهلة أو توزيع أدوار مكتوب «مقترح يعتمده صفوان» ليس نافذاً قبل اعتماده.
-- **النطاق:** بوابة ejaz.sa في الإنتاج على خادم واحد بحزمة الحاويات (`deploy/compose.production.yaml`): التطبيق وHorizon والمجدول وnginx وPostgreSQL وRedis، وحاوية الملفات الخاصة على S3، والنسخ الاحتياطي عند Hetzner بقفل الكائنات. ومعها مزودو الخدمة (الرسائل، وواتساب، وMicrosoft 365، والمساعد الذكي، وTurnstile، والبريد)، والمستودع على GitHub ومشغّل الفحص المحلي.
+- **النطاق:** بوابة ejaz.sa في الإنتاج على خادم واحد بحزمة الحاويات (`deploy/compose.production.yaml`): التطبيق وHorizon والمجدول وnginx وPostgreSQL وRedis، والملفات الخاصة على قرص الخادم (الخيار أ في `deploy.md` «Hostinger KVM»)، ونسخ القاعدة المشفّرة المحلية في `/var/backups/ejaz` ونسختها الأسبوعية على جهاز المسؤول، ونسخ Hostinger الأسبوعية (`deploy/hostinger-go-live.md` §٤). وعند الترقية: حاوية الملفات على S3 والنسخ عند Hetzner بقفل الكائنات. ومعها مزودو الخدمة (الرسائل، وواتساب، وMicrosoft 365، والمساعد الذكي، وTurnstile، والبريد)، والمستودع على GitHub ومشغّل الفحص المحلي.
 - **ليس في النطاق:** أعطال الأداء والتوافر بلا جانب أمني. لها `docs/monitoring.md` و`docs/guides/competition-day.md`. ويُطبَّق هذا الدليل عليها متى صار فيها مساس بالبيانات أو بالحسابات.
 - **حال الخادم اليوم:** لم يُجهَّز خادم الإنتاج بعد، ولا أداة تنبيه معتمدة (`monitoring.md`). فبعض الخطوات أدناه تُجرَّب أول مرة على الخادم التجريبي (`docs/deploy/staging-plan.md`).
 
@@ -306,7 +306,7 @@ $DC exec -T app php artisan up
 **قاعدة عامة لما في `.env`:** الحاويات تقرأ `.env` عند إنشائها، وتبني ذاكرة الإعدادات عند بدئها (`deploy.md` «رابعاً»). فبعد تعديل `.env`:
 
 ```bash
-$DC up -d --force-recreate app horizon scheduler
+$DC up -d --force-recreate app horizon scheduler web   # web معها: nginx يحل عنوان app مرة عند بدئه
 $DC exec -T app php artisan ejaz:health
 ```
 
@@ -388,7 +388,7 @@ $DC exec -T app php artisan ejaz:health
 - **أين تعيش:** `.env`. وتُكتب في ملف إعداد داخل حاوية `redis` عند بدئها (`deploy/compose.production.yaml`).
 - **كيف تُدوَّر: ثغرة. لا إجراء موثق.** والمقترح: القيمة الجديدة (`openssl rand -base64 32`، `deploy.md`) في `.env`، ثم:
   ```bash
-  $DC up -d --force-recreate redis app horizon scheduler
+  $DC up -d --force-recreate redis app horizon scheduler web
   ```
 - **ما ينكسر:** انقطاع قصير. البيانات باقية (`appendonly yes` على `redisdata`)، فالجلسات والطوابير وقفل الدخول تبقى. ويُجرَّب على التجريبي قبل الحاجة.
 - **التحقق:** `ejaz:health` (فحص Redis والطابور)، ولوحة Horizon تعمل.

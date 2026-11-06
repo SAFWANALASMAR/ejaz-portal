@@ -14,7 +14,22 @@ class EmailVerificationCode extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * ثلاث محاولات: خنق SMTP في مايكروسوفت 365 عابر، والمشرف supervisor-1 بمحاولة واحدة (docs/decisions/2026-11-06-deploy-readiness.md).
+     */
+    public int $tries = 3;
+
     public function __construct(public string $code, public int $minutes) {}
+
+    /**
+     * الانتظار قبل كل إعادة، والرمز صالح عشر دقائق فلا تطول.
+     *
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [30, 60];
+    }
 
     /**
      * @return list<string>

@@ -10,3 +10,6 @@ Requires=docker.service
 Type=oneshot
 WorkingDirectory=/opt/ejaz
 ExecStart=/usr/bin/docker compose --env-file .env -f deploy/compose.production.yaml run --rm backup
+# نبض النجاح لأداة مراقبة خارجية، معلّق حتى قرار صفوان في الأداة (docs/decisions/2026-11-06-deploy-readiness.md).
+# يُرسل بعد نجاح النسخة وحده، فغيابه يوماً ينبّه. والرابط في Environment بملف drop-in (systemctl edit ejaz-backup) لا في قيت
+# ExecStartPost=/usr/bin/curl -fsS -m 10 --retry 3 -o /dev/null ${EJAZ_BACKUP_HEARTBEAT_URL}
