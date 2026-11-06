@@ -338,10 +338,16 @@ class MessagingChannels extends Page
             $needed[] = MessagingChannel::WHATSAPP;
         }
 
-        return collect($needed)
+        $unready = collect($needed)
             ->reject(fn (string $channel): bool => MessagingSettings::ready($channel))
-            ->map(fn (string $channel): string => __('messaging.channels.'.$channel))
-            ->implode('، ');
+            ->map(fn (string $channel): string => __('messaging.channels.'.$channel));
+
+        // رموز التحقق بواتساب مفعّلة بلا قالبها: تبقى بالرسائل النصية بصمت، فيُنبَّه عليه (المراجعة الأمنية على #200)
+        if (MessagingSettings::usageEnabled('whatsapp', 'otp') && ! isset(MessagingSettings::whatsapp()['templates']['otp'])) {
+            $unready->push(__('messaging.otp_template_missing'));
+        }
+
+        return $unready->implode('، ');
     }
 
     /**

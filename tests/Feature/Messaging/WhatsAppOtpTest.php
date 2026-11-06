@@ -3,14 +3,17 @@
 use App\Actions\Accounts\ResetPasswordByPhone;
 use App\Actions\Accounts\SendPhoneVerificationCode;
 use App\Enums\MessageStatus;
+use App\Enums\RoleName;
 use App\Jobs\SendSms;
 use App\Jobs\SendWhatsAppCode;
 use App\Models\MessageLog;
 use App\Models\MessagingChannel;
 use App\Models\User;
+use App\Notifications\VerificationCodesFailing;
 use App\Services\Messaging\MessagingSettings;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
 /*
@@ -93,4 +96,19 @@ it('offers the phone password reset when codes go over WhatsApp', function () {
     panelWhatsAppOtp();
 
     expect(ResetPasswordByPhone::available())->toBeTrue();
+});
+
+it('alerts the overseers once when WhatsApp codes fail with an error retries cannot fix', function () {
+    Notification::fake();
+    panelWhatsAppOtp();
+    $overseer = userWithRole(RoleName::SuperAdmin);
+    Http::fake(['graph.facebook.com/*' => Http::response(['error' => ['message' => 'Template name does not exist', 'code' => 132001]], 400)]);
+    app()->detectEnvironment(fn () => 'production');
+
+    foreach (['111111', '222222'] as $code) {
+        app()->call([new SendWhatsAppCode('+966500000123', $code, 'رمز'), 'handle']);
+    }
+
+    Notification::assertSentToTimes($overseer, VerificationCodesFailing::class, 1);
+    Notification::assertSentTo($overseer, VerificationCodesFailing::class, fn (VerificationCodesFailing $alert) => $alert->reason === 'meta:132001');
 });
