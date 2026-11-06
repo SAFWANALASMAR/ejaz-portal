@@ -103,12 +103,18 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * حقل القيد الذي تعارض في حفظ متزامن: البريد إن كان قيد البريد الموثق، وإلا الجوال. باسم القيد، لا بكلمة في الرسالة:
-     * نص الاستعلام فيه email كلما حُفظ البريد مع الجوال (المشرف على #180، N1).
+     * حقل القيد الذي تعارض في حفظ متزامن: البريد إن كان قيد البريد الموثق، والجوال إن كان قيده. باسم القيد، لا بكلمة في الرسالة:
+     * نص الاستعلام فيه email كلما حُفظ البريد مع الجوال (المشرف على #180، N1). وقيد غيرهما يُرمى كما هو فلا يُنسب خطأً
+     * إلى الجوال (المشرف على #193).
      */
     public static function uniqueViolationField(UniqueConstraintViolationException $exception): string
     {
-        return str_contains($exception->getMessage(), '"users_verified_email_unique"') ? 'email' : 'phone';
+        return match (true) {
+            str_contains($exception->getMessage(), '"users_verified_email_unique"') => 'email',
+            str_contains($exception->getMessage(), '"users_phone_unique"'),
+            str_contains($exception->getMessage(), '"users_verified_phone_unique"') => 'phone',
+            default => throw $exception,
+        };
     }
 
     /**
