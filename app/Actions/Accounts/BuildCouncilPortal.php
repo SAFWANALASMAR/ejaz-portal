@@ -5,7 +5,9 @@ namespace App\Actions\Accounts;
 use App\Enums\MeetingBody;
 use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyMemberships\AssemblyMembershipResource;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Models\AssemblyMembership;
+use App\Models\LiveStream;
 use App\Models\User;
 use App\Support\AssemblyArea;
 use App\Support\HomePortalStats;
@@ -61,7 +63,9 @@ class BuildCouncilPortal
      */
     private static function cards(User $user): array
     {
-        $meeting = BuildOversight::nextMeeting($user);
+        // ولا يُطلب الاجتماع أصلاً لدخول لا يكفي لما خلف التحقق الثنائي (بلا تفعيل، أو جلسة من «تذكّرني»)، فلا يصل إلى «حسابي»
+        // شيء منه (المشرف على #197، المنخفضة ٣)
+        $meeting = EnsureTwoFactorIsEnabled::satisfied($user) ? BuildOversight::nextMeeting($user) : null;
 
         $cards = [
             ['key' => 'stats', 'url' => '#site-stats', 'external' => false, 'navigate' => false],
@@ -69,11 +73,15 @@ class BuildCouncilPortal
             ['key' => 'board', 'url' => AssemblyArea::board($user) ? route('assembly.index') : null, 'external' => false, 'navigate' => true],
             // إلى صفحة الاجتماع القادم أو الجاري في منطقة الأعضاء، خلف التحقق الثنائي، لا إلى رابط تيمز الخام: «حسابي» بلا التحقق
             // الثنائي، والرابط سرّ (المراجعة الأمنية على #197، العالية). وإلا صفحة البث المباشر العامة
-            // وصفحة الاجتماع لاجتماع الجمعية العمومية وحده (MeetingPolicy::attend)، واجتماع المجلس أو اللجنة في صفحة المنطقة
+            // وصفحة الاجتماع لاجتماع الجمعية العمومية وحده (MeetingPolicy::attend)، واجتماع المجلس أو اللجنة في صفحة المنطقة.
+            // وبلا اجتماع: صفحة البث متى كان بث منشور (وإلا ترد 404)، ثم صفحة الاجتماعات، وإلا لا بطاقة (قبول 6 نوفمبر)
             ['key' => 'live', 'url' => match (true) {
-                $meeting === null || ! $user->can('accessAssemblyArea') => route('live'),
-                $meeting->body === MeetingBody::GeneralAssembly => route('assembly.meetings.show', $meeting),
-                default => route('assembly.index'),
+                $meeting !== null && $user->can('accessAssemblyArea') => $meeting->body === MeetingBody::GeneralAssembly
+                    ? route('assembly.meetings.show', $meeting)
+                    : route('assembly.index'),
+                LiveStream::query()->current()->exists() => route('live'),
+                $user->can('accessAssemblyArea') => route('assembly.meetings.index'),
+                default => null,
             }, 'external' => false, 'navigate' => true],
             ['key' => 'governance', 'url' => route('governance.index'), 'external' => false, 'navigate' => true],
         ];

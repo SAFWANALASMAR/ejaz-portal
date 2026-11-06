@@ -33,7 +33,7 @@ class ResetPasswordByPhone
      */
     public static function available(): bool
     {
-        return MessagingSettings::ready('sms') || app()->environment('local', 'testing');
+        return MessagingSettings::ready('sms') || MessagingSettings::otpViaWhatsApp() || app()->environment('local', 'testing');
     }
 
     /**

@@ -5,6 +5,8 @@ use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyMemberships\AssemblyMembershipResource;
 use App\Filament\Resources\RegisterEntries\RegisterEntryResource;
 use App\Filament\Widgets\RegistersOverviewWidget;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
+use App\Models\LiveStream;
 use App\Models\Meeting;
 use App\Models\RegisterEntry;
 use App\Models\User;
@@ -52,12 +54,22 @@ it('shows the board the council cards and the site stats in their account, each 
         ->assertSee(__('account.council.stats.media_views'));
 });
 
-it('sends the live card to the public live page when no meeting is coming', function () {
+it('sends the live card to the meetings page when no meeting is coming and nothing is streamed, never to a 404', function () {
+    // قبول 6 نوفمبر: كانت إلى /live فترد 404 حين لا بث منشور
     $board = userWithRole(RoleName::BoardMember);
 
-    $this->actingAs($board)->get('/account')->assertOk()
-        ->assertSee('data-council-card="live"', false)
-        ->assertSee('href="'.route('live').'"', false);
+    $html = (string) $this->actingAs($board)->get('/account')->assertOk()->getContent();
+    expect($html)->toContain('href="'.route('assembly.meetings.index').'" data-council-card="live"');
+    $this->actingAs($board)->get(route('assembly.meetings.index'))->assertOk();
+});
+
+it('sends the live card to the live page when a stream is published and no meeting is coming', function () {
+    LiveStream::factory()->create();
+    $board = userWithRole(RoleName::BoardMember);
+
+    expect((string) $this->actingAs($board)->get('/account')->getContent())
+        ->toContain('href="'.route('live').'" data-council-card="live"');
+    $this->actingAs($board)->get(route('live'))->assertOk();
 });
 
 it('shows a general assembly member the site stats only, and a beneficiary neither', function () {
@@ -97,7 +109,7 @@ it('takes «documents with validity» away from the board: no widget, no list, n
     expect(RegistersOverviewWidget::canView())->toBeTrue();
 });
 
-it('never shows the raw meeting link in the account, and links the live card to the meeting page behind two-factor', function () {
+it('keeps the raw meeting link out of the account, links the live card to the board area or the assembly meeting page, and sends a board member without two-factor to security', function () {
     // المراجعة الأمنية على #197، العالية: «حسابي» بلا التحقق الثنائي، ورابط الاجتماع سرّ
     $board = userWithRole(RoleName::BoardMember);
     $meeting = Meeting::factory()->online()->create(['body' => MeetingBody::Board, 'starts_at' => now()->addDay(), 'online_join_url' => 'https://teams.microsoft.com/l/meetup-join/board-secret']);
@@ -121,4 +133,32 @@ it('never shows the raw meeting link in the account, and links the live card to 
     $this->actingAs($without)->get(route('assembly.meetings.show', $assemblyMeeting))->assertRedirect(route('account.security'));
     // وصفحة المنطقة نفسها، وفيها روابط الاجتماعات وقرارات المجلس
     $this->actingAs($without)->get(route('assembly.index'))->assertRedirect(route('account.security'));
+});
+
+it('treats a session restored from «remember me» as unprotected: no meeting in the account, and the assembly area signs it out', function () {
+    // فرع «تذكّرني» في EnsureTwoFactorIsEnabled::satisfied() (المشرف على #197، المنخفضة ١): عضو مفعّل التحقق الثنائي، وجلسته
+    // استُعيدت من الكعكة بلا رمز، فلا يُعامل كمن أدخله
+    $board = userWithRole(RoleName::BoardMember);
+    showDeferredPortals();
+    Meeting::factory()->online()->create(['body' => MeetingBody::Board, 'starts_at' => now()->addDay(), 'online_join_url' => 'https://teams.microsoft.com/l/meetup-join/board-secret']);
+    $assemblyMeeting = Meeting::factory()->online()->create(['body' => MeetingBody::GeneralAssembly, 'starts_at' => now()->addHours(2), 'online_join_url' => 'https://teams.microsoft.com/l/meetup-join/ga-secret']);
+
+    $html = (string) $this->actingAs($board)->withSession([EnsureTwoFactorIsEnabled::VIA_REMEMBER => true])
+        ->get('/account')->assertOk()->getContent();
+
+    expect($board->hasEnabledTwoFactorAuthentication())->toBeTrue()
+        ->and($html)->not->toContain('board-secret')->not->toContain('ga-secret')
+        ->not->toContain(route('assembly.meetings.show', $assemblyMeeting))
+        ->not->toContain('href="'.route('assembly.index').'" data-council-card="live"')
+        // بلا اجتماع يُعرض ولا بث: إلى صفحة الاجتماعات كمن لا اجتماع له (#199)، وهي تخرجه إلى الدخول
+        ->toContain('href="'.route('assembly.meetings.index').'" data-council-card="live"');
+
+    $this->actingAs($board)->withSession([EnsureTwoFactorIsEnabled::VIA_REMEMBER => true])
+        ->get(route('assembly.index'))->assertRedirect(route('login'));
+
+    // ومع بث منشور: إلى صفحة البث العامة
+    LiveStream::factory()->create();
+    expect((string) $this->actingAs($board)->withSession([EnsureTwoFactorIsEnabled::VIA_REMEMBER => true])->get('/account')->getContent())
+        ->not->toContain('board-secret')
+        ->toContain('href="'.route('live').'" data-council-card="live"');
 });

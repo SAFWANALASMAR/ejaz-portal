@@ -50,6 +50,16 @@ class CloudWhatsAppNotifier implements WhatsAppNotifier
             ]];
         }
 
+        // قالب «المصادقة»: زر «نسخ الرمز» يحمل الرمز نفسه متغيراً (index 0)
+        if ($message->copyCode !== null) {
+            $payload['template']['components'][] = [
+                'type' => 'button',
+                'sub_type' => 'url',
+                'index' => '0',
+                'parameters' => [['type' => 'text', 'text' => $message->copyCode]],
+            ];
+        }
+
         $url = rtrim((string) config('messaging.endpoints.whatsapp'), '/').'/'.rawurlencode($this->graphVersion).'/'.rawurlencode($this->phoneNumberId).'/messages';
 
         $response = ProviderHttp::send(fn () => ProviderHttp::request()
