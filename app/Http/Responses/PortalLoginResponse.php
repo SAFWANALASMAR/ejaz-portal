@@ -16,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * مدخل كل بوابة بعد الدخول (requirements/12 §12): من يدخل لوحة الإدارة (الموظفون والمجلس والمحكّمون)
  * إلى /admin، والمشترك إلى لوحته (/account). والمشرف العام إلى لوحته في حسابه، وفيها رابط لوحة الإدارة وإحصائياته
- * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026).
+ * (ملاحظات المدير التنفيذي، 25 أكتوبر 2026). وعضو مجلس الإدارة كالمستفيد إلى «حسابي»، وفيه بطاقات المجلس، ما لم يكن له دور
+ * آخر في اللوحة (البند ٤، ليلة 5 نوفمبر 2026 — decisions/2026-11-06-board-portal.md).
  *
  * ولا عودة إلى أي صفحة سابقة، ولو كانت صفحة المسابقة أو البرنامج التي طلبت الدخول: الرابط المقصود في الجلسة يُحذف
  * (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md، ويلغي العودة في قرار 30 أكتوبر). إلا رابط الاستبيان
@@ -37,7 +38,11 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         $user = $request->user();
         IntendedUrl::keepOnlyFollowedAfterLogin($request);
 
-        return redirect()->intended($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin')) && ! $user->hasRole(RoleName::SuperAdmin->value)
+        // أدوار اللوحة سوى عضو المجلس: من له أحدها يبدأ في اللوحة
+        $staffRoles = array_values(array_diff(RoleName::values(RoleName::panelRoles()), [RoleName::BoardMember->value]));
+
+        return redirect()->intended($user instanceof User && $user->canAccessPanel(Filament::getPanel('admin'))
+            && ! $user->hasRole(RoleName::SuperAdmin->value) && $user->hasAnyRole($staffRoles)
             ? url(Filament::getPanel('admin')->getPath())
             : Fortify::redirects('login'));
     }

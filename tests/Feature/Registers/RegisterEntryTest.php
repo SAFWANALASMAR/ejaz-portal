@@ -23,7 +23,8 @@ beforeEach(function () {
     Storage::fake('local');
     $this->director = userWithRole(RoleName::ExecutiveDirector);
     $this->secretary = userWithRole(RoleName::Secretary);
-    $this->board = userWithRole(RoleName::BoardMember);
+    // المطّلع بلا تعديل: المشرف العام. وعضو المجلس لم يعد يرى السجلات (البند ٤، ليلة 5 نوفمبر — decisions/2026-11-06-board-portal.md)
+    $this->board = userWithRole(RoleName::SuperAdmin);
 });
 
 function registerData(array $overrides = []): array
@@ -95,7 +96,7 @@ it('filters by status in the database exactly as computed', function () {
     expect(RegisterEntry::query()->whereStatus(RegisterEntryStatus::Expiring)->count())->toBe(3);
 });
 
-it('lets the executive director and the secretary manage, and the board only read', function () {
+it('lets the executive director and the secretary manage, and the super admin only read', function () {
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData());
     app(SaveRegisterEntry::class)->handle($this->secretary, $entry, registerData(['title' => 'ترخيص معدّل']));
 
@@ -227,7 +228,15 @@ it('logs attachment changes by file name', function () {
 it('refuses the download to a session without two-factor authentication', function () {
     $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
     $board = User::factory()->create();
-    $board->assignRole(RoleName::BoardMember->value);
+    $board->assignRole(RoleName::SuperAdmin->value);
 
     $this->actingAs($board)->get($entry->attachmentUrl(0))->assertRedirect();
+});
+
+it('refuses the registers to a board member since 6 November', function () {
+    $entry = app(SaveRegisterEntry::class)->handle($this->director, new RegisterEntry, registerData(['attachments' => [registerFile(pdfContents())]]));
+    $member = userWithRole(RoleName::BoardMember);
+
+    expect($member->can('view', $entry))->toBeFalse();
+    $this->actingAs($member)->get($entry->attachmentUrl(0))->assertForbidden();
 });

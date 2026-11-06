@@ -58,7 +58,7 @@ class BuildOversight
         ];
     }
 
-    private static function nextMeeting(User $user): ?Meeting
+    public static function nextMeeting(User $user): ?Meeting
     {
         $upcoming = fn () => Meeting::query()->with('committee')
             ->where('status', MeetingStatus::Scheduled->value)
