@@ -37,6 +37,7 @@ return [
         ],
         'whatsapp' => [
             'exam_receipt' => 'competitions.exam.whatsapp',
+            'otp' => 'services.whatsapp.otp',
         ],
     ],
 

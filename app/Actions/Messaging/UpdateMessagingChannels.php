@@ -58,6 +58,7 @@ class UpdateMessagingChannels
             'whatsapp.language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}(_[A-Z]{2})?\z/'],
             // أسماء قوالب Meta: حروف لاتينية صغيرة وأرقام وشرطة سفلية
             'whatsapp.templates.exam_receipt' => ['nullable', 'string', 'max:512', 'regex:/^[a-z0-9_]+\z/'],
+            'whatsapp.templates.otp' => ['nullable', 'string', 'max:512', 'regex:/^[a-z0-9_]+\z/'],
             'whatsapp.access_token' => $secretRules,
             'whatsapp.app_secret' => $secretRules,
             'whatsapp.verify_token' => $secretRules,
@@ -65,6 +66,7 @@ class UpdateMessagingChannels
             'whatsapp.clear_app_secret' => ['nullable', 'boolean'],
             'whatsapp.clear_verify_token' => ['nullable', 'boolean'],
             'whatsapp.usages.exam_receipt' => ['nullable', 'boolean'],
+            'whatsapp.usages.otp' => ['nullable', 'boolean'],
         ], attributes: [
             'sms.provider' => __('messaging.fields.provider'),
             'sms.sender' => __('messaging.sms.sender'),
@@ -74,6 +76,7 @@ class UpdateMessagingChannels
             'whatsapp.graph_version' => __('messaging.whatsapp.graph_version'),
             'whatsapp.language' => __('messaging.whatsapp.language'),
             'whatsapp.templates.exam_receipt' => __('messaging.whatsapp.templates.exam_receipt'),
+            'whatsapp.templates.otp' => __('messaging.whatsapp.templates.otp'),
             'whatsapp.access_token' => __('messaging.whatsapp.access_token'),
             'whatsapp.app_secret' => __('messaging.whatsapp.app_secret'),
             'whatsapp.verify_token' => __('messaging.whatsapp.verify_token'),
@@ -97,8 +100,14 @@ class UpdateMessagingChannels
                     'phone_number_id' => self::clean($whatsapp['phone_number_id'] ?? null),
                     'graph_version' => self::clean($whatsapp['graph_version'] ?? null),
                     'language' => self::clean($whatsapp['language'] ?? null),
-                    'templates' => ['exam_receipt' => self::clean($whatsapp['templates']['exam_receipt'] ?? null)],
-                    'usages' => ['exam_receipt' => (bool) ($whatsapp['usages']['exam_receipt'] ?? false)],
+                    'templates' => [
+                        'exam_receipt' => self::clean($whatsapp['templates']['exam_receipt'] ?? null),
+                        'otp' => self::clean($whatsapp['templates']['otp'] ?? null),
+                    ],
+                    'usages' => [
+                        'exam_receipt' => (bool) ($whatsapp['usages']['exam_receipt'] ?? false),
+                        'otp' => (bool) ($whatsapp['usages']['otp'] ?? false),
+                    ],
                 ]);
             }
         });
