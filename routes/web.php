@@ -3,10 +3,10 @@
 use App\Enums\LibrarySection;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DataRightsController;
+use App\Http\Controllers\Account\EmailVerificationController;
 use App\Http\Controllers\Account\MyReadingController;
 use App\Http\Controllers\Account\NewPasswordController;
 use App\Http\Controllers\Account\PasswordResetByPhoneController;
-use App\Http\Controllers\Account\EmailVerificationController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
