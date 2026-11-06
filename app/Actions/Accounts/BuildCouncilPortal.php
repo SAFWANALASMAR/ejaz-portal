@@ -5,6 +5,7 @@ namespace App\Actions\Accounts;
 use App\Enums\MeetingBody;
 use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyMemberships\AssemblyMembershipResource;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Models\AssemblyMembership;
 use App\Models\LiveStream;
 use App\Models\User;
@@ -62,7 +63,9 @@ class BuildCouncilPortal
      */
     private static function cards(User $user): array
     {
-        $meeting = BuildOversight::nextMeeting($user);
+        // ولا يُطلب الاجتماع أصلاً لدخول لا يكفي لما خلف التحقق الثنائي (بلا تفعيل، أو جلسة من «تذكّرني»)، فلا يصل إلى «حسابي»
+        // شيء منه (المشرف على #197، المنخفضة ٣)
+        $meeting = EnsureTwoFactorIsEnabled::satisfied($user) ? BuildOversight::nextMeeting($user) : null;
 
         $cards = [
             ['key' => 'stats', 'url' => '#site-stats', 'external' => false, 'navigate' => false],
