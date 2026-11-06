@@ -51,6 +51,9 @@ let progressLimit = null;
 // فور حلول الصفحة (leaving). والحركة كلها في CSS، وتقليلها يتركه ثابتاً
 const transition = () => document.querySelector('[data-page-transition]');
 const TRANSITION_DELAY = 400;
+// تلاشي الطبقة بعد حلول الصفحة، ومثله في concept.css (.page-transition[data-state='leaving'])
+const TRANSITION_FADE = 120;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.hasAttribute('data-motion-off');
 let shownAt = 0;
 let transitionTimer = null;
 
@@ -112,27 +115,20 @@ function finishTransition() {
         return;
     }
 
-    // لا انتظار بعد حلول الصفحة الجديدة (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البندان ٥ و٢١): كانت الطبقة تبقى نحو 770 ملّي
-    // ثانية فوق الصفحة الجاهزة (300 حد أدنى ثم 450 لمعة ثم 300 تلاشٍ). الآن يكتمل الشعار ويتلاشى معاً في 180، وحد أدنى قصير
-    // (200 من ظهورها) فلا تومض طبقة ظهرت للتو
-    const wait = Math.max(0, 200 - (performance.now() - shownAt));
+    // تختفي فور حلول الصفحة الجديدة بلا انتظار الحركة (ملاحظات المدير التنفيذي، ليلة 5 نوفمبر 2026، البند ٥): كانت تبقى نحو 200 ملّي
+    // ثانية بعد حلولها (حد أدنى 200 من ظهورها، ثم تلاشٍ 180). الآن تلاشٍ قصير (TRANSITION_FADE) يبدأ فوراً، ومع تقليل الحركة تُخفى فوراً
+    if (reducedMotion()) {
+        hideTransition();
+
+        return;
+    }
+
     shownAt = 0;
     clearTimeout(transitionTimer);
     clearTimeout(transitionSlow);
-    transitionTimer = setTimeout(() => {
-        overlay.dataset.state = 'leaving';
-        overlay.setAttribute('aria-busy', 'false');
-        transitionTimer = setTimeout(() => {
-            overlay.hidden = true;
-            delete overlay.dataset.state;
-
-            const line = slowLine(overlay);
-
-            if (line) {
-                line.hidden = true;
-            }
-        }, 180);
-    }, wait);
+    overlay.dataset.state = 'leaving';
+    overlay.setAttribute('aria-busy', 'false');
+    transitionTimer = setTimeout(hideTransition, TRANSITION_FADE);
 }
 
 function stopProgress() {
@@ -154,15 +150,6 @@ export function start() {
     window.ejazPageStarted = true;
     run();
 
-    // انتقال المستندات (@view-transition في visual.css) يطلبه الموقع العام وحده، فإن طلبه إلى لوحة الإدارة (زر «تعديل هذه
-    // الصفحة»، والدخول إليها) أُلغي في صفحتها بخطأ غير ملتقط. فيُتخطّى قبل مغادرة الصفحة (docs/decisions/2026-11-03-mobile-menu.md)
-    window.addEventListener('pageswap', (event) => {
-        const url = event.activation?.entry?.url;
-
-        if (event.viewTransition && url && /^\/admin(\/|$)/.test(new URL(url).pathname)) {
-            event.viewTransition.skipTransition();
-        }
-    });
 
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
