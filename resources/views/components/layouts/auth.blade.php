@@ -21,8 +21,9 @@
                         <x-brand :link="false" class="justify-center" data-auth-logo />
                         <h1 class="mt-4 text-[2.125rem] font-black text-primary-dark lg:mt-2 lg:text-2xl">{{ $heading ?? $title }}</h1>
                         @if ($intro)
-                            {{-- وفي نافذة الحاسوب القصيرة (720 فأقل) لقارئ الشاشة وحده، فيظهر زر الإرسال بلا تمرير (المشرف على طلب الدمج 189) --}}
-                            <p class="mt-2 leading-7 text-muted lg:mt-1 [@media(min-width:64rem)_and_(max-height:45rem)]:sr-only">{{ $intro }}</p>
+                            {{-- وفي البطاقة العريضة (التسجيل) على نافذة الحاسوب القصيرة (720 فأقل) لقارئ الشاشة وحده، فيظهر زر الإرسال بلا تمرير
+                                 (المشرف على طلب الدمج 189). والدخول والاستعادة يبقى وصفهما ظاهراً --}}
+                            <p @class(['mt-2 leading-7 text-muted lg:mt-1', '[@media(min-width:64rem)_and_(max-height:45rem)]:sr-only' => $wide])>{{ $intro }}</p>
                         @endif
                     </div>
 

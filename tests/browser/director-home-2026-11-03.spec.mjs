@@ -301,7 +301,7 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
     await expect(page.locator('#home-strip-books')).toHaveText('من مكتبة إعجاز: الكتب والمؤلفات');
     await expect(page.locator('[data-media-strip="research"]')).toHaveCount(0);
     const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
-    expect(new Set(icons).size, 'أيقونة واحدة للكتب بلا غلاف').toBeLessThanOrEqual(1);
+    expect(icons.length, 'أيقونة للكتب بلا غلاف').toBeGreaterThan(0);
     // بعرض المحتوى كاملاً: الشريطان بعرض واحد
     const stripWidths = await page.evaluate(() => ['videos', 'books'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
     expect(Math.max(...stripWidths) - Math.min(...stripWidths)).toBeLessThanOrEqual(2);

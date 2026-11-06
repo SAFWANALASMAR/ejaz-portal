@@ -13,7 +13,7 @@
             <li>
                 <article class="tone-card group flex h-full flex-col overflow-hidden" data-store-item="{{ $card['category']->value }}">
                     <div class="tone-card-media aspect-[16/9]">
-                        <img src="{{ $product->image ?? \App\Support\NeutralImage::forSeed(crc32($product->name)) }}" alt="" width="640" height="480"
+                        <img src="{{ $product->image ?? \App\Support\NeutralImage::forSeed(crc32($product->name)) }}" alt="" width="640" height="360"
                             class="size-full object-cover transition duration-700 group-hover:scale-105" loading="lazy">
                     </div>
 

@@ -50,7 +50,8 @@
                 @enderror
             </div>
 
-            <div class="space-y-1 lg:shrink-0" data-bot-challenge-slot>
+            {{-- بلا مفتاح الموقع (التطوير والاختبارات) تخلو الخانة فتُخفى، فلا تأخذ مسافة الصف. ونص التنبيه في data-notice لاختبار المقاس --}}
+            <div class="space-y-1 lg:shrink-0 [&:not(:has(*))]:hidden" data-bot-challenge-slot data-notice="{{ __('account.bot_challenge.notice') }}">
                 <x-bot-challenge action="register" />
             </div>
 

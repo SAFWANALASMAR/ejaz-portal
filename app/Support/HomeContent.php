@@ -46,7 +46,7 @@ final class HomeContent
         // أصلها فارغ، فالرؤية والرسالة من صفحة «عن الجمعية» المنشورة ما لم تُدخل هنا (HomeIdentity)
         'identity' => ['vision', 'mission', 'side_title', 'side_text', 'goals', 'principles'],
         // عناوين أقسام الرئيسية وبطاقاتها الظاهرة للزائر (أمر التصور النهائي، النسخة 63 — المرحلة ب)
-        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'research', 'x', 'x_follow', 'partners', 'stats', 'stats_intro'],
+        'headings' => ['vision', 'mission', 'goals', 'values', 'principles', 'initiatives', 'all_initiatives', 'services', 'services_intro', 'videos', 'books', 'x', 'x_follow', 'partners', 'stats', 'stats_intro'],
     ];
 
     /**
