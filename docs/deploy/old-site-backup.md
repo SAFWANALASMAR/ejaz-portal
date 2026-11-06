@@ -73,13 +73,13 @@ wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
    docker run -d --name oldsite-db --network oldsite -e MARIADB_ROOT_PASSWORD=<مؤقتة> -e MARIADB_DATABASE=wp mariadb:11
    gunzip -c <ملف القاعدة>.sql.gz | docker exec -i oldsite-db mariadb -uroot -p<مؤقتة> wp
    unzip wp-content.zip -d site/
-   docker run -d --name oldsite-wp --network oldsite -p 8090:80 \
+   docker run -d --name oldsite-wp --network oldsite -p 127.0.0.1:8090:80 \
      -e WORDPRESS_DB_HOST=oldsite-db -e WORDPRESS_DB_USER=root -e WORDPRESS_DB_PASSWORD=<مؤقتة> -e WORDPRESS_DB_NAME=wp \
      -e WORDPRESS_TABLE_PREFIX=<البادئة من wp-config.php> \
      -e WORDPRESS_CONFIG_EXTRA="define('WP_HOME','http://localhost:8090'); define('WP_SITEURL','http://localhost:8090');" \
      -v "$PWD/site/wp-content:/var/www/html/wp-content" wordpress:<الإصدار القريب>
    ```
 
-   - ثم `http://localhost:8090`: الصفحات والصور تظهر.
+   - ثم `http://localhost:8090`: الصفحات والصور تظهر. والمنفذ مربوط بـ `127.0.0.1` وحده، فلا يصله جهاز آخر في الشبكة.
    - **وتُحذف الحاويتان بعد التحقق:** `docker rm -f oldsite-wp oldsite-db && docker network rm oldsite`. وإصدار الصورة 【ناقص: من الخطوة ٢.٣】.
 4. **النتيجة تُكتب** في `docs/backups/<التاريخ>-old-site.md`: ما فُتح، والبصمات، ومكانا النسختين.
