@@ -113,7 +113,8 @@ if [ "$SYNC_FILES" = "true" ]; then
 fi
 
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+PARTIAL_FILES=()
+trap 'rm -rf "$WORK"; [ "${#PARTIAL_FILES[@]}" -eq 0 ] || rm -f "${PARTIAL_FILES[@]}"' EXIT
 umask 077
 
 if [ -n "${BACKUP_GPG_PUBLIC_KEY_FILE:-}" ]; then
@@ -125,6 +126,13 @@ fi
 
 # ١. قاعدة البيانات
 DUMP="$WORK/ejaz-$STAMP.dump.gpg"
+if [ -n "$LOCAL_DIR" ]; then
+  # في المجلد نفسه باسم مؤقت يبدأ بنقطة، ثم إعادة تسمية لحظية بعد اكتماله: لا نسخة ناقصة باسم صالح إن امتلأ القرص أو
+  # انقطع التشغيل، ولا نقل بين نظامي ملفات (المراجعة الأمنية على #201). والمؤقت يُحذف عند الخروج
+  log "الوضع المحلي: النسخة في $LOCAL_DIR، بلا حاوية نسخ ولا نسخ للملفات"
+  DUMP="$LOCAL_DIR/.ejaz-$STAMP.dump.gpg.partial"
+  PARTIAL_FILES=("$DUMP" "$DUMP.sha256")
+fi
 log "نسخ قاعدة البيانات $PGDATABASE"
 pg_dump --format=custom --compress=6 --no-owner --no-privileges \
   | gpg --batch --yes --trust-model always --encrypt --recipient "$BACKUP_GPG_RECIPIENT" --output "$DUMP"
@@ -132,10 +140,13 @@ pg_dump --format=custom --compress=6 --no-owner --no-privileges \
 sha256sum "$DUMP" | awk '{print $1}' > "$DUMP.sha256"
 
 if [ -n "$LOCAL_DIR" ]; then
-  # النقل بعد اكتمال الكتابة: لا نسخة ناقصة باسمها في المجلد. ثم يُحذف ما هو أقدم من مدة الاحتفاظ، بعد نجاح الجديدة وحدها
-  mv "$DUMP.sha256" "$LOCAL_DIR/$(basename "$DUMP").sha256"
-  mv "$DUMP" "$LOCAL_DIR/$(basename "$DUMP")"
-  log "✓ حُفظت $LOCAL_DIR/$(basename "$DUMP") ($(du -h "$LOCAL_DIR/$(basename "$DUMP")" | cut -f1))"
+  # إعادة التسمية داخل المجلد نفسه لحظية: النسخة أولاً ثم بصمتها، فلا بصمة يتيمة. ثم يُحذف ما هو أقدم من مدة الاحتفاظ،
+  # بعد نجاح الجديدة وحدها
+  FINAL="$LOCAL_DIR/ejaz-$STAMP.dump.gpg"
+  mv "$DUMP" "$FINAL"
+  mv "$DUMP.sha256" "$FINAL.sha256"
+  PARTIAL_FILES=()
+  log "✓ حُفظت $FINAL ($(du -h "$FINAL" | cut -f1))"
   find "$LOCAL_DIR" -maxdepth 1 -type f \( -name 'ejaz-*.dump.gpg' -o -name 'ejaz-*.dump.gpg.sha256' \) -mtime "+$(( KEEP_DAYS - 1 ))" -print -delete \
     | while read -r old; do log "حُذفت النسخة القديمة $(basename "$old")"; done
   log "✓ اكتمل النسخ الاحتياطي المحلي $STAMP"
