@@ -173,6 +173,8 @@ services:
     volumes:
       - storage:/app/storage:ro
       - ${BACKUP_GPG_PUBLIC_KEY_FILE_HOST:-/etc/ejaz/backup-public.asc}:/run/secrets/backup-public.asc:ro
+      # الوضع المحلي (BACKUP_LOCAL_DIR=/backups في .env.backup، بلا BACKUP_BUCKET): نسخ القاعدة المشفّرة على قرص الخادم
+      - ${BACKUP_LOCAL_DIR_HOST:-/var/backups/ejaz}:/backups
     networks: [internal]
 
 volumes:

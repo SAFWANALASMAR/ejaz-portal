@@ -37,23 +37,51 @@
 #   BACKUP_SOURCE_ACCESS_KEY_ID BACKUP_SOURCE_SECRET_ACCESS_KEY   مفتاح قراءة وحدها على حاوية الملفات إن أمكن عند المزود
 #                            (deploy/storage/README.md)، ولا يُستعمل هنا إلا مصدراً للقراءة
 #   APP_ROOT                 جذر المشروع (افتراضياً مجلد هذا السكربت الأب)
+#
+# الوضع المحلي (قرار صفوان «مبدئياً على المجاني»، 6 نوفمبر 2026 — docs/deploy/hostinger-go-live.md §٤):
+#   BACKUP_LOCAL_DIR         مجلد على قرص الخادم، ويُعمل به متى لم يُضبط BACKUP_BUCKET: نسخة القاعدة المشفّرة نفسها تُحفظ فيه
+#                            بلا رفع، والملفات لا تُنسخ (تبقى على القرص، ونسخة Hostinger الأسبوعية تشملها). والخطر المقبول:
+#                            النسخ على القرص نفسه تضيع معه. والترقية إلى حاوية النسخ بضبط BACKUP_BUCKET وأخواتها وحدها.
+#   BACKUP_LOCAL_KEEP_DAYS   أيام الاحتفاظ بالنسخ المحلية (افتراضياً 7، بين 1 و90)، وما هو أقدم يُحذف بعد نجاح النسخة الجديدة
 set -euo pipefail
 
 log()  { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$1"; }
 fail() { log "✗ $1" >&2; exit 1; }
 
-for var in PGHOST PGDATABASE PGUSER BACKUP_BUCKET BACKUP_S3_ENDPOINT BACKUP_GPG_RECIPIENT; do
-  [ -n "${!var:-}" ] || fail "المتغير $var غير مضبوط"
-done
-for tool in pg_dump gpg aws; do
-  command -v "$tool" >/dev/null 2>&1 || fail "الأداة $tool غير مثبتة"
-done
+LOCAL_DIR=""
+if [ -z "${BACKUP_BUCKET:-}" ] && [ -n "${BACKUP_LOCAL_DIR:-}" ]; then
+  LOCAL_DIR="$BACKUP_LOCAL_DIR"
+fi
+
+if [ -n "$LOCAL_DIR" ]; then
+  for var in PGHOST PGDATABASE PGUSER BACKUP_GPG_RECIPIENT; do
+    [ -n "${!var:-}" ] || fail "المتغير $var غير مضبوط"
+  done
+  for tool in pg_dump gpg; do
+    command -v "$tool" >/dev/null 2>&1 || fail "الأداة $tool غير مثبتة"
+  done
+  [ -d "$LOCAL_DIR" ] && [ -w "$LOCAL_DIR" ] || fail "المجلد $LOCAL_DIR غير موجود أو لا يُكتب فيه (BACKUP_LOCAL_DIR)"
+  keep_days="${BACKUP_LOCAL_KEEP_DAYS:-7}"
+  [[ "$keep_days" =~ ^[0-9]{1,2}$ ]] && [ "$(( 10#$keep_days ))" -ge 1 ] && [ "$(( 10#$keep_days ))" -le 90 ] \
+    || fail "BACKUP_LOCAL_KEEP_DAYS غير صالح: $keep_days (بين 1 و90)"
+  KEEP_DAYS=$(( 10#$keep_days ))
+  # الملفات لا تُنسخ في الوضع المحلي: نسختها على القرص نفسه لا تزيد شيئاً، ونسخة Hostinger الأسبوعية تشملها
+  [ "${BACKUP_SYNC_FILES:-false}" = "true" ] && log "تنبيه: BACKUP_SYNC_FILES يُتجاهل في الوضع المحلي (لا حاوية نسخ)"
+  SYNC_FILES=false
+else
+  for var in PGHOST PGDATABASE PGUSER BACKUP_BUCKET BACKUP_S3_ENDPOINT BACKUP_GPG_RECIPIENT; do
+    [ -n "${!var:-}" ] || fail "المتغير $var غير مضبوط (أو BACKUP_LOCAL_DIR للوضع المحلي)"
+  done
+  for tool in pg_dump gpg aws; do
+    command -v "$tool" >/dev/null 2>&1 || fail "الأداة $tool غير مثبتة"
+  done
+  SYNC_FILES="${BACKUP_SYNC_FILES:-true}"
+  S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
+fi
 
 APP_ROOT="${APP_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-SYNC_FILES="${BACKUP_SYNC_FILES:-true}"
 REFRESH_WEEKDAY="${BACKUP_FILES_REFRESH_WEEKDAY:-7}"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
-S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
 
 # إعداد الملفات يُفحص قبل أي رفع، فلا يفشل النسخ كل يوم بعد رفع القاعدة
 if [ "$SYNC_FILES" = "true" ]; then
@@ -85,7 +113,8 @@ if [ "$SYNC_FILES" = "true" ]; then
 fi
 
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+PARTIAL_FILES=()
+trap 'rm -rf "$WORK"; [ "${#PARTIAL_FILES[@]}" -eq 0 ] || rm -f "${PARTIAL_FILES[@]}"' EXIT
 umask 077
 
 if [ -n "${BACKUP_GPG_PUBLIC_KEY_FILE:-}" ]; then
@@ -97,11 +126,32 @@ fi
 
 # ١. قاعدة البيانات
 DUMP="$WORK/ejaz-$STAMP.dump.gpg"
+if [ -n "$LOCAL_DIR" ]; then
+  # في المجلد نفسه باسم مؤقت يبدأ بنقطة، ثم إعادة تسمية لحظية بعد اكتماله: لا نسخة ناقصة باسم صالح إن امتلأ القرص أو
+  # انقطع التشغيل، ولا نقل بين نظامي ملفات (المراجعة الأمنية على #201). والمؤقت يُحذف عند الخروج
+  log "الوضع المحلي: النسخة في $LOCAL_DIR، بلا حاوية نسخ ولا نسخ للملفات"
+  DUMP="$LOCAL_DIR/.ejaz-$STAMP.dump.gpg.partial"
+  PARTIAL_FILES=("$DUMP" "$DUMP.sha256")
+fi
 log "نسخ قاعدة البيانات $PGDATABASE"
 pg_dump --format=custom --compress=6 --no-owner --no-privileges \
   | gpg --batch --yes --trust-model always --encrypt --recipient "$BACKUP_GPG_RECIPIENT" --output "$DUMP"
 [ -s "$DUMP" ] || fail "ملف النسخة فارغ"
 sha256sum "$DUMP" | awk '{print $1}' > "$DUMP.sha256"
+
+if [ -n "$LOCAL_DIR" ]; then
+  # إعادة التسمية داخل المجلد نفسه لحظية: النسخة أولاً ثم بصمتها، فلا بصمة يتيمة. ثم يُحذف ما هو أقدم من مدة الاحتفاظ،
+  # بعد نجاح الجديدة وحدها
+  FINAL="$LOCAL_DIR/ejaz-$STAMP.dump.gpg"
+  mv "$DUMP" "$FINAL"
+  mv "$DUMP.sha256" "$FINAL.sha256"
+  PARTIAL_FILES=()
+  log "✓ حُفظت $FINAL ($(du -h "$FINAL" | cut -f1))"
+  find "$LOCAL_DIR" -maxdepth 1 -type f \( -name 'ejaz-*.dump.gpg' -o -name 'ejaz-*.dump.gpg.sha256' \) -mtime "+$(( KEEP_DAYS - 1 ))" -print -delete \
+    | while read -r old; do log "حُذفت النسخة القديمة $(basename "$old")"; done
+  log "✓ اكتمل النسخ الاحتياطي المحلي $STAMP"
+  exit 0
+fi
 
 "${S3[@]}" cp "$DUMP" "s3://$BACKUP_BUCKET/db/$(basename "$DUMP")"
 "${S3[@]}" cp "$DUMP.sha256" "s3://$BACKUP_BUCKET/db/$(basename "$DUMP").sha256"
