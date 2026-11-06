@@ -85,3 +85,12 @@ it('gives the file copies one deadline, copies the S3 bucket first, and ends a p
         ->toContain('exit 75')
         ->and(strpos($script, '"vault:s3-private"'))->toBeLessThan(strpos($script, 'for disk in private public'));
 });
+
+// الوضع المحلي هو المعتمد للإطلاق (decisions/2026-11-06-deploy-readiness.md): المثال بحاوية فارغة، وإلا شغّل وضع الحاوية ففشل
+it('ships the backup example in local mode, with an empty bucket', function () {
+    $example = (string) file_get_contents(base_path('.env.backup.example'));
+
+    expect($example)->toMatch('/^BACKUP_BUCKET=$/m')
+        ->toMatch('/^BACKUP_LOCAL_DIR=\/backups$/m')
+        ->toMatch('/^PGUSER=ejaz_backup$/m');
+});

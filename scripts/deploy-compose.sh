@@ -29,6 +29,9 @@ grep -Eq '^APP_ENV=(production|staging)$' .env || fail "APP_ENV ليس productio
 grep -Eq '^APP_DEBUG=false$' .env || fail "APP_DEBUG يجب أن يكون false"
 grep -Eq '^APP_URL=https://' .env || fail "APP_URL يجب أن يبدأ بـ https://"
 grep -Eq '^SESSION_SECURE_COOKIE=true$' .env || fail "SESSION_SECURE_COOKIE يجب أن يكون true (والتجريبية أيضاً، فافتراضه آمن في production وحده)"
+grep -Eq '^APP_KEY="?base64:.+' .env || fail "APP_KEY غير مضبوط: key:generate --show مرة، ثم القيمة في .env ومدير كلمات المرور (docs/deploy.md «ثانياً»)"
+# قيمة مثال باقية بين <...> في سطر غير معلّق (مثل MAIL_HOST=<مزود البريد>): تُستبدل أو تُفرغ قبل النشر
+! grep -Eq '^[A-Z0-9_]+="?<[^>]*>"?$' .env || fail "في .env قيمة مثال بين <...> لم تُستبدل: $(grep -E '^[A-Z0-9_]+="?<[^>]*>"?$' .env | cut -d= -f1 | tr '\n' ' ')"
 grep -Eq '^TRUSTED_PROXIES=.+' .env || echo "تنبيه: TRUSTED_PROXIES فارغ. خلف موزع أحمال تتعطل حدود الشبكات (docs/security.md)"
 grep -Eq '^TRUSTED_PROXIES=.*\*' .env && echo "تنبيه: TRUSTED_PROXIES=* يصدّق رأس X-Forwarded-For من أي مصدر، فتُزوَّر حدود الشبكات. لا * إلا والخادم معزول خلف موزع يستبدل الرأس، والأفضل عناوين الموزع بعينها (docs/security.md)"
 grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل حتى يُضبط المزود من «قنوات التواصل» في اللوحة (docs/guides/messaging.md)"
@@ -42,7 +45,8 @@ say "٢/٩ سحب الوسم $TAG"
 git checkout --quiet --force "refs/tags/$TAG"
 
 say "٣/٩ بناء الصور (والموقع يعمل)"
-"${DC[@]}" build --pull app web
+# وصورة النسخ (ejaz-backup، ملف التعريف tools) بالوسم نفسه، فلا يبنيها مؤقت النسخ ليلاً ولا تبقى على وسم قديم
+"${DC[@]}" build --pull app web backup
 
 say "٤/٩ القاعدة والذاكرة (ملف التعريف bundled إن كانتا على الخادم)"
 "${DC[@]}" up -d --wait pgsql redis 2>/dev/null || echo "لا خدمات مضمّنة (قاعدة وذاكرة مُدارتان؟) — يُكمل"
@@ -84,7 +88,9 @@ trap - ERR
 
 say "٩/٩ فحص ما بعد النشر"
 APP_URL="$(grep -E '^APP_URL=' .env | cut -d= -f2-)"
-curl -fsS -o /dev/null "$APP_URL/up" && echo "✓ $APP_URL/up" || echo "✗ $APP_URL/up لا يرد 200 — راجع: ${DC[*]} logs app"
+# إلى هذا الخادم لا إلى ما في DNS: قبل نقل النطاق يشير ejaz.sa إلى الموقع القديم
+HOST="$(printf '%s' "$APP_URL" | sed -E 's#^https://([^/:]+).*#\1#')"
+curl -fsS -o /dev/null --resolve "${HOST}:443:127.0.0.1" "$APP_URL/up" && echo "✓ $APP_URL/up" || echo "✗ $APP_URL/up لا يرد 200 من هذا الخادم — راجع: ${DC[*]} logs app web"
 "${DC[@]}" exec -T app php artisan ejaz:health || echo "تنبيه: فشل فحص من فحوص الصحة أعلاه. نبض المجدول يحتاج دقيقة بعد أول نشر."
 
 printf '\n\033[1;32m✓ نُشر %s. التراجع: EJAZ_TAG=<الوسم السابق> في .env ثم %s up -d app horizon scheduler web\033[0m\n' "$TAG" "${DC[*]}"

@@ -57,8 +57,10 @@
    sudo cp deploy/systemd/ejaz-backup.timer deploy/systemd/ejaz-health.timer /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable ejaz-stack
-   sudo systemctl enable --now ejaz-backup.timer ejaz-health.timer
+   sudo systemctl enable --now ejaz-health.timer
    ```
+
+   ومؤقت النسخ `ejaz-backup.timer` لا يُفعَّل هنا: بعد أول نسخة يدوية ناجحة وتجربة استعادتها (`sudo systemctl enable --now ejaz-backup.timer`، «Hostinger KVM» ٩).
 10. حاويتا التخزين (`deploy/storage/README.md`):
     - حاوية الملفات عند مزود الخادم: خاصة، ثم CORS والإصدارات ودورة الحياة.
     - وحاوية النسخ عند المزود الثاني، بقفل الكائنات من إنشائها (لا يُضاف بعده).
@@ -82,7 +84,9 @@
   - **المفاتيح غير موجودة بعد:** وما دامت غائبة يبقى الحجب الحالي عند الحد كما هو، ويبقى خطر قفل الحساب والمدرسة قائماً حتى تُضبط.
   - **بعد ضبطها:** تجربة على التجريبي: عشر محاولات خاطئة لحساب، ثم الدخول بكلمة مروره الصحيحة يمر بعد حل التحدي.
 
-ولـ `.env.backup`: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`، وكلمتا سر تشفير الملفات `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT` (عشوائيتان، ونسختهما في مدير كلمات المرور مع مفتاح GPG الخاص، ولا تُغيَّران بعد أول نسخة)، وحاوية الملفات الخاصة للقراءة `BACKUP_SOURCE_*` (`.env.backup.example`). ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف ولا قراءة** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject` ولا `GetObject` — `deploy/storage/README.md` «المفاتيح»)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
+ولـ `.env.backup` على Hostinger بالوضع المحلي (قرار صفوان «مبدئياً على المجاني»): الخطوات والقيم في `deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات». وما يلي لوضع الحاوية عند مزود ثانٍ.
+
+ولـ `.env.backup` بحاوية النسخ: اتصال القاعدة (`PGHOST=pgsql`) بدور للقراءة وحدها (`CREATE ROLE ejaz_backup LOGIN PASSWORD '...'; GRANT pg_read_all_data TO ejaz_backup;`)، وحاوية النسخ ومفتاحاها عند المزود الثاني (`BACKUP_S3_ENDPOINT` مثل `https://fsn1.your-objectstorage.com`، و`AWS_DEFAULT_REGION` بموقعه)، و`BACKUP_GPG_RECIPIENT`، وكلمتا سر تشفير الملفات `BACKUP_CRYPT_PASSWORD` و`BACKUP_CRYPT_SALT` (عشوائيتان، ونسختهما في مدير كلمات المرور مع مفتاح GPG الخاص، ولا تُغيَّران بعد أول نسخة)، وحاوية الملفات الخاصة للقراءة `BACKUP_SOURCE_*` (`.env.backup.example`). ومفاتيح Hetzner لكل مشروع على كل حاوياته، فمفتاح الخادم في مشروع مستقل تعطيه سياسةُ حاوية النسخ الكتابةَ والسرد وحدهما (`deploy/provider-checklist.md`). ومفتاح حاوية النسخ **كتابة بلا حذف ولا قراءة** (`PutObject` و`ListBucket` و`AbortMultipartUpload` بلا `DeleteObject` ولا `GetObject` — `deploy/storage/README.md` «المفاتيح»)، والحذف بقاعدة دورة الحياة في الحاوية (`deploy/storage/README.md`)، ومع الإصدارات أو قفل الكائنات على حاوية النسخ (شرط — `deploy/storage/README.md`) لا يمحو من يخترق الخادم النسخ ولا يكتب فوقها.
 
 ## ثالثاً: أول نشر
 
@@ -241,7 +245,7 @@ $DC ps                                         # كل الخدمات healthy
   - **لقطة يدوية واحدة** (snapshot): تُحذف بعد 20 يوماً، وبإعادة تثبيت النظام أو الاستعادة. فهي للرجوع قبل عملية خطرة، لا نسخة.
   - **نسخ أسبوعية آلية** عند المزود نفسه، والاستعادة منها تمحو الخادم كله وتقفله أثناءها. والنسخ اليومية عنده إضافة مدفوعة لا تلزمنا.
 - **ما نضيفه نحن:**
-  - **النسخ اليومي المشفّر خارج الخادم وخارج المزود:** `scripts/backup.sh` إلى حاوية Hetzner Object Storage (مزود ثانٍ، بقفل الكائنات). ونسخ Hostinger الأسبوعية احتياط ثالث لا بديل: عند المزود نفسه، وغير مشفّرة بمفتاحنا، وعمرها حتى أسبوع.
+  - **النسخ الليلي المشفّر للقاعدة:** `scripts/backup.sh` بالوضع المحلي إلى `/var/backups/ejaz` على الخادم (قرار صفوان «مبدئياً على المجاني»، 6 نوفمبر 2026)، ونسخة أسبوعية منه إلى جهاز المسؤول. والترقية إلى حاوية Hetzner بقفل الكائنات بمتغيرات البيئة وحدها (`deploy/hostinger-go-live.md` §٤). ونسخ Hostinger الأسبوعية عند المزود نفسه، وغير مشفّرة بمفتاحنا، وعمرها حتى أسبوع.
   - ufw وfail2ban والتحديثات الأمنية وSSH بالمفتاح وحده: `scripts/server-bootstrap.sh`.
   - المراقبة: `ejaz:health` ومؤقته، و`/up` من أداة خارجية (`monitoring.md`).
 
@@ -249,7 +253,7 @@ $DC ps                                         # كل الخدمات healthy
 
 Hostinger لا يبيع تخزين كائنات متوافقاً مع S3، والحزمة كانت تفترضه عند مزود الخادم (Contabo). فالخياران (القرار لصفوان، والمقترح أ):
 
-- **(أ) القرص المحلي على NVMe الخادم (المقترح للإطلاق):** بلا تغيير في الشيفرة، والنسخ اليومي ينسخ `storage/app/private` مشفّراً إلى Hetzner. وقيوده:
+- **(أ) القرص المحلي على NVMe الخادم (المقترح للإطلاق):** بلا تغيير في الشيفرة. والملفات لا تنسخها النسخة الليلية المحلية، فنسختها نسخة Hostinger الأسبوعية وحدها حتى الترقية إلى Hetzner (فينسخ `backup.sh` حينها `storage/app/private` مشفّراً). وقيوده:
   - رفع ملفات اللوحة حتى 32 ميجابايت (حد nginx وPHP). فالفيديو التعريفي للاختبار الإلكتروني ووسائط الأسئلة فوق ذلك لا تُرفع، حتى يُرفع الحد لمسار `/livewire/upload-file` وحده بفرع مستقل.
   - مقاطع المسابقات بالرفع المجزأ عبر الخادم (`COMPETITION_VIDEO_UPLOAD=app`)، وتشغل القرص نفسه. ومسابقة الطلاب (اختبار موقوت) لا رفع فيها.
   - التطبيق على خادم واحد، والقرص يتسع للبداية (400 جيجابايت)، وتُراقب المساحة.
@@ -262,7 +266,7 @@ Hostinger لا يبيع تخزين كائنات متوافقاً مع S3، وا�
 1. KVM 8، والموقع ألمانيا، والنظام «Ubuntu 24.04» نظيفاً بلا لوحة تحكم (`handoff-server.md` «ما لا تفعله»).
 2. مفتاح SSH العام في خانة المفاتيح عند الإعداد (يُضاف لـ root، وينسخه سكربت التجهيز).
 3. **الجدار الناري** (VPS ← Security ← Firewall): إعداد جديد بثلاث قواعد قبول TCP: 22 من عنوان الإدارة وحده إن ثبت (وإلا من الكل، وfail2ban يحميه)، و80 و443 من الكل. ثم يُربط بالخادم ويُفعَّل.
-4. **IPv6:** إن كان للخادم عنوان IPv6 فقواعد الجدار تشمله، وإلا فلا سجل `AAAA` له في `cutover.md`.
+4. **IPv6:** إن كان للخادم عنوان IPv6 فقواعد الجدار تشمله. و**لا سجل `AAAA` في الإطلاق** في كل حال: الحزمة تنشر 80 و443 على IPv6، وشبكة الحاويات `internal` بلا `enable_ipv6`، فيصل زائر IPv6 إلى nginx بعنوان بوابة الشبكة، فيشترك زوار IPv6 كلهم في مفتاح حد واحد. ويُضاف `AAAA` بعد تفعيل IPv6 في Docker، وظهور عنوان الزائر الحقيقي في `$remote_addr` بسجل nginx.
 
 **٢. التجهيز الأساسي** (من جهازك، ثم بـ root مرة واحدة):
 
@@ -288,7 +292,7 @@ ADMIN_USER=ejaz ADMIN_CIDR=<عنوان الإدارة>/32 bash /root/server-boot
 ```bash
 cd /opt/ejaz
 git clone <المستودع> .            # بمفتاح نشر للقراءة وحدها: ssh-keygen -t ed25519، والعام في GitHub ← Deploy keys
-git checkout v0.14.0
+git checkout <الوسم المقرر في hostinger-go-live.md §٠>
 cp .env.production.example .env && chmod 600 .env
 cp .env.backup.example .env.backup && chmod 600 .env.backup
 ```
@@ -333,9 +337,12 @@ MAIL_PORT=587
 MAIL_USERNAME=info@ejaz.sa
 MAIL_PASSWORD=<من مدير كلمات المرور>
 MAIL_FROM_ADDRESS=info@ejaz.sa
+EMAIL_CODES_PER_HOUR=<بحسب قرار مزود البريد>
 ```
 
-وفي `.env.backup` لخيار (أ): `BACKUP_SOURCE_S3_BUCKET=none`، فيُنسخ `storage/app/private` و`storage/app/public` من الحجم مشفّرين. وبقية قيمه (حاوية Hetzner ومفتاح GPG وكلمتا التشفير) كما في «ثانياً».
+- البريد لازم للرفع: التسجيل يشترط رمز البريد. وحدود 365 وصندوق الإرسال ومزود المعاملات في `deploy/hostinger-go-live.md` §٢ و§٣ (البند ٤). 【ناقص: قرار صفوان — صندوق الإرسال: info@ejaz.sa أو صندوق مخصص مثل no-reply@ejaz.sa (التوصية)】
+
+و`.env.backup` بالوضع المحلي: `BACKUP_BUCKET=` فارغة، و`BACKUP_LOCAL_DIR=/backups`، و`PGUSER=ejaz_backup` و`PGPASSWORD`، و`BACKUP_GPG_RECIPIENT`. وإنشاء المجلد والدور والنسخة الأولى في `deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات». وعند الترقية إلى Hetzner: `BACKUP_SOURCE_S3_BUCKET=none` لخيار (أ)، فيُنسخ `storage/app/private` و`storage/app/public` من الحجم مشفّرين، وبقية القيم كما في «ثانياً».
 
 **٥. الشهادة.** حاوية nginx لا تبدأ بلا ملفي الشهادة، فشهادة مؤقتة ذاتية أولاً، ثم Let's Encrypt:
 
@@ -360,15 +367,15 @@ cd /opt/ejaz && docker compose --env-file .env -f deploy/compose.production.yaml
 - **قبل نقل النطاق** (ejaz.sa ما زال عند hosting.com): بتحدي DNS، وسجل `_acme-challenge` يضيفه صاحب صلاحية DNS:
   - `sudo certbot certonly --manual --preferred-challenges dns -d ejaz.sa -d www.ejaz.sa`
   - ثم بعد الخطوة ٧: `sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/ejaz.sa sh /etc/letsencrypt/renewal-hooks/deploy/ejaz.sh`
-  - وهذه الشهادة لا تتجدد آلياً، فتُستبدل بعد النقل.
+  - وهذه الشهادة لا تتجدد آلياً: صلاحيتها 90 يوماً، وتجديدها بتحدي DNS يدوي مرة أخرى. فإن تأخر النقل نحو 60 يوماً من إصدارها تُجدد يدوياً بالأمر نفسه، وإلا تُستبدل بعد النقل بشهادة HTTP أدناه.
 - **بعد النقل** (`cutover.md`): شهادة بتحدي HTTP تتجدد وحدها:
   - `sudo certbot certonly --webroot -w /var/lib/ejaz/acme -d ejaz.sa -d www.ejaz.sa --force-renewal`
   - ثم خطاف النسخ يدوياً، لأن certbot لا يشغّل خطافات `renewal-hooks/deploy` إلا في `renew`: `sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/ejaz.sa sh /etc/letsencrypt/renewal-hooks/deploy/ejaz.sh`، ثم `curl -vI https://ejaz.sa 2>&1 | grep -i "issuer"` يعرض Let's Encrypt.
   - ثم `sudo certbot renew --dry-run` بلا خطأ (التجديدات بعدها تشغّل الخطاف وحدها).
 
-**٦. مفتاح النسخ والوحدات:** «أولاً» الخطوتان 8 و9 كما هما (`/etc/ejaz/backup-public.asc`، ثم `deploy/systemd/compose/`). ومؤقت النسخ لا يُفعَّل قبل أول نسخة يدوية (الخطوة ٩).
+**٦. مفتاح النسخ والوحدات:** «أولاً» الخطوتان 8 و9 كما هما (`/etc/ejaz/backup-public.asc`، ثم `deploy/systemd/compose/`)، ومجلد النسخ `sudo install -d -m 700 /var/backups/ejaz`. ومؤقت النسخ لا يُفعَّل قبل أول نسخة يدوية (الخطوة ٩).
 
-**٧. أول نشر:** «ثالثاً» كما هي، بالوسم `v0.14.0`، ومعها ما بعد النشر في `CHANGELOG.md` 0.14.0 (`CompetitionListsSeeder` و`ejaz:create-admin`).
+**٧. أول نشر:** بترتيب `deploy/hostinger-go-live.md` §١-ب كاملاً، بالوسم المقرر في §٠ منه. لا «ثالثاً» وحدها: ينقصها `AboutMenuAnchorsSeeder` و`CompetitionListsSeeder` و`BrahinCompetitionSeeder` و`JobFilesSeeder` و`AssistantGuideSeeder`، و`--actor` لأمر `import:legacy-site`.
 
 **٨. التحقق حتى `ejaz:health` سليم:**
 
@@ -384,15 +391,17 @@ sudo sed -i '/ ejaz.sa www.ejaz.sa$/d' /etc/hosts
 
 وإن فشل `ejaz:health` فرسالته تسمّي الفحص (القاعدة، أو Redis، أو الطوابير والمهام الفاشلة، أو مساحة القرص، أو القرص الخاص، أو نبض المجدول بعد دقيقتين من التشغيل). والسجل: `$DC logs --tail=200 app horizon scheduler web`.
 
-**٩. أول نسخة واستعادتها:** `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50`، ثم تجربة الاستعادة (`scripts/restore.md`)، ثم `sudo systemctl enable --now ejaz-backup.timer ejaz-health.timer`.
+**٩. أول نسخة واستعادتها** بالوضع المحلي (`deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات»): الدور `ejaz_backup` و`.env.backup`، ثم `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` فيه سطر «الوضع المحلي»، ثم فك النسخة واستعادتها على جهاز آخر (`scripts/restore.md` «النسخ المحلية»)، ثم `sudo systemctl enable --now ejaz-backup.timer`. ومؤقت الصحة فُعّل في الخطوة ٦.
 
-**١٠. لقطة ثانية في hPanel** («v0.14.0 سليم»)، وتُستبدل بلقطة جديدة قبل كل نشر كبير (لقطة واحدة متاحة).
+**١٠. لقطة ثانية في hPanel** («<الوسم المقرر في hostinger-go-live.md §٠> سليم»)، وتُستبدل بلقطة جديدة قبل كل نشر كبير (لقطة واحدة متاحة).
 
 ### الصيانة الدورية على Hostinger
 
 - **إعادة الإقلاع بعد تحديث النواة:** التحديثات الأمنية آلية بلا إعادة إقلاع. فأسبوعياً: إن وُجد `/var/run/reboot-required` يُعاد الإقلاع في وقت هادئ (`sudo reboot`)، والحزمة تعود بخدمة `ejaz-stack`، ثم `ejaz:health`.
 - **المساحة:** `df -h /` و`docker system df` شهرياً، و`docker image prune` للصور القديمة مع إبقاء الوسم السابق للتراجع.
 - **fail2ban:** `sudo fail2ban-client status sshd`.
+- **نسخة إلى جهاز المسؤول أسبوعياً:** مجلد النسخ `/var/backups/ejaz` على قرص الخادم نفسه (700 لـ root)، فتُنزَّل أحدث نسخة مشفّرة وبصمتها إلى جهاز المسؤول بأوامر `deploy/hostinger-go-live.md` §٤ (البند ٧). حتى الترقية إلى حاوية النسخ.
+- **صورتا القاعدة وRedis شهرياً**، بعد نسخة ناجحة (`sudo systemctl start ejaz-backup.service` ثم سجلها): `$DC pull pgsql redis && $DC up -d pgsql redis`، ثم `ejaz:health`. وإن أُعيد إنشاء `app` معهما فبعده `$DC up -d --force-recreate web` (nginx يحل عنوان `app` مرة عند بدئه).
 
 ## التجريبية
 

@@ -4,6 +4,7 @@ use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Models\Competition;
 use App\Models\User;
 use App\Notifications\EmailVerificationCode;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -178,4 +179,17 @@ it('pauses email codes at the portal hourly cap, with one log line', function ()
 
     Log::shouldHaveReceived('critical')->once();
     Notification::assertNotSentTo($second, EmailVerificationCode::class);
+});
+
+// خنق SMTP العابر في 365: ثلاث محاولات بانتظار قصير، فالرمز صالح عشر دقائق (decisions/2026-11-06-deploy-readiness.md)
+it('retries the queued email code on transient mail failures', function () {
+    $notification = new EmailVerificationCode('123456', 10);
+
+    expect($notification->tries)->toBe(3)
+        ->and($notification->backoff())->toBe([30, 60]);
+
+    $queued = new SendQueuedNotifications(User::factory()->make(), $notification, ['mail']);
+
+    expect($queued->tries)->toBe(3)
+        ->and($queued->backoff())->toBe([30, 60]);
 });

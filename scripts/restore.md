@@ -135,4 +135,4 @@ $DC exec -T pgsql psql -U ejaz -d ejaz_restore_test -c "select count(*) from use
 $DC exec -T pgsql dropdb -U ejaz ejaz_restore_test      # الإتلاف بعد التجربة
 ```
 
-وفي الاستعادة الفعلية: الاستعادة في قاعدة جديدة (`ejaz_restored`)، ثم `DB_DATABASE=ejaz_restored` في `.env`، ثم إعادة الإخفاء كما في الخطوة ٦ أعلاه (`$DC run --rm app php artisan ejaz:reapply-anonymization ...` ثم `ejaz:purge-anonymized-data`)، ثم حذف الملفات بلا سجل كما في الخطوة ٧ (`$DC run --rm app php artisan ejaz:prune-orphan-private-files --days=0`)، ثم `$DC up -d app horizon scheduler` (تُبنى ذاكرة الإعدادات عند بدء الحاويات)، ثم `ejaz:health`.
+وفي الاستعادة الفعلية: الاستعادة في قاعدة جديدة (`ejaz_restored`)، ثم `DB_DATABASE=ejaz_restored` في `.env`، ثم إعادة الإخفاء كما في الخطوة ٦ أعلاه (`$DC run --rm app php artisan ejaz:reapply-anonymization ...` ثم `ejaz:purge-anonymized-data`)، ثم حذف الملفات بلا سجل كما في الخطوة ٧ (`$DC run --rm app php artisan ejaz:prune-orphan-private-files --days=0`)، ثم `$DC up -d app horizon scheduler && $DC up -d --force-recreate web` (تُبنى ذاكرة الإعدادات عند بدء الحاويات، وnginx يحل عنوان `app` مرة عند بدئه فيُعاد إنشاؤه بعده)، ثم `ejaz:health`.

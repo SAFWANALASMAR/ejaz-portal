@@ -51,3 +51,12 @@ it('resets the password with a valid token only once', function () {
     $this->post('/reset-password', [...$payload, 'password' => 'Another-Pass-2026', 'password_confirmation' => 'Another-Pass-2026'])
         ->assertSessionHasErrors('email');
 });
+
+// رمز الاستعادة في الرابط لا يُرسل في Referer، فلا يصل إلى سجل nginx مع الطلبات التالية (مراجعة #210)
+it('sends no referrer from the reset page that carries the token', function () {
+    $this->get('/reset-password/'.str_repeat('a', 64).'?email=someone%40example.test')
+        ->assertOk()
+        ->assertHeader('Referrer-Policy', 'no-referrer');
+
+    $this->get('/forgot-password')->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+});

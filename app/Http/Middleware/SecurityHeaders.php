@@ -47,6 +47,10 @@ class SecurityHeaders
         if ($request->routeIs('evidence.*')) {
             $response->headers->set('Referrer-Policy', 'no-referrer');
             $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        } elseif ($request->routeIs('password.reset')) {
+            // رمز الاستعادة في الرابط: لا يُرسل في Referer، فلا يصل إلى سجل nginx مع طلبات الصفحة التالية (مراجعة #210)
+            $response->headers->set('Referrer-Policy', 'no-referrer');
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
         } else {
             $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
