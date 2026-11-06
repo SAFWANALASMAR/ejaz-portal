@@ -36,4 +36,14 @@ class EnsureTwoFactorIsEnabled
 
         return $next($request);
     }
+
+    /**
+     * هل يكفي هذا الدخول لما خلف التحقق الثنائي: لا يلزمه، أو فعّله ولم تُستعد جلسته من «تذكّرني». لما يُعرض خارج
+     * مسارات هذا الوسيط («حسابي» — المراجعة الأمنية على #197).
+     */
+    public static function satisfied(User $user): bool
+    {
+        return ! $user->requiresTwoFactor()
+            || ($user->hasEnabledTwoFactorAuthentication() && session()->get(self::VIA_REMEMBER) !== true);
+    }
 }

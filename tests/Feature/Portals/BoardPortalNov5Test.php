@@ -104,13 +104,21 @@ it('never shows the raw meeting link in the account, and links the live card to 
 
     $html = (string) $this->actingAs($board)->get('/account')->assertOk()->getContent();
 
+    // اجتماع المجلس في صفحة المنطقة (صفحة الاجتماع لاجتماع الجمعية العمومية وحده)، وتفتح له
     expect($html)->not->toContain('board-secret')
-        ->toContain('href="'.route('assembly.meetings.show', $meeting).'" data-council-card="live"');
+        ->toContain('href="'.route('assembly.index').'" data-council-card="live"');
+    $this->actingAs($board)->get(route('assembly.index'))->assertOk()->assertSee('board-secret', false);
+
+    $assemblyMeeting = Meeting::factory()->online()->create(['body' => MeetingBody::GeneralAssembly, 'starts_at' => now()->addHours(2), 'online_join_url' => 'https://teams.microsoft.com/l/meetup-join/ga']);
+    expect((string) $this->actingAs($board)->get('/account')->getContent())->toContain('href="'.route('assembly.meetings.show', $assemblyMeeting).'" data-council-card="live"');
+    $this->actingAs($board)->get(route('assembly.meetings.show', $assemblyMeeting))->assertOk();
 
     // وعضو مجلس لم يفعّل التحقق الثنائي: لا رابط في «حسابي»، وصفحة الاجتماع تعيده إلى «الأمان»
     $without = User::factory()->create();
     $without->assignRole(RoleName::BoardMember->value);
     showDeferredPortals();
     expect((string) $this->actingAs($without)->get('/account')->assertOk()->getContent())->not->toContain('board-secret');
-    $this->actingAs($without)->get(route('assembly.meetings.show', $meeting))->assertRedirect(route('account.security'));
+    $this->actingAs($without)->get(route('assembly.meetings.show', $assemblyMeeting))->assertRedirect(route('account.security'));
+    // وصفحة المنطقة نفسها، وفيها روابط الاجتماعات وقرارات المجلس
+    $this->actingAs($without)->get(route('assembly.index'))->assertRedirect(route('account.security'));
 });

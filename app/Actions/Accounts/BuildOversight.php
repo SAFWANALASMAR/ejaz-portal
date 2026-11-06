@@ -5,6 +5,7 @@ namespace App\Actions\Accounts;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\RoleName;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Support\AccountSettings;
@@ -32,7 +33,7 @@ class BuildOversight
     {
         $overseer = RoleName::isOverseer($user);
         // رابط الاجتماع سرّ، و«حسابي» بلا التحقق الثنائي: لا يُعرض لمن يلزمه ولم يفعّله (المراجعة الأمنية على #197)
-        $secured = ! $user->requiresTwoFactor() || $user->hasEnabledTwoFactorAuthentication();
+        $secured = EnsureTwoFactorIsEnabled::satisfied($user);
 
         return [
             'stats' => $overseer ? self::stats() : null,

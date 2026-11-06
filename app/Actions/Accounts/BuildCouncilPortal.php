@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Enums\MeetingBody;
 use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyMemberships\AssemblyMembershipResource;
 use App\Models\AssemblyMembership;
@@ -68,7 +69,12 @@ class BuildCouncilPortal
             ['key' => 'board', 'url' => AssemblyArea::board($user) ? route('assembly.index') : null, 'external' => false, 'navigate' => true],
             // إلى صفحة الاجتماع القادم أو الجاري في منطقة الأعضاء، خلف التحقق الثنائي، لا إلى رابط تيمز الخام: «حسابي» بلا التحقق
             // الثنائي، والرابط سرّ (المراجعة الأمنية على #197، العالية). وإلا صفحة البث المباشر العامة
-            ['key' => 'live', 'url' => $meeting !== null && $user->can('accessAssemblyArea') ? route('assembly.meetings.show', $meeting) : route('live'), 'external' => false, 'navigate' => true],
+            // وصفحة الاجتماع لاجتماع الجمعية العمومية وحده (MeetingPolicy::attend)، واجتماع المجلس أو اللجنة في صفحة المنطقة
+            ['key' => 'live', 'url' => match (true) {
+                $meeting === null || ! $user->can('accessAssemblyArea') => route('live'),
+                $meeting->body === MeetingBody::GeneralAssembly => route('assembly.meetings.show', $meeting),
+                default => route('assembly.index'),
+            }, 'external' => false, 'navigate' => true],
             ['key' => 'governance', 'url' => route('governance.index'), 'external' => false, 'navigate' => true],
         ];
 

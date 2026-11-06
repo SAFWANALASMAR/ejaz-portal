@@ -49,6 +49,8 @@ class PortalLoginResponse implements LoginResponse, TwoFactorLoginResponse
         // ومن يلزمه التحقق الثنائي (عضو المجلس) ولم يفعّله يبدأ في «الأمان» ليفعّله، كما كانت اللوحة تعيده إليه
         // (المراجعة الأمنية على #197)
         if ($user instanceof User && $user->requiresTwoFactor() && ! $user->hasEnabledTwoFactorAuthentication()) {
+            $request->session()->forget('url.intended');
+
             return redirect()->route('account.security')->with('status', __('auth.two_factor_required'));
         }
 
