@@ -39,7 +39,7 @@
    - **رموز التحقق عبر واتساب (#200):** لا ترحيل ولا صلاحية. بعد اعتماد Meta قالب «المصادقة»: من «قنوات التواصل» في اللوحة يُضبط مزود واتساب بمفاتيحه واسم قالب الرمز ومفتاح «رموز التحقق عبر واتساب»، ثم رسالة تجريبية، ثم توثيق جوال حساب تجريبي (الرسالة التجريبية لا تختبر قالب الرمز، `docs/guides/messaging.md`)، ثم تشغيل «توثيق الجوال». وحتى ذلك تبقى الرموز بالرسائل النصية كما كانت. والبديل من البيئة `WHATSAPP_OTP` و`WHATSAPP_TEMPLATE_OTP` (في `.env.example` وحده، لا في `.env.production.example`).
    - **النسخة الليلية المحلية للقاعدة (#201)، على الخادم بالترتيب:**
      1. في `.env.backup`: `BACKUP_LOCAL_DIR=/backups` بلا `BACKUP_BUCKET` (يُحذف سطره أو يُفرَّغ، ففي `.env.backup.example` قيمة نائبة له)، و`BACKUP_LOCAL_KEEP_DAYS=7` اختيارية (بين 1 و90). ويبقى لازماً اتصال القاعدة و`BACKUP_GPG_RECIPIENT` ومفتاح النسخ العام. وفي وحدة systemd بلا حاويات القيمة `/var/backups/ejaz` بدل `/backups`.
-     2. `sudo install -d -m 700 /var/backups/ejaz` (مربوط في `/backups` بحاوية `backup`، و`BACKUP_LOCAL_DIR_HOST` في `.env` لمجلد آخر).
+     2. `sudo install -d -m 700 /var/backups/ejaz` (مربوط في `/backups` بحاوية `backup`، و`BACKUP_LOCAL_DIR_HOST` في `.env` لمجلد آخر). وطريق systemd بلا حاويات (`deploy/systemd/ejaz-backup.service`، `User=ejaz-backup`) يلزمه `sudo install -d -m 700 -o ejaz-backup -g ejaz-backup /var/backups/ejaz`، و`BACKUP_LOCAL_DIR=/var/backups/ejaz` في `/etc/ejaz/backup.env`. والمعتمد لـ Hostinger طريق الحاويات.
      3. نسخة يدوية: `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` بلا خطأ وفيه سطر «الوضع المحلي»، والنسخة وبصمتها في `/var/backups/ejaz`. وصورة `ejaz-backup` بالوسم الجديد يبنيها أول تشغيل، لأن `deploy-compose.sh` يبني `app` و`web` وحدهما.
      4. تجربة استعادتها: تنزيل النسخة وبصمتها إلى جهاز المسؤول الذي عنده المفتاح الخاص، و`sha256sum` ومقارنتها بالبصمة، ثم `gpg --decrypt` ثم `pg_restore` في قاعدة تجربة (`scripts/restore.md` «النسخ المحلية»). ولا يُفك تشفيرها على الخادم.
      5. ثم تفعيل المؤقت: `sudo systemctl enable --now ejaz-backup.timer`.
@@ -129,10 +129,7 @@
 - **شهادات المسابقة على طابورها (`fix/certificates-queue`، #173، مدموج `d53c2969`، البند ١ من التدقيق):** `GenerateCompetitionCertificate` على طابور `certificates` بمشرف `supervisor-certificates` (عاملان في الإنتاج)، فلا تؤخر نحو 17,500 مهمة PDF رموز التحقق والاستعادة في `default`. والشهادات أبطأ (نحو ساعتين ونصف بدل نصف ساعة)، ويُسرَّع برقم `maxProcesses`. **عند النشر:** إعادة تشغيل Horizon.
 - **رابط موقّع لمقاطع التحكيم (`fix/review-video-signed-link`، #174، مدموج `39ca5b77`، البند ٢):** مقطع المشاركة الذي يشاهده المحكّم على S3 صار تحويلاً إلى رابط تخزين موقّع بعد الفحوص، بدل بثه عبر PHP بلا طلب الجزء. فيعمل التقديم والتأخير وSafari، ولا يُحبس عامل PHP. ومدة الرابط 120 دقيقة (`COMPETITION_VIDEO_URL_MINUTES`).
 - **تحديثات Symfony الأمنية في 4 نوفمبر (`fix/symfony-security-2026-11-04`، #178، مدموج `9bbf79e1`):** سبع حزم إلى 8.1.11 (`filesystem` و`html-sanitizer` و`http-foundation` و`http-kernel` و`routing` و`serializer` و`yaml`) ومعها تحديثات تابعة، في `composer.lock` وحده. و`composer audit` نظيف بعده. **عند النشر:** بناء الصورة من القفل.
-- **باقٍ للمتابعة (منخفضات المشرف):**
-  - #173: `supervisor-certificates` في `docs/deploy.md`، ومراقبة تراكم طابور `certificates`، وتصحيح تعليق `horizon.php`، و`SyncAttendanceCertificate` الباقي على `default`.
-  - #174: مدة مستقلة لرابط مقاطع التحكيم (نحو 30 دقيقة) بدل المشتركة مع روابط الرفع، واختبار S3 للمتابع، وسطر في `docs/deploy.md`.
-  - البنود ٣ إلى ١٢ من التدقيق بقرار صفوان والمشرف.
+- **منخفضات المشرف:** أُغلقت في الإصدار نفسه: #173 في #193 (`supervisor-certificates` ومراقبة طابور `certificates` في `docs/deploy.md`)، و#174 في #190 (مدة مستقلة لرابط مقاطع التحكيم) و#193 (اختبار S3 للمتابع). ويبقى: تعليق `horizon.php`، و`SyncAttendanceCertificate` على `default`، والبنود ٣ إلى ١٢ من التدقيق بقرار صفوان والمشرف.
 
 ### تعديلات صغيرة بقرار صفوان
 
@@ -304,9 +301,14 @@
 - **`docs/open-questions.md`:** قسم «برنامج الأمن» بالبنود الجديدة للقرار.
 - **عند النشر:** لا شيء.
 
+### اختبارا الرئيسية في المتصفح (`fix/director-home-browser-tests`، #204، مدموج `1c5baeb1`)
+
+- اختبارا `director-home-2026-11-03.spec.mjs` الفاشلان على `main` حُدّثا للسلوك المقصود في #181 (حذف بطاقة المبادرات من «خدماتنا») و#183 (المتجر في التبويب نفسه)، بتوقعات أشد: غياب بطاقة المبادرات، ورابط `/store` بلا `target="_blank"`، وملء الصف الأخير. والشرط الميت في `DirectorHomeNov3Test.php:259` صار بالنص الحرفي. بلا تغيير في الشيفرة.
+- **عند النشر:** لا شيء.
+
 ### منخفضات المشرف على #198 و#189 (`fix/nov5-ui-lows`، #203، مدموج `985757b1`)
 
-يدمجه المشرف قبل هذا السجل.
+مدموج قبل هذا السجل (`985757b1`).
 
 - حقل «عنوان شريط الأبحاث» حُذف من «محتوى الرئيسية» (`HomeContent::TEXTS`)، والقيمة المحفوظة سابقاً تُهمل.
 - تعليق قالب المكتبة مصحح، و`height="360"` لصور بطاقات المتجر، وعاد فحص الأيقونات في `director-home-2026-11-03.spec.mjs`.
