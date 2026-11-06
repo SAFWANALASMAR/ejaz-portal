@@ -7,6 +7,7 @@ use App\Enums\RoleName;
 use App\Models\Program;
 use App\Models\Setting;
 use App\Models\User;
+use App\Notifications\EmailVerificationCode;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Support\AccountSettings;
@@ -17,7 +18,7 @@ use Spatie\Activitylog\Models\Activity;
 use Tests\Fakes\FakeSmsGateway;
 
 /*
-| التسجيل بالجوال، والبريد اختياري، ولا اسم مستخدم للحساب الجديد (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md)،
+| التسجيل بالجوال، والبريد إلزامي منذ 6 نوفمبر 2026 (decisions/2026-11-06-email-otp.md)، ولا اسم مستخدم للحساب الجديد (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md)،
 | والحسابات القديمة تدخل باسم مستخدمها. والتوثيق مؤجل بإعداد مطفأ افتراضياً، والاستعادة للبريد أو الجوال الموثق وحده، وكلمة مرور
 | مؤقتة من اللوحة لمن لا يستعيدها (ملاحظات المدير التنفيذي عبر صفوان، 25 أكتوبر 2026).
 */
@@ -34,6 +35,7 @@ function phoneRegistration(array $overrides = []): array
 {
     return [
         'name' => 'عبدالله محمد',
+        'email' => 'a@example.test',
         'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
@@ -42,41 +44,42 @@ function phoneRegistration(array $overrides = []): array
     ];
 }
 
-it('registers with a full name, a phone and a password only, without any verification message', function () {
-    $this->post('/register', phoneRegistration(['username' => 'ignored.name']))->assertRedirect(route('account.dashboard'));
+// والبريد إلزامي، وإليه رمز التوثيق لا الرابط (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)
+it('registers with a full name, a phone, an email and a password, and sends an email code only', function () {
+    $this->post('/register', phoneRegistration(['username' => 'ignored.name']))->assertRedirect(route('verification.notice'));
 
     $user = User::query()->where('phone', '+966512345678')->firstOrFail();
 
-    expect($user->email)->toBeNull()
+    expect($user->email)->toBe('a@example.test')
         ->and($user->username)->toBeNull()
         ->and($user->getRoleNames()->all())->toBe([RoleName::Member->value])
         ->and($this->sms->lastCodeFor('+966512345678'))->toBeNull();
 
     $this->assertAuthenticatedAs($user);
-    Notification::assertNothingSent();
+    Notification::assertSentTo($user, EmailVerificationCode::class);
+    Notification::assertNotSentTo($user, VerifyEmailNotification::class);
 
-    // ويدخل بعدها بجواله بأي صيغة
+    // ويدخل بعدها بجواله بأي صيغة، أو ببريده
     $this->post('/logout');
     $this->post('/login', ['login' => '+966 51 234 5678', 'password' => 'Long-Enough-Pass-2026'])->assertRedirect(route('account.dashboard'));
     $this->assertAuthenticatedAs($user);
+    $this->post('/logout');
+    $this->post('/login', ['login' => 'A@Example.test', 'password' => 'Long-Enough-Pass-2026'])->assertRedirect(route('account.dashboard'));
+    $this->assertAuthenticatedAs($user);
 });
 
-it('keeps the email optional, and does not send a verification link while verification is off', function () {
-    $this->post('/register', phoneRegistration(['email' => 'a@example.test']))->assertRedirect(route('account.dashboard'));
+it('requires the email at registration', function (?string $email) {
+    $this->post('/register', phoneRegistration(['email' => $email]))->assertSessionHasErrors('email');
 
-    $user = User::query()->where('phone', '+966512345678')->firstOrFail();
-    expect($user->email)->toBe('a@example.test');
+    expect(User::query()->where('phone', '+966512345678')->exists())->toBeFalse();
+})->with(['missing' => null, 'empty' => '', 'malformed' => 'not-an-email']);
 
-    Notification::assertNotSentTo($user, VerifyEmailNotification::class);
-    expect($this->sms->lastCodeFor('+966512345678'))->toBeNull();
-});
-
-it('sends the verification link and code again once verification is turned on from the panel', function () {
+it('sends the email code and the phone code once verification is turned on from the panel', function () {
     Setting::put(AccountSettings::KEY, ['verification' => true, 'show_deferred_portals' => false]);
 
-    $this->post('/register', phoneRegistration(['email' => 'a@example.test']))->assertRedirect(route('account.phone.verify'));
+    $this->post('/register', phoneRegistration())->assertRedirect(route('account.phone.verify'));
 
-    Notification::assertSentTo(User::query()->where('phone', '+966512345678')->firstOrFail(), VerifyEmailNotification::class);
+    Notification::assertSentTo(User::query()->where('phone', '+966512345678')->firstOrFail(), EmailVerificationCode::class);
     expect($this->sms->lastCodeFor('+966512345678'))->not->toBeNull();
 });
 

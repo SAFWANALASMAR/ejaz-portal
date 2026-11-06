@@ -35,7 +35,7 @@ class StartSubmission
             throw new AuthorizationException(__('competitions.entry.closed'));
         }
 
-        if (! $user->is_active || ! $user->hasVerifiedPhone()) {
+        if (! $user->is_active || (! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone())) {
             throw new AuthorizationException(__('competitions.entry.verify_phone'));
         }
 

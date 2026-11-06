@@ -6,6 +6,7 @@ use App\Http\Controllers\Account\DataRightsController;
 use App\Http\Controllers\Account\MyReadingController;
 use App\Http\Controllers\Account\NewPasswordController;
 use App\Http\Controllers\Account\PasswordResetByPhoneController;
+use App\Http\Controllers\Account\EmailVerificationController;
 use App\Http\Controllers\Account\PhoneVerificationController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
@@ -144,6 +145,10 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/verify-phone', [PhoneVerificationController::class, 'show'])->name('phone.verify');
     Route::post('/verify-phone', [PhoneVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('phone.verify.store');
     Route::post('/verify-phone/send', [PhoneVerificationController::class, 'send'])->middleware('throttle:6,1')->name('phone.send');
+
+    // رمز البريد (decisions/2026-11-06-email-otp.md)، وصفحته verification.notice من Fortify
+    Route::post('/verify-email', [EmailVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('email.verify.store');
+    Route::post('/verify-email/send', [EmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('email.send');
 
     Route::get('/my-reading', [MyReadingController::class, 'show'])->name('my-reading');
     Route::post('/my-reading/clear', [MyReadingController::class, 'clear'])->middleware('throttle:10,1')->name('my-reading.clear');

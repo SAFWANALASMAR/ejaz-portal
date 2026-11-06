@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 /**
- * تسجيل حساب جديد للمستفيد: الاسم الكامل والجوال وكلمة المرور، والبريد اختياري، ولا اسم مستخدم للحساب الجديد (قرار صفوان،
+ * تسجيل حساب جديد للمستفيد: الاسم الكامل والجوال والبريد (إلزامي منذ 6 نوفمبر 2026) وكلمة المرور، ولا اسم مستخدم للحساب الجديد (قرار صفوان،
  * 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md). والجوال فريد على كل الحسابات، فهو معرّف الدخول. كل حساب جديد
  * يأخذ الدور member فقط.
  *
@@ -70,7 +70,8 @@ class CreateNewUser implements CreatesNewUsers
 
         $validator = Validator::make($input, [
             'name' => ['required', 'string', 'min:3', 'max:120'],
-            'email' => ['nullable', 'string', 'email:rfc', 'max:255', User::emailTakenRule()],
+            // إلزامي (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)، وبه رمز التوثيق
+            'email' => ['required', 'string', 'email:rfc', 'max:255', User::emailTakenRule()],
             'phone' => ['required', 'string', new SaudiMobile, $claimable ? Rule::unique(User::class)->whereNotNull('phone_verified_at') : Rule::unique(User::class)],
             'password' => $this->passwordRules(
                 is_string($input['name'] ?? null) ? $input['name'] : null,

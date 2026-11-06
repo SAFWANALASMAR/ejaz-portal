@@ -44,7 +44,7 @@ beforeEach(function () {
  */
 function reviewRegistration(array $overrides = []): array
 {
-    return ['name' => 'عبدالله محمد', 'phone' => '05'.fake()->unique()->numerify('########'), 'password' => 'Long-Enough-Pass-2026',
+    return ['name' => 'عبدالله محمد', 'email' => fake()->unique()->safeEmail(), 'phone' => '05'.fake()->unique()->numerify('########'), 'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
 }
 

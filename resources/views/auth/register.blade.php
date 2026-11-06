@@ -14,9 +14,9 @@
                 <x-field name="phone" type="tel" :label="__('account.register.phone')" :placeholder="__('account.register.phone_placeholder')" icon="device-phone-mobile" hide-label
                     :hint="__('account.register.phone_hint')" autocomplete="tel" inputmode="tel" dir="auto" required />
 
-                {{-- بلا تلميح: «(اختياري)» في نص الحقل (نموذج أقصر، إضافة المشرف 01:14) --}}
+                {{-- إلزامي، وبه رمز التوثيق (decisions/2026-11-06-email-otp.md) --}}
                 <x-field name="email" type="email" :label="__('account.register.email')" :placeholder="__('account.register.email_placeholder')" icon="envelope" hide-label
-                    autocomplete="email" dir="auto" />
+                    :hint="__('account.register.email_register_hint')" autocomplete="email" dir="auto" required />
             </div>
 
             <div class="space-y-4 lg:space-y-3">

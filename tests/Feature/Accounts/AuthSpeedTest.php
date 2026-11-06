@@ -8,6 +8,7 @@ use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\NotPwnedVerifier;
 
 /*
@@ -19,7 +20,7 @@ const AUTH_SPEED_PASSWORD = 'Speed-Check-2026!x';
 
 function registerForm(array $overrides = []): array
 {
-    return ['name' => 'حساب قياس الأداء', 'phone' => '0551234567', 'password' => AUTH_SPEED_PASSWORD, 'password_confirmation' => AUTH_SPEED_PASSWORD, 'privacy' => '1', ...$overrides];
+    return ['name' => 'حساب قياس الأداء', 'email' => 'speed@example.test', 'phone' => '0551234567', 'password' => AUTH_SPEED_PASSWORD, 'password_confirmation' => AUTH_SPEED_PASSWORD, 'privacy' => '1', ...$overrides];
 }
 
 it('checks leaked passwords with a short timeout instead of the 30 second default', function () {
@@ -56,6 +57,8 @@ it('keeps Laravel\'s fail-open behaviour when the leak service cannot be reached
 });
 
 it('keeps the login and register requests within a fixed number of queries', function () {
+    // رمز البريد بعد التسجيل في الطابور في الإنتاج، لا في الطلب (والطابور متزامن في الاختبارات)
+    Notification::fake();
     User::factory()->create(['username' => 'speed_user', 'password' => Hash::make(AUTH_SPEED_PASSWORD)]);
 
     DB::enableQueryLog();
@@ -68,8 +71,9 @@ it('keeps the login and register requests within a fixed number of queries', fun
     $register = count(DB::getQueryLog());
     DB::disableQueryLog();
 
-    // 10 للدخول و12 للتسجيل عند كتابته (وكان التسجيل 13 بإعادة التحقق): الحساب، وحدود المحاولات، والجلسة، وسجل العمليات
-    expect($login)->toBeLessThanOrEqual(10)->and($register)->toBeLessThanOrEqual(12);
+    // 10 للدخول و12 للتسجيل عند كتابته (وكان التسجيل 13 بإعادة التحقق): الحساب، وحدود المحاولات، والجلسة، وسجل العمليات.
+    // و13 منذ صار البريد إلزامياً: فحص تفرده (decisions/2026-11-06-email-otp.md)
+    expect($login)->toBeLessThanOrEqual(10)->and($register)->toBeLessThanOrEqual(13);
 });
 
 // كان التحقق يعاد بعد fails() بـ validate()، فيُستدعى فحص التسريب مرتين في كل تسجيل ناجح
@@ -83,5 +87,5 @@ it('still shows the taken-phone message and other errors on a failed registratio
     User::factory()->create(['phone' => '+966551234567']);
 
     $this->post('/register', registerForm(['password_confirmation' => 'different']))
-        ->assertSessionHasErrors(['phone' => __('account.register.unavailable'), 'password']);
+        ->assertSessionHasErrors(['email' => __('account.register.unavailable'), 'password']);
 });

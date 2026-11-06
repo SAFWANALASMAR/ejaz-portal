@@ -33,10 +33,7 @@
         @if (($user->email !== null && ! $user->hasVerifiedEmail()) || ($user->phone !== null && ! $user->hasVerifiedPhone()))
             <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-5 text-sm">
                 @if ($user->email !== null && ! $user->hasVerifiedEmail())
-                    <form method="POST" action="{{ route('verification.send') }}">
-                        @csrf
-                        <x-button variant="outline" size="sm">{{ __('account.profile.verify_email') }}</x-button>
-                    </form>
+                    <x-button variant="outline" size="sm" :href="route('verification.notice')">{{ __('account.profile.verify_email') }}</x-button>
                 @endif
                 @if ($user->phone !== null && ! $user->hasVerifiedPhone())
                     <x-button variant="outline" size="sm" :href="route('account.phone.verify')">{{ __('account.profile.verify_phone') }}</x-button>
