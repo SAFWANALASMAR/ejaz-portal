@@ -15,13 +15,11 @@ use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
-use App\Support\Icon;
 use App\Support\LibraryHeroImages;
 use Database\Seeders\AboutMenuAnchorsSeeder;
 use Database\Seeders\MenuSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Once;
 
 /*
 | توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): ترتيب الرئيسية من الأعلى، والبطاقات الخمس،
