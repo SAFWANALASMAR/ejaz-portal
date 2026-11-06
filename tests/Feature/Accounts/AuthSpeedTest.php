@@ -20,7 +20,7 @@ const AUTH_SPEED_PASSWORD = 'Speed-Check-2026!x';
 
 function registerForm(array $overrides = []): array
 {
-    return ['name' => 'حساب قياس الأداء', 'email' => 'speed@example.test', 'phone' => '0551234567', 'password' => AUTH_SPEED_PASSWORD, 'password_confirmation' => AUTH_SPEED_PASSWORD, 'privacy' => '1', ...$overrides];
+    return ['name' => 'حساب قياس الأداء', 'email' => 'perf.user@example.test', 'phone' => '0551234567', 'password' => AUTH_SPEED_PASSWORD, 'password_confirmation' => AUTH_SPEED_PASSWORD, 'privacy' => '1', ...$overrides];
 }
 
 it('checks leaked passwords with a short timeout instead of the 30 second default', function () {
