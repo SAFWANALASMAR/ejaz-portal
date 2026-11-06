@@ -15,8 +15,12 @@ async function withChallengeStandIn(page) {
         const slot = document.querySelector('[data-bot-challenge-slot]');
 
         if (slot && !slot.querySelector('.cf-turnstile')) {
-            // نص التنبيه كما في lang/ar/account.php (bot_challenge.notice): طوله يحدد عرض الخانة وما يبقى للموافقة
-            slot.insertAdjacentHTML('afterbegin', '<div class="cf-turnstile" data-stand-in style="width:300px;height:65px;background:#d1d5db"></div><p class="text-xs text-muted">يتحقق مزود خارجي (Cloudflare) من أن مرسل النموذج إنسان.</p>');
+            // نص التنبيه من الصفحة (data-notice من lang/ar/account.php): طوله يحدد عرض الخانة وما يبقى للموافقة
+            const notice = document.createElement('p');
+            notice.className = 'text-xs text-muted';
+            notice.textContent = slot.dataset.notice;
+            slot.insertAdjacentHTML('afterbegin', '<div class="cf-turnstile" data-stand-in style="width:300px;height:65px;background:#d1d5db"></div>');
+            slot.append(notice);
         }
     });
 }
@@ -53,6 +57,18 @@ test('the create button is fully visible without scrolling in a 1366 laptop brow
     expect(measured.submit, `زر «إنشاء الحساب» في النافذة (${JSON.stringify(measured)})`).toBeLessThanOrEqual(657);
     expect(measured.oneRow, 'الموافقة والتحدي والزر في صف واحد').toBe(true);
     await page.screenshot({ path: `${DIR}/register-1366x657.png` });
+});
+
+// بلا مفتاح الموقع تخلو خانة التحدي فتُخفى، فلا تأخذ مسافة الصف بين الموافقة والزر (المشرف على طلب الدمج 189، منخفضة)
+test('the empty challenge slot takes no room in the actions row without a site key', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'الحاسوب');
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('/register');
+
+    await expect(page.locator('[data-bot-challenge-slot]')).toBeHidden();
+    await withChallengeStandIn(page);
+    await expect(page.locator('[data-bot-challenge-slot]')).toBeVisible();
+    await expect(page.locator('[data-bot-challenge-slot] p')).toHaveText('يتحقق مزود خارجي (Cloudflare) من أن مرسل النموذج إنسان.');
 });
 
 for (const [width, height] of [[1366, 768], [1440, 900], [1920, 1080]]) {
