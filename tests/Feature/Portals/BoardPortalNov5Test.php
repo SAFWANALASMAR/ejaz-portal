@@ -5,6 +5,7 @@ use App\Enums\RoleName;
 use App\Filament\Resources\AssemblyMemberships\AssemblyMembershipResource;
 use App\Filament\Resources\RegisterEntries\RegisterEntryResource;
 use App\Filament\Widgets\RegistersOverviewWidget;
+use App\Models\LiveStream;
 use App\Models\Meeting;
 use App\Models\RegisterEntry;
 use App\Models\User;
@@ -52,12 +53,22 @@ it('shows the board the council cards and the site stats in their account, each 
         ->assertSee(__('account.council.stats.media_views'));
 });
 
-it('sends the live card to the public live page when no meeting is coming', function () {
+it('sends the live card to the meetings page when no meeting is coming and nothing is streamed, never to a 404', function () {
+    // قبول 6 نوفمبر: كانت إلى /live فترد 404 حين لا بث منشور
     $board = userWithRole(RoleName::BoardMember);
 
-    $this->actingAs($board)->get('/account')->assertOk()
-        ->assertSee('data-council-card="live"', false)
-        ->assertSee('href="'.route('live').'"', false);
+    $html = (string) $this->actingAs($board)->get('/account')->assertOk()->getContent();
+    expect($html)->toContain('href="'.route('assembly.meetings.index').'" data-council-card="live"');
+    $this->actingAs($board)->get(route('assembly.meetings.index'))->assertOk();
+});
+
+it('sends the live card to the live page when a stream is published and no meeting is coming', function () {
+    LiveStream::factory()->create();
+    $board = userWithRole(RoleName::BoardMember);
+
+    expect((string) $this->actingAs($board)->get('/account')->getContent())
+        ->toContain('href="'.route('live').'" data-council-card="live"');
+    $this->actingAs($board)->get(route('live'))->assertOk();
 });
 
 it('shows a general assembly member the site stats only, and a beneficiary neither', function () {
