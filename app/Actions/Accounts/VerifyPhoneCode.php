@@ -3,12 +3,15 @@
 namespace App\Actions\Accounts;
 
 use App\Actions\Users\ReleasePhone;
+use App\Enums\ActivityEvent;
+use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -94,13 +97,22 @@ class VerifyPhoneCode
     private function claimNumber(User $user): void
     {
         $phone = $user->phoneToVerify();
+        $staff = null;
 
         try {
-            DB::transaction(function () use ($user, $phone): void {
+            DB::transaction(function () use ($user, $phone, &$staff): void {
                 $holder = User::query()->where('phone', $phone)->whereKeyNot($user->getKey())->lockForUpdate()->first();
 
                 if ($holder !== null && $holder->phone_verified_at !== null) {
                     throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
+                }
+
+                // ولا يُنزع رقم حساب له دور في اللوحة بالرمز: قد يكون رقم موظف لم يوثّقه، فيحرره مدير النظام بعد التحقق
+                // (البلاغ 185، L6)
+                if ($holder !== null && $holder->hasAnyRole(RoleName::values(RoleName::panelRoles()))) {
+                    $staff = $holder;
+
+                    return;
                 }
 
                 if ($holder !== null) {
@@ -111,6 +123,15 @@ class VerifyPhoneCode
             });
         } catch (UniqueConstraintViolationException) {
             // حسابان وثّقا الرقم نفسه في اللحظة نفسها
+            throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
+        }
+
+        if ($staff !== null) {
+            // للمسؤول في سجل العمليات وسجل الخادم، بلا الرقم
+            activity('security')->causedBy($user)->performedOn($staff)
+                ->event(ActivityEvent::PhoneClaimRefused->value)->log(ActivityEvent::PhoneClaimRefused->value);
+            Log::warning('A verification code tried to take the unverified phone of a staff account.', ['holder' => $staff->id, 'claimant' => $user->id]);
+
             throw ValidationException::withMessages(['code' => __('account.phone.taken')]);
         }
     }

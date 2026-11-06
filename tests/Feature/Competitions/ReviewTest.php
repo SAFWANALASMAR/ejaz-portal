@@ -383,3 +383,38 @@ it('grades every ungraded entry during approval without lazy loading', function 
 
     expect($entries->map(fn ($entry) => $entry->fresh()->auto_score)->all())->toBe(['2.00', '0.00', '2.00']);
 });
+
+// البلاغ 185، I2: رابط المقطع لخمس دقائق بمتغير مستقل، والمشغّل يعيد طلب مسار البوابة عند الخطأ أو التوقف
+it('signs the reviewer video link for five minutes, apart from the chunk upload links', function () {
+    config(['filesystems.disks.content-s3' => ['driver' => 'local', 'root' => storage_path('framework/testing/disks/content-s3')]]);
+    $disk = Storage::fake('content-s3');
+    config(['filesystems.disks.content-s3.driver' => 's3', 'filesystems.private_disk' => 'content-s3', 'competitions.video.url_minutes' => 120]);
+    $expires = null;
+    $disk->buildTemporaryUrlsUsing(function (string $path, DateTimeInterface $expiration) use (&$expires): string {
+        $expires = $expiration;
+
+        return 'https://storage.example.test/'.$path.'?signature=x';
+    });
+
+    $entry = submittedEntry();
+    $disk->put('competition-videos/clip.mp4', 'video-bytes');
+    $video = new SubmissionVideo;
+    $video->submission_id = $entry->id;
+    $video->question_id = $this->video->id;
+    $video->status = VideoStatus::Ready;
+    $video->size = 11;
+    $video->chunk_count = 1;
+    $video->path = 'competition-videos/clip.mp4';
+    $video->save();
+    app(AssignReviewers::class)->handle($this->manager, $this->competition, [$entry->id], [$this->reviewerA->id]);
+
+    expect(config('competitions.video.review_url_minutes'))->toBe(5);
+    $this->actingAs($this->reviewerA)->get(route('competitions.reviews.video', [SubmissionReview::sole(), $video]))->assertRedirect();
+    expect(now()->diffInSeconds($expires))->toBeGreaterThan(4 * 60)->toBeLessThanOrEqual(5 * 60);
+
+    // والمشغّل يعيد طلب مسار البوابة نفسه عند الخطأ أو التوقف، بحد للمحاولات
+    $player = view('filament.reviews.video', ['label' => 'س', 'video' => $video, 'review' => SubmissionReview::sole()])->render();
+    expect($player)->toContain('x-on:error="reload()"')->toContain('x-on:stalled="reload()"')
+        ->toContain('this.tries++ >= 5')
+        ->toContain('src="'.e(route('competitions.reviews.video', [SubmissionReview::sole(), $video])).'"');
+});
