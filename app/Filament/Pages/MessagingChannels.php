@@ -94,8 +94,11 @@ class MessagingChannels extends Page
                 'phone_number_id' => $whatsapp->option('phone_number_id'),
                 'graph_version' => $whatsapp->option('graph_version') ?? config('services.whatsapp.graph_version'),
                 'language' => $whatsapp->option('language') ?? config('services.whatsapp.language'),
-                'templates' => ['exam_receipt' => $whatsapp->option('templates.exam_receipt')],
-                'usages' => ['exam_receipt' => MessagingSettings::usageEnabled('whatsapp', 'exam_receipt')],
+                'templates' => ['exam_receipt' => $whatsapp->option('templates.exam_receipt'), 'otp' => $whatsapp->option('templates.otp')],
+                'usages' => [
+                    'exam_receipt' => MessagingSettings::usageEnabled('whatsapp', 'exam_receipt'),
+                    'otp' => MessagingSettings::usageEnabled('whatsapp', 'otp'),
+                ],
             ],
         ]);
     }
@@ -156,11 +159,19 @@ class MessagingChannels extends Page
                             ->maxLength(512)
                             ->extraInputAttributes(['dir' => 'ltr'])
                             ->columnSpanFull(),
+                        TextInput::make('whatsapp.templates.otp')->label(__('messaging.whatsapp.templates.otp'))
+                            ->helperText(__('messaging.whatsapp.templates.otp_hint'))
+                            ->maxLength(512)
+                            ->extraInputAttributes(['dir' => 'ltr'])
+                            ->columnSpanFull(),
                         ...$this->secretFields('whatsapp', 'access_token', __('messaging.whatsapp.access_token')),
                         ...$this->secretFields('whatsapp', 'app_secret', __('messaging.whatsapp.app_secret')),
                         ...$this->secretFields('whatsapp', 'verify_token', __('messaging.whatsapp.verify_token')),
                         Toggle::make('whatsapp.usages.exam_receipt')->label(__('messaging.usages.exam_receipt'))
                             ->helperText(__('messaging.usages.hint'))
+                            ->columnSpanFull(),
+                        Toggle::make('whatsapp.usages.otp')->label(__('messaging.usages.otp'))
+                            ->helperText(__('messaging.usages.otp_hint'))
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -316,11 +327,12 @@ class MessagingChannels extends Page
     }
 
     /**
-     * القنوات التي يلزمها مزود ولا مزود لها: الرسائل النصية دائماً (رموز التحقق)، وواتساب متى فُعّل له استعمال.
+     * القنوات التي يلزمها مزود ولا مزود لها: الرسائل النصية ما لم تذهب رموز التحقق بواتساب (أو فُعّل لها استعمال)، وواتساب
+     * متى فُعّل له استعمال.
      */
     private function unreadyChannels(): string
     {
-        $needed = [MessagingChannel::SMS];
+        $needed = MessagingSettings::otpViaWhatsApp() && ! MessagingSettings::usageEnabled('sms', 'request_updates') ? [] : [MessagingChannel::SMS];
 
         if (collect(array_keys((array) config('messaging.usages.whatsapp')))->contains(fn (string $usage): bool => MessagingSettings::usageEnabled('whatsapp', $usage))) {
             $needed[] = MessagingChannel::WHATSAPP;

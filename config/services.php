@@ -59,7 +59,11 @@ return [
         'language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'ar'),
         'templates' => [
             'exam_receipt' => env('WHATSAPP_TEMPLATE_EXAM_RECEIPT'),
+            // قالب «المصادقة» عند Meta بزر «نسخ الرمز»: متغيره الرمز وحده (docs/guides/messaging.md)
+            'otp' => env('WHATSAPP_TEMPLATE_OTP'),
         ],
+        // رموز التحقق (توثيق الجوال واستعادة كلمة المرور) عبر واتساب بدل الرسائل النصية (قرار صفوان، 6 نوفمبر 2026)
+        'otp' => (bool) env('WHATSAPP_OTP', false),
     ],
 
     // التحدي ضد الآليات على إرسال غير المسجلين: fake في التطوير والاختبارات، وturnstile (Cloudflare)
