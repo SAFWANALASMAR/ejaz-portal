@@ -37,10 +37,10 @@ use Spatie\Activitylog\Models\Activity;
 beforeEach(function () {
     Storage::fake('local');
     $this->director = userWithRole(RoleName::ExecutiveDirector);
+    $this->secretary = userWithRole(RoleName::Secretary);
     $this->board = userWithRole(RoleName::BoardMember);
     // المطّلع على السجلات بلا تعديل: المشرف العام. وعضو المجلس لم يعد يراها (البند ٤، ليلة 5 نوفمبر — decisions/2026-11-06-board-portal.md)
     $this->reader = userWithRole(RoleName::SuperAdmin);
-    $this->board = userWithRole(RoleName::BoardMember);
     $this->projects = userWithRole(RoleName::ProjectsManager);
 });
 
