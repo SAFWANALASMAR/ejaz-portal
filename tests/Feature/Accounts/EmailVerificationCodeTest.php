@@ -4,7 +4,9 @@ use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Models\Competition;
 use App\Models\User;
 use App\Notifications\EmailVerificationCode;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 /*
 | رمز توثيق البريد (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md): البريد إلزامي في التسجيل، ورمز من
@@ -89,7 +91,8 @@ it('binds the code to the email it was sent to', function () {
 
     $user->forceFill(['email' => 'changed@example.test'])->save();
 
-    $this->post(route('account.email.verify.store'), ['code' => $code])->assertSessionHasErrors(['code' => __('account.phone.expired')]);
+    // الحارس يحتفظ بنسخة الحساب من طلب التسجيل في الاختبار، وفي الإنتاج يُحمَّل في كل طلب
+    $this->actingAs($user->fresh())->post(route('account.email.verify.store'), ['code' => $code])->assertSessionHasErrors(['code' => __('account.phone.expired')]);
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
 });
 
@@ -142,4 +145,37 @@ it('still lets an older account with a verified phone and no verified email regi
     $user = User::factory()->unverified()->create(['phone' => '+966551114444', 'phone_verified_at' => now()]);
 
     $this->actingAs($user)->get('/competitions/brahin/register')->assertOk();
+});
+
+// مراجعة الأمن على #207، م١: رابط التوثيق القديم تحت حدود البريد المستهدف نفسها
+it('bounds the old verification link route by the same per address limits as the code', function () {
+    $user = User::factory()->unverified()->create(['email' => 'target@example.test', 'phone' => '+966551115555']);
+    $this->actingAs($user);
+
+    foreach (range(1, 5) as $i) {
+        $this->travel(61)->seconds();
+        $i % 2 === 0 ? $this->post(route('verification.send')) : $this->post(route('account.email.send'))->assertSessionHasNoErrors();
+    }
+
+    $this->travel(61)->seconds();
+    $this->post(route('account.email.send'))->assertSessionHasErrors(['code' => __('account.email_code.address_busy')]);
+
+    Notification::fake();
+    $this->post(route('verification.send'));
+    Notification::assertNothingSent();
+});
+
+// م٢: سقف للبوابة كلها في الساعة
+it('pauses email codes at the portal hourly cap, with one log line', function () {
+    config(['security.email_codes_per_hour' => 1]);
+    Log::spy();
+
+    app(SendEmailVerificationCode::class)->handle(User::factory()->unverified()->create(['phone' => '+966551116666']));
+
+    $second = User::factory()->unverified()->create(['phone' => '+966551117777']);
+    expect(fn () => app(SendEmailVerificationCode::class)->handle($second))->toThrow(ValidationException::class, __('account.phone.unavailable'));
+    expect(fn () => app(SendEmailVerificationCode::class)->handle($second))->toThrow(ValidationException::class);
+
+    Log::shouldHaveReceived('critical')->once();
+    Notification::assertNotSentTo($second, EmailVerificationCode::class);
 });

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\EmailVerificationCode;
 use App\Support\LoginIdentifier;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * الذي أُرسل إليه، ولا يُخزَّن نصاً.
  *
  * الحدود: لكل حساب رمز في الدقيقة وخمسة في الساعة، ولكل بريد مستهدف خمسة في الساعة وعشرة في اليوم أياً كان الحساب،
- * فلا يُقصف بريد برسائل بنقله بين حسابات. وسقف إنشاء الحسابات يحد ما يُرسل من التسجيل (CreateNewUser).
+ * فلا يُقصف بريد برسائل بنقله بين حسابات، وسقف للبوابة كلها في الساعة (reserveAddress)، ورابط التوثيق تحت الحدود نفسها.
  */
 class SendEmailVerificationCode
 {
@@ -47,21 +48,12 @@ class SendEmailVerificationCode
             }
         }
 
-        // مفتاح البريد ببصمته، فلا يُخزَّن البريد نصاً في مفاتيح الحدود
-        $address = LoginIdentifier::hash($email);
-
-        foreach (self::ADDRESS_LIMITS as [$prefix, $max]) {
-            if (RateLimiter::tooManyAttempts($prefix.$address, $max)) {
-                throw ValidationException::withMessages(['code' => __('account.email_code.address_busy')]);
-            }
+        if (($refused = self::reserveAddress($email)) !== null) {
+            throw ValidationException::withMessages(['code' => __($refused)]);
         }
 
         RateLimiter::hit('email-otp-minute:'.$user->id, 60);
         RateLimiter::hit('email-otp-hour:'.$user->id, 3600);
-
-        foreach (self::ADDRESS_LIMITS as [$prefix, , $decay]) {
-            RateLimiter::hit($prefix.$address, $decay);
-        }
 
         $code = (string) random_int(100000, 999999);
         $expiresAt = now()->addMinutes(self::TTL_MINUTES);
@@ -74,6 +66,41 @@ class SendEmailVerificationCode
         ], $expiresAt);
 
         $user->notify(new EmailVerificationCode($code, self::TTL_MINUTES));
+    }
+
+    /**
+     * حدود البريد المستهدف وسقف البوابة لكل رسالة توثيق إلى بريد، رمزاً كانت أو رابطاً (User::sendEmailVerificationNotification
+     * — مراجعة الأمن على #207، م١ وم٢): يحسبها ويرد null إن سُمح، وإلا مفتاح رسالة الرفض بلا حساب.
+     */
+    public static function reserveAddress(string $email): ?string
+    {
+        // مفتاح البريد ببصمته، فلا يُخزَّن البريد نصاً في مفاتيح الحدود
+        $address = LoginIdentifier::hash($email);
+
+        foreach (self::ADDRESS_LIMITS as [$prefix, $max]) {
+            if (RateLimiter::tooManyAttempts($prefix.$address, $max)) {
+                return 'account.email_code.address_busy';
+            }
+        }
+
+        // سقف البوابة في الساعة دون حد مزود البريد، فلا يُحجب صندوق الجمعية فيتوقف الرمز عن الجميع
+        $cap = (int) config('security.email_codes_per_hour');
+
+        if (RateLimiter::tooManyAttempts('email-otp:global', $cap)) {
+            if (Cache::add('email-otp-cap-alert', true, 3600)) {
+                Log::critical('Email verification hourly cap reached; codes are paused.', ['cap' => $cap]);
+            }
+
+            return 'account.phone.unavailable';
+        }
+
+        foreach (self::ADDRESS_LIMITS as [$prefix, , $decay]) {
+            RateLimiter::hit($prefix.$address, $decay);
+        }
+
+        RateLimiter::hit('email-otp:global', 3600);
+
+        return null;
     }
 
     public static function cacheKey(User $user): string
