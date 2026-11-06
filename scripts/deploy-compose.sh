@@ -29,9 +29,9 @@ grep -Eq '^APP_ENV=(production|staging)$' .env || fail "APP_ENV ليس productio
 grep -Eq '^APP_DEBUG=false$' .env || fail "APP_DEBUG يجب أن يكون false"
 grep -Eq '^APP_URL=https://' .env || fail "APP_URL يجب أن يبدأ بـ https://"
 grep -Eq '^SESSION_SECURE_COOKIE=true$' .env || fail "SESSION_SECURE_COOKIE يجب أن يكون true (والتجريبية أيضاً، فافتراضه آمن في production وحده)"
-grep -Eq '^APP_KEY=base64:.+' .env || fail "APP_KEY غير مضبوط: key:generate --show مرة، ثم القيمة في .env ومدير كلمات المرور (docs/deploy.md «ثانياً»)"
+grep -Eq '^APP_KEY="?base64:.+' .env || fail "APP_KEY غير مضبوط: key:generate --show مرة، ثم القيمة في .env ومدير كلمات المرور (docs/deploy.md «ثانياً»)"
 # قيمة مثال باقية بين <...> في سطر غير معلّق (مثل MAIL_HOST=<مزود البريد>): تُستبدل أو تُفرغ قبل النشر
-! grep -Eq '^[^#]*=.*<[^>]*>' .env || fail "في .env قيمة مثال بين <...> لم تُستبدل: $(grep -Eo '^[^#=]+=.*<[^>]*>' .env | cut -d= -f1 | tr '\n' ' ')"
+! grep -Eq '^[A-Z0-9_]+="?<[^>]*>"?$' .env || fail "في .env قيمة مثال بين <...> لم تُستبدل: $(grep -E '^[A-Z0-9_]+="?<[^>]*>"?$' .env | cut -d= -f1 | tr '\n' ' ')"
 grep -Eq '^TRUSTED_PROXIES=.+' .env || echo "تنبيه: TRUSTED_PROXIES فارغ. خلف موزع أحمال تتعطل حدود الشبكات (docs/security.md)"
 grep -Eq '^TRUSTED_PROXIES=.*\*' .env && echo "تنبيه: TRUSTED_PROXIES=* يصدّق رأس X-Forwarded-For من أي مصدر، فتُزوَّر حدود الشبكات. لا * إلا والخادم معزول خلف موزع يستبدل الرأس، والأفضل عناوين الموزع بعينها (docs/security.md)"
 grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل حتى يُضبط المزود من «قنوات التواصل» في اللوحة (docs/guides/messaging.md)"

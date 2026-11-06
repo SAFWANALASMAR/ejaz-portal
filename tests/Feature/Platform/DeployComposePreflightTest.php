@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Process;
 function deployPreflight(string $env): ProcessResult
 {
     $lines = collect(file(base_path('scripts/deploy-compose.sh'), FILE_IGNORE_NEW_LINES))
-        ->filter(fn (string $line) => str_contains($line, '^APP_KEY=') || str_contains($line, "'^[^#]*=.*<[^>]*>'"))
+        ->filter(fn (string $line) => str_contains($line, '^APP_KEY=') || str_contains($line, "'^[A-Z0-9_]+=\"?<[^>]*>\"?$'"))
         ->implode("\n");
 
     $dir = storage_path('framework/testing/deploy-preflight-'.uniqid());
@@ -33,6 +33,13 @@ it('passes a filled .env, ignoring placeholders in comments', function () {
 
     expect($result->successful())->toBeTrue($result->errorOutput())
         ->and($result->output())->toContain('passed');
+});
+
+// قيمة حقيقية فيها < و> (كلمة مرور) لا تُعد مثالاً، والمفتاح المقتبس مقبول (مراجعة #210)
+it('accepts a quoted APP_KEY and a real value that contains angle brackets', function () {
+    $result = deployPreflight("APP_KEY=\"base64:abc=\"\nDB_PASSWORD=a<b>c\nMAIL_FROM_NAME=\"جمعية إعجاز\"\n");
+
+    expect($result->successful())->toBeTrue($result->errorOutput());
 });
 
 it('refuses a missing APP_KEY', function () {
