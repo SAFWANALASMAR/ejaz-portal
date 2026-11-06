@@ -67,7 +67,7 @@ class BuildCouncilPortal
             ['key' => 'assembly_members', 'url' => $user->can('viewAny', AssemblyMembership::class) ? AssemblyMembershipResource::getUrl() : null, 'external' => false, 'navigate' => false],
             ['key' => 'board', 'url' => AssemblyArea::board($user) ? route('assembly.index') : null, 'external' => false, 'navigate' => true],
             // إلى رابط تيمز للاجتماع القادم أو الجاري الذي يراه، وإلا صفحة البث المباشر العامة
-            ['key' => 'live', 'url' => $meeting?->online_join_url ?? route('live'), 'external' => $meeting !== null, 'navigate' => $meeting === null],
+            ['key' => 'live', 'url' => $meeting->online_join_url ?? route('live'), 'external' => $meeting !== null, 'navigate' => $meeting === null],
             ['key' => 'governance', 'url' => route('governance.index'), 'external' => false, 'navigate' => true],
         ];
 
