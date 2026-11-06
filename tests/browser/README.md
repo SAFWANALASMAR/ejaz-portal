@@ -17,6 +17,8 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
 
 بدون المستخدم التجريبي تُختبر صفحات الزائر فقط.
 
+والاختبارات التي تنشئ حساباً من نموذج التسجيل (`director-acceptance` و`v015-e2e` و`full-site`) تقرأ رمز توثيق البريد من Mailpit على `MAILPIT_URL` (الافتراضي `http://localhost:8025`) عبر `mail.helpers.mjs`، وطابور البريد يعمل (Horizon).
+
 ## إضافة شاشة
 
 أضفها إلى `guestScreens` أو `accountScreens` في `screens.spec.mjs`: الاسم، والمسار، ومحدد العنوان الرئيسي.

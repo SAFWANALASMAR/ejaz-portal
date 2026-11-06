@@ -26,6 +26,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 import fs from 'node:fs';
+import { verifyEmailCode } from './mail.helpers.mjs';
 
 // ما ألغاه التصور النهائي v63 (أمر التصور §٢ و#111) وملاحظات 1 نوفمبر (#118)، فلا يُقبل عليه
 const SUPERSEDED = {
@@ -894,7 +895,7 @@ test.describe('acceptance: programs how-to', () => {
         await check(href);
     });
 
-    test('programs-how-to: signing up from the competition returns to its registration', async ({ page, baseURL }) => {
+    test('programs-how-to: signing up from the competition returns to its registration', async ({ page, baseURL, request }) => {
         // ينشئ حساباً في كل تشغيل، فلا يعمل إلا على نسخة محلية
         test.skip(!/localhost|127\.0\.0\.1|\.test/.test(baseURL), 'ينشئ حساباً: النسخ المحلية وحدها');
         await openCompetition(page);
@@ -904,6 +905,9 @@ test.describe('acceptance: programs how-to', () => {
         await Promise.all([page.waitForURL((url) => url.pathname === '/register'), signup.click()]);
         await page.fill('#field-name', 'حساب قبول تجريبي');
         await page.fill('#field-phone', `05${String(Date.now()).slice(-8)}`);
+        // البريد إلزامي وفريد، وإليه رمز التوثيق (decisions/2026-11-06-email-otp.md)
+        const email = `acceptance-${Date.now()}@example.com`;
+        await page.fill('#field-email', email);
         const password = `Ejaz-${Date.now()}-Accept!`;
         await page.fill('#field-password', password);
         await page.fill('#field-password_confirmation', password);
@@ -913,11 +917,19 @@ test.describe('acceptance: programs how-to', () => {
         }
         await Promise.all([page.waitForURL((url) => url.pathname !== '/register'), page.locator('main form button[type=submit]').first().click()]);
 
-        // إلى «حسابي» لا إلى المسابقة (decisions/2026-11-05-phone-login.md). ومع التوثيق المفعّل يمر بتوثيق الجوال، ولا رمز
-        // يصل في الاختبار، فيغطيه Pest: RegisterDestinationTest
-        test.skip(/verif/.test(new URL(page.url()).pathname), 'التوثيق مفعّل: الوجهة بعده في RegisterDestinationTest');
+        // ومع توثيق الجوال المفعّل يمر به، ولا رمز جوال يصل في الاختبار، فيغطيه Pest: RegisterDestinationTest
+        test.skip(new URL(page.url()).pathname.includes('verify-phone'), 'توثيق الجوال مفعّل: الوجهة بعده في RegisterDestinationTest');
+
+        // إلى رمز البريد (decisions/2026-11-06-email-otp.md)، ثم «حسابي» لا المسابقة (decisions/2026-11-05-phone-login.md)
+        await expect(page).toHaveURL(/\/email\/verify$/);
+        await expectRtlNoScroll(page);
+        await verifyEmailCode(page, request, email);
         await expect(page).toHaveURL(/\/account\/?$/);
         await expectRtlNoScroll(page);
+
+        // وبالبريد الموثق يفتح التسجيل في المسابقة بلا تحويل إلى التوثيق
+        await visit(page, `${COMPETITION}/register`);
+        await expect(page).toHaveURL(new RegExp(`${COMPETITION}/register$`));
     });
 });
 
