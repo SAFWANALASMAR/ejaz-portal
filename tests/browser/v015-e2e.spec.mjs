@@ -321,8 +321,8 @@ test.describe('executive director', () => {
     test.use({ storageState: state('director') });
 
     test('moving from the site to the panel raises no view-transition error', async ({ page }) => {
-        // تقرير الاختبار 2026-11-03، البند ٢، وأُصلح (docs/decisions/2026-11-03-mobile-menu.md): الموقع العام يطلب انتقال المستندات
-        // (@view-transition في resources/css/visual.css) واللوحة لا تطلبه، فكان الانتقال بزر «تعديل هذه الصفحة» يُلغى بخطأ غير ملتقط
+        // تقرير الاختبار 2026-11-03، البند ٢: كان الموقع العام يطلب انتقال المستندات واللوحة لا تطلبه، فيُلغى الانتقال بزر
+        // «تعديل هذه الصفحة» بخطأ غير ملتقط. وأُسقط @view-transition (decisions/2026-11-06-transition-speed.md)، والاختبار حارس من عودته
         const errors = [];
         page.on('pageerror', (error) => errors.push(error.message));
         await page.goto('/programs');

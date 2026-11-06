@@ -29,5 +29,10 @@ it('names the field by the violated index', function (string $index, string $fie
 it('rethrows a violation of any other index', function () {
     $exception = uniqueViolation('users_username_unique');
 
-    expect(fn () => User::uniqueViolationField($exception))->toThrow(UniqueConstraintViolationException::class);
+    try {
+        User::uniqueViolationField($exception);
+        $this->fail('expected the violation to be rethrown');
+    } catch (UniqueConstraintViolationException $thrown) {
+        expect($thrown)->toBe($exception);
+    }
 });
