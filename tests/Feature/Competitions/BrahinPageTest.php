@@ -33,6 +33,8 @@ beforeEach(function () {
 it('shows the four domains and the stage cards with the day and date, without the domain, the question count or the duration', function () {
     $round = $this->rounds->first();
     $day = __('competitions.student.page.round_day', ['day' => __('dates.days.'.Dates::local($round->starts_at)->dayOfWeek), 'date' => Dates::display($round->starts_at), 'hijri' => Dates::hijri($round->starts_at)]);
+    // البذرة تبدأ المراحل الخميس 00:00 بتوقيت الرياض (الأربعاء بتوقيت UTC): يُقرأ اليوم بتوقيت الرياض
+    expect($day)->toStartWith('الخميس، ');
 
     $response = $this->get('/competitions/brahin-1448')->assertOk()
         ->assertSeeInOrder([

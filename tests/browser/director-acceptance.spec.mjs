@@ -309,7 +309,7 @@ test.describe('acceptance: Brahin director notes', () => {
         await expect(rounds.locator('[data-round-day]')).toHaveCount(4);
         for (const card of await cards.allInnerTexts()) {
             expect(card).not.toMatch(/سؤال|أسئلة|دقيقة|دقائق/u);
-            expect(card).toMatch(/(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)،/u);
+            expect(card).toMatch(/الخميس، /u);
             expect(card).toContain('هـ');
         }
         await expectRtlNoScroll(page, COMPETITION);
