@@ -26,6 +26,9 @@ final class SpaLink
         'account.forms.show',
         'account.data.export', 'competitions.works.show', 'competitions.reviews.*', 'competitions.videos.status',
         'competitions.exam.intro.video', 'competitions.exam.media', 'registers.attachment', 'storage.local', 'livewire.preview-file',
+        // صفحات اختبار الطالب بوضع التركيز: كل خطوة نموذج يُرسل كاملاً، فلا Livewire فيها ولا طبقة الانتقال العامة
+        // (decisions/2026-11-06-exam-focus-mode.md)
+        'competitions.student.unit', 'competitions.student.review',
         // الدفع والتبرع، والمتجر الداخلي المؤرشف. وصفحة «المتجر والتبرعات» (store.index) صفحة داخلية بالتنقّل السريع
         'donate', 'payments.*', 'store.catalog',
         // صفحة الاستبيان: سياسة أمان المحتوى فيها تسمح بعنصر التحدي وحدها، ولا تتغير السياسة بالتنقّل

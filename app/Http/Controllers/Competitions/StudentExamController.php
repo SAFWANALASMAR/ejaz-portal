@@ -165,6 +165,12 @@ class StudentExamController extends Controller
 
         $bank = RoundQuestions::load($stage);
 
+        // الصفحات التي فتحها الطالب في هذه المحاولة، لتلوين ما زاره وتركه بلا إجابة في عمود الأرقام (decisions/2026-11-06-exam-focus-mode.md).
+        // حالة عرض في الجلسة وحدها: لا تمس الإجابات ولا المحاولة
+        $visitedKey = 'competitions.exam.visited.'.$attempt->id;
+        $visited = array_values(array_unique([...array_map(intval(...), (array) $request->session()->get($visitedKey, [])), $number]));
+        $request->session()->put($visitedKey, $visited);
+
         return view('competitions.student.unit', [
             'competition' => $competition,
             'round' => $stage,
@@ -175,6 +181,7 @@ class StudentExamController extends Controller
             'questions' => $bank['questions'],
             'passage' => $unit['passage'] !== null ? $bank['passages']->get($unit['passage']) : null,
             'offset' => $this->questionOffset($attempt, $number - 1),
+            'visited' => $visited,
         ]);
     }
 

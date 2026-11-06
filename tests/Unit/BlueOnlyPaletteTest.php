@@ -2,8 +2,8 @@
 
 /*
 | الأزرق وحده (أمر التصور النهائي، النسخة 63 — البند G1): لا بنفسجي ولا أخضر في الأنماط ولا القوالب ولا سمة لوحة الإدارة ولا
-| الرسم المؤقت. يُفحص كل لون مكتوب (#hex وrgb) بدرجته، وكل صنف Tailwind من عائلتيهما. والاستثناءات ثلاثة لا غير: أحمر يوتيوب،
-| وحالة «مرفوض»، وأسود بطاقة X، وليست من العائلتين.
+| الرسم المؤقت. يُفحص كل لون مكتوب (#hex وrgb) بدرجته، وكل صنف Tailwind من عائلتيهما. والاستثناءات: أحمر يوتيوب، وحالة «مرفوض»،
+| وأسود بطاقة X، وليست من العائلتين. ورابعها كهرماني السؤال المتجاوز في عمود أرقام الاختبار (examSkippedAmber أدناه).
 */
 
 /**
@@ -56,6 +56,15 @@ function hsl(int $r, int $g, int $b): array
 function nationalIdentityAccent(string $path, int $r, int $g, int $b): bool
 {
     return $path === 'resources/css/concept.css' && in_array([$r, $g, $b], [[201, 169, 97], [14, 107, 71]], true);
+}
+
+/**
+ * الاستثناء الرابع (ملاحظات المدير التنفيذي، 7 نوفمبر 2026 00:39، بموافقة صفوان — decisions/2026-11-06-exam-focus-mode.md): السؤال
+ * الذي زاره الطالب وتركه بلا إجابة في عمود أرقام الاختبار بكهرماني هادئ #F6C453، لا الأحمر المرتبط بالخطأ، في exam-focus.css وحده.
+ */
+function examSkippedAmber(string $path, int $r, int $g, int $b): bool
+{
+    return $path === 'resources/css/exam-focus.css' && [$r, $g, $b] === [246, 196, 83];
 }
 
 it('writes no violet or green colour anywhere in the styles, templates, admin theme or placeholder art', function () {
@@ -122,7 +131,7 @@ it('writes no amber, yellow or orange colour anywhere in the styles, templates o
                 [$r, $g, $b] = [(int) $colour[2], (int) $colour[3], (int) $colour[4]];
             }
 
-            if (nationalIdentityAccent($path, $r, $g, $b)) {
+            if (nationalIdentityAccent($path, $r, $g, $b) || examSkippedAmber($path, $r, $g, $b)) {
                 continue;
             }
 

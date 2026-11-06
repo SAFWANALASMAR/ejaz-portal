@@ -16,6 +16,8 @@
 @import './account-polish.css';
 /* شريط تصفية «منشوراتنا» بالمنصة والنوع (ملاحظة صفوان على طلب الدمج 165، 4 نوفمبر 2026) */
 @import './social-filters.css';
+/* صفحات اختبار الطالب بوضع التركيز: الشريط العلوي والوقت وعمود الأرقام (docs/decisions/2026-11-06-exam-focus-mode.md) */
+@import './exam-focus.css';
 
 @source '../views';
 @source '../js';

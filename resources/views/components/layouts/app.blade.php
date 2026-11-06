@@ -11,6 +11,9 @@
     'publishedTime' => null,
     // false: صفحة في مسار صفحة ثابتة تعرض غيرها (بوابة الأعضاء في assembly.index)، فلا يغلب عليها عنوان «محرر الصفحات» ووصفه
     'editable' => true,
+    // صفحات الاختبار (x-layouts.exam): بلا رأس الموقع وقائمته ولا شريط العودة ولا التذييل ولا البحث ولا طبقة الانتقال ولا
+    // المساعد، من أول سؤال حتى التسليم (decisions/2026-11-06-exam-focus-mode.md)
+    'focus' => false,
 ])
 
 @php
@@ -99,28 +102,32 @@
     {{-- بعد كل تنقّل سريع يُعلَن فيها عنوان الصفحة الجديدة لقارئ الشاشة (resources/js/page.js) --}}
     <p class="sr-only" aria-live="polite" data-page-announcer></p>
 
-    @include('partials.header')
+    @unless ($focus)
+        @include('partials.header')
 
-    {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation). وفي صفحة لها رأس (x-page-hero) يرسمه الرأس
-         في أعلاه كما في التصور النهائي، والمحتوى يُرسم قبل التخطيط فيُعرف ذلك هنا --}}
-    @if (\App\Support\BackNavigation::shows(request()->route()) && ! str_contains((string) $slot, 'data-page-hero'))
-        <x-back-nav />
-    @endif
+        {{-- شريط العودة في كل صفحة داخلية، لا الرئيسية (App\Support\BackNavigation). وفي صفحة لها رأس (x-page-hero) يرسمه الرأس
+             في أعلاه كما في التصور النهائي، والمحتوى يُرسم قبل التخطيط فيُعرف ذلك هنا --}}
+        @if (\App\Support\BackNavigation::shows(request()->route()) && ! str_contains((string) $slot, 'data-page-hero'))
+            <x-back-nav />
+        @endif
+    @endunless
 
     {{-- بعد كل تنقّل سريع يُنقل التركيز إلى عنوانه h1، أو إليه إن لم يكن (resources/js/page.js)، فلا إطار حوله --}}
     <main id="main" class="flex-1 focus:outline-none" tabindex="-1" aria-label="{{ __('site.main_content') }}">
         {{ $slot }}
     </main>
 
-    @include('partials.footer')
+    @unless ($focus)
+        @include('partials.footer')
 
-    @includeWhen($editable, 'partials.page-edit-button')
+        @includeWhen($editable, 'partials.page-edit-button')
 
-    {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
-    <span data-scroll-progress aria-hidden="true"></span>
+        {{-- شريط تقدّم التمرير (resources/js/motion.js). وزر العودة للأعلى في سطر التذييل كما في التصور النهائي --}}
+        <span data-scroll-progress aria-hidden="true"></span>
 
-    @include('partials.search-palette')
-    @include('partials.page-transition')
-    @include('partials.assistant')
+        @include('partials.search-palette')
+        @include('partials.page-transition')
+        @include('partials.assistant')
+    @endunless
 </body>
 </html>

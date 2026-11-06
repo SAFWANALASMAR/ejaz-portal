@@ -101,7 +101,71 @@ function grades(form, signal) {
     update();
 }
 
+// وضع التركيز (decisions/2026-11-06-exam-focus-mode.md): كل زر في صفحة السؤال يُرسل النموذج كاملاً، فيظهر فوراً أن الضغطة وصلت
+// (الزر المضغوط بدائرة تحميل والبقية باهتة، وإعلان لقارئ الشاشة)، ولا ترسل ضغطة ثانية طلباً ثانياً. ولا يُعطَّل الزر نفسه: قيمته
+// (go) تُرسل معه. وإن لم يرد الخادم في 15 ثانية يعود النموذج كما كان فتُعاد المحاولة. والإرسال الآلي (form.submit) لا يمر هنا
+function pending(form, signal) {
+    const saving = form.querySelector('[data-exam-saving]');
+    let release;
+
+    const reset = () => {
+        form.removeAttribute('data-exam-pending');
+        form.querySelectorAll('[data-exam-pressed]').forEach((button) => {
+            button.removeAttribute('data-exam-pressed');
+            button.removeAttribute('aria-busy');
+        });
+
+        if (saving) {
+            saving.textContent = '';
+        }
+    };
+
+    form.addEventListener(
+        'submit',
+        (event) => {
+            if (form.hasAttribute('data-exam-pending')) {
+                event.preventDefault();
+
+                return;
+            }
+
+            form.setAttribute('data-exam-pending', '');
+            event.submitter?.setAttribute('data-exam-pressed', '');
+            event.submitter?.setAttribute('aria-busy', 'true');
+
+            if (saving) {
+                saving.textContent = saving.dataset.message ?? '';
+            }
+
+            release = window.setTimeout(reset, 15000);
+        },
+        { signal },
+    );
+    signal.addEventListener('abort', () => window.clearTimeout(release));
+}
+
+// أرقام الصفحات: الحالي في وسط الشريط الأفقي (الجوال) أو العمود (الحاسوب واللوحي)، بتمرير قائمة الأرقام وحدها لا الصفحة، ومفتاح
+// الألوان خارجها ثابت
+function centerCurrent(nav) {
+    const current = nav.querySelector('[aria-current="step"]');
+
+    if (!current) {
+        return;
+    }
+
+    const box = nav.getBoundingClientRect();
+    const item = current.getBoundingClientRect();
+
+    if (nav.scrollWidth > nav.clientWidth + 1) {
+        nav.scrollLeft += item.left + item.width / 2 - (box.left + box.width / 2);
+    } else if (nav.scrollHeight > nav.clientHeight + 1) {
+        nav.scrollTop += item.top + item.height / 2 - (box.top + box.height / 2);
+    }
+}
+
 onPage((signal) => {
     document.querySelectorAll('[data-exam-timer]').forEach((element) => timer(element, signal));
+    document.querySelectorAll('form[data-exam-form]').forEach((form) => pending(form, signal));
+    document.querySelectorAll('[data-exam-units-list]').forEach(centerCurrent);
     document.querySelectorAll('form[data-student-register]').forEach((form) => grades(form, signal));
 });
