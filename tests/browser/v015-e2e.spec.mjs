@@ -14,6 +14,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { ACCOUNTS, STUDENTS, checkStep, login, state, visit, watch } from './v015-e2e.helpers.mjs';
+import { verifyEmailCode } from './mail.helpers.mjs';
 
 const ARABIC = /[\u0600-\u06FF]/;
 
@@ -148,19 +149,26 @@ test.describe('visitor', () => {
 // ── المستفيد ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test.describe('beneficiary: registration', () => {
-    test('registers a new account and lands on the dashboard', async ({ page, baseURL }, testInfo) => {
+    test('registers a new account, verifies the email code and lands on the dashboard', async ({ page, baseURL, request }, testInfo) => {
         const watcher = watch(page, baseURL);
         // جوال لكل مشروع وتشغيل: الرقم فريد على كل الحسابات (decisions/2026-11-05-phone-login.md)
         const phone = `05${testInfo.project.name.length % 10}${String(Date.now()).slice(-7)}`;
+        // والبريد إلزامي وفريد، وإليه رمز التوثيق (decisions/2026-11-06-email-otp.md)
+        const email = `e2e-register-${testInfo.project.name}-${Date.now()}@example.com`;
         const password = `E2e-${randomUUID()}`;
 
         await visit(page, testInfo, watcher, '/register', 'register');
         await page.fill('#field-name', 'مستفيد تجريبي للاختبار');
         await page.fill('#field-phone', phone);
+        await page.fill('#field-email', email);
         await page.fill('#field-password', password);
         await page.fill('#field-password_confirmation', password);
         await page.locator('input[name=privacy]').check();
         await Promise.all([page.waitForURL((url) => !url.pathname.startsWith('/register')), page.locator('main form button[type=submit]').first().click()]);
+        await expect(page).toHaveURL(/\/email\/verify$/);
+        await checkStep(page, testInfo, watcher, 'email-code');
+
+        await verifyEmailCode(page, request, email);
         await expect(page).toHaveURL(/\/account/);
         await checkStep(page, testInfo, watcher, 'registered');
 

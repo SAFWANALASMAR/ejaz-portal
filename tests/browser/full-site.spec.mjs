@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test';
 import { createHmac, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { verifyEmailCode } from './mail.helpers.mjs';
 
 const DOMAIN = process.env.DEMO_DOMAIN ?? 'ejaz-demo.test';
 const PASSWORD = process.env.DEMO_PASSWORD ?? '';
@@ -331,7 +332,9 @@ test.describe('الحسابات', () => {
         await submit(page, page.locator('main form button[type=submit]').first());
         await shot(page, 'after-register', testInfo);
 
-        await page.goto(await latestMailLink(request, email, '/verify'));
+        // بعد التسجيل إلى رمز البريد (decisions/2026-11-06-email-otp.md)
+        await expect(page).toHaveURL(/\/email\/verify$/);
+        await verifyEmailCode(page, request, email);
         await page.goto('/account');
         await expect(page).toHaveURL(/\/account$/);
 
