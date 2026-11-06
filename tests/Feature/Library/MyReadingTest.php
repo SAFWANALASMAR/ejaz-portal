@@ -742,7 +742,7 @@ it('uses the count forms for a book of unknown length and a completed book too',
 });
 
 // قبول ملاحظات 4 نوفمبر: زرا «أكمل المشاهدة» و«أكمل الاستماع» بقيا بعد إنهاء المقطع، ورابطهما يبدأ من النهاية
-it('drops the continue button of a video or audio played to its end, and keeps it before the end', function () {
+it('swaps the continue button of a video or audio played to its end for one from the start, and keeps it before the end', function () {
     $finishedVideo = LibraryItem::factory()->video()->create(['slug' => 'finished-video', 'title' => 'مقطع شوهد كاملاً']);
     $finishedAudio = LibraryItem::factory()->audio()->create(['slug' => 'finished-audio', 'title' => 'صوت سُمع كاملاً']);
     $halfAudio = LibraryItem::factory()->audio()->create(['slug' => 'half-audio', 'title' => 'صوت سُمع نصفه']);
@@ -754,8 +754,10 @@ it('drops the continue button of a video or audio played to its end, and keeps i
     $html = (string) $this->actingAs($this->reader)->get('/account/my-reading')->assertOk()->getContent();
     $card = fn (string $title): string => (string) str($html)->after($title)->before('</li>');
 
-    expect($card('مقطع شوهد كاملاً'))->toContain('شاهدت حتى 2:55 من 2:55')->not->toContain('data-reading-action')->not->toContain(__('reading.actions.continue_watching'))
-        ->and($card('صوت سُمع كاملاً'))->not->toContain('data-reading-action')->not->toContain(__('reading.actions.continue_listening'))
+    expect($card('مقطع شوهد كاملاً'))->toContain('شاهدت حتى 2:55 من 2:55')->not->toContain(__('reading.actions.continue_watching'))
+        ->toContain(__('reading.actions.watch_again'))->toContain('href="'.e(route('library.show', ['video', 'finished-video'])).'"')->not->toContain('resume=')
+        ->and($card('صوت سُمع كاملاً'))->not->toContain(__('reading.actions.continue_listening'))
+        ->toContain(__('reading.actions.listen_again'))->toContain('href="'.e(route('library.show', ['audio', 'finished-audio'])).'"')->not->toContain('resume=')
         ->and($card('صوت سُمع نصفه'))->toContain('data-reading-action')->toContain(__('reading.actions.continue_listening'))
         ->toContain(e(route('library.show', ['audio', 'half-audio', 'resume' => 200])));
 });

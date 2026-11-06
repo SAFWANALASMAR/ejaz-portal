@@ -50,6 +50,8 @@ return [
         'continue_reading' => 'أكمل القراءة',
         'continue_listening' => 'أكمل الاستماع',
         'continue_watching' => 'أكمل المشاهدة',
+        'listen_again' => 'استمع من البداية',
+        'watch_again' => 'شاهد من البداية',
         'open' => 'افتح',
     ],
 

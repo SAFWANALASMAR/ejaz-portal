@@ -26,8 +26,13 @@
         $status = $progress->duration_seconds
             ? __('reading.status.'.$verb, ['position' => LibraryProgress::clock($progress->last_position), 'duration' => LibraryProgress::clock($progress->duration_seconds)])
             : __('reading.status.'.$verb.'_no_duration', ['position' => LibraryProgress::clock($progress->last_position)]);
-        // ومن بلغ النهاية لا «أكمل» له (قبول ملاحظات 4 نوفمبر: كان رابطه يبدأ من النهاية)
-        $action = $progress->playedToEnd() ? null : __($kind === 'audio' ? 'reading.actions.continue_listening' : 'reading.actions.continue_watching');
+        // ومن بلغ النهاية لا «أكمل» له (قبول ملاحظات 4 نوفمبر: كان رابطه يبدأ من النهاية)، بل رابط من البداية بلا resume
+        if ($progress->playedToEnd()) {
+            $action = __($kind === 'audio' ? 'reading.actions.listen_again' : 'reading.actions.watch_again');
+            $resume = null;
+        } else {
+            $action = __($kind === 'audio' ? 'reading.actions.continue_listening' : 'reading.actions.continue_watching');
+        }
     } else {
         $status = __('reading.status.opened_'.$kind);
         $action = __('reading.actions.open');
@@ -49,10 +54,8 @@
         @endif
         <span class="tone-card-muted text-xs">{{ __('reading.status.last_activity', ['date' => Dates::display($progress->last_reported_at)]) }}</span>
     </span>
-    @if ($action !== null)
-        <a href="{{ $href }}" wire:navigate class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/40 bg-white/15 px-4 py-2 text-sm font-extrabold transition hover:bg-white/25" data-reading-action>
-            {{ $action }}<span class="sr-only">: {{ $item->title }}</span>
-            {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
-        </a>
-    @endif
+    <a href="{{ $href }}" wire:navigate class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/40 bg-white/15 px-4 py-2 text-sm font-extrabold transition hover:bg-white/25" data-reading-action>
+        {{ $action }}<span class="sr-only">: {{ $item->title }}</span>
+        {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
+    </a>
 </li>
