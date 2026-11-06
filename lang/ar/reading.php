@@ -29,9 +29,11 @@ return [
     ],
 
     'status' => [
-        'pages' => 'وصلت إلى الصفحة :page من :total — قرأت :read صفحة',
-        'pages_unknown_total' => 'وصلت إلى الصفحة :page — قرأت :read صفحة',
-        'completed' => 'مكتمل — قرأت :read من :total صفحة',
+        // صيغ العدد الست بـ trans_choice (صفر، وواحد، واثنان، و3–10، و11–99، ومئة فأكثر): «4 صفحات» لا «4 صفحة» (قبول ملاحظات 4 نوفمبر)
+        'pages' => 'وصلت إلى الصفحة :page من :total — قرأت :read صفحة|وصلت إلى الصفحة :page من :total — قرأت صفحة واحدة|وصلت إلى الصفحة :page من :total — قرأت صفحتين|وصلت إلى الصفحة :page من :total — قرأت :read صفحات|وصلت إلى الصفحة :page من :total — قرأت :read صفحة|وصلت إلى الصفحة :page من :total — قرأت :read صفحة',
+        'pages_unknown_total' => 'وصلت إلى الصفحة :page — قرأت :read صفحة|وصلت إلى الصفحة :page — قرأت صفحة واحدة|وصلت إلى الصفحة :page — قرأت صفحتين|وصلت إلى الصفحة :page — قرأت :read صفحات|وصلت إلى الصفحة :page — قرأت :read صفحة|وصلت إلى الصفحة :page — قرأت :read صفحة',
+        // بعدد صفحات الكتاب كله
+        'completed' => 'مكتمل — قرأت :read من :total صفحة|مكتمل — قرأت الصفحة الوحيدة|مكتمل — قرأت الصفحتين|مكتمل — قرأت :read من :total صفحات|مكتمل — قرأت :read من :total صفحة|مكتمل — قرأت :read من :total صفحة',
         'listened' => 'استمعت حتى :position من :duration',
         'watched' => 'شاهدت حتى :position من :duration',
         'listened_no_duration' => 'استمعت حتى :position',
@@ -48,6 +50,8 @@ return [
         'continue_reading' => 'أكمل القراءة',
         'continue_listening' => 'أكمل الاستماع',
         'continue_watching' => 'أكمل المشاهدة',
+        'listen_again' => 'استمع من البداية',
+        'watch_again' => 'شاهد من البداية',
         'open' => 'افتح',
     ],
 

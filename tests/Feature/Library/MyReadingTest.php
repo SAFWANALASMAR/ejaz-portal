@@ -242,6 +242,80 @@ it('credits a first report with seconds only its small slack', function () {
     expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(RecordLibraryProgress::SECONDS_SLACK);
 });
 
+// قبول ملاحظات 4 نوفمبر (5 نوفمبر 2026): على اتصال بطيء قُبل 413 من 466 ثانية لاستماع كامل. كان البلاغ المتأخر يضع ثوانيه منتهية
+// عند وصوله ويقدّم ساعة الحساب إلى «الآن»، فيأكل من ثواني البلاغ الذي بعده
+it('credits a late report its real seconds, so a slow connection does not lose the next report', function () {
+    $audio = legacyAudio();
+    $this->actingAs($this->reader);
+    $start = now()->toImmutable();
+
+    reportProgress($audio)->assertOk();
+    // عشرون ثانية أُرسلت عند 20 ووصلت عند 35، ثم أربعون (تخطى المتصفح الإرسال عند 40 لأن سابقه لم يرجع) أُرسلت عند 60 ووصلت عند 62
+    $this->travelTo($start->addSeconds(35));
+    reportProgress($audio, ['seconds' => 20, 'position' => 20, 'duration' => 466])->assertOk();
+    $this->travelTo($start->addSeconds(62));
+    reportProgress($audio, ['seconds' => 40, 'position' => 60, 'duration' => 466])->assertOk();
+
+    expect(progressOf($this->reader, $audio)->seconds_consumed)->toBe(60);
+});
+
+it('credits a whole listen on a slow connection with late and skipped reports', function () {
+    $audio = legacyAudio();
+    $this->actingAs($this->reader);
+    $start = now()->toImmutable();
+    reportProgress($audio)->assertOk();
+
+    // المتصفح يرسل كل عشرين ثانية ما تجمّع ما لم يكن سابقه عالقاً، والطلب يصل بعد 1 إلى 25 ثانية (النفق في التجربة: 5 إلى 25)
+    $delays = [3, 25, 2, 18, 9, 24, 1, 22, 5];
+    $length = 466;
+    $sent = 0;
+    $pendingUntil = 0;
+    $report = 0;
+
+    foreach ([...range(20, $length, 20), $length] as $tick) {
+        if ($tick < $pendingUntil && $tick !== $length) {
+            continue;
+        }
+
+        $arrives = max($tick + $delays[$report++ % count($delays)], $pendingUntil);
+        $this->travelTo($start->addSeconds($arrives));
+        reportProgress($audio, ['seconds' => $tick - $sent, 'position' => $tick, 'duration' => $length])->assertOk();
+        $sent = $tick;
+        $pendingUntil = $arrives;
+    }
+
+    $progress = progressOf($this->reader, $audio);
+    expect($sent)->toBe($length)
+        ->and($progress->seconds_consumed)->toBe($length)
+        ->and($progress->last_position)->toBe($length);
+});
+
+it('still caps forged seconds at the server clock: never more than the real time since the clock started with one slack', function () {
+    $audio = legacyAudio();
+    $this->actingAs($this->reader);
+    $start = now()->toImmutable();
+    reportProgress($audio)->assertOk();
+
+    // بلاغ كل عشر ثوانٍ يدّعي دقيقتين، عشر دقائق
+    foreach (range(10, 600, 10) as $second) {
+        $this->travelTo($start->addSeconds($second));
+        reportProgress($audio, ['seconds' => RecordLibraryProgress::MAX_SECONDS_PER_REPORT])->assertOk();
+    }
+
+    expect(progressOf($this->reader, $audio)->seconds_consumed)->toBeLessThanOrEqual(600 + RecordLibraryProgress::SECONDS_SLACK);
+
+    // وبعد ساعة بلا تشغيل: دفعة بلاغات مزورة في خمس ثوانٍ لا تأخذ إلا بلاغاً واحداً وتأخره المحتمل والفسحة، ولا يتجاوز المجموع الوقت الفعلي
+    $before = progressOf($this->reader, $audio)->seconds_consumed;
+    foreach (range(0, 4) as $second) {
+        $this->travelTo($start->addSeconds(4200 + $second));
+        reportProgress($audio, ['seconds' => RecordLibraryProgress::MAX_SECONDS_PER_REPORT])->assertOk();
+    }
+
+    $total = progressOf($this->reader, $audio)->seconds_consumed;
+    expect($total - $before)->toBeLessThanOrEqual(RecordLibraryProgress::MAX_SECONDS_PER_REPORT + RecordLibraryProgress::MAX_REPORT_DELAY + 4 + RecordLibraryProgress::SECONDS_SLACK)
+        ->and($total)->toBeLessThanOrEqual(4204 + RecordLibraryProgress::SECONDS_SLACK);
+});
+
 // ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026: شاهد مقطع يوتيوب كاملاً فلم تُسجَّل مشاهدته، لأن يوتيوب كان علامة «فتحته» وحدها. ومشغّله
 // يبلّغ الآن تشغيله عبر postMessage (library-progress.js)، فتُقبل الثواني والموضع بساعة الخادم كالملف
 it('takes playback seconds for a YouTube video and YouTube audio, and only an opened mark for a downloadable book', function () {
@@ -373,7 +447,7 @@ it('shows my reading on the dashboard and its page, to the owner only, with cont
         ->assertSee(__('reading.title'))
         ->assertSee('كتاب القراءة')
         ->assertSee('مادة صوتية للاستماع')
-        ->assertSee(__('reading.status.pages', ['page' => 2, 'total' => 5, 'read' => 2]))
+        ->assertSee(trans_choice('reading.status.pages', 2, ['page' => 2, 'total' => 5, 'read' => 2]))
         ->assertSee(__('reading.status.listened', ['position' => '1:15', 'duration' => '5:00']))
         ->assertSee(route('account.my-reading'));
 
@@ -393,7 +467,7 @@ it('shows my reading on the dashboard and its page, to the owner only, with cont
     // والكتاب نفسه منشور فقد يظهر في شريط «جديد مكتبة إعجاز» العام (بغلاف أو بلا غلاف منذ ملاحظات المدير في 1 نوفمبر)، فالفحص
     // لقراءاته هو: لا تقدّم ولا رابط استئناف في لوحة غيره
     $this->actingAs($other)->get('/account')->assertOk()
-        ->assertDontSee(__('reading.status.pages', ['page' => 2, 'total' => 5, 'read' => 2]))
+        ->assertDontSee(trans_choice('reading.status.pages', 2, ['page' => 2, 'total' => 5, 'read' => 2]))
         ->assertDontSee(e(route('library.show', ['books', 'reading-book', 'resume' => 2])), false);
     expect($other->can('view', progressOf($this->reader, $book)))->toBeFalse()
         ->and($this->reader->can('view', progressOf($this->reader, $book)))->toBeTrue()
@@ -628,4 +702,62 @@ it('counts a portal media view only from ten seconds of playback', function () {
     }
 
     expect(HomePortalStats::compute()['media_views'])->toBe(1);
+});
+
+// قبول ملاحظات 4 نوفمبر (5 نوفمبر 2026): «قرأت 4 صفحة» والصواب «4 صفحات»، بصيغ العدد العربية
+it('says the pages read with the Arabic count forms', function (int $read, string $phrase) {
+    $book = LibraryItem::factory()->create(['slug' => 'count-book', 'is_downloadable' => false]);
+    LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $book->id, 'last_reported_at' => now(),
+        'pages_count' => $read, 'last_page' => $read, 'total_pages' => 285]);
+
+    $this->actingAs($this->reader)->get('/account/my-reading')->assertOk()
+        ->assertSee('وصلت إلى الصفحة '.number_format($read).' من 285 — '.$phrase)
+        ->assertDontSee('صفحة|');
+})->with([
+    'one' => [1, 'قرأت صفحة واحدة'],
+    'two' => [2, 'قرأت صفحتين'],
+    'three' => [3, 'قرأت 3 صفحات'],
+    'four' => [4, 'قرأت 4 صفحات'],
+    'ten' => [10, 'قرأت 10 صفحات'],
+    'eleven' => [11, 'قرأت 11 صفحة'],
+    'ninety-nine' => [99, 'قرأت 99 صفحة'],
+    'hundred' => [100, 'قرأت 100 صفحة'],
+    'hundred and three' => [103, 'قرأت 103 صفحات'],
+]);
+
+it('uses the count forms for a book of unknown length and a completed book too', function () {
+    $open = LibraryItem::factory()->create(['slug' => 'open-book', 'is_downloadable' => false]);
+    $done = LibraryItem::factory()->create(['slug' => 'done-book', 'is_downloadable' => false]);
+    $pair = LibraryItem::factory()->create(['slug' => 'pair-book', 'is_downloadable' => false]);
+    foreach ([[$open, 4, null, null], [$done, 4, 4, now()], [$pair, 2, 2, now()]] as [$item, $read, $total, $completed]) {
+        LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $item->id, 'last_reported_at' => now(),
+            'pages_count' => $read, 'last_page' => $read, 'total_pages' => $total, 'completed_at' => $completed]);
+    }
+
+    $this->actingAs($this->reader)->get('/account/my-reading')->assertOk()
+        ->assertSee('وصلت إلى الصفحة 4 — قرأت 4 صفحات')
+        ->assertSee('مكتمل — قرأت 4 من 4 صفحات')
+        ->assertSee('مكتمل — قرأت الصفحتين')
+        ->assertDontSee('صفحة|');
+});
+
+// قبول ملاحظات 4 نوفمبر: زرا «أكمل المشاهدة» و«أكمل الاستماع» بقيا بعد إنهاء المقطع، ورابطهما يبدأ من النهاية
+it('swaps the continue button of a video or audio played to its end for one from the start, and keeps it before the end', function () {
+    $finishedVideo = LibraryItem::factory()->video()->create(['slug' => 'finished-video', 'title' => 'مقطع شوهد كاملاً']);
+    $finishedAudio = LibraryItem::factory()->audio()->create(['slug' => 'finished-audio', 'title' => 'صوت سُمع كاملاً']);
+    $halfAudio = LibraryItem::factory()->audio()->create(['slug' => 'half-audio', 'title' => 'صوت سُمع نصفه']);
+    foreach ([[$finishedVideo, 175, 175], [$finishedAudio, 464, 465], [$halfAudio, 200, 465]] as [$item, $position, $duration]) {
+        LibraryProgress::query()->forceCreate(['user_id' => $this->reader->id, 'library_item_id' => $item->id, 'last_reported_at' => now(),
+            'seconds_consumed' => $position, 'last_position' => $position, 'duration_seconds' => $duration]);
+    }
+
+    $html = (string) $this->actingAs($this->reader)->get('/account/my-reading')->assertOk()->getContent();
+    $card = fn (string $title): string => (string) str($html)->after($title)->before('</li>');
+
+    expect($card('مقطع شوهد كاملاً'))->toContain('شاهدت حتى 2:55 من 2:55')->not->toContain(__('reading.actions.continue_watching'))
+        ->toContain(__('reading.actions.watch_again'))->toContain('href="'.e(route('library.show', ['videos', 'finished-video'])).'"')->not->toContain('resume=')
+        ->and($card('صوت سُمع كاملاً'))->not->toContain(__('reading.actions.continue_listening'))
+        ->toContain(__('reading.actions.listen_again'))->toContain('href="'.e(route('library.show', ['audio', 'finished-audio'])).'"')->not->toContain('resume=')
+        ->and($card('صوت سُمع نصفه'))->toContain('data-reading-action')->toContain(__('reading.actions.continue_listening'))
+        ->toContain(e(route('library.show', ['audio', 'half-audio', 'resume' => 200])));
 });

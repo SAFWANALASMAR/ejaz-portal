@@ -311,3 +311,16 @@ docker run --rm --ipc=host -v "$PWD:/lh" -w /lh mcr.microsoft.com/playwright:v1.
 - الافتراضي محاكاة الجوال، وهو المعيار (≥ 95 في المعايير الأربعة، وLCP أقل من 2.0 ث، وCLS أقل من 0.05).
 - **على حاويات شجرة عمل محلية:** على شبكة حاوية التطبيق كما في «قائمة القبول»، مع سكربت صغير ينقل منفذ `APP_URL` إلى `127.0.0.1:8000` ومنفذ Vite (5173) إلى `vite:5173` قبل Lighthouse، كما يفعل `global-setup.mjs`. وبه قيس خط الأساس في قائمة القبول.
 - ورؤوس الحماية: securityheaders.com على الخادم التجريبي بـ HTTPS (المعيار A+). والمكتبات: `composer audit` و`npm audit`.
+
+## قبول 5 نوفمبر
+
+`acceptance-nov5.spec.mjs` (قبول ملاحظات المدير ليلة 4 نوفمبر): بطاقة «مسابقة البراهين» فوق الترحيب وشريط المكتبة، كاملة في الشاشة الأولى على 390 وعلى الحاسوب بلا تمرير، ولا خطأ «Transition was aborted… Page already revealed» بعد الدخول ولا بعد التحميل الكامل على اتصال بطيء، وحارس الانتقال لا يكتم غيره من الأخطاء. يحتاج المسابقة التجريبية (طالبها السابق مسجل ومرحلتها الحالية جارية):
+
+```bash
+demo=$(docker compose exec -T app php artisan ejaz:demo-student-competition --json)
+
+docker compose run --rm --no-deps -e STUDENT_COMPETITION="$demo" browser \
+  npx playwright test --config=tests/browser/playwright.config.mjs acceptance-nov5.spec.mjs --project=desktop --project=mobile
+```
+
+واللقطات في `docs/design/screenshots/acceptance-nov5/`.
