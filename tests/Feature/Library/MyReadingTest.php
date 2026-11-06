@@ -755,7 +755,7 @@ it('swaps the continue button of a video or audio played to its end for one from
     $card = fn (string $title): string => (string) str($html)->after($title)->before('</li>');
 
     expect($card('مقطع شوهد كاملاً'))->toContain('شاهدت حتى 2:55 من 2:55')->not->toContain(__('reading.actions.continue_watching'))
-        ->toContain(__('reading.actions.watch_again'))->toContain('href="'.e(route('library.show', ['video', 'finished-video'])).'"')->not->toContain('resume=')
+        ->toContain(__('reading.actions.watch_again'))->toContain('href="'.e(route('library.show', ['videos', 'finished-video'])).'"')->not->toContain('resume=')
         ->and($card('صوت سُمع كاملاً'))->not->toContain(__('reading.actions.continue_listening'))
         ->toContain(__('reading.actions.listen_again'))->toContain('href="'.e(route('library.show', ['audio', 'finished-audio'])).'"')->not->toContain('resume=')
         ->and($card('صوت سُمع نصفه'))->toContain('data-reading-action')->toContain(__('reading.actions.continue_listening'))
