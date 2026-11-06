@@ -66,7 +66,7 @@ class UpdateUserAccount
             } catch (UniqueConstraintViolationException $exception) {
                 // حفظ متزامن بقيمة أخذها حساب آخر بعد فحص النموذج: خطأ التحقق نفسه لا 500، على حقل الفهرس الذي تعارض
                 // (decisions/2026-11-05-phone-login.md)
-                $field = str_contains($exception->getMessage(), 'email') ? 'email' : 'phone';
+                $field = User::uniqueViolationField($exception);
 
                 throw ValidationException::withMessages([$field => __('validation.unique', ['attribute' => __('users.fields.'.$field)])]);
             }

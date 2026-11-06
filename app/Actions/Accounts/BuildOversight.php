@@ -5,6 +5,7 @@ namespace App\Actions\Accounts;
 use App\Enums\MeetingBody;
 use App\Enums\MeetingStatus;
 use App\Enums\RoleName;
+use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Support\AccountSettings;
@@ -31,10 +32,12 @@ class BuildOversight
     public function handle(User $user): array
     {
         $overseer = RoleName::isOverseer($user);
+        // رابط الاجتماع سرّ، و«حسابي» بلا التحقق الثنائي: لا يُعرض لمن يلزمه ولم يفعّله (المراجعة الأمنية على #197)
+        $secured = EnsureTwoFactorIsEnabled::satisfied($user);
 
         return [
             'stats' => $overseer ? self::stats() : null,
-            'meeting' => $overseer || AccountSettings::showsDeferredPortals() ? self::nextMeeting($user) : null,
+            'meeting' => $secured && ($overseer || AccountSettings::showsDeferredPortals()) ? self::nextMeeting($user) : null,
         ];
     }
 
@@ -58,7 +61,7 @@ class BuildOversight
         ];
     }
 
-    private static function nextMeeting(User $user): ?Meeting
+    public static function nextMeeting(User $user): ?Meeting
     {
         $upcoming = fn () => Meeting::query()->with('committee')
             ->where('status', MeetingStatus::Scheduled->value)

@@ -121,7 +121,8 @@ $DC ps                                         # كل الخدمات healthy
 3. يبني صورتي التطبيق والويب بالوسم (والموقع يعمل).
 4. يضمن تشغيل القاعدة وRedis (إن كانتا مضمّنتين).
 5. وضع الصيانة.
-6. `migrate --force` ثم `db:seed --class=AccessSeeder --force` (الأدوار ثم مزامنة الصلاحيات من `config/permissions.php`، آمن للتكرار) بالصورة الجديدة. ثم `db:seed --class=MainMenuSevenSeeder --force` (القائمة الرئيسية بسبعة عناصر، النسخة 0.15) **مرة واحدة** على الخادم: يترك علامة `.deploy-state/main-menu-seven`، فلا يعيد نشر لاحق ترتيب «القائمة» كما رتّبها المحرر ولا يخفي ما أظهره منها. ولإعادته عمداً تُحذف العلامة.
+6. **قبل أول نشر فيه ترحيل تفرد الجوال** (`2026_11_05_010000`، الإصدار 0.15.2): `php artisan ejaz:phone-only-duplicates` على القاعدة القائمة. يطبع معرّفات الحسابات التي سيفرّغ الترحيل جوالها وهو معرّف دخولها الوحيد، بلا أرقام. فيُضاف لكل منها بريد أو جوال آخر من «المستخدمون» بعد النشر، وإلا لا يدخل (`decisions/2026-11-05-phone-login.md` — البلاغ 185، L2).
+   ثم `migrate --force` ثم `db:seed --class=AccessSeeder --force` (الأدوار ثم مزامنة الصلاحيات من `config/permissions.php`، آمن للتكرار) بالصورة الجديدة. ثم `db:seed --class=MainMenuSevenSeeder --force` (القائمة الرئيسية بسبعة عناصر، النسخة 0.15) **مرة واحدة** على الخادم: يترك علامة `.deploy-state/main-menu-seven`، فلا يعيد نشر لاحق ترتيب «القائمة» كما رتّبها المحرر ولا يخفي ما أظهره منها. ولإعادته عمداً تُحذف العلامة.
 7. يبدّل الحاويات. وكل حاوية تبني عند بدئها ذاكرة الإعدادات والمسارات والقوالب والأحداث وFilament. وHorizon ينهي مهامه الجارية قبل توقفه.
 8. `ejaz:refresh-content` (ذاكرة المحتوى العام، وبنوك مراحل مسابقة الطلاب وفحص درجتها القصوى، فلا يبقى بعد ترحيل يغيّر الفئات أو الأسئلة مباشرة بنكٌ مخزن قديم)، ثم رفع الصيانة. ولا `cache:clear`.
 9. فحص `/up` و`ejaz:health`.
@@ -161,7 +162,7 @@ $DC ps                                         # كل الخدمات healthy
    وبعد الترحيل: `SELECT section, count(*) FROM library_items GROUP BY section;` لا يُظهر إلا الأربع، وما ظهر في الاستعلام الأول صار `books`، ويُعاد تصنيف البحث منه من اللوحة.
 2. **نسخة احتياطية** قبل النشر: `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` بلا خطأ (`scripts/restore.md`).
 3. **النشر:** `bash scripts/deploy-compose.sh v0.15.0`. يشغّل الترحيل و`AccessSeeder` و`MainMenuSevenSeeder` مرة واحدة (علامة `.deploy-state/main-menu-seven`) و`ejaz:refresh-content`، ثم `/up` و`ejaz:health`.
-4. **Horizon وطوابيره:** `$DC exec -T horizon php artisan horizon:status` يرد «running»، و`$DC exec -T horizon php artisan horizon:supervisors` فيه `supervisor-1` (`default`) و`supervisor-videos` (`videos`) و`supervisor-receipts` (`receipts`، إيصالات الاختبار) و`supervisor-library` (`library`، عدّ صفحات الكتب).
+4. **Horizon وطوابيره:** `$DC exec -T horizon php artisan horizon:status` يرد «running»، و`$DC exec -T horizon php artisan horizon:supervisors` فيه `supervisor-1` (`default`) و`supervisor-videos` (`videos`) و`supervisor-receipts` (`receipts`، إيصالات الاختبار) و`supervisor-library` (`library`، عدّ صفحات الكتب) و`supervisor-certificates` (`certificates`، شهادات المسابقة — المشرف على #173، ١).
 5. **متغيرات `.env` الجديدة** منذ v0.14.2 (القيم في `.env.production.example`): `EVIDENCE_PER_MINUTE` و`EVIDENCE_FILES_PER_MINUTE` و`EVIDENCE_FILE_URL_MINUTES` و`EVIDENCE_STORAGE_URL_MINUTES` (معرض الشواهد). وتُراجع `REDIS_QUEUE_RETRY_AFTER=960`: فوق مهلة أطول مهمة (`ProcessSubmissionVideo`، 900 ثانية)، وبدونه 90 فيلتقط عامل آخر مقطعاً ما زال يُعالج.
 6. **المجدول:** `$DC exec -T scheduler php artisan schedule:list` يُظهر المهام كلها، ومنها `ejaz:refresh-stats` كل عشر دقائق و`ejaz:close-expired-attempts` كل دقيقة.
 7. **«للقراءة فقط» (يعتمد على #132):** يُفتح كتاب «للقراءة فقط» في المكتبة فتُرسم صفحاته. ثم اسم عامل القارئ وفحص نوعه:
@@ -212,6 +213,7 @@ $DC ps                                         # كل الخدمات healthy
 - الحاوية خاصة بلا وصول عام، وإصداراتها مفعّلة.
 - **نسختها عند المزود الثاني:** `scripts/backup.sh` ينسخ الحاوية يومياً إلى حاوية النسخ مشفّرة عند العميل (rclone crypt) متى ضُبطت `BACKUP_SOURCE_*` في `.env.backup` (`deploy/readiness.md` §١٤). والنسخة الأولى قد تطول بحد Contabo، فتُشغَّل يدوياً قبل تفعيل المؤقت (`handoff-server.md`).
 - ملفات الوثائق والمكتبة المنشورة تُحوَّل بعد فحص النشر إلى رابط تخزين موقّع قصير (`CONTENT_FILE_URL_MINUTES`، 60 دقيقة افتراضياً)، فلا تمر عبر PHP (خطة I8 في `security/2026-10-10-security-audit.md`). ويلزمه نطاق التخزين في `CSP_MEDIA_SRC` (الصوت) و`CSP_FRAME_SRC` (عرض PDF مدمجاً)، ويفحصهما `verify-server.sh --server`. والوثيقة المنشورة خطأً ببيانات شخصية يُحذف ملفها أو يُستبدل، لأن رابطاً صدر قبل إلغاء نشرها يبقى صالحاً حتى نهاية مدته.
+- ومقاطع المسابقة في التحكيم باللوحة (`competitions.reviews.video`) تُحوَّل على S3 إلى رابط تخزين موقّع يشغّله `<video>` في اللوحة. فيلزمها نطاق التخزين في `CSP_MEDIA_SRC` أيضاً، وإلا لا يعمل المقطع للمحكّم (المشرف على #174، ٣).
 
 ## الانتقال إلى خدمة مُدارة (لاحقاً، بلا تغيير في الشيفرة)
 

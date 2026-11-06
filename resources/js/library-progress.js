@@ -1,6 +1,7 @@
 // «قراءاتي» (docs/decisions/2026-11-01-my-reading.md): بلاغات تقدّم صاحب الحساب في المكتبة إلى الخادم. لمسجّل الدخول وحده ما لم يختر «لا تحفظ قراءاتي»
 // (meta[name=signed-in] في القالب العام، فصفحة العنصر المخزنة نصاً واحدة للجميع). تُجمع ثم تُرسل كل عشرين ثانية على الأكثر،
-// وعند مغادرة الصفحة أو إخفائها (keepalive)، بحد الخادم ورمز CSRF. وما يرفضه الخادم (حد أو تحقق) يُترك ولا يُعاد.
+// وعند مغادرة الصفحة أو إخفائها (keepalive)، بحد الخادم ورمز CSRF. وما يرفضه تحقق الخادم يُترك ولا يُعاد، وما لم يُعالَج (انقطاع
+// الاتصال، أو 429 من الحد أو من قفل الحساب) يعود إلى البلاغ التالي، وساعة الخادم تمنع احتسابه مرتين (قبول ملاحظات 4 نوفمبر).
 // - الكتاب في قارئ الصفحة (pdf-reader.js): كل صفحة رُسمت.
 // - المقطع والصوت في مشغّل الصفحة: ثواني التشغيل الفعلي بالساعة، والموضع، والمدة.
 // - مقطع يوتيوب: ثواني التشغيل والموضع والمدة من بلاغات مشغّله نفسه (postMessage، بلا سكربت يوتيوب — ملاحظات المدير التنفيذي، ليلة 4 نوفمبر 2026).
@@ -91,6 +92,15 @@ export function progressReporter(url, signal) {
         sending = true;
         post(url, body, keepalive)
             .then(async (response) => {
+                // لم يُعالَج: الثواني والصفحات تعود إلى البلاغ التالي، فلا تضيع على اتصال بطيء
+                if ((response === null || response.status === 429) && !signal.aborted) {
+                    seconds += whole;
+                    batch.forEach((number) => pages.add(number));
+                    dirty = true;
+
+                    return;
+                }
+
                 if (!response?.ok || batch.length === 0) {
                     return;
                 }
@@ -225,18 +235,25 @@ function setupYoutube(frame, url, signal) {
     const listen = () => frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YOUTUBE_ORIGIN);
 
     // المصافحة تُعاد حتى أول بلاغ من المشغّل، فالمشغّل على اتصال بطيء قد لا يكون جاهزاً عند تحميل الإطار ولا بعده بثانية
-    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده
+    // (مراجعة المشرف على طلب الدمج 182، L1). وتتوقف بعد عشر ثوانٍ، فيبقى «فتحته» وحده. والثواني العشر تُعدّ من تحميل الإطار
+    // لا من النقر: الإطار البطيء يبدأ عدّها من جديد عند load، ولو انتهى العدّ الأول قبله (المشرف على 182، المنخفضة ٢)
     let delivered = false;
-    const handshakeStart = performance.now();
-    const handshake = setInterval(() => {
-        if (delivered || signal.aborted || performance.now() - handshakeStart > YOUTUBE_HANDSHAKE_MS) {
-            clearInterval(handshake);
+    let handshake = null;
+    const startHandshake = () => {
+        clearInterval(handshake);
+        const started = performance.now();
+        handshake = setInterval(() => {
+            if (delivered || signal.aborted || performance.now() - started > YOUTUBE_HANDSHAKE_MS) {
+                clearInterval(handshake);
 
-            return;
-        }
+                return;
+            }
 
-        listen();
-    }, YOUTUBE_HANDSHAKE_EVERY);
+            listen();
+        }, YOUTUBE_HANDSHAKE_EVERY);
+    };
+    startHandshake();
+    frame.addEventListener('load', () => delivered || startHandshake(), { signal });
     signal.addEventListener('abort', () => clearInterval(handshake));
 
     window.addEventListener('message', (event) => {

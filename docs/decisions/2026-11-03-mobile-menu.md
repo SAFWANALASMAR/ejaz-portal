@@ -11,6 +11,8 @@
 
 ## الخلل ٢: الانتقال من الموقع إلى اللوحة يُلغى بخطأ غير ملتقط
 
+> **نُسخ** بـ `2026-11-06-transition-speed.md`: أُسقط `@view-transition` ومعه مستمع `pageswap`.
+
 - **السبب:** الموقع العام يطلب انتقال المستندات (`@view-transition { navigation: auto; }` في `resources/css/visual.css` — `2026-10-30-visual-refresh-2.md`) ولوحة الإدارة لا تطلبه. فالتحميل الكامل من صفحة عامة إلى `/admin` (زر «تعديل هذه الصفحة»، وإتمام الدخول بالتحقق الثنائي إلى اللوحة) يبدأ انتقالاً تلغيه صفحة اللوحة، فيُرمى في صفحتها `InvalidStateError: Transition was aborted because of invalid state. ViewTransition opt-in disabled` (وفي الدخول `... Page already revealed`) خطأً غير ملتقط. أُعيد إنتاجه في Chromium قبل الإصلاح.
 - **القرار:** في `resources/js/page.js` مستمع `pageswap` يتخطى الانتقال (`skipTransition()`) متى كانت الوجهة `/admin` أو ما تحته (`event.activation.entry.url`). فالانتقال باقٍ بين صفحات الموقع العامة، ولا انتقال إلى اللوحة، ولا خطأ. ولا تمس اللوحة ولا `visual.css`.
 - **ما لم يُختر:** طلب الانتقال في اللوحة أيضاً يغيّر سلوك لوحة تعمل بوضع SPA ويحتاج مراجعة بصرية لها، وإزالة `@view-transition` تُسقط الانتقال بين الصفحات العامة.

@@ -93,7 +93,6 @@ class BuildHomePage
      *     top_initiatives: Collection<int, Initiative>,
      *     strip_videos: Collection<int, LibraryItem>,
      *     strip_books: Collection<int, LibraryItem>,
-     *     strip_research: Collection<int, LibraryItem>,
      *     x_account: array{url: string, handle: string|null}|null,
      *     video: string|null,
      *     video_thumbnail: string|null,
@@ -131,7 +130,7 @@ class BuildHomePage
             // بطاقة «تابعنا على X» من حساب إكس في «الحسابات الرسمية» (قرار صفوان، 31 أكتوبر 01:38): بلا سكربت من إكس، وتختفي بلا رابط
             'x_account' => self::xAccount(),
             'strip_books' => self::stripLibrary([LibrarySection::Books]),
-            'strip_research' => self::stripLibrary([LibrarySection::Research]),
+            // وشريط «الأبحاث والدراسات» خرج من الرئيسية: شريط واحد للمكتبة (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3)، وقسمه باقٍ في المكتبة
             // مقطع الرئيسية (من الموقع السابق): معرّف يوتيوب من الإعدادات، يُفحص الرابط عند العرض
             'video' => $video = self::shows($home, 'video', false) ? VideoUrl::youtubeId(is_string($home['video_url'] ?? null) ? $home['video_url'] : null) : null,
             // وصورته التي جلبها الخادم (FetchHomeVideoThumbnail)، وإلا الخلفية الداكنة

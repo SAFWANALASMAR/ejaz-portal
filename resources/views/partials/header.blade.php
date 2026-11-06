@@ -42,7 +42,7 @@
 
             <div class="header-actions">
                 {{-- «المساعد الذكي» (البند ١٣ من إضافة توجيه المدير): يفتح المساعد القائم (partials/assistant — resources/js/assistant.js)، ويعمل
-                     دليله بلا مزوّد. ويختفي بإطفاء المساعد من «إعدادات المساعد». وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
+                     دليله بلا مزوّد. وأيقونته Phosphor duotone بمربع الهوية (x-icon-tile).
                      ومن 1024 وحده، فرأس الجوال واللوحي العمودي كما كان، وهو لهما داخل قائمة ☰.
                      وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» حتى يُشغَّل (قرار صفوان، 4 نوفمبر 2026) --}}
                 @if ($assistantOn = \App\Models\AssistantSettings::current()->is_enabled)

@@ -42,14 +42,18 @@ it('shows the assistant button beside the search, disabled while the assistant i
         // يفتح المساعد في الموقع بتبويب جديد (assistant.js يفتح نافذته على #assistant)، واسمه اسم ما يفتحه (ملاحظة المقيّم)
         ->assertSee('data-ej-topbar-assistant', false)
         ->assertSee('href="'.url('/').'#assistant"', false)
-        ->assertSee('aria-label="المساعد الذكي"', false);
+        ->assertSee('aria-label="المساعد الذكي"', false)
+        // ولا الزر المعطّل معه (المشرف على #175، ٤)
+        ->assertDontSee('data-assistant-soon', false);
 
     enableAssistant(['is_enabled' => false]);
     $this->actingAs($admin)
         ->get('/admin')
         ->assertOk()
-        // وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» بلا رابط (قرار صفوان، 4 نوفمبر 2026)
+        // وهو مطفأ يبقى ظاهراً معطّلاً «قيد التفعيل» بلا رابط (قرار صفوان، 4 نوفمبر 2026)، زراً يصله التركيز (المشرف على #175، ٢)
         ->assertSee('data-assistant-soon', false)
+        ->assertSee('<button type="button" class="ej-topbar-assistant', false)
+        ->assertSee('aria-disabled="true"', false)
         ->assertSee('aria-label="'.__('assistant.header.soon').'"', false)
         ->assertDontSee('href="'.url('/').'#assistant"', false);
 

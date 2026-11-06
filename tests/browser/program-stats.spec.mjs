@@ -46,10 +46,9 @@ test.describe('program stats by type', () => {
     test('shows the comparison chart in the admin and the section in the board portal', async ({ page }, testInfo) => {
         const width = testInfo.project.use.viewport.width;
         const errors = [];
-        const ignored = (text) => text.startsWith('Transition was aborted');
-        page.on('pageerror', (error) => !ignored(error.message) && errors.push(error.message));
-        // انتقال الصفحة المقطوع بالانتقال المباشر (page.goto) رسالة من المتصفح لا خطأ في الصفحة
-        page.on('console', (message) => message.type() === 'error' && !ignored(message.text()) && errors.push(message.text()));
+        // لا تسامح مع «Transition was aborted»: أُسقط انتقال المستندات (decisions/2026-11-06-transition-speed.md)
+        page.on('pageerror', (error) => errors.push(error.message));
+        page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
 
         await page.goto('/login');
         await page.fill('#field-login', ADMIN.email);

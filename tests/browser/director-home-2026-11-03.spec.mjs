@@ -293,21 +293,17 @@ test('home: the sections in the director\'s order, the five cards, both strips, 
     const services = await direction('#home-services-track .marquee-track');
     const videos = await direction('[data-media-strip="videos"] .marquee-track');
     const books = await direction('[data-media-strip="books"] .marquee-track');
-    // والأبحاث تحت الكتب عكسها، من اليمين إلى اليسار (البند ٢٦)
-    const research = await direction('[data-media-strip="research"] .marquee-track');
-    console.log(`directions ${width}px: services ${services}, videos ${videos}, books ${books}, research ${research}`);
-    expect(research, 'الأبحاث من اليمين إلى اليسار').toBeLessThan(-2);
+    console.log(`directions ${width}px: services ${services}, videos ${videos}, books ${books}`);
     expect(services, '«خدماتنا» من اليسار إلى اليمين').toBeGreaterThan(2);
     expect(videos, 'يوتيوب من اليمين إلى اليسار').toBeLessThan(-2);
     expect(books, 'المكتبة من اليسار إلى اليمين').toBeGreaterThan(2);
-    // شريطا «الكتب والمؤلفات» و«الأبحاث والدراسات» منفصلان (البند ٢٦)، والبحث بلا غلاف بأيقونة الكتاب نفسها (البند ٦)
+    // شريط واحد للمكتبة «الكتب والمؤلفات»، وشريط «الأبحاث والدراسات» خرج من الرئيسية (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3)
     await expect(page.locator('#home-strip-books')).toHaveText('من مكتبة إعجاز: الكتب والمؤلفات');
-    await expect(page.locator('#home-strip-research')).toHaveText('من مكتبة إعجاز: الأبحاث والدراسات');
-    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg, [data-media-strip="research"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
-    expect(icons.length).toBeGreaterThan(0);
-    expect(new Set(icons).size, 'أيقونة واحدة للكتب والأبحاث').toBe(1);
+    await expect(page.locator('[data-media-strip="research"]')).toHaveCount(0);
+    const icons = await page.evaluate(() => [...document.querySelectorAll('[data-media-strip="books"] .marquee-group:not([data-marquee-copy]) [data-thumb-placeholder] svg')].map((svg) => svg.innerHTML));
+    expect(new Set(icons).size, 'أيقونة واحدة للكتب بلا غلاف').toBeLessThanOrEqual(1);
     // بعرض المحتوى كاملاً: الشريطان بعرض واحد
-    const stripWidths = await page.evaluate(() => ['videos', 'books', 'research'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
+    const stripWidths = await page.evaluate(() => ['videos', 'books'].map((kind) => Math.round(document.querySelector(`[data-media-strip="${kind}"]`).getBoundingClientRect().width)));
     expect(Math.max(...stripWidths) - Math.min(...stripWidths)).toBeLessThanOrEqual(2);
 
     // الإعلانات والأخبار: نصفان متساويان على الحاسوب، والأخبار تصعد
@@ -428,6 +424,8 @@ test('header: the assistant button opens the existing assistant', async ({ page 
     for (const width of [1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
+        // مطفأ من «إعدادات المساعد» يظهر معطّلاً «قيد التفعيل» (قرار صفوان، 4 نوفمبر)، فلا يُفتح (المشرف على #175، ٣)
+        test.skip(await page.locator('[data-assistant-soon]').count() > 0, 'المساعد مطفأ «قيد التفعيل»');
         const button = page.locator('.header-top [data-header-assistant]');
         await expect(button).toBeVisible();
         await expect(button).toHaveAccessibleName('المساعد الذكي');

@@ -8,6 +8,8 @@ import { expect, test } from '@playwright/test';
 
 test('opens the assistant, answers with sources, and keeps the chat across navigation', async ({ page }) => {
     await page.goto('/');
+    // مطفأ من «إعدادات المساعد» يظهر معطّلاً «قيد التفعيل» (قرار صفوان، 4 نوفمبر)، فلا يُفتح (المشرف على #175، ٣)
+    test.skip(await page.locator('[data-assistant-soon]').count() > 0, 'المساعد مطفأ «قيد التفعيل»');
 
     // على الحاسوب زر «المساعد الذكي» في الرأس، والعائم للجوال واللوحي العمودي (تقييم لقطات التوجيه 3 نوفمبر، البند ١٣)
     const toggle = page.locator(test.info().project.name === 'desktop' ? '[data-header-assistant]' : '[data-assistant-fab]');
