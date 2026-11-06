@@ -1,7 +1,8 @@
 {{--
-    مراحل مسابقة الطلاب: المقدمة من نصوص الصفحة، ولكل مرحلة اسمها ومجالها وحالتها، وللطالب المسجل زر الدخول في نافذتها
-    وحدها. بلا عدد الأسئلة ولا المدة (في صفحة بدء الاختبار)، والتواريخ بخيار «إظهار مواعيد المراحل» وحده، والنوافذ
-    تعمل بها في الحالين (ملاحظة المدير التنفيذي، 29 أكتوبر 2026).
+    مراحل مسابقة الطلاب: المقدمة من نصوص الصفحة، ولكل مرحلة اسمها ويوم انعقادها وتاريخه ميلادياً وهجرياً (لا مجالها،
+    طلب صفوان 6 نوفمبر 2026، والمجالات في مقطعها) وحالتها، وللطالب المسجل زر الدخول في نافذتها وحدها. بلا عدد الأسئلة
+    ولا المدة (في صفحة بدء الاختبار)، وساعات البدء والانتهاء بخيار «إظهار مواعيد المراحل» وحده، والنوافذ تعمل بها في
+    الحالين (ملاحظة المدير التنفيذي، 29 أكتوبر 2026).
 --}}
 @php
     use App\Support\CompetitionPage;
@@ -25,7 +26,6 @@
             @foreach ($rounds as $round)
                 @php
                     $attempt = $attempts->get($round->id);
-                    $domain = $round->branch ? $domains->search($round->branch) : false;
                 @endphp
                 <li class="tone-card group flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex gap-4">
@@ -39,9 +39,9 @@
                         @endif
                         <div class="space-y-1">
                             <h3 class="text-lg font-black">{{ $round->name }}</h3>
-                            @if ($domain !== false)
-                                <p class="tone-card-muted text-sm font-semibold">{{ __('competitions.student.page.domain', ['ordinal' => __('competitions.student.page.places')[$domain + 1] ?? Number::format($domain + 1)]) }}: {{ $round->branch }}</p>
-                            @endif
+                            <p class="tone-card-muted text-sm font-semibold" data-round-day>
+                                {{ __('competitions.student.page.round_day', ['day' => __('dates.days.'.Dates::local($round->starts_at)->dayOfWeek), 'date' => Dates::display($round->starts_at), 'hijri' => Dates::hijri($round->starts_at)]) }}
+                            </p>
                             @if ($competition->show_round_dates)
                                 <p class="tone-card-muted flex items-center gap-2 text-sm" data-round-dates>
                                     {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}

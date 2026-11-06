@@ -113,9 +113,6 @@ async function expectBefore(first, second, label) {
 const DOCUMENT_LINK = 'main [data-document-link], main a[href*="/governance/"]:not([href*="?"])';
 const PROGRAM_LINK = 'main [data-program-link], main a[href*="/programs/"]:not([href*="?"])';
 
-// تاريخ أو وقت بأي صيغة تعرضها البوابة: ميلادي (20xx) أو هجري (14xx أو «هـ») أو أرقام عربية أو ساعة
-const DATE_PATTERN = /20\d\d|14\d\d|هـ|[٠-٩]|\d{1,2}:\d{2}/u;
-
 // ─── مدموج في main ───────────────────────────────────────────────────────────────────────────────────────────────
 
 test.describe('acceptance: merged in main', () => {
@@ -290,7 +287,7 @@ test.describe('acceptance: Brahin director notes', () => {
         await expectRtlNoScroll(page, COMPETITION);
     });
 
-    test('brahin page: four domains and stage cards without counts or dates', async ({ page }) => {
+    test('brahin page: four domains and stage cards with the day and date, without counts', async ({ page }) => {
         await openCompetition(page);
 
         const domains = page.locator('[data-domains]');
@@ -306,12 +303,14 @@ test.describe('acceptance: Brahin director notes', () => {
         const cards = rounds.locator('li');
         await expect(cards).toHaveCount(4);
         await expect(cards.first()).toContainText('المرحلة الأولى');
-        await expect(cards.first()).toContainText('المجال الأول: الحقائق العلمية في الأنفس');
+        await expect(cards.first()).not.toContainText('المجال الأول');
 
-        // العنوان والمجال والحالة وحدها: لا عدد أسئلة ولا مدة ولا تاريخ بأي تقويم أو أرقام (التواريخ بخيار «إظهار مواعيد المراحل» وحده)
+        // العنوان ويوم المرحلة وتاريخها ميلادياً وهجرياً والحالة (طلب صفوان، 6 نوفمبر 2026): لا مجال ولا عدد أسئلة ولا مدة
+        await expect(rounds.locator('[data-round-day]')).toHaveCount(4);
         for (const card of await cards.allInnerTexts()) {
             expect(card).not.toMatch(/سؤال|أسئلة|دقيقة|دقائق/u);
-            expect(card).not.toMatch(DATE_PATTERN);
+            expect(card).toMatch(/(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)، /u);
+            expect(card).toContain('هـ');
         }
         await expectRtlNoScroll(page, COMPETITION);
     });

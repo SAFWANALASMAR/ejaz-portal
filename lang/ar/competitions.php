@@ -661,6 +661,7 @@ return [
             'categories' => 'الفئات',
             'domains' => 'مجالات المسابقة',
             'domain' => 'المجال :ordinal',
+            'round_day' => ':day، :date · :hijri',
             'show_all' => 'عرض الكل',
             'hide_all' => 'إخفاء الكل',
             'slides_label' => 'خطوات الدخول إلى الاختبار شريحةً شريحة',

@@ -30,20 +30,24 @@ beforeEach(function () {
     $this->rounds = $this->competition->rounds()->get();
 });
 
-it('shows the four domains and the stage cards without the question count, the duration or the dates', function () {
+it('shows the four domains and the stage cards with the day and date, without the domain, the question count or the duration', function () {
     $round = $this->rounds->first();
+    $day = __('competitions.student.page.round_day', ['day' => __('dates.days.'.Dates::local($round->starts_at)->dayOfWeek), 'date' => Dates::display($round->starts_at), 'hijri' => Dates::hijri($round->starts_at)]);
+    // البذرة تبدأ المراحل الخميس 00:00 بتوقيت الرياض (الأربعاء بتوقيت UTC): يُقرأ اليوم بتوقيت الرياض
+    expect($day)->toStartWith('الخميس، ');
 
     $response = $this->get('/competitions/brahin-1448')->assertOk()
         ->assertSeeInOrder([
             __('competitions.student.page.partner'), 'وزارة التعليم',
             __('competitions.student.page.domains'), 'المجال الأول', 'الحقائق العلمية في الأنفس', 'المجال الرابع', 'الحقائق العلمية في علوم البحار',
             __('competitions.student.rounds'), 'تمر المسابقة بأربع مراحل متتابعة، وتُعقد كل مرحلة يوم الخميس بحسب الجدول الزمني والتواريخ المعتمدة لها.',
-            'المرحلة الأولى', 'المجال الأول: الحقائق العلمية في الأنفس',
+            'المرحلة الأولى', $day,
             __('competitions.student.page.prizes'),
             __('competitions.student.page.intro'), __('competitions.student.page.rules'), __('competitions.student.page.guide_problems'),
             __('competitions.student.page.guide_steps'),
         ])
         ->assertSee(__('competitions.student.upcoming'))
+        ->assertDontSee('المجال الأول: الحقائق العلمية في الأنفس')
         ->assertDontSee('data-round-dates', false)
         ->assertDontSee(trans_choice('competitions.student.questions_count', $round->question_count, ['count' => $round->question_count]))
         ->assertDontSee(trans_choice('competitions.student.minutes', $round->duration_minutes, ['count' => $round->duration_minutes]))
