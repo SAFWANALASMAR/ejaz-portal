@@ -689,21 +689,29 @@ test('hero: no slide text touches the slide bar, and the floating assistant show
     }
 });
 
-// ── ٩. «خدماتنا الإلكترونية» بالنمط «أ» (البند ٢٩): تسع بطاقات 3×3 بلا خانة فارغة، والبطاقة نفسها في «خدماتنا» بالرئيسية
-test('services: nine style «أ» cards in a 3×3 grid, the same card in the home strip, with shots', async ({ page }, info) => {
+// ── ٩. «خدماتنا الإلكترونية» بالنمط «أ» (البند ٢٩): ثماني بطاقات منذ خروج المبادرات إلى «عن الجمعية» (ملاحظات المدير ليلة 4 نوفمبر،
+// طلب الدمج 181): سبع من config/eservices.php وبطاقة المتجر. ثلاثة صفوف بلا خانة فارغة: الأخيرة تمتد بعمودين، والبطاقة نفسها في «خدماتنا» بالرئيسية
+test('services: eight style «أ» cards in three full rows, the same card in the home strip, with shots', async ({ page }, info) => {
     test.skip(info.project.name === 'tablet', 'لقطات 1440 و390');
     const width = widthOf[info.project.name];
     await page.goto('/services');
     const cards = page.locator('[data-service-grid] > li');
-    await expect(cards).toHaveCount(9);
+    await expect(cards).toHaveCount(8);
+    await expect(page.locator('[data-service-grid] a[href$="/initiatives"]')).toHaveCount(0);
     const boxes = await cards.evaluateAll((items) => items.map((item) => {
         const box = item.getBoundingClientRect();
 
-        return { top: Math.round(box.top), width: Math.round(box.width) };
+        return { top: Math.round(box.top), left: box.left, right: box.right, width: Math.round(box.width) };
     }));
     if (info.project.name === 'desktop') {
+        const grid = await page.locator('[data-service-grid]').evaluate((element) => element.getBoundingClientRect().toJSON());
+        const lastRow = boxes.slice(-2);
         expect(new Set(boxes.map((box) => box.top)).size, 'ثلاثة صفوف').toBe(3);
-        expect(new Set(boxes.map((box) => box.width)).size, 'بلا خانة فارغة ولا امتداد').toBe(1);
+        expect(new Set(boxes.slice(0, -1).map((box) => box.width)).size, 'السبع الأولى بعرض واحد').toBe(1);
+        expect(boxes.at(-1).width, 'الأخيرة بعمودين').toBeGreaterThan(boxes[0].width * 2);
+        // بلا خانة فارغة: الصف الأخير يملأ عرض الشبكة
+        expect(Math.abs(Math.min(...lastRow.map((box) => box.left)) - grid.left)).toBeLessThanOrEqual(1);
+        expect(Math.abs(Math.max(...lastRow.map((box) => box.right)) - grid.right)).toBeLessThanOrEqual(1);
     }
     const look = await page.locator('.service-card').first().evaluate((card) => ({
         color: getComputedStyle(card).color,
@@ -711,7 +719,9 @@ test('services: nine style «أ» cards in a 3×3 grid, the same card in the hom
         align: getComputedStyle(card).textAlign,
     }));
     expect(look).toEqual({ color: 'rgb(31, 69, 101)', tile: '64px', align: 'center' });
-    await expect(page.locator('[data-store-card] a')).toHaveAttribute('target', '_blank');
+    // بطاقة المتجر إلى صفحة «المتجر والتبرعات» في الموقع بالتبويب نفسه، ومنها إلى سلة (قرار المشرف على #179، البند 1 — طلب الدمج 183)
+    await expect(page.locator('[data-store-card] a')).toHaveAttribute('href', /\/store$/);
+    await expect(page.locator('[data-store-card] a')).not.toHaveAttribute('target', '_blank');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     await settleForShot(page);
     await page.screenshot({ path: `${SHOTS}/director-2026-11-03-services-${width}.png`, fullPage: true });
@@ -839,13 +849,19 @@ test('library hero: the images rotate, and stay still under reduced motion', asy
     await context.close();
 });
 
-// البند ٢٩: الخدمات التسع دائماً، وعلى 820 فأقل البطاقة الأخيرة الفردية في منتصف الصف بعرض بطاقة واحدة لا ممتدة (قرار صفوان في الملاحظة ٣٠)
-test('services: nine cards, and an odd last card is one card wide and centred at 820 and 390', async ({ page }, info) => {
+// البند ٢٩: الخدمات الثماني بلا خانة فارغة على 820 و390، وعلى 820 فأقل البطاقة الأخيرة الفردية في منتصف الصف بعرض بطاقة واحدة لا ممتدة
+// (قرار صفوان في الملاحظة ٣٠). والعدد الفردي سبع بطاقات بلا رابط متجر صالح، فيُحاكى بإزالة بطاقة المتجر من الصفحة
+test('services: eight cards fill their rows, and an odd last card is one card wide and centred at 820 and 390', async ({ page }, info) => {
     test.skip(info.project.name === 'desktop', 'العرضان 820 و390');
     await page.goto('/services');
     const cards = page.locator('[data-service-grid] > li');
-    await expect(cards).toHaveCount(9);
+    await expect(cards).toHaveCount(8);
     await expect(page.locator('[data-service-grid] a[href$="/surveys"]')).toHaveCount(1);
+    const even = await cards.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().width)));
+    expect(new Set(even).size, 'العدد الزوجي: كل البطاقات بعرض واحد، بلا خانة فارغة').toBe(1);
+
+    await page.locator('[data-store-card]').evaluate((item) => item.remove());
+    await expect(cards).toHaveCount(7);
     const layout = await page.evaluate(() => {
         const grid = document.querySelector('[data-service-grid]').getBoundingClientRect();
         const items = [...document.querySelectorAll('[data-service-grid] > li')].map((item) => item.getBoundingClientRect());
