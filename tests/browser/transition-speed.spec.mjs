@@ -28,7 +28,7 @@ for (const motion of ['no-preference', 'reduce']) {
             const overlay = document.querySelector('[data-page-transition]');
             new MutationObserver(() => mark(overlay.hidden ? 'hidden' : 'shown')).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
             document.addEventListener('livewire:navigate', () => mark('navigate'), { once: true });
-            document.addEventListener('livewire:navigated', () => mark('navigated'), { once: true });
+            document.addEventListener('livewire:navigated', () => mark('navigated'), { once: true, capture: true });
         });
 
         await page.locator('header a[href$="/contact"]').filter({ visible: true }).first().click();

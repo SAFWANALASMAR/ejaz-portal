@@ -374,7 +374,6 @@ test.describe('executive director', () => {
         await visit(page, testInfo, watcher, '/programs', 'programs-edit-button');
         const button = page.locator('[data-page-edit-button]');
         await expect(button).toBeVisible();
-        watcher.knownViewTransition = true;
         await Promise.all([page.waitForURL(/\/admin\/site-pages\/\d+\/edit/), button.click()]);
         await page.waitForLoadState('networkidle');
         await checkStep(page, testInfo, watcher, 'page-editor');

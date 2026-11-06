@@ -150,7 +150,6 @@ export function start() {
     window.ejazPageStarted = true;
     run();
 
-
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
     window.addEventListener('pageshow', (event) => {
