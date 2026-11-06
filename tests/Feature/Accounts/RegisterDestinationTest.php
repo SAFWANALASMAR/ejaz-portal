@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Notification;
 use Tests\Fakes\FakeSmsGateway;
 
 /*
-| بعد إنشاء الحساب إلى «حسابي»، ومع توثيق الجوال المفعّل إلى التوثيق ثم «حسابي»، ولو جاء من صفحة تطلب الدخول (التسجيل في
+| بعد إنشاء الحساب إلى رمز البريد (decisions/2026-11-06-email-otp.md)، ومع توثيق الجوال المفعّل إلى التوثيق ثم «حسابي»، ولو جاء من صفحة تطلب الدخول (التسجيل في
 | مسابقة أو برنامج): لا عودة إلى أي صفحة سابقة (قرار صفوان، 5 نوفمبر 2026 — decisions/2026-11-05-phone-login.md، ويلغي
 | العودة بعد التسجيل من ملاحظة المراجعة على #96). و«إنشاء حساب» على تلك الصفحات يبقى يفتح التسجيل بـ signup=1.
 */
@@ -26,6 +26,7 @@ function destinationRegistration(array $overrides = []): array
 {
     return [
         'name' => 'عبدالله محمد',
+        'email' => 'abdullah@example.test',
         'phone' => '0512345678',
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',
@@ -40,10 +41,10 @@ it('links «create account» on the competition page to the registration page', 
     $this->get($this->target)->assertRedirect(route('register'));
 });
 
-it('sends a new account from the competition page to their account when verification is off', function () {
+it('sends a new account from the competition page to the email code when verification is off', function () {
     $this->get($this->target)->assertRedirect(route('register'));
 
-    $this->post('/register', destinationRegistration())->assertRedirect(route('account.dashboard'));
+    $this->post('/register', destinationRegistration())->assertRedirect(route('verification.notice'));
     expect(session('url.intended'))->toBeNull();
 });
 
@@ -63,12 +64,12 @@ it('sends a new account from a program registration to their account', function 
     $target = route('programs.register', ['slug' => 'research-skills', 'signup' => 1]);
 
     $this->get($target)->assertRedirect(route('register'));
-    $this->post('/register', destinationRegistration())->assertRedirect(route('account.dashboard'));
+    $this->post('/register', destinationRegistration())->assertRedirect(route('verification.notice'));
 });
 
 it('follows no destination left in the session, own or foreign', function (string $intended) {
     $this->withSession(['url.intended' => $intended])
-        ->post('/register', destinationRegistration())->assertRedirect(route('account.dashboard'));
+        ->post('/register', destinationRegistration())->assertRedirect(route('verification.notice'));
 
     expect(session('url.intended'))->toBeNull();
 })->with([

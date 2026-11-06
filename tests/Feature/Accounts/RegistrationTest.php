@@ -2,8 +2,8 @@
 
 use App\Enums\RoleName;
 use App\Models\User;
+use App\Notifications\EmailVerificationCode;
 use App\Notifications\RegistrationAttemptOnAccount;
-use App\Notifications\VerifyEmailNotification;
 use App\Support\SaudiPhone;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Notification;
@@ -47,7 +47,7 @@ it('registers a beneficiary and starts phone verification', function () {
         ->and($this->sms->lastCodeFor('+966512345678'))->not->toBeNull();
 
     $this->assertAuthenticatedAs($user);
-    Notification::assertSentTo($user, VerifyEmailNotification::class);
+    Notification::assertSentTo($user, EmailVerificationCode::class);
 });
 
 it('requires accepting the privacy policy', function () {

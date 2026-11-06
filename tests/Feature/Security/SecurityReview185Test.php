@@ -27,7 +27,7 @@ beforeEach(function () {
  */
 function signUp185(array $overrides = []): array
 {
-    return ['name' => 'مستفيد', 'phone' => '0512345678', 'password' => 'Long-Enough-Pass-2026', 'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
+    return ['name' => 'مستفيد', 'email' => 'beneficiary@example.test', 'phone' => '0512345678', 'password' => 'Long-Enough-Pass-2026', 'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
 }
 
 // ── I1
@@ -36,7 +36,7 @@ it('does not let a phone account holding an unverified email block the owner fro
     // المهاجم سجّل بجواله وببريد الضحية غير موثق
     User::factory()->create(['username' => null, 'phone' => '+966511111111', 'email' => 'victim@example.test', 'email_verified_at' => null]);
 
-    $this->post('/register', signUp185(['email' => 'victim@example.test']))->assertSessionHasNoErrors()->assertRedirect(route('account.dashboard'));
+    $this->post('/register', signUp185(['email' => 'victim@example.test']))->assertSessionHasNoErrors()->assertRedirect(route('verification.notice'));
     expect(User::query()->where('email', 'victim@example.test')->count())->toBe(2);
 });
 
@@ -128,11 +128,11 @@ it('keeps the pending number out of the activity log values', function () {
 it('sends the registration attempt notice to a verified email only', function () {
     $unverified = User::factory()->create(['phone' => '+966512345678', 'email' => 'not-theirs@example.test', 'email_verified_at' => null]);
 
-    $this->post('/register', signUp185())->assertSessionHasErrors('phone');
+    $this->post('/register', signUp185())->assertSessionHasErrors('email');
     Notification::assertNotSentTo($unverified, RegistrationAttemptOnAccount::class);
 
     $verified = User::factory()->create(['phone' => '+966511111111']);
-    $this->post('/register', signUp185(['phone' => '0511111111']))->assertSessionHasErrors('phone');
+    $this->post('/register', signUp185(['phone' => '0511111111']))->assertSessionHasErrors('email');
     Notification::assertSentTo($verified, RegistrationAttemptOnAccount::class);
 });
 

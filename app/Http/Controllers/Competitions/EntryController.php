@@ -27,8 +27,11 @@ class EntryController extends Controller
         $competition = $this->competition($slug);
         $user = $this->user($request);
 
-        if (! $user->hasVerifiedPhone()) {
-            return redirect()->route('account.phone.verify')->with('status', __('competitions.entry.verify_phone'));
+        // بريد موثق أو جوال موثق (decisions/2026-11-06-email-otp.md)
+        if (! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone()) {
+            return $user->email !== null
+                ? redirect()->route('verification.notice')->with('status', __('account.email_code.required'))
+                : redirect()->route('account.phone.verify')->with('status', __('competitions.entry.verify_phone'));
         }
 
         try {

@@ -89,13 +89,17 @@ it('shows no unpublished competition, and never shows the correct option', funct
     expect($page->getContent())->not->toContain('correct_option')->not->toContain('is_correct');
 });
 
-it('asks a guest to log in and an unverified phone to verify before applying', function () {
+// بريد موثق أو جوال موثق (decisions/2026-11-06-email-otp.md): رمز البريد أولاً، ورمز الجوال لمن لا بريد له
+it('asks a guest to log in and an account without a verified email or phone to verify before applying', function () {
     $this->get('/competitions/demo/entry')->assertRedirect('/login');
     $this->post('/competitions/demo/entry/start')->assertRedirect('/login');
 
-    $unverified = User::factory()->create(['phone' => '+966500000002', 'phone_verified_at' => null]);
+    $noEmail = User::factory()->unverified()->create(['email' => null, 'phone' => '+966500000003', 'phone_verified_at' => null]);
+    $this->actingAs($noEmail)->post('/competitions/demo/entry/start')->assertRedirect(route('account.phone.verify'));
 
-    $this->actingAs($unverified)->post('/competitions/demo/entry/start')->assertRedirect(route('account.phone.verify'));
+    $unverified = User::factory()->unverified()->create(['phone' => '+966500000002', 'phone_verified_at' => null]);
+
+    $this->actingAs($unverified)->post('/competitions/demo/entry/start')->assertRedirect(route('verification.notice'));
     expect(session('url.intended'))->not->toBe(route('competitions.show', 'demo'));
 
     expect(CompetitionSubmission::count())->toBe(0)

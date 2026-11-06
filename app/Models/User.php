@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Enums\ActivityEvent;
 use App\Enums\RoleName;
 use App\Notifications\ResetPasswordNotification;
@@ -255,7 +256,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function sendEmailVerificationNotification(): void
     {
-        if ($this->email !== null) {
+        // تحت حدود البريد المستهدف وسقف البوابة كرمز البريد (مراجعة الأمن على #207، م١)، وما تجاوزها يُترك بصمت
+        if ($this->email !== null && SendEmailVerificationCode::reserveAddress($this->email) === null) {
             $this->notify(new VerifyEmailNotification);
         }
     }

@@ -33,7 +33,7 @@ beforeEach(function () {
  */
 function reviewSignUp(array $overrides = []): array
 {
-    return ['name' => 'صاحب الرقم', 'phone' => '0512345678', 'password' => 'Long-Enough-Pass-2026', 'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
+    return ['name' => 'صاحب الرقم', 'email' => 'owner@example.test', 'phone' => '0512345678', 'password' => 'Long-Enough-Pass-2026', 'password_confirmation' => 'Long-Enough-Pass-2026', 'privacy' => '1', ...$overrides];
 }
 
 // ── المهمة ١: الرقم المحجوز يأخذه صاحبه بالرمز
@@ -65,13 +65,14 @@ it('keeps the number with the holder while the code is wrong, and refuses a numb
 
     $this->post('/logout');
     User::factory()->create(['phone' => '+966511111111', 'phone_verified_at' => now()]);
-    $this->post('/register', reviewSignUp(['phone' => '0511111111']))->assertSessionHasErrors(['phone' => __('account.register.unavailable')]);
+    $this->post('/register', reviewSignUp(['email' => 'second@example.test', 'phone' => '0511111111']))->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
 });
 
 it('still refuses a held number while verification is off', function () {
     User::factory()->create(['phone' => '+966512345678', 'phone_verified_at' => null]);
 
-    $this->post('/register', reviewSignUp())->assertSessionHasErrors(['phone' => __('account.register.unavailable')]);
+    // الرسالة العامة على البريد متى كُتب (CreateNewUser::mergeTaken)، والبريد إلزامي
+    $this->post('/register', reviewSignUp())->assertSessionHasErrors(['email' => __('account.register.unavailable')]);
     expect(User::query()->whereNotNull('pending_phone')->exists())->toBeFalse();
 });
 
@@ -112,7 +113,7 @@ it('refuses the release to other roles, and for a verified number', function () 
 // ── اختبارات ناقصة: الدخول بصيغ الرقم، والاستعادة بلا بريد
 
 it('signs in by the registered phone in any of its forms', function (string $login) {
-    $this->post('/register', reviewSignUp())->assertRedirect(route('account.dashboard'));
+    $this->post('/register', reviewSignUp())->assertRedirect(route('verification.notice'));
     $user = User::query()->where('phone', '+966512345678')->sole();
     $this->post('/logout');
 
@@ -120,11 +121,13 @@ it('signs in by the registered phone in any of its forms', function (string $log
     $this->assertAuthenticatedAs($user);
 })->with(['local' => '0512345678', 'international' => '+966512345678', 'arabic digits' => '٠٥١٢٣٤٥٦٧٨']);
 
-it('answers a reset request for a phone-only account neutrally, without sending anything', function () {
-    $this->post('/register', reviewSignUp())->assertRedirect(route('account.dashboard'));
+it('answers a reset request for an unverified phone neutrally, without sending anything', function () {
+    $this->post('/register', reviewSignUp())->assertRedirect(route('verification.notice'));
     $this->post('/logout');
+    // رمز البريد بعد التسجيل خارج ما يُفحص هنا
+    Notification::fake();
 
-    // الرقم غير موثق، ولا بريد: الرد نفسه بلا رسالة
+    // الرقم غير موثق، والبريد غير موثق: الرد نفسه بلا رسالة
     $this->post(route('password.phone.send'), ['phone' => '0512345678'])
         ->assertRedirect(route('password.phone.reset'))->assertSessionHas('status', __('account.password_reset.sent'));
     expect($this->sms->lastCodeFor('+966512345678'))->toBeNull();
@@ -162,7 +165,7 @@ it('answers a taken number in the profile with the general message', function ()
 });
 
 it('requires the phone in the profile of a self-registered account without a username', function () {
-    $this->post('/register', reviewSignUp(['email' => 'self@example.test']))->assertRedirect(route('account.dashboard'));
+    $this->post('/register', reviewSignUp(['email' => 'self@example.test']))->assertRedirect(route('verification.notice'));
     $user = User::query()->where('phone', '+966512345678')->sole();
 
     $this->put('/user/profile-information', ['name' => $user->name, 'email' => 'self@example.test', 'phone' => '', 'current_password' => 'Long-Enough-Pass-2026'])

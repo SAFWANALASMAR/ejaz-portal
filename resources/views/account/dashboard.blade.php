@@ -11,18 +11,16 @@
     </x-slot:aboveWelcome>
     <x-slot:belowWelcome>{{ $library }}</x-slot:belowWelcome>
 
-    {{-- تنبيها التوثيق متى فُعّل من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
-    @if (\App\Support\AccountSettings::verificationEnabled())
-        @if ($user->email !== null && ! $user->hasVerifiedEmail())
-            <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
-                <span>{{ __('account.dashboard.verify_email') }}</span>
-                <form method="POST" action="{{ route('verification.send') }}">
-                    @csrf
-                    <x-button variant="link">{{ __('account.dashboard.resend_email') }}</x-button>
-                </form>
-            </x-alert>
-        @endif
+    {{-- تنبيه البريد دائماً، فرمزه شرط التسجيل في المسابقة (decisions/2026-11-06-email-otp.md). وتنبيه الجوال متى فُعّل التوثيق
+         من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
+    @if ($user->email !== null && ! $user->hasVerifiedEmail())
+        <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
+            <span>{{ __('account.dashboard.verify_email') }}</span>
+            <x-button variant="link" :href="route('verification.notice')">{{ __('account.dashboard.verify_now') }}</x-button>
+        </x-alert>
+    @endif
 
+    @if (\App\Support\AccountSettings::verificationEnabled())
         @if ($user->phone !== null && ! $user->hasVerifiedPhone())
             <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
                 <span>{{ __('account.dashboard.verify_phone') }}</span>

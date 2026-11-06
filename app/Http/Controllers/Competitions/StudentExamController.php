@@ -37,6 +37,10 @@ class StudentExamController extends Controller
 
         abort_unless($competition->isOpen(), 404);
 
+        if (($verify = $this->verifyFirst($request, $slug)) !== null) {
+            return $verify;
+        }
+
         return view('competitions.student.register', [
             'competition' => $competition,
             'categories' => $competition->openCategories()->get(),
@@ -48,6 +52,10 @@ class StudentExamController extends Controller
     public function register(Request $request, string $slug, RegisterStudent $register): RedirectResponse
     {
         $competition = $this->competition($slug);
+
+        if (($verify = $this->verifyFirst($request, $slug)) !== null) {
+            return $verify;
+        }
 
         // التحدي ضد الآليات (Turnstile) على نموذج التسجيل في المسابقة أيضاً، ولو كان الطالب داخلاً (مراجعة المطابقة).
         // ووسيط VerifyBotChallenge لنماذج الزائر وحده، فيُفحص هنا بفعل النموذج نفسه
@@ -65,6 +73,25 @@ class StudentExamController extends Controller
         }
 
         return redirect()->route('competitions.show', $slug)->with('status', __('competitions.student.registered'));
+    }
+
+    /**
+     * لا تسجيل في المسابقة قبل توثيق البريد (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)، أو جوال موثق
+     * لحساب قديم. ويعود بعد التوثيق إلى نموذج التسجيل.
+     */
+    private function verifyFirst(Request $request, string $slug): ?RedirectResponse
+    {
+        $user = $this->user($request);
+
+        if ($user->hasVerifiedEmail() || $user->hasVerifiedPhone()) {
+            return null;
+        }
+
+        $request->session()->put('url.intended', route('competitions.student.register', $slug));
+
+        return $user->email === null
+            ? redirect()->route('account.profile')->with('status', __('account.email_code.no_email'))
+            : redirect()->route('verification.notice')->with('status', __('account.email_code.required'));
     }
 
     /**

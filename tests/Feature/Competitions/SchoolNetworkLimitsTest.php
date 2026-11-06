@@ -27,7 +27,8 @@ function schoolRegistration(int $i): array
 {
     return [
         'name' => 'طالب المدرسة '.$i,
-        // طالب المعمل بجواله وحده، بلا بريد (decisions/2026-11-05-phone-login.md)
+        // البريد إلزامي (decisions/2026-11-06-email-otp.md)
+        'email' => "school.student{$i}@example.test",
         'phone' => schoolPhone($i),
         'password' => 'Long-Enough-Pass-2026',
         'password_confirmation' => 'Long-Enough-Pass-2026',

@@ -294,14 +294,20 @@ it('keeps probes of taken emails out of the portal cap, so they cannot pause sig
     registerAt(1, ['REMOTE_ADDR' => '203.0.113.40'])->assertSessionHasNoErrors();
 });
 
-// الجوال إلزامي والبريد اختياري ولا اسم مستخدم (قرار صفوان، 5 نوفمبر 2026): خطأ تحقق لا خطأ خادم
-it('accepts a sign up without an email or a username, and refuses one without a phone as a validation error, not a server error', function () {
-    $this->post('/register', ['name' => 'مستفيد تجريبي', 'phone' => '0512340000',
+// الجوال والبريد إلزاميان ولا اسم مستخدم (قرار صفوان، 5 نوفمبر 2026، والبريد بقرار اجتماع 6 نوفمبر —
+// decisions/2026-11-06-email-otp.md): خطأ تحقق لا خطأ خادم
+it('accepts a sign up without a username, and refuses one without a phone or an email as a validation error, not a server error', function () {
+    $this->post('/register', ['name' => 'مستفيد تجريبي', 'email' => 'with.email@example.test', 'phone' => '0512340000',
         'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
         ->assertRedirect()->assertSessionHasNoErrors();
-    expect(User::query()->where('phone', '+966512340000')->sole())->username->toBeNull()->email->toBeNull();
+    expect(User::query()->where('phone', '+966512340000')->sole())->username->toBeNull();
 
     auth()->logout();
+
+    $this->post('/register', ['name' => 'مستفيد بلا بريد', 'phone' => '0512340001',
+        'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])
+        ->assertRedirect()->assertSessionHasErrors('email');
+    expect(User::query()->where('phone', '+966512340001')->exists())->toBeFalse();
 
     $this->post('/register', ['name' => 'مستفيد آخر', 'email' => 'nophone@example.test',
         'password' => 'Limits-Strong-Pass-2026', 'password_confirmation' => 'Limits-Strong-Pass-2026', 'privacy' => '1'])

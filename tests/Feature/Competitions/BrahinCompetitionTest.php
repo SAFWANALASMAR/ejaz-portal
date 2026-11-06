@@ -23,6 +23,7 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Notifications\EmailVerificationCode;
 use App\Support\AttemptLayout;
 use App\Support\CompetitionShortLink;
 use App\Support\CumulativeRanking;
@@ -35,6 +36,7 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -480,17 +482,29 @@ it('ranks tied scores equally in the results export, and shows the grand prize t
 
 // ── بعد دمج ملاحظات المدير التنفيذي (#66) ومراجعة المشرف على 0b788d7f
 
-it('lets a student with a phone alone, no email and no username, register in the competition and take a branch', function () {
+// والبريد إلزامي، ولا تسجيل في المسابقة قبل توثيقه برمزه (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)
+it('lets a student with a phone and an email, no username, register in the competition after the email code, and take a branch', function () {
     studentQuestion($this->round);
+    Notification::fake();
 
     $this->post('/register', [
-        'name' => 'طالب المعمل', 'phone' => '0551230007', 'password' => 'Thursday-Exam-Key-2026', 'password_confirmation' => 'Thursday-Exam-Key-2026', 'privacy' => '1',
-    ])->assertSessionHasNoErrors();
+        'name' => 'طالب المعمل', 'email' => 'lab.student@example.test', 'phone' => '0551230007', 'password' => 'Thursday-Exam-Key-2026', 'password_confirmation' => 'Thursday-Exam-Key-2026', 'privacy' => '1',
+    ])->assertSessionHasNoErrors()->assertRedirect(route('verification.notice'));
 
     $student = User::query()->where('phone', '+966551230007')->sole();
-    expect($student->email)->toBeNull()->and($student->username)->toBeNull();
+    expect($student->username)->toBeNull()->and($student->hasVerifiedEmail())->toBeFalse();
 
-    $this->actingAs($student)->get('/competitions/brahin/register')->assertOk();
+    $this->actingAs($student)->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+
+    $code = null;
+    Notification::assertSentTo($student, EmailVerificationCode::class, function (EmailVerificationCode $notification) use (&$code): bool {
+        $code = $notification->code;
+
+        return true;
+    });
+    $this->post('/account/verify-email', ['code' => $code])->assertSessionHasNoErrors()->assertRedirect(route('competitions.student.register', 'brahin'));
+
+    $this->get('/competitions/brahin/register')->assertOk();
     $this->post('/competitions/brahin/register', [
         'full_name' => 'عبدالله محمد أحمد الغامدي', 'national_id' => studentNationalId(31), 'category_id' => CompetitionCategory::query()->where('name', 'المرحلة الثانوية')->value('id'),
         'grade' => 'الأول الثانوي', 'region_id' => CompetitionRegion::query()->active()->value('id'), 'guardian_phone' => '0551234567', 'gender' => 'male', 'pledge' => '1',
