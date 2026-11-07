@@ -1,7 +1,7 @@
 // وضع التركيز في صفحات اختبار الطالب (docs/decisions/2026-11-06-exam-focus-mode.md) على العروض الثلاثة: بلا رأس الموقع وقائمته
 // ولا شريط «حسابي» ولا التذييل ولا شريط العودة ولا المساعد، وشريط علوي بالوقت الباقي، وأرقام الصفحات عمود ثابت (الحاسوب واللوحي)
 // أو شريط أفقي ثابت (الجوال) يتمركز على الحالي. وسؤال عادي بأربعة خيارات بزريه في الشاشة بلا تمرير على 1366×768 و390×844،
-// وأن ضغطة «التالي» وصلت يظهر قبل رد الخادم. وفي كل صفحة: الاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe.
+// وأن ضغطة «التالي» وصلت يظهر قبل رد الخادم، وأن ملء الشاشة يبقى بين الأسئلة والأرقام كلها في العمود بلا تمرير على 1366×768. وفي كل صفحة: الاتجاه من اليمين، وبلا تمرير أفقي ولا أخطاء في وحدة التحكم ولا مخالفة axe.
 // واللقطات في docs/design/screenshots/exam-focus/<الشاشة>-<العرض>.png
 //
 // يحتاج: STUDENT_COMPETITION من ejaz:demo-student-competition --json (يسجّل الطالب ويبدأ الاختبار إن لم يفعل)، والأصول المبنية:
@@ -134,6 +134,12 @@ test.describe('student exam: focus mode', () => {
         if (testInfo.project.name === 'desktop') {
             await page.setViewportSize({ width: 1366, height: 768 });
             await fits(page, '1366x768');
+            // الأرقام كلها بلا تمرير في العمود، بأعمدة بقدر ما يلزم (decisions/2026-11-07-exam-fullscreen.md)
+            const column = await page.evaluate(() => {
+                const list = document.querySelector('[data-exam-units-list]');
+                return { overflow: list.scrollHeight - list.clientHeight, cols: getComputedStyle(list).gridTemplateColumns.split(' ').length };
+            });
+            expect(column.overflow, '1366x768: every page number without scrolling').toBeLessThanOrEqual(1);
             await page.screenshot({ path: `${SHOTS}/question-1366x768.png` });
 
             // الدقائق الخمس الأخيرة: الكبسولة بالأزرق الداكن
@@ -180,6 +186,27 @@ test.describe('student exam: focus mode', () => {
                 await page.evaluate(() => document.fonts.ready);
                 await page.screenshot({ path: `${SHOTS}/question-skipped-${width}.png` });
             }
+        }
+
+        // ملء الشاشة (الحاسوب): الزر يظهر ويتبدل «تصغير الشاشة»، وتبقى الشاشة ممتلئة بعد «التالي» لأن التنقّل داخل الصفحة بلا تحميل
+        if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
+            const toggle = page.locator('[data-exam-fullscreen]');
+            await expect(toggle).toBeVisible();
+            await expect(toggle).toHaveText('ملء الشاشة');
+            await toggle.click();
+            await expect(toggle).toHaveAttribute('data-state', 'on');
+            await expect(toggle).toHaveText('تصغير الشاشة');
+            await page.evaluate(() => {
+                window.examStayed = true;
+            });
+            const from = page.url();
+            await page.locator('button[name="go"][value="next"]').click();
+            await page.waitForURL((url) => url.href !== from);
+            await expect(page.locator('[data-exam-fullscreen]')).toHaveAttribute('data-state', 'on');
+            expect(await page.evaluate(() => window.examStayed === true && document.fullscreenElement !== null), 'no page load, still full screen').toBe(true);
+            await page.locator('[data-exam-bar]').screenshot({ path: `${SHOTS}/fullscreen-on-1440.png`, animations: 'disabled' });
+            await page.locator('[data-exam-fullscreen]').click();
+            await expect(page.locator('[data-exam-fullscreen]')).toHaveText('ملء الشاشة');
         }
 
         // المراجعة بوضع التركيز أيضاً

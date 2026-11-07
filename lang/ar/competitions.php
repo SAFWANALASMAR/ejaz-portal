@@ -600,6 +600,8 @@ return [
         'go_to_unit' => 'الصفحة :number: :status',
         // وضع التركيز في صفحات الاختبار (decisions/2026-11-06-exam-focus-mode.md)
         'exam_bar' => 'شريط الاختبار',
+        'fullscreen_enter' => 'ملء الشاشة',
+        'fullscreen_exit' => 'تصغير الشاشة',
         'saving' => 'جارٍ حفظ إجاباتك والانتقال…',
         // حالة الصفحة في عمود الأرقام (لقارئ الشاشة مع رقمها)، ومفتاح ألوانه
         'unit_states' => [

@@ -169,3 +169,55 @@ it('forgets the visited pages from the session once the attempt is submitted', f
     $this->post(focusUrl('/submit'))->assertRedirect();
     expect(session()->has($key))->toBeFalse();
 });
+
+/*
+| ملء الشاشة والتنقّل داخل الصفحة (ملاحظات المدير التنفيذي، 7 نوفمبر 2026 — decisions/2026-11-07-exam-fullscreen.md)
+*/
+
+it('puts a hidden fullscreen button with its two labels and icons in the exam bar, and marks the review links for in-page navigation', function () {
+    focusStudent();
+
+    $bar = (string) str($this->get(focusUrl('/units/1'))->assertOk()->getContent())->after('data-exam-bar')->before('exam-body');
+
+    expect($bar)->toMatch('/<button type="button" class="exam-fullscreen" data-exam-fullscreen hidden aria-pressed="false"/')
+        ->toContain('data-enter="'.__('competitions.student.fullscreen_enter').'"')
+        ->toContain('data-exit="'.__('competitions.student.fullscreen_exit').'"')
+        ->toContain('exam-fullscreen-enter')
+        ->toContain('exam-fullscreen-exit')
+        ->toContain('data-exam-timer');
+
+    $this->get(focusUrl('/review'))->assertOk()->assertSee('data-exam-fullscreen', false)->assertSee('data-exam-link', false);
+});
+
+it('keeps the plain redirects for the exam form without the in-page header', function () {
+    focusStudent();
+
+    $this->post(focusUrl('/units/1'), ['go' => 'next'])->assertRedirect(focusUrl('/units/2'));
+    $this->post(focusUrl('/units/2'), ['go' => 'submit'])->assertRedirect(focusUrl());
+});
+
+it('moves between pages in place by the same redirect, and leaves the exam by an address the page opens in full', function () {
+    focusStudent();
+    $inline = ['X-Exam-Inline' => '1'];
+
+    // بين الصفحات: التحويل نفسه، يتبعه السكربت ويضع منطقة الاختبار مكان الحالية
+    $this->withHeaders($inline)->post(focusUrl('/units/1'), ['go' => 'next'])->assertRedirect(focusUrl('/units/2'));
+    $this->withHeaders($inline)->post(focusUrl('/units/2'), ['go' => 'review'])->assertRedirect(focusUrl('/review'));
+
+    // والتسليم: بلا تحويل، فالعنوان في رأس للسكربت
+    $this->withHeaders($inline)->post(focusUrl('/units/2'), ['go' => 'submit'])
+        ->assertNoContent()
+        ->assertHeader('X-Exam-Location', url(focusUrl()));
+    expect(CompetitionAttempt::query()->sole()->isInProgress())->toBeFalse();
+});
+
+it('keeps the time up message for the full page load after an in-page save', function () {
+    focusStudent();
+    $this->travel(31)->minutes();
+
+    $this->withHeaders(['X-Exam-Inline' => '1'])->post(focusUrl('/units/1'), ['go' => 'next'])
+        ->assertNoContent()
+        ->assertHeader('X-Exam-Location', url(focusUrl()));
+
+    $this->get(focusUrl())->assertSee(__('competitions.student.time_up'));
+});

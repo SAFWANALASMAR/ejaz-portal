@@ -1,7 +1,8 @@
 {{--
     المراجعة قبل التسليم: الوحدات بحالة أسئلتها والرجوع لأي منها، ثم «تسليم الإجابات» بنافذة تأكيد (popover بلا
     سكربت). والعداد يسلّم آلياً عند انتهاء الوقت. والتسليم متكرر الأمان في الخادم (SubmitAttempt). بوضع التركيز
-    (x-layouts.exam — decisions/2026-11-06-exam-focus-mode.md)، والرجوع إلى صفحة تحميل كامل بلا التنقّل السريع.
+    (x-layouts.exam — decisions/2026-11-06-exam-focus-mode.md)، والرجوع إلى صفحة داخل الصفحة نفسها فيبقى ملء الشاشة
+    (data-exam-link — decisions/2026-11-07-exam-fullscreen.md)، وبلا سكربت تحميل كامل.
 --}}
 <x-layouts.exam :competition="$competition" :round="$round" :attempt="$attempt">
     <section class="exam-review space-y-5 concept-panel p-6">
@@ -15,7 +16,7 @@
                     $answered = collect($unit['questions'])->filter(fn ($q) => $attempt->answer((int) $q['id']) !== null)->count();
                 @endphp
                 <li>
-                    <a href="{{ route('competitions.student.unit', [$competition->slug, $round->uuid, $index + 1]) }}"
+                    <a href="{{ route('competitions.student.unit', [$competition->slug, $round->uuid, $index + 1]) }}" data-exam-link
                         class="flex items-center justify-between rounded-xl border border-line px-4 py-3 hover:border-primary">
                         <span class="font-semibold text-ink">{{ __('competitions.student.unit_of', ['number' => $index + 1, 'total' => $loop->count]) }}</span>
                         <span @class(['text-sm font-semibold', 'text-primary' => $answered === $count, 'text-red-700' => $answered < $count])>
