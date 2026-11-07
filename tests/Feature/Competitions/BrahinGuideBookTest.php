@@ -169,3 +169,19 @@ it('keeps the normal reader limit on the guide book outside the competition wind
     }
     $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertStatus(429);
 });
+
+// مراجعة #218، م٢: الكتاب يُربط دليلاً بعد فتحه، فيتسع حده فوراً لا بعد دقيقة
+it('widens the reader limit right after the book is chosen as the guide, even if it was opened before', function () {
+    Storage::fake('local');
+    $this->book->forceFill(['slug' => 'book'])->save();
+    Storage::disk(LibraryItem::disk())->put((string) $this->book->file, pdfContents());
+    $this->competition->forceFill(['opens_at' => now()->subDay(), 'closes_at' => now()->addMonth()])->save();
+    SchoolNetworkLimits::forget();
+
+    $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+    saveGuideBook($this->director, $this->competition->fresh(), $this->book->id);
+
+    foreach (range(1, 30) as $i) {
+        $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+    }
+});

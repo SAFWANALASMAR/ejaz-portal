@@ -116,6 +116,7 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
+        $guideBookBefore = ((array) $competition->page_content)[CompetitionPage::GUIDE_BOOK] ?? null;
         $rankingBefore = null;
 
         // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
@@ -205,6 +206,9 @@ class SaveCompetition
             $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
         }
         SchoolNetworkLimits::forget();
+        // وحد قارئ الدليل الأوسع للكتاب المربوط والمفكوك فوراً، لا بعد دقيقة (Competition::usesAsGuideBook، مراجعة #218)
+        Competition::forgetGuideBook($guideBookBefore);
+        Competition::forgetGuideBook(((array) $competition->page_content)[CompetitionPage::GUIDE_BOOK] ?? null);
 
         // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص
         if (filled($backgroundBefore) && $backgroundBefore !== $competition->certificate_background) {
