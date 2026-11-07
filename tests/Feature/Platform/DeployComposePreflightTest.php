@@ -62,3 +62,41 @@ it('checks /up on this server, and builds the backup image with the release', fu
     expect($script)->toContain('--resolve "${HOST}:443:127.0.0.1"')
         ->toContain('build --pull app web backup');
 });
+
+/** يشغّل سطري فحص Turnstile من سكربت النشر على ملف .env المعطى (decisions/2026-11-07-v0.15.4-ledger.md). */
+function deployTurnstilePreflight(string $env): ProcessResult
+{
+    $lines = collect(file(base_path('scripts/deploy-compose.sh'), FILE_IGNORE_NEW_LINES))
+        ->filter(fn (string $line) => str_contains($line, '^TURNSTILE_SITE_KEY=') || str_contains($line, 'Turnstile غير مضبوط'))
+        ->implode("\n");
+
+    $dir = storage_path('framework/testing/deploy-turnstile-'.uniqid());
+    File::ensureDirectoryExists($dir);
+    File::put($dir.'/.env', $env);
+    File::put($dir.'/check.sh', "set -euo pipefail\nfail() { echo \"$1\" >&2; exit 1; }\n{$lines}\necho passed\n");
+
+    try {
+        return Process::path($dir)->run(['bash', 'check.sh']);
+    } finally {
+        File::deleteDirectory($dir);
+    }
+}
+
+// في الإنتاج ترد صفحات الدخول والتسجيل والاستعادة 500 بلا Turnstile بمفتاحيه، فالنشر يُرفض لا يُنبَّه وحده
+it('refuses to deploy without Turnstile and both keys', function (string $env) {
+    $result = deployTurnstilePreflight($env);
+
+    expect($result->successful())->toBeFalse()
+        ->and($result->errorOutput())->toContain('Turnstile');
+})->with([
+    'fake driver' => "BOT_CHALLENGE_DRIVER=fake\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n",
+    'empty keys' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=\nTURNSTILE_SECRET_KEY=\n",
+    'missing secret' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=\n",
+]);
+
+it('deploys with Turnstile and both keys', function () {
+    $result = deployTurnstilePreflight("BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n");
+
+    expect($result->successful())->toBeTrue($result->errorOutput())
+        ->and($result->output())->toContain('passed');
+});

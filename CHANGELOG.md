@@ -10,7 +10,7 @@
 
 ### خطوات نشر v0.15.4 (الترقية من v0.15.3)
 
-مطابَقة بـ `git diff v0.15.3..a5099e1c`: **تغيّر `composer.lock` وحده، فلا ترحيل ولا بذرة ولا صلاحية ولا متغير بيئة، ولا تغيير في `package.json`.**
+مطابَقة بـ `git diff v0.15.3..a5099e1c` لـ #219: **تغيّر `composer.lock` وحده، فلا ترحيل ولا بذرة ولا صلاحية ولا متغير بيئة جديد، ولا تغيير في `package.json`.** ومع هذا السجل: `deploy-compose.sh` يرفض النشر بلا Turnstile بمفتاحيه، و`MAIL_FROM_ADDRESS=no-reply@ejaz.sa` في المثال.
 
 1. **النشر:** `bash scripts/deploy-compose.sh v0.15.4`. يبني الصورة بالمكتبات الجديدة، ويعيد إنشاء حاوية `horizon` فيعمل Horizon 5.50.1.
 2. **البيئة التي لا تنشر بالسكربت** (رابط العرض أو يدوياً): `composer install --no-dev --optimize-autoloader` ثم `php artisan horizon:terminate` ليعيد المشرف تشغيله.
@@ -23,6 +23,16 @@
 - **`larastan/larastan` 3.12.3 → 3.13.2، و`laravel/boost` 2.10.2 → 2.10.4:** أداتا تطوير لا تدخلان الإنتاج. وlarastan 3.13.2 يتطلب `phpstan/phpstan` ‎^2.3.0، والمثبّت 2.3.0.
 - **مثبّتة بإصدارات Dependabot نفسها بـ `--with`:** الإصدارات الأحدث (larastan 3.14.0 وlaravel-permission 8.5.0) صدرت هذا الأسبوع، وlarastan 3.14.0 يفعّل فحصاً جديداً افتراضياً، فهي لطلب مستقل.
 - **الفحص:** `composer check` كامل (Pint على 1589 ملفاً، وPHPStan بلا خطأ، و4,149 اختباراً)، و`composer audit` بلا ثغرة، والفحص الآلي على المشغّل المحلي ناجح.
+
+### Turnstile لازم قبل أول نشر (تصحيح من التحقق المستقل)
+
+- **الخلل في الدليل:** كان يوصي بالرفع بلا مفتاحي Turnstile. وفي الإنتاج يرمي `AppServiceProvider` خطأً لـ `BOT_CHALLENGE_DRIVER=fake` ولـ `turnstile` بلا مفتاحيه، و`x-bot-challenge` يحله لكل زائر في الدخول والتسجيل والاستعادة، فترد 500 ولا يدخل أحد إلى اللوحة.
+- **الإصلاح:** `scripts/deploy-compose.sh` يرفض النشر بدونهما (كان تنبيهاً)، باختبار في `DeployComposePreflightTest`. والدليل يجعلهما «لازم» قبل أول نشر، وتوضيح في `deploy.md` و`security.md`.
+- **خطوة نشر:** `BOT_CHALLENGE_DRIVER=turnstile` و`TURNSTILE_SITE_KEY` و`TURNSTILE_SECRET_KEY` في `.env` قبل `deploy-compose.sh`، من حساب Cloudflare مجاني بعنصر نمطه «Managed» لاسم المضيف `ejaz.sa`.
+
+### صندوق الإرسال
+
+- `no-reply@ejaz.sa` بقرار صفوان (7 نوفمبر): `MAIL_FROM_ADDRESS` في `.env.production.example` به، و`MAIL_USERNAME` به في `.env` الخادم.
 
 ### دليل يوم الرفع
 
