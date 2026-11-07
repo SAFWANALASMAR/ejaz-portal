@@ -211,7 +211,7 @@ async function swapTo(request, fallback, failed) {
         response = await request(mine.signal);
         html = response.ok ? await response.text() : '';
     } catch {
-        // أُلغي لطلب أحدث: لا شيء. وانقطاع الشبكة: الإرسال العادي، فيرى الطالب صفحة المتصفح لانقطاعه كما قبل
+        // أُلغي لطلب أحدث: لا شيء (والطلب الأحدث يضع منطقة الاختبار من جديد بحارسها مفكوكاً). وانقطاع الشبكة: الإرسال العادي، فيرى الطالب صفحة المتصفح لانقطاعه كما قبل
         if (!mine.signal.aborted) {
             fallback();
         }
@@ -231,10 +231,11 @@ async function swapTo(request, fallback, failed) {
     if (response.status === 204 && leave) {
         const target = new URL(leave, window.location.href);
 
+        // والحفظ تمّ: عنوان من أصل آخر (لا يرسله الخادم) يُستبدل بإعادة تحميل الصفحة الحالية، لا برسالة «تعذّر الحفظ»
         if (target.origin === window.location.origin) {
             window.location.assign(target.href);
         } else {
-            failed();
+            window.location.reload();
         }
 
         return;
@@ -366,7 +367,7 @@ function navigate(signal) {
     });
 }
 
-// عمود الأرقام على الحاسوب واللوحي: أعمدة بقدر ما يلزم (حتى ثلاثة) لتظهر الأرقام كلها بلا تمرير في ارتفاع الشاشة، كأربعين
+// عمود الأرقام على الحاسوب واللوحي: أعمدة بقدر ما يلزم (حتى خمسة) لتظهر الأرقام كلها بلا تمرير في ارتفاع الشاشة، كأربعين
 // سؤالاً على حاسوب محمول 1366×768. والجوال شريط أفقي لا يمسه هذا (resources/css/exam-focus.css)
 function fitColumns(list, signal) {
     const fit = () => {
@@ -390,11 +391,17 @@ function fitColumns(list, signal) {
             (review ? review.getBoundingClientRect().height + gap : 0);
         const rows = Number.isFinite(room) && pitch > 0 ? Math.max(1, Math.floor(room / pitch)) : numbers.length;
 
-        list.style.setProperty('--exam-cols', String(Math.min(3, Math.max(1, Math.ceil(numbers.length / rows)))));
+        list.style.setProperty('--exam-cols', String(Math.min(5, Math.max(1, Math.ceil(numbers.length / rows)))));
     };
 
-    fit();
-    window.addEventListener('resize', fit, { signal });
+    // مرتين: عرض مفتاح الألوان يتبع عرض الأرقام، فالقياس الأول (بعمود واحد ومفتاح ملتف) أطول مما هو بعد ضبط الأعمدة
+    const refit = () => {
+        fit();
+        fit();
+    };
+
+    refit();
+    window.addEventListener('resize', refit, { signal });
 }
 
 // أرقام الصفحات: الحالي في وسط الشريط الأفقي (الجوال) أو العمود (الحاسوب واللوحي)، بتمرير قائمة الأرقام وحدها لا الصفحة، ومفتاح

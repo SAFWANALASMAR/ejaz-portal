@@ -27,9 +27,16 @@ function nationalId(serial) {
 
 function collectErrors(page) {
     const errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    // أخطاء الصفحة موسومة، فلا يحذفها dropExpected ولو طابق نصها خطأ مورد (رفض fetch غير الملتقط)
+    page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
     page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
     return errors;
+}
+
+// يحذف من الأخطاء رسائل تحميل المورد المتوقعة وحدها (خطوتا الازدحام والانقطاع)، ولا يمس أخطاء الصفحة (pageerror)
+function dropExpected(errors, pattern) {
+    const kept = errors.filter((message) => message.startsWith('pageerror:') || !(pattern.test(message) && /Failed to load resource|net::/.test(message)));
+    errors.splice(0, errors.length, ...kept);
 }
 
 async function check(page, step, width, errors) {
@@ -135,11 +142,17 @@ test.describe('student exam: focus mode', () => {
             await page.setViewportSize({ width: 1366, height: 768 });
             await fits(page, '1366x768');
             // الأرقام كلها بلا تمرير في العمود، بأعمدة بقدر ما يلزم (decisions/2026-11-07-exam-fullscreen.md)
-            const column = await page.evaluate(() => {
+            // بعد تغيير المقاس يعيد حدث resize حساب الأعمدة في الإطار التالي: يُنتظر الثبات لا القراءة الأولى
+            const listOverflow = () => page.evaluate(() => {
                 const list = document.querySelector('[data-exam-units-list]');
-                return { overflow: list.scrollHeight - list.clientHeight };
+                return list.scrollHeight - list.clientHeight;
             });
-            expect(column.overflow, '1366x768: every page number without scrolling').toBeLessThanOrEqual(1);
+            await expect.poll(listOverflow, { message: '1366x768: every page number without scrolling' }).toBeLessThanOrEqual(1);
+            // وفي نافذة المتصفح العادية على الشاشة نفسها (شريط المهام وواجهة المتصفح): نحو 640 بكسل
+            await page.setViewportSize({ width: 1366, height: 640 });
+            await expect.poll(listOverflow, { message: '1366x640 window: every page number without scrolling' }).toBeLessThanOrEqual(1);
+            await page.setViewportSize({ width: 1366, height: 768 });
+            await expect.poll(listOverflow).toBeLessThanOrEqual(1);
             await page.screenshot({ path: `${SHOTS}/question-1366x768.png` });
 
             // الدقائق الخمس الأخيرة: الكبسولة بالأزرق الداكن
@@ -211,6 +224,8 @@ test.describe('student exam: focus mode', () => {
 
         // ازدحام الخادم في التنقّل داخل الصفحة: لا إرسال ثانٍ تلقائي، والرسالة ظاهرة والصفحة كما هي (مراجعة الأمن على طلب الدمج 213)
         if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
+            // لا خطأ في وحدة التحكم من الخطوات قبلها (التنقّل في 1366×768، و«التالي» المعلّق، والصفحة المتروكة، وملء الشاشة)
+            expect(errors, 'console before the 503 step').toEqual([]);
             let posts = 0;
             await page.route('**/units/*', async (route) => {
                 if (route.request().method() !== 'POST') {
@@ -226,6 +241,8 @@ test.describe('student exam: focus mode', () => {
             expect(page.url()).toBe(here);
             await expect(page.locator('[data-exam-form]')).not.toHaveAttribute('data-exam-pending', '');
             await page.unroute('**/units/*');
+            // الرد 503 مقصود هنا ويسجله المتصفح خطأ تحميل مورد: يُحذف هو وحده، وتبقى أي أخطاء أخرى للفحص
+            dropExpected(errors, /\b503\b/);
         }
 
         // انقطاع الشبكة في التنقّل داخل الصفحة: الإرسال العادي بقيمة الزر نفسها، فتُحفظ وينتقل الطالب (لا تضيع إجابة)
@@ -250,6 +267,8 @@ test.describe('student exam: focus mode', () => {
             expect(dropped).toBe(true);
             expect(resent, 'the normal post carries the pressed button').toContain('go=next');
             await page.unroute('**/units/*');
+            // وكذلك الانقطاع المقصود وحده
+            dropExpected(errors, /ERR_INTERNET_DISCONNECTED/);
         }
 
         // المراجعة بوضع التركيز أيضاً
