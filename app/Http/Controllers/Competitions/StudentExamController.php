@@ -19,6 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * مسابقة الطلاب (docs/plans/student-competition.md): التسجيل، ثم الاختبار في نافذة كل مرحلة وحدها: صفحة
@@ -189,7 +190,7 @@ class StudentExamController extends Controller
      * يحفظ إجابات الوحدة ثم ينتقل: السابقة، أو التالية، أو رقم وحدة، أو المراجعة، أو التسليم (الآلي عند
      * انتهاء العداد). وانتهاء الوقت يسلّم المحاولة بما حُفظ.
      */
-    public function save(Request $request, string $slug, string $round, int $number, SaveAttemptAnswers $save, SubmitAttempt $submit): RedirectResponse
+    public function save(Request $request, string $slug, string $round, int $number, SaveAttemptAnswers $save, SubmitAttempt $submit): RedirectResponse|Response
     {
         $request->validate([
             'answers' => ['nullable', 'array', 'max:200'],
@@ -204,13 +205,13 @@ class StudentExamController extends Controller
 
         // سُلّمت قبل هذا الطلب: بانتهاء الوقت (هنا أو في المهمة المجدولة) أو بيد الطالب
         if (! $attempt->isInProgress()) {
-            return $back->with('error', $attempt->auto_submitted ? __('competitions.student.time_up') : __('competitions.student.already_submitted'));
+            return $this->leave($request, $back->with('error', $attempt->auto_submitted ? __('competitions.student.time_up') : __('competitions.student.already_submitted')));
         }
 
         try {
             $save->handle($this->user($request), $attempt, $number - 1, (array) $request->input('answers', []));
         } catch (AuthorizationException $exception) {
-            return $back->with('error', $exception->getMessage());
+            return $this->leave($request, $back->with('error', $exception->getMessage()));
         }
 
         $go = (string) $request->input('go');
@@ -219,7 +220,7 @@ class StudentExamController extends Controller
             $submit->handle($this->user($request), $attempt, auto: $request->boolean('auto'));
             $request->session()->forget('competitions.exam.visited.'.$attempt->id);
 
-            return $back;
+            return $this->leave($request, $back);
         }
 
         $total = count($attempt->layout);
@@ -306,6 +307,20 @@ class StudentExamController extends Controller
     private function competition(string $slug): Competition
     {
         return Competition::query()->published()->where('student_mode', true)->where('slug', $slug)->firstOrFail();
+    }
+
+    /**
+     * الخروج من الاختبار إلى صفحة المرحلة. والتنقّل داخل الصفحة (X-Exam-Inline — student-competition.js،
+     * decisions/2026-11-07-exam-fullscreen.md) يأخذ العنوان بلا تحويل يتبعه طلبه فيستهلك رسالتها («انتهى الوقت»)، ثم يفتحها
+     * تحميلاً كاملاً.
+     */
+    private function leave(Request $request, RedirectResponse $redirect): RedirectResponse|Response
+    {
+        if (! $request->hasHeader('X-Exam-Inline')) {
+            return $redirect;
+        }
+
+        return response()->noContent()->header('X-Exam-Location', $redirect->getTargetUrl());
     }
 
     /**

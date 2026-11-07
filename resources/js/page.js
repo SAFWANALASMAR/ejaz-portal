@@ -16,6 +16,15 @@ export function onPage(setup) {
     setups.push(setup);
 }
 
+// تهيئة الصفحة من جديد بعد أن يضع سكربت جزءاً منها مكان جزء بلا تنقّل (صفحات الاختبار — student-competition.js):
+// تُلغى إشارة ما قبلها، ثم تعمل كل تهيئة كما بعد التنقّل. وكل التهيئات تعمل لا تهيئة الاختبار وحدها: فما يربط مستمعاً على window
+// أو document يربطه بالإشارة، وإلا تكرر مع كل سؤال
+export function rerun() {
+    controller.abort();
+    controller = new AbortController();
+    run();
+}
+
 // قبل مغادرة الصفحة، وقبل أن يحفظ Livewire نسختها لزر الرجوع (القوائم المفتوحة مثلاً تُغلق فيها)
 export function onLeave(callback) {
     leaving.push(callback);
