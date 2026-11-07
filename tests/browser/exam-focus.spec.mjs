@@ -209,7 +209,7 @@ test.describe('student exam: focus mode', () => {
             await expect(page.locator('[data-exam-fullscreen]')).toHaveText('ملء الشاشة');
         }
 
-        // ازدحام الخادم في التنقّل داخل الصفحة: لا إرسال ثانٍ تلقائي، والرسالة ظاهرة والصفحة كما هي (مراجعة الأمن على #213)
+        // ازدحام الخادم في التنقّل داخل الصفحة: لا إرسال ثانٍ تلقائي، والرسالة ظاهرة والصفحة كما هي (مراجعة الأمن على طلب الدمج 213)
         if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
             let posts = 0;
             await page.route('**/units/*', async (route) => {
