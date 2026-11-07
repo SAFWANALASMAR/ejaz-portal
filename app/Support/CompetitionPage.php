@@ -38,6 +38,12 @@ final class CompetitionPage
      */
     public const ROUNDS_INTRO = 'rounds_intro';
 
+    /**
+     * دليل الجمعية كاملاً: معرّف كتاب منشور في المكتبة «للقراءة فقط»، يفتحه زر تحت خطوات الدخول في قارئ المكتبة
+     * (Competition::guideBook — docs/decisions/2026-11-07-brahin-guide-id-time.md).
+     */
+    public const GUIDE_BOOK = 'guide_book';
+
     public const PARAGRAPH_MAX = 3000;
 
     public const ITEM_MAX = 600;

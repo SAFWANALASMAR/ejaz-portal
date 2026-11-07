@@ -328,6 +328,17 @@ class Competition extends Model
     }
 
     /**
+     * دليل الجمعية كاملاً (CompetitionPage::GUIDE_BOOK): الكتاب المختار ما دام منشوراً «للقراءة فقط» بملفه، وإلا null
+     * فيُخفى زره. يُفحص عند كل عرض، فإلغاء نشر الكتاب أو جعله قابلاً للتحميل يخفي الزر فوراً.
+     */
+    public function guideBook(): ?LibraryItem
+    {
+        $id = ((array) $this->page_content)[CompetitionPage::GUIDE_BOOK] ?? null;
+
+        return is_numeric($id) ? LibraryItem::query()->readOnlyBooks()->find((int) $id) : null;
+    }
+
+    /**
      * جوائز المراكز لكل جنس بترتيبها: المركز من موضعه في الجدول.
      *
      * @return list<array{place: int, male: int, female: int}>

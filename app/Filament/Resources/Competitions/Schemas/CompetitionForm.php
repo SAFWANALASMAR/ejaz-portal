@@ -13,6 +13,7 @@ use App\Models\Competition;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
+use App\Models\LibraryItem;
 use App\Models\User;
 use App\Support\CompetitionMedia;
 use App\Support\CompetitionPage;
@@ -136,6 +137,11 @@ class CompetitionForm
                     Toggle::make('show_round_dates')->label(__('competitions.student.admin.show_round_dates'))->helperText(__('competitions.student.admin.show_round_dates_hint')),
                     ...array_map(fn (string $key): Textarea => self::listField($key), CompetitionPage::LISTS),
                     ...array_map(fn (string $key): Textarea => self::listField($key)->helperText(__('competitions.student.admin.guide_hint').' '.__('competitions.student.admin.list_hint')), CompetitionPage::GUIDE),
+                    // دليل الجمعية كاملاً: كتاب «للقراءة فقط» يُرفع من المكتبة، فلا ملف هنا (decisions/2026-11-07-brahin-guide-id-time.md)
+                    Select::make('page_content.'.CompetitionPage::GUIDE_BOOK)->label(__('competitions.student.admin.guide_book'))
+                        ->helperText(__('competitions.student.admin.guide_book_hint'))
+                        ->options(fn (): array => LibraryItem::query()->readOnlyBooks()->orderBy('title')->pluck('title', 'id')->all())
+                        ->searchable(),
                 ]),
 
                 Tab::make(__('competitions.student.admin.prizes_tab'))->visible(fn (Get $get): bool => (bool) $get('student_mode'))->schema([

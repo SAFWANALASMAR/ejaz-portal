@@ -110,6 +110,18 @@ class LibraryItem extends Model implements HasPublicImages
     }
 
     /**
+     * كتاب أو بحث منشور «للقراءة فقط» بملفه: ما يصلح دليلاً كاملاً لمسابقة يُقرأ في قارئ الصفحة وحده (isReadOnly،
+     * Competition::guideBook — docs/decisions/2026-11-07-brahin-guide-id-time.md).
+     *
+     * @param  Builder<LibraryItem>  $query
+     */
+    public function scopeReadOnlyBooks(Builder $query): void
+    {
+        $query->published()->where('is_downloadable', false)->whereNotNull('file')
+            ->whereIn('section', [LibrarySection::Books->value, LibrarySection::Research->value]);
+    }
+
+    /**
      * الأحدث نشراً أولاً، وما لا تاريخ له في آخرها. والمعرّف يثبّت الترتيب بين الصفحات.
      *
      * @param  Builder<LibraryItem>  $query

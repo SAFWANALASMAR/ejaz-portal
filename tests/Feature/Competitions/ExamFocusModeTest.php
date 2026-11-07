@@ -63,7 +63,9 @@ it('shows the question page with the exam bar alone: no site header, menu, accou
         ->toContain('images/brand/logo-mark.png')
         ->toContain('data-exam-timer=')
         ->toContain('role="timer"')
-        ->toContain(__('competitions.student.time_left'))
+        // «الوقت المتبقي» بقرار صفوان والمدير التنفيذي (7 نوفمبر 2026)، لا «الوقت الباقي»
+        ->toContain('id="exam-timer-label" class="exam-timer-label">الوقت المتبقي</span>')
+        ->not->toContain('الوقت الباقي')
         ->toContain('exam-timer-tile')
         ->toContain('data-exam-units')
         ->toContain('data-message="'.__('competitions.student.saving').'"');
