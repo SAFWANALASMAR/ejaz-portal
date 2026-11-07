@@ -104,3 +104,14 @@ it('deploys with Turnstile and both keys, quoted or not', function (string $env)
     'plain' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n",
     'quoted' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=\"site\"\nTURNSTILE_SECRET_KEY=\"secret\"\n",
 ]);
+
+// بروفة الرفع (8 نوفمبر): صورة php-fpm تضبط STOPSIGNAL على SIGQUIT، فلا ينهي Horizon مهامه ويُقتل بعد المهلة والموقع في الصيانة
+it('stops horizon and the scheduler with SIGTERM, not the php-fpm image default', function () {
+    $compose = File::get(base_path('deploy/compose.production.yaml'));
+
+    foreach (['horizon', 'scheduler'] as $service) {
+        preg_match('/^  '.$service.':\n((?:    .*\n|\n)+?)(?=^  \S|\z)/m', $compose, $block);
+
+        expect($block[1] ?? '')->toContain('stop_signal: SIGTERM');
+    }
+});
