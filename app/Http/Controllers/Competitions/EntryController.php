@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Competitions;
 
+use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Actions\Competitions\SaveSubmissionDraft;
 use App\Actions\Competitions\StartSubmission;
 use App\Actions\Competitions\SubmitSubmission;
@@ -29,6 +30,8 @@ class EntryController extends Controller
 
         // بريد موثق أو جوال موثق (decisions/2026-11-06-email-otp.md)
         if (! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone()) {
+            app(SendEmailVerificationCode::class)->sendIfNone($user);
+
             return $user->email !== null
                 ? redirect()->route('verification.notice')->with('status', __('account.email_code.required'))
                 : redirect()->route('account.phone.verify')->with('status', __('competitions.entry.verify_phone'));

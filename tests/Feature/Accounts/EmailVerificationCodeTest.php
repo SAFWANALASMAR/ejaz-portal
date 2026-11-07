@@ -4,9 +4,11 @@ use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Models\Competition;
 use App\Models\User;
 use App\Notifications\EmailVerificationCode;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /*
@@ -140,6 +142,40 @@ it('lets an unverified account sign in and browse, but sends it to the code befo
     $this->get('/competitions/brahin/register')->assertOk();
 });
 
+// المراجعة قبل الرفع (8 نوفمبر): صفحة الرمز تقول «أرسلنا إليه رمزاً»، فيُرسل رمز إن انتهى رمز التسجيل، ولا يُكرَّر إن كان حياً
+it('sends a fresh code when the competition sends an account to the code page after its code expired', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
+
+    $this->post('/register', emailCodeSignUp());
+    $user = User::query()->where('email', 'student@example.test')->sole();
+
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 1);
+
+    $this->travel(11)->minutes();
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 2);
+
+    $this->post(route('account.email.verify.store'), ['code' => lastEmailCode($user)])
+        ->assertRedirect(route('competitions.student.register', 'brahin'));
+});
+
+it('sends a fresh code on the competition redirect when the live code was for an older email', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
+
+    $this->post('/register', emailCodeSignUp());
+    $user = User::query()->where('email', 'student@example.test')->sole();
+    $user->forceFill(['email' => 'changed@example.test'])->save();
+    // الحارس يحفظ نسخة الحساب من التسجيل طوال الاختبار، فيُعطى النسخة بالبريد الجديد كما يقرؤها الطلب التالي في الإنتاج
+    $this->actingAs($user);
+
+    $this->travel(61)->seconds();
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 2);
+});
+
 it('still lets an older account with a verified phone and no verified email register in the competition', function () {
     config(['competitions.exam.national_id_key' => 'test-hmac-key']);
     Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
@@ -164,6 +200,38 @@ it('bounds the old verification link route by the same per address limits as the
     Notification::fake();
     $this->post(route('verification.send'));
     Notification::assertNothingSent();
+});
+
+// المراجعة الأمنية قبل الرفع (8 نوفمبر): حساب يغيّر بريده مراراً لا يتجاوز حد حسابه، فلا يستنفد سقف البوابة عن الجميع
+it('bounds the verification link per account, across changed addresses', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['email' => 'first@example.test', 'phone' => '+966551118888']);
+
+    foreach (range(1, 10) as $i) {
+        $this->travel(61)->seconds();
+        $user->forceFill(['email' => "rotated{$i}@example.test"])->save();
+        $user->sendEmailVerificationNotification();
+    }
+
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 5);
+    expect(RateLimiter::attempts('email-otp:global'))->toBe(5);
+
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 5);
+});
+
+it('limits the verification link to one a minute per account', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['email' => 'minute@example.test', 'phone' => '+966551119999']);
+
+    $user->sendEmailVerificationNotification();
+    $user->forceFill(['email' => 'minute2@example.test'])->save();
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
+
+    $this->travel(61)->seconds();
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 2);
 });
 
 // م٢: سقف للبوابة كلها في الساعة

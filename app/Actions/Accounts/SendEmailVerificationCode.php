@@ -69,6 +69,27 @@ class SendEmailVerificationCode
     }
 
     /**
+     * يرسل رمزاً إن لم يكن للحساب رمز حي، ويسكت عن الحدود: لمن يُحوَّل إلى صفحة الرمز من التسجيل في المسابقة بعد انتهاء رمز
+     * التسجيل، فلا تقول له الصفحة «أرسلنا إليه رمزاً» ولم يُرسل شيء (المراجعة قبل الرفع، 8 نوفمبر). وزر «إرسال رمز جديد» باقٍ.
+     */
+    public function sendIfNone(User $user): void
+    {
+        $live = Cache::get(self::cacheKey($user));
+
+        // رمز حي: لبريد الحساب الحالي، ولم يُبطَل بالمحاولات الخاطئة. فرمز البريد القديم أو المبطَل لا يمنع رمزاً جديداً
+        if ($user->email === null || (is_array($live) && ($live['email'] ?? null) === $user->email
+            && ($live['attempts'] ?? 0) < self::MAX_ATTEMPTS && ($live['expires_at'] ?? 0) > now()->getTimestamp())) {
+            return;
+        }
+
+        try {
+            $this->handle($user);
+        } catch (ValidationException) {
+            // حد أو سقف: تبقى الصفحة وزر الإرسال، ولا خطأ في التحويل
+        }
+    }
+
+    /**
      * حدود البريد المستهدف وسقف البوابة لكل رسالة توثيق إلى بريد، رمزاً كانت أو رابطاً (User::sendEmailVerificationNotification
      * — مراجعة الأمن على #207، م١ وم٢): يحسبها ويرد null إن سُمح، وإلا مفتاح رسالة الرفض بلا حساب.
      */
