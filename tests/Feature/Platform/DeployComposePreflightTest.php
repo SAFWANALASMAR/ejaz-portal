@@ -92,11 +92,15 @@ it('refuses to deploy without Turnstile and both keys', function (string $env) {
     'fake driver' => "BOT_CHALLENGE_DRIVER=fake\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n",
     'empty keys' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=\nTURNSTILE_SECRET_KEY=\n",
     'missing secret' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=\n",
+    'quoted empty keys' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=\"\"\nTURNSTILE_SECRET_KEY=\"\"\n",
 ]);
 
-it('deploys with Turnstile and both keys', function () {
-    $result = deployTurnstilePreflight("BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n");
+it('deploys with Turnstile and both keys, quoted or not', function (string $env) {
+    $result = deployTurnstilePreflight($env);
 
     expect($result->successful())->toBeTrue($result->errorOutput())
         ->and($result->output())->toContain('passed');
-});
+})->with([
+    'plain' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=site\nTURNSTILE_SECRET_KEY=secret\n",
+    'quoted' => "BOT_CHALLENGE_DRIVER=turnstile\nTURNSTILE_SITE_KEY=\"site\"\nTURNSTILE_SECRET_KEY=\"secret\"\n",
+]);

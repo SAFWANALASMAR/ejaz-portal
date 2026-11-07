@@ -147,9 +147,9 @@ if [ "$SERVER" = 1 ]; then
       && ok "connect-src في الرأس يحوي نطاق التخزين ($ORIGIN)" \
       || bad "connect-src في الرأس لا يحوي CSP_CONNECT_SRC (${ORIGIN:-فارغ})، فيتعطل الرفع المباشر"
   fi
-  # استبيان الرضا للضيوف بـ Turnstile (decisions.md — 19 أكتوبر 2026)
+  # Turnstile لازم في الإنتاج: بدونه ترد صفحات الدخول والتسجيل والاستعادة 500 (decisions/2026-11-07-v0.15.4-ledger.md)
   [ "$(envval BOT_CHALLENGE_DRIVER)" = turnstile ] && [ -n "$(envval TURNSTILE_SITE_KEY)" ] && [ -n "$(envval TURNSTILE_SECRET_KEY)" ] \
-    && ok "Turnstile بمفتاحيه للاستبيان" || bad "Turnstile غير مضبوط (BOT_CHALLENGE_DRIVER=turnstile والمفتاحان)، فيُرفض ضيف الاستبيان"
+    && ok "Turnstile بمفتاحيه" || bad "Turnstile غير مضبوط (BOT_CHALLENGE_DRIVER=turnstile والمفتاحان)، فترد صفحات الدخول والتسجيل والاستعادة 500"
   # ملفات الحوكمة والمكتبة برابط تخزين موقّع: الصوت بـ media-src، وعارض PDF بـ frame-src، في رأس كل صفحة لأن التنقّل
   # السريع يُبقي سياسة أول صفحة. مطابقة حرفية للأصل داخل التوجيه، لا تعبير نمطي
   if [ "$(envval FILESYSTEM_PRIVATE_DISK)" = s3 ]; then
