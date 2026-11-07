@@ -161,6 +161,19 @@ it('sends a fresh code when the competition sends an account to the code page af
         ->assertRedirect(route('competitions.student.register', 'brahin'));
 });
 
+it('sends a fresh code on the competition redirect when the live code was for an older email', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
+
+    $this->post('/register', emailCodeSignUp());
+    $user = User::query()->where('email', 'student@example.test')->sole();
+    $user->forceFill(['email' => 'changed@example.test'])->save();
+
+    $this->travel(61)->seconds();
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 2);
+});
+
 it('still lets an older account with a verified phone and no verified email register in the competition', function () {
     config(['competitions.exam.national_id_key' => 'test-hmac-key']);
     Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);

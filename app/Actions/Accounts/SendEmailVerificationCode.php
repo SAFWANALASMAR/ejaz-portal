@@ -74,7 +74,11 @@ class SendEmailVerificationCode
      */
     public function sendIfNone(User $user): void
     {
-        if ($user->email === null || Cache::has(self::cacheKey($user))) {
+        $live = Cache::get(self::cacheKey($user));
+
+        // رمز حي: لبريد الحساب الحالي، ولم يُبطَل بالمحاولات الخاطئة. فرمز البريد القديم أو المبطَل لا يمنع رمزاً جديداً
+        if ($user->email === null || (is_array($live) && ($live['email'] ?? null) === $user->email
+            && ($live['attempts'] ?? 0) < self::MAX_ATTEMPTS && ($live['expires_at'] ?? 0) > now()->getTimestamp())) {
             return;
         }
 
