@@ -227,3 +227,13 @@ it('keeps the dark icon shade of the header and footer at #1F4565 while the cont
     expect($css)->toMatch('/:is\(\[data-site-header\], \.site-footer\) :is\(li, article, \.group, \[data-card\]\):not\(:only-child\):nth-child\(4n \+ 4\) \{\s*--gt-to: #1f4565;/')
         ->and($css)->toMatch("/:is\(\[data-site-header\], \.site-footer\) \.icon-tile\[data-shade='dark'\] \{\s*--tile-to: #1f4565;/");
 });
+
+it('keeps the dark number readable on the amber of a skipped exam question (decisions/2026-11-06-exam-focus-mode.md)', function () {
+    // الكهرماني من exam-focus.css، والرقم بـ --color-primary-deep (#142E45) من app.css: لا يقل عن 4.5:1 (8.3 الآن)
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/exam-focus.css');
+    preg_match('/--exam-skipped:\s*(#[0-9a-fA-F]{6})\s*;/', $css, $amber);
+
+    expect($css)->toMatch('/\.exam-unit-skipped \{[^}]*color: var\(--color-primary-deep\);/')
+        ->and(brandToken('primary-deep'))->toBe('#142E45')
+        ->and(contrastRatio($amber[1] ?? '#ffffff', brandToken('primary-deep')))->toBeGreaterThanOrEqual(4.5);
+});

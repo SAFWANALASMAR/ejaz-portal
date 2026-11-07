@@ -1,11 +1,10 @@
 {{--
     المراجعة قبل التسليم: الوحدات بحالة أسئلتها والرجوع لأي منها، ثم «تسليم الإجابات» بنافذة تأكيد (popover بلا
-    سكربت). والعداد يسلّم آلياً عند انتهاء الوقت. والتسليم متكرر الأمان في الخادم (SubmitAttempt).
+    سكربت). والعداد يسلّم آلياً عند انتهاء الوقت. والتسليم متكرر الأمان في الخادم (SubmitAttempt). بوضع التركيز
+    (x-layouts.exam — decisions/2026-11-06-exam-focus-mode.md)، والرجوع إلى صفحة تحميل كامل بلا التنقّل السريع.
 --}}
-<x-layouts.account :title="__('competitions.student.round_title', ['round' => $round->name, 'competition' => $competition->title])">
-    @include('competitions.student._timer')
-
-    <section class="space-y-5 concept-panel p-6">
+<x-layouts.exam :competition="$competition" :round="$round" :attempt="$attempt">
+    <section class="exam-review space-y-5 concept-panel p-6">
         <h2 class="flex items-center gap-2 text-xl font-black text-primary-dark"><span class="heading-flank-dot" aria-hidden="true"></span>{{ __('competitions.exam.review_heading') }}</h2>
         <p class="text-muted">{{ __('competitions.student.review_text') }}</p>
 
@@ -16,7 +15,7 @@
                     $answered = collect($unit['questions'])->filter(fn ($q) => $attempt->answer((int) $q['id']) !== null)->count();
                 @endphp
                 <li>
-                    <a href="{{ route('competitions.student.unit', [$competition->slug, $round->uuid, $index + 1]) }}" wire:navigate
+                    <a href="{{ route('competitions.student.unit', [$competition->slug, $round->uuid, $index + 1]) }}"
                         class="flex items-center justify-between rounded-xl border border-line px-4 py-3 hover:border-primary">
                         <span class="font-semibold text-ink">{{ __('competitions.student.unit_of', ['number' => $index + 1, 'total' => $loop->count]) }}</span>
                         <span @class(['text-sm font-semibold', 'text-primary' => $answered === $count, 'text-red-700' => $answered < $count])>
@@ -41,4 +40,4 @@
             <x-button>{{ __('competitions.exam.confirm_submit') }}</x-button>
         </form>
     </div>
-</x-layouts.account>
+</x-layouts.exam>

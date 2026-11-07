@@ -598,6 +598,21 @@ return [
         'unit_of' => 'الصفحة :number من :total',
         'units_list' => 'صفحات الاختبار',
         'go_to_unit' => 'الصفحة :number: :status',
+        // وضع التركيز في صفحات الاختبار (decisions/2026-11-06-exam-focus-mode.md)
+        'exam_bar' => 'شريط الاختبار',
+        'saving' => 'جارٍ حفظ إجاباتك والانتقال…',
+        // حالة الصفحة في عمود الأرقام (لقارئ الشاشة مع رقمها)، ومفتاح ألوانه
+        'unit_states' => [
+            'answered' => 'تمت الإجابة',
+            'skipped' => 'زرتها ولم تُجب',
+            'unvisited' => 'لم تصلها بعد',
+        ],
+        'units_legend' => [
+            'label' => 'معنى الألوان',
+            'answered' => 'مجاب',
+            'skipped' => 'لم تُجب',
+            'current' => 'الحالي',
+        ],
         'play_video' => 'شاهد المقطع',
         'video_player' => 'مقطع السؤال',
         'essay_answer' => 'إجابتك',
