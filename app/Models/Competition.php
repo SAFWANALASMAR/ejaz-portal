@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -43,6 +44,8 @@ class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
     use FlushesContentCache, HasFactory, HasUuids, LogsActivity, Publishable, SoftDeletes;
+
+    private const GUIDE_BOOK_CACHE = 'competition-guide-book:';
 
     /**
      * الحقول التي لا تُنشر وفيها علامة النص الناقص، وقيم المصفوفات منها بما في داخلها (Publishable).
@@ -336,6 +339,26 @@ class Competition extends Model
         $id = ((array) $this->page_content)[CompetitionPage::GUIDE_BOOK] ?? null;
 
         return is_numeric($id) ? LibraryItem::query()->readOnlyBooks()->find((int) $id) : null;
+    }
+
+    /**
+     * هل الكتاب دليل مسابقة طلاب منشورة؟ لحد قارئ الدليل الأوسع أثناء النوافذ (LibraryController::serveToReader)، مخزّن دقيقة
+     * فلا يكون استعلاماً لكل فتحة. والمقارنة نصاً: ->> يرد النص في PostgreSQL.
+     */
+    public static function usesAsGuideBook(LibraryItem $item): bool
+    {
+        return (bool) Cache::remember(self::GUIDE_BOOK_CACHE.$item->id, 60, fn (): bool => static::query()
+            ->where('student_mode', true)
+            ->where('is_published', true)
+            ->where('page_content->'.CompetitionPage::GUIDE_BOOK, (string) $item->id)
+            ->exists());
+    }
+
+    public static function forgetGuideBook(mixed $id): void
+    {
+        if (is_numeric($id)) {
+            Cache::forget(self::GUIDE_BOOK_CACHE.(int) $id);
+        }
     }
 
     /**

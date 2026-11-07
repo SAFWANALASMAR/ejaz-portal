@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Enums\LibrarySection;
 use App\Http\Requests\LibraryIndexRequest;
+use App\Models\Competition;
 use App\Models\LibraryItem;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
 use App\Support\ReaderFileResponse;
+use App\Support\SchoolNetworkLimits;
 use App\Support\StructuredData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -149,8 +151,14 @@ class LibraryController extends Controller implements HasMiddleware
      */
     private static function serveToReader(Request $request, LibraryItem $item): Response
     {
-        // الحماية نفسها لوثائق الحوكمة «للاطلاع فقط» (ReaderFileResponse — البند ٢٢ من ملاحظات 1 نوفمبر)
-        return ReaderFileResponse::make($request, LibraryItem::disk(), (string) $item->file, $item->downloadName(), 'library', route('library.show', [$item->section->value, $item->slug]));
+        // الحماية نفسها لوثائق الحوكمة «للاطلاع فقط» (ReaderFileResponse — البند ٢٢ من ملاحظات 1 نوفمبر). ودليل مسابقة الطلاب
+        // أثناء نوافذها (التسجيل أو أيام الاختبار) بحد أوسع: فصل كامل خلف عنوان مدرسة يفتحه معاً (قرار صفوان، 7 نوفمبر 2026 —
+        // decisions/2026-11-07-brahin-guide-id-time.md)، والكتب الأخرى وخارج النوافذ بالحد العادي
+        $perMinute = (SchoolNetworkLimits::registrationOpen() || SchoolNetworkLimits::examWindow()) && Competition::usesAsGuideBook($item)
+            ? (int) config('competitions.student.window_limits.reader_guide_per_subscriber_per_minute')
+            : ReaderFileResponse::PER_MINUTE;
+
+        return ReaderFileResponse::make($request, LibraryItem::disk(), (string) $item->file, $item->downloadName(), 'library', route('library.show', [$item->section->value, $item->slug]), $perMinute);
     }
 
     /**
