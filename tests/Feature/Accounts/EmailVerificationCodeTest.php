@@ -4,9 +4,11 @@ use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Models\Competition;
 use App\Models\User;
 use App\Notifications\EmailVerificationCode;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /*
@@ -164,6 +166,38 @@ it('bounds the old verification link route by the same per address limits as the
     Notification::fake();
     $this->post(route('verification.send'));
     Notification::assertNothingSent();
+});
+
+// المراجعة الأمنية قبل الرفع (8 نوفمبر): حساب يغيّر بريده مراراً لا يتجاوز حد حسابه، فلا يستنفد سقف البوابة عن الجميع
+it('bounds the verification link per account, across changed addresses', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['email' => 'first@example.test', 'phone' => '+966551118888']);
+
+    foreach (range(1, 10) as $i) {
+        $this->travel(61)->seconds();
+        $user->forceFill(['email' => "rotated{$i}@example.test"])->save();
+        $user->sendEmailVerificationNotification();
+    }
+
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 5);
+    expect(RateLimiter::attempts('email-otp:global'))->toBe(5);
+
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 5);
+});
+
+it('limits the verification link to one a minute per account', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['email' => 'minute@example.test', 'phone' => '+966551119999']);
+
+    $user->sendEmailVerificationNotification();
+    $user->forceFill(['email' => 'minute2@example.test'])->save();
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 1);
+
+    $this->travel(61)->seconds();
+    $user->sendEmailVerificationNotification();
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 2);
 });
 
 // م٢: سقف للبوابة كلها في الساعة

@@ -22,6 +22,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
@@ -256,8 +257,17 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function sendEmailVerificationNotification(): void
     {
-        // تحت حدود البريد المستهدف وسقف البوابة كرمز البريد (مراجعة الأمن على #207، م١)، وما تجاوزها يُترك بصمت
-        if ($this->email !== null && SendEmailVerificationCode::reserveAddress($this->email) === null) {
+        // تحت حدود البريد المستهدف وسقف البوابة كرمز البريد (مراجعة الأمن على #207، م١)، وما تجاوزها يُترك بصمت. ومعها حد
+        // للحساب، فلا يدور حساب واحد على بُرُد كثيرة بتغيير بريده فيستنفد سقف البوابة عن الجميع (المراجعة الأمنية قبل الرفع، 8 نوفمبر)
+        if ($this->email === null
+            || RateLimiter::tooManyAttempts('email-link-minute:'.$this->id, 1)
+            || RateLimiter::tooManyAttempts('email-link-hour:'.$this->id, 5)) {
+            return;
+        }
+
+        if (SendEmailVerificationCode::reserveAddress($this->email) === null) {
+            RateLimiter::hit('email-link-minute:'.$this->id, 60);
+            RateLimiter::hit('email-link-hour:'.$this->id, 3600);
             $this->notify(new VerifyEmailNotification);
         }
     }
