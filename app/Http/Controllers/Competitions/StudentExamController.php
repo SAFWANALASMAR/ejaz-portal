@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Competitions;
 
+use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Actions\Competitions\RegisterStudent;
 use App\Actions\Competitions\SaveAttemptAnswers;
 use App\Actions\Competitions\StartAttempt;
@@ -89,6 +90,7 @@ class StudentExamController extends Controller
         }
 
         $request->session()->put('url.intended', route('competitions.student.register', $slug));
+        app(SendEmailVerificationCode::class)->sendIfNone($user);
 
         return $user->email === null
             ? redirect()->route('account.profile')->with('status', __('account.email_code.no_email'))

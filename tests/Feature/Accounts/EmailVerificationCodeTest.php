@@ -142,6 +142,25 @@ it('lets an unverified account sign in and browse, but sends it to the code befo
     $this->get('/competitions/brahin/register')->assertOk();
 });
 
+// المراجعة قبل الرفع (8 نوفمبر): صفحة الرمز تقول «أرسلنا إليه رمزاً»، فيُرسل رمز إن انتهى رمز التسجيل، ولا يُكرَّر إن كان حياً
+it('sends a fresh code when the competition sends an account to the code page after its code expired', function () {
+    config(['competitions.exam.national_id_key' => 'test-hmac-key']);
+    Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
+
+    $this->post('/register', emailCodeSignUp());
+    $user = User::query()->where('email', 'student@example.test')->sole();
+
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 1);
+
+    $this->travel(11)->minutes();
+    $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 2);
+
+    $this->post(route('account.email.verify.store'), ['code' => lastEmailCode($user)])
+        ->assertRedirect(route('competitions.student.register', 'brahin'));
+});
+
 it('still lets an older account with a verified phone and no verified email register in the competition', function () {
     config(['competitions.exam.national_id_key' => 'test-hmac-key']);
     Competition::factory()->student()->create(['slug' => 'brahin', 'is_published' => true]);
