@@ -162,15 +162,12 @@ it('says the mobile number is required in the stored guide (the 29 Oct migration
     $this->get('/competitions/'.$this->competition->slug.'/guide')->assertOk();
 });
 
-it('shows the third guide step in Safwan\'s exact words, with no national ID', function () {
+it('set the third guide step to Safwan\'s words of 30 Oct (the 30 Oct migration)', function () {
     $step = 'الرجاء إدخال البيانات مع التأكد من صحتها: الاسم، والمرحلة التعليمية، والجهة التعليمية، ورقم الجوال، والبريد الإلكتروني.';
     $previous = 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة. ورقم الجوال إلزامي، والبريد الإلكتروني اختياري.';
 
-    // البذرة للتثبيت الجديد: الخطوة الثالثة حرفياً، ولا رقم هوية في الدليل
-    expect($this->competition->pageList('guide_steps')[2])->toBe($step)
-        ->and(implode(' ', $this->competition->pageList('guide_steps')))->not->toContain('رقم الهوية');
-
-    // والمخزّن بأي صيغة سابقة تبدأ بـ «أدخل البيانات المطلوبة بدقة»: يصحّحه الترحيل، ويعيده الرجوع إلى صيغة ترحيل 29 أكتوبر
+    // المخزّن بأي صيغة سابقة تبدأ بـ «أدخل البيانات المطلوبة بدقة»: يصحّحه الترحيل، ويعيده الرجوع إلى صيغة ترحيل 29 أكتوبر.
+    // والبذرة والمخزّن صارا بنص دليل الجمعية برقم الهوية (ترحيل 7 نوفمبر، الاختبار التالي)
     $migration = require database_path('migrations/2026_10_30_233000_simplify_brahin_guide_data_step.php');
 
     foreach ([$previous, 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة. ورقم الجوال والبريد الإلكتروني اختياريان.'] as $stored) {
@@ -186,4 +183,36 @@ it('shows the third guide step in Safwan\'s exact words, with no national ID', f
 
     $migration->down();
     expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($previous);
+});
+
+it('shows the third guide step in the society guide\'s exact words, with the national ID the form asks for (the 7 Nov migration)', function () {
+    $step = 'أدخل البيانات المطلوبة بدقة، مثل الاسم ورقم الهوية أو الإقامة ورقم الجوال والبريد الإلكتروني والمرحلة التعليمية والجهة التعليمية، بحسب الحقول المعتمدة في المنصة.';
+    $previous = 'الرجاء إدخال البيانات مع التأكد من صحتها: الاسم، والمرحلة التعليمية، والجهة التعليمية، ورقم الجوال، والبريد الإلكتروني.';
+    $edited = 'نص كتبه المسؤول للخطوة الثالثة.';
+    $setStep = function (Competition $competition, string $text): void {
+        $steps = $competition->pageList('guide_steps');
+        $steps[2] = $text;
+        $competition->forceFill(['page_content' => [...$competition->page_content, 'guide_steps' => $steps]])->save();
+    };
+
+    // البذرة للتثبيت الجديد: الخطوة الثالثة حرفياً برقم الهوية، ونموذج التسجيل يطلبه فعلاً
+    expect($this->competition->pageList('guide_steps')[2])->toBe($step);
+    $this->actingAs(User::factory()->create())->get('/competitions/brahin-1448/register')->assertOk()->assertSee('name="national_id"', false);
+
+    // المخزّن بالنص السابق حرفاً: يصحّحه الترحيل ويعيده الرجوع. ونص عدّله المسؤول، ومسابقة غير طلابية، لا يُمسّان
+    $other = Competition::factory()->create(['page_content' => ['guide_steps' => ['أولى', 'ثانية', $previous]]]);
+    $migration = require database_path('migrations/2026_11_07_120000_restore_national_id_in_brahin_guide_step.php');
+    $setStep($this->competition, $previous);
+
+    $migration->up();
+    expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($step)
+        ->and($other->fresh()->pageList('guide_steps')[2])->toBe($previous);
+    $this->get('/competitions/brahin-1448/guide')->assertOk()->assertSee($step)->assertDontSee($previous);
+
+    $migration->down();
+    expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($previous);
+
+    $setStep($this->competition->fresh(), $edited);
+    $migration->up();
+    expect($this->competition->fresh()->pageList('guide_steps')[2])->toBe($edited);
 });

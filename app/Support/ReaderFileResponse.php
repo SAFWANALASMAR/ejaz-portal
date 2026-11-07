@@ -27,7 +27,7 @@ final class ReaderFileResponse
      */
     public const PER_MINUTE = 20;
 
-    public static function make(Request $request, string $disk, string $file, string $name, string $limiter, string $pageUrl): Response
+    public static function make(Request $request, string $disk, string $file, string $name, string $limiter, string $pageUrl, int $perMinute = self::PER_MINUTE): Response
     {
         if (in_array($request->headers->get('Sec-Fetch-Dest'), ['document', 'iframe', 'frame', 'embed', 'object'], true)) {
             return redirect()->to($pageUrl);
@@ -37,7 +37,7 @@ final class ReaderFileResponse
         // عنوان واحد يقرؤون كتباً مختلفة بعضَهم بعضاً. والعدّ بزيادة واحدة ذرية، و429 بموعد المحاولة (المشرف على #101، ١ و٢)
         $key = $limiter.'-reader:'.hash('sha256', $disk.'|'.$file).':'.NetworkPrefix::subscriber($request->ip());
 
-        if (RateLimiter::increment($key, 60) > self::PER_MINUTE) {
+        if (RateLimiter::increment($key, 60) > $perMinute) {
             throw new ThrottleRequestsException(headers: ['Retry-After' => RateLimiter::availableIn($key)]);
         }
 

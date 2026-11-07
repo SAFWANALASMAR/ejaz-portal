@@ -97,6 +97,10 @@ return [
             'login_attempts_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_LOGIN_ATTEMPTS_PER_SUBSCRIBER_PER_MINUTE', 900),
             // تعيين كلمة المرور برمز الرابط (password-update) أيام الاختبار، كالدخول (الاختبار الأمني 0.14.0)
             'password_update_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_PASSWORD_UPDATE_PER_SUBSCRIBER_PER_MINUTE', 600),
+            // فتحات قارئ دليل المسابقة (الكتاب المختار في صفحتها) من المشترك الواحد في الدقيقة، أثناء التسجيل وأيام الاختبار
+            // (قرار صفوان، 7 نوفمبر 2026). والكتب الأخرى وخارج النوافذ بحد القارئ العادي (ReaderFileResponse::PER_MINUTE).
+            // ويبقى فوقه حد المسار (throttle:120,1 في routes/web.php): لكل حساب للطالب المسجّل دخوله، ولكل عنوان للزائر
+            'reader_guide_per_subscriber_per_minute' => (int) env('COMPETITION_WINDOW_READER_GUIDE_PER_SUBSCRIBER_PER_MINUTE', 300),
         ],
 
         // سقف الحرف في إجابة المقالي

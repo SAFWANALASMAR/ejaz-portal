@@ -12,6 +12,7 @@ use App\Models\CompetitionCategory;
 use App\Models\CompetitionCriterion;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRound;
+use App\Models\LibraryItem;
 use App\Models\User;
 use App\Support\CompetitionMedia;
 use App\Support\CompetitionPage;
@@ -21,6 +22,7 @@ use App\Support\ImageSanitizer;
 use App\Support\RoundQuestions;
 use App\Support\SchoolNetworkLimits;
 use App\Support\VideoProbe;
+use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -114,6 +116,7 @@ class SaveCompetition
         $data = array_diff_key($media, ['questions' => true]);
         $mediaBefore = $this->mediaPaths($competition);
         $backgroundBefore = $competition->certificate_background;
+        $guideBookBefore = ((array) $competition->page_content)[CompetitionPage::GUIDE_BOOK] ?? null;
         $rankingBefore = null;
 
         // قالب الشهادة الجديد صورة يُعاد ترميزها (بسقف البكسلات)، فلا تصل إلى mPDF صورة مخادعة أو ضخمة
@@ -203,6 +206,9 @@ class SaveCompetition
             $competition->rounds()->pluck('id')->each(fn (int $id) => RoundQuestions::forget($id));
         }
         SchoolNetworkLimits::forget();
+        // وحد قارئ الدليل الأوسع للكتاب المربوط والمفكوك فوراً، لا بعد دقيقة (Competition::usesAsGuideBook، مراجعة #218)
+        Competition::forgetGuideBook($guideBookBefore);
+        Competition::forgetGuideBook(((array) $competition->page_content)[CompetitionPage::GUIDE_BOOK] ?? null);
 
         // قالب الشهادة المستبدل أو المحذوف لا يبقى في القرص الخاص
         if (filled($backgroundBefore) && $backgroundBefore !== $competition->certificate_background) {
@@ -249,6 +255,8 @@ class SaveCompetition
         foreach ($content as $key => $value) {
             if (in_array($key, CompetitionPage::listKeys(), true)) {
                 $content[$key] = CompetitionPage::items($value);
+            } elseif ($key === CompetitionPage::GUIDE_BOOK && is_numeric($value)) {
+                $content[$key] = (int) $value;
             } elseif (is_string($value)) {
                 $content[$key] = trim($value);
             }
@@ -356,10 +364,24 @@ class SaveCompetition
             'open_categories' => ['nullable', 'array', 'max:50'],
             'open_categories.*' => ['integer', 'distinct', Rule::exists(CompetitionCategory::class, 'id')],
             // مسابقة الطلاب: نصوص الصفحة ودليل الدخول، وجدول الجوائز لكل جنس، ونطاق الترتيب
-            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, CompetitionPage::SEASON, CompetitionPage::ROUNDS_INTRO, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
+            'page_content' => ['nullable', 'array:'.implode(',', [CompetitionPage::PARTNER, CompetitionPage::SEASON, CompetitionPage::ROUNDS_INTRO, CompetitionPage::GUIDE_BOOK, ...CompetitionPage::PARAGRAPHS, ...CompetitionPage::listKeys()])],
             'page_content.'.CompetitionPage::PARTNER => ['nullable', 'string', 'max:200'],
             'page_content.'.CompetitionPage::SEASON => ['nullable', 'string', 'max:100'],
             'page_content.'.CompetitionPage::ROUNDS_INTRO => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX],
+            // الدليل كاملاً: كتاب منشور «للقراءة فقط» بملفه وحده، لا كتاب قابل للتحميل ولا مسودة (LibraryItem::readOnlyBooks)
+            // والكتاب المحفوظ نفسه يُقبل ولو تغيّرت حالته بعد اختياره (أُلغي نشره، أو صار قابلاً للتحميل، أو حُذف): فلا يُمنع حفظ
+            // تعديل آخر في المسابقة يوم الاختبار، والزر يُخفى عند العرض بالفحص نفسه (Competition::guideBook). مراجعة #217، م١
+            'page_content.'.CompetitionPage::GUIDE_BOOK => ['nullable', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($competition): void {
+                $stored = $competition->page_content[CompetitionPage::GUIDE_BOOK] ?? null;
+
+                if ($stored !== null && (int) $value === (int) $stored) {
+                    return;
+                }
+
+                if (! LibraryItem::query()->readOnlyBooks()->whereKey((int) $value)->exists()) {
+                    $fail(__('competitions.student.admin.guide_book_invalid'));
+                }
+            }],
             ...collect(CompetitionPage::PARAGRAPHS)->mapWithKeys(fn (string $key): array => ['page_content.'.$key => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX]])->all(),
             ...collect(CompetitionPage::listKeys())->mapWithKeys(fn (string $key): array => [
                 'page_content.'.$key => ['nullable', 'array', 'max:'.CompetitionPage::ITEMS_MAX],

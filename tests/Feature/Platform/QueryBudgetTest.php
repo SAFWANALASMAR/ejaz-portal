@@ -270,7 +270,8 @@ it('keeps the competition form in the panel to a fixed number of queries whateve
     expectQueryBudget(
         fn (int $n) => $competition->forceFill(['prize_table' => array_fill(0, $n, ['male' => 1000, 'female' => 1000])])->save(),
         fn () => $this->actingAs($admin)->get(CompetitionResource::getUrl('edit', ['record' => $competition])),
-        19,
+        // +1 منذ 7 نوفمبر: خيارات حقل «الدليل كاملاً» من كتب المكتبة للقراءة فقط (docs/decisions/2026-11-07-brahin-guide-id-time.md)
+        20,
     );
 });
 
