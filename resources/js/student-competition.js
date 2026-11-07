@@ -394,8 +394,14 @@ function fitColumns(list, signal) {
         list.style.setProperty('--exam-cols', String(Math.min(5, Math.max(1, Math.ceil(numbers.length / rows)))));
     };
 
-    fit();
-    window.addEventListener('resize', fit, { signal });
+    // مرتين: عرض مفتاح الألوان يتبع عرض الأرقام، فالقياس الأول (بعمود واحد ومفتاح ملتف) أطول مما هو بعد ضبط الأعمدة
+    const refit = () => {
+        fit();
+        fit();
+    };
+
+    refit();
+    window.addEventListener('resize', refit, { signal });
 }
 
 // أرقام الصفحات: الحالي في وسط الشريط الأفقي (الجوال) أو العمود (الحاسوب واللوحي)، بتمرير قائمة الأرقام وحدها لا الصفحة، ومفتاح

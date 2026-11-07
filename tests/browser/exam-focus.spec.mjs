@@ -27,14 +27,15 @@ function nationalId(serial) {
 
 function collectErrors(page) {
     const errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    // أخطاء الصفحة موسومة، فلا يحذفها dropExpected ولو طابق نصها خطأ مورد (رفض fetch غير الملتقط)
+    page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
     page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
     return errors;
 }
 
 // يحذف من الأخطاء رسائل تحميل المورد المتوقعة وحدها (خطوتا الازدحام والانقطاع)، ولا يمس أخطاء الصفحة (pageerror)
 function dropExpected(errors, pattern) {
-    const kept = errors.filter((message) => !(pattern.test(message) && /Failed to load resource|net::|Failed to fetch/.test(message)));
+    const kept = errors.filter((message) => message.startsWith('pageerror:') || !(pattern.test(message) && /Failed to load resource|net::/.test(message)));
     errors.splice(0, errors.length, ...kept);
 }
 
@@ -141,19 +142,17 @@ test.describe('student exam: focus mode', () => {
             await page.setViewportSize({ width: 1366, height: 768 });
             await fits(page, '1366x768');
             // الأرقام كلها بلا تمرير في العمود، بأعمدة بقدر ما يلزم (decisions/2026-11-07-exam-fullscreen.md)
-            const column = await page.evaluate(() => {
-                const list = document.querySelector('[data-exam-units-list]');
-                return { overflow: list.scrollHeight - list.clientHeight };
-            });
-            expect(column.overflow, '1366x768: every page number without scrolling').toBeLessThanOrEqual(1);
-            // وفي نافذة المتصفح العادية على الشاشة نفسها (شريط المهام وواجهة المتصفح): نحو 640 بكسل
-            await page.setViewportSize({ width: 1366, height: 640 });
-            const windowed = await page.evaluate(() => {
+            // بعد تغيير المقاس يعيد حدث resize حساب الأعمدة في الإطار التالي: يُنتظر الثبات لا القراءة الأولى
+            const listOverflow = () => page.evaluate(() => {
                 const list = document.querySelector('[data-exam-units-list]');
                 return list.scrollHeight - list.clientHeight;
             });
-            expect(windowed, '1366x640 window: every page number without scrolling').toBeLessThanOrEqual(1);
+            await expect.poll(listOverflow, { message: '1366x768: every page number without scrolling' }).toBeLessThanOrEqual(1);
+            // وفي نافذة المتصفح العادية على الشاشة نفسها (شريط المهام وواجهة المتصفح): نحو 640 بكسل
+            await page.setViewportSize({ width: 1366, height: 640 });
+            await expect.poll(listOverflow, { message: '1366x640 window: every page number without scrolling' }).toBeLessThanOrEqual(1);
             await page.setViewportSize({ width: 1366, height: 768 });
+            await expect.poll(listOverflow).toBeLessThanOrEqual(1);
             await page.screenshot({ path: `${SHOTS}/question-1366x768.png` });
 
             // الدقائق الخمس الأخيرة: الكبسولة بالأزرق الداكن
@@ -269,7 +268,7 @@ test.describe('student exam: focus mode', () => {
             expect(resent, 'the normal post carries the pressed button').toContain('go=next');
             await page.unroute('**/units/*');
             // وكذلك الانقطاع المقصود وحده
-            dropExpected(errors, /ERR_INTERNET_DISCONNECTED|Failed to fetch/);
+            dropExpected(errors, /ERR_INTERNET_DISCONNECTED/);
         }
 
         // المراجعة بوضع التركيز أيضاً
