@@ -57,8 +57,10 @@
    sudo cp deploy/systemd/ejaz-backup.timer deploy/systemd/ejaz-health.timer /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable ejaz-stack
-   sudo systemctl enable --now ejaz-health.timer
+   sudo systemctl enable ejaz-health.timer
    ```
+
+   ومؤقت الصحة يبدأ بعد أول نشر (`deploy/hostinger-go-live.md` §١-ب الخطوة ٨)، لا الآن: قبل النشر يفشل `exec app` كل خمس دقائق.
 
    ومؤقت النسخ `ejaz-backup.timer` لا يُفعَّل هنا: بعد أول نسخة يدوية ناجحة وتجربة استعادتها (`sudo systemctl enable --now ejaz-backup.timer`، «Hostinger KVM» ٩).
 10. حاويتا التخزين (`deploy/storage/README.md`):
@@ -334,13 +336,13 @@ AWS_ENDPOINT=
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.office365.com
 MAIL_PORT=587
-MAIL_USERNAME=info@ejaz.sa
+MAIL_USERNAME=no-reply@ejaz.sa
 MAIL_PASSWORD=<من مدير كلمات المرور>
-MAIL_FROM_ADDRESS=info@ejaz.sa
+MAIL_FROM_ADDRESS=no-reply@ejaz.sa
 EMAIL_CODES_PER_HOUR=<بحسب قرار مزود البريد>
 ```
 
-- البريد لازم للرفع: التسجيل يشترط رمز البريد. وحدود 365 وصندوق الإرسال ومزود المعاملات في `deploy/hostinger-go-live.md` §٢ و§٣ (البند ٤). 【ناقص: قرار صفوان — صندوق الإرسال: info@ejaz.sa أو صندوق مخصص مثل no-reply@ejaz.sa (التوصية)】
+- البريد لازم للرفع: التسجيل يشترط رمز البريد. وحدود 365 وصندوق الإرسال ومزود المعاملات في `deploy/hostinger-go-live.md` §٢ و§٣ (البند ٤). وصندوق الإرسال `no-reply@ejaz.sa` بقرار صفوان (7 نوفمبر): صندوق مستخدم بكلمة مرور خاصة به، و`MAIL_USERNAME` و`MAIL_FROM_ADDRESS` به، لأن 365 يرفض مرسلاً غير الصندوق الذي يدخل به.
 
 و`.env.backup` بالوضع المحلي: `BACKUP_BUCKET=` فارغة، و`BACKUP_LOCAL_DIR=/backups`، و`PGUSER=ejaz_backup` و`PGPASSWORD`، و`BACKUP_GPG_RECIPIENT`. وإنشاء المجلد والدور والنسخة الأولى في `deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات». وعند الترقية إلى Hetzner: `BACKUP_SOURCE_S3_BUCKET=none` لخيار (أ)، فيُنسخ `storage/app/private` و`storage/app/public` من الحجم مشفّرين، وبقية القيم كما في «ثانياً».
 
@@ -391,7 +393,7 @@ sudo sed -i '/ ejaz.sa www.ejaz.sa$/d' /etc/hosts
 
 وإن فشل `ejaz:health` فرسالته تسمّي الفحص (القاعدة، أو Redis، أو الطوابير والمهام الفاشلة، أو مساحة القرص، أو القرص الخاص، أو نبض المجدول بعد دقيقتين من التشغيل). والسجل: `$DC logs --tail=200 app horizon scheduler web`.
 
-**٩. أول نسخة واستعادتها** بالوضع المحلي (`deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات»): الدور `ejaz_backup` و`.env.backup`، ثم `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` فيه سطر «الوضع المحلي»، ثم فك النسخة واستعادتها على جهاز آخر (`scripts/restore.md` «النسخ المحلية»)، ثم `sudo systemctl enable --now ejaz-backup.timer`. ومؤقت الصحة فُعّل في الخطوة ٦.
+**٩. أول نسخة واستعادتها** بالوضع المحلي (`deploy/hostinger-go-live.md` §٤ «النسخة الليلية المحلية: الخطوات»): الدور `ejaz_backup` و`.env.backup`، ثم `sudo systemctl start ejaz-backup.service`، ثم `journalctl -u ejaz-backup.service -n 50` فيه سطر «الوضع المحلي»، ثم فك النسخة واستعادتها على جهاز آخر (`scripts/restore.md` «النسخ المحلية»)، ثم `sudo systemctl enable --now ejaz-backup.timer`. ومؤقت الصحة مُمكَّن في الخطوة ٦ بلا تشغيل، فيبدأ بعد أول نشر: `sudo systemctl start ejaz-health.timer`.
 
 **١٠. لقطة ثانية في hPanel** («<الوسم المقرر في hostinger-go-live.md §٠> سليم»)، وتُستبدل بلقطة جديدة قبل كل نشر كبير (لقطة واحدة متاحة).
 
