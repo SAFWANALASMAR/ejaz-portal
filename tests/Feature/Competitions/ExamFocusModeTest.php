@@ -156,3 +156,16 @@ it('colours a page the student visited and left unanswered amber, the answered b
         ->toMatch($state(3, 'skipped'))
         ->toMatch($state(4, 'unvisited'));
 });
+
+// قائمة «زاره» لا تبقى في الجلسة بعد التسليم (مراجعة #211)
+it('forgets the visited pages from the session once the attempt is submitted', function () {
+    focusStudent();
+    $attempt = CompetitionAttempt::query()->sole();
+    $key = 'competitions.exam.visited.'.$attempt->id;
+
+    $this->get(focusUrl('/units/1'))->assertOk();
+    expect(session($key))->toBe([1]);
+
+    $this->post(focusUrl('/submit'))->assertRedirect();
+    expect(session()->has($key))->toBeFalse();
+});

@@ -61,7 +61,12 @@ function timer(element, signal) {
 
     tick();
     const interval = window.setInterval(tick, 1000);
-    form?.addEventListener('submit', () => window.clearTimeout(delay), { signal });
+    // ضغطة منعها حارس الضغطة المزدوجة لا تلغي التسليم الآلي المؤجل (مراجعة #211). والحارس مسجّل قبل العداد
+    form?.addEventListener('submit', (event) => {
+        if (!event.defaultPrevented) {
+            window.clearTimeout(delay);
+        }
+    }, { signal });
     signal.addEventListener('abort', () => {
         window.clearInterval(interval);
         window.clearTimeout(delay);
@@ -103,7 +108,7 @@ function grades(form, signal) {
 
 // وضع التركيز (decisions/2026-11-06-exam-focus-mode.md): كل زر في صفحة السؤال يُرسل النموذج كاملاً، فيظهر فوراً أن الضغطة وصلت
 // (الزر المضغوط بدائرة تحميل والبقية باهتة، وإعلان لقارئ الشاشة)، ولا ترسل ضغطة ثانية طلباً ثانياً. ولا يُعطَّل الزر نفسه: قيمته
-// (go) تُرسل معه. وإن لم يرد الخادم في 15 ثانية يعود النموذج كما كان فتُعاد المحاولة. والإرسال الآلي (form.submit) لا يمر هنا
+// (go) تُرسل معه. وإن لم يرد الخادم في 45 ثانية (لا 15: في ذروة الفتح تضاعف الضغطة الثانية الطلبات — مراجعة #211) يعود النموذج كما كان فتُعاد المحاولة. والإرسال الآلي (form.submit) لا يمر هنا
 function pending(form, signal) {
     const saving = form.querySelector('[data-exam-saving]');
     let release;
@@ -137,7 +142,7 @@ function pending(form, signal) {
                 saving.textContent = saving.dataset.message ?? '';
             }
 
-            release = window.setTimeout(reset, 15000);
+            release = window.setTimeout(reset, 45000);
         },
         { signal },
     );
@@ -164,8 +169,8 @@ function centerCurrent(nav) {
 }
 
 onPage((signal) => {
-    document.querySelectorAll('[data-exam-timer]').forEach((element) => timer(element, signal));
     document.querySelectorAll('form[data-exam-form]').forEach((form) => pending(form, signal));
+    document.querySelectorAll('[data-exam-timer]').forEach((element) => timer(element, signal));
     document.querySelectorAll('[data-exam-units-list]').forEach(centerCurrent);
     document.querySelectorAll('form[data-student-register]').forEach((form) => grades(form, signal));
 });
