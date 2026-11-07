@@ -168,6 +168,8 @@ it('sends a fresh code on the competition redirect when the live code was for an
     $this->post('/register', emailCodeSignUp());
     $user = User::query()->where('email', 'student@example.test')->sole();
     $user->forceFill(['email' => 'changed@example.test'])->save();
+    // الحارس يحفظ نسخة الحساب من التسجيل طوال الاختبار، فيُعطى النسخة بالبريد الجديد كما يقرؤها الطلب التالي في الإنتاج
+    $this->actingAs($user);
 
     $this->travel(61)->seconds();
     $this->get('/competitions/brahin/register')->assertRedirect(route('verification.notice'));
