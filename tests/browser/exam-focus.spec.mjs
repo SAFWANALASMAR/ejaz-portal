@@ -32,6 +32,12 @@ function collectErrors(page) {
     return errors;
 }
 
+// يحذف من الأخطاء رسائل تحميل المورد المتوقعة وحدها (خطوتا الازدحام والانقطاع)، ولا يمس أخطاء الصفحة (pageerror)
+function dropExpected(errors, pattern) {
+    const kept = errors.filter((message) => !(pattern.test(message) && /Failed to load resource|net::|Failed to fetch/.test(message)));
+    errors.splice(0, errors.length, ...kept);
+}
+
 async function check(page, step, width, errors) {
     await page.evaluate(() => document.fonts.ready);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -211,6 +217,8 @@ test.describe('student exam: focus mode', () => {
 
         // ازدحام الخادم في التنقّل داخل الصفحة: لا إرسال ثانٍ تلقائي، والرسالة ظاهرة والصفحة كما هي (مراجعة الأمن على طلب الدمج 213)
         if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
+            // لا خطأ في وحدة التحكم من الخطوات قبلها (التنقّل في 1366×768، و«التالي» المعلّق، والصفحة المتروكة، وملء الشاشة)
+            expect(errors, 'console before the 503 step').toEqual([]);
             let posts = 0;
             await page.route('**/units/*', async (route) => {
                 if (route.request().method() !== 'POST') {
@@ -226,8 +234,8 @@ test.describe('student exam: focus mode', () => {
             expect(page.url()).toBe(here);
             await expect(page.locator('[data-exam-form]')).not.toHaveAttribute('data-exam-pending', '');
             await page.unroute('**/units/*');
-            // الرد 503 مقصود هنا ويسجله المتصفح خطأً في وحدة التحكم: لا يُحسب على الصفحات بعده
-            errors.length = 0;
+            // الرد 503 مقصود هنا ويسجله المتصفح خطأ تحميل مورد: يُحذف هو وحده، وتبقى أي أخطاء أخرى للفحص
+            dropExpected(errors, /\b503\b/);
         }
 
         // انقطاع الشبكة في التنقّل داخل الصفحة: الإرسال العادي بقيمة الزر نفسها، فتُحفظ وينتقل الطالب (لا تضيع إجابة)
@@ -252,8 +260,8 @@ test.describe('student exam: focus mode', () => {
             expect(dropped).toBe(true);
             expect(resent, 'the normal post carries the pressed button').toContain('go=next');
             await page.unroute('**/units/*');
-            // وكذلك الانقطاع المقصود
-            errors.length = 0;
+            // وكذلك الانقطاع المقصود وحده
+            dropExpected(errors, /ERR_INTERNET_DISCONNECTED|Failed to fetch/);
         }
 
         // المراجعة بوضع التركيز أيضاً
