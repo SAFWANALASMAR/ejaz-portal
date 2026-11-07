@@ -91,6 +91,8 @@
                 <x-button variant="outline" name="go" value="prev" data-exam-step :disabled="$number === 1">{{ __('competitions.exam.previous') }}</x-button>
             </div>
             <p class="sr-only" role="status" data-exam-saving data-message="{{ __('competitions.student.saving') }}"></p>
+            {{-- تعذّر الحفظ في التنقّل داخل الصفحة (ازدحام أو خطأ في الخادم): الإجابات باقية، ولا إعادة إرسال تلقائية (decisions/2026-11-07-exam-fullscreen.md) --}}
+            <p class="rounded-xl bg-primary-soft px-4 py-2.5 text-sm font-semibold text-primary-deep" role="alert" data-exam-failed data-message="{{ __('competitions.student.save_failed') }}" hidden></p>
         </section>
 
         {{-- أرقام الصفحات بطابعها: الدائرة الزرقاء للمجاب، والكهرمانية لما زاره الطالب وتركه بلا إجابة، والبيضاء لما لم يصله،

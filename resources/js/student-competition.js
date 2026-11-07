@@ -146,6 +146,15 @@ function pending(form, signal) {
         },
         { signal },
     );
+    // تعذّر الحفظ في التنقّل داخل الصفحة (navigate): يعود النموذج كما كان فتُعاد المحاولة باليد
+    form.addEventListener(
+        'exam:release',
+        () => {
+            window.clearTimeout(release);
+            reset();
+        },
+        { signal },
+    );
     signal.addEventListener('abort', () => window.clearTimeout(release));
 }
 
@@ -162,7 +171,6 @@ function fullscreen(button, signal) {
         const on = document.fullscreenElement !== null;
 
         button.dataset.state = on ? 'on' : 'off';
-        button.setAttribute('aria-pressed', on ? 'true' : 'false');
 
         if (label) {
             label.textContent = on ? button.dataset.exit : button.dataset.enter;
@@ -188,34 +196,66 @@ function fullscreen(button, signal) {
 // المتصفح من ملء الشاشة. وما ليس صفحة اختبار (بعد التسليم أو انتهاء الوقت) يُفتح تحميلاً كاملاً. وأي تعذر (انقطاع، أو انتهاء
 // الجلسة، أو خطأ في الخادم) يعود إلى الإرسال العادي بالزر نفسه، فلا تضيع إجابة. والعنوان يُستبدل في السجل لا يُضاف: زر الرجوع
 // يخرج من الاختبار كما قبله، ولا يعيد صفحة قديمة بإجاباتها
-async function swapTo(request, fallback) {
+// طلب التنقّل الجاري: طلب جديد يلغيه، فلا يحل رد أقدم مكان صفحة أحدث (مراجعة الشيفرة على #213)
+let inflight = null;
+
+async function swapTo(request, fallback, failed) {
+    inflight?.abort();
+    const mine = new AbortController();
+    inflight = mine;
+
     let response;
+    let html;
 
     try {
-        response = await request();
+        response = await request(mine.signal);
+        html = response.ok ? await response.text() : '';
     } catch {
-        fallback();
+        // أُلغي لطلب أحدث: لا شيء. وانقطاع الشبكة: الإرسال العادي، فيرى الطالب صفحة المتصفح لانقطاعه كما قبل
+        if (!mine.signal.aborted) {
+            fallback();
+        }
 
         return;
     }
 
-    // الخروج من الاختبار (التسليم، أو انتهاء الوقت): عنوان صفحة المرحلة بلا تحويل، فتبقى رسالتها لتحميلها الكامل
+    if (inflight !== mine) {
+        return;
+    }
+
+    inflight = null;
+
+    // الخروج من الاختبار (التسليم، أو انتهاء الوقت): عنوان صفحة المرحلة بلا تحويل، فتبقى رسالتها لتحميلها الكامل. ومن الأصل نفسه وحده
     const leave = response.headers.get('X-Exam-Location');
 
     if (response.status === 204 && leave) {
-        window.location.assign(leave);
+        const target = new URL(leave, window.location.href);
+
+        if (target.origin === window.location.origin) {
+            window.location.assign(target.href);
+        } else {
+            failed();
+        }
 
         return;
     }
 
+    // انتهت الجلسة أو تغيّر رمز الحماية: الصفحة من جديد تحميلاً كاملاً، بلا إرسال ثانٍ بالرمز نفسه
+    if (response.status === 419) {
+        window.location.reload();
+
+        return;
+    }
+
+    // ازدحام أو خطأ في الخادم (429 و5xx وغيرها): لا إعادة إرسال تلقائية تضاعف الحمل في الذروة (مراجعة الأمن على #213)،
+    // والإجابات باقية في الصفحة برسالة، ويعود الزر فيُعاد الحفظ باليد
     if (!response.ok) {
-        fallback();
+        failed();
 
         return;
     }
 
     const url = new URL(response.url, window.location.href);
-    const html = await response.text();
     const page = new DOMParser().parseFromString(html, 'text/html');
     const next = page.querySelector('[data-exam-focus]');
     const current = document.querySelector('[data-exam-focus]');
@@ -252,8 +292,9 @@ function navigate(signal) {
         form.addEventListener(
             'submit',
             (event) => {
-                // ضغطة ثانية منعها pending، أو إرسال النموذج من الشيفرة: لا شيء هنا
-                if (event.defaultPrevented) {
+                // ضغطة ثانية منعها pending، أو إرسال النموذج من الشيفرة: لا شيء هنا. ومتصفح لا يعرف الزر المضغوط (سفاري قبل 15.4)
+                // يرسل عادياً بقيمته، فلا يضيع «go» (مراجعة الأمن على #213، م١)
+                if (event.defaultPrevented || !event.submitter) {
                     return;
                 }
 
@@ -278,9 +319,23 @@ function navigate(signal) {
                     form.submit();
                 };
 
+                const failedNote = form.querySelector('[data-exam-failed]');
+
+                if (failedNote) {
+                    failedNote.hidden = true;
+                }
+
                 swapTo(
-                    () => fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'text/html', 'X-Exam-Inline': '1' } }),
+                    (abort) => fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', signal: abort, headers: { Accept: 'text/html', 'X-Exam-Inline': '1' } }),
                     fallback,
+                    () => {
+                        form.dispatchEvent(new Event('exam:release'));
+
+                        if (failedNote) {
+                            failedNote.textContent = failedNote.dataset.message ?? '';
+                            failedNote.hidden = false;
+                        }
+                    },
                 );
             },
             { signal },
@@ -296,10 +351,15 @@ function navigate(signal) {
                 }
 
                 event.preventDefault();
-                swapTo(
-                    () => fetch(link.href, { credentials: 'same-origin', headers: { Accept: 'text/html' } }),
-                    () => window.location.assign(link.href),
-                );
+
+                // نقرة ثانية قبل الرد لا تطلب مرة أخرى
+                if (focus.hasAttribute('data-exam-pending')) {
+                    return;
+                }
+
+                focus.setAttribute('data-exam-pending', '');
+                const full = () => window.location.assign(link.href);
+                swapTo((abort) => fetch(link.href, { credentials: 'same-origin', signal: abort, headers: { Accept: 'text/html' } }), full, full);
             },
             { signal },
         );
@@ -310,19 +370,27 @@ function navigate(signal) {
 // سؤالاً على حاسوب محمول 1366×768. والجوال شريط أفقي لا يمسه هذا (resources/css/exam-focus.css)
 function fitColumns(list, signal) {
     const fit = () => {
-        const items = list.children.length;
+        // الأرقام وحدها، و«المراجعة» صف كامل تحتها
+        const numbers = list.querySelectorAll(':scope > li:not(.exam-units-review)');
+        const review = list.querySelector(':scope > li.exam-units-review');
         const units = list.closest('[data-exam-units]');
-        const first = list.firstElementChild;
 
-        if (!units || !first || !window.matchMedia('(min-width: 768px)').matches) {
+        if (!units || numbers.length === 0 || !window.matchMedia('(min-width: 768px)').matches) {
             return;
         }
 
-        const pitch = first.getBoundingClientRect().height + 8;
-        const room = parseFloat(getComputedStyle(units).maxHeight) - (units.offsetHeight - list.clientHeight) - 12;
-        const rows = Math.max(1, Math.floor(room / pitch));
+        const style = getComputedStyle(list);
+        const gap = parseFloat(style.rowGap) || 0;
+        const pitch = numbers[0].getBoundingClientRect().height + gap;
+        const room =
+            parseFloat(getComputedStyle(units).maxHeight) -
+            (units.offsetHeight - list.clientHeight) -
+            (parseFloat(style.paddingTop) || 0) -
+            (parseFloat(style.paddingBottom) || 0) -
+            (review ? review.getBoundingClientRect().height + gap : 0);
+        const rows = Number.isFinite(room) && pitch > 0 ? Math.max(1, Math.floor(room / pitch)) : numbers.length;
 
-        list.style.setProperty('--exam-cols', String(Math.min(3, Math.max(1, Math.ceil(items / rows)))));
+        list.style.setProperty('--exam-cols', String(Math.min(3, Math.max(1, Math.ceil(numbers.length / rows)))));
     };
 
     fit();

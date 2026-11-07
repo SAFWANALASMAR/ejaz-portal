@@ -381,10 +381,16 @@ html[data-motion-off] .exam-timer[data-warning='true'] {
         grid-template-columns: repeat(var(--exam-cols, 1), auto);
         align-content: start;
         justify-content: center;
+        justify-items: center;
         min-height: 0;
         overflow-y: auto;
         overscroll-behavior-y: contain;
         scrollbar-width: thin;
+    }
+
+    /* «المراجعة» صف كامل تحت الأرقام، فلا توسّع عموداً منها */
+    .exam-units-review {
+        grid-column: 1 / -1;
     }
 
     .exam-units-legend {

@@ -179,7 +179,7 @@ it('puts a hidden fullscreen button with its two labels and icons in the exam ba
 
     $bar = (string) str($this->get(focusUrl('/units/1'))->assertOk()->getContent())->after('data-exam-bar')->before('exam-body');
 
-    expect($bar)->toMatch('/<button type="button" class="exam-fullscreen" data-exam-fullscreen hidden aria-pressed="false"/')
+    expect($bar)->toMatch('/<button type="button" class="exam-fullscreen" data-exam-fullscreen hidden\n/')
         ->toContain('data-enter="'.__('competitions.student.fullscreen_enter').'"')
         ->toContain('data-exit="'.__('competitions.student.fullscreen_exit').'"')
         ->toContain('exam-fullscreen-enter')

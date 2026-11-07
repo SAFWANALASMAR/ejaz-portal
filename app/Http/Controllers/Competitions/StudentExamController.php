@@ -310,11 +310,6 @@ class StudentExamController extends Controller
     }
 
     /**
-     * المسابقة والمرحلة وتسجيل الطالب نفسه فيها، أو 404. فلا يصل أحد إلى مرحلة لم يسجل في مسابقتها.
-     *
-     * @return array{0: Competition, 1: CompetitionRound, 2: CompetitionSubmission}
-     */
-    /**
      * الخروج من الاختبار إلى صفحة المرحلة. والتنقّل داخل الصفحة (X-Exam-Inline — student-competition.js،
      * decisions/2026-11-07-exam-fullscreen.md) يأخذ العنوان بلا تحويل يتبعه طلبه فيستهلك رسالتها («انتهى الوقت»)، ثم يفتحها
      * تحميلاً كاملاً.
@@ -328,6 +323,11 @@ class StudentExamController extends Controller
         return response()->noContent()->header('X-Exam-Location', $redirect->getTargetUrl());
     }
 
+    /**
+     * المسابقة والمرحلة وتسجيل الطالب نفسه فيها، أو 404. فلا يصل أحد إلى مرحلة لم يسجل في مسابقتها.
+     *
+     * @return array{0: Competition, 1: CompetitionRound, 2: CompetitionSubmission}
+     */
     private function context(Request $request, string $slug, string $round): array
     {
         $competition = $this->competition($slug);

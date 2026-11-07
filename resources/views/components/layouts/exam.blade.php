@@ -16,7 +16,7 @@
                     <h1 class="exam-bar-round">{{ $round->name }}</h1>
                     <p class="exam-bar-competition">{{ $competition->title }}</p>
                 </div>
-                <button type="button" class="exam-fullscreen" data-exam-fullscreen hidden aria-pressed="false"
+                <button type="button" class="exam-fullscreen" data-exam-fullscreen hidden
                     data-enter="{{ __('competitions.student.fullscreen_enter') }}" data-exit="{{ __('competitions.student.fullscreen_exit') }}">
                     {{ \App\Support\Icon::svg('arrows-out', 'exam-fullscreen-icon exam-fullscreen-enter') }}
                     {{ \App\Support\Icon::svg('arrows-in', 'exam-fullscreen-icon exam-fullscreen-exit') }}

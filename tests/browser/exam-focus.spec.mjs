@@ -137,7 +137,7 @@ test.describe('student exam: focus mode', () => {
             // الأرقام كلها بلا تمرير في العمود، بأعمدة بقدر ما يلزم (decisions/2026-11-07-exam-fullscreen.md)
             const column = await page.evaluate(() => {
                 const list = document.querySelector('[data-exam-units-list]');
-                return { overflow: list.scrollHeight - list.clientHeight, cols: getComputedStyle(list).gridTemplateColumns.split(' ').length };
+                return { overflow: list.scrollHeight - list.clientHeight };
             });
             expect(column.overflow, '1366x768: every page number without scrolling').toBeLessThanOrEqual(1);
             await page.screenshot({ path: `${SHOTS}/question-1366x768.png` });
@@ -207,6 +207,49 @@ test.describe('student exam: focus mode', () => {
             await page.locator('[data-exam-bar]').screenshot({ path: `${SHOTS}/fullscreen-on-1440.png`, animations: 'disabled' });
             await page.locator('[data-exam-fullscreen]').click();
             await expect(page.locator('[data-exam-fullscreen]')).toHaveText('ملء الشاشة');
+        }
+
+        // ازدحام الخادم في التنقّل داخل الصفحة: لا إرسال ثانٍ تلقائي، والرسالة ظاهرة والصفحة كما هي (مراجعة الأمن على #213)
+        if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
+            let posts = 0;
+            await page.route('**/units/*', async (route) => {
+                if (route.request().method() !== 'POST') {
+                    return route.continue();
+                }
+                posts++;
+                return route.fulfill({ status: 503, body: 'busy' });
+            });
+            const here = page.url();
+            await page.locator('button[name="go"][value="next"]').click();
+            await expect(page.locator('[data-exam-failed]')).toBeVisible();
+            expect(posts, 'one request, no automatic resend').toBe(1);
+            expect(page.url()).toBe(here);
+            await expect(page.locator('[data-exam-form]')).not.toHaveAttribute('data-exam-pending', '');
+            await page.unroute('**/units/*');
+        }
+
+        // انقطاع الشبكة في التنقّل داخل الصفحة: الإرسال العادي بقيمة الزر نفسها، فتُحفظ وينتقل الطالب (لا تضيع إجابة)
+        if (testInfo.project.name === 'desktop' && /\/units\/\d+$/.test(page.url())) {
+            const here = Number(page.url().split('/').pop());
+            let dropped = false;
+            let resent = null;
+            await page.route('**/units/*', async (route) => {
+                const request = route.request();
+                if (request.method() !== 'POST') {
+                    return route.continue();
+                }
+                if (!dropped) {
+                    dropped = true;
+                    return route.abort('internetdisconnected');
+                }
+                resent = request.postData();
+                return route.continue();
+            });
+            await page.locator('main fieldset input[type=radio]').first().check();
+            await Promise.all([page.waitForURL((url) => !url.pathname.endsWith(`/units/${here}`)), page.locator('button[name="go"][value="next"]').click()]);
+            expect(dropped).toBe(true);
+            expect(resent, 'the normal post carries the pressed button').toContain('go=next');
+            await page.unroute('**/units/*');
         }
 
         // المراجعة بوضع التركيز أيضاً
