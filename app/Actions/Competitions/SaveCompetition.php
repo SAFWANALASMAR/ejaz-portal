@@ -365,7 +365,15 @@ class SaveCompetition
             'page_content.'.CompetitionPage::SEASON => ['nullable', 'string', 'max:100'],
             'page_content.'.CompetitionPage::ROUNDS_INTRO => ['nullable', 'string', 'max:'.CompetitionPage::PARAGRAPH_MAX],
             // الدليل كاملاً: كتاب منشور «للقراءة فقط» بملفه وحده، لا كتاب قابل للتحميل ولا مسودة (LibraryItem::readOnlyBooks)
-            'page_content.'.CompetitionPage::GUIDE_BOOK => ['nullable', 'integer', function (string $attribute, mixed $value, Closure $fail): void {
+            // والكتاب المحفوظ نفسه يُقبل ولو تغيّرت حالته بعد اختياره (أُلغي نشره، أو صار قابلاً للتحميل، أو حُذف): فلا يُمنع حفظ
+            // تعديل آخر في المسابقة يوم الاختبار، والزر يُخفى عند العرض بالفحص نفسه (Competition::guideBook). مراجعة #217، م١
+            'page_content.'.CompetitionPage::GUIDE_BOOK => ['nullable', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($competition): void {
+                $stored = $competition->page_content[CompetitionPage::GUIDE_BOOK] ?? null;
+
+                if ($stored !== null && (int) $value === (int) $stored) {
+                    return;
+                }
+
                 if (! LibraryItem::query()->readOnlyBooks()->whereKey((int) $value)->exists()) {
                     $fail(__('competitions.student.admin.guide_book_invalid'));
                 }

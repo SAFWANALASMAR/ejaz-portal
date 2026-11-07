@@ -12,6 +12,7 @@ use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 /*
 | دليل الجمعية كاملاً في صفحة مسابقة الطلاب (قرار صفوان والمدير التنفيذي، 7 نوفمبر 2026 —
@@ -88,7 +89,34 @@ it('hides the button when no book is chosen, or the chosen one is unpublished or
     'not chosen' => [[]],
     'unpublished' => [['is_published' => false]],
     'downloadable' => [['is_downloadable' => true]],
+    'deleted' => [['deleted_at' => now()]],
 ]);
+
+// مراجعتا #217، م١: كتاب الدليل المحفوظ لا يمنع حفظ تعديل آخر في المسابقة بعد أن تتغيّر حالته، والزر مخفي
+it('still saves the competition when the chosen guide book was later unpublished, and keeps the button hidden', function () {
+    saveGuideBook($this->director, $this->competition, $this->book->id);
+    $this->book->forceFill(['is_published' => false])->save();
+
+    $saved = saveGuideBook($this->director, $this->competition->fresh(), $this->book->id);
+
+    expect($saved->page_content[CompetitionPage::GUIDE_BOOK])->toBe($this->book->id)
+        ->and($saved->guideBook())->toBeNull();
+    $this->get('/competitions/brahin-1448')->assertOk()->assertDontSee('data-guide-book', false);
+
+    // واختيار كتاب آخر غير صالح يُرفض كما هو
+    $other = LibraryItem::factory()->create(['is_downloadable' => true]);
+    expect(fn () => saveGuideBook($this->director, $this->competition->fresh(), $other->id))->toThrow(ValidationException::class);
+});
+
+it('accepts a read-only research paper as the full guide, and logs the change', function () {
+    $paper = LibraryItem::factory()->create(['section' => LibrarySection::Research, 'is_downloadable' => false]);
+
+    saveGuideBook($this->director, $this->competition, $paper->id);
+
+    expect($this->competition->fresh()->guideBook()?->is($paper))->toBeTrue();
+    $logged = Activity::query()->whereMorphedTo('subject', $this->competition)->latest('id')->first();
+    expect($logged?->properties['attributes']['page_content'][CompetitionPage::GUIDE_BOOK] ?? null)->toBe($paper->id);
+});
 
 it('offers only read-only published books in the competition screen of the panel', function () {
     LibraryItem::factory()->create(['title' => 'كتاب قابل للتحميل', 'is_downloadable' => true]);
