@@ -388,7 +388,7 @@ html[data-motion-off] .exam-timer[data-warning='true'] {
         scrollbar-width: thin;
     }
 
-    /* «المراجعة» صف كامل تحت الأرقام، فلا توسّع عموداً منها */
+    /* «المراجعة» صف كامل تحت الأرقام. ومع عمود واحد يتسع العمود لعرضها، والأرقام في وسطه */
     .exam-units-review {
         grid-column: 1 / -1;
     }

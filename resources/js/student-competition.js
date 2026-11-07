@@ -211,7 +211,7 @@ async function swapTo(request, fallback, failed) {
         response = await request(mine.signal);
         html = response.ok ? await response.text() : '';
     } catch {
-        // أُلغي لطلب أحدث: لا شيء. وانقطاع الشبكة: الإرسال العادي، فيرى الطالب صفحة المتصفح لانقطاعه كما قبل
+        // أُلغي لطلب أحدث: لا شيء (والطلب الأحدث يضع منطقة الاختبار من جديد بحارسها مفكوكاً). وانقطاع الشبكة: الإرسال العادي، فيرى الطالب صفحة المتصفح لانقطاعه كما قبل
         if (!mine.signal.aborted) {
             fallback();
         }
@@ -231,10 +231,11 @@ async function swapTo(request, fallback, failed) {
     if (response.status === 204 && leave) {
         const target = new URL(leave, window.location.href);
 
+        // والحفظ تمّ: عنوان من أصل آخر (لا يرسله الخادم) يُستبدل بإعادة تحميل الصفحة الحالية، لا برسالة «تعذّر الحفظ»
         if (target.origin === window.location.origin) {
             window.location.assign(target.href);
         } else {
-            failed();
+            window.location.reload();
         }
 
         return;
