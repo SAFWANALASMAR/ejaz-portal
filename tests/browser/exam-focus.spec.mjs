@@ -226,6 +226,8 @@ test.describe('student exam: focus mode', () => {
             expect(page.url()).toBe(here);
             await expect(page.locator('[data-exam-form]')).not.toHaveAttribute('data-exam-pending', '');
             await page.unroute('**/units/*');
+            // الرد 503 مقصود هنا ويسجله المتصفح خطأً في وحدة التحكم: لا يُحسب على الصفحات بعده
+            errors.length = 0;
         }
 
         // انقطاع الشبكة في التنقّل داخل الصفحة: الإرسال العادي بقيمة الزر نفسها، فتُحفظ وينتقل الطالب (لا تضيع إجابة)
@@ -250,6 +252,8 @@ test.describe('student exam: focus mode', () => {
             expect(dropped).toBe(true);
             expect(resent, 'the normal post carries the pressed button').toContain('go=next');
             await page.unroute('**/units/*');
+            // وكذلك الانقطاع المقصود
+            errors.length = 0;
         }
 
         // المراجعة بوضع التركيز أيضاً

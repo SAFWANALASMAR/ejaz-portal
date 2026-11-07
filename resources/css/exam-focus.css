@@ -374,7 +374,7 @@ html[data-motion-off] .exam-timer[data-warning='true'] {
         background: #fff;
     }
 
-    /* أعمدة بقدر ما يلزم لتظهر الأرقام كلها (--exam-cols حتى ثلاثة، student-competition.js)، والترتيب صفاً صفاً من جهة البداية */
+    /* أعمدة بقدر ما يلزم لتظهر الأرقام كلها (--exam-cols حتى أربعة، student-competition.js)، والترتيب صفاً صفاً من جهة البداية */
     .exam-units-list {
         display: grid;
         flex: 1 1 auto;
@@ -393,8 +393,10 @@ html[data-motion-off] .exam-timer[data-warning='true'] {
         grid-column: 1 / -1;
     }
 
+    /* مفتاح الألوان سطر مضغوط يلتف بعرض العمود، فيبقى للأرقام أكثر الارتفاع (أربعون على 1366×768) */
     .exam-units-legend {
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: center;
         flex-shrink: 0;
         margin-top: 0.4rem;
         padding: 0.5rem 0.4rem 0.3rem;
