@@ -217,6 +217,7 @@ class StudentExamController extends Controller
 
         if ($go === 'submit') {
             $submit->handle($this->user($request), $attempt, auto: $request->boolean('auto'));
+            $request->session()->forget('competitions.exam.visited.'.$attempt->id);
 
             return $back;
         }
@@ -255,6 +256,8 @@ class StudentExamController extends Controller
         abort_if($attempt === null, 404);
 
         $submit->handle($this->user($request), $attempt, auto: $request->boolean('auto'));
+        // قائمة «زاره» (عمود الأرقام) لا تلزم بعد التسليم (مراجعة #211)
+        $request->session()->forget('competitions.exam.visited.'.$attempt->id);
 
         return redirect()->route('competitions.student.round', [$slug, $stage->uuid]);
     }
