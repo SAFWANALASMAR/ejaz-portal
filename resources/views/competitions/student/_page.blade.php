@@ -131,6 +131,7 @@
     <div>
         <x-section-heading>{{ __('competitions.student.page.guide_steps') }}</x-section-heading>
         <x-competitions.guide-slides :steps="$steps" class="mt-4" />
+        @include('competitions.student._guide_book')
     </div>
 @endif
 

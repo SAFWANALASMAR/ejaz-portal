@@ -20,6 +20,7 @@
                         <x-section-heading>{{ __('competitions.student.page.'.$key) }}</x-section-heading>
                         @if ($key === 'guide_steps')
                             <x-competitions.guide-slides :steps="$items" class="mt-4" />
+                            @include('competitions.student._guide_book')
                         @else
                             <ul class="mt-4 list-disc space-y-2 ps-6 leading-8 text-ink">
                                 @foreach ($items as $item)
