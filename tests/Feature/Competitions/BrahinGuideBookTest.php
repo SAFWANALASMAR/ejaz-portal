@@ -114,8 +114,14 @@ it('accepts a read-only research paper as the full guide, and logs the change', 
     saveGuideBook($this->director, $this->competition, $paper->id);
 
     expect($this->competition->fresh()->guideBook()?->is($paper))->toBeTrue();
-    $logged = Activity::query()->whereMorphedTo('subject', $this->competition)->latest('id')->first();
-    expect($logged?->properties['attributes']['page_content'][CompetitionPage::GUIDE_BOOK] ?? null)->toBe($paper->id);
+    // في سجل العمليات تغيير يحمل معرّف الكتاب في page_content (مصفوفة أو نص JSON بحسب التحويل عند التسجيل)
+    $logged = Activity::query()->whereMorphedTo('subject', $this->competition)->get()->contains(function (Activity $activity) use ($paper): bool {
+        $content = data_get($activity->properties?->toArray() ?? [], 'attributes.page_content');
+        $content = is_string($content) ? json_decode($content, true) : $content;
+
+        return (int) data_get($content, CompetitionPage::GUIDE_BOOK) === $paper->id;
+    });
+    expect($logged)->toBeTrue();
 });
 
 it('offers only read-only published books in the competition screen of the panel', function () {
