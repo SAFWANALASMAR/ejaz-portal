@@ -146,6 +146,14 @@ test.describe('student exam: focus mode', () => {
                 return { overflow: list.scrollHeight - list.clientHeight };
             });
             expect(column.overflow, '1366x768: every page number without scrolling').toBeLessThanOrEqual(1);
+            // وفي نافذة المتصفح العادية على الشاشة نفسها (شريط المهام وواجهة المتصفح): نحو 640 بكسل
+            await page.setViewportSize({ width: 1366, height: 640 });
+            const windowed = await page.evaluate(() => {
+                const list = document.querySelector('[data-exam-units-list]');
+                return list.scrollHeight - list.clientHeight;
+            });
+            expect(windowed, '1366x640 window: every page number without scrolling').toBeLessThanOrEqual(1);
+            await page.setViewportSize({ width: 1366, height: 768 });
             await page.screenshot({ path: `${SHOTS}/question-1366x768.png` });
 
             // الدقائق الخمس الأخيرة: الكبسولة بالأزرق الداكن

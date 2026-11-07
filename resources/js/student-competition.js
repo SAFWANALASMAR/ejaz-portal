@@ -367,7 +367,7 @@ function navigate(signal) {
     });
 }
 
-// عمود الأرقام على الحاسوب واللوحي: أعمدة بقدر ما يلزم (حتى أربعة) لتظهر الأرقام كلها بلا تمرير في ارتفاع الشاشة، كأربعين
+// عمود الأرقام على الحاسوب واللوحي: أعمدة بقدر ما يلزم (حتى خمسة) لتظهر الأرقام كلها بلا تمرير في ارتفاع الشاشة، كأربعين
 // سؤالاً على حاسوب محمول 1366×768. والجوال شريط أفقي لا يمسه هذا (resources/css/exam-focus.css)
 function fitColumns(list, signal) {
     const fit = () => {
@@ -391,7 +391,7 @@ function fitColumns(list, signal) {
             (review ? review.getBoundingClientRect().height + gap : 0);
         const rows = Number.isFinite(room) && pitch > 0 ? Math.max(1, Math.floor(room / pitch)) : numbers.length;
 
-        list.style.setProperty('--exam-cols', String(Math.min(4, Math.max(1, Math.ceil(numbers.length / rows)))));
+        list.style.setProperty('--exam-cols', String(Math.min(5, Math.max(1, Math.ceil(numbers.length / rows)))));
     };
 
     fit();
