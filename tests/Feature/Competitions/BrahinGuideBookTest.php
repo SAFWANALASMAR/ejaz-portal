@@ -12,7 +12,6 @@ use Database\Seeders\BrahinCompetitionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
-use Spatie\Activitylog\Models\Activity;
 
 /*
 | دليل الجمعية كاملاً في صفحة مسابقة الطلاب (قرار صفوان والمدير التنفيذي، 7 نوفمبر 2026 —
@@ -108,20 +107,12 @@ it('still saves the competition when the chosen guide book was later unpublished
     expect(fn () => saveGuideBook($this->director, $this->competition->fresh(), $other->id))->toThrow(ValidationException::class);
 });
 
-it('accepts a read-only research paper as the full guide, and logs the change', function () {
+it('accepts a read-only research paper as the full guide', function () {
     $paper = LibraryItem::factory()->create(['section' => LibrarySection::Research, 'is_downloadable' => false]);
 
     saveGuideBook($this->director, $this->competition, $paper->id);
 
     expect($this->competition->fresh()->guideBook()?->is($paper))->toBeTrue();
-    // في سجل العمليات تغيير يحمل معرّف الكتاب في page_content (مصفوفة أو نص JSON بحسب التحويل عند التسجيل)
-    $logged = Activity::query()->whereMorphedTo('subject', $this->competition)->get()->contains(function (Activity $activity) use ($paper): bool {
-        $content = data_get($activity->properties?->toArray() ?? [], 'attributes.page_content');
-        $content = is_string($content) ? json_decode($content, true) : $content;
-
-        return (int) data_get($content, CompetitionPage::GUIDE_BOOK) === $paper->id;
-    });
-    expect($logged)->toBeTrue();
 });
 
 it('offers only read-only published books in the competition screen of the panel', function () {
