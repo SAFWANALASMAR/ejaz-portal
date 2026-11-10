@@ -117,15 +117,17 @@ class BuildHomePage
         $hero = self::hero($home);
         // المخزّن وحده (ejaz:refresh-stats)، فلا استعلام للأرقام عند بناء الرئيسية
         $portal = HomeContent::showsPortalStats() ? HomePortalStats::cached() : null;
+        // مقاطع «عن الجمعية» مرة واحدة لشرائح الهوية ونصي البطاقتين معاً (سقف الاستعلامات — QueryBudgetTest)
+        $aboutBlocks = HomeShowcase::aboutBlocks();
 
         return [
             'content' => $content,
             'hero' => $hero,
             // شرائح البطل بترتيبها المعتمد (أمر التصور النهائي، النسخة 63)، وشرائح الهوية، والجوائز (HomeShowcase)
             'slides' => HomeShowcase::slides($home, $content, $hero),
-            'identity' => HomeShowcase::identity($content),
+            'identity' => HomeShowcase::identity($content, $aboutBlocks),
             // نصا «أهدافنا» و«مبادئنا»، وإلا من مقطعيهما في «عن الجمعية» المنشورة
-            'identity_texts' => HomeShowcase::identityTexts($content),
+            'identity_texts' => HomeShowcase::identityTexts($content, $aboutBlocks),
             'prize' => HomeShowcase::prize(),
             // ملاحظات المدير (31 أكتوبر 01:28): «مبادراتنا» بطاقة تحت البطل، وشريطا المرئيات وأغلفة الكتب بدل «المستجدات»
             'top_initiatives' => Initiative::query()->published()->limit(self::STRIP)->get(['id', 'slug', 'name', 'summary']),

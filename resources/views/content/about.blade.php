@@ -18,7 +18,7 @@
     $strategy = collect($blocks)->first(fn (array $block): bool => $headingOf($block) === __('content.about.strategy_heading'));
     // ونصه الظاهر بقاعدة MissingText: بلا نص ظاهر (لا مقطع، أو نصه علامة 【ناقص】 مخفية) لا يُعرض المقطع، بدل شريط داكن بعنوانه
     // وحده، إلا لمن يرى العلامات فيرى العلامة (docs/decisions/2026-11-10-fix-empty-identity-cards.md)
-    $strategyText = $strategy !== null ? \App\Support\MissingText::shown(strip_tags(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : '')) : null;
+    $strategyText = $strategy !== null ? \App\Support\MissingText::shown(trim(str_replace("\u{00A0}", ' ', html_entity_decode(strip_tags(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : ''))))) : null;
     $quotes = collect([__('ui.identity.vision'), __('ui.identity.mission')])
         ->mapWithKeys(fn (string $heading): array => [$heading => collect($blocks)->first(fn (array $block): bool => $headingOf($block) === $heading)])
         ->filter();

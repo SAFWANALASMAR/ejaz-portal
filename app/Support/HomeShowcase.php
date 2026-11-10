@@ -103,9 +103,10 @@ final class HomeShowcase
      * من «محتوى الرئيسية»، وإلا من مقطعيهما في «عن الجمعية» المنشورة (نصها المعتمد).
      *
      * @param  array<string, mixed>  $content  HomeContent::resolved()
+     * @param  list<array{type: string, data: array<string, mixed>}>|null  $aboutBlocks  مقاطع «عن الجمعية» إن قُرئت مرة للصفحة كلها (BuildHomePage)
      * @return list<array{kind: string, title: string, text: string, icon: string}>
      */
-    public static function identity(array $content): array
+    public static function identity(array $content, ?array $aboutBlocks = null): array
     {
         $slides = [];
         $about = null;
@@ -114,7 +115,7 @@ final class HomeShowcase
             $text = trim((string) ($content['identity'][$key] ?? ''));
 
             if ($text === '') {
-                $about ??= self::aboutSections();
+                $about ??= self::aboutSections($aboutBlocks ?? self::aboutBlocks());
                 $text = $about[(string) __('ui.identity.'.$key)] ?? '';
             }
 
@@ -141,9 +142,10 @@ final class HomeShowcase
      * (docs/decisions/2026-11-10-fix-empty-identity-cards.md).
      *
      * @param  array<string, mixed>  $content  HomeContent::resolved()
+     * @param  list<array{type: string, data: array<string, mixed>}>|null  $aboutBlocks  مقاطع «عن الجمعية» إن قُرئت مرة للصفحة كلها (BuildHomePage)
      * @return array{goals: string, principles: string}
      */
-    public static function identityTexts(array $content): array
+    public static function identityTexts(array $content, ?array $aboutBlocks = null): array
     {
         $texts = ['goals' => '', 'principles' => ''];
         $about = null;
@@ -152,7 +154,7 @@ final class HomeShowcase
             $text = trim((string) ($content['identity'][$key] ?? ''));
 
             if ($text === '' || $text === HomeContent::defaultText('identity', $key)) {
-                $about ??= self::aboutAnchored();
+                $about ??= self::aboutAnchored($aboutBlocks ?? self::aboutBlocks());
                 $text = ($about['about-'.$key] ?? '') !== '' ? $about['about-'.$key] : $text;
             }
 
@@ -165,13 +167,14 @@ final class HomeShowcase
     /**
      * مقاطع النص في «عن الجمعية» المنشورة: العنوان ← النص بلا وسوم.
      *
+     * @param  list<array{type: string, data: array<string, mixed>}>  $blocks
      * @return array<string, string>
      */
-    private static function aboutSections(): array
+    private static function aboutSections(array $blocks): array
     {
         $sections = [];
 
-        foreach (self::aboutBlocks() as $block) {
+        foreach ($blocks as $block) {
             if ($block['type'] === 'text' && is_string($block['data']['heading'] ?? null)) {
                 $text = self::plain($block['data']['body'] ?? '');
 
@@ -187,13 +190,14 @@ final class HomeShowcase
     /**
      * مقاطع «عن الجمعية» المنشورة بمراسيها: المرسى ← نص المقطع، أو عناوين بطاقاته مجموعة. وأول مقطع لكل مرسى وحده، كما في الصفحة.
      *
+     * @param  list<array{type: string, data: array<string, mixed>}>  $blocks
      * @return array<string, string>
      */
-    private static function aboutAnchored(): array
+    private static function aboutAnchored(array $blocks): array
     {
         $sections = [];
 
-        foreach (self::aboutBlocks() as $block) {
+        foreach ($blocks as $block) {
             $anchor = ContentBlocks::anchor($block['data']['heading'] ?? null);
 
             if ($anchor === null || isset($sections[$anchor])) {
@@ -223,7 +227,7 @@ final class HomeShowcase
      *
      * @return list<array{type: string, data: array<string, mixed>}>
      */
-    private static function aboutBlocks(): array
+    public static function aboutBlocks(): array
     {
         return ContentBlocks::visible(Page::query()->published()->where('slug', Page::ABOUT)->first()?->blocks ?? []);
     }
