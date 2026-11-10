@@ -14,7 +14,9 @@
     $size = \App\Support\FileSize::display($item->file_size);
 @endphp
 
-<x-page-hero :title="$item->title" :summary="$item->section->getLabel()" />
+{{-- صور رأس «مكتبة إعجاز» نفسها (المصحف والحرم من اللوحة) في صفحة كل عنصر، لا نقش الصفحة المحايد ولا صورة العنصر
+     (صفوان، 10 نوفمبر 2026 — docs/decisions/2026-11-10-library-item-hero-images.md) --}}
+<x-page-hero :title="$item->title" :summary="$item->section->getLabel()" :images="once(fn () => \App\Support\LibraryHeroImages::urls())" />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
