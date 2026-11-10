@@ -7,8 +7,10 @@ use App\Models\Document;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
 use App\Support\ReaderFileResponse;
+use App\Support\ReaderTicket;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -60,11 +62,11 @@ class GovernanceController extends Controller implements HasMiddleware
         return view('content.page', ['title' => __('governance.title'), 'summary' => null, 'html' => new HtmlString($html)]);
     }
 
-    public function show(string $slug): View
+    public function show(Request $request, string $slug): View
     {
         abort_unless(in_array($slug, self::publishedSlugs(), true), 404);
 
-        /** @var array{title: string, summary: ?string, html: string} $page */
+        /** @var array{title: string, summary: ?string, html: string, reader?: ?string} $page */
         $page = ContentCache::remember('governance.show.'.$slug, function () use ($slug): array {
             $document = Document::query()->published()->where('slug', $slug)->firstOrFail();
 
@@ -72,10 +74,12 @@ class GovernanceController extends Controller implements HasMiddleware
                 'title' => $document->title,
                 'summary' => $document->description,
                 'html' => view('governance.show', ['document' => $document])->render(),
+                // رمز القارئ لكل طلب في الصفحة المخزنة (ReaderTicket)
+                'reader' => $document->isViewOnly() ? ReaderTicket::scope($document) : null,
             ];
         });
 
-        return view('content.page', [...$page, 'html' => new HtmlString($page['html']), 'breadcrumb' => [[__('governance.title'), route('governance.index')]]]);
+        return view('content.page', [...$page, 'html' => new HtmlString(ReaderTicket::inject($page['html'], $request, $page['reader'] ?? null)), 'breadcrumb' => [[__('governance.title'), route('governance.index')]]]);
     }
 
     /**
@@ -88,10 +92,21 @@ class GovernanceController extends Controller implements HasMiddleware
 
         // «للاطلاع فقط» (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٢): لقارئ الصفحة وحده بحماية كتب المكتبة نفسها
         if ($document->isViewOnly()) {
-            return ReaderFileResponse::make($request, Document::disk(), (string) $document->file, $document->downloadName(), 'governance', route('governance.show', $document->slug));
+            return ReaderFileResponse::make($request, Document::disk(), (string) $document->file, ReaderTicket::scope($document), 'governance', route('governance.show', $document->slug));
         }
 
         return self::serve($document, download: false);
+    }
+
+    /**
+     * رمز جديد لقارئ الوثيقة «للاطلاع فقط» حين لا يجد في الصفحة رمزاً صالحاً، بلا إعادة تحميل الصفحة (ReaderTicket).
+     */
+    public function readerTicket(Request $request, string $slug): JsonResponse
+    {
+        $document = self::publishedDocument($slug);
+        abort_unless($document->isViewOnly(), 404);
+
+        return response()->json(ReaderTicket::issue($request, ReaderTicket::scope($document)), 200, ['Cache-Control' => 'private, no-store']);
     }
 
     /**

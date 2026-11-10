@@ -111,7 +111,7 @@
 
         {{-- كتاب «للقراءة فقط»: قارئ يرسم الصفحات في <canvas> على كل العروض، بلا شريط عارض المتصفح (resources/js/pdf-reader.js) --}}
         @if (filled($item->file) && $item->isReadOnly())
-            @include('library.reader', ['url' => route('library.file', $route), 'title' => $item->title, 'progress' => $progress])
+            @include('library.reader', ['url' => route('library.file', $route), 'ticketUrl' => route('library.reader-ticket', $route), 'title' => $item->title, 'progress' => $progress])
         {{-- متصفحات الجوال لا تعرض PDF داخل الصفحة، فعليها زرا الفتح والتنزيل وحدهما --}}
         @elseif (filled($item->file) && $item->section->takesPdf())
             <iframe src="{{ route('library.file', $route) }}" data-progress-open="{{ $progress }}" title="{{ __('library.item.viewer', ['title' => $item->title]) }}"

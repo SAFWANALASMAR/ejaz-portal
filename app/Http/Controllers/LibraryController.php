@@ -9,11 +9,13 @@ use App\Models\LibraryItem;
 use App\Support\ContentCache;
 use App\Support\PrivateFileResponse;
 use App\Support\ReaderFileResponse;
+use App\Support\ReaderTicket;
 use App\Support\SchoolNetworkLimits;
 use App\Support\StructuredData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -92,12 +94,12 @@ class LibraryController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function show(string $section, string $slug): View
+    public function show(Request $request, string $section, string $slug): View
     {
         // معرّف منشور في قسمه، فلا يُخزَّن غيره، ولا يعمل الرابط بقسم آخر
         abort_unless((self::publishedSlugs()[$slug] ?? null) === $section, 404);
 
-        /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>} $page */
+        /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>, reader?: ?string} $page */
         $page = ContentCache::remember('library.show.'.$slug, function () use ($slug): array {
             $item = LibraryItem::query()->published()->where('slug', $slug)->firstOrFail();
 
@@ -109,12 +111,14 @@ class LibraryController extends Controller implements HasMiddleware
                 // الكتاب Book والمرئية VideoObject (StructuredData)
                 'schema' => array_filter([StructuredData::libraryItem($item)]),
                 'html' => view('library.show', ['item' => $item, 'related' => self::related($item)])->render(),
+                // رمز القارئ لكل طلب في الصفحة المخزنة (ReaderTicket)
+                'reader' => $item->isReadOnly() && $item->file !== null ? ReaderTicket::scope($item) : null,
             ];
         });
 
         return view('content.page', [
             ...$page,
-            'html' => new HtmlString($page['html']),
+            'html' => new HtmlString(ReaderTicket::inject($page['html'], $request, $page['reader'] ?? null)),
             'breadcrumb' => [[__('library.title'), route('library.index')], [LibrarySection::from($section)->getLabel(), route('library.section', $section)]],
         ]);
     }
@@ -128,6 +132,18 @@ class LibraryController extends Controller implements HasMiddleware
         $item = self::publishedItem($section, $slug);
 
         return $item->isReadOnly() ? self::serveToReader($request, $item) : self::serve($item, 'inline');
+    }
+
+    /**
+     * رمز جديد لقارئ الكتاب «للقراءة فقط» حين لا يجد في الصفحة رمزاً صالحاً (صفحة مستعادة بزر الرجوع، أو رمز انتهت مدته)،
+     * بلا إعادة تحميل الصفحة. وبحماية CSRF من مجموعة web (ReaderTicket).
+     */
+    public function readerTicket(Request $request, string $section, string $slug): JsonResponse
+    {
+        $item = self::publishedItem($section, $slug);
+        abort_unless($item->isReadOnly(), 404);
+
+        return response()->json(ReaderTicket::issue($request, ReaderTicket::scope($item)), 200, ['Cache-Control' => 'private, no-store']);
     }
 
     /**
@@ -158,7 +174,7 @@ class LibraryController extends Controller implements HasMiddleware
             ? (int) config('competitions.student.window_limits.reader_guide_per_subscriber_per_minute')
             : ReaderFileResponse::PER_MINUTE;
 
-        return ReaderFileResponse::make($request, LibraryItem::disk(), (string) $item->file, $item->downloadName(), 'library', route('library.show', [$item->section->value, $item->slug]), $perMinute);
+        return ReaderFileResponse::make($request, LibraryItem::disk(), (string) $item->file, ReaderTicket::scope($item), 'library', route('library.show', [$item->section->value, $item->slug]), $perMinute);
     }
 
     /**

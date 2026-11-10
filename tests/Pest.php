@@ -20,13 +20,19 @@ use App\Models\User;
 use App\Services\Assistant\FakeAiAssistant;
 use App\Support\AccountSettings;
 use App\Support\ContentCache;
+use App\Support\ReaderFileResponse;
+use App\Support\ReaderTicket;
 use App\Support\RoundQuestions;
+use Illuminate\Cookie\CookieValuePrefix;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
@@ -128,6 +134,50 @@ function pdfContents(string $extra = ''): string
 {
     return "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
         ."3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n".$extra."\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
+}
+
+/**
+ * رمز قارئ لمرة واحدة لعنصر «للقراءة فقط» (ReaderTicket) في جلسة جديدة أو معطاة، كما تصدره صفحة العنصر.
+ *
+ * @return array{session: string, ticket: string, key: string}
+ */
+function readerTicket(Model $item, ?string $session = null): array
+{
+    $session ??= Str::random(40);
+    $store = app('session')->driver();
+    $store->setId($session);
+    $request = Request::create('/');
+    $request->setLaravelSession($store);
+
+    return ['session' => $session, ...ReaderTicket::issue($request, ReaderTicket::scope($item))];
+}
+
+/**
+ * طلب قارئ الصفحة لملف «للقراءة فقط»: كوكي جلسة الرمز، والرمز في الرابط، وترويسة القارئ ما لم تُعط ترويسات غيرها.
+ * لا يحفظ كوكي ولا ترويسة للطلبات التالية في الاختبار.
+ *
+ * @param  array{session: string, ticket: string, key: string}  $ticket
+ * @param  array<string, string>  $headers
+ */
+function readerFetch(string $url, array $ticket, array $headers = [ReaderFileResponse::HEADER => '1'], string $method = 'GET'): TestResponse
+{
+    $name = (string) config('session.cookie');
+    $cookie = encrypt(CookieValuePrefix::create($name, app('encrypter')->getKey()).$ticket['session'], false);
+    $server = collect($headers)->mapWithKeys(fn (string $value, string $header) => ['HTTP_'.strtoupper(str_replace('-', '_', $header)) => $value])->all();
+
+    return test()->call($method, $url.(str_contains($url, '?') ? '&' : '?').'t='.$ticket['ticket'], [], [$name => $cookie], [], $server);
+}
+
+/**
+ * بايتات الملف بعد فك خلطها بمفتاح الرمز (XOR دوري)، كما يفعل القارئ.
+ *
+ * @param  array{session: string, ticket: string, key: string}  $ticket
+ */
+function readerUnmix(string $bytes, array $ticket): string
+{
+    $key = (string) base64_decode($ticket['key'], true);
+
+    return $bytes ^ str_repeat($key, intdiv(strlen($bytes), strlen($key)) + 1);
 }
 
 /**

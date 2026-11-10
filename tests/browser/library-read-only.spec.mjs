@@ -1,6 +1,7 @@
 // قارئ المكتبة «للقراءة فقط — بلا تحميل» (docs/decisions.md — 30 أكتوبر 2026): الصفحة الأولى ترسم في <canvas>،
 // والتقليب ورقم الصفحة والانتقال والتكبير تعمل، ولا زر تنزيل ولا تمرير أفقي على أي عرض.
 // يلزمه كتاب منشور للقراءة فقط معرّفه في READ_ONLY_SLUG (المجموعة التجريبية في README، لا في البذور)، وإلا يُتخطى.
+// ووثيقة حوكمة «للاطلاع فقط» منشورة في GOVERNANCE_VIEW_ONLY_SLUG لاختبارها، اختيارياً.
 // واللقطات في docs/design/screenshots/library-read-only/<SHOT_PREFIX>-<الشاشة>-<العرض>.png (after افتراضياً).
 import { expect, test } from '@playwright/test';
 
@@ -86,6 +87,81 @@ test.describe('library read-only reader', () => {
         await page.locator('[data-pdf-next]').click();
         await expect(page.locator('[data-pdf-page]')).toHaveValue('2');
         await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready');
+    });
+
+    // حماية الملف من برامج التحميل (docs/decisions/2026-11-10-feat-reader-download-protection.md): القارئ يرسم صفحة فعلاً من
+    // بايتات مخلوطة بنوع octet-stream، والرابط نفسه بلا ترويسة القارئ أو برمز مستعمل 404
+    test('draws a page from the mixed file, while the same link fails without the reader header or with a spent ticket', async ({ page }) => {
+        test.skip(prefix === 'before', 'القارئ بعد البناء وحده');
+
+        const filePath = `/library/books/${slug}/file`;
+        const fileResponse = page.waitForResponse((response) => new URL(response.url()).pathname === filePath);
+        await page.goto(`/library/books/${slug}`);
+        const response = await fileResponse;
+
+        expect(response.status()).toBe(200);
+        expect(response.headers()['content-type']).toBe('application/octet-stream');
+        expect(response.headers()['content-disposition']).toBeUndefined();
+        expect(new URL(response.url()).search).toMatch(/^\?t=[0-9a-f]{64}$/);
+        const head = (await response.body()).subarray(0, 4).toString('latin1');
+        expect(head).not.toBe('%PDF');
+
+        const reader = page.locator('[data-pdf-reader]');
+        await expect(reader).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        expect(Number(await reader.getAttribute('data-pages'))).toBeGreaterThan(1);
+        // الرمز والمفتاح لا يبقيان في الصفحة بعد استعمالهما
+        expect(await reader.getAttribute('data-pdf-ticket')).toBeNull();
+        expect(await reader.getAttribute('data-pdf-key')).toBeNull();
+
+        // اللوحة فيها رسم فعلاً (بكسلات داكنة)، لا لوحة فارغة
+        const inked = await reader.locator('canvas').evaluate((canvas) => {
+            const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            let dark = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] < 128 && data[i + 1] < 128 && data[i + 2] < 128) {
+                    dark++;
+                }
+            }
+
+            return dark;
+        });
+        expect(inked).toBeGreaterThan(100);
+
+        // برنامج التحميل يطلب الرابط الملتقط بكوكي الجلسة نفسها: بلا الترويسة، وبها برمز مستعمل، وبلا رمز، 404
+        const captured = response.url();
+        expect((await page.request.get(captured)).status()).toBe(404);
+        expect((await page.request.get(captured, { headers: { 'X-Ejaz-Reader': '1' } })).status()).toBe(404);
+        expect((await page.request.get(filePath, { headers: { 'X-Ejaz-Reader': '1' } })).status()).toBe(404);
+    });
+
+    // رمز منتهٍ في الصفحة: القارئ يطلب رمزاً جديداً بـ POST مرة واحدة، بلا إعادة تحميل الصفحة
+    test('recovers from a stale ticket in the page by asking for a fresh one', async ({ page }) => {
+        test.skip(prefix === 'before', 'القارئ بعد البناء وحده');
+
+        await page.route(`**/library/books/${slug}`, async (route) => {
+            const response = await route.fetch();
+            const html = (await response.text()).replace(/data-pdf-ticket="[0-9a-f]{64}"/, () => `data-pdf-ticket="${'0'.repeat(64)}"`);
+            await route.fulfill({ response, body: html });
+        });
+        const ticketRequest = page.waitForRequest((request) => request.method() === 'POST' && request.url().endsWith(`/library/books/${slug}/reader-ticket`));
+
+        await page.goto(`/library/books/${slug}`);
+        await ticketRequest;
+        await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+    });
+
+    // وثيقة حوكمة «للاطلاع فقط» بالحماية نفسها، إن ضُبط معرّفها في GOVERNANCE_VIEW_ONLY_SLUG
+    test('draws a view-only governance document the same way', async ({ page }) => {
+        const documentSlug = process.env.GOVERNANCE_VIEW_ONLY_SLUG;
+        test.skip(!documentSlug || prefix === 'before', 'GOVERNANCE_VIEW_ONLY_SLUG غير مضبوط');
+
+        const fileResponse = page.waitForResponse((response) => new URL(response.url()).pathname === `/governance/${documentSlug}/file`);
+        await page.goto(`/governance/${documentSlug}`);
+        const response = await fileResponse;
+
+        expect(response.headers()['content-type']).toBe('application/octet-stream');
+        await expect(page.locator('[data-pdf-reader]')).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+        expect((await page.request.get(response.url(), { headers: { 'X-Ejaz-Reader': '1' } })).status()).toBe(404);
     });
 
     // عنوان فيه أنماط الاستبدال ($& و$') يظهر كما هو، لا يُفسَّر (المشرف على #101، ٣). العنوان يُحقن في الصفحة بالاعتراض
