@@ -580,6 +580,32 @@ it('rotates the neutral book images from the repository when the panel has none,
         ->and($hero)->not->toContain('library/person.jpg');
 });
 
+// صفوان (10 نوفمبر 2026): صفحة القسم وصفحة العنصر برأس «مكتبة إعجاز» نفسه (المصحف والحرم من اللوحة)، لا النقش المحايد الفارغ ولا صورة العنصر
+it('shows the library header images on every section and item page, never the neutral pattern or the item cover', function () {
+    Storage::fake('public');
+    Setting::put(HomeContent::KEY, [
+        'page_heroes' => ['library' => 'settings/library-mushaf.jpg'],
+        'hero_slides' => ['library' => 'settings/library-haram.jpg'],
+    ]);
+    $item = LibraryItem::factory()->video()->create(['title' => 'التصعد في السماء', 'thumbnail' => 'library/sheikh.jpg']);
+
+    foreach ([route('library.section', LibrarySection::Videos->value), route('library.show', [$item->section->value, $item->slug])] as $url) {
+        $hero = (string) str((string) $this->get($url)->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+
+        expect($hero)->toContain('data-page-hero-rotator')
+            ->toContain(Storage::disk('public')->url('settings/library-mushaf.jpg'))
+            ->toContain(Storage::disk('public')->url('settings/library-haram.jpg'))
+            ->not->toContain('library/sheikh.jpg')
+            ->not->toContain('images/placeholders/pages/library.svg');
+    }
+
+    // وبلا صور من اللوحة تتبدل الصورتان المحايدتان من المستودع في الصفحتين أيضاً
+    Setting::put(HomeContent::KEY, []);
+    $hero = (string) str((string) $this->get(route('library.show', [$item->section->value, $item->slug]))->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+    expect($hero)->toContain('data-page-hero-rotator')->toContain(asset(LibraryHeroImages::DEFAULTS[0]))
+        ->not->toContain('images/placeholders/pages/library.svg');
+});
+
 it('always shows the satisfaction card with no open survey: eight services and a link that opens', function () {
     $html = (string) $this->get('/services')->assertOk()->getContent();
     $grid = (string) str($html)->after('data-service-grid')->before('</ul>');
