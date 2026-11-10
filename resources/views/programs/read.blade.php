@@ -12,7 +12,7 @@
     <section class="py-8 sm:py-12">
         <div class="container-page">
             <p class="text-sm text-muted">{{ __('programs.library.reader_hint') }}</p>
-            @include('library.reader', ['url' => route('library.file', $route), 'title' => $item->title, 'progress' => route('library.progress', $route)])
+            @include('library.reader', ['url' => route('library.file', $route), 'ticketUrl' => $item->isReadOnly() ? route('library.reader-ticket', $route) : null, 'title' => $item->title, 'progress' => route('library.progress', $route)])
             <div class="mt-6">
                 <x-button variant="outline" :href="route('programs.show', $program->slug)">{{ __('programs.library.back_to_program') }}</x-button>
             </div>

@@ -8,6 +8,7 @@ use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ProgramType;
 use App\Support\LibraryProgramProgress;
+use App\Support\ReaderTicket;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -118,6 +119,9 @@ class ProgramController extends Controller
             ->where('status', RegistrationStatus::Confirmed->value)->exists();
         abort_unless($registered && LibraryProgramProgress::readsInProgram($request->user(), $item), 403);
 
-        return response()->view('programs.read', ['program' => $program, 'item' => $item])->header('Cache-Control', 'private, no-store');
+        // والكتاب «للقراءة فقط» برمز القارئ لهذا الطلب (ReaderTicket)، والقابل للتنزيل من مساره كما كان
+        $html = ReaderTicket::inject(view('programs.read', ['program' => $program, 'item' => $item])->render(), $request, $item->isReadOnly() ? ReaderTicket::scope($item) : null);
+
+        return response($html)->header('Cache-Control', 'private, no-store');
     }
 }

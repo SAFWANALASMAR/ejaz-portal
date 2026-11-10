@@ -2,8 +2,11 @@
     قارئ كتاب «للقراءة فقط — بلا تحميل» (resources/js/pdf-reader.js): يرسم الصفحة في <canvas> بـ pdf.js، بلا شريط
     عارض المتصفح ولا زري التنزيل والطباعة. التقليب بالزرين وبالسحب على الجوال وبالأسهم، ورقم الصفحة والانتقال إليها،
     والتكبير والتصغير. والقائمة السياقية ممنوعة عليه، ولا يُطبع. يصعّب الحفظ ولا يمنعه منعاً تاماً (docs/decisions.md).
-    $url مسار الملف بعد فحص النشر، و$title عنوان الكتاب. و$texts بادئة نصوص بديلة (وثائق الحوكمة «للاطلاع فقط» — البند ٢٢)،
-    وما ليس فيها من نصوص المكتبة. و$progress (اختياري) مسار بلاغات «قراءاتي» (library-progress.js).
+    $url مسار الملف بعد فحص النشر، و$title عنوان الكتاب. و$ticketUrl (للملف المحمي وحده) مسار رمز جديد للقارئ، والرمز لمرة
+    واحدة ومفتاح فك الخلط يحلّان محل العلامة data-pdf-ticket-slot (ReaderTicket::SLOT، بلا طباعة خام) لكل طلب، لأن الصفحة
+    تُخزَّن نصاً واحداً للجميع
+    (docs/decisions/2026-11-10-feat-reader-download-protection.md). و$texts بادئة نصوص بديلة (وثائق الحوكمة «للاطلاع فقط»
+    — البند ٢٢)، وما ليس فيها من نصوص المكتبة. و$progress (اختياري) مسار بلاغات «قراءاتي» (library-progress.js).
 --}}
 @php
     $prefix = $texts ?? null;
@@ -12,7 +15,7 @@
     $control = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40';
 @endphp
 
-<div data-pdf-reader="{{ $url }}" @isset($progress) data-progress="{{ $progress }}" @endisset data-state="loading" data-error="{{ $text('error') }}" data-loading="{{ $text('loading') }}"
+<div data-pdf-reader="{{ $url }}" @isset($ticketUrl) data-pdf-ticket-url="{{ $ticketUrl }}" data-pdf-ticket-slot @endisset @isset($progress) data-progress="{{ $progress }}" @endisset data-state="loading" data-error="{{ $text('error') }}" data-loading="{{ $text('loading') }}"
     data-page-label="{{ $text('canvas') }}" data-title="{{ $title }}"
     role="region" aria-label="{{ $text('label', ['title' => $title]) }}"
     class="concept-panel mt-8 overflow-hidden select-none print:hidden">

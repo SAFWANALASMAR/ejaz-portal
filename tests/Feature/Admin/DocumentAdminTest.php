@@ -62,7 +62,8 @@ it('creates a document with a real PDF in the private disk, logs it and publishe
         ->and($document->file_size)->toBeGreaterThan(0)
         ->and(Activity::whereMorphedTo('subject', $document)->where('event', 'created')->exists())->toBeTrue();
 
-    $this->get('/governance/privacy-policy/file')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    // للاطلاع فقط افتراضياً، فلقارئ الصفحة برمزه (ReaderTicket)
+    readerFetch('/governance/privacy-policy/file', readerTicket($document))->assertOk()->assertHeader('Content-Type', 'application/octet-stream');
 });
 
 it('refuses a file that is not a real PDF or that carries active content', function (Closure $file) {

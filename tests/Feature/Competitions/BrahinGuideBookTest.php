@@ -144,13 +144,13 @@ it('lets a whole class behind one school address open the guide book during the 
     expect(SchoolNetworkLimits::registrationOpen())->toBeTrue();
 
     foreach (range(1, 30) as $i) {
-        $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+        readerFetch('/library/books/book/file', readerTicket($this->book))->assertOk();
     }
 
     foreach (range(1, ReaderFileResponse::PER_MINUTE) as $i) {
-        $this->get('/library/books/other-book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+        readerFetch('/library/books/other-book/file', readerTicket($other))->assertOk();
     }
-    $this->get('/library/books/other-book/file', ['Sec-Fetch-Dest' => 'empty'])->assertStatus(429);
+    readerFetch('/library/books/other-book/file', readerTicket($other))->assertStatus(429);
 });
 
 it('keeps the normal reader limit on the guide book outside the competition windows', function () {
@@ -165,9 +165,9 @@ it('keeps the normal reader limit on the guide book outside the competition wind
     expect(SchoolNetworkLimits::registrationOpen())->toBeFalse()->and(SchoolNetworkLimits::examWindow())->toBeFalse();
 
     foreach (range(1, ReaderFileResponse::PER_MINUTE) as $i) {
-        $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+        readerFetch('/library/books/book/file', readerTicket($this->book))->assertOk();
     }
-    $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertStatus(429);
+    readerFetch('/library/books/book/file', readerTicket($this->book))->assertStatus(429);
 });
 
 // مراجعة #218، م٢: الكتاب يُربط دليلاً بعد فتحه، فيتسع حده فوراً لا بعد دقيقة
@@ -178,10 +178,10 @@ it('widens the reader limit right after the book is chosen as the guide, even if
     $this->competition->forceFill(['opens_at' => now()->subDay(), 'closes_at' => now()->addMonth()])->save();
     SchoolNetworkLimits::forget();
 
-    $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+    readerFetch('/library/books/book/file', readerTicket($this->book))->assertOk();
     saveGuideBook($this->director, $this->competition->fresh(), $this->book->id);
 
     foreach (range(1, 30) as $i) {
-        $this->get('/library/books/book/file', ['Sec-Fetch-Dest' => 'empty'])->assertOk();
+        readerFetch('/library/books/book/file', readerTicket($this->book))->assertOk();
     }
 });
