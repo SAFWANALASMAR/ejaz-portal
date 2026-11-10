@@ -16,7 +16,7 @@
 
 @include('home.partials.hero', ['hero' => $hero, 'slides' => $slides])
 
-@include('home.partials.identity', ['identity' => $identity, 'initiatives' => $top_initiatives, 'content' => $content, 'band' => $next()])
+@include('home.partials.identity', ['identity' => $identity, 'texts' => $identity_texts, 'initiatives' => $top_initiatives, 'content' => $content, 'band' => $next()])
 
 @if ($shortcuts !== [])
     @include('home.partials.shortcuts', ['shortcuts' => $shortcuts, 'content' => $content, 'band' => $next()])
