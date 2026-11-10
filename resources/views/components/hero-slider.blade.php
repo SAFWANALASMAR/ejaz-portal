@@ -54,24 +54,24 @@
                         @endif
                         @if ($index === 0)
                             <h1 class="flex flex-col gap-1.5">
-                                <span class="rise-1 text-[2.4rem] leading-[1.08] font-black sm:text-[3.5rem]">{{ $slide['title'] }}</span>
+                                <span class="rise-1 text-[2rem] leading-[1.08] font-black sm:text-[3.5rem]">{{ $slide['title'] }}</span>
                                 @if (filled($slide['subtitle'] ?? null))
-                                    <span data-highlight class="rise-2 text-[1.5rem] font-extrabold text-[#DCEBF8] sm:text-[2.25rem]">{{ $slide['subtitle'] }}</span>
+                                    <span data-highlight class="rise-2 text-[1.125rem] font-extrabold text-[#DCEBF8] sm:text-[2.25rem]">{{ $slide['subtitle'] }}</span>
                                 @endif
                             </h1>
                         @else
                             {{-- عنوان شريحة رئيس المجلس أصغر وصفته سطر واحد على الحاسوب (البند ٩ — hero-light-title في concept.css) --}}
                             <h2 class="flex flex-col gap-1.5">
-                                <span class="hero-light-title text-[2rem] leading-[1.12] font-black sm:text-[3rem]">{{ $slide['title'] }}</span>
+                                <span class="hero-light-title text-[1.75rem] leading-[1.12] font-black sm:text-[3rem]">{{ $slide['title'] }}</span>
                                 @if (filled($slide['subtitle'] ?? null))
-                                    <span data-highlight class="hero-light-subtitle text-[1.3rem] font-extrabold text-[#DCEBF8] sm:text-[1.875rem]">{{ $slide['subtitle'] }}</span>
+                                    <span data-highlight class="hero-light-subtitle text-[1.125rem] font-extrabold text-[#DCEBF8] sm:text-[1.875rem]">{{ $slide['subtitle'] }}</span>
                                 @endif
                             </h2>
                         @endif
                         <span class="title-bar" aria-hidden="true"></span>
                         {{-- اقتباس خادم الحرمين كاملاً بلا قص (البند ٧)، وما سواه في الشرائح التالية بثلاثة أسطر --}}
                         @if (filled($slide['text'] ?? null))
-                            <p data-hero-text @class(['hero-light-text max-w-[34rem] text-lg leading-[1.75] text-white sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0 && $slide['key'] !== 'king'])>{{ $slide['text'] }}</p>
+                            <p data-hero-text @class(['hero-light-text max-w-[34rem] text-base leading-[1.75] text-white sm:text-[1.2rem]', 'rise-3' => $index === 0, 'line-clamp-3 max-sm:line-clamp-2' => $index > 0 && $slide['key'] !== 'king'])>{{ $slide['text'] }}</p>
                         @endif
                         {{-- الزر الرئيسي داكن والثانوي بإطار (البند ٢٣، وتقييم اللقطات، البند ٦) --}}
                         @if (($slide['buttons'] ?? []) !== [])
@@ -92,8 +92,8 @@
         @endforeach
     </div>
 
-    {{-- يحجز ارتفاع البطل، والشرائح فوقه بموضع مطلق. وعلى الجوال يكفي أطول شريحة بأزرارها فوق شريط الشرائح (تقييم اللقطات، البند ٨) --}}
-    <div class="min-h-[39rem] sm:min-h-[37rem] md:min-h-[34rem] lg:h-[32rem] lg:min-h-0" aria-hidden="true"></div>
+    {{-- يحجز ارتفاع البطل من 768 والشرائح فوقه بموضع مطلق. وعلى الجوال لا يحجز شيئاً: الشرائح في خانة شبكة واحدة فارتفاع البطل ارتفاع أطولها (concept.css) --}}
+    <div class="md:min-h-[34rem] lg:h-[32rem] lg:min-h-0" aria-hidden="true"></div>
 
     @if ($count > 1)
         <button type="button" data-carousel-prev class="concept-arrow start-[22px]" aria-label="{{ __('ui.slider.previous') }}">
