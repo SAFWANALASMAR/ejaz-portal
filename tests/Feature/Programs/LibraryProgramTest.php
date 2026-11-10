@@ -187,7 +187,9 @@ it('opens a reading program book in the page reader and counts its pages even wh
     $program = libraryProgram(LibraryProgramKind::Reading, $book);
     $registration = confirmedIn($program, $this->member);
 
-    $this->actingAs($this->member)->get(route('programs.read', $program->slug))->assertOk()->assertSee('data-pdf-reader', false);
+    // والقابل للتنزيل من مساره كما كان، بلا رمز قارئ (ReaderTicket)
+    $this->actingAs($this->member)->get(route('programs.read', $program->slug))->assertOk()->assertSee('data-pdf-reader', false)
+        ->assertDontSee('data-pdf-ticket', false);
     $this->postJson(route('library.progress', [$book->section->value, $book->slug]), ['pages' => [1], 'page' => 1])->assertOk();
 
     // والصفحة في «قراءاتي» وفي البرنامج معاً
@@ -201,6 +203,26 @@ it('opens a reading program book in the page reader and counts its pages even wh
     $this->actingAs($stranger)->get(route('programs.read', $program->slug))->assertForbidden();
     $this->postJson(route('library.progress', [$book->section->value, $book->slug]), ['pages' => [1], 'page' => 1])->assertUnprocessable();
     expect(LibraryProgress::query()->where('user_id', $stranger->id)->exists())->toBeFalse();
+});
+
+it('gives a read-only program book a one-time reader ticket for this participant session, and the mixed file unmixes to it', function () {
+    Storage::fake('local');
+    $book = LibraryItem::factory()->create(['page_count' => 3, 'is_downloadable' => false]);
+    Storage::disk(LibraryItem::disk())->put((string) $book->file, pdfContents());
+    $program = libraryProgram(LibraryProgramKind::Reading, $book);
+    confirmedIn($program, $this->member);
+
+    $page = $this->actingAs($this->member)->get(route('programs.read', $program->slug))->assertOk()
+        ->assertHeader('Cache-Control', 'no-store, private')
+        ->assertSee('data-pdf-ticket-url="'.route('library.reader-ticket', [$book->section->value, $book->slug]).'"', false);
+    preg_match('/data-pdf-ticket="([0-9a-f]{64})" data-pdf-key="([A-Za-z0-9+\/=]+)"/', (string) $page->getContent(), $match);
+
+    expect($match)->toHaveCount(3);
+
+    $ticket = ['session' => (string) $page->getCookie((string) config('session.cookie'))?->getValue(), 'ticket' => $match[1], 'key' => $match[2]];
+    $file = readerFetch(route('library.file', [$book->section->value, $book->slug], false), $ticket)->assertOk()->assertHeader('Content-Type', 'application/octet-stream');
+
+    expect(readerUnmix($file->streamedContent(), $ticket))->toBe(pdfContents());
 });
 
 it('tells a participant who stopped saving their reading that the program needs it', function () {

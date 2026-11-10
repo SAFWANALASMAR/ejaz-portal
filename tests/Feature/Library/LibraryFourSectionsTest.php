@@ -175,7 +175,7 @@ it('shows research covers in the account library strip too', function () {
 });
 
 it('treats a read-only study like a read-only book: the page reader and no download', function () {
-    fourSectionsItem(['slug' => 'study', 'title' => 'دراسة للقراءة', 'section' => LibrarySection::Research, 'is_downloadable' => false]);
+    $study = fourSectionsItem(['slug' => 'study', 'title' => 'دراسة للقراءة', 'section' => LibrarySection::Research, 'is_downloadable' => false]);
 
     $this->get('/library/research/study')->assertOk()
         ->assertSee('data-pdf-reader="'.route('library.file', ['research', 'study']).'"', false)
@@ -184,7 +184,8 @@ it('treats a read-only study like a read-only book: the page reader and no downl
         ->assertDontSee('<iframe', false);
 
     $this->get('/library/research/study/download')->assertNotFound();
-    $this->get('/library/research/study/file')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    readerFetch('/library/research/study/file', readerTicket($study))->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    $this->get('/library/research/study/file')->assertNotFound();
     $this->get('/library/research/study/file', ['Sec-Fetch-Dest' => 'document'])->assertRedirect(route('library.show', ['research', 'study']));
 });
 

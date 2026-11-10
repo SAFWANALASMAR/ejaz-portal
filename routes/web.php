@@ -81,6 +81,8 @@ Route::get('/governance/{slug}', [GovernanceController::class, 'show'])->where('
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/governance/{slug}/file', [GovernanceController::class, 'file'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.file');
     Route::get('/governance/{slug}/download', [GovernanceController::class, 'download'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.download');
+    // رمز جديد لقارئ الوثيقة «للاطلاع فقط» بلا إعادة تحميل الصفحة (ReaderTicket)
+    Route::post('/governance/{slug}/reader-ticket', [GovernanceController::class, 'readerTicket'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('governance.reader-ticket');
 });
 Route::get('/initiatives', [InitiativeController::class, 'index'])->name('initiatives.index');
 Route::get('/initiatives/{slug}', [InitiativeController::class, 'show'])
@@ -96,6 +98,8 @@ Route::where(['section' => implode('|', LibrarySection::values()), 'slug' => '[a
     Route::middleware('throttle:120,1')->group(function () {
         Route::get('/library/{section}/{slug}/file', [LibraryController::class, 'file'])->name('library.file');
         Route::get('/library/{section}/{slug}/download', [LibraryController::class, 'download'])->name('library.download');
+        // رمز جديد لقارئ الكتاب «للقراءة فقط» بلا إعادة تحميل الصفحة (ReaderTicket)
+        Route::post('/library/{section}/{slug}/reader-ticket', [LibraryController::class, 'readerTicket'])->name('library.reader-ticket');
     });
     // «قراءاتي»: بلاغ تقدّم القارئ والمشغّل لمسجّل الدخول، بحد لكل حساب (docs/decisions/2026-11-01-my-reading.md)
     Route::post('/library/{section}/{slug}/progress', LibraryProgressController::class)
