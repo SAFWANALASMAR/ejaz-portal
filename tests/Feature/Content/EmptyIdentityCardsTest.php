@@ -175,8 +175,9 @@ it('drops the strategic direction section from the about page when it has no vis
         ->assertDontSee('نص التوجه');
 })->with([
     'no section' => [[]],
-    'a marker as its text' => [[['type' => 'text', 'data' => ['heading' => 'التوجه الاستراتيجي', 'body' => '<p>【ناقص: نص التوجه】</p>']]]],
+    // والعلامة 【ناقص】 لا تصل إلى صفحة منشورة أصلاً (Publishable يرفض نشرها)، فحالتها حالة «بلا مقطع» أعلاه
     'an empty text' => [[['type' => 'text', 'data' => ['heading' => 'التوجه الاستراتيجي', 'body' => '<p> </p>']]]],
+    'a non-breaking space only' => [[['type' => 'text', 'data' => ['heading' => 'التوجه الاستراتيجي', 'body' => '<p>&nbsp;</p>']]]],
 ]);
 
 it('shows the strategic direction section with its approved text, and its marker to whoever sees the markers', function () {
