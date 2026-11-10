@@ -12,7 +12,7 @@
     - الدرجات داكنة ثم فاتحة بالتعاقب، مثبتة بـ data-tone. والنصوص من «محتوى الرئيسية» والقيم من قسمها، والعناوين من «عناوين أقسام الرئيسية».
 
     - البطاقة التي لا نص ظاهراً فيها لا تُعرض (docs/decisions/2026-11-10-fix-empty-identity-cards.md): «رؤيتنا ورسالتنا» و«أهدافنا»
-      و«مبادئنا» بقاعدة MissingText نفسها، فعلامة 【ناقص】 تظهر لمن يرى العلامات وتختفي البطاقة كلها عن غيره بدل أن تبقى بعنوانها
+      بقاعدة MissingText نفسها، و«مبادئنا» باقية بسطر «يُضاف قريباً» بقرار صفوان، فعلامة 【ناقص】 تظهر لمن يرى العلامات وتختفي البطاقة كلها عن غيره بدل أن تبقى بعنوانها
       وحده. والدرجات تتعاقب بترتيب الظاهرة، وعدد أعمدة الحاسوب بعددها (--home-cards-count)، ولا صف متحرك بلا بطاقة فيه.
 
     $identity: list<array{kind, title, text, icon}>، و$texts: HomeShowcase::identityTexts()، و$initiatives: Collection<Initiative>،
@@ -30,7 +30,8 @@
     // النص الظاهر لكل بطاقة (null: لا بطاقة)، والبطاقات الظاهرة بترتيبها
     $visionMissing = $statements === [] ? \App\Support\MissingText::shown(__('home.cards.vision_missing')) : null;
     $goals = \App\Support\MissingText::shown($texts['goals']);
-    $principles = \App\Support\MissingText::shown($texts['principles']);
+    // «مبادئنا» تبقى دائماً (قرار صفوان، 10 نوفمبر 2026): بلا نص ظاهر سطر «يُضاف قريباً» حتى يصل النص المعتمد، والعلامة لمن يراها
+    $principles = \App\Support\MissingText::shown($texts['principles']) ?? __('home.cards.principles_soon');
     $shown = array_keys(array_filter([
         'vision' => $statements !== [] || $visionMissing !== null,
         'goals' => $goals !== null,

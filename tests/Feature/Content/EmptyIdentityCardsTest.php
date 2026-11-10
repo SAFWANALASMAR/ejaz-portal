@@ -28,22 +28,22 @@ function identityCards(string $page): array
     return ['cards' => $matches[2], 'tones' => $matches[1], 'html' => $html];
 }
 
-it('drops the vision, goals and principles cards instead of leaving them blank when the markers are hidden', function () {
+it('drops the vision and goals cards instead of leaving them blank, and keeps principles with a coming-soon line', function () {
     config(['app.hide_missing_markers' => true]);
     Initiative::factory()->create(['name' => 'مبادرة ظاهرة', 'is_published' => true]);
 
     $page = $this->get('/')->assertOk()->getContent();
     ['cards' => $cards, 'tones' => $tones, 'html' => $html] = identityCards($page);
 
-    expect($cards)->toBe(['values', 'initiatives'])
+    expect($cards)->toBe(['values', 'principles', 'initiatives'])
         // الدرجات تتعاقب بترتيب الظاهرة، والأعمدة على الحاسوب بعددها
-        ->and($tones)->toBe(['dark', 'light'])
-        ->and($html)->toContain('--home-cards-count: 2')
+        ->and($tones)->toBe(['dark', 'light', 'dark'])
+        ->and($html)->toContain('--home-cards-count: 3')
         ->and($html)->not->toContain('【')
+        ->and($html)->toContain(__('home.cards.principles_soon'))
         // ولا في نسخ الشريط المتحرك
         ->and($html)->not->toContain('data-identity-card="vision"')
-        ->and($html)->not->toContain('data-identity-card="goals"')
-        ->and($html)->not->toContain('data-identity-card="principles"');
+        ->and($html)->not->toContain('data-identity-card="goals"');
 });
 
 it('takes the goals and principles from the published about page, its goals cards joined', function () {
@@ -113,7 +113,7 @@ it('keeps the marker texts in their cards for whoever sees the markers', functio
     expect($cards)->toBe(['vision', 'goals', 'values', 'principles']);
 });
 
-it('renders no moving row when only the vision card is left, and no section when nothing is', function () {
+it('keeps the principles card in the moving row when it is the only one there', function () {
     config(['app.hide_missing_markers' => true]);
     $data = [
         'texts' => ['goals' => HomeContent::defaultText('identity', 'goals'), 'principles' => ''],
@@ -126,11 +126,10 @@ it('renders no moving row when only the vision card is left, and no section when
 
     expect($html)->toContain('data-identity-card="vision"')
         ->and($html)->toContain('رؤية معتمدة')
-        ->and($html)->not->toContain('home-cards-track')
-        ->and($html)->not->toContain('data-marquee')
-        ->and($html)->toContain('--home-cards-count: 1');
-
-    expect(trim(view('home.partials.identity', [...$data, 'identity' => []])->render()))->not->toContain('home-identity');
+        ->and($html)->toContain('home-cards-track')
+        ->and($html)->toContain('data-identity-card="principles"')
+        ->and($html)->toContain(__('home.cards.principles_soon'))
+        ->and($html)->toContain('--home-cards-count: 2');
 });
 
 it('repeats a short moving row so it fills the phone width without a gap', function () {
