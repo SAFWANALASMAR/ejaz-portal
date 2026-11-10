@@ -229,7 +229,7 @@ final class HomeShowcase
      */
     public static function aboutBlocks(): array
     {
-        return ContentBlocks::visible(Page::query()->published()->where('slug', Page::ABOUT)->first()?->blocks ?? []);
+        return ContentBlocks::visible(Page::query()->published()->where('slug', Page::ABOUT)->first()->blocks ?? []);
     }
 
     /**
