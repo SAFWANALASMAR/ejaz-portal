@@ -598,6 +598,12 @@ it('shows the library header images on every section and item page, never the ne
             ->not->toContain('library/sheikh.jpg')
             ->not->toContain('images/placeholders/pages/library.svg');
     }
+
+    // وبلا صور من اللوحة تتبدل الصورتان المحايدتان من المستودع في الصفحتين أيضاً
+    Setting::put(HomeContent::KEY, []);
+    $hero = (string) str((string) $this->get(route('library.show', [$item->section->value, $item->slug]))->assertOk()->getContent())->after('data-page-hero ')->before('</section>');
+    expect($hero)->toContain('data-page-hero-rotator')->toContain(asset(LibraryHeroImages::DEFAULTS[0]))
+        ->not->toContain('images/placeholders/pages/library.svg');
 });
 
 it('always shows the satisfaction card with no open survey: eight services and a link that opens', function () {

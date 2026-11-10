@@ -10,7 +10,7 @@
 @endphp
 
 {{-- صور رأس «مكتبة إعجاز» في صفحة كل قسم (صفوان، 10 نوفمبر 2026 — docs/decisions/2026-11-10-library-item-hero-images.md) --}}
-<x-page-hero :title="$section->getLabel()" :images="once(fn () => \App\Support\LibraryHeroImages::urls())" />
+<x-page-hero :title="$section->getLabel()" :images="\App\Support\LibraryHeroImages::urls()" />
 
 <section class="py-10 sm:py-14">
     <div class="container-page">
