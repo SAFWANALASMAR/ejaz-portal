@@ -2404,7 +2404,8 @@ html[data-motion-off] .home-card-pick-icon {
 @media (min-width: 64rem) {
     .home-cards {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        /* الأعمدة بعدد البطاقات الظاهرة (identity.blade.php)، فلا تبقى خانة فارغة في آخر الصف إن اختفت بطاقة بلا نص */
+        grid-template-columns: repeat(var(--home-cards-count, 5), minmax(0, 1fr));
         gap: 0.875rem;
     }
 

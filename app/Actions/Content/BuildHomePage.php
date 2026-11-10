@@ -89,6 +89,7 @@ class BuildHomePage
      *     hero: array{title: string, text: string, image: string, alt: string, button: array{label: string, url: string}|null},
      *     slides: list<array{key: string, src: string, srcset: ?string, alt: string, title: string, subtitle: ?string, text: ?string, buttons: list<array{label: string, url: string, secondary: bool}>, badges: list<string>, missing: bool}>,
      *     identity: list<array{kind: string, title: string, text: string, icon: string}>,
+     *     identity_texts: array{goals: string, principles: string},
      *     prize: array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null,
      *     top_initiatives: Collection<int, Initiative>,
      *     strip_videos: Collection<int, LibraryItem>,
@@ -116,13 +117,17 @@ class BuildHomePage
         $hero = self::hero($home);
         // المخزّن وحده (ejaz:refresh-stats)، فلا استعلام للأرقام عند بناء الرئيسية
         $portal = HomeContent::showsPortalStats() ? HomePortalStats::cached() : null;
+        // مقاطع «عن الجمعية» مرة واحدة لشرائح الهوية ونصي البطاقتين معاً (سقف الاستعلامات — QueryBudgetTest)
+        $aboutBlocks = HomeShowcase::aboutBlocks();
 
         return [
             'content' => $content,
             'hero' => $hero,
             // شرائح البطل بترتيبها المعتمد (أمر التصور النهائي، النسخة 63)، وشرائح الهوية، والجوائز (HomeShowcase)
             'slides' => HomeShowcase::slides($home, $content, $hero),
-            'identity' => HomeShowcase::identity($content),
+            'identity' => HomeShowcase::identity($content, $aboutBlocks),
+            // نصا «أهدافنا» و«مبادئنا»، وإلا من مقطعيهما في «عن الجمعية» المنشورة
+            'identity_texts' => HomeShowcase::identityTexts($content, $aboutBlocks),
             'prize' => HomeShowcase::prize(),
             // ملاحظات المدير (31 أكتوبر 01:28): «مبادراتنا» بطاقة تحت البطل، وشريطا المرئيات وأغلفة الكتب بدل «المستجدات»
             'top_initiatives' => Initiative::query()->published()->limit(self::STRIP)->get(['id', 'slug', 'name', 'summary']),

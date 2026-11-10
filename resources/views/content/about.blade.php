@@ -16,6 +16,9 @@
     $who = collect($blocks)->first(fn (array $block): bool => $headingOf($block) === __('content.about.who_heading'));
     // «التوجه الاستراتيجي» أول الصفحة (البند ٢٨): نصه من مقطع بعنوانه، وإلا علامة «【ناقص】»
     $strategy = collect($blocks)->first(fn (array $block): bool => $headingOf($block) === __('content.about.strategy_heading'));
+    // ونصه الظاهر بقاعدة MissingText: بلا نص ظاهر (لا مقطع، أو نصه علامة 【ناقص】 مخفية) لا يُعرض المقطع، بدل شريط داكن بعنوانه
+    // وحده، إلا لمن يرى العلامات فيرى العلامة (docs/decisions/2026-11-10-fix-empty-identity-cards.md)
+    $strategyText = $strategy !== null ? \App\Support\MissingText::shown(trim(str_replace("\u{00A0}", ' ', html_entity_decode(strip_tags(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : ''))))) : null;
     $quotes = collect([__('ui.identity.vision'), __('ui.identity.mission')])
         ->mapWithKeys(fn (string $heading): array => [$heading => collect($blocks)->first(fn (array $block): bool => $headingOf($block) === $heading)])
         ->filter();
@@ -27,16 +30,18 @@
 {{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨، وقرار 4 نوفمبر 2026 — AboutMenuAnchorsSeeder::ITEMS): about-strategy ثم about-who
      ثم about-vision وabout-mission ثم about-goals ثم about-values ثم about-rationale ثم about-initiatives، بإزاحة الرأس الثابت
      (scroll-padding-top في concept.css وحده، لا scroll-mt على المقطع فتتضاعف)، ومع التنقّل السريع (app.js) --}}
+@if ($strategyText !== null || \App\Support\MissingText::visible())
 <section id="about-strategy" class="mx-auto max-w-[82.5rem] px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
     <div class="tone-card about-who flex flex-col gap-3" data-tone="dark">
         <h2 id="about-strategy-title" class="text-[1.75rem] font-black">{{ __('content.about.strategy_heading') }}</h2>
-        @if ($strategy !== null)
+        @if ($strategyText !== null)
             <div class="prose-ar text-[17px] leading-[1.9]">{{ \App\Support\RichText::toHtml(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : null) }}</div>
         @else
             <x-missing :what="__('content.about.strategy_missing')" class="self-start" />
         @endif
     </div>
 </section>
+@endif
 
 @if ($who !== null || $quotes->isNotEmpty())
     <section class="mx-auto max-w-[82.5rem] px-4 pt-7 pb-8 sm:px-7" aria-label="{{ __('content.about.intro_label') }}" data-about-intro>

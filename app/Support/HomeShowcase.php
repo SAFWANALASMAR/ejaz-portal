@@ -103,9 +103,10 @@ final class HomeShowcase
      * من «محتوى الرئيسية»، وإلا من مقطعيهما في «عن الجمعية» المنشورة (نصها المعتمد).
      *
      * @param  array<string, mixed>  $content  HomeContent::resolved()
+     * @param  list<array{type: string, data: array<string, mixed>}>|null  $aboutBlocks  مقاطع «عن الجمعية» إن قُرئت مرة للصفحة كلها (BuildHomePage)
      * @return list<array{kind: string, title: string, text: string, icon: string}>
      */
-    public static function identity(array $content): array
+    public static function identity(array $content, ?array $aboutBlocks = null): array
     {
         $slides = [];
         $about = null;
@@ -114,7 +115,7 @@ final class HomeShowcase
             $text = trim((string) ($content['identity'][$key] ?? ''));
 
             if ($text === '') {
-                $about ??= self::aboutSections();
+                $about ??= self::aboutSections($aboutBlocks ?? self::aboutBlocks());
                 $text = $about[(string) __('ui.identity.'.$key)] ?? '';
             }
 
@@ -135,18 +136,47 @@ final class HomeShowcase
     }
 
     /**
+     * نصا بطاقتي «أهدافنا» و«مبادئنا» تحت البطل: من «محتوى الرئيسية» إن أُدخلا، وإلا (فارغين أو على أصلهما 【ناقص】) من مقطعهما
+     * في «عن الجمعية» المنشورة كالرؤية والرسالة. والمقطع يُعرف بمرساه (ContentBlocks::anchor — «الأهداف» و«أهداف الجمعية» مرساهما
+     * about-goals)، نصاً كان أو بطاقات تُجمع عناوينها. وبلا مقطع يبقى الأصل، فيظهر 【ناقص】 لمن يرى العلامات ويُخفي القالب البطاقة لغيره
+     * (docs/decisions/2026-11-10-fix-empty-identity-cards.md).
+     *
+     * @param  array<string, mixed>  $content  HomeContent::resolved()
+     * @param  list<array{type: string, data: array<string, mixed>}>|null  $aboutBlocks  مقاطع «عن الجمعية» إن قُرئت مرة للصفحة كلها (BuildHomePage)
+     * @return array{goals: string, principles: string}
+     */
+    public static function identityTexts(array $content, ?array $aboutBlocks = null): array
+    {
+        $texts = ['goals' => '', 'principles' => ''];
+        $about = null;
+
+        foreach (array_keys($texts) as $key) {
+            $text = trim((string) ($content['identity'][$key] ?? ''));
+
+            if ($text === '' || $text === HomeContent::defaultText('identity', $key)) {
+                $about ??= self::aboutAnchored($aboutBlocks ?? self::aboutBlocks());
+                $text = ($about['about-'.$key] ?? '') !== '' ? $about['about-'.$key] : $text;
+            }
+
+            $texts[$key] = $text;
+        }
+
+        return $texts;
+    }
+
+    /**
      * مقاطع النص في «عن الجمعية» المنشورة: العنوان ← النص بلا وسوم.
      *
+     * @param  list<array{type: string, data: array<string, mixed>}>  $blocks
      * @return array<string, string>
      */
-    private static function aboutSections(): array
+    private static function aboutSections(array $blocks): array
     {
-        $page = Page::query()->published()->where('slug', Page::ABOUT)->first();
         $sections = [];
 
-        foreach (ContentBlocks::visible($page->blocks ?? []) as $block) {
+        foreach ($blocks as $block) {
             if ($block['type'] === 'text' && is_string($block['data']['heading'] ?? null)) {
-                $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace('</p>', "</p>\n", (string) ($block['data']['body'] ?? ''))))) ?? '');
+                $text = self::plain($block['data']['body'] ?? '');
 
                 if ($text !== '') {
                     $sections[trim($block['data']['heading'])] = $text;
@@ -155,6 +185,59 @@ final class HomeShowcase
         }
 
         return $sections;
+    }
+
+    /**
+     * مقاطع «عن الجمعية» المنشورة بمراسيها: المرسى ← نص المقطع، أو عناوين بطاقاته مجموعة. وأول مقطع لكل مرسى وحده، كما في الصفحة.
+     *
+     * @param  list<array{type: string, data: array<string, mixed>}>  $blocks
+     * @return array<string, string>
+     */
+    private static function aboutAnchored(array $blocks): array
+    {
+        $sections = [];
+
+        foreach ($blocks as $block) {
+            $anchor = ContentBlocks::anchor($block['data']['heading'] ?? null);
+
+            if ($anchor === null || isset($sections[$anchor])) {
+                continue;
+            }
+
+            $text = match ($block['type']) {
+                'text' => self::plain($block['data']['body'] ?? ''),
+                'cards' => implode((string) __('home.cards.separator'), array_filter(array_map(
+                    // بلا النقطة في آخر العنوان، فلا تجتمع مع الفاصل
+                    fn (mixed $item): string => is_array($item) ? rtrim(self::plain($item['title'] ?? ''), ' .') : '',
+                    (array) ($block['data']['items'] ?? []),
+                ), fn (string $title): bool => $title !== '')),
+                default => '',
+            };
+
+            if ($text !== '') {
+                $sections[$anchor] = $text;
+            }
+        }
+
+        return $sections;
+    }
+
+    /**
+     * مقاطع «عن الجمعية» الظاهرة إن نُشرت، وإلا لا شيء.
+     *
+     * @return list<array{type: string, data: array<string, mixed>}>
+     */
+    public static function aboutBlocks(): array
+    {
+        return ContentBlocks::visible(Page::query()->published()->where('slug', Page::ABOUT)->first()->blocks ?? []);
+    }
+
+    /**
+     * النص بلا وسوم ولا مسافات زائدة.
+     */
+    private static function plain(mixed $html): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace('</p>', "</p>\n", is_string($html) ? $html : '')))) ?? '');
     }
 
     /**
