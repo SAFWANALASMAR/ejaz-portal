@@ -97,8 +97,9 @@ it('shows the visits, the competition registrants and the 30-day chart from the 
     expect(strpos($html, 'data-portal-stats'))->toBeGreaterThan(strpos($html, 'id="home-identity"'));
 });
 
-// إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البند ٢): البطاقات الأربع دائماً بعد أول حساب، والصفر «0»
-it('hides the section before the first background run, then shows the four cards even at zero, with no chart for days without a visit', function () {
+// فحص الموقع الحي (11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-site-audit-nov11.md، ويلغي «الصفر 0» من 3 نوفمبر): البطاقة
+// الصفرية لا تُعرض، ولا القسم بلا رقم ولا رسم
+it('hides the section before the first background run, and while every number is zero, with no chart for days without a visit', function () {
     // قبل أول حساب لا رقم ولا استعلام
     visitsOn(0, 10);
     $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
@@ -106,15 +107,12 @@ it('hides the section before the first background run, then shows the four cards
     DailyVisit::query()->delete();
     ContentCache::flush();
     $this->artisan('ejaz:refresh-stats');
-    $section = (string) str($this->get('/')->assertOk()->assertSee('data-portal-stats', false)->getContent())->after('data-portal-stats')->before('</section>');
-    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
-        ->and(substr_count($section, 'data-count-to="0"'))->toBe(4)
-        ->and($section)->not->toContain('data-portal-chart');
+    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
 
-    // ولا رسم لأيام بلا زيارة
+    // ولا رسم لأيام بلا زيارة، ولا بطاقة بصفر
     visitsOn(1, 0);
     $this->artisan('ejaz:refresh-stats');
-    $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertDontSee('data-portal-chart', false);
+    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-portal-chart', false);
 });
 
 it('counts registrants in published competitions only, once each, without cancelled ones or untouched drafts', function () {
@@ -160,36 +158,35 @@ it('shows the library cards after the visits and registrants, by the number of r
     expect($html)->toContain('data-count-to="3"')->toContain('data-count-to="2"')->not->toContain('data-count-to="1234"');
 });
 
-// توجيه المدير التنفيذي (3 نوفمبر 2026 — docs/decisions/2026-11-03-director-home.md): البطاقات الأربع معاً 2×2 كما كانت، والصفر
-// رقمها الحقيقي. كانت كل بطاقة صفرية تُخفى، فبقيت بطاقتان في العرض الذي لا قراءة فيه في «قراءاتي» بعد
-it('shows the four cards together, a library card at its real zero, and keeps a store from before the library cards', function () {
+// البطاقة الصفرية لا تُعرض (فحص 11 نوفمبر 2026)، وما بقي بترتيبه
+it('shows only the cards above zero in their order, and keeps a store from before the library cards', function () {
     visitsOn(0, 9);
     // تقدّم بلا صفحة ولا ثانية: قراءة ومشاهدة بصفر، والبطاقتان ظاهرتان برقمهما
     libraryProgressOf(User::factory()->create(), LibraryItem::factory()->create());
     $this->artisan('ejaz:refresh-stats');
 
-    $html = $this->get('/')->assertOk()
-        ->assertSeeInOrder([__('home.portal_stats.visits'), __('home.portal_stats.registrants'), __('home.portal_stats.book_reads'), __('home.portal_stats.media_views')])
-        ->getContent();
-    $section = (string) str($html)->after('data-portal-stats')->before('</section>');
-    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
-        ->and(substr_count($section, 'data-count-to="0"'))->toBe(3)
-        ->and($section)->toContain('data-count-to="9"');
+    $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(1)
+        ->and($section)->not->toContain('data-count-to="0"')
+        ->and($section)->toContain('data-count-to="9"')
+        ->and($section)->not->toContain(__('home.portal_stats.registrants'))
+        ->and($section)->not->toContain(__('home.portal_stats.book_reads'));
 
-    // مشاهدة بلا قراءة: المشاهدات برقمها، والقراءات بصفر
+    // مشاهدة بلا قراءة: الزيارات ثم المشاهدات برقمها، والقراءات بصفر لا تظهر
     libraryProgressOf(User::factory()->create(), LibraryItem::factory()->audio()->create(), seconds: 120);
     $this->artisan('ejaz:refresh-stats');
     $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
-    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
-        ->and(substr_count($section, 'data-count-to="0"'))->toBe(2)
-        ->and(substr_count($section, 'data-count-to="1"'))->toBe(1);
+    expect(substr_count($section, 'data-stat-badge'))->toBe(2)
+        ->and($section)->not->toContain('data-count-to="0"')
+        ->and(substr_count($section, 'data-count-to="1"'))->toBe(1)
+        ->and(strpos($section, __('home.portal_stats.visits')))->toBeLessThan(strpos($section, __('home.portal_stats.media_views')));
 
     // المخزّن بشكله السابق (بالصفحات والدقائق، أو بلا مفتاحي المكتبة) يبقى معروضاً بصفر لهما حتى الحساب التالي، لا برقم الصفحات القديم
     Cache::forever(HomePortalStats::KEY, ['visits' => 9, 'registrants' => 0, 'pages_read' => 1234, 'media_minutes' => 13, 'days' => [9]]);
     ContentCache::flush();
     expect(HomePortalStats::cached())->toBe(['visits' => 9, 'registrants' => 0, 'book_reads' => 0, 'media_views' => 0, 'days' => [9]]);
     $this->get('/')->assertOk()->assertSee('data-portal-stats', false)->assertSee(__('home.portal_stats.visits'))
-        ->assertSee(__('home.portal_stats.media_views'))->assertDontSee('data-count-to="1234"', false)->assertDontSee('data-count-to="13"', false);
+        ->assertDontSee(__('home.portal_stats.media_views'))->assertDontSee('data-count-to="1234"', false)->assertDontSee('data-count-to="13"', false);
 });
 
 it('keeps aggregates alone, with no personal data in the store or the page', function () {

@@ -27,6 +27,8 @@ use Illuminate\Testing\TestResponse;
 */
 
 beforeEach(function () {
+    // الساعة ثابتة، فلا يقع حد الثواني أو الدقيقة بين طلبين على ساعة حقيقية تتقدم (فشل متقطع على #227)، والتقدم بـ travel وحده
+    $this->freezeTime();
     Storage::fake('local');
     $this->reader = User::factory()->create();
 });

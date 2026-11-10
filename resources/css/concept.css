@@ -1865,8 +1865,17 @@ html[data-motion-off] .page-transition-fill {
 }
 
 .media-marquee-reverse .marquee-group > .media-tile,
-.media-marquee-books .marquee-group > .media-tile {
+.media-marquee-books .marquee-group > .media-tile,
+.media-strip-static[data-media-strip='books'] > .media-tile {
     width: 9rem;
+}
+
+/* ثلاثة عناصر أو أقل: صف ثابت في الوسط بلا تكرار ولا حركة (فحص الموقع الحي، 11 نوفمبر 2026) */
+.media-strip-static {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
 }
 
 .media-tile-caption {

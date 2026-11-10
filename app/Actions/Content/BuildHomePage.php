@@ -335,10 +335,9 @@ class BuildHomePage
     }
 
     /**
-     * بطاقات الأرقام الآلية الأربع معاً (2×2): الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات.
-     * تظهر الأربع دائماً متى حُسبت الأرقام والقسم ظاهر، والصفر رقمه الحقيقي «0» (توجيه المدير التنفيذي وإضافته، 3 نوفمبر 2026 —
-     * docs/decisions/2026-11-03-director-home.md): كانت كل بطاقة صفرية تُخفى، فلم يبق في العرض بلا قراءة في «قراءاتي» إلا
-     * بطاقتان. وقبل أول حساب في الخلفية لا بطاقة.
+     * بطاقات الأرقام الآلية: الزيارات، والمسجلون في المسابقات، ثم قراءات الكتب ومشاهدات المقاطع بعدد المرات. والبطاقة التي
+     * رقمها صفر لا تُعرض (فحص الموقع الحي، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-site-audit-nov11.md، ويلغي «الصفر
+     * يظهر 0» من docs/decisions/2026-11-03-director-home.md). وقبل أول حساب في الخلفية لا بطاقة.
      *
      * @param  array{visits: int, registrants: int, book_reads: int, media_views: int, days: list<int|null>}|null  $portal
      * @return list<array{label: string, value: int, suffix: string, icon: string|null}>
@@ -349,12 +348,12 @@ class BuildHomePage
             return [];
         }
 
-        return [
+        return array_values(array_filter([
             ['label' => __('home.portal_stats.visits'), 'value' => $portal['visits'], 'suffix' => '', 'icon' => SiteIcon::Eye->value],
             ['label' => __('home.portal_stats.registrants'), 'value' => $portal['registrants'], 'suffix' => '', 'icon' => SiteIcon::Trophy->value],
             ['label' => __('home.portal_stats.book_reads'), 'value' => $portal['book_reads'], 'suffix' => '', 'icon' => SiteIcon::BookOpen->value],
             ['label' => __('home.portal_stats.media_views'), 'value' => $portal['media_views'], 'suffix' => '', 'icon' => SiteIcon::VideoCamera->value],
-        ];
+        ], fn (array $card): bool => $card['value'] > 0));
     }
 
     /**

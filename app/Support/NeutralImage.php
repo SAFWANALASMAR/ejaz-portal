@@ -17,23 +17,7 @@ final class NeutralImage
      */
     public static function forPage(?string $routeName): string
     {
-        $key = 'default';
-        $longest = 0;
-
-        foreach (HomeContent::PAGE_HEROES as $page => $route) {
-            $prefix = str_contains($route, '.') ? substr($route, 0, (int) strrpos($route, '.') + 1) : $route.'.';
-
-            if ($routeName === $route) {
-                $key = $page;
-                break;
-            }
-
-            if ($routeName !== null && str_starts_with($routeName, $prefix) && strlen($prefix) > $longest) {
-                [$key, $longest] = [$page, strlen($prefix)];
-            }
-        }
-
-        return asset(self::DIRECTORY.'/'.$key.'.svg');
+        return asset(self::DIRECTORY.'/'.(HomeContent::pageKey($routeName) ?? 'default').'.svg');
     }
 
     /**
@@ -41,8 +25,8 @@ final class NeutralImage
      */
     public static function forSeed(int $seed): string
     {
-        // بلا «إنجازاتنا»: نقشها العام نفسه، فلا يتكرر في الشبكة ولا يتغير تعاقب البطاقات القائم
-        $keys = array_values(array_diff(array_keys(HomeContent::PAGE_HEROES), ['achievements']));
+        // بلا «إنجازاتنا» و«المتجر»: أُضيفتا بعد التعاقب، فلا يتغير تعاقب البطاقات القائم
+        $keys = array_values(array_diff(array_keys(HomeContent::PAGE_HEROES), ['achievements', 'store']));
 
         return asset(self::DIRECTORY.'/'.$keys[abs($seed) % count($keys)].'.svg');
     }
