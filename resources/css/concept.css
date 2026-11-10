@@ -3554,14 +3554,44 @@ html[data-reveal-ready] .portal-chart-line {
 /* الجوال: الصورة صغيرة فوق النص، والنص من أعلى الشريحة بحشو سفلي 56 بكسل فوق شريط الشرائح، وارتفاع البطل يكفي أطول شريحة
    (x-hero-slider). واللوحي من 768: الصورة بجانب النص كالحاسوب بمقاس أصغر */
 @media (max-width: 47.99rem) {
+    /* الشرائح في خانة شبكة واحدة فوق بعضها، فارتفاع البطل ارتفاع أطول شريحة فعلاً لا رقم محجوز، فيظهر تحته أول صف من بطاقات
+       الهوية في الشاشة الأولى (docs/decisions/2026-11-10-fix-mobile-hero-height.md). والمخفية تبقى inert بلا ظهور */
+    .hero-light .concept-hero-media {
+        position: relative;
+        display: grid;
+    }
+
+    .hero-light .concept-hero-media .hero-slide {
+        position: relative;
+        inset: auto;
+        grid-area: 1 / 1;
+        height: auto;
+    }
+
     .hero-light .hero-round-layout {
         justify-content: flex-start;
-        gap: 1rem;
-        padding-block: 1.5rem 3.5rem;
+        gap: 0.5rem;
+        padding-block: 0.5rem 3.25rem;
+    }
+
+    .hero-light .hero-round-text {
+        gap: 0.5rem;
     }
 
     .hero-light .hero-light-visual {
-        width: min(10rem, 44vw);
+        width: min(6.25rem, 30vw);
+    }
+
+    .hero-light .hero-light-text {
+        font-size: 0.9375rem;
+        line-height: 1.65;
+    }
+
+    /* زرا الشريحة في سطر واحد حتى 360 بكسل، وهدف اللمس 44 بكسل كما هو */
+    .hero-light .hero-caption .login-pill {
+        min-height: 2.75rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.9375rem;
     }
 
     .hero-light [data-hero-slide='chairman'] .hero-light-subtitle {
