@@ -1,7 +1,8 @@
 // قارئ كتب المكتبة «للقراءة فقط — بلا تحميل» (resources/views/library/reader.blade.php): يرسم صفحة واحدة في <canvas>
 // بـ pdf.js، بلا شريط عارض المتصفح ولا زري التنزيل والطباعة. ومكتبة pdf.js تُحمَّل عند وجود القارئ وحده (تقسيم Vite)،
-// وعاملها من أصول البناء على الموقع نفسه (worker-src 'self' — SecurityHeaders). يصعّب الحفظ ولا يمنعه منعاً تاماً:
-// الملف يصل المتصفح ليُرسم، وما على الشاشة يمكن تصويره (docs/decisions.md — 30 أكتوبر 2026).
+// وعاملها من أصول البناء على الموقع نفسه (worker-src 'self' — SecurityHeaders). والملف برمز لمرة واحدة وترويسة القارئ، ومخلوط
+// بمفتاح يُفك هنا، فلا يأخذه برنامج تحميل بالرابط. ولا يمنع تصوير الشاشة ولا من يفك الشيفرة بأدوات المطور
+// (docs/decisions.md — 30 أكتوبر 2026، وdocs/decisions/2026-11-10-feat-reader-download-protection.md).
 
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { onPage } from './page';
@@ -25,6 +26,73 @@ async function loadPdfjs() {
     });
 
     return pdfjs;
+}
+
+// رمز القارئ لمرة واحدة ومفتاح فك الخلط (docs/decisions/2026-11-10-feat-reader-download-protection.md): من الصفحة أول مرة، ثم
+// يُحذفان منها فلا تحملهما نسخة زر الرجوع، وإلا رمز جديد بطلب POST صغير بلا إعادة تحميل الصفحة
+async function readerTicket(root, signal) {
+    const { pdfTicket: ticket, pdfKey: key } = root.dataset;
+    delete root.dataset.pdfTicket;
+    delete root.dataset.pdfKey;
+
+    if (ticket && key) {
+        return { ticket, key };
+    }
+
+    const response = await fetch(root.dataset.pdfTicketUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal,
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`ticket ${response.status}`);
+    }
+
+    return response.json();
+}
+
+// الملف من الخادم مخلوطاً بالمفتاح (XOR دوري، ReaderFileResponse)، بطلب واحد لكل فتح. ورمز منتهٍ أو مستعمل (404) يُستبدل مرة واحدة
+async function fetchPdf(root, signal, retry = true) {
+    const { ticket, key } = await readerTicket(root, signal);
+    const response = await fetch(`${root.dataset.pdfReader}?t=${encodeURIComponent(ticket)}`, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal,
+        headers: { 'X-Ejaz-Reader': '1' },
+    });
+
+    if (response.status === 404 && retry) {
+        return fetchPdf(root, signal, false);
+    }
+
+    if (!response.ok) {
+        throw new Error(`file ${response.status}`);
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const secret = Uint8Array.from(atob(key), (char) => char.charCodeAt(0));
+
+    // أربعة بايتات في كل خطوة (المفتاح 32 بايتاً، مضاعف لأربعة)، ثم ما بقي بايتاً بايتاً
+    const words = Math.floor(bytes.length / 4);
+    const view = new Uint32Array(bytes.buffer, 0, words);
+    const secretWords = new Uint32Array(secret.buffer);
+
+    for (let i = 0; i < words; i++) {
+        view[i] ^= secretWords[i % secretWords.length];
+    }
+
+    for (let i = words * 4; i < bytes.length; i++) {
+        bytes[i] ^= secret[i % secret.length];
+    }
+
+    return bytes;
 }
 
 function setupReader(root, signal) {
@@ -250,8 +318,13 @@ function setupReader(root, signal) {
         doc = null;
     });
 
-    loadPdfjs()
-        .then((module) => {
+    // الملف المحمي (مسار رمز في الصفحة) بـ fetchPdf، والكتاب القابل للتنزيل في برنامج «قراءة كتاب» من مساره كما كان
+    const source = root.dataset.pdfTicketUrl
+        ? fetchPdf(root, signal).then((data) => ({ data }))
+        : { url: root.dataset.pdfReader, disableRange: true, disableAutoFetch: true };
+
+    Promise.all([loadPdfjs(), source])
+        .then(([module, file]) => {
             if (signal.aborted) {
                 return null;
             }
@@ -259,7 +332,7 @@ function setupReader(root, signal) {
             // الملف كاملاً بطلب واحد (المسار بلا أجزاء ومحدود الطلبات)، وبلا WebAssembly ولا نماذج XFA، فلا تتسع السياسة.
             // والخطوط المضمّنة تُرسم أشكالاً من بيانات الملف (disableFontFace): تحميلها خطوطاً في المتصفح سقط في التجربة
             // إلى خط النظام فتفككت الحروف العربية، والقارئ يرسم في <canvas> وحده فلا يحتاج الخط في الصفحة
-            task = module.getDocument({ url: root.dataset.pdfReader, disableRange: true, disableAutoFetch: true, useWasm: false, enableXfa: false, disableFontFace: true, isEvalSupported: false });
+            task = module.getDocument({ ...file, useWasm: false, enableXfa: false, disableFontFace: true, isEvalSupported: false });
 
             return task.promise;
         })

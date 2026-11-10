@@ -70,13 +70,15 @@ it('answers 404 for the download of a view-only document, to guests and signed-i
 });
 
 it('serves a view-only file only inline to the reader, without caching and without an attachment', function () {
-    governanceFile(['slug' => 'policy', 'is_view_only' => true]);
+    // مخلوطاً بلا اسم ولا Content-Disposition (ReaderDownloadProtectionTest — 10 نوفمبر 2026)
+    $ticket = readerTicket(governanceFile(['slug' => 'policy', 'is_view_only' => true]));
 
-    $response = $this->get('/governance/policy/file')->assertOk();
+    $response = readerFetch('/governance/policy/file', $ticket)->assertOk();
 
-    expect($response->headers->get('Content-Type'))->toBe('application/pdf')
+    expect($response->headers->get('Content-Type'))->toBe('application/octet-stream')
         ->and($response->headers->get('Cache-Control'))->toContain('no-store')->toContain('private')
-        ->and((string) $response->headers->get('Content-Disposition'))->toStartWith('inline')->not->toContain('attachment')
+        ->and($response->headers->has('Content-Disposition'))->toBeFalse()
+        ->and(readerUnmix($response->streamedContent(), $ticket))->toBe(pdfContents())
         ->and($response->headers->get('X-Robots-Tag'))->toContain('noindex')
         // السياسة الكاملة بلا سطر التضمين، فلا يُضمَّن في إطار
         ->and((string) $response->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'none'");
@@ -89,13 +91,13 @@ it('sends a direct visit to the view-only file (tab or frame) back to the docume
 })->with(['document', 'iframe', 'embed', 'object']);
 
 it('limits the reader file per address like the library reader', function () {
-    governanceFile(['slug' => 'policy', 'is_view_only' => true]);
+    $document = governanceFile(['slug' => 'policy', 'is_view_only' => true]);
 
     for ($i = 0; $i < ReaderFileResponse::PER_MINUTE; $i++) {
-        $this->get('/governance/policy/file')->assertOk();
+        readerFetch('/governance/policy/file', readerTicket($document))->assertOk();
     }
 
-    $this->get('/governance/policy/file')->assertStatus(429);
+    readerFetch('/governance/policy/file', readerTicket($document))->assertStatus(429);
 });
 
 it('keeps unpublished documents unreachable in every way', function () {
@@ -177,10 +179,10 @@ it('streams a view-only document from S3 without signing a storage link, while a
     $disk->put((string) $viewOnly->file, pdfContents());
     $disk->put((string) $open->file, pdfContents());
 
-    $response = $this->get('/governance/view-only/file')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    $response = readerFetch('/governance/view-only/file', readerTicket($viewOnly))->assertOk()->assertHeader('Content-Type', 'application/octet-stream');
 
     expect($response->headers->get('Location'))->toBeNull()
-        ->and($response->headers->get('Content-Disposition'))->toStartWith('inline')
+        ->and($response->headers->has('Content-Disposition'))->toBeFalse()
         ->and($response->headers->get('Cache-Control'))->toContain('no-store')
         ->and($signed->getArrayCopy())->toBe([]);
 

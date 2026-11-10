@@ -69,7 +69,7 @@
             {{-- قارئ المكتبة نفسه «للقراءة فقط» على كل العروض: يرسم الصفحات في <canvas> بلا شريط عارض المتصفح ولا تنزيل ولا طباعة
                  (resources/js/pdf-reader.js). يصعّب الحفظ ولا يمنعه منعاً تاماً --}}
             <div class="min-w-0 [&>[data-pdf-reader]]:mt-0" data-document-reader>
-                @include('library.reader', ['url' => route('governance.file', $document->slug), 'title' => $document->title, 'texts' => 'governance.view_only.reader'])
+                @include('library.reader', ['url' => route('governance.file', $document->slug), 'ticketUrl' => route('governance.reader-ticket', $document->slug), 'title' => $document->title, 'texts' => 'governance.view_only.reader'])
             </div>
         @elseif ($document->file !== null)
             <div class="concept-panel hidden overflow-hidden lg:block" data-document-viewer>
