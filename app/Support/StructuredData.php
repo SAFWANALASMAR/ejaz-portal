@@ -74,6 +74,24 @@ class StructuredData
     }
 
     /**
+     * الموقع في الرئيسية وحدها: اسمه الكامل ليظهر في نتائج البحث اسماً للموقع، بلا اسم مختصر بديل
+     * (decisions/2026-11-10-seo-site-name.md).
+     *
+     * @return array<string, mixed>
+     */
+    public static function website(): array
+    {
+        return [
+            '@type' => 'WebSite',
+            '@id' => url('/').'#website',
+            'name' => __('site.name'),
+            'url' => url('/'),
+            'inLanguage' => 'ar',
+            'publisher' => ['@id' => url('/').'#organization'],
+        ];
+    }
+
+    /**
      * مسار التنقل: الرئيسية، ثم الأقسام الأعلى، ثم الصفحة نفسها.
      *
      * @param  list<array{0: string, 1: string}>  $parents  [الاسم، الرابط] من الأعلى إلى الأدنى

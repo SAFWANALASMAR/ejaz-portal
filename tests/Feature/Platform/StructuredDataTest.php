@@ -62,6 +62,21 @@ it('describes the association on every public page from the site settings', func
     }
 });
 
+it('names the site in full on the home page, for the search result title and site name', function () {
+    $response = $this->get('/')->assertOk();
+    $website = jsonLdNode($response, 'WebSite');
+
+    expect($website)->not->toBeNull()
+        ->and($website['name'])->toBe('جمعية إعجاز للدراسات والبحوث العلمية')
+        ->and($website)->not->toHaveKey('alternateName')
+        ->and($website['url'])->toBe(url('/'))
+        ->and($website['publisher'])->toBe(['@id' => url('/').'#organization'])
+        ->and((string) $response->getContent())->toContain('<title>جمعية إعجاز للدراسات والبحوث العلمية</title>');
+
+    // وفي الرئيسية وحدها
+    expect(jsonLdNode($this->get('/governance')->assertOk(), 'WebSite'))->toBeNull();
+});
+
 it('writes no contact field the settings do not have', function () {
     $organization = jsonLdNode($this->get('/')->assertOk(), 'Organization');
 
