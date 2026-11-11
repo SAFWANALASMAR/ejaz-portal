@@ -25,7 +25,7 @@ function heroImageOf(string $html): string
     return $match[1] ?? '';
 }
 
-it('shows the uploaded image in the hero of its own page only', function () {
+it('shows the uploaded image in the hero of its own page, and not on another section page', function () {
     Storage::fake('public');
     Storage::disk('public')->put('settings/governance-hero.jpg', 'x');
     Setting::put(HomeContent::KEY, ['page_heroes' => ['governance' => 'settings/governance-hero.jpg']]);

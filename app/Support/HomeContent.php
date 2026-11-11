@@ -221,9 +221,8 @@ final class HomeContent
     public static function pageHeroUrl(?string $routeName): ?string
     {
         $key = array_search($routeName, self::PAGE_HEROES, true);
-        $path = $key === false ? null : self::clean(Setting::group(self::KEY)['page_heroes'][$key] ?? null);
 
-        return $path !== null ? Storage::disk('public')->url($path) : null;
+        return self::uploadedPageHero($key === false ? null : $key);
     }
 
     /**
@@ -254,11 +253,18 @@ final class HomeContent
     }
 
     /**
-     * رابط صورة رأس القسم المرفوعة لصفحاته الفرعية (وثيقة، مبادرة، خدمة، مقطع)، أو null. وتأتي بعد صورة العنصر نفسه في x-page-hero.
+     * رابط صورة رأس القسم المرفوعة لصفحاته الفرعية (وثيقة، مبادرة، خدمة)، أو null. وتأتي بعد صورة العنصر نفسه في x-page-hero.
      */
     public static function sectionHeroUrl(?string $routeName): ?string
     {
-        $key = self::pageKey($routeName);
+        return self::uploadedPageHero(self::pageKey($routeName));
+    }
+
+    /**
+     * رابط صورة الرأس المرفوعة لخانة صفحة، أو null.
+     */
+    private static function uploadedPageHero(?string $key): ?string
+    {
         $path = $key === null ? null : self::clean(Setting::group(self::KEY)['page_heroes'][$key] ?? null);
 
         return $path !== null ? Storage::disk('public')->url($path) : null;

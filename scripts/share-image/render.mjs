@@ -32,7 +32,8 @@ const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, dev
 await page.goto(`${base}/robots.txt`);
 await page.setContent(html, { waitUntil: 'networkidle' });
 await page.evaluate(() => document.fonts.ready);
-await page.locator('[data-share-card]').screenshot({ path: 'public/images/brand/share-default.png' });
+// JPEG بجودة 90 (نحو 60 كيلوبايت): حد واتساب لصورة المعاينة غير مضمون فوق 300 كيلوبايت، وكانت PNG 492
+await page.locator('[data-share-card]').screenshot({ path: 'public/images/brand/share-default.jpg', type: 'jpeg', quality: 90 });
 await browser.close();
 proxy.close();
-console.log('public/images/brand/share-default.png');
+console.log('public/images/brand/share-default.jpg');

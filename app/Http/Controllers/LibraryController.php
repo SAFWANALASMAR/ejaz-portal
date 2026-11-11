@@ -21,6 +21,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -45,6 +46,11 @@ class LibraryController extends Controller implements HasMiddleware
     private const STRIP = 8;
 
     private const RELATED = 3;
+
+    /**
+     * حد وصف الصفحة لمحركات البحث والمشاركة، كالوصف المكتوب (StructuredData::text).
+     */
+    private const DESCRIPTION_LENGTH = 160;
 
     private const TAGS = 20;
 
@@ -128,16 +134,18 @@ class LibraryController extends Controller implements HasMiddleware
     }
 
     /**
-     * وصف العنصر بلا وصف مكتوب: عنوانه، ومؤلفه أو ملقيه إن وُجد، وقسمه في المكتبة.
+     * وصف العنصر بلا وصف مكتوب: عنوانه، ومؤلفه أو ملقيه إن وُجد، وقسمه في المكتبة، بحد الوصف المكتوب (160 حرفاً): يُقص العنوان
+     * داخله فيبقى القسم. والمؤلف بعلامة النص الناقص لا يُنشر أصلاً (Publishable)، فلا فحص لها هنا.
      */
     private static function metaDescription(LibraryItem $item): string
     {
         $author = trim((string) $item->author);
-        $replace = ['title' => $item->title, 'section' => $item->section->getLabel(), 'library' => __('library.title')];
+        $key = $author !== '' ? 'library.item.meta_description_author' : 'library.item.meta_description';
+        $replace = ['section' => $item->section->getLabel(), 'library' => __('library.title'), 'author' => $author];
+        $room = self::DESCRIPTION_LENGTH - mb_strlen(__($key, [...$replace, 'title' => '']));
+        $text = __($key, [...$replace, 'title' => Str::limit($item->title, max(1, $room - 1), '…')]);
 
-        return $author !== '' && ! str_contains($author, '【')
-            ? __('library.item.meta_description_author', [...$replace, 'author' => $author])
-            : __('library.item.meta_description', $replace);
+        return Str::limit($text, self::DESCRIPTION_LENGTH - 1, '…');
     }
 
     /**
