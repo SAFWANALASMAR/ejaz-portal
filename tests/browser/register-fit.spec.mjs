@@ -92,11 +92,13 @@ for (const [width, height] of [[1366, 768], [1440, 900], [1920, 1080]]) {
             await page.screenshot({ path: `${DIR}/register-${width}${width === 1366 ? 'x768' : ''}.png` });
         }
 
-        // والتركيز في كلمة المرور يُظهر تنبيه التسريب ويصفه للحقل، والزر باقٍ في الشاشة
+        // وتنبيه التسريب على الحاسوب المضغوط لقارئ الشاشة وحده ولو كان التركيز في كلمة المرور (مراجعة #244): مقصوص في 1×1، وموصوف
+        // للحقل، والزر باقٍ في الشاشة
         const password = page.locator('form [name="password"]');
         await password.focus();
-        await expect(page.locator('[data-password-rules] [data-leaked]')).toBeVisible();
+        expect((await page.locator('[data-password-rules] [data-leaked]').boundingBox()).height, 'التنبيه مقصوص على الحاسوب').toBeLessThanOrEqual(1);
         expect(await password.getAttribute('aria-describedby')).toContain('field-password-rules-leaked');
+        await expect(password).toHaveAccessibleDescription(/تسريبها/);
         expect((await measure(page)).submit).toBeLessThanOrEqual(height);
     });
 }
@@ -135,8 +137,8 @@ test('the register page on the phone keeps its single column with no horizontal 
 
     expect(await page.evaluate(() => document.documentElement.getAttribute('dir'))).toBe('rtl');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-    // على الجوال الشروط كاملة بعنوانها، وتنبيه التسريب ظاهر
-    await expect(page.locator('[data-password-rules] [data-leaked]')).toBeVisible();
+    // على الجوال الشروط كاملة بعنوانها، وتنبيه التسريب ظاهر بسطره لا مقصوص
+    expect((await page.locator('[data-password-rules] [data-leaked]').boundingBox()).height, 'التنبيه ظاهر على الجوال').toBeGreaterThan(10);
     await expect(page.locator('[data-password-rules] #field-password-rules-heading')).toBeVisible();
     await page.screenshot({ path: `${DIR}/register-390.png`, fullPage: true });
 });
