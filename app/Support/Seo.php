@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
+use LogicException;
 
 /**
  * أساس محركات البحث في التخطيط العام وخريطة الموقع (feat/seo-foundation — قرار صفوان، 11 نوفمبر 2026):
@@ -94,6 +95,7 @@ final class Seo
                 ->where('kind', ($route === 'services.jobs' ? OpeningKind::Employment : OpeningKind::Volunteering)->value)
                 ->where(fn ($query) => $query->whereNull('closes_at')->orWhere('closes_at', '>', now())),
             'competitions.index' => Competition::query()->published(),
+            default => throw new LogicException('Not a listing in Seo::LISTINGS: '.$route),
         };
     }
 }
