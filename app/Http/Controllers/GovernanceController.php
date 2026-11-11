@@ -67,7 +67,8 @@ class GovernanceController extends Controller implements HasMiddleware
         abort_unless(in_array($slug, self::publishedSlugs(), true), 404);
 
         /** @var array{title: string, summary: ?string, html: string, reader?: ?string} $page */
-        $page = ContentCache::remember('governance.show.'.$slug, function () use ($slug): array {
+        // reader.: مفتاح جديد منذ حماية القارئ، فلا تُقرأ صفحة خُزّنت قبل النشر بلا رابط الرمز ولا علامته (المراجعة المستقلة على #229)
+        $page = ContentCache::remember('governance.show.reader.'.$slug, function () use ($slug): array {
             $document = Document::query()->published()->where('slug', $slug)->firstOrFail();
 
             return [

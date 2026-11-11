@@ -5,23 +5,28 @@ namespace App\Support;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 /**
  * رمز القارئ لمرة واحدة لملف «للقراءة فقط» (docs/decisions/2026-11-10-feat-reader-download-protection.md): يُصدر عند رسم صفحة
- * الكتاب أو الوثيقة، أو بطلب POST صغير لإعادة المحاولة، مربوطاً بالجلسة والعنصر، ومدته دقيقة، ويُستهلك عند أول طلب للملف.
+ * الكتاب أو الوثيقة، أو بطلب POST صغير لإعادة المحاولة، مربوطاً بالجلسة والعنصر، ومدته خمس دقائق، ويُستهلك عند أول طلب للملف.
  * ومعه مفتاح عشوائي تُخلط به بايتات الملف (ReaderFileResponse)، فما يلتقطه برنامج تحميل من الرابط لا يفتح شيئاً.
- * ولا يُخزَّن إلا بصمة الرمز وبصمة معرّف الجلسة.
+ * ويُخزَّن الرمز ومعرّف الجلسة ببصمتهما، ومفتاح الخلط كما هو حتى يُستهلك الرمز أو تنتهي مدته.
  */
 final class ReaderTicket
 {
-    public const TTL_SECONDS = 60;
+    /**
+     * خمس دقائق (المراجعة الأمنية المستقلة على #229): تكفي صفحة فُتحت في تبويب ثم قُرئت، والرمز يُستهلك عند أول طلب على أي حال.
+     */
+    public const TTL_SECONDS = 300;
 
     public const KEY_BYTES = 32;
 
     /**
-     * علامة في قالب القارئ (library.reader) تُستبدل بالرمز والمفتاح لكل طلب، لأن صفحة العنصر تُخزَّن نصاً واحداً للجميع.
+     * علامة في قالب القارئ (library.reader) تُستبدل بالرمز والمفتاح لكل طلب، لأن صفحة العنصر تُخزَّن نصاً واحداً للجميع. والسمة
+     * بقيمتها الفارغة حرفياً، فلا ينتجها نص مُهرَّب (عنوان أو وصف فيه العلامة يصير &quot;&quot;)، وتُستبدل مرة واحدة.
      */
-    public const SLOT = 'data-pdf-ticket-slot';
+    public const SLOT = 'data-pdf-ticket-slot=""';
 
     public static function scope(Model $item): string
     {
@@ -56,7 +61,7 @@ final class ReaderTicket
 
         ['ticket' => $ticket, 'key' => $key] = self::issue($request, $scope);
 
-        return str_replace(self::SLOT, 'data-pdf-ticket="'.$ticket.'" data-pdf-key="'.$key.'"', $html);
+        return Str::replaceFirst(self::SLOT, 'data-pdf-ticket="'.$ticket.'" data-pdf-key="'.$key.'"', $html);
     }
 
     /**

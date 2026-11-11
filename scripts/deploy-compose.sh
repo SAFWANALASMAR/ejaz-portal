@@ -38,6 +38,9 @@ grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز �
 # في الإنتاج يرمي AppServiceProvider خطأً للمشغّل fake ولـ turnstile بلا مفتاحيه، فترد صفحات الدخول والتسجيل والاستعادة 500
 { grep -Eq '^BOT_CHALLENGE_DRIVER=turnstile$' .env && grep -Eq '^TURNSTILE_SITE_KEY="?[^"[:space:]]+' .env && grep -Eq '^TURNSTILE_SECRET_KEY="?[^"[:space:]]+' .env; } \
   || fail "Turnstile غير مضبوط بمفتاحيه (BOT_CHALLENGE_DRIVER=turnstile مع TURNSTILE_SITE_KEY وTURNSTILE_SECRET_KEY): بدونها ترد صفحات الدخول والتسجيل والاستعادة 500 (docs/deploy/hostinger-go-live.md «قبل أن تبدأ»)"
+# رمز قارئ الكتب والوثائق لمرة واحدة يُستهلك ذرياً بالحذف من Redis (docs/decisions/2026-11-11-fix-reader-protection-lows.md).
+# آخر سطر CACHE_STORE هو ما يقرؤه لارافيل، والقيمة مقتبسة أو لا
+grep -E '^CACHE_STORE=' .env | tail -n 1 | grep -Eq '^CACHE_STORE="?redis"?$' || fail "CACHE_STORE يجب أن يكون redis: رمز قارئ الكتب والوثائق لمرة واحدة لا يُستهلك ذرياً في غيره"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || fail "في المجلد تعديلات غير محفوظة. لا تُعدَّل الشيفرة على الخادم"
 git fetch --tags --force --quiet origin
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "الوسم $TAG غير موجود"
