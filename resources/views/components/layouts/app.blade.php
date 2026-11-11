@@ -63,14 +63,14 @@
         <meta property="og:url" content="{{ $canonicalUrl }}">
     @endif
     <meta property="og:image" content="{{ $shareImage }}">
-    {{-- الصورة الافتراضية شعار شبه مربع: بأبعاده ونصه البديل، وبطاقة summary الصغيرة لا الكبيرة فلا يُقص --}}
+    {{-- الصورة الافتراضية 1200×630 بأبعادها ونصها البديل، وبطاقة summary_large_image كصور الصفحات (فحص 11 نوفمبر 2026) --}}
     @if ($defaultShareImage)
         <meta property="og:image:width" content="{{ \App\Support\ShareImage::DEFAULT_WIDTH }}">
         <meta property="og:image:height" content="{{ \App\Support\ShareImage::DEFAULT_HEIGHT }}">
         <meta property="og:image:alt" content="{{ __('site.share_image_alt', ['name' => $siteName]) }}">
     @endif
     <meta name="twitter:image" content="{{ $shareImage }}">
-    <meta name="twitter:card" content="{{ $defaultShareImage ? 'summary' : 'summary_large_image' }}">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#1F4565">
     @include('partials.favicons')
     @fonts

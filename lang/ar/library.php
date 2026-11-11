@@ -63,6 +63,9 @@ return [
     ],
 
     'item' => [
+        'document_title' => ':title — :section',
+        'meta_description' => ':title، من :section في :library.',
+        'meta_description_author' => ':title، :author، من :section في :library.',
         'download' => 'تنزيل الملف',
         'open' => 'فتح الملف',
         'viewer' => 'عرض: :title',

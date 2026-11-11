@@ -27,8 +27,11 @@ class InitiativeForm
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),
             Section::make(__('initiatives.fields.goals'))->columnSpanFull()->schema([
+                // التسمية مخفية، فزر الإضافة باسمه العربي لا «إضافة إلى goals» من اسم الحقل (فحص 11 نوفمبر 2026)
                 Repeater::make('goals')
+                    ->label(__('initiatives.fields.goals'))
                     ->hiddenLabel()
+                    ->addActionLabel(__('initiatives.fields.add_goal'))
                     ->simple(TextInput::make('goal')->label(__('initiatives.fields.goal'))->required()->maxLength(300))
                     ->defaultItems(0)
                     ->maxItems(12),

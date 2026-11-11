@@ -73,17 +73,17 @@ it('marks a news page as an article with its publication date and NewsArticle st
     expect($article->title)->toBe('الملتقى السنوي');
 });
 
-it('describes the default share image with its size and alt text on a small card, and a page image on a large one', function () {
+it('describes the default 1200x630 share image with its size and alt text, on a large card like a page image', function () {
     $home = (string) $this->get('/')->assertOk()->getContent();
 
     expect(headMeta($home, 'property', 'og:image'))->toBe(asset(ShareImage::DEFAULT))
         ->and(headMeta($home, 'property', 'og:image:width'))->toBe((string) ShareImage::DEFAULT_WIDTH)
         ->and(headMeta($home, 'property', 'og:image:height'))->toBe((string) ShareImage::DEFAULT_HEIGHT)
         ->and(headMeta($home, 'property', 'og:image:alt'))->toBe(__('site.share_image_alt', ['name' => __('site.name')]))
-        ->and(headMeta($home, 'name', 'twitter:card'))->toBe('summary');
+        ->and(headMeta($home, 'name', 'twitter:card'))->toBe('summary_large_image');
 
     [$width, $height] = getimagesize(public_path(ShareImage::DEFAULT));
-    expect([$width, $height])->toBe([ShareImage::DEFAULT_WIDTH, ShareImage::DEFAULT_HEIGHT]);
+    expect([$width, $height])->toBe([ShareImage::DEFAULT_WIDTH, ShareImage::DEFAULT_HEIGHT])->toBe([1200, 630]);
 
     Storage::fake('public');
     NewsArticle::factory()->create(['slug' => 'with-cover', 'image' => 'news/cover.jpg']);
