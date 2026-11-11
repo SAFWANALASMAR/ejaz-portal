@@ -43,7 +43,7 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" browser
 
 ## فحص الوصول (WCAG 2.1 AA)
 
-صورة Playwright في كل أوامر هذا الدليل `v1.64.1-noble`، مطابقة لـ `@playwright/test` في `package.json`. وخدمة `browser` في `compose.yaml` ما زالت `v1.63.0` في main، ويصححها #95.
+صورة Playwright في كل أوامر هذا الدليل `v1.65.0-noble`، مطابقة لـ `@playwright/test` في `package.json` ولخدمة `browser` في `compose.yaml`. وتُحدَّث الثلاثة معاً.
 
 `a11y.spec.mjs`: قواعد axe-core على صفحات الزائر ولوحة المستخدم ولوحة الإدارة، ثم التنقل بلوحة المفاتيح (رابط التخطي، وظهور إطار التركيز، وعدم حبس التركيز، والقوائم المنسدلة وقائمة الجوال). يعمل مع اللقطات في التشغيل أعلاه، ووحده:
 
@@ -59,7 +59,7 @@ APP_URL=http://localhost:8181 php artisan serve --host=127.0.0.1 --port=8181
 
 docker run --rm --ipc=host -v "$PWD:/work" -w /work \
   -e APP_PORT=8181 -e APP_HOST=host.docker.internal -e APP_UPSTREAM_PORT=8181 -e VITE_HOST=none \
-  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.64.1-noble \
+  -e DEMO_CREDENTIALS="$creds" mcr.microsoft.com/playwright:v1.65.0-noble \
   npx playwright test --config=tests/browser/playwright.config.mjs a11y.spec.mjs --project=desktop --project=mobile
 ```
 
@@ -288,7 +288,7 @@ docker compose run --rm -e DEMO_CREDENTIALS="$creds" -e COMPETITION_SLUG=brahin-
 MSYS_NO_PATHCONV=1 docker run --rm --ipc=host --network container:<المشروع>-app-1 \
   -v "$(pwd -W):/work" -v <المشروع>_node_modules:/work/node_modules:ro -w /work \
   -e APP_PORT=<APP_PORT في .env المشروع> -e APP_HOST=127.0.0.1 -e APP_UPSTREAM_PORT=8000 \
-  mcr.microsoft.com/playwright:v1.64.1-noble \
+  mcr.microsoft.com/playwright:v1.65.0-noble \
   npx playwright test --config=tests/browser/playwright.config.mjs director-acceptance.spec.mjs
 ```
 
@@ -301,7 +301,7 @@ MSYS_NO_PATHCONV=1 docker run --rm --ipc=host --network container:<المشرو�
 على خادم يصل إليه المتصفح مباشرة (التجريبي مثلاً):
 
 ```bash
-docker run --rm --ipc=host -v "$PWD:/lh" -w /lh mcr.microsoft.com/playwright:v1.64.1-noble sh -c '
+docker run --rm --ipc=host -v "$PWD:/lh" -w /lh mcr.microsoft.com/playwright:v1.65.0-noble sh -c '
   export CHROME_PATH=$(ls -d /ms-playwright/chromium-*/chrome-linux*/chrome | head -1)
   for p in / /competitions/brahin-1448 /programs/<برنامج> /library/books/<كتاب>; do
     npx -y lighthouse@13.5.0 "https://<الخادم>$p" --quiet --chrome-flags="--headless=new --no-sandbox" \
