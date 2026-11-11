@@ -27,5 +27,7 @@ it('keeps the square logo for structured data and a 1200x630 default for sharing
     [$width, $height] = getimagesize(public_path(ShareImage::DEFAULT));
 
     expect(public_path(ShareImage::LOGO))->toBeFile()
-        ->and([$width, $height])->toBe([1200, 630]);
+        ->and([$width, $height])->toBe([1200, 630])
+        // دون حد واتساب غير المضمون لصورة المعاينة (300 كيلوبايت)، وكانت PNG 492
+        ->and(filesize(public_path(ShareImage::DEFAULT)))->toBeLessThan(300 * 1024);
 });
