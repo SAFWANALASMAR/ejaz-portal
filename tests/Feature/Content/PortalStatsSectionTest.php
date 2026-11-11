@@ -99,9 +99,9 @@ it('shows the visits, the competition registrants and the 30-day chart from the 
 
 // إضافة توجيه المدير التنفيذي (3 نوفمبر 2026، البند ٢): البطاقات الأربع دائماً بعد أول حساب، والصفر «0»
 it('hides the section before the first background run, then shows the four cards even at zero, with no chart for days without a visit', function () {
-    // قبل أول حساب لا رقم ولا استعلام
+    // قبل أول حساب لا رقم ولا استعلام، والقسم بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
     visitsOn(0, 10);
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false);
+    $this->get('/')->assertOk()->assertSee('data-home-empty="portal_stats"', false)->assertDontSee('data-stat-badge', false);
 
     DailyVisit::query()->delete();
     ContentCache::flush();

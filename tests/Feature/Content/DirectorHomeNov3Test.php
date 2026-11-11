@@ -471,8 +471,9 @@ it('adds the «عن الجمعية» anchors in order after the parent page, onc
         $sorted = $positions;
         sort($sorted);
         expect($positions)->toBe($sorted)
-            // و«اللوائح والسياسات» مخفية من القائمة المعروضة (مراجعة المشرف على #177، L5)
-            ->and($menu)->not->toContain('governance?category=policies');
+            // و«اللوائح والسياسات» مخفية من «عن الجمعية» (مراجعة المشرف على #177، L5): رابطها بعد آخر مراسيها، في قائمة «الحوكمة»
+            // بتصنيفاتها الخمسة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+            ->and(strpos($menu, 'governance?category=policies'))->toBeGreaterThan(max($positions));
     }
 });
 

@@ -61,8 +61,9 @@ it('never renders an unsafe hero link even if one reaches the database', functio
     $this->get('/')->assertDontSee('javascript:alert(1)', false)->assertDontSee('زر ضار');
 });
 
-it('shows approved statistics with thousands separators, and no strip without them', function () {
-    $this->get('/')->assertDontSee('data-portal-stats', false);
+it('shows approved statistics with thousands separators, and the empty state without them', function () {
+    // المقطع المُظهَر بلا رقم بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertSee('data-home-empty="portal_stats"', false)->assertDontSee('data-stat-badge', false);
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [approvedStat()]]);
 
@@ -75,7 +76,8 @@ it('hides the statistics when switched off, and skips incomplete entries', funct
     $this->get('/')->assertDontSee('25,000');
 
     Setting::put('home', [...HOME_LEGACY_SHOWN, 'stats' => [['label' => '', 'value' => 10, 'icon' => 'users'], ['label' => 'بلا رقم', 'value' => 'x']]]);
-    $this->get('/')->assertDontSee('data-portal-stats', false);
+    // والخانات الناقصة لا تظهر، فالمقطع المُظهَر بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertSee('data-home-empty="portal_stats"', false)->assertDontSee('بلا رقم')->assertDontSee('data-stat-badge', false);
 });
 
 it('draws only the allowed statistic icons', function () {

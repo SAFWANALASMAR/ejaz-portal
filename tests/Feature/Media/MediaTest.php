@@ -24,8 +24,9 @@ it('shows the media center tiles, news, announcements, albums and partners, and 
         ->assertSee('خبر منشور')
         ->assertDontSee('خبر غير منشور');
 
-    // «قياس الرضا» لا يظهر بلا استبيان عام مفتوح، فلا رابط إلى 404
-    $response->assertDontSee(__('media.tiles.surveys'));
+    // «قياس الرضا» ظاهر بلا استبيان عام مفتوح، وصفحته برسالتها لا 404 (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $response->assertSee(__('media.tiles.surveys'));
+    $this->get(route('surveys.index'))->assertOk();
 });
 
 it('shows the satisfaction survey tile while a general survey is open', function () {

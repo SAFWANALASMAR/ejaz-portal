@@ -162,14 +162,12 @@ it('accepts only a YouTube link for the home video in the settings screen', func
         ->assertHasErrors(['data.home.video_url']);
 });
 
-it('shows and hides the survey tile at the survey times, without waiting for the cache', function () {
+it('keeps the survey tile before, during and after the survey times', function () {
+    // البطاقة دائماً، وصفحتها بلا استبيان مفتوح برسالتها (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
     Survey::factory()->create(['audience' => SurveyAudience::General, 'opens_at' => now()->addHour(), 'closes_at' => now()->addHours(3)]);
 
-    $this->get('/media')->assertOk()->assertDontSee(__('media.tiles.surveys'));
-
-    $this->travel(2)->hours();
-    $this->get('/media')->assertOk()->assertSee(__('media.tiles.surveys'));
-
-    $this->travel(2)->hours();
-    $this->get('/media')->assertOk()->assertDontSee(__('media.tiles.surveys'));
+    foreach ([0, 2, 2] as $hours) {
+        $this->travel($hours)->hours();
+        $this->get('/media')->assertOk()->assertSee(__('media.tiles.surveys'))->assertSee('href="'.route('surveys.index').'"', false);
+    }
 });
