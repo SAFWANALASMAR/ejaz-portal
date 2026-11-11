@@ -144,7 +144,8 @@ class LibraryController extends Controller implements HasMiddleware
         $key = $author !== '' ? 'library.item.meta_description_author' : 'library.item.meta_description';
         $replace = ['section' => $item->section->getLabel(), 'library' => __('library.title'), 'author' => $author];
         $room = self::DESCRIPTION_LENGTH - mb_strlen(__($key, [...$replace, 'title' => '']));
-        $text = __($key, [...$replace, 'title' => Str::limit($item->title, max(1, $room - 1), '…')]);
+        // العنوان المقصوص وعلامته «…» داخل الحد بحرف، فلا يقص القص الأخير نقطة الجملة (مراجعة #245)
+        $text = __($key, [...$replace, 'title' => Str::limit($item->title, max(1, $room - 2), '…')]);
 
         return Str::limit($text, self::DESCRIPTION_LENGTH - 1, '…');
     }

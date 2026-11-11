@@ -14,7 +14,6 @@ use App\Models\Document;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
 use App\Models\Setting;
-use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\NeutralImage;
 use Illuminate\Support\Facades\Storage;
@@ -39,8 +38,8 @@ function uploadPageHero(string $key, string $path): string
     Storage::disk('public')->put($path, 'x');
     $stored = Setting::group(HomeContent::KEY);
     $stored['page_heroes'][$key] = $path;
+    // حفظ الإعداد يفرّغ المخزّن بنفسه (Setting::saved)، فلا تفريغ يدوي
     Setting::put(HomeContent::KEY, $stored);
-    ContentCache::flush();
 
     return Storage::disk('public')->url($path);
 }
@@ -166,7 +165,16 @@ it('keeps the fallback description within 160 characters, cutting the title and 
         ->and($description)->toContain('…')
         ->and($description)->toContain('مؤلف الكتاب')
         ->and($description)->toContain(LibrarySection::Books->getLabel())
-        ->and($description)->toStartWith('عنوان طويل جداً لكتاب');
+        ->and($description)->toStartWith('عنوان طويل جداً لكتاب')
+        ->and($description)->toEndWith(__('library.title').'.');
+
+    // وبلا مؤلف، وقص العنوان وسط كلمة: النقطة باقية (مراجعة #245)
+    auditLibraryItem(['slug' => 'one-word', 'title' => str_repeat('ب', 200), 'section' => LibrarySection::Books, 'description' => null, 'author' => null]);
+    $oneWord = html_entity_decode((string) str((string) $this->get('/library/books/one-word')->assertOk()->getContent())->match('/<meta name="description" content="([^"]*)"/'));
+
+    expect(mb_strlen($oneWord))->toBeLessThanOrEqual(160)
+        ->and($oneWord)->toContain('ب…')
+        ->and($oneWord)->toEndWith(__('library.title').'.');
 });
 
 it('labels the add button of the initiative goals in Arabic', function () {
@@ -192,7 +200,8 @@ it('labels the add buttons of the guide steps and the site settings lists in Ara
         ->assertSee(__('settings.home.add_stat'))
         ->assertSee(__('settings.store.add_product'))
         ->assertSee(__('settings.donations.add_amount'))
-        ->assertDontSee('إضافة إلى home.stats')
-        ->assertDontSee('إضافة إلى store.products')
-        ->assertDontSee('إضافة إلى donations.amounts');
+        // Filament يبني التسمية الافتراضية مما بعد آخر نقطة في اسم الحقل
+        ->assertDontSee('إضافة إلى stats')
+        ->assertDontSee('إضافة إلى products')
+        ->assertDontSee('إضافة إلى amounts');
 });
