@@ -82,6 +82,17 @@ final class EditablePages
         return null;
     }
 
+    /**
+     * للصفحة وصف أصلي في المحرر (العنصر الرابع في PAGES، «الخدمات الإلكترونية» وحدها)، فتفريغه منه مقصود. وغيرها يمرر قالبها وصفه
+     * المعتمد إن مرره، فلا يمحوه نشرها بوصف فارغ (x-page-hero — docs/decisions/2026-11-11-fix-panel-gaps-nov11.md).
+     */
+    public static function hasOwnSummary(?string $routeName): bool
+    {
+        $key = self::keyForRoute($routeName);
+
+        return $key !== null && self::PAGES[$key][3] !== null;
+    }
+
     public static function keyForRoute(?string $routeName): ?string
     {
         foreach (self::PAGES as $key => [, $route]) {
