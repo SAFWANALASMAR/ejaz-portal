@@ -3,7 +3,7 @@
     بتخطيط Final-Home: بطاقات الأرقام في جهة، ورسم الزيارات في آخر 30 يوماً في الأخرى. الأرقام الآلية (الزيارات والمسجلون في
     المسابقات، ثم صفحات المكتبة المقروءة ودقائق المشاهدة والاستماع — docs/decisions/2026-11-02-portal-stats-library.md) من المخزّن في الخلفية (HomePortalStats)، ثم المعتمدة من «إعدادات الموقع»، بطاقات ملونة يعدّ رقمها تصاعدياً
     (x-stat-badge — motion.js، ولا عدّ لمن طلب تقليل الحركة فيظهر الرقم النهائي). والرسم SVG مضمَّن بالأزرق وحده، ويُرسم خطه
-    حين يظهر. ولا يظهر القسم بلا رقم ولا رسم.
+    حين يظهر. وبلا رقم ولا رسم (قبل أول حساب) بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026).
 
     $stats: list<array{label, value, suffix, icon}>، و$chart: array{line, area, total, max}|null، و$title و$intro من «محتوى الرئيسية».
 --}}
@@ -11,6 +11,9 @@
     <div class="mx-auto max-w-[82.5rem] px-4 pt-6 pb-7 sm:px-7 lg:pt-7 lg:pb-8">
         <x-section-heading id="home-stats" icon="chart-bar" :description="$intro" class="mb-4">{{ $title }}</x-section-heading>
 
+        @if ($stats === [] && $chart === null)
+            <x-empty-state icon="chart-bar" :message="__('home.empty.portal_stats')" data-home-empty="portal_stats" />
+        @endif
         <div @class(['grid gap-4', 'lg:grid-cols-[1fr_1.05fr]' => $stats !== [] && $chart !== null])>
             @if ($stats !== [])
                 <ul @class(['grid grid-cols-2 gap-3.5', 'lg:grid-cols-4' => $chart === null && count($stats) <= 4, 'lg:grid-cols-3' => $chart === null && count($stats) > 4]) data-reveal-group>

@@ -107,6 +107,7 @@ class BuildHomePage
      *     accounts: list<array{network: string, url: string}>,
      *     partners: Collection<int, Partner>,
      *     sponsors: Collection<int, Partner>,
+     *     shows: array{announcements: bool, news: bool, video: bool, initiatives: bool, videos: bool, stats: bool, partners: bool},
      * }
      */
     public function handle(): array
@@ -154,6 +155,17 @@ class BuildHomePage
             // اثنا عشر شريكاً واثنا عشر راعياً كلٌّ باستعلامه، فلا يحجب أحدهما الآخر، والبقية في صفحة الشركاء
             'partners' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Partner)->limit(12)->get() : new Collection,
             'sponsors' => self::shows($home, 'partners') ? Partner::query()->published()->where('kind', PartnerKind::Sponsor)->limit(12)->get() : new Collection,
+            // المقطع يظهر بإعداد إظهاره اليدوي وحده، ولو فرغ بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 —
+            // docs/decisions/2026-11-11-fix-show-empty-sections.md)
+            'shows' => [
+                'announcements' => self::shows($home, 'announcements'),
+                'news' => self::shows($home, 'latest'),
+                'video' => self::shows($home, 'video', false),
+                'initiatives' => self::shows($home, 'initiatives', false),
+                'videos' => self::shows($home, 'videos', false),
+                'stats' => HomeContent::showsPortalStats() || self::shows($home, 'stats', false),
+                'partners' => self::shows($home, 'partners'),
+            ],
         ];
     }
 

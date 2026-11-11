@@ -9,6 +9,10 @@
         <x-section-header id="home-videos" :title="__('home.videos.title')"
             :href="route('library.section', \App\Enums\LibrarySection::Videos->value)" :link-label="__('home.videos.all')" />
 
+        {{-- مُظهر من الإعدادات بلا مقطع: بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026) --}}
+        @if ($videos->isEmpty())
+            <x-empty-state icon="play-circle" :message="__('home.empty.videos')" class="mt-8" data-home-empty="old-videos" />
+        @else
         <ul class="scroll-row mt-8" data-reveal-group>
             @foreach ($videos as $item)
                 @php($youtube = $item->youtubeId())
@@ -39,5 +43,6 @@
                 </li>
             @endforeach
         </ul>
+        @endif
     </div>
 </section>

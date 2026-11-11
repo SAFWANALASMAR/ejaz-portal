@@ -5,6 +5,10 @@
 --}}
 <section class="home-band py-12 lg:py-16" data-band="4" aria-label="{{ __('home.video.label') }}">
     <div class="container-page">
+        @if ($youtube === null)
+            {{-- مُظهر من الإعدادات بلا رابط صالح: بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026) --}}
+            <x-empty-state icon="play-circle" :message="__('home.empty.video')" data-home-empty="video" />
+        @else
         <div class="card-lift mx-auto aspect-video max-w-4xl overflow-hidden">
             <a href="https://www.youtube.com/watch?v={{ $youtube }}" data-video-embed="https://www.youtube-nocookie.com/embed/{{ $youtube }}?autoplay=1"
                 data-video-title="{{ __('home.video.label') }}"
@@ -22,5 +26,6 @@
                 </span>
             </a>
         </div>
+        @endif
     </div>
 </section>

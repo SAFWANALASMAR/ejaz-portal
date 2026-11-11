@@ -16,8 +16,8 @@
     $who = collect($blocks)->first(fn (array $block): bool => $headingOf($block) === __('content.about.who_heading'));
     // «التوجه الاستراتيجي» أول الصفحة (البند ٢٨): نصه من مقطع بعنوانه، وإلا علامة «【ناقص】»
     $strategy = collect($blocks)->first(fn (array $block): bool => $headingOf($block) === __('content.about.strategy_heading'));
-    // ونصه الظاهر بقاعدة MissingText: بلا نص ظاهر (لا مقطع، أو نصه علامة 【ناقص】 مخفية) لا يُعرض المقطع، بدل شريط داكن بعنوانه
-    // وحده، إلا لمن يرى العلامات فيرى العلامة (docs/decisions/2026-11-10-fix-empty-identity-cards.md)
+    // ونصه الظاهر بقاعدة MissingText. وبلا نص ظاهر يبقى المقطع بسطر «يُضاف قريباً»، والعلامة مكانه لمن يراها (قرار صفوان، 11 نوفمبر 2026:
+    // «خلي كل شيء بالموقع ظاهر حتى لو ما فيه محتوى» — docs/decisions/2026-11-11-fix-show-empty-sections.md)
     $strategyText = $strategy !== null ? \App\Support\MissingText::shown(trim(str_replace("\u{00A0}", ' ', html_entity_decode(strip_tags(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : ''))))) : null;
     $quotes = collect([__('ui.identity.vision'), __('ui.identity.mission')])
         ->mapWithKeys(fn (string $heading): array => [$heading => collect($blocks)->first(fn (array $block): bool => $headingOf($block) === $heading)])
@@ -30,7 +30,6 @@
 {{-- مراسي القائمة المنسدلة «عن الجمعية» (البند ٢٨، وقرار 4 نوفمبر 2026 — AboutMenuAnchorsSeeder::ITEMS): about-strategy ثم about-who
      ثم about-vision وabout-mission ثم about-goals ثم about-values ثم about-rationale ثم about-initiatives، بإزاحة الرأس الثابت
      (scroll-padding-top في concept.css وحده، لا scroll-mt على المقطع فتتضاعف)، ومع التنقّل السريع (app.js) --}}
-@if ($strategyText !== null || \App\Support\MissingText::visible())
 <section id="about-strategy" class="mx-auto max-w-[82.5rem] px-4 pt-7 sm:px-7" aria-labelledby="about-strategy-title" data-about-strategy>
     <div class="tone-card about-who flex flex-col gap-3" data-tone="dark">
         <h2 id="about-strategy-title" class="text-[1.75rem] font-black">{{ __('content.about.strategy_heading') }}</h2>
@@ -38,6 +37,9 @@
             <div class="prose-ar text-[17px] leading-[1.9]">{{ \App\Support\RichText::toHtml(is_string($strategy['data']['body'] ?? null) ? $strategy['data']['body'] : null) }}</div>
         @else
             <x-missing :what="__('content.about.strategy_missing')" class="self-start" />
+            @unless (\App\Support\MissingText::visible())
+                <p class="text-[17px] leading-[1.9]" data-about-empty="strategy">{{ __('home.cards.soon') }}</p>
+            @endunless
         @endif
     </div>
 </section>
@@ -95,20 +97,26 @@
             @endforeach
         </x-marquee>
     </section>
-@elseif (\App\Support\MissingText::visible())
-    {{-- مجلس الإدارة لا يظهر في الموقع حتى تُدخل أسماؤه بموافقة أصحابها --}}
-    <div class="container-page py-8">
-        <x-missing :what="__('content.about.board_missing')" />
-    </div>
+@else
+    {{-- بلا أسماء: العنوان بحالته الفارغة، فلا اسم قبل موافقة صاحبه، والعلامة لمن يراها (قرار صفوان، 11 نوفمبر 2026) --}}
+    <section class="mx-auto max-w-[82.5rem] px-4 pt-9 pb-4 sm:px-7" aria-labelledby="board">
+        <x-section-heading id="board" icon="user-group" center class="mb-5">{{ __('content.about.board') }}</x-section-heading>
+        <x-empty-state icon="user-group" :message="__('content.about.board_empty')" data-about-empty="board">
+            <x-missing :what="__('content.about.board_missing')" />
+        </x-empty-state>
+    </section>
 @endif
 
-@if ($initiatives->isNotEmpty())
+{{-- المبادرات ظاهرة ولو فرغت بحالتها الفارغة (قرار صفوان، 11 نوفمبر 2026) --}}
     {{-- المرسى على الصف الثابت لا على العنوان المنزاح عند ظهوره (data-reveal)، فتقيس قفزة المتصفح موضعه الأخير (المشرف على طلب الدمج 183) --}}
     <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-12 sm:px-7" aria-labelledby="about-initiatives-title">
         <div id="about-initiatives" class="mb-4.5 flex items-center justify-between gap-4">
             <x-section-heading id="about-initiatives-title" icon="flag">{{ __('content.initiatives.title') }}</x-section-heading>
             <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}<span class="sr-only">: {{ __('content.initiatives.title') }}</span></a>
         </div>
+        @if ($initiatives->isEmpty())
+            <x-empty-state icon="flag" :message="__('content.initiatives.empty')" data-about-empty="initiatives" />
+        @else
         <ul class="grid gap-3.5 sm:grid-cols-3 lg:grid-cols-5" data-reveal-group>
             @foreach ($initiatives as $initiative)
                 <li class="tone-card">
@@ -122,5 +130,5 @@
                 </li>
             @endforeach
         </ul>
+        @endif
     </section>
-@endif
