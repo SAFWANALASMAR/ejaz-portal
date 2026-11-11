@@ -9,7 +9,7 @@ namespace App\Support;
  */
 class ShareImage
 {
-    public const DEFAULT = 'images/brand/share-default.png';
+    public const DEFAULT = 'images/brand/share-default.jpg';
 
     /**
      * أبعاد الصورة الافتراضية بالبكسل (og:image:width وog:image:height)، وتتغير معها إن استُبدلت.

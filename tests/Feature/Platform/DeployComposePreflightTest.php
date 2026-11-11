@@ -32,7 +32,7 @@ function deployPreflight(string $env): ProcessResult
 function deployCacheStorePreflight(string $env, string $script = 'scripts/deploy-compose.sh'): ProcessResult
 {
     $line = collect(file(base_path($script), FILE_IGNORE_NEW_LINES))
-        ->first(fn (string $line) => str_starts_with($line, "grep -E '^CACHE_STORE='"));
+        ->first(fn (string $line) => str_starts_with($line, "grep -E '^[[:space:]]*(export[[:space:]]+)?CACHE_STORE"));
 
     $dir = storage_path('framework/testing/deploy-cache-'.uniqid());
     File::ensureDirectoryExists($dir);
@@ -67,11 +67,17 @@ it('refuses to deploy unless the last CACHE_STORE line is redis, quoted or not, 
     'database' => ["CACHE_STORE=database\n", false],
     'file' => ["CACHE_STORE=file\n", false],
     'missing' => ["APP_KEY=base64:abc=\n", false],
+    // إعادة تعريف بصيغة غير قياسية بعد سطر redis، ويحلّها Compose (منخفضات مراجعة #242)
+    'indented database after redis' => ["CACHE_STORE=redis\n  CACHE_STORE=database\n", false],
+    'export database after redis' => ["CACHE_STORE=redis\nexport CACHE_STORE=database\n", false],
+    'space before = after redis' => ["CACHE_STORE=redis\nCACHE_STORE =database\n", false],
+    'colon form after redis' => ["CACHE_STORE=redis\nCACHE_STORE: database\n", false],
+    'one stray quote' => ["CACHE_STORE=redis\"\n", false],
 ]);
 
 it('checks the cache store in the preflight, before fetching the tag and the maintenance mode', function (string $path) {
     $script = (string) file_get_contents(base_path($path));
-    $guard = strpos($script, "grep -E '^CACHE_STORE='");
+    $guard = strpos($script, "grep -E '^[[:space:]]*(export[[:space:]]+)?CACHE_STORE");
 
     expect($guard)->toBeInt()
         ->and($guard)->toBeLessThan(strpos($script, 'git fetch --tags'))

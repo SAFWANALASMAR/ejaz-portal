@@ -1,9 +1,14 @@
 <?php
 
+use App\Actions\Content\PageEditor\EnsureEditablePage;
+use App\Actions\Content\PageEditor\PublishPageDraft;
+use App\Actions\Content\PageEditor\SavePageDraft;
 use App\Enums\DocumentCategory;
 use App\Enums\LibrarySection;
 use App\Enums\RoleName;
 use App\Filament\Pages\HomeContentPage;
+use App\Filament\Pages\SiteSettings;
+use App\Filament\Resources\AssistantGuides\Pages\CreateAssistantGuide;
 use App\Filament\Resources\Initiatives\Pages\CreateInitiative;
 use App\Models\Document;
 use App\Models\LibraryItem;
@@ -13,10 +18,12 @@ use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\NeutralImage;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
-| فحص الموقع الحي كاملاً (11 نوفمبر 2026، بأمر صفوان — docs/decisions/2026-11-11-fix-site-audit-nov11.md): صورة القسم لصفحاته
+| فحص الموقع الحي كاملاً (11 نوفمبر 2026، بأمر صفوان — docs/decisions/2026-11-11-fix-site-audit-nov11.md، ومنخفضات مراجعته في
+| docs/decisions/2026-11-11-fix-site-audit-lows.md): صورة القسم لصفحاته
 | الفرعية، وخانة المتجر، ووصف عنصر المكتبة وعنوانه، وزر الأهداف. والبندان ٣ و٤ لم يُنفَّذا (ينقضان توجيه المدير، 3 نوفمبر).
 */
 
@@ -59,7 +66,26 @@ beforeEach(function () {
 
 it('gives the section image to its inner pages, after the page own upload and the item image, before the neutral pattern', function () {
     Document::factory()->create(['slug' => 'policy', 'category' => DocumentCategory::Policies]);
-    $governance = uploadPageHero('governance', 'settings/governance-hero.jpg');
+
+    // قبل الرفع: نقش القسم، والصفحة مخزّنة
+    expect(auditHeroImage($this->get('/governance/policy')->assertOk()->getContent()))->toBe(asset('images/placeholders/pages/governance.svg'));
+
+    // الرفع بالحفظ الفعلي، بلا تفريغ يدوي للمخزّن: صورة رأس «الحوكمة» تُنشر من «محرر الصفحات» (EditablePages)، والنشر وحده
+    // يحدّث الصفحة المخزّنة
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $page = app(EnsureEditablePage::class)->handle($admin, 'governance');
+    $hero = 'settings/'.Str::random(20).'.png';
+    Storage::disk('public')->put($hero, imageBytes('png', 40, 20));
+    app(SavePageDraft::class)->handle($admin, $page, [
+        'title' => __('governance.title'),
+        'summary' => null,
+        'image' => $hero,
+        'blocks' => [['type' => 'text', 'data' => ['heading' => 'الحوكمة', 'body' => '<p>نص</p>', 'visible' => true]]],
+    ]);
+    app(PublishPageDraft::class)->handle($admin, $page);
+    $governance = Storage::disk('public')->url($hero);
+
+    expect(Setting::group(HomeContent::KEY)['page_heroes']['governance'] ?? null)->toBe($hero);
 
     // وثيقة الحوكمة بلا صورة لها: صورة قسمها
     expect(auditHeroImage($this->get('/governance/policy')->assertOk()->getContent()))->toBe($governance)
@@ -81,16 +107,16 @@ it('gives the section image to its inner pages, after the page own upload and th
 
 it('picks the section by the longest route prefix, as the neutral pattern does', function () {
     expect(HomeContent::pageKey('media.news.show'))->toBe('news')
-        ->and(HomeContent::pageKey('media.show'))->toBe('media')
+        ->and(HomeContent::pageKey('media.social'))->toBe('media')
         ->and(HomeContent::pageKey('governance.show'))->toBe('governance')
-        ->and(HomeContent::pageKey('services.show'))->toBe('services')
+        ->and(HomeContent::pageKey('services.openings.show'))->toBe('services')
         ->and(HomeContent::pageKey('contact'))->toBe('contact')
         ->and(HomeContent::pageKey('privacy'))->toBeNull()
         ->and(HomeContent::pageKey(null))->toBeNull();
 
     $media = uploadPageHero('media', 'settings/media-hero.jpg');
     expect(HomeContent::sectionHeroUrl('media.news.show'))->toBeNull()
-        ->and(HomeContent::sectionHeroUrl('media.show'))->toBe($media);
+        ->and(HomeContent::sectionHeroUrl('media.social'))->toBe($media);
 });
 
 it('adds a header image slot for the store page, with its Arabic label and neutral pattern', function () {
@@ -116,16 +142,31 @@ it('describes a library item without a description by its title, section and aut
 
     $description = fn (string $html): string => html_entity_decode((string) str($html)->match('/<meta name="description" content="([^"]*)"/'));
     $title = fn (string $html): string => html_entity_decode((string) str($html)->match('/<title>([^<]*)<\/title>/'));
+    $ogTitle = fn (string $html): string => html_entity_decode((string) str($html)->match('/<meta property="og:title" content="([^"]*)"/'));
 
     expect($description($audio))->toBe(__('library.item.meta_description_author', ['title' => 'الناصية', 'author' => 'محاضر', 'section' => LibrarySection::Audio->getLabel(), 'library' => __('library.title')]))
         ->and($description($video))->toBe(__('library.item.meta_description', ['title' => 'الناصية', 'section' => LibrarySection::Videos->getLabel(), 'library' => __('library.title')]))
         ->and($title($audio))->toContain('الناصية — '.LibrarySection::Audio->getLabel())
         ->and($title($video))->toContain('الناصية — '.LibrarySection::Videos->getLabel())
-        ->and($title($audio))->not->toBe($title($video));
+        ->and($title($audio))->not->toBe($title($video))
+        ->and($ogTitle($audio))->toBe('الناصية — '.LibrarySection::Audio->getLabel());
 
     // والوصف المكتوب يبقى كما هو
     auditLibraryItem(['slug' => 'with-text', 'title' => 'كتاب', 'section' => LibrarySection::Books, 'description' => 'وصف مكتوب للكتاب']);
     expect($description((string) $this->get('/library/books/with-text')->assertOk()->getContent()))->toBe('وصف مكتوب للكتاب');
+});
+
+it('keeps the fallback description within 160 characters, cutting the title and keeping the section', function () {
+    auditLibraryItem(['slug' => 'long-title', 'title' => trim(str_repeat('عنوان طويل جداً لكتاب ', 9)), 'section' => LibrarySection::Books, 'description' => null, 'author' => 'مؤلف الكتاب']);
+
+    $html = (string) $this->get('/library/books/long-title')->assertOk()->getContent();
+    $description = html_entity_decode((string) str($html)->match('/<meta name="description" content="([^"]*)"/'));
+
+    expect(mb_strlen($description))->toBeLessThanOrEqual(160)
+        ->and($description)->toContain('…')
+        ->and($description)->toContain('مؤلف الكتاب')
+        ->and($description)->toContain(LibrarySection::Books->getLabel())
+        ->and($description)->toStartWith('عنوان طويل جداً لكتاب');
 });
 
 it('labels the add button of the initiative goals in Arabic', function () {
@@ -133,5 +174,25 @@ it('labels the add button of the initiative goals in Arabic', function () {
 
     Livewire::test(CreateInitiative::class)
         ->assertSee(__('initiatives.fields.add_goal'))
-        ->assertDontSee('goals</span>', false);
+        ->assertDontSee('إضافة إلى goals');
+});
+
+it('labels the add buttons of the guide steps and the site settings lists in Arabic', function () {
+    $this->actingAs(userWithRole(RoleName::TechnicalAdmin));
+
+    Livewire::test(CreateAssistantGuide::class)
+        ->assertSee(__('assistant.admin.guides.add_step'))
+        ->assertDontSee('إضافة إلى steps');
+
+    // المتجر والتبرعات خلف PAYMENTS_ENABLED (مؤرشف)، وتسميتهما تُختبر مفعّلين
+    config(['payments.enabled' => true]);
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(SiteSettings::class)
+        ->assertSee(__('settings.home.add_stat'))
+        ->assertSee(__('settings.store.add_product'))
+        ->assertSee(__('settings.donations.add_amount'))
+        ->assertDontSee('إضافة إلى home.stats')
+        ->assertDontSee('إضافة إلى store.products')
+        ->assertDontSee('إضافة إلى donations.amounts');
 });
