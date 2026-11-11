@@ -67,7 +67,7 @@ it('saves a published partner without a logo from the form, and shows it by name
     $partner = Partner::query()->where('name', 'جمعية ترياق')->sole();
     expect($partner->is_published)->toBeTrue()->and($partner->logo)->toBeNull();
 
-    $this->get('/media/partners')->assertOk()->assertSee('جمعية ترياق');
+    $this->get('/media/partners')->assertOk()->assertSee('جمعية ترياق')->assertSee('data-partner-no-logo', false);
     $this->get('/')->assertOk()->assertSee('<span class="partner-placeholder" data-partner-placeholder>جمعية ترياق</span>', false);
 });
 
