@@ -130,7 +130,8 @@ it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the
 it('shows the four portal cards even when all four numbers are zero, and none before the first run or with the section switched off', function () {
     directorHomeContent();
     directorVisits(0, 0);
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
+    // قبل أول حساب: القسم ظاهر بحالته الفارغة بلا بطاقة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertOk()->assertSee('data-home-empty="portal_stats"', false)->assertDontSee('data-stat-badge', false);
 
     ContentCache::flush();
     $this->artisan('ejaz:refresh-stats');

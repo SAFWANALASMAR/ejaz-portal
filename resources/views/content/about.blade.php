@@ -43,7 +43,6 @@
         @endif
     </div>
 </section>
-@endif
 
 @if ($who !== null || $quotes->isNotEmpty())
     <section class="mx-auto max-w-[82.5rem] px-4 pt-7 pb-8 sm:px-7" aria-label="{{ __('content.about.intro_label') }}" data-about-intro>

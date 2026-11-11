@@ -21,7 +21,9 @@
     <x-page-hero :title="__('competitions.list.heading')" />
     <x-page-sections />
 
-    {{-- الأقسام الثلاثة ظاهرة دائماً، والفارغ بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md) --}}
+    {{-- الأقسام الثلاثة ظاهرة دائماً في الصفحة الأولى، والفارغ بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 —
+         docs/decisions/2026-11-11-fix-show-empty-sections.md). والصفحات التالية للسابقة وحدها كما كانت --}}
+    @if ($past->currentPage() === 1)
             <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-4 sm:px-7" aria-labelledby="competitions-current" data-competitions-current>
                 <x-section-heading id="competitions-current" icon="trophy" class="mb-5">{{ __('ui.inner.competitions.current') }}</x-section-heading>
                 @if ($current === null)
@@ -84,6 +86,7 @@
                     @endif
                 </div>
             </section>
+    @endif
 
             <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-6 sm:px-7" aria-labelledby="competitions-past" data-competitions-past>
                 <x-section-heading id="competitions-past" icon="archive-box" class="mb-5">{{ __('ui.inner.competitions.past') }}</x-section-heading>
