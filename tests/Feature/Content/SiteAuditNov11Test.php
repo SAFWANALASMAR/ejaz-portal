@@ -11,15 +11,13 @@ use App\Models\NewsArticle;
 use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
-use App\Support\HomePortalStats;
 use App\Support\NeutralImage;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 /*
 | فحص الموقع الحي كاملاً (11 نوفمبر 2026، بأمر صفوان — docs/decisions/2026-11-11-fix-site-audit-nov11.md): صورة القسم لصفحاته
-| الفرعية، وخانة المتجر، وبطاقات «البوابة بالأرقام» الصفرية، والشريط القليل ثابتاً، ووصف عنصر المكتبة وعنوانه، وزر الأهداف.
+| الفرعية، وخانة المتجر، ووصف عنصر المكتبة وعنوانه، وزر الأهداف. والبندان ٣ و٤ لم يُنفَّذا (ينقضان توجيه المدير، 3 نوفمبر).
 */
 
 function auditHeroImage(string $html): string
@@ -107,48 +105,6 @@ it('adds a header image slot for the store page, with its Arabic label and neutr
 
     $store = uploadPageHero('store', 'settings/store-hero.jpg');
     expect(auditHeroImage($this->get('/store')->assertOk()->getContent()))->toBe($store);
-});
-
-it('hides a portal number card at zero, and the whole section when nothing is left', function () {
-    Setting::put(HomeContent::KEY, ['portal_stats' => ['enabled' => true]]);
-    Cache::forever(HomePortalStats::KEY, ['visits' => 40, 'registrants' => 0, 'book_reads' => 3, 'media_views' => 0, 'days' => [40]]);
-    ContentCache::flush();
-
-    $html = (string) $this->get('/')->assertOk()->getContent();
-
-    expect($html)->toContain('data-portal-stats')
-        ->toContain(__('home.portal_stats.visits'))
-        ->toContain(__('home.portal_stats.book_reads'))
-        ->not->toContain(__('home.portal_stats.registrants'))
-        ->not->toContain(__('home.portal_stats.media_views'));
-
-    Cache::forever(HomePortalStats::KEY, ['visits' => 0, 'registrants' => 0, 'book_reads' => 0, 'media_views' => 0, 'days' => []]);
-    ContentCache::flush();
-
-    expect((string) $this->get('/')->assertOk()->getContent())->not->toContain('data-portal-stats');
-});
-
-it('shows three library items or fewer as a still row without repeats, and more as the moving strip', function () {
-    foreach (['one', 'two'] as $slug) {
-        auditLibraryItem(['slug' => 'book-'.$slug, 'title' => 'كتاب '.$slug, 'section' => LibrarySection::Books, 'on_home' => true]);
-    }
-    ContentCache::flush();
-
-    $html = (string) $this->get('/')->assertOk()->getContent();
-    $books = (string) str($html)->after('data-media-strip="books"')->before('</div>');
-
-    expect($html)->toContain('data-static-strip')
-        ->and(substr_count($books, 'href="'.route('library.show', ['books', 'book-one']).'"'))->toBe(1)
-        ->and(substr_count($html, 'id="home-strip-books-track"'))->toBe(0);
-
-    foreach (['three', 'four'] as $slug) {
-        auditLibraryItem(['slug' => 'book-'.$slug, 'title' => 'كتاب '.$slug, 'section' => LibrarySection::Books, 'on_home' => true]);
-    }
-    ContentCache::flush();
-
-    $moving = (string) $this->get('/')->assertOk()->getContent();
-    expect($moving)->toContain('id="home-strip-books-track"')
-        ->and((string) str($moving)->after('data-home-strips')->before('data-x-card'))->not->toContain('data-media-strip="books" data-static-strip');
 });
 
 it('describes a library item without a description by its title, section and author, and names the page with its section', function () {

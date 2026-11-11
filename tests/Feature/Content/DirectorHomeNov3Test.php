@@ -105,7 +105,7 @@ it('runs the YouTube and books strips in alternating directions, each full width
         ->and(substr_count($strips, 'data-marquee data-direction="horizontal" data-loop'))->toBe(2);
 });
 
-it('shows the portal cards above zero as a grid beside the 30-day chart, without the library cards at zero (audit 11 Nov 2026)', function () {
+it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the library cards at their real zero', function () {
     directorHomeContent();
     directorVisits(30, 20, 10);
     CompetitionSubmission::factory()->create(['competition_id' => Competition::factory()->create()->id, 'registered_at' => now()]);
@@ -113,30 +113,30 @@ it('shows the portal cards above zero as a grid beside the 30-day chart, without
 
     $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
 
-    // فحص 11 نوفمبر 2026: البطاقة الصفرية لا تُعرض، فلا قراءات ولا مشاهدات هنا
-    expect(substr_count($section, 'data-stat-badge'))->toBe(2)
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
         ->and($section)->toContain('data-portal-chart')
         ->and($section)->toContain('grid grid-cols-2 gap-3.5')
         ->and($section)->toContain('data-count-to="60"')
         ->and($section)->toContain('data-count-to="1"')
-        ->and($section)->not->toContain('data-count-to="0"')
-        ->and($section)->not->toContain(__('home.portal_stats.book_reads'))
-        ->and($section)->not->toContain(__('home.portal_stats.media_views'));
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(2);
 
     // البطاقات قبل الرسم في الشيفرة، فهي يميناً (RTL)، وبالترتيب
-    expect(strpos($section, __('home.portal_stats.registrants')))->toBeLessThan(strpos($section, 'data-portal-chart'))
-        ->and(strpos($section, __('home.portal_stats.visits')))->toBeLessThan(strpos($section, __('home.portal_stats.registrants')));
+    expect(strpos($section, __('home.portal_stats.media_views')))->toBeLessThan(strpos($section, 'data-portal-chart'))
+        ->and(strpos($section, __('home.portal_stats.visits')))->toBeLessThan(strpos($section, __('home.portal_stats.registrants')))
+        ->and(strpos($section, __('home.portal_stats.registrants')))->toBeLessThan(strpos($section, __('home.portal_stats.book_reads')))
+        ->and(strpos($section, __('home.portal_stats.book_reads')))->toBeLessThan(strpos($section, __('home.portal_stats.media_views')));
 });
 
-it('shows no portal section while all four numbers are zero, before the first run, or with the section switched off', function () {
+it('shows the four portal cards even when all four numbers are zero, and none before the first run or with the section switched off', function () {
     directorHomeContent();
     directorVisits(0, 0);
     $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
 
     ContentCache::flush();
     $this->artisan('ejaz:refresh-stats');
-    // الأربعة صفر ولا رسم: لا قسم (فحص 11 نوفمبر 2026)
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
+    $section = (string) str($this->get('/')->assertOk()->getContent())->after('data-portal-stats')->before('</section>');
+    expect(substr_count($section, 'data-stat-badge'))->toBe(4)
+        ->and(substr_count($section, 'data-count-to="0"'))->toBe(4);
 
     DailyVisit::query()->update(['visitors' => 5]);
     Setting::put(HomeContent::KEY, ['portal_stats' => ['enabled' => false]]);

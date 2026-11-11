@@ -135,21 +135,21 @@ it('moves a single partner too, repeated to fill the strip and read once, and si
         ->and($section)->toContain('data-ticker-toggle="home-partners-track"');
 });
 
-it('moves fewer than six videos or eight books too (above three), each read once', function () {
+it('moves fewer than six videos or eight books too, each read once', function () {
     LibraryItem::factory()->video()->count(5)->create(['thumbnail' => 'library/thumbs/a.jpg']);
-    LibraryItem::factory()->count(4)->create(['section' => LibrarySection::Books, 'thumbnail' => 'library/thumbs/b.jpg']);
+    LibraryItem::factory()->count(3)->create(['section' => LibrarySection::Books, 'thumbnail' => 'library/thumbs/b.jpg']);
 
     $strips = (string) str($this->get('/')->assertOk()->getContent())->after('data-home-strips')->before('</section>');
     $videos = (string) str($strips)->after('data-media-strip="videos"')->before('data-media-strip="books"');
     $books = (string) str($strips)->after('data-media-strip="books"');
 
-    // خمسة مقاطع وأربعة كتب: ضعفان لكل منهما (ثلاث نسخ مخفية). وثلاثة أو أقل صف ثابت (فحص 11 نوفمبر 2026، SiteAuditNov11Test)
-    expect($strips)->not->toContain('data-marquee-static')->not->toContain('data-static-strip')
+    // خمسة مقاطع: ضعفان (ثلاث نسخ مخفية)، وثلاثة كتب: ثلاثة أضعاف (خمس نسخ مخفية)
+    expect($strips)->not->toContain('data-marquee-static')
         ->and(substr_count($strips, 'data-ticker-toggle'))->toBe(2)
         ->and(substr_count($videos, 'data-marquee-copy aria-hidden="true" inert'))->toBe(3)
-        ->and(substr_count($books, 'data-marquee-copy aria-hidden="true" inert'))->toBe(3)
+        ->and(substr_count($books, 'data-marquee-copy aria-hidden="true" inert'))->toBe(5)
         ->and(substr_count((string) str($videos)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(5)
-        ->and(substr_count((string) str($books)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(4);
+        ->and(substr_count((string) str($books)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(3);
 });
 
 // ملاحظة المدير ٢٤: الشريطان «تحت خدماتنا» مباشرة، ثم الإعلانات والأخبار، والدرجات تبقى متعاقبة

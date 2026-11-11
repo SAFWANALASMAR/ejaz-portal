@@ -6,13 +6,11 @@
     ولمن طلب تقليل الحركة. ولا تشغيل في الرئيسية: الضغط إلى صفحة المقطع أو الكتاب. وما فرغ يختفي، والعناوين من «محتوى الرئيسية».
 
     $videos وَ$books: Collection<LibraryItem>، و$x: array{url, handle}|null، و$headings: عناوين الأقسام.
-    وثلاثة عناصر أو أقل ثابتة في الوسط بلا تكرار (فحص 11 نوفمبر 2026، ويلغي «الشريط القليل يتحرك» من البند ١١ في إضافة توجيه
-    المدير، 3 نوفمبر). وما فوقها يتحرك: ستة مقاطع (200 بكسل وفاصل) أو ثمانية كتب (144 بكسل وفاصل) تملأ عرض المحتوى على 1440
-    (نحو 1264 بكسل)، وما قلّ عنها يتكرر في المسار (repeat) حتى يملأه.
+    والشريط القليل يتحرك أيضاً (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١١: «ما كان يتحرك يبقى يتحرك»): ستة مقاطع (200 بكسل
+    وفاصل) أو ثمانية كتب (144 بكسل وفاصل) تملأ عرض المحتوى على 1440 (نحو 1264 بكسل)، وما قلّ عنها يتكرر في المسار (repeat) حتى يملأه.
 --}}
 @php
     $movingFrom = ['videos' => 6, 'books' => 8];
-    $staticUpTo = 3;
     // كل شريط عكس الذي قبله (إضافة توجيه المدير، 3 نوفمبر 2026، البند ١٧): يوتيوب من اليمين إلى اليسار، ثم الكتب من اليسار إلى اليمين.
     // وشريط «الأبحاث والدراسات» خرج من الرئيسية (ملاحظات المدير ليلة 5 نوفمبر 2026، البند 3): شريط واحد للمكتبة، وقسمها باقٍ فيها
     $flipped = ['videos' => true, 'books' => false];
@@ -27,24 +25,36 @@
                         <a href="{{ $kind === 'videos' ? route('library.section', \App\Enums\LibrarySection::Videos->value) : route('library.index') }}" wire:navigate class="more-link shrink-0">{{ __('ui.news.more') }}<span class="sr-only">: {{ $headings[$kind] }}</span></a>
                     </div>
 
-                    {{-- ثلاثة عناصر أو أقل ثابتة في الوسط بلا تكرار ولا حركة (فحص الموقع الحي، 11 نوفمبر 2026 — كان كتابان يتكرران أربع
-                         مرات)، وما فوقها شريط متحرك يتكرر حتى يملأ العرض --}}
-                    @if ($items->count() <= $staticUpTo)
-                        <div class="media-strip-static" data-media-strip="{{ $kind }}" data-static-strip>
-                            @foreach ($items as $item)
-                                @include('home.partials.media-tile', ['item' => $item, 'kind' => $kind, 'number' => $loop->iteration])
-                            @endforeach
-                        </div>
-                    @else
-                        @php($repeat = (int) ceil($movingFrom[$kind] / $items->count()))
+                    @php($repeat = (int) ceil($movingFrom[$kind] / $items->count()))
 
-                        <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7) * $repeat" :repeat="$repeat" data-media-strip="{{ $kind }}"
-                            @class(['media-marquee', 'media-marquee-flip' => $flipped[$kind], 'media-marquee-books' => $kind !== 'videos'])>
-                            @foreach ($items as $item)
-                                @include('home.partials.media-tile', ['item' => $item, 'kind' => $kind, 'number' => $loop->iteration])
-                            @endforeach
-                        </x-marquee>
-                    @endif
+                    <x-marquee id="home-strip-{{ $kind }}-track" :label="$headings[$kind]" :duration="max(30, $items->count() * 7) * $repeat" :repeat="$repeat" data-media-strip="{{ $kind }}"
+                        @class(['media-marquee', 'media-marquee-flip' => $flipped[$kind], 'media-marquee-books' => $kind !== 'videos'])>
+                        @foreach ($items as $item)
+                            <a href="{{ route('library.show', [$item->section->value, $item->slug]) }}" wire:navigate data-card class="tone-card media-tile group">
+                                <span @class(['media-tile-thumb', 'media-tile-book' => $kind !== 'videos'])>
+                                    @if ($thumbnail = $item->thumbnailUrl())
+                                        <img src="{{ $thumbnail }}" alt="" loading="lazy" width="{{ $kind === 'videos' ? 200 : 144 }}" height="{{ $kind === 'videos' ? 118 : 192 }}"
+                                            class="size-full object-cover transition duration-500 group-hover:scale-105">
+                                    @else
+                                        {{-- بلا صورة: مربع بتدرج أزرق وأيقونة، كما في التصور (البند ٢٤). والكتاب والبحث بأيقونة الكتاب نفسها
+                                             (إضافة توجيه المدير، 3 نوفمبر 2026، البند ٦) --}}
+                                        <span class="media-tile-placeholder" data-thumb-placeholder aria-hidden="true">
+                                            @if ($kind !== 'videos')
+                                                {{ \App\Support\Icon::svg(\App\Enums\LibrarySection::Books->icon(), 'size-10') }}
+                                            @endif
+                                        </span>
+                                    @endif
+                                    @if ($kind === 'videos')
+                                        <x-video-number :number="$loop->iteration" />
+                                        <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                                            <span class="youtube-play">{{ \App\Support\Icon::solid('play', 'size-4') }}</span>
+                                        </span>
+                                    @endif
+                                </span>
+                                <span class="media-tile-caption">{{ $item->title }}</span>
+                            </a>
+                        @endforeach
+                    </x-marquee>
                 </div>
             @endif
         @endforeach
