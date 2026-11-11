@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<!-- صورة المشاركة الافتراضية 1200×630 (public/images/brand/share-default.png): عناصر الهوية وحدها — الرمز والمخطوطة البيضاوان
+     واسم الجمعية المعتمد — على تدرج الهوية الأزرق، بلا نص جديد. يرسمها render.mjs، والخط Zain من أصول البناء -->
+<style>
+    html, body { margin: 0; }
+    .card {
+        position: relative;
+        display: flex;
+        width: 1200px;
+        height: 630px;
+        box-sizing: border-box;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #142E45 0%, #1F4565 45%, #2E6898 100%);
+        font-family: 'Zain', sans-serif;
+        color: #ffffff;
+    }
+    .card::before {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 80% 15%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 60%);
+        content: '';
+    }
+    .card::after {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        height: 10px;
+        background: #8EC5F0;
+        content: '';
+    }
+    .brand { position: relative; display: flex; align-items: center; gap: 40px; }
+    .mark { width: 210px; height: auto; }
+    .calligraphy { width: 560px; height: auto; }
+    .name { position: relative; margin: 0; font-size: 46px; font-weight: 800; line-height: 1.3; }
+</style>
+</head>
+<body>
+    <div class="card" data-share-card>
+        <div class="brand">
+            <img class="mark" src="{{MARK}}" alt="">
+            <img class="calligraphy" src="{{CALLIGRAPHY}}" alt="">
+        </div>
+        <p class="name">{{NAME}}</p>
+    </div>
+</body>
+</html>

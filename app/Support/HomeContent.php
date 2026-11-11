@@ -100,7 +100,7 @@ final class HomeContent
     /**
      * صورة رأس كل صفحة داخلية ثابتة (صفوان عبر المشرف، 1 نوفمبر 2026): خانة لكل صفحة تُرفع من «محتوى الرئيسية» وتُحفظ في
      * page_heroes.<الصفحة>، فتغلب على بديل رأسها. وبلا صورة يبقى البديل الحالي (x-page-hero). المفتاح ← اسم المسار. وصفحات
-     * السجلات (برنامج، خبر، مبادرة...) بصورة سجلها خارجها.
+     * السجلات (برنامج، خبر، مبادرة...) بصورة سجلها، وإلا صورة قسمها بأطول بادئة (sectionHeroUrl — فحص 11 نوفمبر 2026).
      *
      * @var array<string, string>
      */
@@ -120,6 +120,7 @@ final class HomeContent
         'contact' => 'contact',
         'assembly' => 'assembly.index',
         'achievements' => 'achievements.index',
+        'store' => 'store.index',
     ];
 
     /**
@@ -221,6 +222,44 @@ final class HomeContent
     {
         $key = array_search($routeName, self::PAGE_HEROES, true);
         $path = $key === false ? null : self::clean(Setting::group(self::KEY)['page_heroes'][$key] ?? null);
+
+        return $path !== null ? Storage::disk('public')->url($path) : null;
+    }
+
+    /**
+     * خانة الصفحة لاسم مسارها: خانته نفسها، وإلا قسمه بأطول بادئة (media.news.show ← news، وgovernance.show ← governance)، أو null.
+     */
+    public static function pageKey(?string $routeName): ?string
+    {
+        if ($routeName === null) {
+            return null;
+        }
+
+        $match = null;
+        $longest = 0;
+
+        foreach (self::PAGE_HEROES as $page => $route) {
+            if ($routeName === $route) {
+                return $page;
+            }
+
+            $prefix = str_contains($route, '.') ? substr($route, 0, (int) strrpos($route, '.') + 1) : $route.'.';
+
+            if (str_starts_with($routeName, $prefix) && strlen($prefix) > $longest) {
+                [$match, $longest] = [$page, strlen($prefix)];
+            }
+        }
+
+        return $match;
+    }
+
+    /**
+     * رابط صورة رأس القسم المرفوعة لصفحاته الفرعية (وثيقة، مبادرة، خدمة، مقطع)، أو null. وتأتي بعد صورة العنصر نفسه في x-page-hero.
+     */
+    public static function sectionHeroUrl(?string $routeName): ?string
+    {
+        $key = self::pageKey($routeName);
+        $path = $key === null ? null : self::clean(Setting::group(self::KEY)['page_heroes'][$key] ?? null);
 
         return $path !== null ? Storage::disk('public')->url($path) : null;
     }

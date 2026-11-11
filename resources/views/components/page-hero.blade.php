@@ -21,8 +21,10 @@
         // وصف المحرر يغلب، إلا علامة «【ناقص】» فيه والقالب يمرر نصاً معتمداً (نص «تواصل معنا» — إضافة توجيه المدير، البند ٣٠)
         $summary = filled($summary) && str_contains((string) $editable['summary'], '【') ? $summary : $editable['summary'];
     }
-    // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم ما يمرره القالب، ثم نقش الصفحة المحايد (NeutralImage)
-    $heroSrc = \App\Support\HomeContent::pageHeroUrl(request()->route()?->getName()) ?? $image ?? ($images[0] ?? null) ?? \App\Support\NeutralImage::forPage(request()->route()?->getName());
+    // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم صورة العنصر التي يمررها القالب، ثم صورة القسم
+    // المرفوعة لصفحاته الفرعية (وثيقة، مبادرة، خدمة، مقطع — فحص 11 نوفمبر 2026)، ثم نقش الصفحة المحايد (NeutralImage)
+    $routeName = request()->route()?->getName();
+    $heroSrc = \App\Support\HomeContent::pageHeroUrl($routeName) ?? $image ?? ($images[0] ?? null) ?? \App\Support\HomeContent::sectionHeroUrl($routeName) ?? \App\Support\NeutralImage::forPage($routeName);
     // صور تتبدل في الإطار (رأس «مكتبة إعجاز» — البند ٢٥): أكثر من صورة وحدها، وإلا الصورة الواحدة ثابتة
     $rotating = count($images) > 1 ? array_values($images) : [];
 @endphp

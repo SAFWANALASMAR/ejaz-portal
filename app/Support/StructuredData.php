@@ -67,7 +67,7 @@ class StructuredData
             'name' => __('site.name'),
             'alternateName' => __('site.short_name'),
             'url' => url('/'),
-            'logo' => asset(ShareImage::DEFAULT),
+            'logo' => asset(ShareImage::LOGO),
             'sameAs' => $social,
             'email' => $email,
         ]);
@@ -247,7 +247,7 @@ class StructuredData
             'dateModified' => self::date($article->updated_at),
             'inLanguage' => 'ar',
             'author' => self::organizer(),
-            'publisher' => [...self::organizer(), 'logo' => ['@type' => 'ImageObject', 'url' => asset(ShareImage::DEFAULT)]],
+            'publisher' => [...self::organizer(), 'logo' => ['@type' => 'ImageObject', 'url' => asset(ShareImage::LOGO)]],
         ]);
     }
 

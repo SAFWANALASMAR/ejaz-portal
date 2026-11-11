@@ -55,7 +55,7 @@ it('describes the association on every public page from the site settings', func
         expect($organization)->not->toBeNull()
             ->and($organization['name'])->toBe(__('site.name'))
             ->and($organization['url'])->toBe(url('/'))
-            ->and($organization['logo'])->toBe(asset(ShareImage::DEFAULT))
+            ->and($organization['logo'])->toBe(asset(ShareImage::LOGO))
             ->and($organization['email'])->toBe('info@ejaz.sa')
             // الرابط غير الآمن لا يُكتب
             ->and($organization['sameAs'])->toBe(['https://x.com/ejaz_sa']);

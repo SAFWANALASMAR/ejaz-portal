@@ -82,6 +82,7 @@ return [
         'page_hero_contact' => 'تواصل معنا',
         'page_hero_assembly' => 'الجمعية العمومية',
         'page_hero_achievements' => 'إنجازاتنا',
+        'page_hero_store' => 'متجر الجمعية',
         'header_licensed_by' => 'مربع الترخيص: السطر الأول',
         'header_license_number' => 'مربع الترخيص: السطر الثاني (الرقم)',
         'brand' => 'الشعار والمخطوطة',

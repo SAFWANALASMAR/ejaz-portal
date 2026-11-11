@@ -22,3 +22,10 @@ it('falls back to the site default as an absolute url', function (?string $image
 it('points the default at an image that exists', function () {
     expect(public_path(ShareImage::DEFAULT))->toBeFile();
 });
+
+it('keeps the square logo for structured data and a 1200x630 default for sharing', function () {
+    [$width, $height] = getimagesize(public_path(ShareImage::DEFAULT));
+
+    expect(public_path(ShareImage::LOGO))->toBeFile()
+        ->and([$width, $height])->toBe([1200, 630]);
+});

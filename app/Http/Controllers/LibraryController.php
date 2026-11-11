@@ -106,8 +106,8 @@ class LibraryController extends Controller implements HasMiddleware
 
             return [
                 'title' => $item->title,
-                // الوصف لمحركات البحث والمشاركة، وإلا اسم القسم كما كان
-                'summary' => StructuredData::text($item->description, 160) ?? $item->section->getLabel(),
+                // الوصف لمحركات البحث والمشاركة، وإلا عنوان العنصر وقسمه ومؤلفه أو ملقيه (فحص 11 نوفمبر 2026: كان اسم القسم وحده)
+                'summary' => StructuredData::text($item->description, 160) ?? self::metaDescription($item),
                 'image' => $item->thumbnail ? Storage::disk('public')->url($item->thumbnail) : null,
                 // الكتاب Book والمرئية VideoObject (StructuredData)
                 'schema' => array_filter([StructuredData::libraryItem($item)]),
@@ -117,11 +117,28 @@ class LibraryController extends Controller implements HasMiddleware
             ];
         });
 
+        $sectionLabel = LibrarySection::from($section)->getLabel();
+
         return view('content.page', [
             ...$page,
+            // عنوان الصفحة في المتصفح ومحركات البحث بقسمه، فلا يتطابق عنوانا الصوتية والمرئية بالاسم نفسه
+            'documentTitle' => __('library.item.document_title', ['title' => $page['title'], 'section' => $sectionLabel]),
             'html' => new HtmlString(ReaderTicket::inject($page['html'], $request, $page['reader'] ?? null)),
-            'breadcrumb' => [[__('library.title'), route('library.index')], [LibrarySection::from($section)->getLabel(), route('library.section', $section)]],
+            'breadcrumb' => [[__('library.title'), route('library.index')], [$sectionLabel, route('library.section', $section)]],
         ]);
+    }
+
+    /**
+     * وصف العنصر بلا وصف مكتوب: عنوانه، ومؤلفه أو ملقيه إن وُجد، وقسمه في المكتبة.
+     */
+    private static function metaDescription(LibraryItem $item): string
+    {
+        $author = trim((string) $item->author);
+        $replace = ['title' => $item->title, 'section' => $item->section->getLabel(), 'library' => __('library.title')];
+
+        return $author !== '' && ! str_contains($author, '【')
+            ? __('library.item.meta_description_author', [...$replace, 'author' => $author])
+            : __('library.item.meta_description', $replace);
     }
 
     /**
