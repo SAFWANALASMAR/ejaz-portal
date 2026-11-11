@@ -37,6 +37,9 @@ grep -Eq '^SESSION_SECURE_COOKIE=true$' .env || fail "SESSION_SECURE_COOKIE يج
 grep -Eq '^TRUSTED_PROXIES=.+' .env || echo "تنبيه: TRUSTED_PROXIES فارغ. خلف موزع أحمال تتعطل حدود الشبكات (docs/security.md)"
 grep -Eq '^TRUSTED_PROXIES=.*\*' .env && echo "تنبيه: TRUSTED_PROXIES=* يصدّق رأس X-Forwarded-For من أي مصدر، فتُزوَّر حدود الشبكات. لا * إلا والخادم معزول خلف موزع يستبدل الرأس، والأفضل عناوين الموزع بعينها (docs/security.md)"
 grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل حتى يُضبط المزود من «قنوات التواصل» في اللوحة (docs/guides/messaging.md)"
+# رمز قارئ الكتب والوثائق لمرة واحدة يُستهلك ذرياً بالحذف من Redis (docs/decisions/2026-11-11-fix-reader-protection-lows.md).
+# آخر سطر CACHE_STORE هو ما يقرؤه لارافيل، والقيمة مقتبسة أو لا
+grep -E '^CACHE_STORE=' .env | tail -n 1 | grep -Eq '^CACHE_STORE="?redis"?$' || fail "CACHE_STORE يجب أن يكون redis: رمز قارئ الكتب والوثائق لمرة واحدة لا يُستهلك ذرياً في غيره"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || fail "في المجلد تعديلات غير محفوظة. لا تُعدَّل الشيفرة على الخادم"
 git fetch --tags --force --quiet origin
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "الوسم $TAG غير موجود"

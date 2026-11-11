@@ -28,6 +28,56 @@ function deployPreflight(string $env): ProcessResult
     }
 }
 
+/** يشغّل سطر فحص CACHE_STORE من سكربت النشر المعطى على ملف .env المعطى. */
+function deployCacheStorePreflight(string $env, string $script = 'scripts/deploy-compose.sh'): ProcessResult
+{
+    $line = collect(file(base_path($script), FILE_IGNORE_NEW_LINES))
+        ->first(fn (string $line) => str_starts_with($line, "grep -E '^CACHE_STORE='"));
+
+    $dir = storage_path('framework/testing/deploy-cache-'.uniqid());
+    File::ensureDirectoryExists($dir);
+    File::put($dir.'/.env', $env);
+    File::put($dir.'/check.sh', "set -euo pipefail\nfail() { echo \"$1\" >&2; exit 1; }\n{$line}\necho passed\n");
+
+    try {
+        return Process::path($dir)->run(['bash', 'check.sh']);
+    } finally {
+        File::deleteDirectory($dir);
+    }
+}
+
+// رمز قارئ الكتب والوثائق لمرة واحدة ذري في Redis وحده (المراجعة المستقلة على #229 — decisions/2026-11-11-fix-reader-protection-lows.md)
+it('refuses to deploy unless the last CACHE_STORE line is redis, quoted or not, in both deploy scripts', function (string $env, bool $passes) {
+    foreach (['scripts/deploy-compose.sh', 'scripts/deploy.sh'] as $script) {
+        $result = deployCacheStorePreflight($env, $script);
+
+        expect($result->successful())->toBe($passes, $script.': '.$result->errorOutput());
+
+        if (! $passes) {
+            expect($result->errorOutput())->toContain('CACHE_STORE');
+        }
+    }
+
+    expect(file_get_contents(base_path('.env.production.example')))->toMatch('/^CACHE_STORE=redis$/m');
+})->with([
+    'redis' => ["APP_KEY=base64:abc=\nCACHE_STORE=redis\n", true],
+    'quoted redis' => ["CACHE_STORE=\"redis\"\n", true],
+    'database last after redis' => ["CACHE_STORE=redis\nCACHE_STORE=database\n", false],
+    'redis last after database' => ["CACHE_STORE=database\nCACHE_STORE=redis\n", true],
+    'database' => ["CACHE_STORE=database\n", false],
+    'file' => ["CACHE_STORE=file\n", false],
+    'missing' => ["APP_KEY=base64:abc=\n", false],
+]);
+
+it('checks the cache store in the preflight, before fetching the tag and the maintenance mode', function (string $path) {
+    $script = (string) file_get_contents(base_path($path));
+    $guard = strpos($script, "grep -E '^CACHE_STORE='");
+
+    expect($guard)->toBeInt()
+        ->and($guard)->toBeLessThan(strpos($script, 'git fetch --tags'))
+        ->and($guard)->toBeLessThan(strpos($script, 'artisan down'));
+})->with(['scripts/deploy-compose.sh', 'scripts/deploy.sh']);
+
 it('passes a filled .env, ignoring placeholders in comments', function () {
     $result = deployPreflight("APP_KEY=base64:abc=\n# MAIL_HOST=<مزود البريد>\nMAIL_HOST=smtp.office365.com\n");
 
