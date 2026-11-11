@@ -269,8 +269,12 @@ test.describe('student: competition', () => {
                 const radio = group.locator('input[type=radio]');
                 if (await radio.count()) await radio.first().check();
             }
-            await Promise.all([page.waitForLoadState('load'), page.getByRole('button', { name: /التالي|المراجعة/ }).first().click()]);
-            await page.waitForURL(/\/(units\/\d+|review)$/);
+            // التنقّل بين الأسئلة داخل الصفحة منذ #213 (decisions/2026-11-07-exam-fullscreen.md): لا تحميل للصفحة، والعنوان يُستبدل
+            // بعد الحفظ، فيُنتظر عنوان الخطوة التالية ثم زر غير مشغول قبل الخطوة التي بعدها
+            const from = page.url();
+            await page.getByRole('button', { name: /التالي|المراجعة/ }).first().click();
+            await page.waitForURL((url) => url.href !== from && /\/(units\/\d+|review)$/.test(url.pathname));
+            await expect(page.locator('[data-exam-step][aria-busy="true"]')).toHaveCount(0);
         }
 
         await expect(page).toHaveURL(/\/review$/);

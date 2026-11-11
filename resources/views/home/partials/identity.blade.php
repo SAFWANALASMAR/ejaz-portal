@@ -126,7 +126,7 @@
                     <div class="home-card-body pb-0!">
                         <h2 class="home-card-head">
                             <x-icon-tile icon="sparkles" size="sm" class="home-card-icon" />{{ $headings['initiatives'] }}
-                            <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link home-card-more">{{ $headings['all_initiatives'] }}</a>
+                            <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link home-card-more">{{ $headings['all_initiatives'] }}<span class="sr-only">: {{ $headings['initiatives'] }}</span></a>
                         </h2>
                     </div>
                     {{-- كل المبادرات المنشورة تتبدل (البند ٩) --}}

@@ -3,6 +3,7 @@
 use App\Enums\LibrarySection;
 use App\Models\Announcement;
 use App\Models\Competition;
+use App\Models\Initiative;
 use App\Models\LibraryItem;
 use App\Models\NewsArticle;
 use App\Models\Opening;
@@ -11,6 +12,7 @@ use App\Models\Program;
 use App\Models\ProgramRegistration;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Support\HomeContent;
 use Illuminate\Support\Facades\Blade;
 
 /*
@@ -49,7 +51,7 @@ it('names the section of every «more» and «view all» link on the home page',
     $html = $this->get('/')->assertOk()->getContent();
     preg_match_all('/<a [^>]*class="more-link[^"]*"[^>]*>(.*?)<\/a>/su', $html, $links);
 
-    // الروابط بنص عام وحدها («المزيد» و«عرض الكل»)، لا ما نصه يصف وجهته («كل المبادرات»): الإعلانات والأخبار والمقاطع والكتب والشركاء
+    // الروابط بنص عام «المزيد» و«عرض الكل»: الإعلانات والأخبار والمقاطع والكتب والشركاء. و«الكل» في بطاقة «مبادراتنا» في الاختبار التالي
     $generic = array_values(array_filter($links[1], fn (string $text): bool => str_starts_with($text, __('ui.news.more')) || str_starts_with($text, __('site.view_all'))));
 
     expect($generic)->toHaveCount(5);
@@ -60,6 +62,15 @@ it('names the section of every «more» and «view all» link on the home page',
 
     // ولا يتكرر اسم رابطين
     expect(array_unique($generic))->toHaveCount(5);
+});
+
+it('names the section of the initiatives «all» link for screen readers', function () {
+    Initiative::factory()->create(['is_published' => true]);
+
+    $html = $this->get('/')->assertOk()->getContent();
+    preg_match('/<a [^>]*class="more-link home-card-more"[^>]*>(.*?)<\/a>/su', $html, $link);
+
+    expect($link[1] ?? '')->toBe(HomeContent::defaultText('headings', 'all_initiatives').'<span class="sr-only">: '.HomeContent::defaultText('headings', 'initiatives').'</span>');
 });
 
 it('names the section of the «view all» links on the account home', function () {
