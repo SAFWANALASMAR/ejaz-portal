@@ -100,7 +100,8 @@ class LibraryController extends Controller implements HasMiddleware
         abort_unless((self::publishedSlugs()[$slug] ?? null) === $section, 404);
 
         /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>, reader?: ?string} $page */
-        $page = ContentCache::remember('library.show.'.$slug, function () use ($slug): array {
+        // reader.: مفتاح جديد منذ حماية القارئ، فلا تُقرأ صفحة خُزّنت قبل النشر بلا رابط الرمز ولا علامته (المراجعة المستقلة على #229)
+        $page = ContentCache::remember('library.show.reader.'.$slug, function () use ($slug): array {
             $item = LibraryItem::query()->published()->where('slug', $slug)->firstOrFail();
 
             return [

@@ -58,6 +58,9 @@ final class ReaderFileResponse
             throw new ThrottleRequestsException(headers: ['Retry-After' => RateLimiter::availableIn($key)]);
         }
 
+        // HEAD لا يرسله القارئ، ويرسله برنامج التحميل قبل التنزيل: 404 بلا استهلاك الرمز (المراجعة المستقلة على #229)
+        abort_if($request->isMethod('HEAD'), 404);
+
         $secret = ReaderTicket::consume($request, $scope);
         abort_if($secret === null, 404);
 

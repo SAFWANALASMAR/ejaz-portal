@@ -3,15 +3,20 @@
 use App\Enums\DocumentCategory;
 use App\Models\Document;
 use App\Models\LibraryItem;
+use App\Support\ContentCache;
 use App\Support\ReaderFileResponse;
+use App\Support\ReaderTicket;
+use Illuminate\Cache\ArrayStore;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 
 /*
 | حماية ملفات «للقراءة فقط» من برامج التحميل (قرار صفوان، 10 نوفمبر 2026 — docs/decisions/2026-11-10-feat-reader-download-protection.md):
-| رمز لمرة واحدة للجلسة والعنصر مدته دقيقة، وترويسة القارئ وطلب fetch من الموقع نفسه، والبايتات مخلوطة بمفتاح الرمز بنوع
+| رمز لمرة واحدة للجلسة والعنصر مدته خمس دقائق، وترويسة القارئ وطلب fetch من الموقع نفسه، والبايتات مخلوطة بمفتاح الرمز بنوع
 | application/octet-stream. لكتب المكتبة ووثائق الحوكمة «للاطلاع فقط» ودليل البراهين، والكتاب القابل للتنزيل كما هو.
 */
 
@@ -124,12 +129,18 @@ it('refuses a ticket from another session', function () {
     readerFetch('/library/books/book/file', $ticket)->assertNotFound();
 });
 
-it('refuses a ticket after its minute', function () {
-    $ticket = readerTicket(protectedBook());
+it('accepts a ticket within five minutes and refuses it after', function () {
+    $book = protectedBook();
+    $early = readerTicket($book);
+    $late = readerTicket($book);
 
-    $this->travel(61)->seconds();
+    $this->travel(ReaderTicket::TTL_SECONDS - 10)->seconds();
+    readerFetch('/library/books/book/file', $early)->assertOk();
 
-    readerFetch('/library/books/book/file', $ticket)->assertNotFound();
+    $this->travel(20)->seconds();
+    readerFetch('/library/books/book/file', $late)->assertNotFound();
+
+    expect(ReaderTicket::TTL_SECONDS)->toBe(300);
 });
 
 it('refuses a ticket for another item', function () {
@@ -172,6 +183,91 @@ it('refuses HEAD without a ticket, so a download manager cannot probe the file',
     protectedBook();
 
     $this->call('HEAD', '/library/books/book/file')->assertNotFound();
+});
+
+it('refuses HEAD even with a valid ticket, and leaves that ticket for the reader', function () {
+    $ticket = readerTicket(protectedBook());
+
+    readerFetch('/library/books/book/file', $ticket, method: 'HEAD')->assertNotFound();
+    readerFetch('/library/books/book/file', $ticket)->assertOk();
+});
+
+it('gives two sessions different tickets from one cached page, and neither works for the other', function () {
+    protectedBook();
+    // النص المخزّن كما هو بلا رسم جديد (إن لم يكن مخزّناً رد null)
+    $cached = fn (): mixed => ContentCache::remember('library.show.reader.book', fn (): mixed => null);
+
+    $firstPage = $this->get('/library/books/book')->assertOk();
+    $stored = $cached();
+    $secondPage = $this->get('/library/books/book')->assertOk();
+
+    // الطلب الثاني من الصفحة المخزّنة نفسها، لا رسم جديد: النص المخزّن بعلامته لم يتغير
+    expect($stored)->toBeArray()
+        ->and($stored['html'])->toContain(ReaderTicket::SLOT)
+        ->and($cached())->toBe($stored);
+
+    $first = ticketFromPage($firstPage);
+    $second = ticketFromPage($secondPage);
+
+    expect($first['session'])->not->toBe($second['session'])
+        ->and($first['ticket'])->not->toBe($second['ticket']);
+
+    // رمز الأولى بجلسة الثانية، ورمز الثانية بجلسة الأولى: 404 كلاهما
+    readerFetch('/library/books/book/file', [...$first, 'session' => $second['session']])->assertNotFound();
+    readerFetch('/library/books/book/file', [...$second, 'session' => $first['session']])->assertNotFound();
+
+    // ورمزان جديدان من الصفحة المخزّنة نفسها، كل واحد بجلسته: يعملان
+    $freshFirst = ticketFromPage($this->withCookie((string) config('session.cookie'), $first['session'])->get('/library/books/book')->assertOk());
+    $freshSecond = ticketFromPage($this->withCookie((string) config('session.cookie'), $second['session'])->get('/library/books/book')->assertOk());
+
+    readerFetch('/library/books/book/file', [...$freshFirst, 'session' => $first['session']])->assertOk();
+    readerFetch('/library/books/book/file', [...$freshSecond, 'session' => $second['session']])->assertOk();
+    expect($cached())->toBe($stored);
+});
+
+it('injects the ticket into the reader only, even when the item title carries the slot text', function () {
+    protectedBook(['title' => 'كتاب data-pdf-ticket-slot="" فيه العلامة']);
+
+    $html = (string) $this->get('/library/books/book')->assertOk()->getContent();
+
+    expect(substr_count($html, 'data-pdf-ticket="'))->toBe(1)
+        ->and($html)->toMatch('/data-pdf-ticket-url="[^"]+" data-pdf-ticket="[0-9a-f]{64}" data-pdf-key="/')
+        ->and($html)->toContain('data-pdf-ticket-slot=&quot;&quot;')
+        ->and($html)->not->toContain('data-pdf-ticket-slot=""');
+});
+
+it('does not read a page cached before the protection, so the reader always gets its ticket link and slot', function () {
+    protectedBook();
+    // الصفحة كما خُزّنت قبل النشر بالمفتاح القديم: قارئ بلا رابط رمز ولا علامة
+    ContentCache::remember('library.show.book', fn (): array => ['title' => 'كتاب', 'summary' => 'كتاب', 'image' => null, 'html' => '<div data-pdf-reader="/library/books/book/file">قديم</div>']);
+
+    $html = (string) $this->get('/library/books/book')->assertOk()->getContent();
+
+    expect($html)->not->toContain('>قديم</div>')
+        ->and($html)->toContain('data-pdf-ticket-url="'.route('library.reader-ticket', ['books', 'book']).'"')
+        ->and($html)->toMatch('/data-pdf-ticket="[0-9a-f]{64}"/');
+});
+
+it('refuses a ticket when the store does not confirm it deleted it, so a racing request gets nothing', function () {
+    Cache::extend('forgetful', fn () => Cache::repository(new class extends ArrayStore
+    {
+        public function forget($key)
+        {
+            parent::forget($key);
+
+            return false;
+        }
+    }));
+    config(['cache.stores.forgetful' => ['driver' => 'forgetful']]);
+    Cache::setDefaultDriver('forgetful');
+
+    $book = protectedBook();
+    $request = Request::create('/library/books/book/file');
+    $request->setLaravelSession(app('session')->driver());
+    $issued = ReaderTicket::issue($request, ReaderTicket::scope($book));
+    $request->query->set('t', $issued['ticket']);
+
+    expect(ReaderTicket::consume($request, ReaderTicket::scope($book)))->toBeNull();
 });
 
 it('keeps the per-address limit, counting every file request, with a retry time', function () {
@@ -220,6 +316,27 @@ it('refuses a ticket POST without the CSRF token', function () {
     $this->postJson('/library/books/book/reader-ticket')->assertStatus(419);
     $this->postJson('/governance/policy/reader-ticket')->assertStatus(419);
 });
+
+// حماية لارافيل من تزوير الطلب تقبل طلب الموقع نفسه بترويسة المتصفح Sec-Fetch-Site بلا رمز، وترفض الطلب من موقع آخر بلا رمز
+// (على الخادم بعد نشر v0.15.7 نجح POST من الصفحة نفسها بلا X-CSRF-TOKEN — المشرف، 11 نوفمبر 2026)
+it('accepts a ticket POST from the same origin without a token, and refuses it from another site', function (string $site, int $status) {
+    protectedBook();
+    viewOnlyDocument();
+    $this->app->singleton(PreventRequestForgery::class, fn ($app) => new class($app, $app['encrypter']) extends PreventRequestForgery
+    {
+        protected function runningUnitTests()
+        {
+            return false;
+        }
+    });
+
+    $this->postJson('/library/books/book/reader-ticket', [], ['Sec-Fetch-Site' => $site])->assertStatus($status);
+    $this->postJson('/governance/policy/reader-ticket', [], ['Sec-Fetch-Site' => $site])->assertStatus($status);
+})->with([
+    'cross-site' => ['cross-site', 419],
+    'same-site' => ['same-site', 419],
+    'same-origin' => ['same-origin', 200],
+]);
 
 it('protects a view-only governance document by the same rule, from its page to the unmixed bytes', function () {
     $document = viewOnlyDocument();
