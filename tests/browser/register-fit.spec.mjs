@@ -142,7 +142,8 @@ test('the register page on the phone keeps its single column with no horizontal 
 });
 
 // أول نقرة على مربع الموافقة تؤشّره ولو جاء التركيز من «تأكيد كلمة المرور» (باقٍ من #189 — decisions/2026-11-11-fix-post-launch-polish.md):
-// كان تنبيه التسريب يُقص عند ترك عمود كلمة المرور، فيقصر العمود ويرتفع المربع تحت المؤشر قبل أن تقع النقرة
+// كان تنبيه التسريب يُقص عند ترك عمود كلمة المرور، فيقصر العمود ويرتفع المربع تحت المؤشر قبل أن تقع النقرة. وصار لقارئ الشاشة وحده
+// على الحاسوب (مراجعة #244)
 test('the first click on the privacy box ticks it when focus comes from the password confirmation', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'الحاسوب');
     await openRegister(page, 1366, 768);
@@ -159,3 +160,22 @@ test('the first click on the privacy box ticks it when focus comes from the pass
     const after = await privacy.boundingBox();
     expect(Math.abs(after.y - before.y), 'المربع لم يتحرك عند فقد التركيز').toBeLessThan(1);
 });
+
+// وبعد الكتابة والتركيز في كلمة المرور وتأكيدها لا تطول البطاقة (مراجعة #244، شرط المدير في #189): الزر داخل نافذة 1366×657،
+// والبطاقة كاملة في 1366×768، كما قبل التركيز
+for (const [height, part] of [[657, 'submit'], [768, 'card']]) {
+    test(`after typing in the password and its confirmation, the ${part === 'submit' ? 'create button' : 'whole card'} still fits at 1366×${height}`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop', 'الحاسوب');
+        await openRegister(page, 1366, height);
+        const untouched = await measure(page);
+
+        await page.locator('#field-password').fill('Strong#Pass2026x');
+        await page.locator('#field-password_confirmation').fill('Strong#Pass2026x');
+        await page.locator('#field-password_confirmation').focus();
+        const focused = await measure(page);
+
+        expect(focused[part], `بعد التركيز (${JSON.stringify(focused)})`).toBeLessThanOrEqual(height);
+        expect(focused.card, 'طول البطاقة لم يتغير بالتركيز').toBe(untouched.card);
+        expect(focused.scrolled).toBe(0);
+    });
+}

@@ -72,9 +72,6 @@ onPage((signal) => {
         input.setAttribute('aria-describedby', [...described].join(' '));
         const refresh = () => update(box, input);
         input.addEventListener('input', refresh, { signal });
-        // التسجيل على الحاسوب (concept.css): تنبيه التسريب يظهر بالتركيز في عمود كلمة المرور ويبقى بعده، فلا يقصر العمود عند تركه فيرتفع
-        // مربع الموافقة تحت المؤشر وتضيع أول نقرة (decisions/2026-11-11-fix-post-launch-polish.md)
-        box.parentElement?.addEventListener('focusin', () => { box.dataset.leakedShown = ''; }, { signal, once: true });
         ['field-name', 'field-email', 'field-phone'].forEach((id) => document.getElementById(id)?.addEventListener('input', refresh, { signal }));
         refresh();
     });
