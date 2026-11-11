@@ -1,5 +1,8 @@
 <?php
 
+use App\Actions\Content\PageEditor\EnsureEditablePage;
+use App\Actions\Content\PageEditor\PublishPageDraft;
+use App\Actions\Content\PageEditor\SavePageDraft;
 use App\Enums\DocumentCategory;
 use App\Enums\LibrarySection;
 use App\Enums\RoleName;
@@ -14,8 +17,8 @@ use App\Models\Setting;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use App\Support\NeutralImage;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
@@ -67,13 +70,22 @@ it('gives the section image to its inner pages, after the page own upload and th
     // قبل الرفع: نقش القسم، والصفحة مخزّنة
     expect(auditHeroImage($this->get('/governance/policy')->assertOk()->getContent()))->toBe(asset('images/placeholders/pages/governance.svg'));
 
-    // الرفع بالحفظ الفعلي من «محتوى الرئيسية»، بلا تفريغ يدوي للمخزّن: الحفظ وحده يحدّث الصفحة المخزّنة
-    $this->actingAs(userWithRole(RoleName::ContentEditor));
-    Livewire::test(HomeContentPage::class)
-        ->fillForm(['page_heroes.governance' => UploadedFile::fake()->image('governance.jpg', 1600, 600)])
-        ->call('save')
-        ->assertHasNoFormErrors();
-    $governance = Storage::disk('public')->url((string) (Setting::group(HomeContent::KEY)['page_heroes']['governance'] ?? ''));
+    // الرفع بالحفظ الفعلي، بلا تفريغ يدوي للمخزّن: صورة رأس «الحوكمة» تُنشر من «محرر الصفحات» (EditablePages)، والنشر وحده
+    // يحدّث الصفحة المخزّنة
+    $admin = userWithRole(RoleName::TechnicalAdmin);
+    $page = app(EnsureEditablePage::class)->handle($admin, 'governance');
+    $hero = 'settings/'.Str::random(20).'.png';
+    Storage::disk('public')->put($hero, imageBytes('png', 40, 20));
+    app(SavePageDraft::class)->handle($admin, $page, [
+        'title' => __('governance.title'),
+        'summary' => null,
+        'image' => $hero,
+        'blocks' => [['type' => 'text', 'data' => ['heading' => 'الحوكمة', 'body' => '<p>نص</p>', 'visible' => true]]],
+    ]);
+    app(PublishPageDraft::class)->handle($admin, $page);
+    $governance = Storage::disk('public')->url($hero);
+
+    expect(Setting::group(HomeContent::KEY)['page_heroes']['governance'] ?? null)->toBe($hero);
 
     // وثيقة الحوكمة بلا صورة لها: صورة قسمها
     expect(auditHeroImage($this->get('/governance/policy')->assertOk()->getContent()))->toBe($governance)
@@ -145,7 +157,7 @@ it('describes a library item without a description by its title, section and aut
 });
 
 it('keeps the fallback description within 160 characters, cutting the title and keeping the section', function () {
-    auditLibraryItem(['slug' => 'long-title', 'title' => str_repeat('عنوان طويل جداً لكتاب ', 20), 'section' => LibrarySection::Books, 'description' => null, 'author' => 'مؤلف الكتاب']);
+    auditLibraryItem(['slug' => 'long-title', 'title' => trim(str_repeat('عنوان طويل جداً لكتاب ', 9)), 'section' => LibrarySection::Books, 'description' => null, 'author' => 'مؤلف الكتاب']);
 
     $html = (string) $this->get('/library/books/long-title')->assertOk()->getContent();
     $description = html_entity_decode((string) str($html)->match('/<meta name="description" content="([^"]*)"/'));
