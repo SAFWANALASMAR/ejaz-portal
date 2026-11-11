@@ -13,6 +13,7 @@ use App\Models\Opening;
 use App\Models\Page;
 use App\Models\Program;
 use App\Support\ContentCache;
+use App\Support\Seo;
 use DateTimeInterface;
 use Illuminate\Http\Response;
 
@@ -58,7 +59,8 @@ class SitemapController extends Controller
      */
     private static function urls(): array
     {
-        $urls = array_map(fn (string $route): array => self::entry($route), self::STATIC_ROUTES);
+        // والقائمة الفارغة خارجها حتى أول عنصر منشور (Seo::LISTINGS)
+        $urls = array_map(fn (string $route): array => self::entry($route), array_values(array_diff(self::STATIC_ROUTES, Seo::emptyListings())));
 
         foreach (LibrarySection::cases() as $section) {
             $urls[] = self::entry('library.section', ['section' => $section->value]);

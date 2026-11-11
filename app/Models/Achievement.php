@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AchievementStatus;
+use App\Models\Concerns\FlushesContentCache;
 use Database\Factories\AchievementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,8 @@ use Spatie\Activitylog\Support\LogOptions;
 class Achievement extends Model
 {
     /** @use HasFactory<AchievementFactory> */
-    use HasFactory, HasUuids, LogsActivity, SoftDeletes;
+    // ونشره يمسح ذاكرة المحتوى، فتعود «إنجازاتنا» إلى خريطة الموقع والفهرسة بأول إنجاز (feat/seo-foundation)
+    use FlushesContentCache, HasFactory, HasUuids, LogsActivity, SoftDeletes;
 
     public const DIRECTORY = 'achievements';
 

@@ -28,8 +28,11 @@
     $paginated = request()->attributes->get(\App\Providers\AppServiceProvider::PAGINATED_PAGE);
     $pageNumber = is_int($paginated) && $paginated > 1 ? $paginated : null;
     $titleText = $title && $pageNumber ? $title.' - '.__('site.page_number', ['number' => $pageNumber]) : $title;
-    $pageTitle = $titleText ? $titleText.' | '.__('site.short_name') : $siteName;
-    $pageDescription = $description ?: __('site.description');
+    // ولاحقة الجمعية تسقط إن تجاوز بها العنوان 65 حرفاً، ووصف القائمة من lang/ar/seo.php قبل الوصف العام، والقائمة الفارغة
+    // خارج الفهرسة حتى أول عنصر منشور (feat/seo-foundation)
+    $pageTitle = $titleText ? \App\Support\Seo::title($titleText) : $siteName;
+    $pageDescription = $description ?: (\App\Support\Seo::description(request()->route(), $title) ?? __('site.description'));
+    $noindex = $noindex || \App\Support\Seo::isEmptyListing(request()->route()?->getName());
     $canonicalUrl = url()->current().($pageNumber && array_keys(request()->query()) === ['page'] ? '?page='.$pageNumber : '');
     $shareImage = \App\Support\ShareImage::url($image);
     $defaultShareImage = \App\Support\ShareImage::isDefault($shareImage);
@@ -46,6 +49,15 @@
     <meta name="description" content="{{ $pageDescription }}">
     @if ($noindex)
         <meta name="robots" content="noindex, nofollow">
+    @else
+        {{-- رمزا إثبات ملكية الموقع لـ Google Search Console وBing Webmaster Tools من .env، في الصفحات العامة المفهرسة وحدها،
+             ولا يُطبعان فارغين --}}
+        @if (filled(config('services.google.site_verification')))
+            <meta name="google-site-verification" content="{{ config('services.google.site_verification') }}">
+        @endif
+        @if (filled(config('services.bing.site_verification')))
+            <meta name="msvalidate.01" content="{{ config('services.bing.site_verification') }}">
+        @endif
     @endif
     @stack('head')
     @if ($canonical)
