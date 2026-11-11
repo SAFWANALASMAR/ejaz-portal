@@ -298,7 +298,7 @@ it('describes the announcements page by its intro only once it replaces the samp
 
 it('renders a library page cached before the structured data existed', function () {
     $item = LibraryItem::factory()->create(['slug' => 'old-cache', 'title' => 'كتاب قديم']);
-    ContentCache::remember('library.show.old-cache', fn (): array => ['title' => 'كتاب قديم', 'summary' => 'الكتب', 'image' => null, 'html' => '<p>قديم</p>']);
+    ContentCache::remember('library.show.reader.old-cache', fn (): array => ['title' => 'كتاب قديم', 'summary' => 'الكتب', 'image' => null, 'html' => '<p>قديم</p>']);
 
     $response = $this->get('/library/books/old-cache')->assertOk()->assertSee('قديم');
 
