@@ -140,3 +140,22 @@ test('the register page on the phone keeps its single column with no horizontal 
     await expect(page.locator('[data-password-rules] #field-password-rules-heading')).toBeVisible();
     await page.screenshot({ path: `${DIR}/register-390.png`, fullPage: true });
 });
+
+// أول نقرة على مربع الموافقة تؤشّره ولو جاء التركيز من «تأكيد كلمة المرور» (باقٍ من #189 — decisions/2026-11-11-fix-post-launch-polish.md):
+// كان تنبيه التسريب يُقص عند ترك عمود كلمة المرور، فيقصر العمود ويرتفع المربع تحت المؤشر قبل أن تقع النقرة
+test('the first click on the privacy box ticks it when focus comes from the password confirmation', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'الحاسوب');
+    await openRegister(page, 1366, 768);
+
+    await page.locator('#field-password').fill('Strong#Pass2026x');
+    await page.locator('#field-password_confirmation').fill('Strong#Pass2026x');
+    await page.locator('#field-password_confirmation').focus();
+
+    const privacy = page.locator('input[name="privacy"]');
+    const before = await privacy.boundingBox();
+    await page.mouse.click(before.x + before.width / 2, before.y + before.height / 2);
+
+    await expect(privacy).toBeChecked();
+    const after = await privacy.boundingBox();
+    expect(Math.abs(after.y - before.y), 'المربع لم يتحرك عند فقد التركيز').toBeLessThan(1);
+});

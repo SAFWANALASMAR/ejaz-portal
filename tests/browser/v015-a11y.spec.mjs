@@ -500,7 +500,8 @@ test.describe('keyboard operability and names', () => {
 
     test('every «more» and «view all» link carries the name of its section', async ({ page }) => {
         await open(page, '/');
-        const names = await page.locator('main a.more-link').evaluateAll((links) => links.map((link) => {
+        // نسخ الشريط المتحرك مخفية عن قارئ الشاشة ولوحة المفاتيح (data-marquee-copy، ومنها شريط البطاقات منذ #224)، فلا تُعد
+        const names = await page.locator('main a.more-link').evaluateAll((links) => links.filter((link) => !link.closest('[data-marquee-copy]')).map((link) => {
             // الاسم المحسوب تقريباً: النص كاملاً بما فيه المخفي بصرياً
             return link.getAttribute('aria-label') ?? link.textContent.replace(/\s+/g, ' ').trim();
         }));

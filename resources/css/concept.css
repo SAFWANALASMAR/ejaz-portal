@@ -2110,8 +2110,10 @@ html[data-motion-off] .section-heading-icon {
         background: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
 
+    /* الرأس فاتح منذ «فاتح بصورة واحدة»، فالإطار بالأزرق الداكن لا الأبيض، 3:1 فأكثر (اختبار الوصول —
+       decisions/2026-11-11-fix-post-launch-polish.md) */
     .hero-register:focus-visible {
-        outline: 2px solid var(--color-white);
+        outline: 2px solid var(--color-primary-dark);
         outline-offset: 2px;
     }
 
@@ -3698,7 +3700,9 @@ html[data-reveal-ready] .portal-chart-line {
 }
 
 /* بطاقة التسجيل كاملة تحت الرأس في 1366×768 (المدير عبر المشرف، 5 نوفمبر 2026 — tests/browser/register-fit.spec.mjs): على الحاسوب
-   حقول العمودين أقصر قليلاً، وتنبيه التسريب في الشروط المضغوطة لقارئ الشاشة، ويظهر متى كان التركيز في عمود كلمة المرور */
+   حقول العمودين أقصر قليلاً، وتنبيه التسريب في الشروط المضغوطة لقارئ الشاشة، ويظهر متى كان التركيز في عمود كلمة المرور، ويبقى بعده
+   (data-leaked-shown من password-rules.js)، فلا يقصر العمود عند ترك «تأكيد كلمة المرور» فيرتفع مربع الموافقة تحت المؤشر وتضيع أول
+   نقرة عليه (docs/decisions/2026-11-11-fix-post-launch-polish.md). وحجز مكانه من البداية يطيل البطاقة فتخرج من 1366×768 */
 @media (min-width: 64rem) {
     [data-register-columns] input:not([type='checkbox']) {
         padding-block: 0.5rem;
@@ -3713,7 +3717,8 @@ html[data-reveal-ready] .portal-chart-line {
         white-space: nowrap;
     }
 
-    :focus-within > [data-password-rules][data-compact] [data-leaked] {
+    :focus-within > [data-password-rules][data-compact] [data-leaked],
+    [data-password-rules][data-compact][data-leaked-shown] [data-leaked] {
         position: static;
         width: auto;
         height: auto;
@@ -3721,4 +3726,10 @@ html[data-reveal-ready] .portal-chart-line {
         clip-path: none;
         white-space: normal;
     }
+}
+
+/* جدول جوائز المسابقة يُمرَّر بلوحة المفاتيح (منطقة مسماة)، وغلافه .card-lift يقص ما خارجه: الإطار داخل حدوده (اختبار الوصول —
+   decisions/2026-11-11-fix-post-launch-polish.md) */
+[data-prize-table]:focus-visible {
+    outline-offset: -3px;
 }

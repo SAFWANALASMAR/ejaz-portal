@@ -53,7 +53,8 @@ test('the identity slider pauses on hover and focus, and moves by its dots', asy
 
     await identity.scrollIntoViewIfNeeded();
     await expect(identity).toHaveAttribute('data-running', '');
-    await identity.hover();
+    // البطاقة كلها رابط يغطي الدوّار وهو أخ له (47bb4e67)، والدوّار يتوقف بالمرور على البطاقة (carousel.js)، فالمرور عليها كالزائر
+    await page.locator('[data-identity-card]', { has: identity }).hover();
     await expect(identity).not.toHaveAttribute('data-running', '');
     await expect(identity.locator('[data-carousel-track]')).toHaveAttribute('aria-live', 'polite');
 
@@ -161,7 +162,8 @@ for (const path of ['/about', '/initiatives', '/programs', '/governance', '/libr
         await expect(page.locator('[data-back-nav]'), 'شريط عودة واحد').toHaveCount(1);
 
         // البطاقات والأيقونات بالأنماط المشتركة متى وُجدت في الصفحة: الملونة (.tone-card — البند G2، المرحلة ج) أو الفاتحة
-        const cards = page.locator('main .tone-card, main .card-lift, main .card-glow, main .concept-card, main [data-empty-state]');
+        // وبطاقة الخدمة المشتركة (x-service-card) في «خدماتنا» منذ إضافة توجيه المدير (3 نوفمبر 2026 — decisions/2026-11-03-director-home.md)
+        const cards = page.locator('main .tone-card, main .card-lift, main .card-glow, main .concept-card, main .service-card, main [data-empty-state]');
         expect(await cards.count(), 'بطاقات مشتركة أو حالة فارغة').toBeGreaterThan(0);
         await expectRtlNoScroll(page);
     });

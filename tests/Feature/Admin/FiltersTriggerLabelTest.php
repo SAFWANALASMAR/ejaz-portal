@@ -1,0 +1,19 @@
+<?php
+
+use App\Enums\RoleName;
+use App\Filament\Resources\Documents\Pages\ListDocuments;
+use Livewire\Livewire;
+
+/*
+| زر التصفية في جداول اللوحة أيقونة بشارة عدد التصفيات المفعّلة ولو صفراً، فاسمه يضم العدد الظاهر (axe: label-content-name-mismatch في
+| بنك الأسئلة وجداول اللوحة — docs/decisions/2026-11-11-fix-post-launch-polish.md).
+*/
+
+it('names the table filter button with the active filter count it shows', function () {
+    $this->actingAs(userWithRole(RoleName::ContentEditor));
+
+    Livewire::test(ListDocuments::class)
+        ->assertSee(__('admin.filters_trigger', ['count' => 0]))
+        ->filterTable('category', 'policies')
+        ->assertSee(__('admin.filters_trigger', ['count' => 1]));
+});

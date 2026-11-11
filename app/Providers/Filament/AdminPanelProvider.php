@@ -11,6 +11,7 @@ use App\Http\Middleware\LeavePanelWithFullPageLoad;
 use App\Http\Middleware\RejectMalformedAdminRecord;
 use App\Http\Middleware\RequirePasswordUpgrade;
 use App\Http\Middleware\SecurityHeaders;
+use Filament\Actions\Action;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\FileUpload;
@@ -25,6 +26,7 @@ use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentIcon;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\Tables\View\TablesIconAlias;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\Support\Htmlable;
@@ -64,6 +66,12 @@ class AdminPanelProvider extends PanelProvider
 
         // الجدول الفارغ بصندوق فارغ لا بعلامة × التي توحي بخطأ (ملاحظة المشرف على #169)، بالأسلوب الخطي نفسه
         FilamentIcon::register([TablesIconAlias::EMPTY_STATE => Heroicon::OutlinedInboxStack]);
+
+        // زر التصفية أيقونة باسم «تصفية» وشارة بعدد التصفيات المفعّلة ولو صفراً، فاسمه يضم العدد الظاهر (axe:
+        // label-content-name-mismatch في بنك الأسئلة وجداول اللوحة — decisions/2026-11-11-fix-post-launch-polish.md)
+        Table::configureUsing(fn (Table $table) => $table->filtersTriggerAction(
+            fn (Action $action): Action => $action->label(fn (): string => __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()])),
+        ));
     }
 
     public function panel(Panel $panel): Panel
