@@ -38,8 +38,9 @@ grep -Eq '^TRUSTED_PROXIES=.+' .env || echo "تنبيه: TRUSTED_PROXIES فار�
 grep -Eq '^TRUSTED_PROXIES=.*\*' .env && echo "تنبيه: TRUSTED_PROXIES=* يصدّق رأس X-Forwarded-For من أي مصدر، فتُزوَّر حدود الشبكات. لا * إلا والخادم معزول خلف موزع يستبدل الرأس، والأفضل عناوين الموزع بعينها (docs/security.md)"
 grep -Eq '^SMS_DRIVER=log$' .env && echo "تنبيه: SMS_DRIVER=log. رموز التحقق لا تصل حتى يُضبط المزود من «قنوات التواصل» في اللوحة (docs/guides/messaging.md)"
 # رمز قارئ الكتب والوثائق لمرة واحدة يُستهلك ذرياً بالحذف من Redis (docs/decisions/2026-11-11-fix-reader-protection-lows.md).
-# آخر سطر CACHE_STORE هو ما يقرؤه لارافيل، والقيمة مقتبسة أو لا
-grep -E '^CACHE_STORE=' .env | tail -n 1 | grep -Eq '^CACHE_STORE="?redis"?$' || fail "CACHE_STORE يجب أن يكون redis: رمز قارئ الكتب والوثائق لمرة واحدة لا يُستهلك ذرياً في غيره"
+# آخر تعريف لـ CACHE_STORE بأي صيغة يقبلها Compose (مسافة بادئة، أو export، أو مسافة قبل =، أو :) هو ما يُقرأ، ويجب أن
+# يكون CACHE_STORE=redis أو "redis" سطراً قياسياً (منخفضات مراجعة #242)
+grep -E '^[[:space:]]*(export[[:space:]]+)?CACHE_STORE[[:space:]]*[=:]' .env | tail -n 1 | grep -Eq '^CACHE_STORE=("redis"|redis)$' || fail "CACHE_STORE يجب أن يكون redis، سطراً واحداً بلا مسافات ولا علامات مفردة (CACHE_STORE=redis): رمز قارئ الكتب والوثائق لمرة واحدة لا يُستهلك ذرياً في غيره"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || fail "في المجلد تعديلات غير محفوظة. لا تُعدَّل الشيفرة على الخادم"
 git fetch --tags --force --quiet origin
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "الوسم $TAG غير موجود"
