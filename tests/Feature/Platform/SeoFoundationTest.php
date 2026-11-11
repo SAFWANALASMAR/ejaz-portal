@@ -68,6 +68,7 @@ it('gives every page in the sitemap but the home page its own description', func
     Album::factory()->create(['slug' => 'first-album']);
     Program::factory()->create(['slug' => 'open-program']);
     Competition::factory()->create(['slug' => 'open-competition']);
+    Competition::factory()->student()->create(['slug' => 'student-competition', 'page_content' => ['guide_steps' => ['خطوة']]]);
     Opening::factory()->create(['slug' => 'open-job']);
     Opening::factory()->kind(OpeningKind::Volunteering)->create(['slug' => 'open-volunteering']);
     Announcement::factory()->create();
@@ -86,8 +87,9 @@ it('gives every page in the sitemap but the home page its own description', func
     $duplicates = collect($descriptions)->duplicates()->all();
 
     expect($duplicates)->toBe([])
-        ->and($descriptions)->not->toContain(__('site.description'))
+        ->and(collect($descriptions)->filter(fn (?string $text): bool => $text === __('site.description'))->keys()->all())->toBe([])
         ->and($descriptions[url('/governance/bylaws')])->toBe('اللائحة الأساسية، من وثائق الحوكمة في جمعية إعجاز.')
+        ->and($descriptions[url('/competitions/open-competition')])->toBe(Competition::query()->where('slug', 'open-competition')->value('title').'، من مسابقات جمعية إعجاز.')
         ->and($descriptions[url('/media/news')])->toBe(__('seo.descriptions.media_news_index'))
         ->and($descriptions[url('/library/books')])->toBe(__('seo.descriptions.library_section_books'));
 });
@@ -100,7 +102,7 @@ it('keeps a description written for the page over the list description', functio
 });
 
 it('cuts a long document title so the description stays within 160 characters with its full stop', function () {
-    Document::factory()->create(['slug' => 'long', 'title' => str_repeat('وثيقة طويلة جداً ', 15), 'description' => null]);
+    Document::factory()->create(['slug' => 'long', 'title' => str_repeat('وثيقة طويلة ', 15), 'description' => null]);
 
     $description = seoMeta((string) $this->get('/governance/long')->getContent(), 'description');
 
