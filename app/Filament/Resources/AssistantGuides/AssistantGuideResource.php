@@ -62,8 +62,11 @@ class AssistantGuideResource extends Resource
                 TextInput::make('sort')->label(__('assistant.admin.guides.sort'))->integer()->minValue(0)->default(0),
             ]),
             Section::make(__('assistant.admin.guides.steps'))->columnSpanFull()->schema([
+                // التسمية مخفية، فزر الإضافة باسمه العربي لا باسم الحقل (فحص 11 نوفمبر 2026)
                 Repeater::make('steps')
+                    ->label(__('assistant.admin.guides.steps'))
                     ->hiddenLabel()
+                    ->addActionLabel(__('assistant.admin.guides.add_step'))
                     ->simple(Textarea::make('step')->label(__('assistant.admin.guides.step'))->required()->rows(2)->maxLength(500))
                     ->reorderable()
                     ->minItems(1)
