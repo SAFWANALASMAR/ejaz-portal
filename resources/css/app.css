@@ -143,6 +143,18 @@
         @apply outline-accent-light;
     }
 
+    /* البطل الحي ورأس الصفحات الداخلية «فاتح بصورة واحدة» (ومعه شريط العودة فيه) خلفيتهما فاتحة وإن كانا في قائمة الداكن أعلاه:
+       الإطار فيهما بالأزرق الداكن، 3:1 فأكثر (اختبار الوصول — decisions/2026-11-11-fix-post-launch-polish.md). وبطاقة «تابعنا على X»
+       داكنة خارج تلك القائمة، فإطارها أبيض */
+    .hero-light :focus-visible,
+    .page-hero-light :focus-visible {
+        @apply outline-primary-dark;
+    }
+
+    .x-card :focus-visible {
+        @apply outline-white;
+    }
+
     /* عنوان الصفحة يأخذ التركيز بعد التنقّل السريع ليقرأه قارئ الشاشة (resources/js/page.js)، ولا يُضغط فلا إطار حوله */
     #main h1[tabindex='-1']:focus {
         outline: none;
