@@ -177,6 +177,19 @@ it('keeps the fallback description within 160 characters, cutting the title and 
         ->and($oneWord)->toEndWith(__('library.title').'.');
 });
 
+it('keeps a title that just fits whole, with no ellipsis, and the full stop', function () {
+    $replace = ['title' => '', 'section' => LibrarySection::Books->getLabel(), 'library' => __('library.title'), 'author' => ''];
+    $room = 160 - mb_strlen(__('library.item.meta_description', $replace));
+    $title = str_repeat('ج', $room - 1);
+    auditLibraryItem(['slug' => 'just-fits', 'title' => $title, 'section' => LibrarySection::Books, 'description' => null, 'author' => null]);
+
+    $description = html_entity_decode((string) str((string) $this->get('/library/books/just-fits')->assertOk()->getContent())->match('/<meta name="description" content="([^"]*)"/'));
+
+    expect($description)->toBe(__('library.item.meta_description', [...$replace, 'title' => $title]))
+        ->and($description)->not->toContain('…')
+        ->and(mb_strlen($description))->toBe(159);
+});
+
 it('labels the add button of the initiative goals in Arabic', function () {
     $this->actingAs(userWithRole(RoleName::ContentEditor));
 

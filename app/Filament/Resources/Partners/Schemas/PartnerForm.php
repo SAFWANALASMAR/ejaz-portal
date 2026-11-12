@@ -29,10 +29,10 @@ class PartnerForm
                     ->maxLength(500)
                     ->rule(new SafeUrl(allowInternal: false))
                     ->extraInputAttributes(['dir' => 'ltr']),
+                // اختياري: الشريك بلا شعار يُنشر باسمه (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-docs-nov11-decisions.md، القرار ٣)
                 ContentFields::image('logo', Partner::IMAGE_DIRECTORY)
                     ->label(__('partners.fields.logo'))
                     ->helperText(__('partners.fields.logo_hint'))
-                    ->required()
                     ->columnSpanFull(),
                 Toggle::make('is_published')->label(__('content.is_published')),
             ]),

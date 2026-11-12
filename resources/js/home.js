@@ -89,6 +89,15 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// النسخ المكررة في كل شريط متحرك (data-marquee-copy — x-marquee): مخفية عن قارئ الشاشة بـ aria-hidden في القالب، وروابطها وأزرارها
+// خارج ترتيب لوحة المفاتيح هنا، وتبقى تُضغط بالفأرة واللمس. كان inert يجعل نصف ما يظهر من الشريط في أي لحظة لا يفتح شيئاً
+// (ملاحظة المدير التنفيذي على الإطلاق التجريبي، 12 نوفمبر 2026 — docs/decisions/2026-11-12-fix-marquee-copy-clickable.md)
+onPage(() => {
+    document.querySelectorAll('[data-marquee-copy]').forEach((copy) => {
+        copy.querySelectorAll('a, button, input, select, textarea, summary, [tabindex]').forEach((element) => element.setAttribute('tabindex', '-1'));
+    });
+});
+
 // الشريط المتحرك متصل بلا فراغ (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ١١): النسختان تتحركان بمقدار نسخة، فإن كانت النسخة
 // أضيق من الشريط ظهر فراغ قبل أن تدور. فتُكرَّر عناصر كل نسخة حتى تملأ عرض الشريط، والمكرر مخفي عن قارئ الشاشة ولوحة المفاتيح
 // (aria-hidden وtabindex=-1، ويبقى يُضغط)، وتطول مدة الدورة بقدره فتبقى السرعة واحدة. ويُعاد عند تغيّر عرض الشريط

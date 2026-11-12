@@ -81,4 +81,13 @@ return [
         'driver' => env('ONLINE_MEETINGS_DRIVER', 'fake'),
     ],
 
+    // رمزا إثبات ملكية الموقع في Google Search Console وBing Webmaster Tools (وسم meta في التخطيط العام، feat/seo-foundation)
+    'google' => [
+        'site_verification' => env('GOOGLE_SITE_VERIFICATION'),
+    ],
+
+    'bing' => [
+        'site_verification' => env('BING_SITE_VERIFICATION'),
+    ],
+
 ];

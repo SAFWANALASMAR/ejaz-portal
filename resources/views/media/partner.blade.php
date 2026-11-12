@@ -13,6 +13,9 @@
     class="flex h-full flex-col items-center justify-center gap-3 p-5 text-center card-lift">
     @if ($partner->logo)
         <img src="{{ Storage::disk('public')->url($partner->logo) }}" alt="" width="192" height="80" loading="lazy" class="h-20 w-full object-contain">
+    @else
+        {{-- الشريك بلا شعار: مربع أيقونة في مكان الشعار وبارتفاعه، فالبطاقة بارتفاع جاراتها ولو كانت وحدها في صفها (قرار صفوان ٣، 11 نوفمبر) --}}
+        <span class="flex h-20 w-full items-center justify-center" data-partner-no-logo><x-icon-tile icon="users" shade="pale" /></span>
     @endif
     <span class="text-sm font-semibold text-ink">{{ $partner->name }}</span>
     @if ($url !== null)

@@ -1,7 +1,10 @@
 <?php
 
 use App\Enums\LibrarySection;
+use App\Enums\OpeningKind;
+use App\Models\Achievement;
 use App\Models\Album;
+use App\Models\Announcement;
 use App\Models\Competition;
 use App\Models\Document;
 use App\Models\Initiative;
@@ -19,6 +22,8 @@ it('lists the public pages and every published item with its last change', funct
     LibraryItem::factory()->video()->create(['slug' => 'first-talk']);
     NewsArticle::factory()->create(['slug' => 'first-news']);
     Album::factory()->create(['slug' => 'first-album']);
+    // و«إنجازاتنا» في الخريطة بأول إنجاز منشور (feat/seo-foundation)
+    Achievement::factory()->published()->create();
 
     $response = $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
 
@@ -138,6 +143,9 @@ it('lists the published programmes, competitions with their guide, and openings 
     Competition::factory()->unpublished()->create(['slug' => 'draft-competition']);
     $opening = Opening::factory()->create(['slug' => 'open-job']);
     Opening::factory()->unpublished()->create(['slug' => 'draft-job']);
+    // وقائمتا التطوع والإعلانات في الخريطة بأول عنصر فيهما (feat/seo-foundation)
+    Opening::factory()->kind(OpeningKind::Volunteering)->create(['slug' => 'open-volunteering']);
+    Announcement::factory()->create();
 
     $entries = sitemapEntries($this);
 

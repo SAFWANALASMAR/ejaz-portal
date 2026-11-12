@@ -106,7 +106,7 @@ it('runs the video and book strips from the library, with a hidden copy for the 
     $strips = (string) str($html)->after('data-home-strips')->before('</section>');
 
     // نسخة ثانية خاملة لكل شريط، والمقاطع مرقّمة (x-video-number)
-    expect(substr_count($strips, 'data-marquee-copy aria-hidden="true" inert'))->toBe(2)
+    expect(substr_count($strips, 'data-marquee-copy aria-hidden="true"'))->toBe(2)
         ->and($strips)->toContain('data-video-number')
         ->and($html)->not->toContain('youtube-nocookie.com/embed');
 });
@@ -122,7 +122,7 @@ it('moves a single partner too, repeated to fill the strip and read once, and si
     // ستة أضعاف تملأ العرض: المجموعة الظاهرة ثم إحدى عشرة نسخة مخفية (المسار ضعف ما يملأ العرض)
     expect($section)->toContain('data-marquee data-direction="horizontal" data-loop')
         ->and($section)->not->toContain('data-marquee-static')
-        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true" inert'))->toBe(11)
+        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true"'))->toBe(11)
         ->and(substr_count((string) str($section)->before('data-marquee-copy'), 'الشريك الوحيد'))->toBe(1)
         ->and($section)->toContain('data-ticker-toggle="home-partners-track"');
 
@@ -131,7 +131,7 @@ it('moves a single partner too, repeated to fill the strip and read once, and si
 
     $section = (string) str($this->get('/')->getContent())->after('aria-labelledby="home-partners"')->before('</section>');
     expect($section)->toContain('data-marquee data-direction="horizontal" data-loop')
-        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true" inert'))->toBe(1)
+        ->and(substr_count($section, 'data-marquee-copy aria-hidden="true"'))->toBe(1)
         ->and($section)->toContain('data-ticker-toggle="home-partners-track"');
 });
 
@@ -146,8 +146,8 @@ it('moves fewer than six videos or eight books too, each read once', function ()
     // خمسة مقاطع: ضعفان (ثلاث نسخ مخفية)، وثلاثة كتب: ثلاثة أضعاف (خمس نسخ مخفية)
     expect($strips)->not->toContain('data-marquee-static')
         ->and(substr_count($strips, 'data-ticker-toggle'))->toBe(2)
-        ->and(substr_count($videos, 'data-marquee-copy aria-hidden="true" inert'))->toBe(3)
-        ->and(substr_count($books, 'data-marquee-copy aria-hidden="true" inert'))->toBe(5)
+        ->and(substr_count($videos, 'data-marquee-copy aria-hidden="true"'))->toBe(3)
+        ->and(substr_count($books, 'data-marquee-copy aria-hidden="true"'))->toBe(5)
         ->and(substr_count((string) str($videos)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(5)
         ->and(substr_count((string) str($books)->before('data-marquee-copy'), 'class="tone-card media-tile group"'))->toBe(3);
 });

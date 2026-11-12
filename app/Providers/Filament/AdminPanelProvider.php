@@ -69,8 +69,13 @@ class AdminPanelProvider extends PanelProvider
 
         // زر التصفية أيقونة باسم «تصفية» وشارة بعدد التصفيات المفعّلة ولو صفراً، فاسمه يضم العدد الظاهر (axe:
         // label-content-name-mismatch في بنك الأسئلة وجداول اللوحة — decisions/2026-11-11-fix-post-launch-polish.md)
+        // والتلميح الظاهر بالفأرة «تصفية» وحدها حين لا تصفية مفعّلة (المراجعة الثانية على #244)
         Table::configureUsing(fn (Table $table) => $table->filtersTriggerAction(
-            fn (Action $action): Action => $action->label(fn (): string => __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()])),
+            fn (Action $action): Action => $action
+                ->label(fn (): string => __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()]))
+                ->tooltip(fn (): string => $table->getActiveFiltersCount() === 0
+                    ? __('filament-tables::table.actions.filter.label')
+                    : __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()])),
         ));
     }
 

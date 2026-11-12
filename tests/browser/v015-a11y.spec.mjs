@@ -334,15 +334,17 @@ test.describe('structure: one h1, no skipped heading level, alt on every image, 
 
 // ── الأشرطة المتحركة والدوّارات ─────────────────────────────────────────────────────────────────────────────────────────
 test.describe('marquees and carousels', () => {
-    test('marquee copies are hidden from assistive tech and keyboard, and each pause button names and stops its strip', async ({ page }) => {
+    test('marquee copies are hidden from assistive tech and keyboard yet clickable, and each pause button names and stops its strip', async ({ page }) => {
         await open(page, '/');
         expect(await page.locator('[data-marquee]').count()).toBeGreaterThan(0);
 
+        // aria-hidden وروابطها خارج ترتيب لوحة المفاتيح، ولا inert فتبقى تُضغط بالفأرة واللمس (fix/marquee-copy-clickable)
         const copies = await page.evaluate(() => [...document.querySelectorAll('[data-marquee-copy]')].map((copy) => ({
             hidden: copy.getAttribute('aria-hidden') === 'true',
             inert: copy.hasAttribute('inert'),
+            tabbable: [...copy.querySelectorAll('a, button, input, select, textarea, summary, [tabindex]')].filter((element) => element.tabIndex >= 0).length,
         })));
-        copies.forEach((copy) => expect(copy).toEqual({ hidden: true, inert: true }));
+        copies.forEach((copy) => expect(copy).toEqual({ hidden: true, inert: false, tabbable: 0 }));
 
         for (const toggle of await page.locator('[data-ticker-toggle]').all()) {
             if (!(await toggle.isVisible())) continue;
@@ -376,7 +378,7 @@ test.describe('marquees and carousels', () => {
 
     test('every carousel is a named region with labelled slides and dots, arrows move it, and hidden slides are inert', async ({ page }) => {
         await open(page, '/');
-        // ما في نسخة الشريط الثانية (inert) خارج لوحة المفاتيح وقارئ الشاشة أصلاً
+        // ما في نسخة الشريط الثانية (aria-hidden وtabindex=-1) خارج لوحة المفاتيح وقارئ الشاشة أصلاً
         const carousels = await page.locator('[data-carousel][data-carousel-ready]:not([inert] *, [aria-hidden="true"] *)').all();
         expect(carousels.length).toBeGreaterThan(0);
 
