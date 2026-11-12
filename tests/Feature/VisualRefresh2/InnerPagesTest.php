@@ -51,10 +51,11 @@ it('shows the two speeches on the about page without the photos or their approve
         ->and($html)->not->toContain(e(__('ui.inner.image_slot_chairman')))->not->toContain(e(__('ui.inner.image_slot_king')));
 });
 
-it('draws the programs bar on a pale panel floating over the hero edge', function () {
+it('draws the programs bar on a pale panel under the how-to steps', function () {
     $html = (string) $this->get('/programs')->assertOk()->getContent();
 
-    // والكبسولات صارت مربعات أيقونات بمراسٍ (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
+    // والكبسولات صارت مربعات أيقونات بمراسٍ (ملاحظات المدير التنفيذي، 4 نوفمبر 2026)، ونزل الشريط عن حافة الرأس إلى تحت
+    // «كيف تسجّل» (ملاحظته في 12 نوفمبر — DirectorNotesNov4Test)
     expect($html)->toContain('tabs-bar')->toContain('data-programs-bar')
         // «كيف تسجّل» صف مضغوط بخطوات ملونة (ملاحظات المدير، 1 نوفمبر 2026، البند ٢٠)
         ->toContain('id="programs-how-to-title"')
