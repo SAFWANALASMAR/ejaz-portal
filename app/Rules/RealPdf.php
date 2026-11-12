@@ -15,7 +15,18 @@ use Illuminate\Http\UploadedFile;
  */
 class RealPdf implements ValidationRule
 {
-    private const ACTIVE = ['/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/RichMedia', '/XFA', '/SubmitForm', '/ImportData'];
+    private const ACTIVE = ['/JavaScript', '/Launch', '/EmbeddedFile', '/RichMedia', '/SubmitForm', '/ImportData'];
+
+    /**
+     * مفتاحان قصيران يقعان مصادفةً في بيانات الصور والخطوط الثنائية المضغوطة (/JS ثلاثة بايتات، فيرفض كتباً سليمة كبيرة):
+     * لا يُعدّان إلا وبعدهما قيمة كما في القاموس، بعد فراغات PDF أو تعليق: نص أو سلسلة ست عشرية أو مرجع كائن لـ /JS، ومصفوفة
+     * أو مرجع لـ /XFA. وكل إجراء JavaScript يحمل /S /JavaScript الذي يُفحص بلا شرط
+     * (docs/decisions/2026-11-13-fix-real-pdf-false-positives.md).
+     */
+    private const VALUED = [
+        '/JS' => '\(|<|\d+[\x00\t\n\f\r ]+\d+[\x00\t\n\f\r ]+R',
+        '/XFA' => '\[|\d+[\x00\t\n\f\r ]+\d+[\x00\t\n\f\r ]+R',
+    ];
 
     /**
      * سقف ما يُفك من التدفقات، فلا يُستنزف الخادم بملف مضغوط مضخَّم.
@@ -55,8 +66,15 @@ class RealPdf implements ValidationRule
             $contents."\n".self::inflatedStreams($contents),
         );
 
+        // وخطأ البحث (false) رفضٌ لا قبول
         foreach (self::ACTIVE as $name) {
-            if (preg_match('#'.preg_quote($name, '#').'(?![A-Za-z0-9])#', $names) === 1) {
+            if (preg_match('#'.preg_quote($name, '#').'(?![A-Za-z0-9])#', $names) !== 0) {
+                return 'validation.pdf_active_content';
+            }
+        }
+
+        foreach (self::VALUED as $name => $value) {
+            if (preg_match('#'.preg_quote($name, '#').'(?:[\x00\t\n\f\r ]|%[^\r\n]*[\r\n])*+(?:'.$value.')#', $names) !== 0) {
                 return 'validation.pdf_active_content';
             }
         }
