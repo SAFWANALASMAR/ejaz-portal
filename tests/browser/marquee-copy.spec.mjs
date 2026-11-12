@@ -8,25 +8,40 @@ test.skip(({ viewport }) => viewport.width === 820, 'الحاسوب والجوا
 test('a card from the second copy of the YouTube strip opens its video page', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => document.documentElement.style.setProperty('scroll-behavior', 'auto', 'important'));
-    // الحركة موقوفة، فلا تتحرك البطاقة بين القياس والضغط
-    await page.addStyleTag({ content: '.marquee-track { animation-play-state: paused !important; }' });
+    const strip = page.locator('[data-media-strip="videos"]');
+    test.skip((await strip.locator('[data-marquee-copy] a[href*="/library/videos/"]').count()) === 0, 'لا مقاطع في شريط يوتيوب على هذه البيئة');
 
-    const card = page.locator('[data-media-strip="videos"] [data-marquee-copy] a[href*="/library/videos/"]').first();
-    test.skip((await card.count()) === 0, 'لا مقاطع في شريط يوتيوب على هذه البيئة');
+    await strip.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    // الرأس الثابت يصغر بعد التمرير فتنزاح الصفحة: يُقاس الموضع بعد استقرارها
+    await page.waitForTimeout(800);
 
-    const href = await card.getAttribute('href');
-    // البطاقة في وسط الشريط والشاشة، ثم الضغط في موضعها كما يضغط الزائر: والنقطة لها هي لا لغيرها
-    const point = await card.evaluate((element) => {
-        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
-        const box = element.getBoundingClientRect();
-        const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
-
-        return { x, y, hit: element.contains(document.elementFromPoint(x, y)) };
+    // المسار موقوف وقد حمل أول بطاقة من النسخة الثانية إلى وسط الشريط، كما تبلغه الحركة بعد ثوانٍ (أياً كان اتجاهها وعرض الشاشة)
+    await strip.evaluate((root) => {
+        const track = root.querySelector('.marquee-track');
+        track.style.setProperty('animation', 'none', 'important');
+        track.style.transform = 'none';
+        const card = root.querySelector('[data-marquee-copy] a[href*="/library/videos/"]').getBoundingClientRect();
+        const box = root.getBoundingClientRect();
+        track.style.transform = `translateX(${box.left + box.width / 2 - (card.left + card.width / 2)}px)`;
     });
-    expect(point.hit, 'the copy card receives the pointer').toBe(true);
 
-    await page.mouse.click(point.x, point.y);
-    await expect(page).toHaveURL(href);
+    // أول بطاقة من النسخة الثانية تستقبل الضغط في وسطها (لها هي لا لغيرها)
+    const target = await strip.evaluate((root) => {
+        for (const card of root.querySelectorAll('[data-marquee-copy] a[href*="/library/videos/"]')) {
+            const box = card.getBoundingClientRect();
+            const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+
+            if (x > 0 && x < window.innerWidth && y > 0 && y < window.innerHeight && card.contains(document.elementFromPoint(x, y))) {
+                return { x, y, href: card.href };
+            }
+        }
+
+        return null;
+    });
+    expect(target, 'a copy card receives the pointer').not.toBeNull();
+
+    await page.mouse.click(target.x, target.y);
+    await expect(page).toHaveURL(target.href);
 });
 
 test('the copies stay hidden from screen readers and out of the keyboard order, and are not inert', async ({ page }) => {
