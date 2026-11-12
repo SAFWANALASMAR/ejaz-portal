@@ -43,6 +43,18 @@ it('hides the season badge when it is empty and keeps the section badge', functi
     $this->get('/competitions/brahin-1448')->assertOk()->assertDontSee('الموسم الأول 1448هـ / 2026م')->assertSee('data-hero-badge', false);
 });
 
+it('labels the hero button «سجّل في المسابقة» instead of «شارك واربح» when the competition has no prizes', function () {
+    $this->competition->forceFill(['prize_table' => []])->save();
+    expect(HomeShowcase::prizeTotal($this->competition->fresh()))->toBe(0);
+
+    $html = $this->get('/competitions/brahin-1448')->assertOk()->getContent();
+
+    expect(preg_match('#<a\b[^>]*class="hero-cta"[^>]*>(.*?)</a>#s', $html, $button))->toBe(1)
+        ->and($button[1])->toContain(__('competitions.student.register_cta'))
+        ->not->toContain(__('ui.prize.cta'))
+        ->and($html)->not->toContain(__('ui.prize.hero_title'));
+});
+
 it('shows the closed state in the hero card without a button', function () {
     $this->competition->forceFill(['opens_at' => now()->subWeek(), 'closes_at' => now()->subMinute()])->save();
 
