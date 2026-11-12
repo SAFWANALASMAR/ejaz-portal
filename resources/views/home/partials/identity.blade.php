@@ -136,10 +136,11 @@
                     {{-- رابط البطاقة للفأرة واللمس، ولوحة المفاتيح وقارئ الشاشة يصلان الوجهة نفسها من «الكل» فلا تقف مرتين --}}
                     <a href="{{ route('initiatives.index') }}" wire:navigate class="home-card-link" data-identity-link tabindex="-1" aria-hidden="true"></a>
                     <div class="home-card-body pb-0!">
-                        <h2 class="home-card-head">
-                            <x-icon-tile icon="sparkles" size="sm" class="home-card-icon" />{{ $headings['initiatives'] }}
+                        {{-- «الكل» بجانب العنوان لا داخله، فاسم العنوان «مبادراتنا» وحده (المراجعة الثانية على #244) --}}
+                        <div class="flex items-center gap-2.5">
+                            <h2 class="home-card-head"><x-icon-tile icon="sparkles" size="sm" class="home-card-icon" />{{ $headings['initiatives'] }}</h2>
                             <a href="{{ route('initiatives.index') }}" wire:navigate class="more-link home-card-more">{{ $headings['all_initiatives'] }}<span class="sr-only">: {{ $headings['initiatives'] }}</span></a>
-                        </h2>
+                        </div>
                     </div>
                     {{-- كل المبادرات المنشورة تتبدل (البند ٩) --}}
                     <x-carousel :label="$headings['initiatives']" :count="$initiatives->count()" autoplay :interval="3500" compact class="static" data-initiatives-slider data-autoplay-always>

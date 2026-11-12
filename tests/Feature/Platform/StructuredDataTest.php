@@ -289,7 +289,8 @@ it('gives a student competition no end date, as its closing is the end of regist
 });
 
 it('describes the announcements page by its intro only once it replaces the sample text', function () {
-    $this->get('/media/announcements')->assertOk()->assertSee('<meta name="description" content="'.e(__('site.description')).'">', false);
+    // وقبلها بوصف القائمة من lang/ar/seo.php لا بالنص التجريبي (feat/seo-foundation)
+    $this->get('/media/announcements')->assertOk()->assertSee('<meta name="description" content="'.e(__('seo.descriptions.media_announcements')).'">', false);
 
     Setting::put(HomeContent::KEY, ['announcements' => ['intro' => 'مقدمة الإعلانات من اللوحة']]);
 

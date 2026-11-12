@@ -14,11 +14,12 @@ beforeEach(function () {
     showLegacyHomeSections();
 });
 
-it('describes every page by default with the approved short description, with a canonical link and the favicons', function () {
-    $html = (string) $this->get('/contact')->assertOk()->getContent();
+// والصفحات الأخرى بوصفها من lang/ar/seo.php أو من صفحتها (feat/seo-foundation، SeoFoundationTest)
+it('describes the home page with the approved short description, with a canonical link and the favicons', function () {
+    $html = (string) $this->get('/')->assertOk()->getContent();
 
     expect($html)->toContain('<meta name="description" content="'.__('site.description').'">')
-        ->toContain('<link rel="canonical" href="'.url('/contact').'">')
+        ->toContain('<link rel="canonical" href="'.url('/').'">')
         ->toContain('href="'.asset('favicon.ico').'"')
         ->toContain('href="'.asset('apple-touch-icon.png').'"');
 

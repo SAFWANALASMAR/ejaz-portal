@@ -15,15 +15,19 @@
     $badge = $eyebrow ?? ($section['label'] === $title ? __('site.short_name') : $section['label']);
     $back = \App\Support\BackNavigation::shows(request()->route());
     // عنوان الصفحة الثابتة ووصفها المنشوران من «محرر الصفحات» يغلبان على نصوص القالب (EditablePages)، والشارة من عنوان القالب
-    $editable = \App\Support\EditablePages::live(request()->route()?->getName());
+    $routeName = request()->route()?->getName();
+    $editable = \App\Support\EditablePages::live($routeName);
     if ($editable !== []) {
         $title = $editable['title'];
-        // وصف المحرر يغلب، إلا علامة «【ناقص】» فيه والقالب يمرر نصاً معتمداً (نص «تواصل معنا» — إضافة توجيه المدير، البند ٣٠)
-        $summary = filled($summary) && str_contains((string) $editable['summary'], '【') ? $summary : $editable['summary'];
+        // وصف المحرر يغلب، إلا والقالب يمرر نصاً معتمداً، ووصف المحرر فيه علامة «【ناقص】» (نص «تواصل معنا» — إضافة توجيه المدير،
+        // البند ٣٠)، أو فارغ لصفحة بلا وصف أصلي في المحرر: نشرها لرفع صورة رأسها وحدها لا يمحو نص قالبها (fix/panel-gaps-nov11).
+        // و«الخدمات الإلكترونية» وصفها الأصلي في المحرر، فتفريغه يبقى ممكناً
+        $editorSummary = $editable['summary'] ?? null;
+        $keepTemplate = filled($summary) && (str_contains((string) $editorSummary, '【') || (blank($editorSummary) && ! \App\Support\EditablePages::hasOwnSummary($routeName)));
+        $summary = $keepTemplate ? $summary : $editorSummary;
     }
     // صورة الصفحة المرفوعة من «محتوى الرئيسية» ← «صور رؤوس الصفحات» أولاً، ثم صورة العنصر التي يمررها القالب، ثم صورة القسم
     // المرفوعة لصفحاته الفرعية (وثيقة، مبادرة، خدمة — فحص 11 نوفمبر 2026)، ثم نقش الصفحة المحايد (NeutralImage)
-    $routeName = request()->route()?->getName();
     $heroSrc = \App\Support\HomeContent::pageHeroUrl($routeName) ?? $image ?? ($images[0] ?? null) ?? \App\Support\HomeContent::sectionHeroUrl($routeName) ?? \App\Support\NeutralImage::forPage($routeName);
     // صور تتبدل في الإطار (رأس «مكتبة إعجاز» — البند ٢٥): أكثر من صورة وحدها، وإلا الصورة الواحدة ثابتة
     $rotating = count($images) > 1 ? array_values($images) : [];
