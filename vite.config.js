@@ -1,9 +1,22 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 
+// بديلا فك صور JPEG 2000 وJBIG2 بلا WebAssembly في pdf.js: عامل القارئ يطلبهما باسميهما من مجلد واحد (wasmUrl في pdf-reader.js)، فيُنسخان
+// بلا بصمة في مجلد باسم إصدار المكتبة، فيتغير المجلد مع كل ترقية ولا يبقى ملف قديم في التخزين الطويل (docs/decisions/2026-11-13-fix-reader-jpeg2000.md)
+const pdfjsVersion = JSON.parse(readFileSync(new URL('./node_modules/pdfjs-dist/package.json', import.meta.url), 'utf8')).version;
+const noWasmFallback = (asset) => (asset.names ?? [asset.name]).some((name) => name?.endsWith('_nowasm_fallback.js'));
+
 export default defineConfig({
+    build: {
+        rollupOptions: {
+            output: {
+                assetFileNames: (asset) => (noWasmFallback(asset) ? `assets/pdfjs-${pdfjsVersion}/[name][extname]` : 'assets/[name]-[hash][extname]'),
+            },
+        },
+    },
     plugins: [
         laravel({
             // والثالث سمة لوحة الإدارة (viteTheme في AdminPanelProvider)
