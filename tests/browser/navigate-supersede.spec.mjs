@@ -68,6 +68,8 @@ test('an in-page anchor navigation after a pending click cancels it, and the old
     await page.waitForTimeout(DELAY + 1000);
 
     expect(new URL(page.url()).pathname).toBe('/');
-    expect(await page.evaluate(() => window.navigatedTo.every((path) => path === '/'))).toBe(true);
+    const navigated = await page.evaluate(() => window.navigatedTo);
+    expect(navigated.length).toBeGreaterThan(0);
+    expect(navigated.every((path) => path === '/')).toBe(true);
 });
 
