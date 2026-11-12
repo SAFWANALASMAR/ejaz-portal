@@ -245,7 +245,7 @@ final class HomeShowcase
      * شريحتها في «إعلانات» (ملاحظة صفوان ٣٠): حالتها، ومقدمتها من نصوص صفحتها (أو وصفها)، وموعد الفتح أو الإغلاق بحسب الحالة،
      * وصورة شريحتها في البطل إن رُفعت. وكلها من بيانات المسابقة، فلا نص جديد.
      *
-     * @return array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null
+     * @return array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: ?Carbon, image: ?string}|null
      */
     public static function prize(): ?array
     {
@@ -272,8 +272,12 @@ final class HomeShowcase
             'url' => route('competitions.show', $competition->slug),
             'status' => $status,
             'text' => $text !== '' ? $text : null,
-            // قبل الفتح موعده، وبعده موعد الإغلاق
-            'date' => $status === CompetitionStatus::Upcoming ? $competition->opens_at : $competition->closes_at,
+            // قبل الفتح موعده، وبعده موعد الإغلاق. وبلا موعد ما دامت «المواعيد تُعلن لاحقاً»
+            'date' => match (true) {
+                $competition->schedule_pending => null,
+                $status === CompetitionStatus::Upcoming => $competition->opens_at,
+                default => $competition->closes_at,
+            },
             'image' => HomeContent::heroSlideUrl('brahin'),
         ];
     }
@@ -283,7 +287,7 @@ final class HomeShowcase
      * (home/partials/feed-slide). وبلا صورة غلاف بهوية الجمعية (نقش الصفحة ورمز الشعار). وموعد المسابقة بساعته لأن الإغلاق
      * قد يكون منتصف الليل، وتاريخ الإعلان يومه بلا ساعة.
      *
-     * @param  array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: Carbon, image: ?string}|null  $prize
+     * @param  array{title: string, total: int, url: string, status: CompetitionStatus, text: ?string, date: ?Carbon, image: ?string}|null  $prize
      * @param  iterable<Announcement>  $announcements
      * @return list<array{image: string, cover: bool, badge: string, title: string, text: ?string, date: ?Carbon, date_label: string, with_time: bool, total: ?int, href: ?string, external: bool, cta: string}>
      */

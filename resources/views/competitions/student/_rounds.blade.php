@@ -2,7 +2,7 @@
     مراحل مسابقة الطلاب: المقدمة من نصوص الصفحة، ولكل مرحلة اسمها ويوم انعقادها وتاريخه ميلادياً وهجرياً (لا مجالها،
     طلب صفوان 6 نوفمبر 2026، والمجالات في مقطعها) وحالتها، وللطالب المسجل زر الدخول في نافذتها وحدها. بلا عدد الأسئلة
     ولا المدة (في صفحة بدء الاختبار)، وساعات البدء والانتهاء بخيار «إظهار مواعيد المراحل» وحده، والنوافذ تعمل بها في
-    الحالين (ملاحظة المدير التنفيذي، 29 أكتوبر 2026).
+    الحالين (ملاحظة المدير التنفيذي، 29 أكتوبر 2026). وبخيار «المواعيد تُعلن لاحقاً» لا يوم ولا تاريخ ولا حالة: «يُعلن موعدها لاحقاً».
 --}}
 @php
     use App\Support\CompetitionPage;
@@ -39,10 +39,13 @@
                         @endif
                         <div class="space-y-1">
                             <h3 class="text-lg font-black">{{ $round->name }}</h3>
+                            {{-- «المواعيد تُعلن لاحقاً»: بلا يوم المرحلة وتاريخها المخزنين ولا حالتها المحسوبة منهما (schedule_pending) --}}
+                            @unless ($competition->schedule_pending)
                             <p class="tone-card-muted text-sm font-semibold" data-round-day>
                                 {{ __('competitions.student.page.round_day', ['day' => __('dates.days.'.Dates::local($round->starts_at)->dayOfWeek), 'date' => Dates::display($round->starts_at), 'hijri' => Dates::hijri($round->starts_at)]) }}
                             </p>
-                            @if ($competition->show_round_dates)
+                            @endunless
+                            @if ($competition->show_round_dates && ! $competition->schedule_pending)
                                 <p class="tone-card-muted flex items-center gap-2 text-sm" data-round-dates>
                                     {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
                                     {{ Dates::display($round->starts_at, withTime: true) }} — {{ Dates::display($round->ends_at, withTime: true) }}
@@ -51,7 +54,9 @@
                         </div>
                     </div>
 
-                    @if ($submission && $attempt && ! $attempt->isInProgress())
+                    @if ($competition->schedule_pending)
+                        <span class="keep-color w-fit rounded-full bg-surface px-3 py-1 text-sm text-muted" data-round-pending>{{ __('competitions.student.round_pending') }}</span>
+                    @elseif ($submission && $attempt && ! $attempt->isInProgress())
                         <a href="{{ route('competitions.student.status', [$competition->slug, $round->uuid]) }}" class="tone-pill">{{ __('competitions.student.received_short') }}</a>
                     @elseif ($submission && $round->isRunning())
                         <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" size="sm" arrow>

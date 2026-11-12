@@ -22,7 +22,9 @@
     @endif
     <p class="tone-card-muted mt-1 inline-flex items-center gap-1.5 text-sm">
         {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}
-        @if ($status === CompetitionStatus::Upcoming)
+        @if ($competition->schedule_pending)
+            {{ __('competitions.list.schedule_pending') }}
+        @elseif ($status === CompetitionStatus::Upcoming)
             {{ __('competitions.list.opens', ['date' => Dates::display($competition->opens_at)]) }}
         @elseif ($status === CompetitionStatus::Open)
             {{ __('competitions.list.closes', ['date' => Dates::display($competition->closes_at)]) }}
