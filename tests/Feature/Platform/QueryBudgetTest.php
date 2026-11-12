@@ -228,8 +228,10 @@ it('keeps the v0.15 public lists within a fixed number of queries', function (st
         Competition::factory()->count($n)->create(),
         Competition::factory()->count($n)->upcoming()->create(),
         Competition::factory()->count($n)->closed()->create(),
-    ], 5],
-    'achievements' => ['/achievements', fn (int $n) => Achievement::factory()->count($n)->published()->create(), 2],
+    ], 6],
+    // والمسابقات والإنجازات +1 منذ feat/seo-foundation: هل القائمة فارغة فتخرج من الفهرسة (Seo::isEmptyListing)، مخزّن في
+    // ذاكرة المحتوى فيُسأل مرة بعد مسحها وصفراً بعدها، ولا يزيد بعدد العناصر
+    'achievements' => ['/achievements', fn (int $n) => Achievement::factory()->count($n)->published()->create(), 3],
 ]);
 
 it('keeps the public detail pages within a fixed number of queries', function (string $model, string $prefix, int $max) {
