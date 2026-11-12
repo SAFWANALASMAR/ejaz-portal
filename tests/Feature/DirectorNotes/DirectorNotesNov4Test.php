@@ -28,30 +28,68 @@ it('draws one icon bar on the programs page: each type jumps to its section on t
     $html = (string) $this->get('/programs')->assertOk()->getContent();
     $bar = (string) str($html)->after('data-programs-bar')->before('</nav>');
 
-    // الشريط: مرساة لكل نوع فيه برنامج منشور بترتيب اللوحة، بلا تحميل صفحة (لا wire:navigate)، ثم المسابقات إلى صفحتها
+    // الشريط: مرساة لكل نوع بترتيب اللوحة ولو بلا برنامج منشور (قرار صفوان، 11 نوفمبر 2026: «كل شيء ظاهر ولو فرغ»)، بلا تحميل صفحة
+    // (لا wire:navigate)، ثم المسابقات إلى صفحتها
     preg_match_all('/data-programs-bar-item="([^"]+)"/', $bar, $items);
-    expect($items[1])->toBe([$types[0]->slug, $types[1]->slug, 'competitions'])
-        ->and($bar)->toContain('href="#programs-'.$types[0]->slug.'"')
+    expect($items[1])->toBe([...$types->pluck('slug')->all(), 'competitions'])
+        ->and($bar)->toContain('href="#programs-'.$types[0]->slug.'"')->toContain('href="#programs-'.$types[2]->slug.'"')
         ->not->toMatch('/href="#[^"]*"[^>]*wire:navigate/')
         ->toContain('href="'.route('competitions.index').'"')
         // والشريطان السابقان (التبويبات وبطاقات المحور) لم يبقيا
         ->and($html)->not->toContain('class="tab-pill"')->not->toContain(route('programs.index', ['type' => $types[0]->slug]));
 
-    // مقطع لكل نوع فيه برنامج منشور بمعرّف مرساته، فيه برامجه وحدها، والنوع الفارغ (أو بغير المنشور وحده) لا يظهر (مراجعة المشرف على #181، L3)
+    // مقطع لكل نوع بمعرّف مرساته، فيه برامجه المنشورة وحدها، والنوع الفارغ (أو بغير المنشور وحده) بحالته الفارغة
     $first = (string) str($html)->after('data-programs-section="'.$types[0]->slug.'"')->before('</section>');
+    $empty = (string) str($html)->after('data-programs-section="'.$types[2]->slug.'"')->before('</section>');
     expect($html)->toContain('id="programs-'.$types[0]->slug.'"')->toContain('id="programs-'.$types[1]->slug.'"')
-        ->not->toContain('id="programs-'.$types[2]->slug.'"')->not->toContain($types[2]->name)
-        ->and($first)->toContain('دورة أولى')->not->toContain('مجلس أول');
+        ->toContain('id="programs-'.$types[2]->slug.'"')->not->toContain('كتاب غير منشور')
+        ->and($first)->toContain('دورة أولى')->not->toContain('مجلس أول')->not->toContain(__('programs.hub.empty'))
+        ->and($empty)->toContain($types[2]->name)->toContain(__('programs.hub.empty'))->not->toContain('<article');
 });
 
-it('shows one empty state, and the competitions tile alone, when no type has a published programme', function () {
+it('puts the icon bar under the how-to steps, off the hero edge, with the guide button landing on it', function () {
     $this->seed(ProgramTypesSeeder::class);
+
+    // ملاحظة المدير التنفيذي (12 نوفمبر 2026): «لو تكون أيقونة المسابقات نازلة»، وقرار صفوان: الشريط كله تحت «كيف تسجّل»
+    foreach (['/programs', '/programs?type=training-courses'] as $url) {
+        $html = (string) $this->get($url)->assertOk()->getContent();
+
+        expect(strpos($html, 'id="programs-how-to-title"'))->toBeLessThan(strpos($html, 'id="programs-list"'))
+            ->and(strpos($html, 'id="programs-list"'))->toBeLessThan(strpos($html, 'data-programs-bar'))
+            ->and((string) str($html)->before('data-programs-bar')->afterLast('<nav'))->not->toContain('-mt-[2.125rem]');
+    }
+
+    // والمقاطع بعد الشريط
+    $html = (string) $this->get('/programs')->getContent();
+
+    expect(strpos($html, 'data-programs-bar'))->toBeLessThan(strpos($html, 'data-programs-section'));
+});
+
+it('shows every type with its empty state when none has a published programme, and one empty state when there is no type', function () {
+    $html = (string) $this->get('/programs')->assertOk()->getContent();
+    preg_match_all('/data-programs-bar-item="([^"]+)"/', (string) str($html)->after('data-programs-bar')->before('</nav>'), $items);
+
+    // بلا نوع: المسابقات وحدها في الشريط، وحالة فارغة واحدة
+    expect($items[1])->toBe(['competitions'])
+        ->and($html)->not->toContain('data-programs-section')->toContain(__('programs.list.empty'));
+
+    $this->seed(ProgramTypesSeeder::class);
+    $types = ProgramType::query()->ordered()->get();
 
     $html = (string) $this->get('/programs')->assertOk()->getContent();
     preg_match_all('/data-programs-bar-item="([^"]+)"/', (string) str($html)->after('data-programs-bar')->before('</nav>'), $items);
 
-    expect($items[1])->toBe(['competitions'])
-        ->and($html)->not->toContain('data-programs-section')->toContain(__('programs.list.empty'));
+    expect($items[1])->toBe([...$types->pluck('slug')->all(), 'competitions'])
+        ->and(substr_count($html, 'data-programs-section='))->toBe($types->count())
+        ->and(substr_count($html, e(__('programs.hub.empty'))))->toBe($types->count())
+        ->and($html)->not->toContain(__('programs.list.empty'));
+
+    // وقائمة النوع الفارغ: الشريط بالأنواع كلها، وحالته الفارغة
+    $list = (string) $this->get('/programs?type='.$types[1]->slug)->assertOk()->getContent();
+    preg_match_all('/data-programs-bar-item="([^"]+)"/', (string) str($list)->after('data-programs-bar')->before('</nav>'), $items);
+
+    expect($items[1])->toBe([...$types->pluck('slug')->all(), 'competitions'])
+        ->and($list)->toContain(__('programs.hub.empty'));
 });
 
 it('shows up to six programmes per section with «view all» to the type list, which keeps its pagination and bar', function () {

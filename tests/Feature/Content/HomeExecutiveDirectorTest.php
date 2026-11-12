@@ -109,7 +109,7 @@ it('hides the videos and accounts sections when switched off', function () {
 
 it('opens the courses and programs hub with training courses, scientific councils and competitions', function () {
     $this->seed(ProgramTypesSeeder::class);
-    // شريط واحد بمراسٍ في الصفحة نفسها بالأنواع التي فيها برنامج منشور (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
+    // شريط واحد بمراسٍ في الصفحة نفسها بالأنواع كلها (ملاحظات المدير التنفيذي، 4 نوفمبر 2026 — DirectorNotesNov4Test)
     $council = Program::factory()->for(ProgramType::query()->where('slug', 'scientific-councils')->sole(), 'type')->create();
     Program::factory()->for(ProgramType::query()->where('slug', 'training-courses')->sole(), 'type')->create();
 
@@ -125,10 +125,12 @@ it('opens the courses and programs hub with training courses, scientific council
     ProgramType::query()->where('slug', 'training-courses')->update(['name' => 'دورات معدّلة']);
     $this->get('/programs')->assertOk()->assertSee('دورات معدّلة');
 
-    // ونوع بلا برنامج منشور لا يظهر
+    // ونوع بلا برنامج منشور يبقى في الشريط، ومقطعه بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026: «كل شيء ظاهر ولو فرغ»)
     $council->update(['is_published' => false]);
 
-    $this->get('/programs')->assertOk()->assertDontSee('#programs-scientific-councils', false);
+    $html = (string) $this->get('/programs')->assertOk()->assertSee('href="#programs-scientific-councils"', false)->getContent();
+
+    expect((string) str($html)->after('data-programs-section="scientific-councils"')->before('</section>'))->toContain(__('programs.hub.empty'));
 });
 
 it('seeds every programme type once, keeping later edits', function () {

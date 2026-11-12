@@ -79,7 +79,7 @@ function progressFor(User $user, LibraryItem $item, array $attributes): LibraryP
 }
 
 it('seeds the three library program types, shown on the programs bar from data once each has a programme', function () {
-    // والنوع بلا برنامج منشور لا يظهر في الشريط (مراجعة المشرف على #181، L3)
+    // والنوع بلا برنامج منشور يظهر في الشريط أيضاً منذ 12 نوفمبر 2026 (DirectorNotesNov4Test)، وهنا لكل نوع برنامج
     foreach (ProgramType::query()->ordered()->get() as $type) {
         Program::factory()->for($type, 'type')->create();
     }
