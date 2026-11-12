@@ -53,6 +53,10 @@ it('labels the hero button «سجّل في المسابقة» instead of «شا�
         ->and($button[1])->toContain(__('competitions.student.register_cta'))
         ->not->toContain(__('ui.prize.cta'))
         ->and($html)->not->toContain(__('ui.prize.hero_title'));
+
+    // والوجهة نفسها: صفحة التسجيل
+    preg_match_all('/data-student-cta>\s*<a href="([^"]+)"/', $html, $links);
+    expect($links[1][0] ?? null)->toBe(route('competitions.student.register', 'brahin-1448'));
 });
 
 it('shows the closed state in the hero card without a button', function () {
