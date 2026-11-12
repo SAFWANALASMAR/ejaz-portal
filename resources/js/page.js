@@ -157,7 +157,14 @@ const superseded = new Set();
 
 function watchPageRequests() {
     window.Livewire.hook('navigate.request', ({ uri, options }) => {
+        // إشارة Livewire نفسها (إن وُجدت أو استُعملت في إصدار لاحق) تبقى تلغي الطلب: تُربط بإشارتنا لا تُستبدل
         const abort = new AbortController();
+        options.signal?.addEventListener('abort', () => abort.abort(), { once: true });
+
+        if (options.signal?.aborted) {
+            abort.abort();
+        }
+
         options.signal = abort.signal;
 
         if (superseded.delete(uri)) {
@@ -259,12 +266,21 @@ export function start() {
     // يُطلق أيضاً عند أول تحميل، وعند رابط داخل الصفحة نفسها، وعند الرجوع إليها دون تغيّرها: لا تهيئة مكررة
     document.addEventListener('livewire:navigated', () => {
         stopProgress();
-        pageRequests.clear();
-        superseded.clear();
 
+        // تنقّل لا يبدّل المستند (مرساة في الصفحة نفسها، أو رجوع إلى مدخل منه) لا يمسح السجلين: Livewire يعيد طلب الصفحة الملغاة
+        // في مهمة لاحقة، فلو مُسح سجلها قبلها لأُرسل الطلب المُعاد وحلّت الصفحة القديمة بعد المرساة (مراجعة الطلب 252)
         if (document.body === currentBody) {
             return;
         }
+
+        // وبعد صفحة حلّت: الملغى قديم، والطلب المكتمل يخرج من السجل، ويبقى طلب بدأ بعدها فيلغيه التنقّل التالي
+        superseded.clear();
+        const here = window.location.pathname + window.location.search + window.location.hash;
+        pageRequests.forEach((request) => {
+            if (request.uri === here) {
+                pageRequests.delete(request);
+            }
+        });
 
         // إشارة الصفحة السابقة تُلغى بعد أن حلّت الجديدة مكانها لا في navigating: فإن أُطلق ذلك ولم تتبدّل
         // الصفحة بقيت وظائفها (الحفظ التلقائي، والعدّاد) تعمل

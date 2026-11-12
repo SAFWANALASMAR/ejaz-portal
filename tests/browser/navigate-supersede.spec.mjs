@@ -42,3 +42,32 @@ test('the last pressed link wins when an earlier navigation answers later, and t
     await expect(page).toHaveURL(/\/programs$/, { timeout: 15_000 });
     expect((await page.locator('#main h1').first().innerText()).trim()).not.toBe(heading);
 });
+
+// مرساة في الصفحة نفسها بعد ضغطة معلّقة: Livewire يطلق navigated بلا تبديل المستند، ثم يعيد طلب الصفحة الملغاة في مهمة لاحقة.
+// فإن مُسح سجل الملغى عند ذلك الحدث أُرسل الطلب المُعاد وحلّت «الدورات والبرامج» بعد المرساة (مراجعة الطلب 252). والتنقّل إلى
+// المرساة برمجي كما في public-spa.spec.mjs، لأن مستمع app.js يوقف الضغط البرمجي على روابط المراسي قبل Livewire
+test('an in-page anchor navigation after a pending click cancels it, and the old page never swaps in afterwards', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    await page.goto('/');
+    test.skip((await page.locator(link('/programs')).count()) === 0, 'لا رابط للدورات على هذه البيئة');
+
+    await page.route((url) => url.pathname === '/programs', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, DELAY));
+        await route.continue().catch(() => {});
+    });
+
+    await page.evaluate((first) => {
+        window.navigatedTo = [];
+        document.addEventListener('livewire:navigated', () => window.navigatedTo.push(window.location.pathname));
+        document.querySelector(first).click();
+        window.Livewire.navigate(`${window.location.pathname}#main`);
+    }, link('/programs'));
+
+    await page.waitForURL((url) => url.hash === '#main');
+    await page.waitForTimeout(DELAY + 1000);
+
+    expect(new URL(page.url()).pathname).toBe('/');
+    expect(await page.evaluate(() => window.navigatedTo.every((path) => path === '/'))).toBe(true);
+});
+
