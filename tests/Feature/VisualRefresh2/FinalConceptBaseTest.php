@@ -114,7 +114,8 @@ it('renders one marquee component, horizontal or vertical, with a hidden copy fo
     $vertical = Blade::render('<x-marquee id="m2" label="الأخبار" direction="vertical" height="18rem" :duration="30" :controls="false"><span>خبر</span></x-marquee>');
 
     expect($horizontal)->toContain('data-marquee data-direction="horizontal" data-loop role="region" aria-label="شريط"')
-        ->toContain('data-marquee-copy aria-hidden="true" inert')
+        // والنسخة مخفية عن قارئ الشاشة وتُضغط، فلا inert (fix/marquee-copy-clickable)
+        ->toContain('data-marquee-copy aria-hidden="true">')->not->toContain('inert')
         ->toContain('data-ticker-toggle="m1"')->toContain('aria-pressed="false"')
         ->and(substr_count($horizontal, 'عنصر'))->toBe(2)
         ->and($vertical)->toContain('data-direction="vertical"')->toContain('--marquee-height: 18rem;')->toContain('--marquee-duration: 30s;')
