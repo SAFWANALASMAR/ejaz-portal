@@ -1,7 +1,9 @@
 <?php
 
+use App\Actions\Competitions\BuildStudentCompetitionCards;
 use App\Actions\Competitions\RegisterStudent;
 use App\Actions\Competitions\SaveCompetition;
+use App\Actions\Competitions\StartAttempt;
 use App\Enums\CompetitionStatus;
 use App\Enums\RoleName;
 use App\Filament\Resources\Competitions\Pages\EditCompetition;
@@ -84,20 +86,31 @@ it('shows the dates and the stage days again once the option is off', function (
         ->not->toContain('data-schedule-pending')->not->toContain('data-round-pending');
 });
 
+/**
+ * قسم من صفحة المسابقات بعلامته حتى نهايته، وفارغ إن لم يظهر. والحالية والسابقة قد تظهران بحالتهما الفارغة (#249)، فالفحص على ما فيهما.
+ */
+function competitionsSection(string $html, string $name): string
+{
+    return str_contains($html, 'data-competitions-'.$name) ? (string) str($html)->after('data-competitions-'.$name)->before('</section>') : '';
+}
+
 it('lists it as upcoming without a date, never as the current one or in the archive', function () {
-    $this->get('/competitions')->assertOk()
-        ->assertSee('data-competitions-upcoming', false)
-        ->assertDontSee('data-competitions-current', false)
-        ->assertDontSee('data-competitions-past', false)
+    $link = route('competitions.show', 'brahin-1448');
+    $html = (string) $this->get('/competitions')->assertOk()
         ->assertSee(__('competitions.list.schedule_pending'))
-        ->assertDontSee(__('competitions.list.opens', ['date' => Dates::display($this->competition->opens_at)]));
+        ->assertDontSee(__('competitions.list.opens', ['date' => Dates::display($this->competition->opens_at)]))
+        ->getContent();
+
+    expect(competitionsSection($html, 'upcoming'))->toContain($link)
+        ->and(competitionsSection($html, 'current'))->not->toContain($link)
+        ->and(competitionsSection($html, 'past'))->not->toContain($link);
 
     // وموعداها المخزنان في الماضي لا ينقلانها إلى الأرشيف
     $this->competition->forceFill(['opens_at' => now()->subWeek(), 'closes_at' => now()->subDay()])->save();
+    $html = (string) $this->get('/competitions')->assertOk()->getContent();
 
-    $this->get('/competitions')->assertOk()
-        ->assertSee('data-competitions-upcoming', false)
-        ->assertDontSee('data-competitions-past', false);
+    expect(competitionsSection($html, 'upcoming'))->toContain($link)
+        ->and(competitionsSection($html, 'past'))->not->toContain($link);
 });
 
 it('gives the home slide no date and the school networks no wider limits', function () {
@@ -140,9 +153,9 @@ it('publishes from the action before the questions arrive, and refuses to announ
         ->and($published->schedule_pending)->toBeTrue()
         ->and($published->status())->toBe(CompetitionStatus::Upcoming);
 
-    // وإطفاؤه في منشورة بلا أسئلة مرفوض، فلا يُفتح تسجيل بلا بنك
+    // وإطفاؤه في منشورة بلا أسئلة مرفوض، فلا يُفتح تسجيل بلا بنك، والخطأ على الخيار الذي غيّره المسؤول
     expect(fn () => app(SaveCompetition::class)->handle($director, $published, schedulePendingForm($published, ['schedule_pending' => false])))
-        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('is_published'));
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('schedule_pending')->not->toHaveKey('is_published'));
 
     expect($this->competition->fresh()->schedule_pending)->toBeTrue();
 });
@@ -169,4 +182,33 @@ it('offers the option in the panel form', function () {
     Livewire::test(EditCompetition::class, ['record' => $this->competition->getRouteKey()])
         ->assertFormFieldExists('schedule_pending')
         ->assertFormSet(['schedule_pending' => true]);
+});
+
+it('refuses a registered student starting a running stage while the option is on, and shows no start button in the account', function () {
+    // تسجيل قبل الخيار (الخيار لا يُشغَّل بعده من اللوحة، فهنا بـ forceFill لاختبار الحارس نفسه — مراجعة الطلب 254)
+    $this->competition->forceFill(['schedule_pending' => false])->save();
+    $student = registeredStudent($this->competition->fresh());
+    $this->competition->forceFill(['schedule_pending' => true])->save();
+
+    /** @var CompetitionRound $round */
+    $round = $this->competition->rounds()->firstOrFail();
+    $round->forceFill(['starts_at' => now()->subHour(), 'ends_at' => now()->addHour()])->save();
+
+    expect(fn () => app(StartAttempt::class)->handle($student, $round->fresh()))
+        ->toThrow(AuthorizationException::class, __('competitions.student.round_closed'));
+
+    $cards = app(BuildStudentCompetitionCards::class)->handle($student);
+
+    expect($cards)->toHaveCount(1)
+        ->and($cards[0]['state'])->toBe('pending')
+        ->and($cards[0]['url'])->toBeNull();
+});
+
+it('disables the option in the panel form after the first registration while it is off', function () {
+    $this->competition->forceFill(['schedule_pending' => false])->save();
+    registeredStudent($this->competition->fresh());
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector));
+
+    Livewire::test(EditCompetition::class, ['record' => $this->competition->getRouteKey()])
+        ->assertFormFieldDisabled('schedule_pending');
 });

@@ -331,6 +331,11 @@ class SaveCompetition
             && ($competition->submissions()->withTrashed()->exists() || $competition->rounds()->exists())) {
             throw ValidationException::withMessages(['student_mode' => __('competitions.student.mode_locked')]);
         }
+        // «المواعيد تُعلن لاحقاً» لا يُشغَّل بعد أول تسجيل: تسجيل وصل بين التحقق والقفل (مراجعة الطلب 254)
+        if (array_key_exists('schedule_pending', $data) && (bool) $data['schedule_pending'] && ! $competition->schedule_pending
+            && $competition->submissions()->withTrashed()->exists()) {
+            throw ValidationException::withMessages(['schedule_pending' => __('competitions.validation.schedule_pending_locked')]);
+        }
     }
 
     /**
@@ -485,11 +490,13 @@ class SaveCompetition
         $pending = (bool) ($data['schedule_pending'] ?? $competition->schedule_pending);
 
         if (($data['is_published'] ?? false) && ! $hasQuestions && ! $pending) {
-            $validator->errors()->add('is_published', __('competitions.validation.needs_questions'));
+            // إطفاء الخيار في منشورة بلا أسئلة: الخطأ على الخيار الذي غيّره المسؤول لا على «منشور»
+            $turnedOff = $competition->exists && $competition->schedule_pending && $competition->is_published;
+            $validator->errors()->add($turnedOff ? 'schedule_pending' : 'is_published', __($turnedOff ? 'competitions.validation.schedule_pending_needs_questions' : 'competitions.validation.needs_questions'));
         }
 
-        // ولا يُشغَّل بعد أول تسجيل أو مشاركة: يغلق المسابقة على من سجّل فيها
-        if ($pending && $competition->exists && ! $competition->schedule_pending && $competition->submissions()->exists()) {
+        // ولا يُشغَّل بعد أول تسجيل أو مشاركة: يغلق المسابقة على من سجّل فيها. ويُعاد على الصف المقفول في checkLocks
+        if ($pending && $competition->exists && ! $competition->schedule_pending && $competition->submissions()->withTrashed()->exists()) {
             $validator->errors()->add('schedule_pending', __('competitions.validation.schedule_pending_locked'));
         }
     }

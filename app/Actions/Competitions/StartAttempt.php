@@ -44,8 +44,9 @@ class StartAttempt
                 $locked = CompetitionRound::query()->whereKey($round->id)->sharedLock()->firstOrFail();
                 $locked->setRelation('competition', $competition);
 
-                // ولا بدء في مرحلة نُشرت نتائجها: تظهر درجة من يسلّم فيها فوراً
-                if (! $competition->is_published || $competition->trashed() || ! $locked->isRunning() || $locked->resultsPublished()) {
+                // ولا بدء في مرحلة نُشرت نتائجها: تظهر درجة من يسلّم فيها فوراً. ولا بدء و«المواعيد تُعلن لاحقاً» مشغّل: مواعيد المراحل
+                // المخزنة غير معتمدة (مراجعة الطلب 254 — docs/decisions/2026-11-12-feature-competition-schedule-pending.md)
+                if (! $competition->is_published || $competition->trashed() || $competition->schedule_pending || ! $locked->isRunning() || $locked->resultsPublished()) {
                     throw new AuthorizationException(__('competitions.student.round_closed'));
                 }
 

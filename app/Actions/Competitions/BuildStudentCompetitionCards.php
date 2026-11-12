@@ -56,7 +56,8 @@ class BuildStudentCompetitionCards
             /** @var CompetitionAttempt|null $attempt */
             $attempt = $submission->attempts->firstWhere('round_id', $round->id);
             $qualified = $previous !== null && $submission->attempts->contains(fn (CompetitionAttempt $item): bool => $item->round_id === $previous->id && $item->qualified_at !== null);
-            $state = self::state($round, $attempt, $qualified, $previous);
+            // «المواعيد تُعلن لاحقاً»: لا موعد ولا زر بدء قبل اعتماد المواعيد، والمحاولة القائمة (إن وُجدت قبل الخيار) بحالتها
+            $state = $competition->schedule_pending && $attempt === null ? 'pending' : self::state($round, $attempt, $qualified, $previous);
 
             $cards[] = [
                 'competition' => $competition,
