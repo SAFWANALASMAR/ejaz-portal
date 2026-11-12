@@ -99,8 +99,8 @@ async function touchTargets(page, selector) {
     // الحركة موقوفة، فلا يتحرك الصف بين القياس والفحص
     await page.addStyleTag({ content: '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }' });
     return page.locator(selector).evaluateAll((elements) => elements
-        // نسخة الشريط المتحرك الثانية inert، لا تُلمس ولا تُفحص
-        .filter((element) => element.offsetParent !== null && !element.closest('[inert]'))
+        // نسخة الشريط المتحرك الثانية مكررة الأصل (aria-hidden)، فلا تُفحص مرتين
+        .filter((element) => element.offsetParent !== null && !element.closest('[inert], [data-marquee-copy]'))
         .map((element) => {
             element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
             const box = element.getBoundingClientRect();

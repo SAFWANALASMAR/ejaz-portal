@@ -1,7 +1,8 @@
 {{--
     الشريط المتحرك (أمر التصور النهائي، النسخة 63 — المرحلة أ، البند ٨): CSS وحده، أفقي (شريط الخدمات والشركاء ويوتيوب وأغلفة الكتب)
     أو عمودي يصعد (شريط الأخبار). نسختان متتاليتان من المحتوى تتحركان بمقدار نسخة فيستمر بلا قفزة، والثانية مخفية عن قارئ الشاشة
-    ولوحة المفاتيح (aria-hidden وinert). ويتوقف بالمرور والتركيز، وبزر الإيقاف (data-ticker-toggle — home.js، WCAG 2.2.2)، وخارج
+    (aria-hidden) وروابطها خارج ترتيب لوحة المفاتيح (tabindex=-1 — home.js)، وتبقى تُضغط بالفأرة واللمس: كان inert يجعل نصف ما يظهر
+    من الشريط لا يفتح شيئاً (ملاحظة المدير التنفيذي على الإطلاق التجريبي، 12 نوفمبر 2026 — docs/decisions/2026-11-12-fix-marquee-copy-clickable.md). ويتوقف بالمرور والتركيز، وبزر الإيقاف (data-ticker-toggle — home.js، WCAG 2.2.2)، وخارج
     الشاشة (data-loop — motion.js). ولمن طلب تقليل الحركة لا يتحرك: صف يُمرَّر باليد، أو عمود بارتفاعه يُمرَّر.
 
     id: معرّف الشريط (لزر الإيقاف). label: اسمه لقارئ الشاشة. direction: horizontal أو vertical. duration: مدة الدورة بالثواني.
@@ -41,7 +42,7 @@
             <div class="marquee-track">
                 <div class="marquee-group">{{ $slot }}</div>
                 @for ($copy = 1; $copy < 2 * max(1, (int) $repeat); $copy++)
-                    <div class="marquee-group" data-marquee-copy aria-hidden="true" inert>{{ $slot }}</div>
+                    <div class="marquee-group" data-marquee-copy aria-hidden="true">{{ $slot }}</div>
                 @endfor
             </div>
         </div>
