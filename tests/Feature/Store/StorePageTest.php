@@ -58,6 +58,12 @@ it('no longer redirects /store to Salla', function () {
     $this->get('/store')->assertOk()->assertSee('data-store-page', false);
 });
 
+it('shows no payment note line on the store page, only the enter-store button', function () {
+    $this->get('/store')->assertOk()
+        ->assertDontSee('الدفع يتم في متجر الجمعية')
+        ->assertSee('data-store-enter', false);
+});
+
 it('filters by category tab, marks the active tab, and sends an unknown category back to all', function () {
     StoreItem::factory()->create(['title' => 'سهم تبرع']);
     StoreItem::factory()->publication()->create(['title' => 'كتاب الجمعية']);
