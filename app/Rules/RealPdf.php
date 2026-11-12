@@ -19,13 +19,14 @@ class RealPdf implements ValidationRule
 
     /**
      * مفتاحان قصيران يقعان مصادفةً في بيانات الصور والخطوط الثنائية المضغوطة (/JS ثلاثة بايتات، فيرفض كتباً سليمة كبيرة):
-     * لا يُعدّان إلا وبعدهما قيمة كما في القاموس، بعد فراغات PDF أو تعليق: نص أو سلسلة ست عشرية أو مرجع كائن لـ /JS، ومصفوفة
-     * أو مرجع لـ /XFA. وكل إجراء JavaScript يحمل /S /JavaScript الذي يُفحص بلا شرط
-     * (docs/decisions/2026-11-13-fix-real-pdf-false-positives.md).
+     * لا يُعدّان إلا إن تلاهما بعد فراغات PDF ما يبدأ قيمة: نص أو سلسلة ست عشرية أو مصفوفة، أو تعليق، أو عدد بعد فراغ (أول
+     * المرجع بأي صيغة يقبلها قارئ). ويبقيان فشلاً مغلقاً لا يُخفَّف أكثر: إجراء Rendition ينفّذ /JS بلا الاسم /JavaScript، ونموذج
+     * XFA سكربته داخل تدفقه. والفراغات وحدها بلا تحليل للتعليق، فيبقى الفحص خطياً (مراجعة الطلب 258:
+     * docs/decisions/2026-11-13-fix-real-pdf-false-positives.md).
      */
     private const VALUED = [
-        '/JS' => '\(|<|\d+[\x00\t\n\f\r ]+\d+[\x00\t\n\f\r ]+R',
-        '/XFA' => '\[|\d+[\x00\t\n\f\r ]+\d+[\x00\t\n\f\r ]+R',
+        '/JS' => '[(<\[%]|(?<=[\x00\t\n\f\r ])[0-9+.\-]',
+        '/XFA' => '[\[%]|(?<=[\x00\t\n\f\r ])[0-9+.\-]',
     ];
 
     /**
@@ -60,13 +61,17 @@ class RealPdf implements ValidationRule
         }
 
         // الأسماء في PDF قد تُرمَّز بـ #XX لإخفائها
-        $names = (string) preg_replace_callback(
+        $names = preg_replace_callback(
             '/#([0-9A-Fa-f]{2})/',
             fn (array $match): string => chr((int) hexdec($match[1])),
             $contents."\n".self::inflatedStreams($contents),
         );
 
-        // وخطأ البحث (false) رفضٌ لا قبول
+        // وخطأ الفك أو البحث رفضٌ لا قبول
+        if ($names === null) {
+            return 'validation.pdf_active_content';
+        }
+
         foreach (self::ACTIVE as $name) {
             if (preg_match('#'.preg_quote($name, '#').'(?![A-Za-z0-9])#', $names) !== 0) {
                 return 'validation.pdf_active_content';
@@ -74,7 +79,7 @@ class RealPdf implements ValidationRule
         }
 
         foreach (self::VALUED as $name => $value) {
-            if (preg_match('#'.preg_quote($name, '#').'(?:[\x00\t\n\f\r ]|%[^\r\n]*[\r\n])*+(?:'.$value.')#', $names) !== 0) {
+            if (preg_match('#'.preg_quote($name, '#').'[\x00\t\n\f\r ]*+(?:'.$value.')#', $names) !== 0) {
                 return 'validation.pdf_active_content';
             }
         }
