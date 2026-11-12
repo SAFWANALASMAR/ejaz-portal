@@ -78,7 +78,7 @@ function progressFor(User $user, LibraryItem $item, array $attributes): LibraryP
     return LibraryProgress::query()->forceCreate(['user_id' => $user->id, 'library_item_id' => $item->id, 'last_reported_at' => now(), ...$attributes]);
 }
 
-it('seeds the three library program types, shown on the programs bar from data once each has a programme', function () {
+it('seeds the three library program types, shown on the programs bar from data with a programme each', function () {
     // والنوع بلا برنامج منشور يظهر في الشريط أيضاً منذ 12 نوفمبر 2026 (DirectorNotesNov4Test)، وهنا لكل نوع برنامج
     foreach (ProgramType::query()->ordered()->get() as $type) {
         Program::factory()->for($type, 'type')->create();

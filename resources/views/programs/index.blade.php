@@ -8,6 +8,11 @@
 @php
     $anchor = fn (\App\Models\ProgramType $type): string => 'programs-'.$type->slug;
     $perSection = \App\Http\Controllers\ProgramController::PER_SECTION;
+    // شريط الأيقونات صف ملتف متوسط لا شبكة أعمدة تلقائية، فلا تبقى «المسابقات» وحدها في طرف صف ثانٍ (مراجعة الطلب 253 على عرض 820):
+    // ثلاثة في الصف دون 1024، ومن 1024 الأنواع و«المسابقات» صف واحد متساوٍ من ثلاثة إلى ستة أعمدة (فالقليل لا يُمدّ بعرض الصف)،
+    // والزائد صف متوسط بعرض البطاقة نفسه
+    $barColumns = max(3, min($types->count() + 1, 6));
+    $barItem = 'tone-card min-w-0 basis-[calc((100%_-_1rem)_/_3_-_0.1px)] lg:basis-[calc((100%_-_(var(--bar-cols)_-_1)_*_0.5rem)_/_var(--bar-cols)_-_0.1px)]';
 @endphp
 
 <x-layouts.app :title="__('programs.title')">
@@ -25,10 +30,10 @@
             <div id="programs-list"></div>
 
             <nav aria-label="{{ __('programs.hub.label') }}" class="tabs-bar mt-8" data-programs-bar>
-                <ul class="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))]">
+                <ul class="flex flex-wrap justify-center gap-2" style="--bar-cols: {{ $barColumns }}">
                     @foreach ($types as $type)
                         {{-- في الصفحة نفسها المرساة وحدها فيمرّر المتصفح إليها بلا تحميل، ومن قائمة نوع إلى مقطعه في الصفحة الأم --}}
-                        <li class="tone-card">
+                        <li class="{{ $barItem }}">
                             <a href="{{ $active ? route('programs.index').'#'.$anchor($type) : '#'.$anchor($type) }}" data-programs-bar-item="{{ $type->slug }}"
                                 @if ($active?->is($type)) aria-current="page" @endif
                                 class="group flex h-full flex-col items-center gap-2 rounded-[1.25rem] p-3 text-center aria-[current=page]:ring-3 aria-[current=page]:ring-[var(--blue-300)] aria-[current=page]:ring-inset sm:p-4">
@@ -37,7 +42,7 @@
                             </a>
                         </li>
                     @endforeach
-                    <li class="tone-card">
+                    <li class="{{ $barItem }}">
                         <a href="{{ route('competitions.index') }}" @navigate(route('competitions.index')) data-programs-bar-item="competitions"
                             class="group flex h-full flex-col items-center gap-2 rounded-[1.25rem] p-3 text-center sm:p-4">
                             <x-icon-tile icon="trophy" size="sm" />

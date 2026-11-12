@@ -52,17 +52,27 @@ it('puts the icon bar under the how-to steps, off the hero edge, with the guide 
 
     // ملاحظة المدير التنفيذي (12 نوفمبر 2026): «لو تكون أيقونة المسابقات نازلة»، وقرار صفوان: الشريط كله تحت «كيف تسجّل»
     foreach (['/programs', '/programs?type=training-courses'] as $url) {
-        $html = (string) $this->get($url)->assertOk()->getContent();
+        $html = (string) $this->get($url)->assertOk()
+            ->assertSeeInOrder(['id="programs-how-to-title"', 'id="programs-list"', 'data-programs-bar'], false)
+            ->getContent();
 
-        expect(strpos($html, 'id="programs-how-to-title"'))->toBeLessThan(strpos($html, 'id="programs-list"'))
-            ->and(strpos($html, 'id="programs-list"'))->toBeLessThan(strpos($html, 'data-programs-bar'))
-            ->and((string) str($html)->before('data-programs-bar')->afterLast('<nav'))->not->toContain('-mt-[2.125rem]');
+        expect((string) str($html)->before('data-programs-bar')->afterLast('<nav'))->not->toContain('-mt-[2.125rem]');
     }
 
     // والمقاطع بعد الشريط
-    $html = (string) $this->get('/programs')->getContent();
+    $this->get('/programs')->assertSeeInOrder(['data-programs-bar', 'data-programs-section'], false);
+});
 
-    expect(strpos($html, 'data-programs-bar'))->toBeLessThan(strpos($html, 'data-programs-section'));
+it('lays the icon bar out as a centred wrapping row, one equal row of up to six from 1024 pixels', function () {
+    $this->seed(ProgramTypesSeeder::class);
+
+    $html = (string) $this->get('/programs')->assertOk()->getContent();
+    $bar = (string) str($html)->after('data-programs-bar')->before('</nav>');
+
+    // لا شبكة أعمدة تلقائية تترك «المسابقات» وحدها في صف ثانٍ (مراجعة الطلب 253)، والأعمدة بعدد الأنواع و«المسابقات» من ثلاثة إلى ستة
+    expect($bar)->toContain('flex flex-wrap justify-center')
+        ->toContain('--bar-cols: '.max(3, min(ProgramType::query()->count() + 1, 6)))
+        ->not->toContain('auto-fit');
 });
 
 it('shows every type with its empty state when none has a published programme, and one empty state when there is no type', function () {
