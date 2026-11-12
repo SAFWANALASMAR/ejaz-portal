@@ -147,6 +147,42 @@ function stopProgress() {
     finishTransition();
 }
 
+// طلبات صفحات التنقّل السريع الجارية بوجهتها (navigate.request). Livewire 4.4.8 لا يلغي طلب تنقّل تجاوزه تنقّل أحدث، ويضع صفحته
+// حين يصل رده ولو بعد صفحة الضغطة الأخيرة: ضغطتان متتابعتان والأولى أبطأ رداً تنتهيان عند الأولى («أضغط منشوراتنا فتفتح الدورات
+// والبرامج» — ملاحظة على الإطلاق التجريبي، 12 نوفمبر 2026، docs/decisions/2026-11-12-fix-navigate-supersede.md). فكل تنقّل جديد
+// يلغي ما سبقه إلى وجهة أخرى. والوجهة الملغاة تُحفظ حتى يحل التنقّل الجديد: Livewire يعيد طلب ما كان ينتظر جلبه المسبق حين
+// يفشل (prefetch.js — whenFailed)، فيُلغى الطلب المُعاد فور صدوره
+const pageRequests = new Set();
+const superseded = new Set();
+
+function watchPageRequests() {
+    window.Livewire.hook('navigate.request', ({ uri, options }) => {
+        const abort = new AbortController();
+        options.signal = abort.signal;
+
+        if (superseded.delete(uri)) {
+            abort.abort();
+
+            return;
+        }
+
+        pageRequests.add({ uri, abort });
+    });
+}
+
+function supersede(url) {
+    const destination = url.pathname + url.search + url.hash;
+
+    superseded.delete(destination);
+    pageRequests.forEach((request) => {
+        if (request.uri !== destination) {
+            pageRequests.delete(request);
+            superseded.add(request.uri);
+            request.abort.abort();
+        }
+    });
+}
+
 export function start() {
     // نشر جديد غيّر أصول Vite (البصمة في اسم الملف): يضيف Livewire الجديدة إلى الرأس عند التنقّل التالي فتعمل
     // مع القديمة، فتُحمَّل الصفحة كاملة بأصولها الجديدة بدل تهيئة مزدوجة
@@ -158,6 +194,13 @@ export function start() {
 
     window.ejazPageStarted = true;
     run();
+
+    // سكربت Livewire مؤجل كهذا، وأيهما سبق: الخطاف يُسجَّل متى وُجد Livewire
+    if (window.Livewire) {
+        watchPageRequests();
+    } else {
+        document.addEventListener('livewire:init', watchPageRequests, { once: true });
+    }
 
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
@@ -194,6 +237,10 @@ export function start() {
             return;
         }
 
+        if (url) {
+            supersede(url);
+        }
+
         stopProgress();
         // والطبقة بعد 400 لا 150: التنقّل العادي (خادم سريع) يحل بلا طبقة أصلاً (البند ٥). ولا جلب مسبق عند المرور: أُسقط لأنه يُعدّ زيارة ويضاعف الطلبات في الذروة
         progress = setTimeout(() => {
@@ -212,6 +259,8 @@ export function start() {
     // يُطلق أيضاً عند أول تحميل، وعند رابط داخل الصفحة نفسها، وعند الرجوع إليها دون تغيّرها: لا تهيئة مكررة
     document.addEventListener('livewire:navigated', () => {
         stopProgress();
+        pageRequests.clear();
+        superseded.clear();
 
         if (document.body === currentBody) {
             return;
