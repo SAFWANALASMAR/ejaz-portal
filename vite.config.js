@@ -11,7 +11,7 @@ const noWasmFallback = (asset) => (asset.names ?? [asset.name]).some((name) => n
 
 export default defineConfig({
     build: {
-        rollupOptions: {
+        rolldownOptions: {
             output: {
                 assetFileNames: (asset) => (noWasmFallback(asset) ? `assets/pdfjs-${pdfjsVersion}/[name][extname]` : 'assets/[name]-[hash][extname]'),
             },

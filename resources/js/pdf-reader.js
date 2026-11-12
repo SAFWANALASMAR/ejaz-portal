@@ -21,9 +21,10 @@ let pdfjs = null;
 
 // مجلد بديلَي WebAssembly المكتوبين بـ JavaScript لفك صور JPEG 2000 (JPX) وJBIG2: يطلبهما العامل باسميهما منه، وبلاهما لا تُرسم تلك الصور
 // (صفحات بلا صورها في كتب ممسوحة). والملفان في مجلد واحد في البناء (vite.config.js) وفي خادم التطوير (node_modules)
-// (docs/decisions/2026-11-13-fix-reader-jpeg2000.md)
-const NO_WASM = [openjpegFallbackUrl, jbig2FallbackUrl].map((url) => new URL(url, window.location.href));
-const wasmUrl = new URL('.', NO_WASM[0]).href;
+// (docs/decisions/2026-11-13-fix-reader-jpeg2000.md). واستيراد بديل JBIG2 ليُخرج في البناء وحسب، والمجلد الواحد يضمنه
+// اختبار tests/Feature/Library/ReaderNoWasmFallbackTest.php
+void jbig2FallbackUrl;
+const wasmUrl = new URL('.', new URL(openjpegFallbackUrl, window.location.href)).href;
 
 async function loadPdfjs() {
     // النسخة legacy لمتصفحات الجوال الأقدم
