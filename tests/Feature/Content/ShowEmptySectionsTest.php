@@ -2,7 +2,14 @@
 
 use App\Enums\DocumentCategory;
 use App\Enums\LibrarySection;
+use App\Models\Album;
+use App\Models\Competition;
+use App\Models\Document;
+use App\Models\Initiative;
+use App\Models\LibraryItem;
+use App\Models\NewsArticle;
 use App\Models\Page;
+use App\Models\Partner;
 use App\Models\Setting;
 use App\Support\HomeContent;
 use App\Support\MenuSections;
@@ -94,4 +101,41 @@ it('lists every governance category and the satisfaction survey in the header dr
     expect(array_column(MenuSections::for('/governance'), 'url'))
         ->toBe(array_map(fn (DocumentCategory $category): string => '/governance?category='.$category->value, DocumentCategory::cases()))
         ->and(array_column(MenuSections::for('/media'), 'url'))->toContain('/surveys');
+});
+
+it('keeps drafts out of every section shown empty, each section with its empty state (review on #249)', function () {
+    NewsArticle::factory()->unpublished()->create(['title' => 'خبر مسودة']);
+    Album::factory()->unpublished()->create(['title' => 'ألبوم مسودة']);
+    Initiative::factory()->unpublished()->create(['name' => 'مبادرة مسودة']);
+    Partner::factory()->unpublished()->create(['name' => 'شريك مسودة']);
+    foreach (LibrarySection::cases() as $section) {
+        ($section === LibrarySection::Videos ? LibraryItem::factory()->video() : LibraryItem::factory())
+            ->unpublished()->create(['section' => $section, 'title' => 'عنصر مسودة '.$section->value]);
+    }
+    Document::factory()->unpublished()->create(['category' => DocumentCategory::Policies, 'title' => 'وثيقة مسودة']);
+    Competition::factory()->unpublished()->create(['title' => 'مسابقة مسودة']);
+
+    $drafts = ['خبر مسودة', 'ألبوم مسودة', 'مبادرة مسودة', 'شريك مسودة', 'عنصر مسودة', 'وثيقة مسودة', 'مسابقة مسودة'];
+    $pages = [
+        '/' => ['data-home-empty="news"', 'data-home-empty="partners"', 'data-home-empty="videos"', 'data-home-empty="books"'],
+        '/media' => ['data-media-empty="albums"'],
+        '/library' => array_map(fn (LibrarySection $section): string => 'data-library-empty="'.$section->value.'"', LibrarySection::cases()),
+        '/competitions' => ['data-competitions-empty="current"', 'data-competitions-empty="upcoming"', 'data-competitions-empty="past"'],
+        '/governance?category='.DocumentCategory::Policies->value => ['data-empty-state'],
+    ];
+
+    foreach ($pages as $url => $empties) {
+        $html = (string) $this->get($url)->assertOk()->getContent();
+
+        foreach ($empties as $empty) {
+            expect($html)->toContain($empty);
+        }
+
+        foreach ($drafts as $draft) {
+            expect($html)->not->toContain($draft);
+        }
+    }
+
+    // و«مبادراتنا» تحت البطل بسطرها لا بالمسودة
+    expect(homeSection((string) $this->get('/')->getContent(), 'data-identity-card="initiatives"'))->toContain(__('home.cards.soon'));
 });

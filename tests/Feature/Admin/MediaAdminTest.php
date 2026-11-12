@@ -126,17 +126,7 @@ it('accepts a partner with an https link and a picture logo, and refuses unsafe 
     'svg logo' => [['logo' => [UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')]], ['logo']],
 ]);
 
-// والشعار اختياري: الشريك بلا شعار يُنشر باسمه (قرار صفوان، 11 نوفمبر 2026، القرار ٣ — decisions/2026-11-11-fix-panel-gaps-nov11.md)
-it('accepts a published partner without a logo', function () {
-    $this->actingAs($this->editor);
-
-    Livewire::test(CreatePartner::class)
-        ->fillForm(['name' => 'شريك', 'logo' => null, 'is_published' => true])
-        ->call('create')
-        ->assertHasNoFormErrors();
-
-    expect(Partner::query()->sole()->logo)->toBeNull();
-});
+// والشعار اختياري: الشريك بلا شعار يُنشر باسمه، واختباره في PanelGapsNov11Test (قرار صفوان، 11 نوفمبر 2026، القرار ٣)
 
 it('never publishes an album without photos, even when the action is called directly', function () {
     expect(fn () => app(SaveContent::class)->handle($this->editor, new Album, ['title' => 'ألبوم', 'slug' => 'empty', 'published_on' => '2026-02-01', 'is_published' => true]))

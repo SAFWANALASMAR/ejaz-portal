@@ -74,7 +74,7 @@ class AdminPanelProvider extends PanelProvider
             fn (Action $action): Action => $action
                 ->label(fn (): string => __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()]))
                 ->tooltip(fn (): string => $table->getActiveFiltersCount() === 0
-                    ? __('filament-tables::table.actions.filter.label')
+                    ? __('admin.filters_tooltip')
                     : __('admin.filters_trigger', ['count' => $table->getActiveFiltersCount()])),
         ));
     }

@@ -212,6 +212,9 @@ test.describe('admin topbar and sidebar', () => {
                     await page.waitForTimeout(600);
                     await expect.soft(page.locator('.fi-sidebar.fi-sidebar-open'), `${role} 390: القائمة مفتوحة`).toBeVisible();
                     await shot(page, role, 'drawer', vp.width);
+                    // وزر الإغلاق يغلقها، ويعتمد مخزن Filament الداخلي ($store.sidebar) الذي غيّره 5.11 (مراجعة #246)
+                    await page.locator('[data-ej-sidebar-close]').click();
+                    await expect(page.locator('.fi-sidebar.fi-sidebar-open'), `${role} 390: القائمة تُغلق بالزر`).toHaveCount(0);
                 } else {
                     await setCollapsed(page, false);
                     await checkCommon(page, `${role} ${vp.width} موسّع`);

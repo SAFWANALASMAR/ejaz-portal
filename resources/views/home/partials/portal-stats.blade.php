@@ -13,7 +13,7 @@
 
         @if ($stats === [] && $chart === null)
             <x-empty-state icon="chart-bar" :message="__('home.empty.portal_stats')" data-home-empty="portal_stats" />
-        @endif
+        @else
         <div @class(['grid gap-4', 'lg:grid-cols-[1fr_1.05fr]' => $stats !== [] && $chart !== null])>
             @if ($stats !== [])
                 <ul @class(['grid grid-cols-2 gap-3.5', 'lg:grid-cols-4' => $chart === null && count($stats) <= 4, 'lg:grid-cols-3' => $chart === null && count($stats) > 4]) data-reveal-group>
@@ -47,5 +47,6 @@
                 </figure>
             @endif
         </div>
+        @endif
     </div>
 </section>

@@ -103,7 +103,11 @@ class SitePageResource extends Resource
                     ->disk('public')
                     ->directory(PageRevision::heroImageDirectory())
                     ->visibility('public'),
-                Textarea::make('summary')->label(__('page_editor.fields.summary'))->helperText(__('page_editor.fields.summary_hint'))->rows(2)->maxLength(EditablePages::SUMMARY_MAX)->columnSpanFull(),
+                // والصفحة بلا وصف أصلي في المحرر يبقي فراغه نص قالبها المعتمد (x-page-hero)، فتلميحها يقول ذلك (مراجعة #247)
+                Textarea::make('summary')->label(__('page_editor.fields.summary'))
+                    ->helperText(fn (?Page $record): string => ($key = EditablePages::keyForSlug($record?->slug)) !== null && EditablePages::PAGES[$key][3] === null
+                        ? __('page_editor.fields.summary_hint_template')
+                        : __('page_editor.fields.summary_hint'))->rows(2)->maxLength(EditablePages::SUMMARY_MAX)->columnSpanFull(),
             ]),
             Section::make(__('page_editor.sections.blocks'))->description(__('page_editor.sections.blocks_hint'))->columnSpanFull()->schema([
                 ContentFields::blocks(Page::IMAGE_DIRECTORY, $known)->label(__('page_editor.fields.blocks'))->maxItems(EditablePages::BLOCKS_MAX),

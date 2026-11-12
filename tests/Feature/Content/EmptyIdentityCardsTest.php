@@ -43,7 +43,7 @@ it('keeps all five cards, the ones without visible text with a coming-soon line 
         ->and($html)->not->toContain('【')
         ->and($vision)->toContain(__('home.cards.soon'))
         ->and($goals)->toContain(__('home.cards.soon'))
-        ->and($html)->toContain(__('home.cards.principles_soon'))
+        ->and($html)->toContain(__('home.cards.soon'))
         ->and($html)->toContain('مبادرة ظاهرة');
 });
 
@@ -129,7 +129,7 @@ it('keeps the empty values, principles and initiatives cards in the moving row w
         ->and($html)->toContain('رؤية معتمدة')
         ->and($html)->toContain('home-cards-track')
         ->and($html)->toContain('data-identity-card="principles"')
-        ->and($html)->toContain(__('home.cards.principles_soon'))
+        ->and($html)->toContain(__('home.cards.soon'))
         ->and(str($html)->after('data-identity-card="values"')->before('data-identity-card="principles"')->toString())->toContain(__('home.cards.soon'))
         ->and(str($html)->after('data-identity-card="initiatives"')->before('</div>')->toString())->not->toContain('data-initiative-slide')
         ->and($html)->toContain('--home-cards-count: 5');

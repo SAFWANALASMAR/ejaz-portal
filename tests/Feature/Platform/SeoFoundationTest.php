@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AchievementStatus;
 use App\Enums\OpeningKind;
 use App\Models\Achievement;
 use App\Models\Album;
@@ -122,13 +123,14 @@ it('drops the association suffix from a title it would push past 65 characters',
         ->and(seoTitle((string) $this->get('/governance/long-title')->getContent()))->toBe($long);
 });
 
+// والثالث يسحب العنصر من النشر (مراجعة المشرف على #248: الاتجاه العكسي)
 dataset('listings', [
-    'albums' => ['/media/albums', fn () => Album::factory()->create()],
-    'announcements' => ['/media/announcements', fn () => Announcement::factory()->create()],
-    'achievements' => ['/achievements', fn () => Achievement::factory()->published()->create()],
-    'jobs' => ['/services/jobs', fn () => Opening::factory()->create()],
-    'volunteering' => ['/services/volunteering', fn () => Opening::factory()->kind(OpeningKind::Volunteering)->create()],
-    'competitions' => ['/competitions', fn () => Competition::factory()->create()],
+    'albums' => ['/media/albums', fn () => Album::factory()->create(), fn (Album $album) => $album->update(['is_published' => false])],
+    'announcements' => ['/media/announcements', fn () => Announcement::factory()->create(), fn (Announcement $announcement) => $announcement->update(['is_published' => false])],
+    'achievements' => ['/achievements', fn () => Achievement::factory()->published()->create(), fn (Achievement $achievement) => $achievement->update(['status' => AchievementStatus::Draft])],
+    'jobs' => ['/services/jobs', fn () => Opening::factory()->create(), fn (Opening $opening) => $opening->update(['is_published' => false])],
+    'volunteering' => ['/services/volunteering', fn () => Opening::factory()->kind(OpeningKind::Volunteering)->create(), fn (Opening $opening) => $opening->update(['is_published' => false])],
+    'competitions' => ['/competitions', fn () => Competition::factory()->create(), fn (Competition $competition) => $competition->update(['is_published' => false])],
 ]);
 
 it('keeps an empty list page out of search engines and the sitemap until its first published item', function (string $path, Closure $publish) {
@@ -139,6 +141,21 @@ it('keeps an empty list page out of search engines and the sitemap until its fir
 
     expect((string) $this->get($path)->assertOk()->getContent())->not->toContain('noindex')
         ->and(seoSitemapUrls($this))->toContain(url($path));
+})->with('listings');
+
+it('puts the list back out of search engines and the sitemap once its last item is withdrawn or deleted', function (string $path, Closure $publish, Closure $withdraw) {
+    $withdraw($publish());
+
+    expect((string) $this->get($path)->assertOk()->getContent())->toContain('<meta name="robots" content="noindex, nofollow">')
+        ->and(seoSitemapUrls($this))->not->toContain(url($path));
+
+    // والحذف كذلك: الحفظ والحذف يمسحان ذاكرة المحتوى (FlushesContentCache)
+    $item = $publish();
+    expect(seoSitemapUrls($this))->toContain(url($path));
+    $item->delete();
+
+    expect((string) $this->get($path)->assertOk()->getContent())->toContain('<meta name="robots" content="noindex, nofollow">')
+        ->and(seoSitemapUrls($this))->not->toContain(url($path));
 })->with('listings');
 
 it('keeps a list whose only items are unpublished or closed out of the index', function () {
