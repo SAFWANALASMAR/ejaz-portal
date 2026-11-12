@@ -6,7 +6,8 @@
 
 it('builds the pdf.js no-wasm fallbacks unhashed in one folder named after the library version', function () {
     $manifest = json_decode((string) file_get_contents(public_path('build/manifest.json')), true);
-    $version = json_decode((string) file_get_contents(base_path('node_modules/pdfjs-dist/package.json')), true)['version'];
+    // الإصدار من ملف القفل لا من node_modules: حاوية app المحلية لا تركّب node_modules (compose.yaml)، والقفل يطابق ما يثبّته npm ci
+    $version = json_decode((string) file_get_contents(base_path('package-lock.json')), true)['packages']['node_modules/pdfjs-dist']['version'];
 
     foreach (['openjpeg', 'jbig2'] as $name) {
         $file = $manifest["node_modules/pdfjs-dist/wasm/{$name}_nowasm_fallback.js"]['file'] ?? null;
