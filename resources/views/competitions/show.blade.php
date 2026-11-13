@@ -55,7 +55,7 @@
                         </span>
                         <x-stat-badge :value="$prizeTotal" :label="__('ui.prize.currency')" on-load class="relative items-start! text-start!" />
                     @endif
-                    <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" hero class="relative mt-2" />
+                    <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" hero :prizes="$prizeTotal > 0" class="relative mt-2" />
                 </div>
                 <x-competitions.student-cta :competition="$competition" :submission="$submission" :status="$status" register data-at="mobile" />
             </x-slot:aside>
