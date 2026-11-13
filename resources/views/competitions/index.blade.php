@@ -21,14 +21,14 @@
     <x-page-hero :title="__('competitions.list.heading')" />
     <x-page-sections />
 
-    @if ($open->isEmpty() && $upcoming->isEmpty() && $past->isEmpty())
-        <section class="container-page py-10">
-            <x-empty-state icon="trophy" :message="__('competitions.list.empty')" />
-        </section>
-    @else
-        @if ($current)
+    {{-- الأقسام الثلاثة ظاهرة دائماً في الصفحة الأولى، والفارغ بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 —
+         docs/decisions/2026-11-11-fix-show-empty-sections.md). والصفحات التالية للسابقة وحدها كما كانت --}}
+    @if ($past->currentPage() === 1)
             <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-4 sm:px-7" aria-labelledby="competitions-current" data-competitions-current>
                 <x-section-heading id="competitions-current" icon="trophy" class="mb-5">{{ __('ui.inner.competitions.current') }}</x-section-heading>
+                @if ($current === null)
+                    <x-empty-state icon="trophy" :message="__('competitions.list.current_empty')" data-competitions-empty="current" />
+                @else
 
                 <article class="tone-card grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-[1.5fr_1fr]" data-tone="dark">
                     <div class="flex flex-col gap-3">
@@ -69,35 +69,39 @@
                         @endforeach
                     </ul>
                 @endif
+                @endif
             </section>
-        @endif
 
-        @if ($upcoming->isNotEmpty())
             <section class="band-sky mt-4 py-8" aria-labelledby="competitions-upcoming" data-competitions-upcoming>
                 <div class="mx-auto max-w-[82.5rem] px-4 sm:px-7">
                     <x-section-heading id="competitions-upcoming" icon="clock" class="mb-5">{{ __('ui.inner.competitions.upcoming') }}</x-section-heading>
+                    @if ($upcoming->isEmpty())
+                        <x-empty-state icon="clock" :message="__('competitions.list.upcoming_empty')" data-competitions-empty="upcoming" />
+                    @else
                     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                         @foreach ($upcoming as $competition)
                             <li>@include('competitions.partials.card', ['competition' => $competition, 'status' => CompetitionStatus::Upcoming])</li>
                         @endforeach
                     </ul>
+                    @endif
                 </div>
             </section>
-        @endif
+    @endif
 
-        @if ($past->isNotEmpty())
             <section class="mx-auto max-w-[82.5rem] px-4 pt-8 pb-6 sm:px-7" aria-labelledby="competitions-past" data-competitions-past>
                 <x-section-heading id="competitions-past" icon="archive-box" class="mb-5">{{ __('ui.inner.competitions.past') }}</x-section-heading>
+                @if ($past->isEmpty())
+                    <x-empty-state icon="archive-box" :message="__('competitions.list.past_empty')" data-competitions-empty="past" />
+                @else
                 <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
                     @foreach ($past as $competition)
                         <li>@include('competitions.partials.card', ['competition' => $competition, 'status' => CompetitionStatus::Closed])</li>
                     @endforeach
                 </ul>
+                @endif
             </section>
-        @endif
 
         <div class="container-page pb-10">
             {{ $past->links('partials.pagination') }}
         </div>
-    @endif
 </x-layouts.app>

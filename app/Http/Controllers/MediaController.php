@@ -7,7 +7,6 @@ use App\Models\Album;
 use App\Models\Announcement;
 use App\Models\NewsArticle;
 use App\Models\Partner;
-use App\Models\Survey;
 use App\Support\ContentCache;
 use App\Support\HomeContent;
 use Illuminate\Contracts\View\View;
@@ -43,7 +42,8 @@ class MediaController extends Controller
             'albums' => Album::query()->published()->newestFirst()->limit(self::ALBUMS)->get(),
         ])->render());
 
-        $tile = Route::has('surveys.index') && Survey::hasOpenGeneral() ? view('media.partials.survey-tile')->render() : '';
+        // ظاهرة دائماً، وبلا استبيان مفتوح تفتح «قياس الرضا» برسالتها (قرار صفوان، 11 نوفمبر 2026 — SurveyController::index)
+        $tile = Route::has('surveys.index') ? view('media.partials.survey-tile')->render() : '';
         $html = str_replace(self::SURVEY_SLOT, $tile, $html);
 
         return view('content.page', ['title' => __('media.title'), 'summary' => null, 'html' => new HtmlString($html)]);

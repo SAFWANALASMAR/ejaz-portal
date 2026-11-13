@@ -3,6 +3,7 @@
     التنفيذي، 25 أكتوبر 2026 — ومكتبة الصور والشركاء من لوحة التصور)، ثم «قياس الرضا» ملوناً بعرض كامل متى فُتح استبيان، ثم الأخبار:
     الأحدث بطاقة كبيرة بصورته، وبجانبه البقية بطاقات ملونة منفصلة تصعد في شريط متحرك (البند P6)، ثم مكتبة الصور شريطاً متحركاً
     (البند R16). والمكتبة المرئية في «مكتبة إعجاز». (تُخزَّن نصاً — MediaController)
+    وكل قسم ظاهر ولو فرغ بحالته الفارغة، و«قياس الرضا» دائماً (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md).
 --}}
 @php
     $tiles = [
@@ -42,9 +43,7 @@
     <div class="mx-auto max-w-[82.5rem] px-4 sm:px-7">
         <div class="mb-5 flex items-center justify-between gap-4">
             <x-section-heading id="latest-news" icon="newspaper">{{ __('media.latest_news') }}</x-section-heading>
-            @if ($latest->isNotEmpty())
-                <a href="{{ route('media.news.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}</a>
-            @endif
+            <a href="{{ route('media.news.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}</a>
         </div>
 
         @if ($latest->isEmpty())
@@ -91,7 +90,6 @@
     </div>
 </section>
 
-@if ($albums->isNotEmpty())
     <section class="band-sky py-8" aria-labelledby="media-albums">
         <div class="mx-auto max-w-[82.5rem] px-4 sm:px-7">
             <div class="mb-5 flex items-center justify-between gap-4">
@@ -99,6 +97,9 @@
                 <a href="{{ route('media.albums.index') }}" wire:navigate class="more-link shrink-0">{{ __('site.view_all') }}</a>
             </div>
 
+            @if ($albums->isEmpty())
+                <x-empty-state icon="photo" :message="__('albums.list.empty')" data-media-empty="albums" />
+            @else
             <x-marquee id="media-albums-strip" :label="__('albums.title')" :duration="max(30, $albums->count() * 7)">
                 @foreach ($albums as $album)
                     <a href="{{ route('media.albums.show', $album->slug) }}" wire:navigate class="gallery-tile" data-gallery-tile>
@@ -109,6 +110,6 @@
                     </a>
                 @endforeach
             </x-marquee>
+            @endif
         </div>
     </section>
-@endif

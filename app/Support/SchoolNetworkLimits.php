@@ -54,7 +54,8 @@ final class SchoolNetworkLimits
     private static function remember(string $name, Closure $window): bool
     {
         return (bool) Cache::remember(self::CACHE_KEY.$name, 60, function () use ($window): bool {
-            $query = Competition::query()->published()->where('student_mode', true);
+            // والتي «مواعيدها تُعلن لاحقاً» لا نافذة لها: تسجيلها مغلق وموعداها ومواعيد مراحلها غير معتمدة
+            $query = Competition::query()->published()->where('student_mode', true)->where('schedule_pending', false);
             $window($query);
 
             return $query->exists();

@@ -1,9 +1,11 @@
 {{--
     زر التسجيل في مسابقة الطلاب بحالاته، مكوّن واحد للعمود الجانبي ولبطاقة الجوائز في بطل الصفحة فلا يتكرر منطقه: المسجل يرى
-    رقمه المرجعي ومشاركاته، وغيره زر التسجيل في نافذته، والزائر الدخول أولاً، وقبل النافذة موعدها، وبعدها الإغلاق.
+    رقمه المرجعي ومشاركاته، وغيره زر التسجيل في نافذته، والزائر الدخول أولاً، وقبل النافذة موعدها (أو «تُعلن المواعيد لاحقاً»)، وبعدها الإغلاق.
     hero: على الخلفية الداكنة بزر أبيض «شارك واربح» (Final-Competition) إلى الوجهة نفسها، بلا زر إنشاء الحساب (في العمود).
+    prizes: للمسابقة جوائز في جدولها؛ وبلاها زر البطل «سجّل في المسابقة» لا «شارك واربح»
+    (docs/decisions/2026-11-13-fix-competition-cta-no-prizes.md).
 --}}
-@props(['competition', 'submission' => null, 'status', 'hero' => false, 'register' => false])
+@props(['competition', 'submission' => null, 'status', 'hero' => false, 'register' => false, 'prizes' => true])
 
 @php
     use App\Enums\CompetitionStatus;
@@ -35,7 +37,7 @@
         @if ($hero)
             {{-- للزائر وللمستفيد إلى صفحة التسجيل نفسها، وهي تطلب الدخول من الزائر --}}
             <a href="{{ $registerUrl }}" @navigate($registerUrl) class="hero-cta">
-                {{ __('ui.prize.cta') }}
+                {{ $prizes ? __('ui.prize.cta') : __('competitions.student.register_cta') }}
                 {{ \App\Support\Icon::svg('arrow-left', 'size-5 shrink-0', ['aria-hidden' => 'true']) }}
             </a>
         @else
@@ -49,7 +51,10 @@
             @endauth
         @endif
     @elseif ($status === CompetitionStatus::Upcoming)
-        <p class="{{ $note }}">{{ __('competitions.show.upcoming', ['date' => Dates::display($competition->opens_at, withTime: true)]) }}</p>
+        {{-- «المواعيد تُعلن لاحقاً» بلا موعد الفتح المخزن (schedule_pending) --}}
+        <p class="{{ $note }}" @if ($competition->schedule_pending) data-schedule-pending @endif>
+            {{ $competition->schedule_pending ? __('competitions.show.schedule_pending') : __('competitions.show.upcoming', ['date' => Dates::display($competition->opens_at, withTime: true)]) }}
+        </p>
     @else
         <p class="{{ $note }}">{{ __('competitions.student.registration_closed') }}</p>
     @endif

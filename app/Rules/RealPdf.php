@@ -15,7 +15,19 @@ use Illuminate\Http\UploadedFile;
  */
 class RealPdf implements ValidationRule
 {
-    private const ACTIVE = ['/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/RichMedia', '/XFA', '/SubmitForm', '/ImportData'];
+    private const ACTIVE = ['/JavaScript', '/Launch', '/EmbeddedFile', '/RichMedia', '/SubmitForm', '/ImportData'];
+
+    /**
+     * مفتاحان قصيران يقعان مصادفةً في بيانات الصور والخطوط الثنائية المضغوطة (/JS ثلاثة بايتات، فيرفض كتباً سليمة كبيرة):
+     * لا يُعدّان إلا إن تلاهما بعد فراغات PDF ما يبدأ قيمة: نص أو سلسلة ست عشرية أو مصفوفة، أو تعليق، أو عدد بعد فراغ (أول
+     * المرجع بأي صيغة يقبلها قارئ). ويبقيان فشلاً مغلقاً لا يُخفَّف أكثر: إجراء Rendition ينفّذ /JS بلا الاسم /JavaScript، ونموذج
+     * XFA سكربته داخل تدفقه. والفراغات وحدها بلا تحليل للتعليق، فيبقى الفحص خطياً (مراجعة الطلب 258:
+     * docs/decisions/2026-11-13-fix-real-pdf-false-positives.md).
+     */
+    private const VALUED = [
+        '/JS' => '[(<\[%]|(?<=[\x00\t\n\f\r ])[0-9+.\-]',
+        '/XFA' => '[\[%]|(?<=[\x00\t\n\f\r ])[0-9+.\-]',
+    ];
 
     /**
      * سقف ما يُفك من التدفقات، فلا يُستنزف الخادم بملف مضغوط مضخَّم.
@@ -49,14 +61,25 @@ class RealPdf implements ValidationRule
         }
 
         // الأسماء في PDF قد تُرمَّز بـ #XX لإخفائها
-        $names = (string) preg_replace_callback(
+        $names = preg_replace_callback(
             '/#([0-9A-Fa-f]{2})/',
             fn (array $match): string => chr((int) hexdec($match[1])),
             $contents."\n".self::inflatedStreams($contents),
         );
 
+        // وخطأ الفك أو البحث رفضٌ لا قبول
+        if ($names === null) {
+            return 'validation.pdf_active_content';
+        }
+
         foreach (self::ACTIVE as $name) {
-            if (preg_match('#'.preg_quote($name, '#').'(?![A-Za-z0-9])#', $names) === 1) {
+            if (preg_match('#'.preg_quote($name, '#').'(?![A-Za-z0-9])#', $names) !== 0) {
+                return 'validation.pdf_active_content';
+            }
+        }
+
+        foreach (self::VALUED as $name => $value) {
+            if (preg_match('#'.preg_quote($name, '#').'[\x00\t\n\f\r ]*+(?:'.$value.')#', $names) !== 0) {
                 return 'validation.pdf_active_content';
             }
         }
