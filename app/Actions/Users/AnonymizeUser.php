@@ -106,6 +106,9 @@ class AnonymizeUser
             DB::table('competition_submissions')->where('user_id', $user->id)
                 ->update(['full_name' => null, 'contact_email' => null, 'national_id' => null, 'national_id_hash' => null, 'guardian_phone' => null, 'grade' => null, 'gender' => null, 'extra' => null]);
 
+            // وسبب إعادة الاختبار نص حر عنه (مراجعة #261، ت٢)
+            DB::table('competition_retakes')->where('user_id', $user->id)->update(['reason' => '']);
+
             // شهادات مسابقة الطلاب تحمل الاسم كشهادات الحضور: يُفرَّغ مسارها هنا، وتُحذف ملفاتها بعد اعتماد
             // المعاملة فلا يضيع ملف إن تراجعت
             $certificates = CompetitionSubmission::query()->withTrashed()->where('user_id', $user->id)->whereNotNull('certificate_path')->pluck('certificate_path')->all();

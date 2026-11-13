@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Competitions\RelationManagers;
 
+use App\Actions\Competitions\GrantCompetitionRetake;
 use App\Actions\Competitions\IssueCompetitionCertificates;
 use App\Actions\Competitions\QualifyAttempts;
+use App\Actions\Competitions\RevokeCompetitionRetake;
 use App\Actions\Competitions\RunTieDraw;
 use App\Enums\AttemptStatus;
 use App\Enums\StudentGender;
@@ -11,12 +13,16 @@ use App\Filament\Resources\Competitions\RelationManagers\Concerns\RunsStudentCom
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionRegion;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionRound;
+use App\Support\CompetitionAccess;
 use App\Support\NationalIdExport;
 use App\Support\StudentResultsSheet;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -29,6 +35,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -59,7 +66,11 @@ class ResultsRelationManager extends RelationManager
             ->pluralModelLabel(__('competitions.student.admin.results'))
             // والتسجيل الملغى (CorrectStudentRegistration::cancel) خارج النتائج، كما في السحب والترتيب التراكمي
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['round', 'submission.studentCategory', 'submission.studentRegion'])
-                ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at')))
+                ->whereHas('submission', fn (Builder $query) => $query->whereNull('deleted_at'))
+                // إعادة لم تُستعمل لكل صف في الاستعلام نفسه، لزرّي المنح والإلغاء (docs/decisions/2026-11-13-feature-competition-retake.md)
+                ->addSelect(['open_retake_id' => CompetitionRetake::query()->select('id')
+                    ->whereColumn('round_id', 'competition_attempts.round_id')->whereColumn('submission_id', 'competition_attempts.submission_id')
+                    ->whereNull('used_at')->latest('id')->limit(1)]))
             ->defaultSort('score', 'desc')
             ->poll('30s')
             ->columns([
@@ -97,6 +108,37 @@ class ResultsRelationManager extends RelationManager
                             ->when(filled($data['region_id'] ?? null), fn (Builder $query) => $query->where('region_id', (int) $data['region_id']))),
                     )),
                 TernaryFilter::make('qualified')->label(__('competitions.student.admin.qualified'))->nullable()->attribute('qualified_at'),
+            ])
+            // إعادة الاختبار لطالب بعينه: للمدير التنفيذي والمسؤول التقني وحدهما بالربط (CompetitionAccess)، والعمل في الإجراء
+            // (docs/decisions/2026-11-13-feature-competition-retake.md)
+            ->recordActions([
+                Action::make('allow_retake')
+                    ->label(__('competitions.student.retake.action'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->modalHeading(__('competitions.student.retake.heading'))
+                    ->modalDescription(__('competitions.student.retake.description'))
+                    ->visible(fn (CompetitionAttempt $record): bool => $record->status === AttemptStatus::Submitted && $record->getAttribute('open_retake_id') === null && ! $record->round->resultsPublished() && CompetitionAccess::allows($this->actor(), GrantCompetitionRetake::PERMISSION))
+                    ->schema(fn (CompetitionAttempt $record): array => [
+                        Textarea::make('reason')->label(__('competitions.student.retake.reason'))->helperText(__('competitions.student.retake.reason_hint'))
+                            ->required()->minLength(3)->maxLength(500),
+                        DateTimePicker::make('until')->label(__('competitions.student.retake.until'))->helperText(__('competitions.student.retake.until_hint'))
+                            ->seconds(false)->after('now')->maxDate(now()->addDays(GrantCompetitionRetake::MAX_DAYS))->required(fn (): bool => ! $record->round->isRunning()),
+                    ])
+                    ->action(fn (CompetitionAttempt $record, array $data) => $this->attempt(function () use ($record, $data): void {
+                        app(GrantCompetitionRetake::class)->handle($this->actor(), $record, (string) $data['reason'], filled($data['until'] ?? null) ? Carbon::parse($data['until']) : null);
+                        Notification::make()->success()->title(__('competitions.student.retake.granted'))->send();
+                    })),
+                Action::make('revoke_retake')
+                    ->label(__('competitions.student.retake.revoke'))
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription(__('competitions.student.retake.revoke_confirm'))
+                    ->visible(fn (CompetitionAttempt $record): bool => $record->getAttribute('open_retake_id') !== null && CompetitionAccess::allows($this->actor(), GrantCompetitionRetake::PERMISSION))
+                    ->action(fn (CompetitionAttempt $record) => $this->attempt(function () use ($record): void {
+                        app(RevokeCompetitionRetake::class)->handle($this->actor(), CompetitionRetake::query()->findOrFail((int) $record->getAttribute('open_retake_id')));
+                        Notification::make()->success()->title(__('competitions.student.retake.revoked'))->send();
+                    })),
             ])
             ->headerActions([
                 Action::make('export')

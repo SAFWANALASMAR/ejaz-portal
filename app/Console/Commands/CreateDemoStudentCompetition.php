@@ -14,6 +14,7 @@ use App\Models\CompetitionCategory;
 use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
 use App\Models\CompetitionRegion;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
@@ -57,6 +58,7 @@ class CreateDemoStudentCompetition extends Command
         $competition = DB::transaction(function () use ($brochure): Competition {
             Competition::withTrashed()->where('slug', self::SLUG)->get()->each(function (Competition $old): void {
                 CompetitionAttempt::query()->whereIn('round_id', $old->rounds()->select('id'))->delete();
+                CompetitionRetake::query()->whereIn('round_id', $old->rounds()->select('id'))->delete();
                 $old->submissions()->withTrashed()->forceDelete();
                 $old->forceDelete();
             });

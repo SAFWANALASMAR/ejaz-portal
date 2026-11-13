@@ -104,11 +104,14 @@ class StudentExamController extends Controller
     {
         [$competition, $stage, $submission] = $this->context($request, $slug, $round);
         $attempt = $this->attempt($request, $stage, $submission);
+        // إعادة اختبار قائمة لهذا الطالب: صفحة البدء ولو سلّم من قبل (docs/decisions/2026-11-13-feature-competition-retake.md)
+        $retake = $attempt === null || ! $attempt->isInProgress() ? $stage->activeRetake($submission) : null;
 
-        if ($attempt === null) {
+        if ($attempt === null || $retake !== null) {
             return view('competitions.student.start', [
                 'competition' => $competition,
                 'round' => $stage,
+                'retake' => $retake,
                 'eligible' => ! $stage->qualified_only || app(StartAttempt::class)->qualified($stage, $submission),
             ]);
         }
@@ -127,10 +130,13 @@ class StudentExamController extends Controller
     public function status(Request $request, string $slug, string $round): View
     {
         [$competition, $stage, $submission] = $this->context($request, $slug, $round);
+        $retake = $stage->activeRetake($submission) !== null;
 
         return view('competitions.student.status', [
             'competition' => $competition,
             'round' => $stage,
+            'open' => $retake || $stage->isRunning(),
+            'retake' => $retake,
             'attempt' => $this->attempt($request, $stage, $submission),
         ]);
     }

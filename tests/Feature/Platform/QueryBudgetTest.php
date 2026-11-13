@@ -310,5 +310,6 @@ it('keeps the account home within its budget for a student registered in competi
         }
     };
 
-    expectQueryBudget($seed, fn () => $this->actingAs($user)->get('/account')->assertSee('data-account-competition', false), 24);
+    // +1 منذ 13 نوفمبر: إعادات الاختبار غير المستعملة لتسجيلاته باستعلام واحد (docs/decisions/2026-11-13-feature-competition-retake.md)
+    expectQueryBudget($seed, fn () => $this->actingAs($user)->get('/account')->assertSee('data-account-competition', false), 25);
 });

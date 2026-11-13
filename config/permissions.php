@@ -66,7 +66,8 @@ $modules = [
     // export_national_id: تصدير النتائج برقم الهوية كاملاً وكشفه طالباً طالباً، لمديري النظام ولمن يمنحانه مباشرة
     // (ChangeNationalIdExport) لا لمنشئ المسابقة تلقائياً، بكلمة المرور (NationalIdExport — ملاحظة الاختبار الشامل 10).
     // والتصدير العادي مقنّع لكل من يدير النتائج. وview_national_id القديمة حُذفت (ترحيل 2026_10_28_090000)
-    'competition' => ['manage_results', 'correct_registrations', 'export_national_id'],
+    // allow_retake: السماح لطالب بإعادة اختبار مرحلة، لمديري النظام وحدهم بـ '*' (docs/decisions/2026-11-13-feature-competition-retake.md)
+    'competition' => ['manage_results', 'correct_registrations', 'export_national_id', 'allow_retake'],
     // التحكيم: السياسة تحصره في المسند إلى المحكّم نفسه
     'reviews' => ['view', 'update'],
 
