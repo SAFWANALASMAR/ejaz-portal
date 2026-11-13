@@ -69,8 +69,8 @@ class CompetitionForm
                         ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
                     // الصفحة بلا مواعيد والتسجيل مغلق حتى تُعتمد المواعيد (decisions/2026-11-12-feature-competition-schedule-pending.md)
                     Toggle::make('schedule_pending')->label(__('competitions.fields.schedule_pending'))->helperText(__('competitions.fields.schedule_pending_hint'))->columnSpanFull()
-                        // لا يُشغَّل بعد أول تسجيل (SaveCompetition)، فيُعطَّل مطفأً، ويبقى قابلاً للإطفاء
-                        ->disabled(fn (?Competition $record): bool => $record !== null && $record->exists && ! $record->schedule_pending && $record->submissions()->withTrashed()->exists())->dehydrated(),
+                        // لا يُشغَّل بعد أول تسجيل (SaveCompetition)، فيُعطَّل مطفأً، ويبقى قابلاً للإطفاء. ويُسأل مرة للسجل (QueryBudgetTest)
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'schedulePendingLocked'))->dehydrated(),
                     Textarea::make('description')->label(__('competitions.fields.description'))->rows(4)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('terms')->label(__('competitions.fields.terms'))->rows(5)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('prizes')->label(__('competitions.fields.prizes'))->rows(3)->maxLength(2000)->columnSpanFull(),
@@ -303,7 +303,7 @@ class CompetitionForm
     }
 
     /**
-     * @param  'scheduleLocked'|'cumulativeLocked'  $lock
+     * @param  'scheduleLocked'|'cumulativeLocked'|'schedulePendingLocked'  $lock
      */
     private static function locked(?Competition $record, string $lock): bool
     {

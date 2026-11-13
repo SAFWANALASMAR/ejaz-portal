@@ -273,7 +273,8 @@ it('keeps the competition form in the panel to a fixed number of queries whateve
         fn (int $n) => $competition->forceFill(['prize_table' => array_fill(0, $n, ['male' => 1000, 'female' => 1000])])->save(),
         fn () => $this->actingAs($admin)->get(CompetitionResource::getUrl('edit', ['record' => $competition])),
         // +1 منذ 7 نوفمبر: خيارات حقل «الدليل كاملاً» من كتب المكتبة للقراءة فقط (docs/decisions/2026-11-07-brahin-guide-id-time.md)
-        20,
+        // +1 منذ 13 نوفمبر: قفل «المواعيد تُعلن لاحقاً» بعد أول تسجيل، مرة للسجل (docs/decisions/2026-11-12-feature-competition-schedule-pending.md)
+        21,
     );
 });
 

@@ -289,6 +289,14 @@ class Competition extends Model
     }
 
     /**
+     * «المواعيد تُعلن لاحقاً» لا يُشغَّل بعد أول تسجيل أو مشاركة، ولو أُلغي التسجيل، ويبقى المشغَّل قابلاً للإطفاء (SaveCompetition).
+     */
+    public function schedulePendingLocked(): bool
+    {
+        return $this->exists && ! $this->schedule_pending && $this->submissions()->withTrashed()->exists();
+    }
+
+    /**
      * @return list<string>
      */
     public function categoryList(): array
