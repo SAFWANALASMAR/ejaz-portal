@@ -28,10 +28,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<mixed>|null $tags
  * @property int|null $duration_seconds
  * @property bool $is_downloadable
+ * @property bool $is_unlisted
  * @property int|null $page_count عدد صفحات الكتاب من ملفه (CountLibraryPages)، وفارغ حتى يُحسب أو إن تعذّر
  * @property Carbon|null $page_count_checked_at وقت محاولة عدّ الملف الحالي، فلا تُعاد مع كل بلاغ
  */
-#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home', 'is_downloadable', 'duration_seconds'])]
+#[Fillable(['slug', 'title', 'section', 'description', 'author', 'published_on', 'tags', 'thumbnail', 'video_url', 'file', 'file_size', 'is_published', 'on_home', 'is_downloadable', 'is_unlisted', 'duration_seconds'])]
 class LibraryItem extends Model implements HasPublicImages
 {
     /** @use HasFactory<LibraryItemFactory> */
@@ -71,6 +72,7 @@ class LibraryItem extends Model implements HasPublicImages
             'is_published' => 'boolean',
             'on_home' => 'boolean',
             'is_downloadable' => 'boolean',
+            'is_unlisted' => 'boolean',
             'page_count' => 'integer',
             'duration_seconds' => 'integer',
             'page_count_checked_at' => 'datetime',
@@ -119,6 +121,17 @@ class LibraryItem extends Model implements HasPublicImages
     {
         $query->published()->where('is_downloadable', false)->whereNotNull('file')
             ->whereIn('section', [LibrarySection::Books->value, LibrarySection::Research->value]);
+    }
+
+    /**
+     * المنشور الظاهر في قوائم المكتبة: لا الكتاب «خارج القوائم» الذي يُفتح برابطه وحده، مثل دليل مسابقة البراهين
+     * (docs/decisions/2026-11-13-fix-brahin-guide-outside-library.md).
+     *
+     * @param  Builder<LibraryItem>  $query
+     */
+    public function scopeListed(Builder $query): void
+    {
+        $query->published()->where('is_unlisted', false);
     }
 
     /**
