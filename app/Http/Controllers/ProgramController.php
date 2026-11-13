@@ -55,14 +55,14 @@ class ProgramController extends Controller
             $byType = Program::query()->fromSub($ranked, 'programs')->where('section_rank', '<=', self::PER_SECTION + 1)
                 ->orderByRaw(self::ORDER)->get()->groupBy('program_type_id');
 
-            // النوع بلا برنامج منشور لا يظهر في الشريط ولا مقطع له، كتصنيفات الحوكمة الفارغة (L3)
-            $shown = $types->filter(fn (ProgramType $programType): bool => $byType->has($programType->id))->values();
-            $sections = $shown->map(fn (ProgramType $programType): array => [
+            // كل نوع في الشريط وله مقطع، والنوع بلا برنامج منشور بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026: «كل شيء ظاهر ولو فرغ»
+            // — docs/decisions/2026-11-12-fix-programs-bar-below-how-to.md، ويحل محل L3 من مراجعة #181)
+            $sections = $types->map(fn (ProgramType $programType): array => [
                 'type' => $programType,
                 'programs' => $byType->get($programType->id, new Collection)->each(fn (Program $program) => $program->setRelation('type', $programType)),
             ]);
 
-            return view('programs.index', ['types' => $shown, 'active' => null, 'sections' => $sections, 'programs' => null]);
+            return view('programs.index', ['types' => $types, 'active' => null, 'sections' => $sections, 'programs' => null]);
         }
 
         $programs = self::listing()->where('program_type_id', $active->id)->paginate(self::PER_PAGE)->withQueryString();
@@ -71,10 +71,8 @@ class ProgramController extends Controller
 
         // نوع كل برنامج من النوع المحمّل، لا باستعلام ثانٍ عنه
         $programs->each(fn (Program $program) => $program->setRelation('type', $active));
-        // والشريط بالأنواع التي فيها برنامج منشور كالصفحة الأم، والنوع النشط معها
-        $used = Program::query()->published()->distinct()->pluck('program_type_id');
-        $types = $types->filter(fn (ProgramType $programType): bool => $used->contains($programType->id) || $programType->is($active))->values();
 
+        // والشريط بالأنواع كلها كالصفحة الأم
         return view('programs.index', ['types' => $types, 'active' => $active, 'sections' => null, 'programs' => $programs]);
     }
 

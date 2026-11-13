@@ -5,6 +5,8 @@
 // (docs/decisions.md — 30 أكتوبر 2026، وdocs/decisions/2026-11-10-feat-reader-download-protection.md).
 
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
+import jbig2FallbackUrl from 'pdfjs-dist/wasm/jbig2_nowasm_fallback.js?url';
+import openjpegFallbackUrl from 'pdfjs-dist/wasm/openjpeg_nowasm_fallback.js?url';
 import { onPage } from './page';
 import { progressReporter, resumePoint } from './library-progress';
 
@@ -16,6 +18,13 @@ const MAX_PIXELS = 16_000_000;
 const SWIPE = 50;
 
 let pdfjs = null;
+
+// مجلد بديلَي WebAssembly المكتوبين بـ JavaScript لفك صور JPEG 2000 (JPX) وJBIG2: يطلبهما العامل باسميهما منه، وبلاهما لا تُرسم تلك الصور
+// (صفحات بلا صورها في كتب ممسوحة). والملفان في مجلد واحد في البناء (vite.config.js) وفي خادم التطوير (node_modules)
+// (docs/decisions/2026-11-13-fix-reader-jpeg2000.md). واستيراد بديل JBIG2 ليُخرج في البناء وحسب، والمجلد الواحد يضمنه
+// اختبار tests/Feature/Library/ReaderNoWasmFallbackTest.php
+void jbig2FallbackUrl;
+const wasmUrl = new URL('.', new URL(openjpegFallbackUrl, window.location.href)).href;
 
 async function loadPdfjs() {
     // النسخة legacy لمتصفحات الجوال الأقدم
@@ -332,7 +341,8 @@ function setupReader(root, signal) {
             // الملف كاملاً بطلب واحد (المسار بلا أجزاء ومحدود الطلبات)، وبلا WebAssembly ولا نماذج XFA، فلا تتسع السياسة.
             // والخطوط المضمّنة تُرسم أشكالاً من بيانات الملف (disableFontFace): تحميلها خطوطاً في المتصفح سقط في التجربة
             // إلى خط النظام فتفككت الحروف العربية، والقارئ يرسم في <canvas> وحده فلا يحتاج الخط في الصفحة
-            task = module.getDocument({ ...file, useWasm: false, enableXfa: false, disableFontFace: true, isEvalSupported: false });
+            // وصور JPEG 2000 وJBIG2 ببديل JavaScript من مجلد wasmUrl، بلا WebAssembly كذلك
+            task = module.getDocument({ ...file, useWasm: false, wasmUrl, enableXfa: false, disableFontFace: true, isEvalSupported: false });
 
             return task.promise;
         })
