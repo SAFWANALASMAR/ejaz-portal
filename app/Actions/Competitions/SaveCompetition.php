@@ -332,8 +332,7 @@ class SaveCompetition
             throw ValidationException::withMessages(['student_mode' => __('competitions.student.mode_locked')]);
         }
         // «المواعيد تُعلن لاحقاً» لا يُشغَّل بعد أول تسجيل: تسجيل وصل بين التحقق والقفل (مراجعة الطلب 254)
-        if (array_key_exists('schedule_pending', $data) && (bool) $data['schedule_pending'] && ! $competition->schedule_pending
-            && $competition->submissions()->withTrashed()->exists()) {
+        if (array_key_exists('schedule_pending', $data) && (bool) $data['schedule_pending'] && $competition->schedulePendingLocked()) {
             throw ValidationException::withMessages(['schedule_pending' => __('competitions.validation.schedule_pending_locked')]);
         }
     }
@@ -496,7 +495,7 @@ class SaveCompetition
         }
 
         // ولا يُشغَّل بعد أول تسجيل أو مشاركة: يغلق المسابقة على من سجّل فيها. ويُعاد على الصف المقفول في checkLocks
-        if ($pending && $competition->exists && ! $competition->schedule_pending && $competition->submissions()->withTrashed()->exists()) {
+        if ($pending && $competition->schedulePendingLocked()) {
             $validator->errors()->add('schedule_pending', __('competitions.validation.schedule_pending_locked'));
         }
     }

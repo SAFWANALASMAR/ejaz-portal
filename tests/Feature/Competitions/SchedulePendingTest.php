@@ -212,3 +212,35 @@ it('disables the option in the panel form after the first registration while it 
     Livewire::test(EditCompetition::class, ['record' => $this->competition->getRouteKey()])
         ->assertFormFieldDisabled('schedule_pending');
 });
+
+it('keeps the option enabled in the panel form while it is on, even after a registration, so it can be turned off', function () {
+    // تسجيل قبل الخيار، ثم الخيار مشغَّل بـ forceFill كما في اختبار الحارس أعلاه (مراجعة الطلب 254)
+    $this->competition->forceFill(['schedule_pending' => false])->save();
+    registeredStudent($this->competition->fresh());
+    $this->competition->forceFill(['schedule_pending' => true])->save();
+    $this->actingAs(userWithRole(RoleName::ExecutiveDirector));
+
+    Livewire::test(EditCompetition::class, ['record' => $this->competition->getRouteKey()])
+        ->assertFormSet(['schedule_pending' => true])
+        ->assertFormFieldEnabled('schedule_pending');
+});
+
+it('still refuses to turn the option on after the only registration is cancelled', function () {
+    $director = userWithRole(RoleName::ExecutiveDirector);
+    $this->competition->forceFill(['schedule_pending' => false])->save();
+    $open = $this->competition->fresh();
+    registeredStudent($open);
+    // الإلغاء حذف ناعم (CorrectStudentRegistration::cancel)، والقفل يعدّ التسجيل الملغى
+    $open->submissions()->sole()->delete();
+
+    expect($open->submissions()->count())->toBe(0)
+        ->and($open->fresh()->schedulePendingLocked())->toBeTrue();
+
+    expect(fn () => app(SaveCompetition::class)->handle($director, $open, schedulePendingForm($open, ['schedule_pending' => true])))
+        ->toThrow(fn (ValidationException $exception) => expect($exception->errors())->toHaveKey('schedule_pending'));
+
+    $this->actingAs($director);
+
+    Livewire::test(EditCompetition::class, ['record' => $open->getRouteKey()])
+        ->assertFormFieldDisabled('schedule_pending');
+});
