@@ -190,7 +190,7 @@ class BuildHomePage
     {
         // الكتب والأبحاث (عنوان الشريط «الكتب والمؤلفات والأبحاث»)، والغلاف إن رُفع وإلا مربع ملون بأيقونة كما في التصور: كان الشرط
         // غلافاً مرفوعاً فاختفى الشريط من رابط العرض (ملاحظات المدير التنفيذي، 1 نوفمبر 2026، البند ٢٤)
-        return LibraryItem::query()->published()->whereIn('section', $sections)->newestFirst()->limit(self::STRIP)->get();
+        return LibraryItem::query()->listed()->whereIn('section', $sections)->newestFirst()->limit(self::STRIP)->get();
     }
 
     /**

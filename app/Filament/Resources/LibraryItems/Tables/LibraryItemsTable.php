@@ -29,10 +29,12 @@ class LibraryItemsTable
                 TextColumn::make('author')->label(__('library.fields.author'))->searchable()->toggleable(),
                 TextColumn::make('published_on')->label(__('library.fields.published_on'))->date('Y-m-d')->sortable(),
                 IconColumn::make('is_published')->label(__('content.is_published'))->boolean(),
+                IconColumn::make('is_unlisted')->label(__('library.fields.is_unlisted'))->boolean()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('section')->label(__('library.fields.section'))->options(LibrarySection::class),
                 TernaryFilter::make('is_published')->label(__('content.is_published')),
+                TernaryFilter::make('is_unlisted')->label(__('library.fields.is_unlisted')),
                 TrashedFilter::make(),
             ])
             // حذف ناعم فردي واستعادة، ولا حذف نهائي (LibraryItemPolicy)

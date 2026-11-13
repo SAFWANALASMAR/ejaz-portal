@@ -84,7 +84,7 @@ class SitemapController extends Controller
             $urls[] = self::entry('governance.show', ['slug' => $document->slug], $document->updated_at);
         }
 
-        foreach (LibraryItem::query()->published()->orderBy('id')->get(['slug', 'section', 'updated_at']) as $item) {
+        foreach (LibraryItem::query()->listed()->orderBy('id')->get(['slug', 'section', 'updated_at']) as $item) {
             $urls[] = self::entry('library.show', ['section' => $item->section->value, 'slug' => $item->slug], $item->updated_at);
         }
 

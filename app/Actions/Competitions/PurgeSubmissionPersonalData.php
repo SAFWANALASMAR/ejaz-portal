@@ -6,6 +6,7 @@ use App\Contracts\VideoUploads;
 use App\Enums\ActivityEvent;
 use App\Enums\AttemptStatus;
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionSubmission;
 use App\Models\SubmissionVideo;
 use App\Models\SubmissionWork;
@@ -86,6 +87,19 @@ class PurgeSubmissionPersonalData
                 ->where('status', '!=', AttemptStatus::InProgress->value)
                 ->whereNotNull('answers')
                 ->update(['answers' => null]);
+
+            // والمحاولات المؤرشفة بإعادة الاختبار كذلك، وسبب الإعادة نص حر عن الطالب (مراجعة #261، ت٢)
+            CompetitionRetake::query()->where('submission_id', $locked->id)->get()->each(function (CompetitionRetake $retake): void {
+                $archived = $retake->archived_attempt;
+
+                if (is_array($archived)) {
+                    $archived['answers'] = null;
+                }
+
+                $retake->archived_attempt = $archived;
+                $retake->reason = '';
+                $retake->saveQuietly();
+            });
 
             activity('competitions')->performedOn($locked)
                 ->event(ActivityEvent::PersonalDataPurged->value)

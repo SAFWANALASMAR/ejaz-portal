@@ -181,7 +181,7 @@ final class AssistantIndex
             $model instanceof Document => $model->is_published
                 ? [(string) $model->title, route('governance.show', ['slug' => $model->slug], false), self::join([DocumentCategory::tryFrom((string) $model->getRawOriginal('category'))?->getLabel(), $model->description]), '']
                 : null,
-            $model instanceof LibraryItem => $model->is_published
+            $model instanceof LibraryItem => $model->is_published && ! $model->is_unlisted
                 ? [(string) $model->title, route('library.show', ['section' => $model->section->value, 'slug' => $model->slug], false), self::join([$model->section->getLabel(), $model->description, $model->author, self::join($model->tagList())]), '']
                 : null,
             $model instanceof NewsArticle => $model->is_published

@@ -8,6 +8,7 @@ use App\Enums\SurveyQuestionType;
 use App\Models\AssemblyMembership;
 use App\Models\BodyMembership;
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionSubmission;
 use App\Models\FormEntry;
 use App\Models\Inquiry;
@@ -150,6 +151,20 @@ class ExportUserData
                         'answers' => $attempt->isInProgress() ? null : $attempt->answers,
                         'score' => $attempt->round->resultsPublished() ? (float) $attempt->score + (float) $attempt->essay_score : null,
                     ])->all(),
+                ])->all(),
+            // إعادات الاختبار ومحاولاتها المؤرشفة (إجاباته بعد التسليم، والدرجة بعد نشر النتائج)، بلا سبب الإعادة لأنه داخلي
+            'competition_retakes' => CompetitionRetake::query()->where('user_id', $user->id)->with('round')->get()
+                ->map(fn (CompetitionRetake $retake): array => [
+                    'round' => $retake->round->name,
+                    'granted_at' => $date($retake->created_at),
+                    'retake_until' => $date($retake->retake_until),
+                    'used_at' => $date($retake->used_at),
+                    'archived_attempt' => is_array($retake->archived_attempt) ? [
+                        'reference' => $retake->archived_attempt['reference'] ?? null,
+                        'submitted_at' => $retake->archived_attempt['submitted_at'] ?? null,
+                        'answers' => $retake->archived_attempt['answers'] ?? null,
+                        'score' => $retake->round->resultsPublished() ? (float) ($retake->archived_attempt['score'] ?? 0) + (float) ($retake->archived_attempt['essay_score'] ?? 0) : null,
+                    ] : null,
                 ])->all(),
             'survey_responses' => SurveyResponse::query()->where('user_id', $user->id)->with('survey.questions')->get()
                 ->map(fn (SurveyResponse $response): array => [

@@ -4,6 +4,7 @@ namespace App\Actions\Competitions;
 
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
@@ -42,11 +43,16 @@ class BuildStudentCompetitionCards
             ->get();
 
         $cards = [];
+        // إعادات الاختبار غير المستعملة لكل التسجيلات باستعلام واحد (docs/decisions/2026-11-13-feature-competition-retake.md)
+        $openRetakes = $submissions->isEmpty() ? collect() : CompetitionRetake::query()->whereIn('submission_id', $submissions->modelKeys())->whereNull('used_at')->get();
 
         foreach ($submissions as $submission) {
             $competition = $submission->competition;
             $rounds = $competition->rounds->values();
-            $round = self::currentRound($rounds);
+            // مرحلة فيها إعادة اختبار قائمة لهذا الطالب أولاً (docs/decisions/2026-11-13-feature-competition-retake.md)
+            $retakes = $openRetakes->where('submission_id', $submission->id);
+            $hasRetake = fn (CompetitionRound $item): bool => $retakes->contains(fn (CompetitionRetake $retake): bool => $retake->isActiveFor($item));
+            $round = $rounds->first(fn (CompetitionRound $item): bool => ! $item->isRunning() && $hasRetake($item)) ?? self::currentRound($rounds);
 
             if ($round === null) {
                 continue;
@@ -58,7 +64,11 @@ class BuildStudentCompetitionCards
             $attempt = $submission->attempts->firstWhere('round_id', $round->id);
             $qualified = $previous !== null && $submission->attempts->contains(fn (CompetitionAttempt $item): bool => $item->round_id === $previous->id && $item->qualified_at !== null);
             // «المواعيد تُعلن لاحقاً»: لا موعد ولا زر بدء قبل اعتماد المواعيد، والمحاولة القائمة (إن وُجدت قبل الخيار) بحالتها
-            $state = $competition->schedule_pending && $attempt === null ? 'pending' : self::state($round, $attempt, $qualified, $previous);
+            $state = match (true) {
+                $competition->schedule_pending && $attempt === null => 'pending',
+                ($attempt === null || ! $attempt->isInProgress()) && $hasRetake($round) => 'start',
+                default => self::state($round, $attempt, $qualified, $previous),
+            };
 
             $cards[] = [
                 'competition' => $competition,
