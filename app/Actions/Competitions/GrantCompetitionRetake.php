@@ -11,6 +11,7 @@ use App\Notifications\CompetitionRetakeGranted;
 use App\Support\CompetitionAccess;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -93,7 +94,7 @@ class GrantCompetitionRetake
             $retake->user_id = $locked->user_id;
             $retake->granted_by = $actor->id;
             $retake->reason = $reason;
-            $retake->retake_until = $until;
+            $retake->retake_until = $until !== null ? Carbon::instance($until) : null;
             $retake->save();
 
             return $retake;

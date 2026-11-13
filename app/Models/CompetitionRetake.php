@@ -16,7 +16,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $reason
  * @property Carbon|null $retake_until
  * @property Carbon|null $used_at
- * @property array<string, mixed> $archived_attempt
+ * @property array<string, mixed>|null $archived_attempt
  */
 class CompetitionRetake extends Model
 {
