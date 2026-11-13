@@ -55,6 +55,13 @@ class StartAttempt
                 $open = ! $locked->resultsPublished() && ($retake !== null || $locked->isRunning());
 
                 if (! $competition->is_published || $competition->trashed() || $competition->schedule_pending || ! $open) {
+                    // ضغطتا «ابدأ» معاً بإعادة بعد الإغلاق: الثانية تجد الإعادة مستعملة، فتعيد المحاولة الجارية لا رسالة الإغلاق
+                    $current = CompetitionAttempt::query()->where('round_id', $locked->id)->where('submission_id', $submission->id)->first();
+
+                    if ($current !== null && $current->isInProgress()) {
+                        return $current;
+                    }
+
                     throw new AuthorizationException(__('competitions.student.round_closed'));
                 }
 

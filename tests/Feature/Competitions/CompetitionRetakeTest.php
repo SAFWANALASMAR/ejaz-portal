@@ -5,6 +5,7 @@ use App\Actions\Competitions\BuildStudentCompetitionCards;
 use App\Actions\Competitions\GrantCompetitionRetake;
 use App\Actions\Competitions\PublishRoundResults;
 use App\Actions\Competitions\PurgeSubmissionPersonalData;
+use App\Actions\Competitions\RevokeCompetitionRetake;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Enums\AttemptStatus;
@@ -194,4 +195,28 @@ it('shows the start button on the account card and the round pages, with the ret
         ->assertOk()->assertSee('data-retake', false)->assertSee(__('competitions.student.start'));
     $this->actingAs($this->student)->get(route('competitions.student.status', ['students', $this->round->uuid]))
         ->assertOk()->assertSee('data-retake', false);
+});
+
+it('lets who grants a retake revoke it before it is used, which unblocks publishing and keeps the attempt', function () {
+    closeRound($this->round);
+    $retake = app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'منحت خطأً', now()->addDay());
+
+    expect(fn () => app(RevokeCompetitionRetake::class)->handle(userWithRole(RoleName::SuperAdmin), $retake))->toThrow(AuthorizationException::class);
+
+    app(RevokeCompetitionRetake::class)->handle(userWithRole(RoleName::TechnicalAdmin), $retake);
+
+    expect(CompetitionRetake::query()->count())->toBe(0)
+        ->and(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($this->attempt->id);
+
+    $this->travel(1)->minutes();
+    app(PublishRoundResults::class)->handle($this->director, $this->round->fresh());
+    expect($this->round->fresh()->resultsPublished())->toBeTrue();
+});
+
+it('does not revoke a retake the student already started', function () {
+    $retake = app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة');
+    app(StartAttempt::class)->handle($this->student, $this->round->fresh());
+
+    expect(fn () => app(RevokeCompetitionRetake::class)->handle($this->director, $retake->fresh()))->toThrow(ValidationException::class)
+        ->and(CompetitionRetake::query()->count())->toBe(1);
 });
