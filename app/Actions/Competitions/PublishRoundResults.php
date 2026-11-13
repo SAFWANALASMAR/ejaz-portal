@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Enums\AttemptStatus;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionRound;
 use App\Models\User;
 use App\Support\CompetitionAccess;
@@ -54,6 +55,12 @@ class PublishRoundResults
 
             if ($locked->attempts()->where('status', AttemptStatus::InProgress)->where('deadline_at', '>=', $cutoff)->exists()) {
                 throw ValidationException::withMessages(['round' => __('competitions.student.publish_running')]);
+            }
+
+            // ولا نشر وإعادة اختبار ممنوحة لم يبدأها صاحبها ووقتها باقٍ: تُنشر بعد بدئها وتسليمها أو بعد انتهاء مهلتها
+            // (docs/decisions/2026-11-13-feature-competition-retake.md)
+            if (CompetitionRetake::query()->active($locked)->exists()) {
+                throw ValidationException::withMessages(['round' => __('competitions.student.publish_retake_pending')]);
             }
 
             // وما بقي جارياً وقد انتهى وقته يُسلَّم بما حُفظ، في المعاملة نفسها قبل النشر

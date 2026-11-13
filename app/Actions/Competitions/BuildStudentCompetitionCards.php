@@ -66,7 +66,7 @@ class BuildStudentCompetitionCards
             // «المواعيد تُعلن لاحقاً»: لا موعد ولا زر بدء قبل اعتماد المواعيد، والمحاولة القائمة (إن وُجدت قبل الخيار) بحالتها
             $state = match (true) {
                 $competition->schedule_pending && $attempt === null => 'pending',
-                $attempt === null && $hasRetake($round) => 'start',
+                ($attempt === null || ! $attempt->isInProgress()) && $hasRetake($round) => 'start',
                 default => self::state($round, $attempt, $qualified, $previous),
             };
 

@@ -58,13 +58,15 @@ class CompetitionRetake extends Model
     }
 
     /**
-     * ما لم يُستعمل بعد، وما زال وقته قائماً: مهلته في المستقبل، أو بلا مهلة والمرحلة جارية.
+     * ما لم يُستعمل بعد، وما زال وقته قائماً: مهلته في المستقبل، أو بلا مهلة والمرحلة جارية. ولا إعادة قائمة بعد نشر نتائج
+     * المرحلة: لا تتغير نتيجة معلنة (مراجعة #261، م١).
      *
      * @param  Builder<CompetitionRetake>  $query
      */
     public function scopeActive(Builder $query, CompetitionRound $round): void
     {
         $query->where('round_id', $round->id)->whereNull('used_at')
+            ->when($round->resultsPublished(), fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->where(fn (Builder $query) => $query->where('retake_until', '>', now())
                 ->when($round->isRunning(), fn (Builder $query) => $query->orWhereNull('retake_until')));
     }
@@ -74,12 +76,12 @@ class CompetitionRetake extends Model
      */
     public function isActiveFor(CompetitionRound $round): bool
     {
-        return $this->round_id === $round->id && $this->used_at === null
+        return $this->round_id === $round->id && $this->used_at === null && ! $round->resultsPublished()
             && ($this->retake_until !== null ? $this->retake_until->isFuture() : $round->isRunning());
     }
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('competitions')->logOnly(['round_id', 'submission_id', 'user_id', 'granted_by', 'reason', 'retake_until', 'used_at'])->logOnlyDirty()->dontLogEmptyChanges();
+        return LogOptions::defaults()->useLogName('competitions')->logOnly(['round_id', 'submission_id', 'user_id', 'granted_by', 'retake_until', 'used_at'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

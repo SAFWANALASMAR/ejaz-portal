@@ -41,6 +41,9 @@
                         <dd class="mt-1 font-medium text-ink">{{ Dates::display($attempt->submitted_at, withTime: true) }}</dd>
                     </div>
                 </dl>
+                @if ($retake ?? false)
+                    <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" arrow data-retake>{{ __('competitions.student.enter') }}</x-button>
+                @endif
             @endif
         </div>
 

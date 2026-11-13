@@ -58,9 +58,11 @@
 
                     @if ($competition->schedule_pending)
                         <span class="keep-color w-fit rounded-full bg-surface px-3 py-1 text-sm text-muted" data-round-pending>{{ __('competitions.student.round_pending') }}</span>
+                    @elseif ($submission && (! $attempt || ! $attempt->isInProgress()) && $retakes->contains(fn ($retake) => $retake->isActiveFor($round)))
+                        <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" size="sm" arrow data-retake>{{ __('competitions.student.enter') }}</x-button>
                     @elseif ($submission && $attempt && ! $attempt->isInProgress())
                         <a href="{{ route('competitions.student.status', [$competition->slug, $round->uuid]) }}" class="tone-pill">{{ __('competitions.student.received_short') }}</a>
-                    @elseif ($submission && ($round->isRunning() || $retakes->contains(fn ($retake) => $retake->isActiveFor($round))))
+                    @elseif ($submission && $round->isRunning())
                         <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" size="sm" arrow>
                             {{ $attempt ? __('competitions.student.resume') : __('competitions.student.enter') }}
                         </x-button>

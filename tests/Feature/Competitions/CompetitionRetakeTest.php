@@ -1,7 +1,10 @@
 <?php
 
+use App\Actions\Accounts\ExportUserData;
 use App\Actions\Competitions\BuildStudentCompetitionCards;
 use App\Actions\Competitions\GrantCompetitionRetake;
+use App\Actions\Competitions\PublishRoundResults;
+use App\Actions\Competitions\PurgeSubmissionPersonalData;
 use App\Actions\Competitions\StartAttempt;
 use App\Actions\Competitions\SubmitAttempt;
 use App\Enums\AttemptStatus;
@@ -18,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 /*
 | «السماح بإعادة الاختبار» لطالب بعينه (قرار صفوان، 13 نوفمبر 2026 — docs/decisions/2026-11-13-feature-competition-retake.md):
-| للمدير التنفيذي والمسؤول التقني وحدهما بسبب مكتوب، والمحاولة القديمة تُحفظ في السجل وتخرج من النتائج، والإعادة في نافذة
+| للمدير التنفيذي والمسؤول التقني وحدهما بسبب مكتوب، والمحاولة القديمة تبقى حتى البدء ثم تُحفظ في السجل وتخرج من النتائج، والإعادة في نافذة
 | المرحلة أو حتى مهلة يحددها المسؤول بعد إغلاقها، بمدتها الكاملة، ويُبلَّغ الطالب ببطاقة «حسابي» وبالبريد.
 */
 
@@ -39,26 +42,41 @@ function closeRound(CompetitionRound $round): void
     CompetitionRound::query()->whereKey($round->id)->update(['starts_at' => now()->subHours(5), 'ends_at' => now()->subHour()]);
 }
 
-it('archives the submitted attempt, lets the student start again with the full duration, and emails them', function () {
+it('keeps the attempt in the results until the student starts, then archives it and gives the full duration', function () {
     $retake = app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'انقطع الاتصال في المدرسة');
 
-    expect(CompetitionAttempt::query()->whereKey($this->attempt->id)->exists())->toBeFalse()
-        ->and($retake->archived_attempt['id'])->toBe($this->attempt->id)
-        ->and($retake->archived_attempt['reference'])->toBe($this->attempt->reference)
-        ->and($retake->granted_by)->toBe($this->director->id)
-        ->and($retake->reason)->toBe('انقطع الاتصال في المدرسة');
+    // المحاولة باقية في النتائج حتى يبدأ الإعادة فعلاً
+    expect(CompetitionAttempt::query()->whereKey($this->attempt->id)->exists())->toBeTrue()
+        ->and($retake->archived_attempt)->toBeNull()
+        ->and($retake->granted_by)->toBe($this->director->id);
     Notification::assertSentTo($this->student, CompetitionRetakeGranted::class);
 
     $new = app(StartAttempt::class)->handle($this->student, $this->round->fresh());
+    $retake->refresh();
 
     expect($new->id)->not->toBe($this->attempt->id)
         ->and($new->status)->toBe(AttemptStatus::InProgress)
         ->and((int) round($new->started_at->diffInMinutes($new->deadline_at)))->toBe($this->round->duration_minutes)
-        ->and($retake->fresh()->used_at)->not->toBeNull();
+        ->and(CompetitionAttempt::query()->whereKey($this->attempt->id)->exists())->toBeFalse()
+        ->and($retake->archived_attempt['reference'])->toBe($this->attempt->reference)
+        ->and($retake->used_at)->not->toBeNull();
 
-    // الإعادة لمرة واحدة: بعد التسليم لا بدء ثالث
-    app(SubmitAttempt::class)->handle($this->student, $new);
-    expect(CompetitionAttempt::query()->where('submission_id', $new->submission_id)->count())->toBe(1);
+    // ضغطة «ابدأ» ثانية تعيد المحاولة الجارية نفسها
+    expect(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($new->id);
+
+    // والإعادة لمرة واحدة: بعد التسليم يعيد البدء المحاولة المسلَّمة ولا ينشئ ثالثة
+    $submitted = app(SubmitAttempt::class)->handle($this->student, $new);
+    expect(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($submitted->id)
+        ->and(CompetitionAttempt::query()->where('submission_id', $new->submission_id)->count())->toBe(1);
+});
+
+it('keeps the original attempt when the student does not start before the deadline', function () {
+    closeRound($this->round);
+    app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addHour());
+    $this->travel(2)->hours();
+
+    expect(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($this->attempt->id)
+        ->and(CompetitionAttempt::query()->whereKey($this->attempt->id)->value('status'))->toBe(AttemptStatus::Submitted->value);
 });
 
 it('requires a deadline after the round closes, and opens the closed round to this student alone until it', function () {
@@ -66,7 +84,8 @@ it('requires a deadline after the round closes, and opens the closed round to th
     $other = registeredStudent($this->competition, 2);
 
     expect(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة'))->toThrow(ValidationException::class)
-        ->and(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->subMinute()))->toThrow(ValidationException::class);
+        ->and(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->subMinute()))->toThrow(ValidationException::class)
+        ->and(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addDays(GrantCompetitionRetake::MAX_DAYS + 1)))->toThrow(ValidationException::class);
 
     app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addDay());
 
@@ -75,15 +94,6 @@ it('requires a deadline after the round closes, and opens the closed round to th
     $new = app(StartAttempt::class)->handle($this->student, $this->round->fresh());
     // المهلة مهلة البدء، والمحاولة بمدتها الكاملة ولو بعد إغلاق النافذة
     expect((int) round($new->started_at->diffInMinutes($new->deadline_at)))->toBe($this->round->duration_minutes);
-});
-
-it('does not open the round after the retake deadline passes', function () {
-    closeRound($this->round);
-    $retake = app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addHour());
-    $this->travel(2)->hours();
-
-    expect(fn () => app(StartAttempt::class)->handle($this->student, $this->round->fresh()))->toThrow(AuthorizationException::class)
-        ->and($retake->fresh()->used_at)->toBeNull();
 });
 
 it('lets only the executive director and the technical admin grant a retake', function (RoleName $role, bool $allowed) {
@@ -97,7 +107,6 @@ it('lets only the executive director and the technical admin grant a retake', fu
     }
 
     expect($grant)->toThrow(AuthorizationException::class)
-        ->and(CompetitionAttempt::query()->whereKey($this->attempt->id)->exists())->toBeTrue()
         ->and(CompetitionRetake::query()->count())->toBe(0);
     Notification::assertNothingSent();
 })->with([
@@ -122,11 +131,56 @@ it('refuses an attempt still in progress, a missing reason, and a round whose re
     CompetitionRound::query()->whereKey($this->round->id)->update(['results_published_at' => now()]);
 
     expect(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt->fresh(), 'سبب الإعادة'))->toThrow(ValidationException::class)
-        ->and(CompetitionRetake::query()->count())->toBe(0)
-        ->and(CompetitionAttempt::query()->whereKey($this->attempt->id)->exists())->toBeTrue();
+        ->and(CompetitionRetake::query()->count())->toBe(0);
 });
 
-it('shows the start button on the account card and the round page, with the retake notice', function () {
+it('refuses a second open retake, a pending schedule and an unpublished competition', function () {
+    app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة');
+    expect(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب ثانٍ'))->toThrow(ValidationException::class);
+
+    CompetitionRetake::query()->delete();
+
+    foreach ([['schedule_pending' => true], ['schedule_pending' => false, 'is_published' => false]] as $change) {
+        $this->competition->forceFill($change)->save();
+        expect(fn () => app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt->fresh(), 'سبب الإعادة'))->toThrow(ValidationException::class);
+    }
+
+    expect(CompetitionRetake::query()->count())->toBe(0);
+});
+
+it('blocks publishing while an open retake waits, and never reopens a published round', function () {
+    closeRound($this->round);
+    $retake = app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addDay());
+
+    expect(fn () => app(PublishRoundResults::class)->handle($this->director, $this->round->fresh()))->toThrow(ValidationException::class)
+        ->and($this->round->fresh()->resultsPublished())->toBeFalse();
+
+    // ولو نُشرت النتائج بطريق آخر، لا تفتح الإعادة المرحلة ولا تظهر بطاقة البدء
+    CompetitionRound::query()->whereKey($this->round->id)->update(['results_published_at' => now()]);
+
+    expect(fn () => app(StartAttempt::class)->handle($this->student, $this->round->fresh()))->not->toThrow(Throwable::class)
+        ->and(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($this->attempt->id)
+        ->and($retake->fresh()->used_at)->toBeNull()
+        ->and(app(BuildStudentCompetitionCards::class)->handle($this->student)[0]['state'])->not->toBe('start');
+});
+
+it('purges archived answers and the reason after the retention period, and exports the retake without its reason', function () {
+    app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب داخلي');
+    app(StartAttempt::class)->handle($this->student, $this->round->fresh());
+
+    $export = app(ExportUserData::class)->handle($this->student);
+    expect($export['competition_retakes'])->toHaveCount(1)
+        ->and(json_encode($export['competition_retakes'], JSON_UNESCAPED_UNICODE))->not->toContain('سبب داخلي');
+
+    app(PurgeSubmissionPersonalData::class)->handle($this->attempt->submission()->withTrashed()->firstOrFail());
+    $retake = CompetitionRetake::query()->sole();
+
+    expect($retake->reason)->toBe('')
+        ->and($retake->archived_attempt['answers'])->toBeNull()
+        ->and($retake->archived_attempt['reference'])->toBe($this->attempt->reference);
+});
+
+it('shows the start button on the account card and the round pages, with the retake notice', function () {
     closeRound($this->round);
     app(GrantCompetitionRetake::class)->handle($this->director, $this->attempt, 'سبب الإعادة', now()->addDay());
 
@@ -138,4 +192,6 @@ it('shows the start button on the account card and the round page, with the reta
 
     $this->actingAs($this->student)->get(route('competitions.student.round', ['students', $this->round->uuid]))
         ->assertOk()->assertSee('data-retake', false)->assertSee(__('competitions.student.start'));
+    $this->actingAs($this->student)->get(route('competitions.student.status', ['students', $this->round->uuid]))
+        ->assertOk()->assertSee('data-retake', false);
 });

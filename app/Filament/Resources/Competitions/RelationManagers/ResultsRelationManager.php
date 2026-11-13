@@ -13,11 +13,11 @@ use App\Models\CompetitionAttempt;
 use App\Models\CompetitionDraw;
 use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
+use App\Support\CompetitionAccess;
 use App\Support\NationalIdExport;
 use App\Support\StudentResultsSheet;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
-use App\Support\CompetitionAccess;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -111,12 +111,12 @@ class ResultsRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-path')
                     ->modalHeading(__('competitions.student.retake.heading'))
                     ->modalDescription(__('competitions.student.retake.description'))
-                    ->visible(fn (CompetitionAttempt $record): bool => $record->status === AttemptStatus::Submitted && CompetitionAccess::allows($this->actor(), GrantCompetitionRetake::PERMISSION))
+                    ->visible(fn (CompetitionAttempt $record): bool => $record->status === AttemptStatus::Submitted && ! $record->round->resultsPublished() && CompetitionAccess::allows($this->actor(), GrantCompetitionRetake::PERMISSION))
                     ->schema(fn (CompetitionAttempt $record): array => [
                         Textarea::make('reason')->label(__('competitions.student.retake.reason'))->helperText(__('competitions.student.retake.reason_hint'))
                             ->required()->minLength(3)->maxLength(500),
                         DateTimePicker::make('until')->label(__('competitions.student.retake.until'))->helperText(__('competitions.student.retake.until_hint'))
-                            ->seconds(false)->after('now')->required(fn (): bool => ! $record->round->isRunning()),
+                            ->seconds(false)->after('now')->maxDate(now()->addDays(GrantCompetitionRetake::MAX_DAYS))->required(fn (): bool => ! $record->round->isRunning()),
                     ])
                     ->action(fn (CompetitionAttempt $record, array $data) => $this->attempt(function () use ($record, $data): void {
                         app(GrantCompetitionRetake::class)->handle($this->actor(), $record, (string) $data['reason'], filled($data['until'] ?? null) ? Carbon::parse($data['until']) : null);

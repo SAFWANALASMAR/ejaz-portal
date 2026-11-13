@@ -33,7 +33,9 @@ class StartAttempt
 
         $existing = $round->attempts()->where('submission_id', $submission->id)->first();
 
-        if ($existing !== null) {
+        // والمسلَّمة تبقى ما لم تكن لها إعادة قائمة: تُؤرشف عند البدء الجديد لا عند المنح، فتبقى في النتائج حتى يبدأ الطالب فعلاً
+        // (مراجعة #261، ت١ — docs/decisions/2026-11-13-feature-competition-retake.md)
+        if ($existing !== null && ($existing->isInProgress() || ! CompetitionRetake::query()->active($round)->where('submission_id', $submission->id)->exists())) {
             return $existing;
         }
 
@@ -50,7 +52,7 @@ class StartAttempt
                 // وإعادة اختبار منحها المدير التنفيذي أو المسؤول التقني تفتح المرحلة لهذا التسجيل وحده، في نافذتها أو حتى مهلتها
                 // بعد إغلاقها (docs/decisions/2026-11-13-feature-competition-retake.md)
                 $retake = CompetitionRetake::query()->active($locked)->where('submission_id', $submission->id)->lockForUpdate()->latest('id')->first();
-                $open = $retake !== null || ($locked->isRunning() && ! $locked->resultsPublished());
+                $open = ! $locked->resultsPublished() && ($retake !== null || $locked->isRunning());
 
                 if (! $competition->is_published || $competition->trashed() || $competition->schedule_pending || ! $open) {
                     throw new AuthorizationException(__('competitions.student.round_closed'));
@@ -75,6 +77,20 @@ class StartAttempt
                 // لكل طالب من الفئة العدد نفسه تماماً، وبنكها الذي لا يكوّنه يرفض البدء (AttemptLayout::shortfall)
                 if ($ids === [] || count($ids) !== $locked->question_count || AttemptLayout::shortfall($locked, (int) $submission->category_id) !== null) {
                     throw ValidationException::withMessages(['round' => __('competitions.student.no_questions')]);
+                }
+
+                // المحاولة المسلَّمة السابقة تُحفظ في الإعادة كما كانت ثم تُرفع، فلا تدخل في النتائج ولا الترتيب ولا التصدير
+                if ($retake !== null) {
+                    $previous = CompetitionAttempt::query()->where('round_id', $locked->id)->where('submission_id', $submission->id)->lockForUpdate()->first();
+
+                    if ($previous !== null && $previous->isInProgress()) {
+                        return $previous;
+                    }
+
+                    if ($previous !== null) {
+                        $retake->archived_attempt = $previous->attributesToArray();
+                        $previous->delete();
+                    }
                 }
 
                 $deadline = now()->addMinutes($locked->duration_minutes);

@@ -10,6 +10,7 @@ use App\Enums\QuestionType;
 use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\CompetitionAttempt;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionCategory;
 use App\Models\CompetitionPassage;
 use App\Models\CompetitionQuestion;
@@ -57,6 +58,7 @@ class CreateDemoStudentCompetition extends Command
         $competition = DB::transaction(function () use ($brochure): Competition {
             Competition::withTrashed()->where('slug', self::SLUG)->get()->each(function (Competition $old): void {
                 CompetitionAttempt::query()->whereIn('round_id', $old->rounds()->select('id'))->delete();
+                CompetitionRetake::query()->whereIn('round_id', $old->rounds()->select('id'))->delete();
                 $old->submissions()->withTrashed()->forceDelete();
                 $old->forceDelete();
             });
