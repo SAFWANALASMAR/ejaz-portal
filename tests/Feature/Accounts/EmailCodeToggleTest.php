@@ -71,7 +71,8 @@ it('lets an unverified account register in the student competition when the code
 
     turnEmailCodeOff();
     $this->get('/competitions/brahin/register')->assertOk();
-    Notification::assertNotSentTo($user, EmailVerificationCode::class);
+    // الرمز الوحيد من الطلب الأول والمفتاح مفعّل، ولا رمز بعد إطفائه
+    Notification::assertSentToTimes($user, EmailVerificationCode::class, 1);
 });
 
 it('lets an unverified account start a general competition entry when the code is off', function () {
@@ -83,6 +84,17 @@ it('lets an unverified account start a general competition entry when the code i
 
     turnEmailCodeOff();
     $this->post('/competitions/demo/entry/start')->assertRedirect('/competitions/demo/entry');
+    expect(app(StartSubmission::class)->handle($user, $competition)->user_id)->toBe($user->id);
+});
+
+it('gates StartSubmission itself on the toggle', function () {
+    $competition = Competition::factory()->withQuestions()->create(['slug' => 'demo']);
+    $user = User::factory()->unverified()->create(['phone' => '+966551116666', 'phone_verified_at' => null]);
+
+    expect(fn () => app(StartSubmission::class)->handle($user, $competition))->toThrow(Illuminate\Auth\Access\AuthorizationException::class)
+        ->and(CompetitionSubmission::count())->toBe(0);
+
+    turnEmailCodeOff();
     expect(app(StartSubmission::class)->handle($user, $competition)->user_id)->toBe($user->id);
 });
 

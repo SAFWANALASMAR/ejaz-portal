@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
- * رمز توثيق البريد بعد التسجيل دائماً (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)، لا رابط التوثيق.
+ * رمز توثيق البريد بعد التسجيل ما دام مفعّلاً من اللوحة (AccountSettings::emailCodeEnabled — decisions/2026-11-13-feature-email-code-toggle.md)، (قرار اجتماع 6 نوفمبر 2026 — decisions/2026-11-06-email-otp.md)، لا رابط التوثيق.
  * يحل محل مستمع لارافيل بالربط في AppServiceProvider، لأن لارافيل يسجّله لحدث التسجيل دائماً. وما يمنع الإرسال (حد) لا
  * يُفشل التسجيل: صاحب الحساب يطلب رمزاً جديداً من صفحة التوثيق.
  */

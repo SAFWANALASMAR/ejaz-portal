@@ -11,7 +11,7 @@
     </x-slot:aboveWelcome>
     <x-slot:belowWelcome>{{ $library }}</x-slot:belowWelcome>
 
-    {{-- تنبيه البريد دائماً، فرمزه شرط التسجيل في المسابقة (decisions/2026-11-06-email-otp.md). وتنبيه الجوال متى فُعّل التوثيق
+    {{-- تنبيه البريد ما دام رمزه مفعّلاً من اللوحة، فرمزه شرط التسجيل في المسابقة (decisions/2026-11-06-email-otp.md، والمفتاح في decisions/2026-11-13-feature-email-code-toggle.md). وتنبيه الجوال متى فُعّل التوثيق
          من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
     @if (\App\Support\AccountSettings::emailCodeEnabled() && $user->email !== null && ! $user->hasVerifiedEmail())
         <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
