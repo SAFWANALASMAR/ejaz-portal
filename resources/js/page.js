@@ -147,6 +147,59 @@ function stopProgress() {
     finishTransition();
 }
 
+// طلبات صفحات التنقّل السريع الجارية بوجهتها (navigate.request). Livewire 4.4.8 لا يلغي طلب تنقّل تجاوزه تنقّل أحدث، ويضع صفحته
+// حين يصل رده ولو بعد صفحة الضغطة الأخيرة: ضغطتان متتابعتان والأولى أبطأ رداً تنتهيان عند الأولى («أضغط منشوراتنا فتفتح الدورات
+// والبرامج» — ملاحظة على الإطلاق التجريبي، 12 نوفمبر 2026، docs/decisions/2026-11-12-fix-navigate-supersede.md). فكل تنقّل جديد
+// يلغي ما سبقه إلى وجهة أخرى. والوجهة الملغاة تُحفظ حتى يحل التنقّل الجديد: Livewire يعيد طلب ما كان ينتظر جلبه المسبق حين
+// يفشل (prefetch.js — whenFailed)، فيُلغى الطلب المُعاد فور صدوره
+const pageRequests = new Set();
+const superseded = new Set();
+
+// مفتاح الطلب المسار والاستعلام وحدهما: المرساة لا تُرسل إلى الخادم، فرابط «/about#about-vision» طلبه «/about»، ولو قورن
+// بالمرساة لألغى التنقّلُ طلبَ وجهته نفسها (مراجعة الطلب 252، م١)
+function requestKey(url) {
+    const parsed = new URL(url, window.location.href);
+
+    return parsed.pathname + parsed.search;
+}
+
+function watchPageRequests() {
+    window.Livewire.hook('navigate.request', ({ uri, options }) => {
+        // إشارة Livewire نفسها (إن وُجدت أو استُعملت في إصدار لاحق) تبقى تلغي الطلب: تُربط بإشارتنا لا تُستبدل
+        const abort = new AbortController();
+        options.signal?.addEventListener('abort', () => abort.abort(), { once: true });
+
+        if (options.signal?.aborted) {
+            abort.abort();
+        }
+
+        options.signal = abort.signal;
+
+        const key = requestKey(uri);
+
+        if (superseded.delete(key)) {
+            abort.abort();
+
+            return;
+        }
+
+        pageRequests.add({ key, abort });
+    });
+}
+
+function supersede(url) {
+    const destination = requestKey(url);
+
+    superseded.delete(destination);
+    pageRequests.forEach((request) => {
+        if (request.key !== destination) {
+            pageRequests.delete(request);
+            superseded.add(request.key);
+            request.abort.abort();
+        }
+    });
+}
+
 export function start() {
     // نشر جديد غيّر أصول Vite (البصمة في اسم الملف): يضيف Livewire الجديدة إلى الرأس عند التنقّل التالي فتعمل
     // مع القديمة، فتُحمَّل الصفحة كاملة بأصولها الجديدة بدل تهيئة مزدوجة
@@ -158,6 +211,13 @@ export function start() {
 
     window.ejazPageStarted = true;
     run();
+
+    // سكربت Livewire مؤجل كهذا، وأيهما سبق: الخطاف يُسجَّل متى وُجد Livewire
+    if (window.Livewire) {
+        watchPageRequests();
+    } else {
+        document.addEventListener('livewire:init', watchPageRequests, { once: true });
+    }
 
     // ذاكرة الرجوع في المتصفح (bfcache) تحفظ المستند كله، ورؤوسه من أول صفحة حُمّلت كاملاً (عامة عادة)، فتعرض
     // صفحات الحساب التي تُنقّل إليها بعد الخروج. فصفحة لمسجّل دخول تُطلب من الخادم عند الرجوع إليها
@@ -194,6 +254,10 @@ export function start() {
             return;
         }
 
+        if (url) {
+            supersede(url);
+        }
+
         stopProgress();
         // والطبقة بعد 400 لا 150: التنقّل العادي (خادم سريع) يحل بلا طبقة أصلاً (البند ٥). ولا جلب مسبق عند المرور: أُسقط لأنه يُعدّ زيارة ويضاعف الطلبات في الذروة
         progress = setTimeout(() => {
@@ -213,9 +277,20 @@ export function start() {
     document.addEventListener('livewire:navigated', () => {
         stopProgress();
 
+        // تنقّل لا يبدّل المستند (مرساة في الصفحة نفسها، أو رجوع إلى مدخل منه) لا يمسح السجلين: Livewire يعيد طلب الصفحة الملغاة
+        // في مهمة لاحقة، فلو مُسح سجلها قبلها لأُرسل الطلب المُعاد وحلّت الصفحة القديمة بعد المرساة (مراجعة الطلب 252)
         if (document.body === currentBody) {
             return;
         }
+
+        // وبعد صفحة حلّت: الملغى قديم، والطلب المكتمل يخرج من السجل، ويبقى طلب بدأ بعدها فيلغيه التنقّل التالي
+        superseded.clear();
+        const here = requestKey(window.location.href);
+        pageRequests.forEach((request) => {
+            if (request.key === here) {
+                pageRequests.delete(request);
+            }
+        });
 
         // إشارة الصفحة السابقة تُلغى بعد أن حلّت الجديدة مكانها لا في navigating: فإن أُطلق ذلك ولم تتبدّل
         // الصفحة بقيت وظائفها (الحفظ التلقائي، والعدّاد) تعمل
