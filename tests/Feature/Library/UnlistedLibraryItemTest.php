@@ -6,8 +6,10 @@ use App\Enums\LibrarySection;
 use App\Enums\RoleName;
 use App\Models\Competition;
 use App\Models\LibraryItem;
+use App\Support\Assistant\AssistantIndex;
 use App\Support\CompetitionPage;
 use Database\Seeders\BrahinCompetitionSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -67,14 +69,14 @@ it('saves the flag for books from the panel action, and clears it for other sect
 
 it('keeps an unlisted book out of the assistant index, and back in once listed', function () {
     $book = LibraryItem::factory()->create(['slug' => 'brahin-guide', 'is_unlisted' => true]);
-    \App\Support\Assistant\AssistantIndex::rebuild();
+    AssistantIndex::rebuild();
 
-    expect(\Illuminate\Support\Facades\DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeFalse();
+    expect(DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeFalse();
 
     $book->forceFill(['is_unlisted' => false])->save();
-    \App\Support\Assistant\AssistantIndex::rebuild();
+    AssistantIndex::rebuild();
 
-    expect(\Illuminate\Support\Facades\DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeTrue();
+    expect(DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeTrue();
 });
 
 it('keeps every existing item listed by default', function () {
