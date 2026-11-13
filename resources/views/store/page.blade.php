@@ -1,6 +1,6 @@
 {{--
     «المتجر والتبرعات» (قرار صفوان، 4 نوفمبر 2026 — docs/decisions/2026-11-04-store-page.md): الرأس، ثم تبويبات التصنيف في
-    الشريط العائم كـ«الدورات والبرامج» («الكل» دائماً، والتبرعات والإصدارات متى كان فيها عنصر منشور)، ثم سطر الدفع وزر «ادخل المتجر» برابط المتجر العام، ثم
+    الشريط العائم كـ«الدورات والبرامج» («الكل» دائماً، والتبرعات والإصدارات متى كان فيها عنصر منشور)، ثم زر «ادخل المتجر» برابط المتجر العام (سطر الدفع محذوف، docs/decisions/2026-11-13-fix-store-remove-payment-note.md)، ثم
     شبكة البطاقات الملونة (store/partials/grid). والدفع في متجر سلة بتبويب جديد، فلا تنقّل سريع على روابطه.
 --}}
 <x-layouts.app :title="__('store.page.title')">
@@ -29,17 +29,14 @@
                 <x-missing :what="__('store.page.intro_missing')" />
             </div>
 
-            <div class="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-line/70 bg-white/80 p-5 text-center sm:flex-row sm:text-start">
-                <p class="flex items-center gap-3 text-muted">
-                    <x-icon-tile icon="storefront" size="sm" class="shrink-0" />
-                    <span>{{ __('store.page.payment_note') }}</span>
-                </p>
-                @if ($storeUrl)
+            {{-- سطر «الدفع يتم في متجر الجمعية…» محذوف بطلب صفوان (13 نوفمبر 2026)، ويبقى زر الدخول إلى المتجر وحده --}}
+            @if ($storeUrl)
+                <div class="mt-6 flex justify-center">
                     <x-button :href="$storeUrl" target="_blank" rel="noopener noreferrer" arrow class="shrink-0" data-store-enter>
                         {{ __('store.page.enter_store') }}<span class="sr-only"> {{ __('store.page.opens_in_new_tab') }}</span>
                     </x-button>
-                @endif
-            </div>
+                </div>
+            @endif
 
             {{ $grid }}
         </div>

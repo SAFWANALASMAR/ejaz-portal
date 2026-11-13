@@ -31,7 +31,7 @@ test('the programs page shows one bar of types from data, then competitions, scr
     await page.goto('/programs');
     await expectRtlNoScroll(page);
 
-    // شريط واحد بالأنواع التي فيها برنامج منشور ثم «المسابقات» آخره (ملاحظات المدير التنفيذي، 4 نوفمبر 2026). والقاعدة المحلية قد تحمل
+    // شريط واحد بالأنواع كلها ثم «المسابقات» آخره (ملاحظات المدير التنفيذي، 4 نوفمبر 2026، وتحت «كيف تسجّل» منذ 12 نوفمبر). والقاعدة المحلية قد تحمل
     // أنواعاً تجريبية أخرى، فيُفحص أن «قراءة الكتب» بين الأنواع (لبرنامج القراءة في الاختبار التالي) و«المسابقات» آخرها
     const bar = page.locator('[data-programs-bar]');
     const items = await bar.locator('[data-programs-bar-item]').evaluateAll((links) => links.map((link) => link.dataset.programsBarItem));
