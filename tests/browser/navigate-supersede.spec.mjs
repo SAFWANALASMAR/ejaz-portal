@@ -73,7 +73,6 @@ test('an in-page anchor navigation after a pending click cancels it, and the old
     expect(navigated.every((path) => path === '/')).toBe(true);
 });
 
-
 // رابط بمرساة إلى صفحة أخرى (قائمة «عن الجمعية»): طلبه بلا المرساة، فلا يلغيه تنقّله نفسه (مراجعة الطلب 252، م١)
 test('a link with an anchor to another page opens that page at its anchor', async ({ page }) => {
     test.setTimeout(60_000);
@@ -93,10 +92,11 @@ test('real mouse clicks: the last link wins over a slower earlier one', async ({
     test.setTimeout(60_000);
 
     await page.goto('/');
-    const first = page.locator(link('/programs')).first();
-    const second = page.locator(link('/media')).first();
-    test.skip((await first.count()) === 0 || (await second.count()) === 0, 'لا رابط للدورات أو للمركز الإعلامي على هذه البيئة');
-    test.skip(!(await first.isVisible()) || !(await second.isVisible()), 'الرابطان غير ظاهرين معاً على هذا العرض');
+    // رابطا التذييل ظاهران معاً، ورابطا الرأس في قوائم منسدلة مخفية (فحص جهاز صفوان، 13 نوفمبر)
+    const first = page.locator('footer').locator(link('/programs')).first();
+    const second = page.locator('footer').locator(link('/media')).first();
+    test.skip((await first.count()) === 0 || (await second.count()) === 0, 'لا رابط للدورات أو للمركز الإعلامي في التذييل على هذه البيئة');
+    await first.scrollIntoViewIfNeeded();
 
     await page.route((url) => url.pathname === '/programs', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, DELAY));
