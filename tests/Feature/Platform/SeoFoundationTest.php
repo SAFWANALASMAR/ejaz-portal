@@ -133,7 +133,8 @@ dataset('listings', [
     'competitions' => ['/competitions', fn () => Competition::factory()->create(), fn (Competition $competition) => $competition->update(['is_published' => false])],
 ]);
 
-it('keeps an empty list page out of search engines and the sitemap until its first published item', function (string $path, Closure $publish) {
+// والثالث للاختبار التالي، ويُعلن هنا لأن Pest يطابق الإغلاقات في الصف مع معاملات الاختبار بموضعها
+it('keeps an empty list page out of search engines and the sitemap until its first published item', function (string $path, Closure $publish, Closure $withdraw) {
     expect((string) $this->get($path)->assertOk()->getContent())->toContain('<meta name="robots" content="noindex, nofollow">')
         ->and(seoSitemapUrls($this))->not->toContain(url($path));
 
