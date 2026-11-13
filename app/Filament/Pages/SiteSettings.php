@@ -108,6 +108,7 @@ class SiteSettings extends Page
             'retention' => Setting::group('retention'),
             'accounts' => [
                 'verification' => AccountSettings::verificationEnabled(),
+                'email_code' => AccountSettings::emailCodeEnabled(),
                 'show_deferred_portals' => AccountSettings::showsDeferredPortals(),
             ],
         ]);
@@ -258,6 +259,8 @@ class SiteSettings extends Page
                             Section::make()->description(__('settings.accounts.hint'))->schema([
                                 Toggle::make('accounts.verification')->label(__('settings.accounts.verification'))
                                     ->helperText(__('settings.accounts.verification_hint')),
+                                Toggle::make('accounts.email_code')->label(__('settings.accounts.email_code'))
+                                    ->helperText(__('settings.accounts.email_code_hint')),
                                 Toggle::make('accounts.show_deferred_portals')->label(__('settings.accounts.show_deferred_portals'))
                                     ->helperText(__('settings.accounts.show_deferred_portals_hint')),
                             ]),

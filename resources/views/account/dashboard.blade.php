@@ -13,7 +13,7 @@
 
     {{-- تنبيه البريد دائماً، فرمزه شرط التسجيل في المسابقة (decisions/2026-11-06-email-otp.md). وتنبيه الجوال متى فُعّل التوثيق
          من اللوحة وحده (AccountSettings — ملاحظات المدير التنفيذي، 25 أكتوبر 2026) --}}
-    @if ($user->email !== null && ! $user->hasVerifiedEmail())
+    @if (\App\Support\AccountSettings::emailCodeEnabled() && $user->email !== null && ! $user->hasVerifiedEmail())
         <x-alert type="warning" class="flex flex-wrap items-center justify-between gap-3">
             <span>{{ __('account.dashboard.verify_email') }}</span>
             <x-button variant="link" :href="route('verification.notice')">{{ __('account.dashboard.verify_now') }}</x-button>

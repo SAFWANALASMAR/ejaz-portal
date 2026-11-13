@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Actions\Accounts\SendEmailVerificationCode;
 use App\Models\User;
+use App\Support\AccountSettings;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +21,7 @@ class SendVerificationWhenRequired extends SendEmailVerificationNotification
     {
         $user = $event->user;
 
-        if (! $user instanceof User || $user->email === null || $user->hasVerifiedEmail()) {
+        if (! AccountSettings::emailCodeEnabled() || ! $user instanceof User || $user->email === null || $user->hasVerifiedEmail()) {
             return;
         }
 

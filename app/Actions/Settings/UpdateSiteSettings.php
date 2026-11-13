@@ -59,8 +59,12 @@ class UpdateSiteSettings
 
             $accounts = array_map(fn (mixed $value): bool => (bool) $value, Validator::make($groups[AccountSettings::KEY], [
                 'verification' => ['required', 'boolean'],
+                'email_code' => ['sometimes', 'boolean'],
                 'show_deferred_portals' => ['required', 'boolean'],
             ])->validate());
+
+            // ما لا يُرسله المستدعي يبقى على قيمته، فلا يعود الرمز مفعّلاً بحفظ لا يعرفه (decisions/2026-11-13-feature-email-code-toggle.md)
+            $accounts['email_code'] ??= AccountSettings::emailCodeEnabled();
 
             // لحظة التفعيل تبقى ما بقي مفعّلاً، وتُضبط عند تفعيله من جديد، فلا تُحذف حسابات فترة الإطفاء
             // (PruneUnverifiedAccounts — مراجعة المشرف المبكرة، ٥)

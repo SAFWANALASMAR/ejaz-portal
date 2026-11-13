@@ -5,6 +5,7 @@ namespace App\Actions\Competitions;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,7 @@ class StartSubmission
             throw new AuthorizationException(__('competitions.entry.closed'));
         }
 
-        if (! $user->is_active || (! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone())) {
+        if (! $user->is_active || (AccountSettings::emailCodeEnabled() && ! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone())) {
             throw new AuthorizationException(__('competitions.entry.verify_phone'));
         }
 

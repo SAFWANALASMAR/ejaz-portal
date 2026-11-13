@@ -15,6 +15,7 @@ use App\Models\CompetitionRegion;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\AccountSettings;
 use App\Support\RoundQuestions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
@@ -85,7 +86,7 @@ class StudentExamController extends Controller
     {
         $user = $this->user($request);
 
-        if ($user->hasVerifiedEmail() || $user->hasVerifiedPhone()) {
+        if (! AccountSettings::emailCodeEnabled() || $user->hasVerifiedEmail() || $user->hasVerifiedPhone()) {
             return null;
         }
 

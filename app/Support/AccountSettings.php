@@ -11,6 +11,9 @@ use Carbon\CarbonImmutable;
  * - verification: توثيق البريد والجوال شرطاً للتسجيل في البرامج وتقديم الطلبات، ورسالة التوثيق الآلية بعد التسجيل،
  *   وتنبيهات التوثيق في لوحة المستخدم، وحذف الحسابات المتروكة غير الموثقة. مطفأ افتراضياً، ويُفعَّل لاحقاً.
  * - verification_enabled_at: لحظة تفعيله (UpdateSiteSettings)، فلا يُحذف حساب سُجّل والتوثيق مطفأ (PruneUnverifiedAccounts).
+ * - email_code: رمز توثيق البريد بعد التسجيل، وشرطه للتسجيل في المسابقة (decisions/2026-11-06-email-otp.md). مفعّل
+ *   افتراضياً، ويُطفأ مؤقتاً ما دام بريد الموقع لا يرسل (decisions/2026-11-13-feature-email-code-toggle.md)، والجوال
+ *   والبريد يبقيان إلزاميين في التسجيل.
  * - show_deferred_portals: بوابات «مجلس الإدارة» و«الموظفون» في اللوحة و«الجمعية العمومية» في حساب المستخدم.
  *   مخفية افتراضياً حتى يقرر المدير (تؤجل)، والصلاحيات كما هي.
  */
@@ -28,6 +31,11 @@ final class AccountSettings
         $at = Setting::group(self::KEY)['verification_enabled_at'] ?? null;
 
         return is_string($at) && $at !== '' ? CarbonImmutable::parse($at) : null;
+    }
+
+    public static function emailCodeEnabled(): bool
+    {
+        return (bool) (Setting::group(self::KEY)['email_code'] ?? true);
     }
 
     public static function showsDeferredPortals(): bool

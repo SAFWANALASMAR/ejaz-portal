@@ -35,7 +35,7 @@ class RegisterResponse implements RegisterResponseContract
         }
 
         // وإلا إلى رمز البريد، فقد أُرسل بعد التسجيل (SendVerificationWhenRequired — decisions/2026-11-06-email-otp.md)
-        return $user !== null && $user->email !== null && ! $user->hasVerifiedEmail()
+        return AccountSettings::emailCodeEnabled() && $user !== null && $user->email !== null && ! $user->hasVerifiedEmail()
             ? redirect()->route('verification.notice')
             : redirect()->intended(route('account.dashboard'));
     }

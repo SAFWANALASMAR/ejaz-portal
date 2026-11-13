@@ -11,6 +11,7 @@ use App\Http\Requests\Competitions\SaveSubmissionRequest;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
+use App\Support\AccountSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,7 @@ class EntryController extends Controller
         $user = $this->user($request);
 
         // بريد موثق أو جوال موثق (decisions/2026-11-06-email-otp.md)
-        if (! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone()) {
+        if (AccountSettings::emailCodeEnabled() && ! $user->hasVerifiedEmail() && ! $user->hasVerifiedPhone()) {
             app(SendEmailVerificationCode::class)->sendIfNone($user);
 
             return $user->email !== null
