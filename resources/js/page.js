@@ -155,6 +155,14 @@ function stopProgress() {
 const pageRequests = new Set();
 const superseded = new Set();
 
+// مفتاح الطلب المسار والاستعلام وحدهما: المرساة لا تُرسل إلى الخادم، فرابط «/about#about-vision» طلبه «/about»، ولو قورن
+// بالمرساة لألغى التنقّلُ طلبَ وجهته نفسها (مراجعة الطلب 252، م١)
+function requestKey(url) {
+    const parsed = new URL(url, window.location.href);
+
+    return parsed.pathname + parsed.search;
+}
+
 function watchPageRequests() {
     window.Livewire.hook('navigate.request', ({ uri, options }) => {
         // إشارة Livewire نفسها (إن وُجدت أو استُعملت في إصدار لاحق) تبقى تلغي الطلب: تُربط بإشارتنا لا تُستبدل
@@ -167,24 +175,26 @@ function watchPageRequests() {
 
         options.signal = abort.signal;
 
-        if (superseded.delete(uri)) {
+        const key = requestKey(uri);
+
+        if (superseded.delete(key)) {
             abort.abort();
 
             return;
         }
 
-        pageRequests.add({ uri, abort });
+        pageRequests.add({ key, abort });
     });
 }
 
 function supersede(url) {
-    const destination = url.pathname + url.search + url.hash;
+    const destination = requestKey(url);
 
     superseded.delete(destination);
     pageRequests.forEach((request) => {
-        if (request.uri !== destination) {
+        if (request.key !== destination) {
             pageRequests.delete(request);
-            superseded.add(request.uri);
+            superseded.add(request.key);
             request.abort.abort();
         }
     });
@@ -275,9 +285,9 @@ export function start() {
 
         // وبعد صفحة حلّت: الملغى قديم، والطلب المكتمل يخرج من السجل، ويبقى طلب بدأ بعدها فيلغيه التنقّل التالي
         superseded.clear();
-        const here = window.location.pathname + window.location.search + window.location.hash;
+        const here = requestKey(window.location.href);
         pageRequests.forEach((request) => {
-            if (request.uri === here) {
+            if (request.key === here) {
                 pageRequests.delete(request);
             }
         });

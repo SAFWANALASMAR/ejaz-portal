@@ -73,3 +73,40 @@ test('an in-page anchor navigation after a pending click cancels it, and the old
     expect(navigated.every((path) => path === '/')).toBe(true);
 });
 
+
+// رابط بمرساة إلى صفحة أخرى (قائمة «عن الجمعية»): طلبه بلا المرساة، فلا يلغيه تنقّله نفسه (مراجعة الطلب 252، م١)
+test('a link with an anchor to another page opens that page at its anchor', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    await page.goto('/');
+    test.skip((await page.locator('a[href*="/about#about-vision"]').count()) === 0, 'لا مرساة «الرؤية» في القائمة على هذه البيئة');
+
+    await page.evaluate(() => window.Livewire.navigate('/about#about-vision'));
+    await expect(page).toHaveURL(/\/about#about-vision$/, { timeout: 15_000 });
+    await expect(page.locator('#about-vision')).toHaveCount(1);
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveURL(/\/about#about-vision$/);
+});
+
+// ضغط الفأرة الحقيقي (mousedown ثم click) يمر بالجلب المسبق كما عند الزائر (مراجعة الطلب 252، م٢)
+test('real mouse clicks: the last link wins over a slower earlier one', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    await page.goto('/');
+    const first = page.locator(link('/programs')).first();
+    const second = page.locator(link('/media')).first();
+    test.skip((await first.count()) === 0 || (await second.count()) === 0, 'لا رابط للدورات أو للمركز الإعلامي على هذه البيئة');
+    test.skip(!(await first.isVisible()) || !(await second.isVisible()), 'الرابطان غير ظاهرين معاً على هذا العرض');
+
+    await page.route((url) => url.pathname === '/programs', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, DELAY));
+        await route.continue().catch(() => {});
+    });
+
+    await first.click({ noWaitAfter: true });
+    await second.click({ noWaitAfter: true });
+
+    await expect(page).toHaveURL(/\/media$/);
+    await page.waitForTimeout(DELAY + 1000);
+    await expect(page).toHaveURL(/\/media$/);
+});
