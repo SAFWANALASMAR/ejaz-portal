@@ -77,7 +77,7 @@ it('keeps the original attempt when the student does not start before the deadli
     $this->travel(2)->hours();
 
     expect(app(StartAttempt::class)->handle($this->student, $this->round->fresh())->id)->toBe($this->attempt->id)
-        ->and(CompetitionAttempt::query()->whereKey($this->attempt->id)->value('status'))->toBe(AttemptStatus::Submitted->value);
+        ->and(CompetitionAttempt::query()->findOrFail($this->attempt->id)->status)->toBe(AttemptStatus::Submitted);
 });
 
 it('requires a deadline after the round closes, and opens the closed round to this student alone until it', function () {
@@ -109,7 +109,8 @@ it('lets only the executive director and the technical admin grant a retake', fu
 
     expect($grant)->toThrow(AuthorizationException::class)
         ->and(CompetitionRetake::query()->count())->toBe(0);
-    Notification::assertNothingSent();
+    // إيصال تسليم المحاولة الأصلية يصل في التهيئة، ولا إشعار إعادة
+    Notification::assertNotSentTo($this->student, CompetitionRetakeGranted::class);
 })->with([
     'executive director' => [RoleName::ExecutiveDirector, true],
     'technical admin' => [RoleName::TechnicalAdmin, true],
