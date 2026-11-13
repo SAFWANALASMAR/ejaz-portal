@@ -470,10 +470,16 @@ it('adds the «عن الجمعية» anchors in order after the parent page, onc
         expect($positions)->not->toContain(false);
         $sorted = $positions;
         sort($sorted);
-        expect($positions)->toBe($sorted)
-            // و«اللوائح والسياسات» مخفية من «عن الجمعية» (مراجعة المشرف على #177، L5): رابطها بعد آخر مراسيها، في قائمة «الحوكمة»
-            // بتصنيفاتها الخمسة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
-            ->and(strpos($menu, 'governance?category=policies'))->toBeGreaterThan(max($positions));
+        expect($positions)->toBe($sorted);
+    }
+
+    // و«اللوائح والسياسات» مخفية من منسدلة «عن الجمعية» نفسها (مراجعة المشرف على #177، L5)، على الحاسوب والجوال، وموجودة في منسدلة
+    // «الحوكمة» بتصنيفاتها الخمسة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md؛ مراجعة #249)
+    $governance = MenuItem::query()->whereNull('parent_id')->where('url', '/governance')->firstOrFail();
+    $dropdown = fn (string $prefix, int $id): string => preg_match('/<ul id="'.$prefix.$id.'"[^>]*>(.*?)</ul>/s', $html, $match) ? $match[1] : '';
+    foreach (['menu-', 'mobile-menu-'] as $prefix) {
+        expect($dropdown($prefix, $about->id))->toContain('about#about-goals')->not->toContain('governance?category=policies')->not->toContain('اللوائح والسياسات')
+            ->and($dropdown($prefix, $governance->id))->toContain('governance?category=policies');
     }
 });
 

@@ -622,3 +622,15 @@ it('strips scripts and javascript links from a published section', function () {
 
     expect($html)->not->toContain('<script>alert(1)')->not->toContain('javascript:alert(2)');
 });
+
+it('tells the editor that an empty summary keeps the approved text on a page with no original summary (review on #247)', function () {
+    $this->actingAs($this->admin);
+
+    $contact = app(EnsureEditablePage::class)->handle($this->admin, 'contact');
+    $services = app(EnsureEditablePage::class)->handle($this->admin, 'services');
+
+    Livewire::test(EditSitePage::class, ['record' => $contact->getRouteKey()])->assertSee(__('page_editor.fields.summary_hint_template'));
+    Livewire::test(EditSitePage::class, ['record' => $services->getRouteKey()])
+        ->assertSee(__('page_editor.fields.summary_hint'))
+        ->assertDontSee(__('page_editor.fields.summary_hint_template'));
+});
