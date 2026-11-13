@@ -176,8 +176,9 @@ it('puts the video and book strips directly under the services, before the annou
         ->and($band($news))->not->toBe($band($strips));
 });
 
-it('shows the follow-us-on-X card only when the official X account is set, opening it in a new tab', function () {
-    $this->get('/')->assertOk()->assertDontSee('data-x-card', false);
+it('shows the follow-us-on-X card with its link only when the official X account is set, opening it in a new tab', function () {
+    // بلا حساب: البطاقة بسطر «يُضاف» بلا زر (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertOk()->assertSee('data-home-empty="x"', false)->assertDontSee('data-x-follow', false);
 
     Setting::put('contact', ['social' => ['x' => 'https://x.com/ejaz_sa']]);
     ContentCache::flush();
@@ -193,7 +194,9 @@ it('ignores an X setting that is not an x.com or twitter.com https link', functi
     Setting::put('contact', ['social' => ['x' => 'https://evil.example/ejaz']]);
     ContentCache::flush();
 
-    $this->get('/')->assertOk()->assertDontSee('data-x-card', false);
+    $card = (string) str($this->get('/')->assertOk()->getContent())->after('data-x-card')->before('</section>');
+
+    expect($card)->toContain('data-home-empty="x"')->not->toContain('evil.example')->not->toContain('data-x-follow');
 });
 
 it('puts the home sections on alternating bands with no repeated shade back to back', function () {

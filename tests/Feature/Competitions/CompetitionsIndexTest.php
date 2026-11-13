@@ -44,7 +44,8 @@ it('lists upcoming competitions as «soon» without a registration button', func
         ->and(substr_count($upcoming, 'data-competition-card="upcoming"'))->toBe(2)
         // الأقرب فتحاً أولاً
         ->and(strpos($upcoming, 'مسابقة غداً'))->toBeLessThan(strpos($upcoming, 'مسابقة بعد شهر'))
-        ->and($html)->not->toContain('data-competitions-current')->not->toContain('/register"')
+        // وقسم «المسابقة الحالية» ظاهر بحالته الفارغة بلا مسابقة مفتوحة (قرار صفوان، 11 نوفمبر 2026)
+        ->and($html)->toContain('data-competitions-empty="current"')->not->toContain('/register"')
         ->not->toContain('entry/start');
 });
 
@@ -58,13 +59,17 @@ it('archives past competitions with the approved results badge, and hides drafts
 
     expect($past)->toContain('مسابقة معتمدة النتائج')->toContain('مسابقة بلا نتائج')
         ->and(substr_count($past, 'data-results-approved'))->toBe(1)
-        ->and($html)->not->toContain('مسودة جارية')->not->toContain('data-competitions-current');
+        ->and($html)->not->toContain('مسودة جارية')->toContain('data-competitions-empty="current"');
 });
 
-it('shows the empty state when nothing is published', function () {
+it('keeps the three sections with their empty states when nothing is published', function () {
     Competition::factory()->unpublished()->create();
 
-    $this->get('/competitions')->assertOk()->assertSee(__('competitions.list.empty'));
+    // الأقسام الثلاثة ظاهرة بحالتها الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/competitions')->assertOk()
+        ->assertSee(__('competitions.list.current_empty'))
+        ->assertSee(__('competitions.list.upcoming_empty'))
+        ->assertSee(__('competitions.list.past_empty'));
     $this->get('/competitions?page=2')->assertNotFound();
 });
 

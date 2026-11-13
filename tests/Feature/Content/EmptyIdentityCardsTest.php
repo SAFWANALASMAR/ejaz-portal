@@ -9,9 +9,9 @@ use App\Support\HomeContent;
 use App\Support\HomeShowcase;
 
 /*
-| البطاقات تحت البطل بلا نص ظاهر (docs/decisions/2026-11-10-fix-empty-identity-cards.md): على الخادم «عن الجمعية» مسودة ولم تصل
-| الأهداف ولا المبادئ، فظهرت «رؤيتنا ورسالتنا» و«أهدافنا» و«مبادئنا» بعناوينها وحدها. البطاقة بلا نص ظاهر لا تُعرض، و«أهدافنا»
-| و«مبادئنا» تُؤخذان من مقطعيهما في «عن الجمعية» المنشورة كالرؤية والرسالة.
+| البطاقات تحت البطل بلا نص ظاهر (docs/decisions/2026-11-10-fix-empty-identity-cards.md): «أهدافنا» و«مبادئنا» تُؤخذان من مقطعيهما
+| في «عن الجمعية» المنشورة كالرؤية والرسالة. والبطاقة بلا نص ظاهر ولا عنصر باقية بسطر «يُضاف قريباً» (قرار صفوان، 11 نوفمبر 2026 —
+| docs/decisions/2026-11-11-fix-show-empty-sections.md، ويحل محل إخفائها).
 */
 
 /**
@@ -28,22 +28,23 @@ function identityCards(string $page): array
     return ['cards' => $matches[2], 'tones' => $matches[1], 'html' => $html];
 }
 
-it('drops the vision and goals cards instead of leaving them blank, and keeps principles with a coming-soon line', function () {
+it('keeps all five cards, the ones without visible text with a coming-soon line instead of the hidden marker', function () {
     config(['app.hide_missing_markers' => true]);
     Initiative::factory()->create(['name' => 'مبادرة ظاهرة', 'is_published' => true]);
 
     $page = $this->get('/')->assertOk()->getContent();
     ['cards' => $cards, 'tones' => $tones, 'html' => $html] = identityCards($page);
+    $vision = (string) str($html)->after('data-identity-card="vision"')->before('data-identity-card="goals"');
+    $goals = (string) str($html)->after('data-identity-card="goals"')->before('data-identity-card="values"');
 
-    expect($cards)->toBe(['values', 'principles', 'initiatives'])
-        // الدرجات تتعاقب بترتيب الظاهرة، والأعمدة على الحاسوب بعددها
-        ->and($tones)->toBe(['dark', 'light', 'dark'])
-        ->and($html)->toContain('--home-cards-count: 3')
+    expect($cards)->toBe(['vision', 'goals', 'values', 'principles', 'initiatives'])
+        ->and($tones)->toBe(['dark', 'light', 'dark', 'light', 'dark'])
+        ->and($html)->toContain('--home-cards-count: 5')
         ->and($html)->not->toContain('【')
-        ->and($html)->toContain(__('home.cards.principles_soon'))
-        // ولا في نسخ الشريط المتحرك
-        ->and($html)->not->toContain('data-identity-card="vision"')
-        ->and($html)->not->toContain('data-identity-card="goals"');
+        ->and($vision)->toContain(__('home.cards.soon'))
+        ->and($goals)->toContain(__('home.cards.soon'))
+        ->and($html)->toContain(__('home.cards.soon'))
+        ->and($html)->toContain('مبادرة ظاهرة');
 });
 
 it('takes the goals and principles from the published about page, its goals cards joined', function () {
@@ -65,12 +66,12 @@ it('takes the goals and principles from the published about page, its goals card
 
     ['cards' => $cards, 'tones' => $tones, 'html' => $html] = identityCards($this->get('/')->assertOk()->getContent());
 
-    expect($cards)->toBe(['vision', 'goals', 'values', 'principles'])
-        ->and($tones)->toBe(['dark', 'light', 'dark', 'light'])
+    expect($cards)->toBe(['vision', 'goals', 'values', 'principles', 'initiatives'])
+        ->and($tones)->toBe(['dark', 'light', 'dark', 'light', 'dark'])
         ->and($html)->toContain('رؤية من الصفحة')
         ->and($html)->toContain('الهدف الأول'.__('home.cards.separator').'الهدف الثاني')
         ->and($html)->toContain('مبدأ من الصفحة')
-        ->and($html)->toContain('--home-cards-count: 4');
+        ->and($html)->toContain('--home-cards-count: 5');
 });
 
 it('prefers the panel goals over the about page, and ignores a draft about page', function () {
@@ -100,7 +101,7 @@ it('keeps the marker texts in their cards for whoever sees the markers', functio
 
     ['cards' => $cards, 'html' => $html] = identityCards($this->get('/')->assertOk()->getContent());
 
-    expect($cards)->toBe(['vision', 'goals', 'values', 'principles'])
+    expect($cards)->toBe(['vision', 'goals', 'values', 'principles', 'initiatives'])
         ->and($html)->toContain(__('home.cards.vision_missing'))
         ->and($html)->toContain(HomeContent::defaultText('identity', 'goals'))
         ->and($html)->toContain(HomeContent::defaultText('identity', 'principles'));
@@ -110,10 +111,10 @@ it('keeps the marker texts in their cards for whoever sees the markers', functio
 
     ['cards' => $cards] = identityCards($this->actingAs(userWithRole(RoleName::ContentEditor))->get('/')->assertOk()->getContent());
 
-    expect($cards)->toBe(['vision', 'goals', 'values', 'principles']);
+    expect($cards)->toBe(['vision', 'goals', 'values', 'principles', 'initiatives']);
 });
 
-it('keeps the principles card in the moving row when it is the only one there', function () {
+it('keeps the empty values, principles and initiatives cards in the moving row with a coming-soon line', function () {
     config(['app.hide_missing_markers' => true]);
     $data = [
         'texts' => ['goals' => HomeContent::defaultText('identity', 'goals'), 'principles' => ''],
@@ -128,11 +129,13 @@ it('keeps the principles card in the moving row when it is the only one there', 
         ->and($html)->toContain('رؤية معتمدة')
         ->and($html)->toContain('home-cards-track')
         ->and($html)->toContain('data-identity-card="principles"')
-        ->and($html)->toContain(__('home.cards.principles_soon'))
-        ->and($html)->toContain('--home-cards-count: 2');
+        ->and($html)->toContain(__('home.cards.soon'))
+        ->and(str($html)->after('data-identity-card="values"')->before('data-identity-card="principles"')->toString())->toContain(__('home.cards.soon'))
+        ->and(str($html)->after('data-identity-card="initiatives"')->before('</div>')->toString())->not->toContain('data-initiative-slide')
+        ->and($html)->toContain('--home-cards-count: 5');
 });
 
-it('repeats a short moving row so it fills the phone width without a gap', function () {
+it('fills the phone width with the four cards of the moving row, so it no longer needs repeating', function () {
     config(['app.hide_missing_markers' => true]);
 
     $html = view('home.partials.identity', [
@@ -143,13 +146,13 @@ it('repeats a short moving row so it fills the phone width without a gap', funct
         'band' => 1,
     ])->render();
 
-    // بطاقتان في الشريط: يتكرر المسار ضعفين (أربع نسخ، الأولى ظاهرة)
-    expect(substr_count($html, 'data-marquee-copy'))->toBe(3)
-        ->and(substr_count($html, 'data-identity-card="goals"'))->toBe(4);
+    // البطاقات الأربع في الشريط دائماً منذ قرار 11 نوفمبر: نسختان، الأولى ظاهرة
+    expect(substr_count($html, 'data-marquee-copy'))->toBe(1)
+        ->and(substr_count($html, 'data-identity-card="goals"'))->toBe(2);
 });
 
 /*
-| والمشكلة نفسها في «عن الجمعية»: مقطع «التوجه الاستراتيجي» بلا نص ظاهر كان شريطاً داكناً بعنوانه وحده.
+| و«التوجه الاستراتيجي» في «عن الجمعية» بلا نص ظاهر: باقٍ بسطر «يُضاف قريباً» (قرار صفوان، 11 نوفمبر 2026)، والعلامة لمن يراها.
 */
 
 /**
@@ -163,14 +166,14 @@ function publishedAbout(array $blocks): void
     ]]);
 }
 
-it('drops the strategic direction section from the about page when it has no visible text', function (array $blocks) {
+it('keeps the strategic direction section on the about page with a coming-soon line when it has no visible text', function (array $blocks) {
     config(['app.hide_missing_markers' => true]);
     publishedAbout($blocks);
 
     $this->get(route('about'))->assertOk()
         ->assertSee('تعريف الجمعية')
-        ->assertDontSee('data-about-strategy', false)
-        ->assertDontSee('id="about-strategy"', false)
+        ->assertSee('id="about-strategy"', false)
+        ->assertSee('data-about-empty="strategy"', false)
         ->assertDontSee('نص التوجه');
 })->with([
     'no section' => [[]],

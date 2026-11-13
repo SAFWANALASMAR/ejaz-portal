@@ -61,6 +61,11 @@ bash backup-<المجلد>/rollback.sh
    `docker compose run --rm -T --no-deps app sh -c "php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan ejaz:refresh-content"`، ثم `docker compose up -d --no-deps app queue scheduler`.
 
 ## بعد الرجوع
+- **الرجوع إلى ما قبل Filament 5.11 (`v0.15.8` فأقدم):** الجلسة التي كتبها 5.11 لا يقرؤها 5.10، فترد اللوحة 500 لصاحبها (`docs/decisions/2026-11-11-chore-deps-nov11.md`). فتُبطَل الجلسات القائمة بعد الرجوع:
+  - **والطريقة الآمنة** (مراجعة المشرف على #246):
+    - يُغيَّر `SESSION_COOKIE` في ملف البيئة (`.env` الخادم أو العرض) إلى اسم جديد، مثل لاحقة بالتاريخ. ثم يُعاد إنشاء حاوية `app` (`docker compose up -d --no-deps app queue scheduler`، أو `scripts/deploy-compose.sh`).
+    - فيتجاهل التطبيق الكعكة القديمة، ويبدأ كل زائر جلسة جديدة، ويسجّل الدخول مرة أخرى.
+    - **لا `FLUSHDB` ولا `FLUSHALL` في Redis:** الجلسات على قاعدة Redis نفسها مع الطوابير، فالمسح يضيّع المهام المنتظرة (البريد، والشهادات، والتقارير).
 
 - **التحقق:** `node ../ejaz-demo-ops/verify.mjs` في حاوية Playwright (طريقته في `README.md` هناك)، و`php artisan ejaz:health`.
 - **السجل:** سطر في `ejaz-demo-ops\README.md` (التاريخ، والإيداع، والسبب)، وفي `docs/progress-log.md`.

@@ -4,15 +4,13 @@ namespace App\Support;
 
 use App\Enums\DocumentCategory;
 use App\Enums\LibrarySection;
-use App\Models\Document;
-use App\Models\Survey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 /**
  * أقسام القوائم المنسدلة في الرأس من البيانات والمسارات القائمة لا من نص مكتوب (ملاحظات المدير التنفيذي، 1 نوفمبر 2026،
  * البند ٤): أول عنصر الصفحة الأم نفسها، ثم أقسامها الفعلية. مكتبة إعجاز بأقسامها الأربعة، والمركز الإعلامي بأقسامه كلها
- * (ومنها مكتبة الفيديو وقياس الرضا متى فُتح استبيان عام)، والحوكمة بتصنيفاتها التي فيها وثيقة منشورة، والخدمات الإلكترونية
+ * (ومنها مكتبة الفيديو وقياس الرضا)، والحوكمة بتصنيفاتها الخمسة، والخدمات الإلكترونية
  * بخدماتها المتاحة (config/eservices.php، الشرط نفسه في صفحتها). وما أضافه المحرر من عناصر فرعية في «القائمة» يبقى بعدها.
  */
 final class MenuSections
@@ -119,8 +117,9 @@ final class MenuSections
             ['label' => (string) __('media.tiles.social'), 'url' => '/media/social'],
         ];
 
-        // فتح الاستبيان وإغلاقه بموعدهما لا بحفظ سجله، فيُخزَّن دقيقة واحدة لا مع المحتوى: الرأس في كل صفحة بلا استعلام زائد
-        if (Route::has('surveys.index') && self::minute('survey-open', [Survey::class, 'hasOpenGeneral'])) {
+        // «قياس الرضا» دائماً، وبلا استبيان مفتوح صفحته برسالتها، والتصنيف بلا وثيقة بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026:
+        // «خلي كل شيء بالموقع ظاهر حتى لو ما فيه محتوى» — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+        if (Route::has('surveys.index')) {
             $items[] = ['label' => (string) __('media.tiles.surveys'), 'url' => '/surveys'];
         }
 
@@ -132,19 +131,10 @@ final class MenuSections
      */
     private static function governance(): array
     {
-        /** @var list<string> $used */
-        $used = ContentCache::remember('menu.governance-categories', fn (): array => Document::query()
-            ->published()
-            ->distinct()
-            ->pluck('category')
-            ->map(fn (mixed $category): string => $category instanceof DocumentCategory ? $category->value : (string) $category)
-            ->values()
-            ->all());
-
-        return array_values(array_map(
+        return array_map(
             fn (DocumentCategory $category): array => ['label' => (string) $category->getLabel(), 'url' => '/governance?category='.$category->value],
-            array_filter(DocumentCategory::cases(), fn (DocumentCategory $category): bool => in_array($category->value, $used, true)),
-        ));
+            DocumentCategory::cases(),
+        );
     }
 
     /**

@@ -119,8 +119,9 @@ it('shows a change to the content at once', function () {
 });
 
 it('shows the published initiatives on the home page unless the section is switched off', function () {
-    // ورابط «المبادرات» في روابط التذييل السريعة دائماً (أمر التصور النهائي، النسخة 63)، فالفحص على مقطعها وحده
-    $this->get('/')->assertDontSee('aria-labelledby="home-initiatives"', false);
+    // ورابط «المبادرات» في روابط التذييل السريعة دائماً (أمر التصور النهائي، النسخة 63)، فالفحص على مقطعها وحده. والمقطع المُظهَر
+    // بلا مبادرة بحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertSee('aria-labelledby="home-initiatives"', false)->assertSee('data-home-empty="initiatives"', false);
 
     Initiative::factory()->create(['slug' => 'qiyam', 'name' => 'قيم']);
 
@@ -132,7 +133,7 @@ it('shows the published initiatives on the home page unless the section is switc
     $this->get('/')->assertDontSee('aria-labelledby="home-initiatives"', false)->assertSee('data-identity-card="initiatives"', false);
 });
 
-it('marks the missing board members in development, and shows nothing of them in production', function () {
+it('marks the missing board members in development, and shows the empty board section in production', function () {
     aboutPage();
 
     $this->get('/about')->assertSee(__('content.about.board_missing'));
@@ -142,8 +143,9 @@ it('marks the missing board members in development, and shows nothing of them in
 
     $this->withoutVite()->get('/about')->assertOk()
         ->assertDontSee(__('content.about.board_missing'))
-        // «مجلس الإدارة» في عنوان كلمة رئيسه في الصفحة (التصور النهائي)، فيُفحص مقطع المجلس نفسه
-        ->assertDontSee('id="board"', false);
+        // ومقطع المجلس بعنوانه وحالته الفارغة بلا اسم (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+        ->assertSee('id="board"', false)
+        ->assertSee(__('content.about.board_empty'));
 });
 
 it('keeps the cache of each initiative apart from the list, whatever its slug', function (array $visits) {

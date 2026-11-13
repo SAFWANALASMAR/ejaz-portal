@@ -11,9 +11,9 @@
       أيقونتها الملونة بدرجات الأزرق، ولمعة خفيفة عند التبدل لمن لم يطلب تقليلها (البند ١٠).
     - الدرجات داكنة ثم فاتحة بالتعاقب، مثبتة بـ data-tone. والنصوص من «محتوى الرئيسية» والقيم من قسمها، والعناوين من «عناوين أقسام الرئيسية».
 
-    - البطاقة التي لا نص ظاهراً فيها لا تُعرض (docs/decisions/2026-11-10-fix-empty-identity-cards.md): «رؤيتنا ورسالتنا» و«أهدافنا»
-      بقاعدة MissingText نفسها، و«مبادئنا» باقية بسطر «يُضاف قريباً» بقرار صفوان، فعلامة 【ناقص】 تظهر لمن يرى العلامات وتختفي البطاقة كلها عن غيره بدل أن تبقى بعنوانها
-      وحده. والدرجات تتعاقب بترتيب الظاهرة، وعدد أعمدة الحاسوب بعددها (--home-cards-count)، ولا صف متحرك بلا بطاقة فيه.
+    - البطاقات الخمس ظاهرة دائماً (قرار صفوان، 11 نوفمبر 2026: «خلي كل شيء بالموقع ظاهر حتى لو ما فيه محتوى» —
+      docs/decisions/2026-11-11-fix-show-empty-sections.md، ويحل محل إخفاء البطاقة الفارغة في docs/decisions/2026-11-10-fix-empty-identity-cards.md):
+      البطاقة بلا نص ظاهر ولا عنصر بسطر «يُضاف قريباً» كما كانت «مبادئنا»، وعلامة 【ناقص】 مكانه لمن يرى العلامات.
 
     $identity: list<array{kind, title, text, icon}>، و$texts: HomeShowcase::identityTexts()، و$initiatives: Collection<Initiative>،
     و$content: HomeContent::resolved().
@@ -27,27 +27,18 @@
     $aboutLink = fn (string $section): ?string => $about ? route('about').'#about-'.$section : null;
     // أيقونات المبادرات بموضعها (زخرفة لا محتوى)، كما في «عن الجمعية» والتصور
     $initiativeIcons = ['heart', 'arrow-trending-up', 'cube', 'light-bulb', 'arrow-up'];
-    // النص الظاهر لكل بطاقة (null: لا بطاقة)، والبطاقات الظاهرة بترتيبها
-    $visionMissing = $statements === [] ? \App\Support\MissingText::shown(__('home.cards.vision_missing')) : null;
-    $goals = \App\Support\MissingText::shown($texts['goals']);
+    // النص الظاهر لكل بطاقة، و«يُضاف قريباً» مكان الفارغ (والعلامة لمن يراها)
+    $visionMissing = $statements === [] ? (\App\Support\MissingText::shown(__('home.cards.vision_missing')) ?? __('home.cards.soon')) : null;
+    $goals = \App\Support\MissingText::shown($texts['goals']) ?? __('home.cards.soon');
     // «مبادئنا» تبقى دائماً (قرار صفوان، 10 نوفمبر 2026): بلا نص ظاهر سطر «يُضاف قريباً» حتى يصل النص المعتمد، والعلامة لمن يراها
-    $principles = \App\Support\MissingText::shown($texts['principles']) ?? __('home.cards.principles_soon');
-    $shown = array_keys(array_filter([
-        'vision' => $statements !== [] || $visionMissing !== null,
-        'goals' => $goals !== null,
-        'values' => $values !== [],
-        'principles' => $principles !== null,
-        'initiatives' => $initiatives->isNotEmpty(),
-    ]));
-    $track = array_values(array_diff($shown, ['vision']));
-    // داكنة ثم فاتحة بالتعاقب بترتيب الظاهرة، فلا تتجاور درجتان متماثلتان إن اختفت بطاقة
-    $tone = fn (string $card): string => array_search($card, $shown, true) % 2 === 0 ? 'dark' : 'light';
+    $principles = \App\Support\MissingText::shown($texts['principles']) ?? __('home.cards.soon');
+    // البطاقات الخمس دائماً بترتيبها، داكنة ثم فاتحة بالتعاقب
+    $tones = ['vision' => 'dark', 'goals' => 'light', 'values' => 'dark', 'principles' => 'light', 'initiatives' => 'dark'];
+    $tone = fn (string $card): string => $tones[$card];
 @endphp
 
-@if ($shown !== [])
 <section id="home-identity" class="home-band" data-band="{{ $band }}" aria-label="{{ __('home.cards.label') }}">
-    <div class="home-cards mx-auto max-w-[82.5rem] px-4 pt-5 pb-5 sm:px-7 lg:pt-7 lg:pb-6" style="--home-cards-count: {{ count($shown) }}">
-        @if (in_array('vision', $shown, true))
+    <div class="home-cards mx-auto max-w-[82.5rem] px-4 pt-5 pb-5 sm:px-7 lg:pt-7 lg:pb-6" style="--home-cards-count: {{ count($tones) }}">
         <div class="tone-card home-card" data-tone="{{ $tone('vision') }}" data-identity-card="vision">
             @if ($link = $aboutLink('vision'))
                 <a href="{{ $link }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['vision'] }}</span></a>
@@ -68,12 +59,9 @@
                 </x-carousel>
             @endif
         </div>
-        @endif
 
-        @if ($track !== [])
-        {{-- البطاقات القليلة التي لا تملأ عرض الجوال واللوحي تتكرر في المسار (repeat)، فلا فراغ في الحركة --}}
-        <x-marquee id="home-cards-track" :label="__('home.cards.label')" :duration="32" :repeat="(int) ceil(4 / count($track))" class="home-cards-static">
-            @if ($goals !== null)
+        {{-- البطاقات الأربع في المسار تملأ عرض الجوال واللوحي، فلا تكرار (repeat) --}}
+        <x-marquee id="home-cards-track" :label="__('home.cards.label')" :duration="32" class="home-cards-static">
             <div class="tone-card home-card" data-tone="{{ $tone('goals') }}" data-identity-card="goals">
                 @if ($link = $aboutLink('goals'))
                     <a href="{{ $link }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['goals'] }}</span></a>
@@ -83,9 +71,18 @@
                     <p class="home-card-text">{{ $goals }}</p>
                 </div>
             </div>
-            @endif
 
-            @if ($values !== [])
+            @if ($values === [])
+                <div class="tone-card home-card" data-tone="{{ $tone('values') }}" data-identity-card="values">
+                    @if ($link = $aboutLink('values'))
+                        <a href="{{ $link }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['values'] }}</span></a>
+                    @endif
+                    <div class="home-card-body">
+                        <h2 class="home-card-head"><x-icon-tile icon="heart" size="sm" class="home-card-icon" />{{ $headings['values'] }}</h2>
+                        <p class="home-card-text">{{ __('home.cards.soon') }}</p>
+                    </div>
+                </div>
+            @else
                 <div class="tone-card home-card" data-tone="{{ $tone('values') }}" data-identity-card="values">
                     @if ($link = $aboutLink('values'))
                         <a href="{{ $link }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['values'] }}</span></a>
@@ -107,7 +104,6 @@
                 </div>
             @endif
 
-            @if ($principles !== null)
             <div class="tone-card home-card home-card-wide" data-tone="{{ $tone('principles') }}" data-identity-card="principles">
                 @if ($link = $aboutLink('principles'))
                     <a href="{{ $link }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['principles'] }}</span></a>
@@ -117,9 +113,16 @@
                     <p class="home-card-text">{{ $principles }}</p>
                 </div>
             </div>
-            @endif
 
-            @if ($initiatives->isNotEmpty())
+            @if ($initiatives->isEmpty())
+                <div class="tone-card home-card home-card-wide" data-tone="{{ $tone('initiatives') }}" data-identity-card="initiatives">
+                    <a href="{{ route('initiatives.index') }}" wire:navigate class="home-card-link" data-identity-link><span class="sr-only">{{ $headings['initiatives'] }}</span></a>
+                    <div class="home-card-body">
+                        <h2 class="home-card-head"><x-icon-tile icon="sparkles" size="sm" class="home-card-icon" />{{ $headings['initiatives'] }}</h2>
+                        <p class="home-card-text">{{ __('home.cards.soon') }}</p>
+                    </div>
+                </div>
+            @else
                 <div class="tone-card home-card home-card-wide" data-tone="{{ $tone('initiatives') }}" data-identity-card="initiatives">
                     {{-- رابط البطاقة للفأرة واللمس، ولوحة المفاتيح وقارئ الشاشة يصلان الوجهة نفسها من «الكل» فلا تقف مرتين --}}
                     <a href="{{ route('initiatives.index') }}" wire:navigate class="home-card-link" data-identity-link tabindex="-1" aria-hidden="true"></a>
@@ -143,7 +146,5 @@
                 </div>
             @endif
         </x-marquee>
-        @endif
     </div>
 </section>
-@endif

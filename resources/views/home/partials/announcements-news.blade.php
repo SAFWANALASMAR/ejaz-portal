@@ -3,18 +3,19 @@
     وH7 وH8؛ وملاحظة صفوان ٣٠، 3 نوفمبر 2026). في الأولى دوّار شرائحه بارتفاع أطولها (home/partials/feed-slide): مسابقة البراهين أولاً
     بحالتها وموعدها ومجموع جوائزها من جدولها يعدّ تصاعدياً حين يظهر (data-count-to — motion.js، والرقم كاملاً بلا سكربت)، ثم إعلانات
     اللوحة. وفي الثانية شريط يصعد بلا انقطاع (x-marquee عمودي) بارتفاع العمود المجاور، كل خبر بصورته المصغرة وعنوانه بسطرين وتاريخه
-    وتصنيفه، ويتوقف بالمرور والتركيز وزر الإيقاف ولمن طلب تقليل الحركة، وتحته «كل الأخبار». ولكل منهما «المزيد». وكل ما فرغ يختفي،
-    والمحتوى من اللوحة وحدها، والعنوانان من «محتوى الرئيسية» (tickers).
+    وتصنيفه، ويتوقف بالمرور والتركيز وزر الإيقاف ولمن طلب تقليل الحركة، وتحته «كل الأخبار». ولكل منهما «المزيد». والعمود الفارغ
+    باقٍ بحالته الفارغة، فالعمودان متجاوران دائماً على الحاسوب ما دام إعدادا إظهارهما مفعّلين (قرار صفوان، 11 نوفمبر 2026 —
+    docs/decisions/2026-11-11-fix-show-empty-sections.md). والمحتوى من اللوحة وحدها، والعنوانان من «محتوى الرئيسية» (tickers).
+    $showsFeed و$showsNews: إعدادا الإظهار (والبراهين تُظهر عمود الإعلانات).
 --}}
 @php
     $feed = \App\Support\HomeShowcase::feed($prize, $announcements);
     $latest = $news->take(6);
-    $first = $feed !== [];
 @endphp
 
 <section class="home-band" data-band="{{ $band }}" aria-label="{{ $tickers['announcements'] }} — {{ $tickers['news'] }}">
-    <div @class(['mx-auto grid max-w-[82.5rem] gap-6 px-4 pt-6 pb-7 sm:px-7 lg:gap-8 lg:pt-7 lg:pb-8', 'lg:grid-cols-2' => $first && $latest->isNotEmpty()])>
-        @if ($first)
+    <div @class(['mx-auto grid max-w-[82.5rem] gap-6 px-4 pt-6 pb-7 sm:px-7 lg:gap-8 lg:pt-7 lg:pb-8', 'lg:grid-cols-2' => $showsFeed && $showsNews])>
+        @if ($showsFeed)
             <div data-feed-column class="flex min-w-0 flex-col gap-3" data-reveal>
                 <div class="flex items-center justify-between gap-4">
                     <h2 id="home-announcements" class="section-heading-title flex items-center gap-2.5 font-black text-primary-dark">
@@ -24,17 +25,21 @@
                     <a href="{{ route('media.announcements') }}" wire:navigate class="more-link">{{ __('ui.announcements.more') }}<span class="sr-only">: {{ $tickers['announcements'] }}</span></a>
                 </div>
 
-                <x-carousel :label="$tickers['announcements']" :count="count($feed)" autoplay :interval="7000" :status="false" class="home-announcements feed-carousel">
-                    @foreach ($feed as $slide)
-                        <div data-carousel-item @if ($loop->first) data-active @endif>
-                            @include('home.partials.feed-slide', ['slide' => $slide])
-                        </div>
-                    @endforeach
-                </x-carousel>
+                @if ($feed === [])
+                    <x-empty-state icon="bell" :message="__('home.empty.announcements')" class="flex-1" data-home-empty="announcements" />
+                @else
+                    <x-carousel :label="$tickers['announcements']" :count="count($feed)" autoplay :interval="7000" :status="false" class="home-announcements feed-carousel">
+                        @foreach ($feed as $slide)
+                            <div data-carousel-item @if ($loop->first) data-active @endif>
+                                @include('home.partials.feed-slide', ['slide' => $slide])
+                            </div>
+                        @endforeach
+                    </x-carousel>
+                @endif
             </div>
         @endif
 
-        @if ($latest->isNotEmpty())
+        @if ($showsNews)
             <div data-feed-column class="flex min-w-0 flex-col gap-3" data-reveal style="--reveal-delay: 120ms">
                 <div class="flex items-center justify-between gap-4">
                     <h2 id="home-news" class="section-heading-title flex items-center gap-2.5 font-black text-primary-dark">
@@ -44,6 +49,9 @@
                     <a href="{{ route('media.news.index') }}" wire:navigate class="more-link">{{ __('ui.news.more') }}<span class="sr-only">: {{ $tickers['news'] }}</span></a>
                 </div>
 
+                @if ($latest->isEmpty())
+                    <x-empty-state icon="newspaper" :message="__('home.empty.news')" class="flex-1" data-home-empty="news" />
+                @else
                 {{-- الشريط مطلق في صندوقه، فارتفاعه من العمود المجاور (أو حده الأدنى) لا من طول الأخبار --}}
                 <div class="home-news-box relative flex-1">
                     <x-marquee id="home-news-track" :label="$tickers['news']" direction="vertical" height="100%" :duration="max(20, $latest->count() * 6)" class="absolute! inset-0" data-home-news-list>
@@ -82,6 +90,7 @@
                     {{ __('ui.feed.all_news') }}
                     {{ \App\Support\Icon::svg('arrow-left', 'size-4') }}
                 </a>
+                @endif
             </div>
         @endif
     </div>

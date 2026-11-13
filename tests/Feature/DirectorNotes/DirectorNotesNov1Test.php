@@ -60,16 +60,16 @@ it('opens every header dropdown with the parent page itself, then its real secti
         ->and(MenuSections::for('/library'))->toHaveCount(4)
         ->and(array_column(MenuSections::for('/library'), 'url'))->toBe(array_map(fn (LibrarySection $section): string => '/library/'.$section->value, LibrarySection::cases()));
 
-    // المركز الإعلامي: كل أقسامه، وعنصر المحرر بعدها مرة واحدة، والأخبار لا تتكرر
+    // المركز الإعلامي: كل أقسامه و«قياس الرضا» دائماً (قرار صفوان، 11 نوفمبر 2026)، وعنصر المحرر بعدها مرة واحدة، والأخبار لا تتكرر
     $mediaChildren = MenuSections::children(['label' => 'المركز الإعلامي', 'url' => '/media', 'children' => [
         ['id' => 9, 'label' => 'الأخبار', 'url' => '/media/news', 'opens_in_new_tab' => false],
         ['id' => 10, 'label' => 'صفحة أضافها المحرر', 'url' => '/competitions', 'opens_in_new_tab' => false],
     ]]);
-    expect(array_column($mediaChildren, 'url'))->toBe(['/media', '/media/news', '/media/announcements', '/media/albums', '/library/videos', '/media/partners', '/media/social', '/competitions'])
+    expect(array_column($mediaChildren, 'url'))->toBe(['/media', '/media/news', '/media/announcements', '/media/albums', '/library/videos', '/media/partners', '/media/social', '/surveys', '/competitions'])
         ->and($mediaChildren[0]['label'])->toBe('المركز الإعلامي');
 
-    // الحوكمة: التصنيفات التي فيها وثيقة منشورة وحدها
-    expect(array_column(MenuSections::for('/governance'), 'url'))->toBe(['/governance?category='.DocumentCategory::AnnualReports->value]);
+    // الحوكمة: تصنيفاتها الخمسة، فيها وثيقة أو لا (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    expect(array_column(MenuSections::for('/governance'), 'url'))->toBe(array_map(fn (DocumentCategory $category): string => '/governance?category='.$category->value, DocumentCategory::cases()));
 
     // الخدمات: ما في صفحة الخدمات نفسها، ثم «متجر الجمعية» إلى صفحة المتجر (ملاحظات المدير، 4 نوفمبر 2026 ليلاً)
     expect(array_column(MenuSections::for('/services'), 'label'))->toBe([...array_map(fn (array $tile): string => __($tile['label']), MenuSections::availableServices()), __('store.menu.services_item')]);
@@ -92,7 +92,8 @@ it('marks only the parent page current on the parent itself, not on its sections
 });
 
 it('links each home identity card to its section of the about page when the page is published (item 8)', function () {
-    $this->get('/')->assertOk()->assertDontSee('data-identity-link', false);
+    // بلا «عن الجمعية» منشورة لا رابط إلى مقاطعها، وبطاقة «مبادراتنا» الفارغة إلى صفحة المبادرات (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertOk()->assertDontSee('/about#about-', false);
 
     Page::factory()->create(['slug' => Page::ABOUT, 'is_published' => true]);
     Cache::flush();

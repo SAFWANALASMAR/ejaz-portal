@@ -130,7 +130,8 @@ it('shows the four portal cards as a 2×2 grid beside the 30-day chart, with the
 it('shows the four portal cards even when all four numbers are zero, and none before the first run or with the section switched off', function () {
     directorHomeContent();
     directorVisits(0, 0);
-    $this->get('/')->assertOk()->assertDontSee('data-portal-stats', false)->assertDontSee('data-stat-badge', false);
+    // قبل أول حساب: القسم ظاهر بحالته الفارغة بلا بطاقة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+    $this->get('/')->assertOk()->assertSee('data-home-empty="portal_stats"', false)->assertDontSee('data-stat-badge', false);
 
     ContentCache::flush();
     $this->artisan('ejaz:refresh-stats');
@@ -469,9 +470,16 @@ it('adds the «عن الجمعية» anchors in order after the parent page, onc
         expect($positions)->not->toContain(false);
         $sorted = $positions;
         sort($sorted);
-        expect($positions)->toBe($sorted)
-            // و«اللوائح والسياسات» مخفية من القائمة المعروضة (مراجعة المشرف على #177، L5)
-            ->and($menu)->not->toContain('governance?category=policies');
+        expect($positions)->toBe($sorted);
+    }
+
+    // و«اللوائح والسياسات» مخفية من منسدلة «عن الجمعية» نفسها (مراجعة المشرف على #177، L5)، على الحاسوب والجوال، وموجودة في منسدلة
+    // «الحوكمة» بتصنيفاتها الخمسة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md؛ مراجعة #249)
+    $governance = MenuItem::query()->whereNull('parent_id')->where('url', '/governance')->firstOrFail();
+    $dropdown = fn (string $prefix, int $id): string => preg_match('~<ul id="'.$prefix.$id.'"[^>]*>(.*?)</ul>~s', $html, $match) ? $match[1] : '';
+    foreach (['menu-', 'mobile-menu-'] as $prefix) {
+        expect($dropdown($prefix, $about->id))->toContain('about#about-goals')->not->toContain('governance?category=policies')->not->toContain('اللوائح والسياسات')
+            ->and($dropdown($prefix, $governance->id))->toContain('governance?category=policies');
     }
 });
 

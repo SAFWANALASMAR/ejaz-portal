@@ -121,8 +121,8 @@ it('shows the four library sections in order as colored tiles and a numbered mov
     expect($labels)->toBe([__('library.sections.videos'), __('library.sections.audio'), __('library.sections.books'), __('library.sections.research')])
         ->and(str($html)->after('data-library-tiles')->before('</ul>')->toString())->toContain('tone-card')
         ->and($html)->toContain('data-library-strip="videos"')->toContain('data-library-strip="books"')
-        // القسم الفارغ لا شريط له
-        ->not->toContain('data-library-strip="research"')->not->toContain('data-library-strip="audio"')
+        // والقسم الفارغ بعنوانه وحالته الفارغة (قرار صفوان، 11 نوفمبر 2026 — docs/decisions/2026-11-11-fix-show-empty-sections.md)
+        ->toContain('data-library-empty="research"')->toContain('data-library-empty="audio"')->not->toContain('data-library-empty="videos"')
         ->toContain('id="library-strip-videos"')->toContain('كتاب في الشريط')
         // المقاطع مرقّمة في الشريط
         ->toContain('data-video-number');

@@ -113,14 +113,6 @@ class Survey extends Model
             ->first();
     }
 
-    /**
-     * شرط ظهور بطاقة «قياس الرضا» (config/eservices.php)، فلا تُعرض رابطاً إلى صفحة غير موجودة.
-     */
-    public static function hasOpenGeneral(): bool
-    {
-        return self::openGeneral() !== null;
-    }
-
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->useLogName('surveys')->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
