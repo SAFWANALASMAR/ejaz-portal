@@ -116,7 +116,7 @@ class LibraryController extends Controller implements HasMiddleware
                 'summary' => StructuredData::text($item->description, 160) ?? self::metaDescription($item),
                 'image' => $item->thumbnail ? Storage::disk('public')->url($item->thumbnail) : null,
                 // الكتاب Book والمرئية VideoObject (StructuredData)
-                'schema' => array_filter([StructuredData::libraryItem($item)]),
+                'schema' => $item->is_unlisted ? [] : array_filter([StructuredData::libraryItem($item)]),
                 'html' => view('library.show', ['item' => $item, 'related' => self::related($item)])->render(),
                 // «خارج قوائم المكتبة» لا يُفهرس (docs/decisions/2026-11-13-fix-brahin-guide-outside-library.md)
                 'noindex' => $item->is_unlisted,

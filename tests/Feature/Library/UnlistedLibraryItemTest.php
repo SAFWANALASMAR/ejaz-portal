@@ -20,10 +20,11 @@ beforeEach(fn () => Storage::fake('local'));
 
 it('keeps an unlisted book out of the library lists, search, related items and sitemap, but opens it by its link', function () {
     $listed = LibraryItem::factory()->create(['slug' => 'listed-book', 'title' => 'كتاب ظاهر في المكتبة']);
-    LibraryItem::factory()->create(['slug' => 'brahin-guide', 'title' => 'دليل اختبار مسابقة البراهين', 'is_unlisted' => true, 'is_downloadable' => false]);
+    LibraryItem::factory()->create(['slug' => 'brahin-guide', 'title' => 'دليل اختبار مسابقة البراهين', 'is_unlisted' => true, 'is_downloadable' => false, 'tags' => ['وسم الدليل وحده']]);
 
     $this->get('/library')->assertOk()->assertSee('كتاب ظاهر في المكتبة')->assertDontSee('دليل اختبار مسابقة البراهين');
-    $this->get('/library/books')->assertOk()->assertSee('كتاب ظاهر في المكتبة')->assertDontSee('دليل اختبار مسابقة البراهين');
+    $this->get('/library/books')->assertOk()->assertSee('كتاب ظاهر في المكتبة')->assertDontSee('دليل اختبار مسابقة البراهين')->assertDontSee('وسم الدليل وحده');
+    $this->get('/')->assertOk()->assertDontSee('دليل اختبار مسابقة البراهين');
     $this->get('/library/books?q=دليل')->assertOk()->assertDontSee('دليل اختبار مسابقة البراهين');
     $this->get('/library/books/listed-book')->assertOk()->assertDontSee('دليل اختبار مسابقة البراهين');
     $this->get('/sitemap.xml')->assertOk()->assertSee('listed-book')->assertDontSee('brahin-guide');
@@ -62,6 +63,18 @@ it('saves the flag for books from the panel action, and clears it for other sect
     $video = LibraryItem::factory()->video()->create(['slug' => 'clip']);
     $saved = app(SaveLibraryItem::class)->handle($editor, $video, ['title' => $video->title, 'section' => LibrarySection::Videos->value, 'is_unlisted' => true]);
     expect($saved->fresh()->is_unlisted)->toBeFalse();
+});
+
+it('keeps an unlisted book out of the assistant index, and back in once listed', function () {
+    $book = LibraryItem::factory()->create(['slug' => 'brahin-guide', 'is_unlisted' => true]);
+    \App\Support\Assistant\AssistantIndex::rebuild();
+
+    expect(\Illuminate\Support\Facades\DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeFalse();
+
+    $book->forceFill(['is_unlisted' => false])->save();
+    \App\Support\Assistant\AssistantIndex::rebuild();
+
+    expect(\Illuminate\Support\Facades\DB::table('assistant_chunks')->where('url', 'like', '%brahin-guide%')->exists())->toBeTrue();
 });
 
 it('keeps every existing item listed by default', function () {
