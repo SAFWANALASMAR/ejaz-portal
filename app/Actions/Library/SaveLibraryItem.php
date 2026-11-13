@@ -97,6 +97,11 @@ class SaveLibraryItem
             $item->is_downloadable = true;
         }
 
+        // و«خارج القوائم» للكتب والأبحاث وحدها كذلك
+        if (! $item->section->takesPdf() || $item->getAttribute('is_unlisted') === null) {
+            $item->is_unlisted = false;
+        }
+
         if (filled($item->video_url) && ! VideoUrl::isValid($item->video_url)) {
             throw ValidationException::withMessages(['video_url' => __('validation.video_url')]);
         }

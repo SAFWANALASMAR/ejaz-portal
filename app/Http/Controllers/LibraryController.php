@@ -59,7 +59,7 @@ class LibraryController extends Controller implements HasMiddleware
         // الأقسام الأربعة بترتيبها، لكل قسم أحدث عناصره المنشورة لشريطه (استعلام لكل قسم داخل الصفحة المخزنة)
         $html = ContentCache::remember('library.index', fn (): string => view('library.index', [
             'strips' => collect(LibrarySection::cases())->mapWithKeys(fn (LibrarySection $section): array => [
-                $section->value => LibraryItem::query()->published()->where('section', $section)->newestFirst()->limit(self::STRIP)->get(),
+                $section->value => LibraryItem::query()->listed()->where('section', $section)->newestFirst()->limit(self::STRIP)->get(),
             ]),
         ])->render());
 
@@ -84,7 +84,7 @@ class LibraryController extends Controller implements HasMiddleware
                 'items' => $items,
                 'filters' => $filters,
                 // الأكثر استعمالاً
-                'tags' => array_slice(LibraryItem::tagsIn(LibraryItem::query()->published()->where('section', $section)), 0, self::TAGS),
+                'tags' => array_slice(LibraryItem::tagsIn(LibraryItem::query()->listed()->where('section', $section)), 0, self::TAGS),
             ])->render();
         };
 
@@ -105,7 +105,7 @@ class LibraryController extends Controller implements HasMiddleware
         // معرّف منشور في قسمه، فلا يُخزَّن غيره، ولا يعمل الرابط بقسم آخر
         abort_unless((self::publishedSlugs()[$slug] ?? null) === $section, 404);
 
-        /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>, reader?: ?string} $page */
+        /** @var array{title: string, summary: string, image: ?string, html: string, schema?: list<array<string, mixed>>, reader?: ?string, noindex?: bool} $page */
         // reader.: مفتاح جديد منذ حماية القارئ، فلا تُقرأ صفحة خُزّنت قبل النشر بلا رابط الرمز ولا علامته (المراجعة المستقلة على #229)
         $page = ContentCache::remember('library.show.reader.'.$slug, function () use ($slug): array {
             $item = LibraryItem::query()->published()->where('slug', $slug)->firstOrFail();
@@ -116,8 +116,10 @@ class LibraryController extends Controller implements HasMiddleware
                 'summary' => StructuredData::text($item->description, 160) ?? self::metaDescription($item),
                 'image' => $item->thumbnail ? Storage::disk('public')->url($item->thumbnail) : null,
                 // الكتاب Book والمرئية VideoObject (StructuredData)
-                'schema' => array_filter([StructuredData::libraryItem($item)]),
+                'schema' => $item->is_unlisted ? [] : array_filter([StructuredData::libraryItem($item)]),
                 'html' => view('library.show', ['item' => $item, 'related' => self::related($item)])->render(),
+                // «خارج قوائم المكتبة» لا يُفهرس (docs/decisions/2026-11-13-fix-brahin-guide-outside-library.md)
+                'noindex' => $item->is_unlisted,
                 // رمز القارئ لكل طلب في الصفحة المخزنة (ReaderTicket)
                 'reader' => $item->isReadOnly() && $item->file !== null ? ReaderTicket::scope($item) : null,
             ];
@@ -239,7 +241,7 @@ class LibraryController extends Controller implements HasMiddleware
     private static function search(LibrarySection $section, array $filters): LengthAwarePaginator
     {
         return LibraryItem::query()
-            ->published()
+            ->listed()
             ->where('section', $section)
             // حرفا % و_ في البحث حرفان عاديان، لا نمطان
             ->when($filters['q'] ?? null, function ($query, $term): void {
@@ -262,7 +264,7 @@ class LibraryController extends Controller implements HasMiddleware
      */
     private static function related(LibraryItem $item): Collection
     {
-        $others = fn () => LibraryItem::query()->published()->where('section', $item->section)->whereKeyNot($item->getKey())->newestFirst();
+        $others = fn () => LibraryItem::query()->listed()->where('section', $item->section)->whereKeyNot($item->getKey())->newestFirst();
         $tags = $item->tagList();
 
         $related = $tags === [] ? new Collection : $others()
