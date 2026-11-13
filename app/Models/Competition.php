@@ -39,7 +39,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property RankingScope $ranking_scope
  * @property Carbon|null $ranking_locked_at
  */
-#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope', 'show_round_dates'])]
+#[Fillable(['slug', 'title', 'description', 'terms', 'prizes', 'categories', 'opens_at', 'closes_at', 'shuffle_questions', 'shuffle_options', 'is_published', 'exam_mode', 'intro_video_path', 'intro_video_seconds', 'work_types', 'student_mode', 'certificate_background', 'page_content', 'prize_table', 'ranking_scope', 'show_round_dates', 'schedule_pending'])]
 class Competition extends Model
 {
     /** @use HasFactory<CompetitionFactory> */
@@ -75,6 +75,7 @@ class Competition extends Model
             'prize_table' => 'array',
             'ranking_scope' => RankingScope::class,
             'show_round_dates' => 'boolean',
+            'schedule_pending' => 'boolean',
             'ranking_locked_at' => 'datetime',
         ];
     }
@@ -240,13 +241,17 @@ class Competition extends Model
             ->exists();
     }
 
+    /**
+     * و«المواعيد تُعلن لاحقاً» (schedule_pending): المنشورة «قريباً» مهما كان الموعدان المخزنان، فلا تسجيل ولا تقديم ولا اختبار
+     * حتى يُطفأ الخيار (docs/decisions/2026-11-12-feature-competition-schedule-pending.md).
+     */
     public function status(?Carbon $now = null): CompetitionStatus
     {
         $now ??= now();
 
         return match (true) {
             ! $this->is_published => CompetitionStatus::Draft,
-            $now->lt($this->opens_at) => CompetitionStatus::Upcoming,
+            $this->schedule_pending, $now->lt($this->opens_at) => CompetitionStatus::Upcoming,
             $now->lt($this->closes_at) => CompetitionStatus::Open,
             default => CompetitionStatus::Closed,
         };
@@ -281,6 +286,14 @@ class Competition extends Model
         return $this->ranking_locked_at !== null
             || $this->draws()->whereNull('round_id')->whereNotNull('gender')->exists()
             || ($this->rounds()->exists() && $this->rounds()->whereNull('results_published_at')->doesntExist());
+    }
+
+    /**
+     * «المواعيد تُعلن لاحقاً» لا يُشغَّل بعد أول تسجيل أو مشاركة، ولو أُلغي التسجيل، ويبقى المشغَّل قابلاً للإطفاء (SaveCompetition).
+     */
+    public function schedulePendingLocked(): bool
+    {
+        return $this->exists && ! $this->schedule_pending && $this->submissions()->withTrashed()->exists();
     }
 
     /**

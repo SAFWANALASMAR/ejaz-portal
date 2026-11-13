@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Competition;
 use App\Models\CompetitionSubmission;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -26,14 +27,15 @@ class CompetitionController extends Controller
     /**
      * التصنيف باستعلامات مستقلة قبل الترقيم (البند R15 من تدقيق القبول): الحالية والقادمة في الصفحة الأولى
      * بلا ترقيم، والسابقة وحدها مرقّمة، فلا تختفي الحالية لكثرة السابقات. والحد بين الحالات لحظة واحدة،
-     * فلا تقع مسابقة في قسمين ولا تسقط بينهما (كـ Competition::status).
+     * فلا تقع مسابقة في قسمين ولا تسقط بينهما (كـ Competition::status). والتي «مواعيدها تُعلن لاحقاً» قادمة مهما كان موعداها.
      */
     public function index(Request $request): View
     {
         $now = now();
         $published = fn () => Competition::query()->published();
+        $scheduled = fn () => $published()->where('schedule_pending', false);
 
-        $past = $published()->where('opens_at', '<=', $now)->where('closes_at', '<=', $now)->orderByDesc('closes_at')->orderByDesc('id')->paginate(self::PER_PAGE);
+        $past = $scheduled()->where('opens_at', '<=', $now)->where('closes_at', '<=', $now)->orderByDesc('closes_at')->orderByDesc('id')->paginate(self::PER_PAGE);
 
         abort_if($past->currentPage() > max(1, $past->lastPage()), 404);
 
@@ -42,10 +44,11 @@ class CompetitionController extends Controller
         return view('competitions.index', [
             'past' => $past,
             'open' => $firstPage
-                ? $published()->where('opens_at', '<=', $now)->where('closes_at', '>', $now)->orderByDesc('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
+                ? $scheduled()->where('opens_at', '<=', $now)->where('closes_at', '>', $now)->orderByDesc('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
                 : collect(),
             'upcoming' => $firstPage
-                ? $published()->where('opens_at', '>', $now)->orderBy('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
+                ? $published()->where(fn (Builder $query) => $query->where('schedule_pending', true)->orWhere('opens_at', '>', $now))
+                    ->orderBy('opens_at')->orderBy('id')->limit(self::ACTIVE_LIMIT)->get()
                 : collect(),
         ]);
     }

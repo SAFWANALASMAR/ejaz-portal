@@ -40,9 +40,11 @@ use WeakMap;
 class CompetitionForm
 {
     /**
-     * قفل المواعيد وقفل الترتيب لكل سجل في الطلب: Filament يقيّم «معطّل» لكل حقل في المستودع ولكل صف فيه، فكان قفل جدول
-     * الجوائز يسأل القاعدة ثلاث مرات لكل حقل (357 استعلاماً لصفحة مسابقة البراهين — docs/reviews/2026-11-02-v0.15-perf.md).
-     * والسجل يُحمَّل من جديد في كل طلب Livewire، وما يغيّر القفل (السحب ونشر النتائج) في مكوّنات العلاقات لا في هذا النموذج.
+     * قفل المواعيد وقفل الترتيب وقفل «المواعيد تُعلن لاحقاً» لكل سجل في الطلب: Filament يقيّم «معطّل» لكل حقل في المستودع ولكل
+     * صف فيه، فكان قفل جدول الجوائز يسأل القاعدة ثلاث مرات لكل حقل (357 استعلاماً لصفحة مسابقة البراهين — docs/reviews/2026-11-02-v0.15-perf.md).
+     * والسجل يُحمَّل من جديد في كل طلب Livewire، وما يغيّر القفلين الأولين (السحب ونشر النتائج) في مكوّنات العلاقات لا في هذا النموذج.
+     * وقفل «المواعيد تُعلن لاحقاً» يغيّره حفظ هذا النموذج نفسه (إطفاء الخيار)، فقد يبقى بقيمته قبل الحفظ حتى الطلب التالي، ويرفض
+     * SaveCompetition تشغيله على كل حال.
      *
      * @var WeakMap<Competition, array<string, bool>>|null
      */
@@ -67,6 +69,10 @@ class CompetitionForm
                         ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
                     DateTimePicker::make('closes_at')->label(__('competitions.fields.closes_at'))->seconds(false)->required()->after('opens_at')
                         ->disabled(fn (?Competition $record): bool => self::locked($record, 'scheduleLocked'))->dehydrated(),
+                    // الصفحة بلا مواعيد والتسجيل مغلق حتى تُعتمد المواعيد (decisions/2026-11-12-feature-competition-schedule-pending.md)
+                    Toggle::make('schedule_pending')->label(__('competitions.fields.schedule_pending'))->helperText(__('competitions.fields.schedule_pending_hint'))->columnSpanFull()
+                        // لا يُشغَّل بعد أول تسجيل (SaveCompetition)، فيُعطَّل مطفأً، ويبقى قابلاً للإطفاء. ويُسأل مرة للسجل (QueryBudgetTest)
+                        ->disabled(fn (?Competition $record): bool => self::locked($record, 'schedulePendingLocked'))->dehydrated(),
                     Textarea::make('description')->label(__('competitions.fields.description'))->rows(4)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('terms')->label(__('competitions.fields.terms'))->rows(5)->maxLength(5000)->columnSpanFull(),
                     Textarea::make('prizes')->label(__('competitions.fields.prizes'))->rows(3)->maxLength(2000)->columnSpanFull(),
@@ -299,7 +305,7 @@ class CompetitionForm
     }
 
     /**
-     * @param  'scheduleLocked'|'cumulativeLocked'  $lock
+     * @param  'scheduleLocked'|'cumulativeLocked'|'schedulePendingLocked'  $lock
      */
     private static function locked(?Competition $record, string $lock): bool
     {

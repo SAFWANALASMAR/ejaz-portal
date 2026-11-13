@@ -21,10 +21,10 @@
 @endphp
 
 <x-layouts.app :title="$competition->title" :description="StructuredData::text($competition->description, 160)">
-    {{-- المسابقة فعاليةً ومسار التنقل إليها (StructuredData) --}}
+    {{-- المسابقة فعاليةً ومسار التنقل إليها (StructuredData). وبلا الفعالية ما دامت مواعيدها لم تُعلن: الفعالية بلا تاريخ بدء خطأ عند Google --}}
     @push('head')
         {{ StructuredData::script([
-            StructuredData::competition($competition),
+            ...($competition->schedule_pending ? [] : [StructuredData::competition($competition)]),
             StructuredData::breadcrumbs($competition->title, route('competitions.show', $competition->slug), [[__('competitions.title'), route('competitions.index')]]),
         ]) }}
     @endpush
@@ -94,8 +94,10 @@
 
             <aside class="competition-aside h-fit space-y-4 card-lift p-6">
                 <x-competitions.status-badge :status="$status" />
+                {{-- «المواعيد تُعلن لاحقاً»: بلا الموعدين المخزنين، ومكانهما سطر الزر أدناه (schedule_pending) --}}
+                @unless ($competition->schedule_pending)
                 <h2 class="font-bold text-primary">{{ __('competitions.show.dates') }}</h2>
-                <dl class="space-y-2 text-sm">
+                <dl class="space-y-2 text-sm" data-competition-dates>
                     <div class="flex items-center gap-2">
                         {{ \App\Support\Icon::svg('calendar', 'size-4 shrink-0 text-accent', ['aria-hidden' => 'true']) }}
                         <dt class="text-muted">{{ $competition->student_mode ? __('competitions.student.registration_opens') : __('competitions.show.opens_at') }}</dt>
@@ -107,6 +109,7 @@
                         <dd class="font-medium text-ink">{{ Dates::display($competition->closes_at, withTime: true) }}</dd>
                     </div>
                 </dl>
+                @endunless
 
                 @if ($competition->student_mode)
                     @include('competitions.student._aside')
@@ -128,7 +131,9 @@
                         <x-button :href="route('login')" class="w-full" arrow>{{ __('competitions.show.login_to_apply') }}</x-button>
                     @endauth
                 @elseif ($status === CompetitionStatus::Upcoming)
-                    <p class="text-sm text-muted">{{ __('competitions.show.upcoming', ['date' => Dates::display($competition->opens_at, withTime: true)]) }}</p>
+                    <p class="text-sm text-muted" @if ($competition->schedule_pending) data-schedule-pending @endif>
+                        {{ $competition->schedule_pending ? __('competitions.show.schedule_pending') : __('competitions.show.upcoming', ['date' => Dates::display($competition->opens_at, withTime: true)]) }}
+                    </p>
                 @else
                     <p class="text-sm text-muted">{{ __('competitions.show.closed') }}</p>
                 @endif
