@@ -17,8 +17,8 @@
 
         <div class="space-y-3">
             @if ($attempt === null)
-                <x-alert type="info">{{ $round->ends_at->isPast() ? __('competitions.student.status_missed') : __('competitions.student.status_not_started') }}</x-alert>
-                @if ($round->isRunning())
+                <x-alert type="info">{{ $round->ends_at->isPast() && ! ($open ?? false) ? __('competitions.student.status_missed') : __('competitions.student.status_not_started') }}</x-alert>
+                @if ($open ?? $round->isRunning())
                     <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" arrow>{{ __('competitions.student.enter') }}</x-button>
                 @endif
             @elseif ($attempt->isInProgress())

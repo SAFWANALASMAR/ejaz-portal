@@ -5,7 +5,9 @@
 @php
     use App\Support\Dates;
 
-    $running = $round->isRunning();
+    // في النافذة، أو بإعادة اختبار قائمة لهذا الطالب (docs/decisions/2026-11-13-feature-competition-retake.md)
+    $retake ??= null;
+    $running = $round->isRunning() || $retake !== null;
 @endphp
 
 <x-layouts.account :title="__('competitions.student.round_title', ['round' => $round->name, 'competition' => $competition->title])">
@@ -26,6 +28,10 @@
                 <dd class="mt-1 font-medium text-ink">{{ trans_choice('competitions.student.questions_count', $round->question_count, ['count' => $round->question_count]) }} · {{ trans_choice('competitions.student.minutes', $round->duration_minutes, ['count' => $round->duration_minutes]) }}</dd>
             </div>
         </dl>
+
+        @if ($retake)
+            <x-alert type="info" data-retake>{{ __('competitions.student.retake.notice', ['time' => Dates::display($retake->retake_until ?? $round->ends_at, withTime: true)]) }}</x-alert>
+        @endif
 
         {{-- تنبيهات دليل الدخول من نصوص المسابقة (المطوية) إن كُتبت، وإلا التعليمات العامة --}}
         @php($alerts = $competition->pageList('guide_alerts'))

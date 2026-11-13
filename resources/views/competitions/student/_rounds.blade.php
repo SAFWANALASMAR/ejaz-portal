@@ -11,6 +11,8 @@
     use Illuminate\Support\Number;
 
     $attempts = $submission?->attempts()->get()->keyBy('round_id') ?? collect();
+    // إعادات الاختبار غير المستعملة للطالب باستعلام واحد (docs/decisions/2026-11-13-feature-competition-retake.md)
+    $retakes = $submission ? \App\Models\CompetitionRetake::query()->where('submission_id', $submission->id)->whereNull('used_at')->get() : collect();
 @endphp
 
 @if ($rounds->isNotEmpty())
@@ -58,7 +60,7 @@
                         <span class="keep-color w-fit rounded-full bg-surface px-3 py-1 text-sm text-muted" data-round-pending>{{ __('competitions.student.round_pending') }}</span>
                     @elseif ($submission && $attempt && ! $attempt->isInProgress())
                         <a href="{{ route('competitions.student.status', [$competition->slug, $round->uuid]) }}" class="tone-pill">{{ __('competitions.student.received_short') }}</a>
-                    @elseif ($submission && $round->isRunning())
+                    @elseif ($submission && ($round->isRunning() || $retakes->contains(fn ($retake) => $retake->isActiveFor($round))))
                         <x-button :href="route('competitions.student.round', [$competition->slug, $round->uuid])" size="sm" arrow>
                             {{ $attempt ? __('competitions.student.resume') : __('competitions.student.enter') }}
                         </x-button>

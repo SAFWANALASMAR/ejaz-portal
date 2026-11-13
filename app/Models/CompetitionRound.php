@@ -113,6 +113,27 @@ class CompetitionRound extends Model implements HasPublicImages
         $query->orderBy('sort_order')->orderBy('id');
     }
 
+    /**
+     * إعادة اختبار قائمة لهذا التسجيل في المرحلة (GrantCompetitionRetake)، أو null.
+     */
+    public function activeRetake(?CompetitionSubmission $submission): ?CompetitionRetake
+    {
+        if ($submission === null) {
+            return null;
+        }
+
+        return CompetitionRetake::query()->active($this)->where('submission_id', $submission->id)->latest('id')->first();
+    }
+
+    /**
+     * يبدأ هذا التسجيل محاولة الآن: المرحلة جارية، أو له إعادة قائمة بعد إغلاقها
+     * (docs/decisions/2026-11-13-feature-competition-retake.md).
+     */
+    public function openFor(?CompetitionSubmission $submission): bool
+    {
+        return $this->isRunning() || $this->activeRetake($submission) !== null;
+    }
+
     public function isRunning(?Carbon $now = null): bool
     {
         $now ??= now();

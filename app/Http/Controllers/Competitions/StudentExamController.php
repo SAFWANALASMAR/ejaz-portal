@@ -109,6 +109,8 @@ class StudentExamController extends Controller
             return view('competitions.student.start', [
                 'competition' => $competition,
                 'round' => $stage,
+                // إعادة اختبار قائمة لهذا الطالب (docs/decisions/2026-11-13-feature-competition-retake.md)
+                'retake' => $stage->activeRetake($submission),
                 'eligible' => ! $stage->qualified_only || app(StartAttempt::class)->qualified($stage, $submission),
             ]);
         }
@@ -131,6 +133,7 @@ class StudentExamController extends Controller
         return view('competitions.student.status', [
             'competition' => $competition,
             'round' => $stage,
+            'open' => $stage->openFor($submission),
             'attempt' => $this->attempt($request, $stage, $submission),
         ]);
     }

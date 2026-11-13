@@ -4,6 +4,7 @@ namespace App\Actions\Competitions;
 
 use App\Models\CompetitionAttempt;
 use App\Models\CompetitionQuestion;
+use App\Models\CompetitionRetake;
 use App\Models\CompetitionRound;
 use App\Models\CompetitionSubmission;
 use App\Models\User;
@@ -46,7 +47,12 @@ class StartAttempt
 
                 // ولا بدء في مرحلة نُشرت نتائجها: تظهر درجة من يسلّم فيها فوراً. ولا بدء و«المواعيد تُعلن لاحقاً» مشغّل: مواعيد المراحل
                 // المخزنة غير معتمدة (مراجعة الطلب 254 — docs/decisions/2026-11-12-feature-competition-schedule-pending.md)
-                if (! $competition->is_published || $competition->trashed() || $competition->schedule_pending || ! $locked->isRunning() || $locked->resultsPublished()) {
+                // وإعادة اختبار منحها المدير التنفيذي أو المسؤول التقني تفتح المرحلة لهذا التسجيل وحده، في نافذتها أو حتى مهلتها
+                // بعد إغلاقها (docs/decisions/2026-11-13-feature-competition-retake.md)
+                $retake = CompetitionRetake::query()->active($locked)->where('submission_id', $submission->id)->lockForUpdate()->latest('id')->first();
+                $open = $retake !== null || ($locked->isRunning() && ! $locked->resultsPublished());
+
+                if (! $competition->is_published || $competition->trashed() || $competition->schedule_pending || ! $open) {
                     throw new AuthorizationException(__('competitions.student.round_closed'));
                 }
 
@@ -77,7 +83,8 @@ class StartAttempt
                 $attempt->submission_id = $submission->id;
                 $attempt->user_id = $user->id;
                 $attempt->started_at = now();
-                $attempt->deadline_at = $deadline->min($locked->ends_at);
+                // والإعادة بمدتها الكاملة: المهلة مهلة البدء لا نهاية المحاولة (docs/decisions/2026-11-13-feature-competition-retake.md)
+                $attempt->deadline_at = $retake !== null ? $deadline : $deadline->min($locked->ends_at);
                 $attempt->layout = $layout;
                 $attempt->answers = [];
                 // العدد والدرجة القصوى عند البدء، فيُتحقق من تساويهما قبل الترتيب والسحب (RunTieDraw)
@@ -89,6 +96,11 @@ class StartAttempt
                     $attempt->reference = SubmissionReference::generate();
                 } while (CompetitionAttempt::query()->where('reference', $attempt->reference)->exists());
                 $attempt->save();
+
+                if ($retake !== null) {
+                    $retake->used_at = now();
+                    $retake->save();
+                }
 
                 return $attempt;
             });
