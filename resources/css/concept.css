@@ -3525,6 +3525,13 @@ html[data-reveal-ready] .portal-chart-line {
     background: color-mix(in srgb, var(--color-white) 14%, transparent);
 }
 
+/* من 1024 الكبسولتان عمود بعرض واحد (قرار 4 نوفمبر): المتجر لمن دخل يساوي «حسابي» بلا زر الخروج */
+@media (min-width: 64rem) {
+    [data-site-header]:not([data-header-compact]) .header-account ~ [data-header-store] {
+        margin-inline-end: calc(2.375rem + 0.375rem);
+    }
+}
+
 /* دون 1536 الكبسولتان أصغر قليلاً، فيبقى قبل الأزرار فراغ ولا تزاحم مربع الترخيص: المخطوطة دون 1536 تتمدد بعرض الصف بعد أزرار بعرض
    كبسولة الدخول وحدها (مقيس في director-home-2026-11-03.spec.mjs من 1024 إلى 1920) */
 @media (min-width: 64rem) and (max-width: 95.999rem) {

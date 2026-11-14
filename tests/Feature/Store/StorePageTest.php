@@ -161,9 +161,10 @@ it('puts the store capsule under the login capsule in the header first row, one 
 
 it('keeps the account capsule above the store capsule once signed in', function () {
     $this->actingAs(userWithRole(RoleName::Member));
-    $pills = (string) str($this->get('/')->assertOk()->getContent())->after('class="header-pills')->before('</div>');
+    $pills = (string) str($this->get('/')->assertOk()->getContent())->after('class="header-pills')->before('</header>');
 
-    expect($pills)->toMatch('#<a href="'.preg_quote(route('account.dashboard'), '#').'"[^>]*class="login-pill">[\s\S]*?</a>\s*<a href="'.preg_quote(route('store.index'), '#').'"#');
+    // «حسابي» وبجانبه زر الخروج في .header-account، ثم كبسولة المتجر (decisions/2026-11-14-fix-header-logout-icon.md)
+    expect($pills)->toMatch('#<div class="header-account">\s*<a href="'.preg_quote(route('account.dashboard'), '#').'"[^>]*class="login-pill">[\s\S]*?</a>\s*<form[^>]*data-header-logout>[\s\S]*?</form>\s*</div>\s*<a href="'.preg_quote(route('store.index'), '#').'"#');
 });
 
 it('keeps one store entry in the mobile menu, named like the header capsule', function () {
