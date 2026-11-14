@@ -68,10 +68,19 @@
                      عند التمرير (data-header-compact — concept.css .header-pills). وللجوال واللوحي العمودي داخل قائمة ☰ --}}
                 <div class="header-pills hidden sm:flex">
                     @auth
-                        <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
-                            <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
-                            {{ __('site.my_account') }}
-                        </a>
+                        {{-- وبجانب «حسابي» زر الخروج بأيقونة لمن دخل (طلب صفوان، 14 نوفمبر 2026 — decisions/2026-11-14-fix-header-logout-icon.md) --}}
+                        <div class="header-account">
+                            <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill">
+                                <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
+                                {{ __('site.my_account') }}
+                            </a>
+                            <form method="POST" action="{{ route('logout') }}" data-header-logout>
+                                @csrf
+                                <button type="submit" class="header-logout" aria-label="{{ __('site.logout') }}" title="{{ __('site.logout') }}">
+                                    {{ \App\Support\Icon::svg('arrow-right-start-on-rectangle', 'size-[18px]', ['aria-hidden' => 'true']) }}
+                                </button>
+                            </form>
+                        </div>
                     @else
                         <a href="{{ route('login') }}" class="login-pill">
                             <span data-icon-circle class="inline-flex rounded-full">{{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}</span>
@@ -188,10 +197,18 @@
 
             <div class="mt-3 border-t border-white/10 pt-3 sm:hidden">
                 @auth
-                    <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill w-full justify-center">
-                        {{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}
-                        {{ __('site.my_account') }}
-                    </a>
+                    <div class="header-account">
+                        <a href="{{ route('account.dashboard') }}" @navigate(route('account.dashboard')) class="login-pill w-full justify-center">
+                            {{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}
+                            {{ __('site.my_account') }}
+                        </a>
+                        <form method="POST" action="{{ route('logout') }}" data-menu-logout>
+                            @csrf
+                            <button type="submit" class="header-logout" aria-label="{{ __('site.logout') }}" title="{{ __('site.logout') }}">
+                                {{ \App\Support\Icon::svg('arrow-right-start-on-rectangle', 'size-[18px]', ['aria-hidden' => 'true']) }}
+                            </button>
+                        </form>
+                    </div>
                 @else
                     <a href="{{ route('login') }}" class="login-pill w-full justify-center">
                         {{ \App\Support\Icon::svg('user', 'size-[18px]', ['aria-hidden' => 'true']) }}
